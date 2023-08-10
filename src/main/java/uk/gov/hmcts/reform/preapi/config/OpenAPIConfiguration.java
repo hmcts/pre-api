@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:src/main/java/uk/gov/hmcts/reform/preapi/config/OpenAPIConfiguration.java
 package uk.gov.hmcts.reform.preapi.config;
-========
-package uk.gov.hmcts.reform.pre-api.config;
->>>>>>>> 943a58c4500e409cd9c5c7378b603568d2968ef5:src/main/java/uk/gov/hmcts/reform/pre-api/config/OpenAPIConfiguration.java
 
 import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
