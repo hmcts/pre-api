@@ -15,5 +15,10 @@
     </notes>
     <cve>CVE-2022-1471</cve>
   </suppress>
+  <suppress until="2023-09-14">
+    <notes>Looks like a new security issue which involves DOS attacks</notes>
+    <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+    <vulnerabilityName>CVE-2023-35116</vulnerabilityName>
+  </suppress>
   <!--End of temporary suppression section -->
 </suppressions>
