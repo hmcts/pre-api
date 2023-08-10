@@ -1,3 +1,5 @@
+# pre-api
+
 # Spring Boot application template
 
 ## Purpose
@@ -49,27 +51,17 @@ The template contains the following plugins:
     ```bash
       ./gradlew jacocoTestReport
     ```
-
     The report will be created in build/reports subdirectory in your project directory.
-
   * io.spring.dependency-management
-
     https://github.com/spring-gradle-plugins/dependency-management-plugin
-
     Provides Maven-like dependency management. Allows you to declare dependency management
     using `dependency 'groupId:artifactId:version'`
     or `dependency group:'group', name:'name', version:version'`.
-
   * org.springframework.boot
-
     http://projects.spring.io/spring-boot/
-
     Reduces the amount of work needed to create a Spring application
-
   * org.owasp.dependencycheck
-
     https://jeremylong.github.io/DependencyCheck/dependency-check-gradle/index.html
-
     Provides monitoring of the project's dependent libraries and creating a report
     of known vulnerable components that are included in the build. To run it
     execute `gradle dependencyCheck` command.
@@ -115,7 +107,7 @@ Create docker image:
   docker-compose build
 ```
 
-Run the distribution (created in `build/install/spring-boot-template` directory)
+Run the distribution (created in `build/install/pre-api` directory)
 by executing the following command:
 
 ```bash
