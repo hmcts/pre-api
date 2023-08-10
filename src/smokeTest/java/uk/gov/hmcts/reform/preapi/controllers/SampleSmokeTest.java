@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/smokeTest/java/uk/gov/hmcts/reform/preapi/controllers/SampleSmokeTest.java
 package uk.gov.hmcts.reform.preapi.controllers;
+========
+package uk.gov.hmcts.reform.pre-api.controllers;
+>>>>>>>> 943a58c4500e409cd9c5c7378b603568d2968ef5:src/smokeTest/java/uk/gov/hmcts/reform/pre-api/controllers/SampleSmokeTest.java
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;

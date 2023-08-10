@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/functionalTest/java/uk/gov/hmcts/reform/preapi/controllers/SampleFunctionalTest.java
 package uk.gov.hmcts.reform.preapi.controllers;
+========
+package uk.gov.hmcts.reform.pre-api.controllers;
+>>>>>>>> 943a58c4500e409cd9c5c7378b603568d2968ef5:src/functionalTest/java/uk/gov/hmcts/reform/pre-api/controllers/SampleFunctionalTest.java
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
