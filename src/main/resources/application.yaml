@@ -1,5 +1,5 @@
 server:
-  port: 
+  port: 4550
 
 management:
   endpoint:
