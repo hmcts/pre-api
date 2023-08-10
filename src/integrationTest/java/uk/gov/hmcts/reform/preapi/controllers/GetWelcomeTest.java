@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/integrationTest/java/uk/gov/hmcts/reform/preapi/controllers/GetWelcomeTest.java
 package uk.gov.hmcts.reform.preapi.controllers;
+========
+package uk.gov.hmcts.reform.pre-api.controllers;
+>>>>>>>> 943a58c4500e409cd9c5c7378b603568d2968ef5:src/integrationTest/java/uk/gov/hmcts/reform/pre-api/controllers/GetWelcomeTest.java
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

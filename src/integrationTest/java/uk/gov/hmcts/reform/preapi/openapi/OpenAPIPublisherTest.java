@@ -1,4 +1,8 @@
+<<<<<<<< HEAD:src/integrationTest/java/uk/gov/hmcts/reform/preapi/openapi/OpenAPIPublisherTest.java
 package uk.gov.hmcts.reform.preapi.openapi;
+========
+package uk.gov.hmcts.reform.pre-api.openapi;
+>>>>>>>> 943a58c4500e409cd9c5c7378b603568d2968ef5:src/integrationTest/java/uk/gov/hmcts/reform/pre-api/openapi/OpenAPIPublisherTest.java
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
