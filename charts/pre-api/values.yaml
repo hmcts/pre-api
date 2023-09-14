@@ -1,7 +1,7 @@
 java:
-  applicationPort: 
+  applicationPort:
   image: 'hmctspublic.azurecr.io/pre/api:latest'
-  ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
+  ingressHost: pre-api.{{ .Values.global.environment }}.platform.hmcts.net
   aadIdentityName: pre
 #  Uncomment once the vault containing the app insights key has been set up
 #  keyVaults:
