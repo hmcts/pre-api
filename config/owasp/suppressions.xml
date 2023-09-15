@@ -7,8 +7,7 @@
   </suppress>
 
   <suppress>
-    <notes>The vulnerability only affects applications that use an LDAP CertStore from Bouncy Castle to validate X.509 certificates.
-    I have spoken to Hemanta who has confirmed we don't do this.</notes>
+    <notes>The vulnerability only affects applications that use an LDAP CertStore from Bouncy Castle to validate X.509 certificates.</notes>
     <cve>CVE-2023-33201</cve>
   </suppress>
 
