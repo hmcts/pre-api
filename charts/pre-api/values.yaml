@@ -1,5 +1,5 @@
 java:
-  applicationPort:
+  applicationPort: 4550
   image: 'sdshmctspublic.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
   aadIdentityName: pre
