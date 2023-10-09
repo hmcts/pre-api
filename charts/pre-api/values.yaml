@@ -9,4 +9,14 @@ java:
 #      secrets:
 #        - name: AppInsightsInstrumentationKey
 #          alias: azure.application-insights.instrumentation-key
+#        - name: _
+#          alias: DB_USERNAME
+#        - name: _
+#          alias: DB_PASSWORD
+#        - name: _
+#          alias: DB_HOST
+#        - name: _
+#          alias: DB_OPTIONS
+#        - name: _
+#          alias: DB_SCHEMA
   environment:
