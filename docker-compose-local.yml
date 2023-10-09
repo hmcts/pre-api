@@ -10,11 +10,10 @@ services:
         - no_proxy
     image: hmctspublic.azurecr.io/spring-boot/template
     environment:
-      - DARTS_API_DB_HOST=pre-db
-      - DARTS_API_DB_NAME=pre
-      - DARTS_API_DB_USERNAME=pre
-      - DARTS_API_DB_PASSWORD=pre
-      - DARTS_API_DB_SCHEMA=pre
+      - DB_HOST=pre-db
+      - DB_NAME=pre
+      - DB_USERNAME=pre
+      - DB_PASSWORD=pre
       - ROOT_APPENDER
       - JSON_CONSOLE_PRETTY_PRINT
       - ROOT_LOGGING_LEVEL
