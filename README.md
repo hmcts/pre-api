@@ -93,7 +93,7 @@ To build the project execute the following command:
   ./gradlew build
 ```
 
-### Running the application
+### Running the application in docker
 
 Create the image of the application by executing the following command:
 
@@ -104,7 +104,7 @@ Create the image of the application by executing the following command:
 Create docker image:
 
 ```bash
-  docker-compose build
+  docker-compose -f docker-compose-local.yml build
 ```
 
 Run the distribution (created in `build/install/pre-api` directory)
