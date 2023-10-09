@@ -23,9 +23,9 @@ spring:
   datasource:
     driver-class-name: org.postgresql.Driver
     url: jdbc:postgresql://${DB_HOST:localhost}:5432/${DB_NAME:pre}${DB_OPTIONS:}
-    username: ${DB_USER_NAME:pre}
+    username: ${DB_USERNAME:pre}
     password: ${DB_PASSWORD:pre}
-    schema: ${DB_SCHEMA:pre}
+    schema: pre
     properties:
       charSet: UTF-8
 

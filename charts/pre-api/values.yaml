@@ -4,19 +4,13 @@ java:
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
   aadIdentityName: pre
 #  Uncomment once the vault containing the app insights key has been set up
-#  keyVaults:
-#    pre:
-#      secrets:
-#        - name: AppInsightsInstrumentationKey
-#          alias: azure.application-insights.instrumentation-key
-#        - name: _
-#          alias: DB_USERNAME
-#        - name: _
-#          alias: DB_PASSWORD
-#        - name: _
-#          alias: DB_HOST
-#        - name: _
-#          alias: DB_OPTIONS
-#        - name: _
-#          alias: DB_SCHEMA
+  keyVaults:
+    pre:
+      secrets:
+        - name: postgresdb-username
+          alias: DB_USERNAME
+        - name: postgresdb-password
+          alias: DB_PASSWORD
   environment:
+    DB_NAME: lr-pdb-1
+    DB_HOST: pre-db-{{ .Values.global.environment }}.postgres.database.azure.com
