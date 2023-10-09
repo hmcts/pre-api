@@ -1,0 +1,56 @@
+version: '2.1'
+
+services:
+  pre-api:
+    build:
+      context: .
+      args:
+        - http_proxy
+        - https_proxy
+        - no_proxy
+    image: hmctspublic.azurecr.io/spring-boot/template
+    environment:
+      - DARTS_API_DB_HOST=pre-db
+      - DARTS_API_DB_NAME=pre
+      - DARTS_API_DB_USERNAME=pre
+      - DARTS_API_DB_PASSWORD=pre
+      - DARTS_API_DB_SCHEMA=pre
+      - ROOT_APPENDER
+      - JSON_CONSOLE_PRETTY_PRINT
+      - ROOT_LOGGING_LEVEL
+      - REFORM_SERVICE_TYPE
+      - REFORM_SERVICE_NAME
+      - REFORM_TEAM
+      - REFORM_ENVIRONMENT
+      - LOGBACK_DATE_FORMAT
+      - LOGBACK_REQUIRE_THREAD
+      - LOGBACK_REQUIRE_ALERT_LEVEL=false
+      - LOGBACK_REQUIRE_ERROR_CODE=false
+    ports:
+      - "4550:4550"
+    networks:
+      - pre-network
+
+  pre-db:
+    container_name: pre-db
+    image: postgres:16.0-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=pre
+      - POSTGRES_PASSWORD=pre
+      - POSTGRES_DB=pre
+    command: ["postgres", "-c", "log_statement=all"]
+    ports:
+      - "5432:5432"
+    volumes:
+      - pre-db:/var/lib/postgresql/data
+    networks:
+      - pre-network
+
+volumes:
+  pre-db:
+    driver: local
+
+networks:
+  pre-network:
+    driver: bridge
