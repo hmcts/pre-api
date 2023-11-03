@@ -6,4 +6,7 @@ def type = "java"
 def product = "pre"
 def component = "api"
 
-withPipeline(type, product, component) {}
+withPipeline(type, product, component) {
+  syncBranchesWithMaster(['perftest', 'ithc', 'demo'])
+  enableSlackNotifications('#pre-builds')
+}
