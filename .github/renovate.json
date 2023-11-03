@@ -3,5 +3,9 @@
   "extends": [
     "local>hmcts/.github:renovate-config",
     "local>hmcts/.github//renovate/automerge-all"
-  ]
+  ],
+  "vulnerabilityAlerts": {
+    "labels": ["security"]
+  },
+  "rebaseWhen": "behind-base-branch"
 }
