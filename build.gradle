@@ -209,6 +209,8 @@ dependencies {
   implementation 'org.postgresql:postgresql:42.6.0'
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '9.22.2'
 
+  implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.3.1.Final')
 
   testImplementation(platform('org.junit:junit-bom:5.10.0'))
