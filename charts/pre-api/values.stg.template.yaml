@@ -1,4 +1,10 @@
 # Don't modify this file, it is only needed for the pipeline to set the image and ingressHost
 java:
+  environment:
+    #    RUN_DB_MIGRATION_ON_STARTUP: true # uncomment this once we remove the pre-db-dev
+    POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
+    POSTGRES_DATABASE: "{{ .Values.postgresql.auth.database}}"
+    POSTGRES_USER: "{{ .Values.postgresql.auth.username}}"
+    POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
