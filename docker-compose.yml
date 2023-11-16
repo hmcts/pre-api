@@ -1,26 +1,17 @@
-version: '2.1'
+version: '3.1'
 
 services:
-  pre-api:
-    build:
-      context: .
-      args:
-        - http_proxy
-        - https_proxy
-        - no_proxy
-    image: hmctspublic.azurecr.io/spring-boot/template
+
+  db:
+    image: postgres
+    restart: always
     environment:
-      # these environment variables are used by java-logging library
-      - ROOT_APPENDER
-      - JSON_CONSOLE_PRETTY_PRINT
-      - ROOT_LOGGING_LEVEL
-      - REFORM_SERVICE_TYPE
-      - REFORM_SERVICE_NAME
-      - REFORM_TEAM
-      - REFORM_ENVIRONMENT
-      - LOGBACK_DATE_FORMAT
-      - LOGBACK_REQUIRE_THREAD
-      - LOGBACK_REQUIRE_ALERT_LEVEL=false
-      - LOGBACK_REQUIRE_ERROR_CODE=false
+      POSTGRES_PASSWORD: pre
+      POSTGRES_USER: pre
+      POSTGRES_DB: pre
+
+  adminer:
+    image: adminer
+    restart: always
     ports:
-      - $SERVER_PORT:$SERVER_PORT
+      - 8080:8080
