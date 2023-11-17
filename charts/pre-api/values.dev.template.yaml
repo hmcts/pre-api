@@ -3,6 +3,9 @@ java:
     enabled: true
     auth:
       postgresPassword: "postgres"
+  keyVaults:
+    pre:
+      secrets:
   environment:
     #    RUN_DB_MIGRATION_ON_STARTUP: true # uncomment this once we remove the pre-db-dev
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
