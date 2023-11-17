@@ -144,10 +144,16 @@ task migratePostgresDatabase(type: org.flywaydb.gradle.task.FlywayMigrateTask) {
 project.tasks['sonarqube'].dependsOn jacocoTestReport
 project.tasks['check'].dependsOn integration
 
+def coverageExclusionList = [
+  '**uk/gov/hmcts/reform/preapi/data/exception/PendingMigrationScriptException*',
+  '**uk/gov/hmcts/reform/preapi/data/migration/FlywayNoOpStrategy*'
+]
+
 sonarqube {
   properties {
     property "sonar.projectName", "Reform :: pre-api"
     property "sonar.projectKey", "uk.gov.hmcts.reform:pre-api"
+    property "sonar.exclusions", coverageExclusionList.join(", ")
   }
 }
 
@@ -217,11 +223,24 @@ dependencies {
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
   testImplementation(platform('org.junit:junit-bom:5.10.1'))
+  testImplementation group: 'org.testcontainers', name: 'postgresql', version: '1.19.2'
   testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
     exclude group: 'junit', module: 'junit'
     exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
   }
+}
+
+rootProject.tasks.named("processIntegrationTestResources") {
+  duplicatesStrategy = 'include'
+}
+
+rootProject.tasks.named("processFunctionalTestResources") {
+  duplicatesStrategy = 'include'
+}
+
+rootProject.tasks.named("processSmokeTestResources") {
+  duplicatesStrategy = 'include'
 }
 
 mainClassName = 'uk.gov.hmcts.reform.preapi.Application'
