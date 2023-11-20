@@ -3,11 +3,11 @@ java:
     enabled: true
     auth:
       postgresPassword: "postgres"
-  keyVaults:
-    pre:
-      secrets:
-        - name: AppInsightsInstrumentationKey
-          alias: APPINSIGHTS_INSTRUMENTATIONKEY
+#  keyVaults:
+#    pre:
+#      secrets:
+#        - name: AppInsightsInstrumentationKey
+#          alias: APPINSIGHTS_INSTRUMENTATIONKEY
   environment:
     #    RUN_DB_MIGRATION_ON_STARTUP: true # uncomment this once we remove the pre-db-dev
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
