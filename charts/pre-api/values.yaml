@@ -11,9 +11,9 @@ java:
 #          alias: POSTGRES_HOST
 #        - name: postgresdb-password
 #          alias: POSTGRES_PASSWORD
-#        - name: postgresdb-username
-#          alias: POSTGRES_USER
-        - name: AppInsightsInstrumentationKey
-          alias: APPINSIGHTS_INSTRUMENTATIONKEY
+        - name: postgresdb-username
+          alias: POSTGRES_USER
+#        - name: AppInsightsInstrumentationKey
+#          alias: APPINSIGHTS_INSTRUMENTATIONKEY
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
