@@ -1,15 +1,6 @@
 java:
   postgresql:
     enabled: true
-    auth:
-      postgresPassword: "postgres"
-      username: "pre"
-      password: "pre"
-      database: "api"
-    primary:
-      initdb:
-        user: postgres
-        password: postgres
   keyVaults:
     pre:
       secrets:
@@ -18,9 +9,9 @@ java:
   environment:
     #    RUN_DB_MIGRATION_ON_STARTUP: true # uncomment this once we remove the pre-db-dev
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
-    POSTGRES_DATABASE: "api"
-    POSTGRES_USER: "pre"
-    POSTGRES_PASSWORD: "pre"
+    POSTGRES_DATABASE: "{{ .Values.postgresql.auth.database}}"
+    POSTGRES_USER: "{{ .Values.postgresql.auth.username}}"
+    POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
