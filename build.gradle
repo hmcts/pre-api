@@ -127,9 +127,9 @@ jacocoTestReport {
 }
 
 flyway {
-  url = System.getenv('FLYWAY_URL')
-  user = System.getenv('FLYWAY_USER')
-  password = System.getenv('FLYWAY_PASSWORD')
+  url = System.getenv('POSTGRES_HOST') ?: "localhost"
+  user = System.getenv('POSTGRES_USER') ?: "pre"
+  password = System.getenv('POSTGRES_PASSWORD') ?: "pre"
   baselineOnMigrate = true
   baselineVersion = '000'
 }
@@ -202,6 +202,24 @@ ext {
   log4JVersion = "2.22.0"
 }
 
+def versions = [
+  junit           : '5.8.2',
+  junitPlatform   : '1.8.2',
+  reformLogging   : '5.1.5',
+  springBoot      : springBoot.class.package.implementationVersion,
+  springfoxSwagger: '2.9.2'
+]
+
+ext.libraries = [
+  junit5: [
+    "org.junit.jupiter:junit-jupiter-api:${versions.junit}",
+    "org.junit.jupiter:junit-jupiter-engine:${versions.junit}",
+    "org.junit.jupiter:junit-jupiter-params:${versions.junit}",
+    "org.junit.platform:junit-platform-commons:${versions.junitPlatform}",
+    "org.junit.platform:junit-platform-engine:${versions.junitPlatform}"
+  ]
+]
+
 ext['snakeyaml.version'] = '2.0'
 
 dependencies {
@@ -222,13 +240,28 @@ dependencies {
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
-  testImplementation(platform('org.junit:junit-bom:5.10.1'))
-  testImplementation group: 'org.testcontainers', name: 'postgresql', version: '1.19.2'
-  testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+  testImplementation 'com.github.hmcts:fortify-client:1.2.2:all'
+  testImplementation 'org.springframework.security:spring-security-test:5.7.5'
+  testImplementation libraries.junit5
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
     exclude group: 'junit', module: 'junit'
     exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
   }
+
+  integrationTestImplementation sourceSets.main.runtimeClasspath
+  integrationTestImplementation sourceSets.test.runtimeClasspath
+  integrationTestImplementation group: 'org.testcontainers', name: 'postgresql', version: '1.19.3'
+  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.19.3'
+
+  functionalTestImplementation sourceSets.main.runtimeClasspath
+  functionalTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
+  functionalTestImplementation group: 'io.rest-assured', name: 'rest-assured'
+  functionalTestImplementation group: 'org.testcontainers', name: 'postgresql', version: '1.17.6'
+  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.17.6'
+
+  smokeTestImplementation sourceSets.main.runtimeClasspath
+  smokeTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
+  smokeTestImplementation group: 'io.rest-assured', name: 'rest-assured'
 }
 
 rootProject.tasks.named("processIntegrationTestResources") {
