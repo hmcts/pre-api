@@ -3,6 +3,9 @@ java:
     enabled: true
     auth:
       postgresPassword: "postgres"
+      username: "pre"
+      password: "pre"
+      database: "api"
     primary:
       initdb:
         user: postgres
