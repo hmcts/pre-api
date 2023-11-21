@@ -1,6 +1,8 @@
 java:
   postgresql:
     enabled: true
+    volumePermissions:
+      enabled: true
   keyVaults:
     pre:
       secrets:
