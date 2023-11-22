@@ -36,6 +36,7 @@ spring:
       maxLifetime: 7200000
       connectionTimeout: 30000
     jpa:
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
       properties:
         hibernate:
           globally_quoted_identifiers: true
@@ -50,7 +51,7 @@ azure:
     instrumentation-key: ${pre.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}
 
 hibernate:
-  show_sql=true:
+  show_sql: true
 
 dbMigration:
   # When true, the app will run DB migration on startup.
