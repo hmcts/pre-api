@@ -127,9 +127,9 @@ jacocoTestReport {
 }
 
 flyway {
-  url = System.getenv('FLYWAY_URL')
-  user = System.getenv('FLYWAY_USER')
-  password = System.getenv('FLYWAY_PASSWORD')
+  url = System.getenv('POSTGRES_HOST') ?: "localhost"
+  user = System.getenv('POSTGRES_USER') ?: "pre"
+  password = System.getenv('POSTGRES_PASSWORD') ?: "pre"
   baselineOnMigrate = true
   baselineVersion = '000'
 }
