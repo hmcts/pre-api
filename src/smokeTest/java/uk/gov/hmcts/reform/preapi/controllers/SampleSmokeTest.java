@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.logging.Logger;
+
 import static io.restassured.RestAssured.given;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
@@ -18,6 +20,12 @@ class SampleSmokeTest {
     @Value("${TEST_URL:http://localhost:8080}")
     private String testUrl;
 
+    @Value("${spring.datasource.username}")
+    private String dbUser;
+
+    @Value("${spring.datasource.host}")
+    private String dbHost;
+
     @BeforeEach
     public void setUp() {
         RestAssured.baseURI = testUrl;
@@ -26,6 +34,8 @@ class SampleSmokeTest {
 
     @Test
     void smokeTest() {
+        Logger.getGlobal().info("dbUser: " + dbUser);
+        Logger.getGlobal().info("dbHost: " + dbHost);
         Response response = given()
             .contentType(ContentType.JSON)
             .when()

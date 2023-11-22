@@ -23,6 +23,7 @@ spring:
     name: Spring Boot Template
   datasource:
     driver-class-name: org.postgresql.Driver
+    host: ${POSTGRES_HOST:localhost}
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:api}${DB_OPTIONS:}
     username: ${POSTGRES_USER:pre}
     password: ${POSTGRES_PASSWORD:pre}
