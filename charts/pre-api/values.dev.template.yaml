@@ -1,4 +1,15 @@
 java:
+  keyVaults:
+    pre:
+      secrets:
+        - name: postgresdb-host
+          alias: POSTGRES_HOST
+        - name: postgresdb-password
+          alias: POSTGRES_PASSWORD
+        - name: postgresdb-username
+          alias: POSTGRES_USER
+        - name: AppInsightsInstrumentationKey
+          alias: APPINSIGHTS_INSTRUMENTATIONKEY
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
