@@ -1,0 +1,67 @@
+package uk.gov.hmcts.reform.preapi.entities;
+
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+
+import java.sql.Timestamp;
+import java.util.UUID;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "capture_sessions")
+public class CaptureSession {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(unique = true, nullable = false, updatable = false, insertable = false)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id", referencedColumnName = "id")
+    private Booking booking;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RecordingOrigin origin;
+
+    @Column(name = "ingest_address")
+    private String ingestAddress;
+
+    @Column(name = "live_output_url", length = 100)
+    private String liveOutputUrl;
+
+    @Column(name = "started_on")
+    private Timestamp startedOn;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "started_by_user_id", referencedColumnName = "id")
+    private User startedByUser;
+
+    @Column(name = "finished_on")
+    private Timestamp finishedOn;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "finished_by_user_id", referencedColumnName = "id")
+    private User finishedByUserId;
+
+    @Enumerated(EnumType.STRING)
+    @Column
+    private RecordingStatus status;
+
+    @Column
+    private boolean deleted = false;
+}

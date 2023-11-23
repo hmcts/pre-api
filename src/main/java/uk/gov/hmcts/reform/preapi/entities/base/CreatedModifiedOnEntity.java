@@ -5,7 +5,6 @@ import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.sql.Timestamp;
 
@@ -14,10 +13,9 @@ import java.sql.Timestamp;
 @Setter
 public class CreatedModifiedOnEntity {
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
-    private Timestamp createdAt;
+    @Column(name = "created_on", nullable = false)
+    private Timestamp createdOn;
 
-    @UpdateTimestamp
-    @Column(name = "updated_at")
-    private Timestamp updatedAt;
+    @Column(name = "modified_on")
+    private Timestamp modifiedOn;
 }
