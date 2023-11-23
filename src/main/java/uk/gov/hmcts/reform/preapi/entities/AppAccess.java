@@ -21,12 +21,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "app_access")
 public class AppAccess extends CreatedModifiedOnEntity {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(unique = true, nullable = false, updatable = false, insertable = false)
-    private UUID id;
-
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;

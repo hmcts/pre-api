@@ -21,11 +21,6 @@ import java.util.UUID;
 @Entity
 @Table(name = "bookings")
 public class Booking extends CreatedModifiedOnEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(unique = true, nullable = false, updatable = false, insertable = false)
-    private UUID id;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;

@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 @MappedSuperclass
 @Getter
 @Setter
-public class CreatedModifiedOnEntity {
+public class CreatedModifiedOnEntity extends BaseEntity {
     @CreationTimestamp
     @Column(name = "created_on", nullable = false)
     private Timestamp createdOn;

@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.util.Set;
 import java.util.UUID;
@@ -18,12 +19,7 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "regions")
-public class Region {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(unique = true, nullable = false, updatable = false, insertable = false)
-    private UUID id;
-
+public class Region extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String name;
 

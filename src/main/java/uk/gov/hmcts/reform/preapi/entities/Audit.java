@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
@@ -21,13 +22,7 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "audits")
-public class Audit {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(unique = true, nullable = false, updatable = false, insertable = false)
-    private UUID id;
-
+public class Audit extends BaseEntity {
     @Column(name = "table_name", length = 25)
     private String tableName;
 
