@@ -8,8 +8,6 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
-import java.util.UUID;
-
 @Getter
 @Setter
 @Entity
