@@ -1,4 +1,12 @@
 java:
+  postgresql:
+    enabled: true
+  environment:
+    RUN_DB_MIGRATION_ON_STARTUP: true
+    POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
+    POSTGRES_DATABASE: "{{ .Values.postgresql.auth.database}}"
+    POSTGRES_USER: "{{ .Values.postgresql.auth.username}}"
+    POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
