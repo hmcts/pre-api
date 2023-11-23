@@ -21,28 +21,39 @@ spring:
     import: "optional:configtree:/mnt/secrets/pre/"
   application:
     name: Spring Boot Template
-#  datasource:
-#    driver-class-name: org.postgresql.Driver
-#    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}${DB_OPTIONS:}
-#    username: ${DB_USER_NAME}
-#    password: ${DB_PASSWORD}
-#    properties:
-#      charSet: UTF-8
-#    hikari:
-#      minimumIdle: 2
-#      maximumPoolSize: 10
-#      idleTimeout: 10000
-#      poolName: {to-be-defined}HikariCP
-#      maxLifetime: 7200000
-#      connectionTimeout: 30000
-#  jpa:
-#    properties:
-#      hibernate:
-#        jdbc:
-#          lob:
-#            # silence the 'wall-of-text' - unnecessary exception throw about blob types
-#            non_contextual_creation: true
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DATABASE:api}${DB_OPTIONS:}
+    username: ${POSTGRES_USER:pre}
+    password: ${POSTGRES_PASSWORD:pre}
+    properties:
+      charSet: UTF-8
+    hikari:
+      minimumIdle: 2
+      maximumPoolSize: 10
+      idleTimeout: 10000
+      poolName: PreHikariCP
+      maxLifetime: 7200000
+      connectionTimeout: 30000
+    jpa:
+      database-platform: org.hibernate.dialect.PostgreSQLDialect
+      properties:
+        hibernate:
+          globally_quoted_identifiers: true
+          jdbc:
+            lob:
+              # silence the 'wall-of-text' - unnecessary exception throw about blob types
+              non_contextual_creation: true
+      open-in-view: true # https://www.baeldung.com/spring-open-session-in-view may want to disable
 
 azure:
   application-insights:
     instrumentation-key: ${pre.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}
+
+hibernate:
+  show_sql: true
+
+dbMigration:
+  # When true, the app will run DB migration on startup.
+  # Otherwise, it will just check if all migrations have been applied (and fail to start if not).
+  runOnStartup: ${RUN_DB_MIGRATION_ON_STARTUP:true}
