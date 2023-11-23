@@ -1,9 +1,9 @@
 package uk.gov.hmcts.reform.preapi.audit.service;
 
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.util.UUID;
 
-import uk.gov.hmcts.reform.preapi.entities.User;
 
 public interface AuditService {
 
