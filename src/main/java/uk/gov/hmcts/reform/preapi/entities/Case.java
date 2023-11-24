@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
 @Setter
 @Entity
 @Table(name = "cases")
-
 public class Case extends CreatedModifiedOnEntity { //NOPMD - suppressed ShortClassName
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "court_id", referencedColumnName = "id")
