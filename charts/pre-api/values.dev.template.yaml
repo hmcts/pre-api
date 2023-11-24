@@ -1,6 +1,8 @@
 java:
   postgresql:
     enabled: true
+  keyVaults:
+  # don't try to load anything from KV
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
