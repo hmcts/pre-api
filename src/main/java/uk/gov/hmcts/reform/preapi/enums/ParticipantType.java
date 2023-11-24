@@ -1,6 +1,6 @@
 package uk.gov.hmcts.reform.preapi.enums;
 
 public enum ParticipantType {
-    witness,
-    defendant
+    witness, //NOPMD - suppressed FieldNamingConventions
+    defendant //NOPMD - suppressed FieldNamingConventions
 }

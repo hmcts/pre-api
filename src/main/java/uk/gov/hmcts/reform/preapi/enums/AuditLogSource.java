@@ -1,8 +1,9 @@
 package uk.gov.hmcts.reform.preapi.enums;
 
+
 public enum AuditLogSource {
-    application,
-    portal,
-    admin,
-    auto;
+    application, //NOPMD - suppressed FieldNamingConventions
+    portal, //NOPMD - suppressed FieldNamingConventions
+    admin, //NOPMD - suppressed FieldNamingConventions
+    auto; //NOPMD - suppressed FieldNamingConventions
 }
