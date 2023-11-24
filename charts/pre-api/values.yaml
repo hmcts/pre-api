@@ -7,15 +7,15 @@ java:
   keyVaults:
     pre:
       secrets:
-        - name: API-POSTGRES-HOST
+        - name: api-POSTGRES-HOST
           alias: POSTGRES_HOST
-        - name: API-POSTGRES-PORT
+        - name: api-POSTGRES-PORT
           alias: POSTGRES_PORT
-        - name: API-POSTGRES-DATABASE
+        - name: api-POSTGRES-DATABASE
           alias: POSTGRES_DATABASE
-        - name: API-POSTGRES-PASS
+        - name: api-POSTGRES-PASS
           alias: POSTGRES_PASSWORD
-        - name: API-POSTGRES-USER
+        - name: api-POSTGRES-USER
           alias: POSTGRES_USER
         - name: AppInsightsInstrumentationKey
           alias: APPINSIGHTS_INSTRUMENTATIONKEY
