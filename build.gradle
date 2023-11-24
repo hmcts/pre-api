@@ -241,7 +241,7 @@ dependencies {
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
   testImplementation 'com.github.hmcts:fortify-client:1.2.2:all'
-  testImplementation 'org.springframework.security:spring-security-test:5.7.5'
+  testImplementation 'org.springframework.security:spring-security-test:5.8.8'
   testImplementation libraries.junit5
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
     exclude group: 'junit', module: 'junit'
