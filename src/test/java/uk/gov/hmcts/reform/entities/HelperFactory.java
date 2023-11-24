@@ -1,11 +1,5 @@
 package uk.gov.hmcts.reform.entities;
 
-import javax.annotation.Nullable;
-
-import java.sql.Date;
-import java.sql.Timestamp;
-
-import jakarta.validation.constraints.NotNull;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -19,9 +13,23 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
-public class HelperFactory {
+import java.sql.Date;
+import java.sql.Timestamp;
+import javax.annotation.Nullable;
 
-    public static User createUser(String firstName, String lastName, String email, boolean deleted, @Nullable String phone, @Nullable String organisation) {
+final class HelperFactory {
+
+    private HelperFactory() {
+    }
+
+    static User createUser(
+        String firstName,
+        String lastName,
+        String email,
+        boolean deleted,
+        @Nullable String phone,
+        @Nullable String organisation
+    ) { //NOPMD - suppressed UseObjectForClearerAPI
         User user = new User();
         user.setFirstName(firstName);
         user.setLastName(lastName);
@@ -32,7 +40,7 @@ public class HelperFactory {
         return user;
     }
 
-    public static Court createCourt(CourtType courtType, String name, @Nullable String locationCode) {
+    static Court createCourt(CourtType courtType, String name, @Nullable String locationCode) {
         Court court = new Court();
         court.setCourtType(courtType);
         court.setName(name);
@@ -40,13 +48,20 @@ public class HelperFactory {
         return court;
     }
 
-    public static Role createRole(String name) {
+    static Role createRole(String name) {
         Role role = new Role();
         role.setName(name);
         return role;
     }
 
-    public static AppAccess createAppAccess(User user, Court court, Role role, boolean active, boolean deleted, @Nullable Date lastAccess) {
+    static AppAccess createAppAccess(
+        User user,
+        Court court,
+        Role role,
+        boolean active,
+        boolean deleted,
+        @Nullable Date lastAccess
+    ) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);
         appAccess.setCourt(court);
@@ -57,7 +72,7 @@ public class HelperFactory {
         return appAccess;
     }
 
-    public static Case createCase(Court court, String caseRef, boolean test, boolean deleted) {
+    static Case createCase(Court court, String caseRef, boolean test, boolean deleted) {
         Case testCase = new Case();
         testCase.setCourt(court);
         testCase.setCaseRef(caseRef);
@@ -66,7 +81,7 @@ public class HelperFactory {
         return testCase;
     }
 
-    public static Booking createBooking(Case testingCase, Date date, boolean deleted) {
+    static Booking createBooking(Case testingCase, Date date, boolean deleted) {
         Booking booking = new Booking();
         booking.setCaseId(testingCase);
         booking.setDate(date);
@@ -74,9 +89,18 @@ public class HelperFactory {
         return booking;
     }
 
-    public static CaptureSession createCaptureSession(Booking booking, RecordingOrigin origin, @Nullable String ingestAddress, @Nullable String liveOutputUrl, @Nullable
-                                                      Timestamp startedOn, @Nullable User startedBy, @Nullable Timestamp finishedOn, @Nullable User finishedBy, @Nullable
-                                                      RecordingStatus status, boolean deleted) {
+    static CaptureSession createCaptureSession(//NOPMD - suppressed ExcessiveParameterList
+        Booking booking,
+        RecordingOrigin origin,
+        @Nullable String ingestAddress,
+        @Nullable String liveOutputUrl,
+        @Nullable Timestamp startedOn,
+        @Nullable User startedBy,
+        @Nullable Timestamp finishedOn,
+        @Nullable User finishedBy,
+        @Nullable RecordingStatus status,
+        boolean deleted
+    ) {
         CaptureSession captureSession = new CaptureSession();
         captureSession.setBooking(booking);
         captureSession.setOrigin(origin);
@@ -91,7 +115,13 @@ public class HelperFactory {
         return captureSession;
     }
 
-    public static Participant createParticipant(Case testCase, ParticipantType type, String firstName, String lastName, boolean deleted) {
+    static Participant createParticipant(
+        Case testCase,
+        ParticipantType type,
+        String firstName,
+        String lastName,
+        boolean deleted
+    ) {
         Participant participant = new Participant();
         participant.setCaseId(testCase);
         participant.setParticipantType(type);

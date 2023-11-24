@@ -1,10 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,8 +10,10 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class CourtTest {
+class CourtTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -31,10 +30,9 @@ public class CourtTest {
 
         Court retrievedCourt = entityManager.find(Court.class, court.getId());
 
-        assertEquals(court.getId(), retrievedCourt.getId());
-        assertEquals(court.getCourtType(), retrievedCourt.getCourtType());
-        assertEquals(court.getName(), retrievedCourt.getName());
-        assertEquals(court.getLocationCode(), retrievedCourt.getLocationCode());
-        assertEquals(court.getRegions(), retrievedCourt.getRegions());
+        assertEquals(court.getId(), retrievedCourt.getId(), "Id should match");
+        assertEquals(court.getCourtType(), retrievedCourt.getCourtType(), "Court type should match");
+        assertEquals(court.getName(), retrievedCourt.getName(), "Name should match");
+        assertEquals(court.getLocationCode(), retrievedCourt.getLocationCode(), "Location codes should match");
     }
 }

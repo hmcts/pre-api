@@ -1,12 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import java.sql.Timestamp;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,8 +9,12 @@ import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
+import java.sql.Timestamp;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class PortalAccessTest {
+class PortalAccessTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -42,17 +41,41 @@ public class PortalAccessTest {
 
         PortalAccess retrievedPortalAccess = entityManager.find(PortalAccess.class, testPortalAccess.getId());
 
-        assertEquals(testPortalAccess.getId(), retrievedPortalAccess.getId());
-        assertEquals(testPortalAccess.getUser(), retrievedPortalAccess.getUser());
-        assertEquals(testPortalAccess.getPassword(), retrievedPortalAccess.getPassword());
-        assertEquals(testPortalAccess.getLastAccess(), retrievedPortalAccess.getLastAccess());
-        assertEquals(testPortalAccess.isInvitationSent(), retrievedPortalAccess.isInvitationSent());
-        assertEquals(testPortalAccess.getInvitationDateTime(), retrievedPortalAccess.getInvitationDateTime());
-        assertEquals(testPortalAccess.isRegistered(), retrievedPortalAccess.isRegistered());
-        assertEquals(testPortalAccess.getRegisteredDateTime(), retrievedPortalAccess.getRegisteredDateTime());
-        assertEquals(testPortalAccess.isActive(), retrievedPortalAccess.isActive());
-        assertEquals(testPortalAccess.isDeleted(), retrievedPortalAccess.isDeleted());
-        assertEquals(testPortalAccess.getCreatedOn(), retrievedPortalAccess.getCreatedOn());
-        assertEquals(testPortalAccess.getModifiedOn(), retrievedPortalAccess.getModifiedOn());
+        assertEquals(testPortalAccess.getId(), retrievedPortalAccess.getId(), "Id should match");
+        assertEquals(testPortalAccess.getUser(), retrievedPortalAccess.getUser(), "User should match");
+        assertEquals(testPortalAccess.getPassword(), retrievedPortalAccess.getPassword(), "Password should match");
+        assertEquals(
+            testPortalAccess.getLastAccess(),
+            retrievedPortalAccess.getLastAccess(),
+            "Last active should match"
+        );
+        assertEquals(
+            testPortalAccess.isInvitationSent(),
+            retrievedPortalAccess.isInvitationSent(),
+            "Invitation sent status should match"
+        );
+        assertEquals(
+            testPortalAccess.getInvitationDateTime(),
+            retrievedPortalAccess.getInvitationDateTime(),
+            "Invitation date time should match"
+        );
+        assertEquals(
+            testPortalAccess.isRegistered(),
+            retrievedPortalAccess.isRegistered(),
+            "Registered status should match"
+        );
+        assertEquals(
+            testPortalAccess.getRegisteredDateTime(),
+            retrievedPortalAccess.getRegisteredDateTime(),
+            "Registered date time should match"
+        );
+        assertEquals(testPortalAccess.isActive(), retrievedPortalAccess.isActive(), "Active status should match");
+        assertEquals(testPortalAccess.isDeleted(), retrievedPortalAccess.isDeleted(), "Deleted status should match");
+        assertEquals(testPortalAccess.getCreatedOn(), retrievedPortalAccess.getCreatedOn(), "Created on should match");
+        assertEquals(
+            testPortalAccess.getModifiedOn(),
+            retrievedPortalAccess.getModifiedOn(),
+            "Modified on should match"
+        );
     }
 }

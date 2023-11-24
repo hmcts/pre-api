@@ -1,12 +1,8 @@
 package uk.gov.hmcts.reform.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import java.sql.Date;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,8 +12,12 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
+import java.sql.Date;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class BookingTest {
+class BookingTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -37,11 +37,11 @@ public class BookingTest {
 
         Booking retrievedBooking = entityManager.find(Booking.class, booking.getId());
 
-        assertEquals(booking.getId(), retrievedBooking.getId());
-        assertEquals(booking.getCaseId(), retrievedBooking.getCaseId());
-        assertEquals(booking.getDate(), retrievedBooking.getDate());
-        assertEquals(booking.isDeleted(), retrievedBooking.isDeleted());
-        assertEquals(booking.getCreatedOn(), retrievedBooking.getCreatedOn());
-        assertEquals(booking.getModifiedOn(), retrievedBooking.getModifiedOn());
+        assertEquals(booking.getId(), retrievedBooking.getId(), "Id should match");
+        assertEquals(booking.getCaseId(), retrievedBooking.getCaseId(), "Case should match");
+        assertEquals(booking.getDate(), retrievedBooking.getDate(), "Date should match");
+        assertEquals(booking.isDeleted(), retrievedBooking.isDeleted(), "Deleted status should match");
+        assertEquals(booking.getCreatedOn(), retrievedBooking.getCreatedOn(), "Created on should match");
+        assertEquals(booking.getModifiedOn(), retrievedBooking.getModifiedOn(), "Modified on should match");
     }
 }

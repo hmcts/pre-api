@@ -1,12 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import java.util.UUID;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,8 +10,12 @@ import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class AuditTest {
+class AuditTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -39,16 +38,16 @@ public class AuditTest {
 
         Audit retrievedAudit = entityManager.find(Audit.class, audit.getId());
 
-        assertEquals(audit.getId(), retrievedAudit.getId());
-        assertEquals(audit.getTableName(), retrievedAudit.getTableName());
-        assertEquals(audit.getTableRecordId(), retrievedAudit.getTableRecordId());
-        assertEquals(audit.getSource(), retrievedAudit.getSource());
-        assertEquals(audit.getType(), retrievedAudit.getType());
-        assertEquals(audit.getCategory(), retrievedAudit.getCategory());
-        assertEquals(audit.getActivity(), retrievedAudit.getActivity());
-        assertEquals(audit.getFunctionalArea(), retrievedAudit.getFunctionalArea());
-        assertEquals(audit.getAuditDetails(), retrievedAudit.getAuditDetails());
-        assertEquals(audit.getCreatedBy(), retrievedAudit.getCreatedBy());
-        assertEquals(audit.getCreatedOn(), retrievedAudit.getCreatedOn());
+        assertEquals(audit.getId(), retrievedAudit.getId(), "Id should match");
+        assertEquals(audit.getTableName(), retrievedAudit.getTableName(), "Table names should match");
+        assertEquals(audit.getTableRecordId(), retrievedAudit.getTableRecordId(), "Record ids should match");
+        assertEquals(audit.getSource(), retrievedAudit.getSource(), "Source should match");
+        assertEquals(audit.getType(), retrievedAudit.getType(), "Type should match");
+        assertEquals(audit.getCategory(), retrievedAudit.getCategory(), "Category should match");
+        assertEquals(audit.getActivity(), retrievedAudit.getActivity(), "Activity should match");
+        assertEquals(audit.getFunctionalArea(), retrievedAudit.getFunctionalArea(), "Functional area should match");
+        assertEquals(audit.getAuditDetails(), retrievedAudit.getAuditDetails(), "Audit details should match");
+        assertEquals(audit.getCreatedBy(), retrievedAudit.getCreatedBy(), "Created by should match");
+        assertEquals(audit.getCreatedOn(), retrievedAudit.getCreatedOn(), "Created on should match");
     }
 }

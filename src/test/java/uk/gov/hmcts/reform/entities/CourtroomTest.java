@@ -1,10 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,8 +12,10 @@ import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class CourtroomTest {
+class CourtroomTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -42,8 +41,8 @@ public class CourtroomTest {
 
         Courtroom retrievedCourtroom = entityManager.find(Courtroom.class, testCourtroom.getId());
 
-        assertEquals(testCourtroom.getId(), retrievedCourtroom.getId());
-        assertEquals(testCourtroom.getCourt(), retrievedCourtroom.getCourt());
-        assertEquals(testCourtroom.getRoom(), retrievedCourtroom.getRoom());
+        assertEquals(testCourtroom.getId(), retrievedCourtroom.getId(), "Id should match");
+        assertEquals(testCourtroom.getCourt(), retrievedCourtroom.getCourt(), "Court should match");
+        assertEquals(testCourtroom.getRoom(), retrievedCourtroom.getRoom(), "Room should match");
     }
 }

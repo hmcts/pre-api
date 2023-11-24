@@ -1,14 +1,7 @@
-
 package uk.gov.hmcts.reform.entities;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-import java.sql.Date;
-import java.sql.Timestamp;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,8 +15,13 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.sql.Date;
+import java.sql.Timestamp;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class CaptureSessionTest {
+class CaptureSessionTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -43,22 +41,53 @@ public class CaptureSessionTest {
         User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
         entityManager.persist(user);
 
-        CaptureSession captureSession = HelperFactory.createCaptureSession(booking, RecordingOrigin.pre, "TestIngrestAddress", "TestLiveOutputAddress", new Timestamp(System.currentTimeMillis()), user, new Timestamp(System.currentTimeMillis()), user, RecordingStatus.finished, false);
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.pre,
+            "TestIngrestAddress",
+            "TestLiveOutputAddress",
+            new Timestamp(System.currentTimeMillis()),
+            user,
+            new Timestamp(System.currentTimeMillis()),
+            user,
+            RecordingStatus.finished,
+            false
+        );
         entityManager.persist(captureSession);
         entityManager.flush();
 
         CaptureSession retrievedCaptureSession = entityManager.find(CaptureSession.class, captureSession.getId());
 
-        assertEquals(captureSession.getId(), retrievedCaptureSession.getId());
-        assertEquals(captureSession.getBooking(), retrievedCaptureSession.getBooking());
-        assertEquals(captureSession.getOrigin(), retrievedCaptureSession.getOrigin());
-        assertEquals(captureSession.getIngestAddress(), retrievedCaptureSession.getIngestAddress());
-        assertEquals(captureSession.getLiveOutputUrl(), retrievedCaptureSession.getLiveOutputUrl());
-        assertEquals(captureSession.getStartedOn(), retrievedCaptureSession.getStartedOn());
-        assertEquals(captureSession.getStartedByUser(), retrievedCaptureSession.getStartedByUser());
-        assertEquals(captureSession.getFinishedOn(), retrievedCaptureSession.getFinishedOn());
-        assertEquals(captureSession.getFinishedByUserId(), retrievedCaptureSession.getFinishedByUserId());
-        assertEquals(captureSession.getStatus(), retrievedCaptureSession.getStatus());
-        assertEquals(captureSession.isDeleted(), retrievedCaptureSession.isDeleted());
+        assertEquals(captureSession.getId(), retrievedCaptureSession.getId(), "Id should match");
+        assertEquals(captureSession.getBooking(), retrievedCaptureSession.getBooking(), "Booking should match");
+        assertEquals(captureSession.getOrigin(), retrievedCaptureSession.getOrigin(), "Origin should match");
+        assertEquals(
+            captureSession.getIngestAddress(),
+            retrievedCaptureSession.getIngestAddress(),
+            "Ingest address should match"
+        );
+        assertEquals(
+            captureSession.getLiveOutputUrl(),
+            retrievedCaptureSession.getLiveOutputUrl(),
+            "Live output url should match"
+        );
+        assertEquals(captureSession.getStartedOn(), retrievedCaptureSession.getStartedOn(), "Started on should match");
+        assertEquals(
+            captureSession.getStartedByUser(),
+            retrievedCaptureSession.getStartedByUser(),
+            "Started on by user should match"
+        );
+        assertEquals(
+            captureSession.getFinishedOn(),
+            retrievedCaptureSession.getFinishedOn(),
+            "Finished on should match"
+        );
+        assertEquals(
+            captureSession.getFinishedByUserId(),
+            retrievedCaptureSession.getFinishedByUserId(),
+            "Finished on by user should match"
+        );
+        assertEquals(captureSession.getStatus(), retrievedCaptureSession.getStatus(), "Status should match");
+        assertEquals(captureSession.isDeleted(), retrievedCaptureSession.isDeleted(), "Deleted status should match");
     }
 }

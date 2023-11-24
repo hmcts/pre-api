@@ -1,13 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
-import java.sql.Date;
-import java.sql.Timestamp;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,8 +16,13 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.sql.Date;
+import java.sql.Timestamp;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class ShareRecordingTest {
+class ShareRecordingTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -43,7 +42,18 @@ public class ShareRecordingTest {
         User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
         entityManager.persist(user);
 
-        CaptureSession captureSession = HelperFactory.createCaptureSession(booking, RecordingOrigin.pre, "TestIngrestAddress", "TestLiveOutputAddress", new Timestamp(System.currentTimeMillis()), user, new Timestamp(System.currentTimeMillis()), user, RecordingStatus.finished, false);
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.pre,
+            "TestIngrestAddress",
+            "TestLiveOutputAddress",
+            new Timestamp(System.currentTimeMillis()),
+            user,
+            new Timestamp(System.currentTimeMillis()),
+            user,
+            RecordingStatus.finished,
+            false
+        );
         entityManager.persist(captureSession);
 
         ShareRecording testShareRecording = new ShareRecording();
@@ -57,12 +67,31 @@ public class ShareRecordingTest {
 
         ShareRecording retrievedShareRecording = entityManager.find(ShareRecording.class, testShareRecording.getId());
 
-        assertEquals(testShareRecording.getId(), retrievedShareRecording.getId());
-        assertEquals(testShareRecording.getCaptureSession(), retrievedShareRecording.getCaptureSession());
-        assertEquals(testShareRecording.getSharedWith(), retrievedShareRecording.getSharedWith());
-        assertEquals(testShareRecording.getSharedBy(), retrievedShareRecording.getSharedBy());
-        assertEquals(testShareRecording.getCreatedOn(), retrievedShareRecording.getCreatedOn());
-        assertEquals(testShareRecording.isDeleted(), retrievedShareRecording.isDeleted());
-        assertEquals(testShareRecording.getCreatedOn(), retrievedShareRecording.getCreatedOn());
+        assertEquals(testShareRecording.getId(), retrievedShareRecording.getId(), "Id should match");
+        assertEquals(
+            testShareRecording.getCaptureSession(),
+            retrievedShareRecording.getCaptureSession(),
+            "Capture session should match"
+        );
+        assertEquals(
+            testShareRecording.getSharedWith(),
+            retrievedShareRecording.getSharedWith(),
+            "Shared with should match"
+        );
+        assertEquals(
+            testShareRecording.getSharedBy(),
+            retrievedShareRecording.getSharedBy(),
+            "Shared by should match"
+        );
+        assertEquals(
+            testShareRecording.getCreatedOn(),
+            retrievedShareRecording.getCreatedOn(),
+            "Created on should match"
+        );
+        assertEquals(
+            testShareRecording.isDeleted(),
+            retrievedShareRecording.isDeleted(),
+            "Deleted status should match"
+        );
     }
 }

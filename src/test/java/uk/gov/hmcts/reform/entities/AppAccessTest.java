@@ -1,12 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import java.sql.Date;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,8 +12,12 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
+import java.sql.Date;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class AppAccessTest {
+class AppAccessTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -49,13 +48,13 @@ public class AppAccessTest {
 
         AppAccess retrievedAppAccess = entityManager.find(AppAccess.class, appAccess.getId());
 
-        assertEquals(appAccess.getId(), retrievedAppAccess.getId());
-        assertEquals(appAccess.getUser(), retrievedAppAccess.getUser());
-        assertEquals(appAccess.getCourt(), retrievedAppAccess.getCourt());
-        assertEquals(appAccess.getRole(), retrievedAppAccess.getRole());
-        assertEquals(appAccess.getLastAccess(), retrievedAppAccess.getLastAccess());
-        assertEquals(appAccess.isActive(), retrievedAppAccess.isActive());
-        assertEquals(appAccess.isDeleted(), retrievedAppAccess.isDeleted());
+        assertEquals(appAccess.getId(), retrievedAppAccess.getId(), "Ids should match");
+        assertEquals(appAccess.getUser(), retrievedAppAccess.getUser(), "Users should match");
+        assertEquals(appAccess.getCourt(), retrievedAppAccess.getCourt(), "Courts should match");
+        assertEquals(appAccess.getRole(), retrievedAppAccess.getRole(), "Roles should match");
+        assertEquals(appAccess.getLastAccess(), retrievedAppAccess.getLastAccess(), "Last access should match");
+        assertEquals(appAccess.isActive(), retrievedAppAccess.isActive(), "Active status should match");
+        assertEquals(appAccess.isDeleted(), retrievedAppAccess.isDeleted(), "Deleted status should match");
     }
 }
 

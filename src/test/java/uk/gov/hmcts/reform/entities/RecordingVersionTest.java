@@ -1,15 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -24,8 +16,14 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = Application.class)
-public class RecordingVersionTest {
+class RecordingVersionTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -45,7 +43,18 @@ public class RecordingVersionTest {
         User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
         entityManager.persist(user);
 
-        CaptureSession captureSession = HelperFactory.createCaptureSession(booking, RecordingOrigin.pre, "TestIngrestAddress", "TestLiveOutputAddress", new Timestamp(System.currentTimeMillis()), user, new Timestamp(System.currentTimeMillis()), user, RecordingStatus.finished, false);
+        CaptureSession captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.pre,
+            "TestIngrestAddress",
+            "TestLiveOutputAddress",
+            new Timestamp(System.currentTimeMillis()),
+            user,
+            new Timestamp(System.currentTimeMillis()),
+            user,
+            RecordingStatus.finished,
+            false
+        );
         entityManager.persist(captureSession);
 
         RecordingVersion testRecordingVersion = new RecordingVersion();
@@ -60,17 +69,43 @@ public class RecordingVersionTest {
         entityManager.persist(testRecordingVersion);
         entityManager.flush();
 
-        RecordingVersion retrievedRecordingVersion = entityManager.find(RecordingVersion.class, testRecordingVersion.getId());
+        RecordingVersion retrievedRecordingVersion = entityManager.find(
+            RecordingVersion.class,
+            testRecordingVersion.getId()
+        );
 
-        assertEquals(testRecordingVersion.getId(), retrievedRecordingVersion.getId());
-        assertEquals(testRecordingVersion.getCaptureSession(), retrievedRecordingVersion.getCaptureSession());
-        assertEquals(testRecordingVersion.getVersion(), retrievedRecordingVersion.getVersion());
-        assertEquals(testRecordingVersion.getUrl(), retrievedRecordingVersion.getUrl());
-        assertEquals(testRecordingVersion.getFilename(), retrievedRecordingVersion.getFilename());
-        assertEquals(testRecordingVersion.getCreatedOn(), retrievedRecordingVersion.getCreatedOn());
-        assertEquals(testRecordingVersion.getDuration(), retrievedRecordingVersion.getDuration());
-        assertEquals(testRecordingVersion.getEditInstruction(), retrievedRecordingVersion.getEditInstruction());
-        assertEquals(testRecordingVersion.isDeleted(), retrievedRecordingVersion.isDeleted());
-        assertEquals(testRecordingVersion.getCreatedOn(), retrievedRecordingVersion.getCreatedOn());
+        assertEquals(testRecordingVersion.getId(), retrievedRecordingVersion.getId(), "Id should match");
+        assertEquals(
+            testRecordingVersion.getCaptureSession(),
+            retrievedRecordingVersion.getCaptureSession(),
+            "Capture session should match"
+        );
+        assertEquals(testRecordingVersion.getVersion(), retrievedRecordingVersion.getVersion(), "Version should match");
+        assertEquals(testRecordingVersion.getUrl(), retrievedRecordingVersion.getUrl(), "Url should match");
+        assertEquals(
+            testRecordingVersion.getFilename(),
+            retrievedRecordingVersion.getFilename(),
+            "Filename should match"
+        );
+        assertEquals(
+            testRecordingVersion.getCreatedOn(),
+            retrievedRecordingVersion.getCreatedOn(),
+            "Created on should match"
+        );
+        assertEquals(
+            testRecordingVersion.getDuration(),
+            retrievedRecordingVersion.getDuration(),
+            "Duration should match"
+        );
+        assertEquals(
+            testRecordingVersion.getEditInstruction(),
+            retrievedRecordingVersion.getEditInstruction(),
+            "Edit instructions should match"
+        );
+        assertEquals(
+            testRecordingVersion.isDeleted(),
+            retrievedRecordingVersion.isDeleted(),
+            "Deleted status should match"
+        );
     }
 }
