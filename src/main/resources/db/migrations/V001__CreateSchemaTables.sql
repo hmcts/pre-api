@@ -218,21 +218,6 @@ CREATE TABLE public.audits (
     audit_details TEXT,
     created_by VARCHAR(50),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW() 
-);
-
-CREATE TABLE public.audits (
-    id UUID PRIMARY KEY,
-    auditable_type VARCHAR(25),
-    auditable_id UUID,
-    action VARCHAR(10) NOT NULL,
-    category VARCHAR(100),
-    activity VARCHAR(100),
-    functional_area VARCHAR(100),
-    audit_details TEXT,
-    created_by VARCHAR(50),
-    
-    payload JSON,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
