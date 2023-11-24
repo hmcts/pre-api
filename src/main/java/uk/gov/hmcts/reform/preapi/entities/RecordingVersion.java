@@ -10,6 +10,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Time;
@@ -40,7 +42,8 @@ public class RecordingVersion extends BaseEntity {
     @Column
     private Time duration;
 
-    @Column(name = "edit_instruction", columnDefinition = "json")
+    @Column(name = "edit_instruction")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String editInstruction;
 
     @Column
