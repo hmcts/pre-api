@@ -33,5 +33,5 @@ public class Participant extends CreatedModifiedOnEntity {
     private String lastName;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }

@@ -29,13 +29,13 @@ public class PortalAccess extends CreatedModifiedOnEntity {
     private Timestamp lastAccess;
 
     @Column(name = "invitation_sent")
-    private boolean invitationSent = false;
+    private boolean invitationSent;
 
     @Column(name = "invitation_datetime")
     private Timestamp invitationDateTime;
 
     @Column
-    private boolean registered = false;
+    private boolean registered;
 
     @Column(name = "registered_datetime")
     private Timestamp registeredDateTime;
@@ -44,5 +44,5 @@ public class PortalAccess extends CreatedModifiedOnEntity {
     private boolean active;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }

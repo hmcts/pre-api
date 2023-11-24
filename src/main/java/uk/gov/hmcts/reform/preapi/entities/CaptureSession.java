@@ -55,5 +55,5 @@ public class CaptureSession extends BaseEntity {
     private RecordingStatus status;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }

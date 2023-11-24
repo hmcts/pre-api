@@ -12,7 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 @Setter
 @Entity
 @Table(name = "rooms")
-public class Room extends BaseEntity {
+public class Room extends BaseEntity { //NOPMD - suppressed ShortClassName
     @Column(nullable = false, length = 45)
     private String room;
 }

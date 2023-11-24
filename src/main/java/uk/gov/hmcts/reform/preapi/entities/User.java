@@ -11,7 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
 @Setter
 @Entity
 @Table(name = "users")
-public class User extends CreatedModifiedOnEntity {
+public class User extends CreatedModifiedOnEntity { //NOPMD - suppressed ShortClassName
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 
@@ -28,5 +28,5 @@ public class User extends CreatedModifiedOnEntity {
     private String phone;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }

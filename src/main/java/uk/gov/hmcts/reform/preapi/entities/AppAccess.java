@@ -36,5 +36,5 @@ public class AppAccess extends CreatedModifiedOnEntity {
     private boolean active = true;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }

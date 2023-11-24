@@ -25,5 +25,5 @@ public class Booking extends CreatedModifiedOnEntity {
     private Date date;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }

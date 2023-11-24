@@ -4,5 +4,5 @@ public enum AuditLogSource {
     application,
     portal,
     admin,
-    auto
+    auto;
 }

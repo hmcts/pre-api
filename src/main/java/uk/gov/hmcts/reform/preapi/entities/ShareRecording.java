@@ -36,5 +36,5 @@ public class ShareRecording extends BaseEntity {
     private Timestamp createdOn;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }

@@ -44,5 +44,5 @@ public class RecordingVersion extends BaseEntity {
     private String editInstruction;
 
     @Column
-    private boolean deleted = false;
+    private boolean deleted;
 }
