@@ -11,11 +11,11 @@ import java.sql.Timestamp;
 @MappedSuperclass
 @Getter
 @Setter
-public class CreatedModifiedOnEntity extends BaseEntity {
+public class CreatedModifiedAtEntity extends BaseEntity {
     @CreationTimestamp
-    @Column(name = "created_on", nullable = false)
-    private Timestamp createdOn;
+    @Column(name = "created_at", nullable = false)
+    private Timestamp createdAt;
 
-    @Column(name = "modified_on")
-    private Timestamp modifiedOn;
+    @Column(name = "modified_at")
+    private Timestamp modifiedAt;
 }

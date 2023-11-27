@@ -28,6 +28,10 @@ public class CaptureSession extends BaseEntity {
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Booking booking;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_recording_id", nullable = false)
+    private Recording parentRecording;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "recording_origin")
     @Type(PostgreSQLEnumType.class)

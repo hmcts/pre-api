@@ -16,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,7 +35,7 @@ class ShareRecordingTest {
         Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
         entityManager.persist(testCase);
 
-        Booking booking = HelperFactory.createBooking(testCase, new Date(System.currentTimeMillis()), false);
+        Booking booking = HelperFactory.createBooking(testCase, new Timestamp(System.currentTimeMillis()), false);
         entityManager.persist(booking);
 
         User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
@@ -60,7 +59,7 @@ class ShareRecordingTest {
         testShareRecording.setCaptureSession(captureSession);
         testShareRecording.setSharedWith(user);
         testShareRecording.setSharedBy(user);
-        testShareRecording.setCreatedOn(new Timestamp(System.currentTimeMillis()));
+        testShareRecording.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         testShareRecording.setDeleted(false);
         entityManager.persist(testShareRecording);
         entityManager.flush();
@@ -84,9 +83,9 @@ class ShareRecordingTest {
             "Shared by should match"
         );
         assertEquals(
-            testShareRecording.getCreatedOn(),
-            retrievedShareRecording.getCreatedOn(),
-            "Created on should match"
+            testShareRecording.getCreatedAt(),
+            retrievedShareRecording.getCreatedAt(),
+            "Created at should match"
         );
         assertEquals(
             testShareRecording.isDeleted(),

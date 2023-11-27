@@ -8,9 +8,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Type;
-import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
@@ -21,7 +20,7 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "audits")
-public class Audit extends BaseEntity {
+public class Audit extends CreatedModifiedAtEntity {
     @Column(name = "table_name", length = 25)
     private String tableName;
 
@@ -53,8 +52,7 @@ public class Audit extends BaseEntity {
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @CreationTimestamp
-    @Column(name = "created_on", nullable = false)
-    private Timestamp createdOn;
+    @Column(name = "deleted_at", nullable = false)
+    private Timestamp deletedAt;
 }
 

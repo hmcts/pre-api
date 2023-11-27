@@ -32,10 +32,10 @@ class CaseTest {
 
         assertEquals(testCase.getId(), retrievedCase.getId(), "Id should match");
         assertEquals(testCase.getCourt(), retrievedCase.getCourt(), "Court should match");
-        assertEquals(testCase.getCaseRef(), retrievedCase.getCaseRef(), "Case reference should match");
+        assertEquals(testCase.getReference(), retrievedCase.getReference(), "Case reference should match");
         assertEquals(testCase.isTest(), retrievedCase.isTest(), "Test status should match");
         assertEquals(testCase.isDeleted(), retrievedCase.isDeleted(), "Deleted status should match");
-        assertEquals(testCase.getCreatedOn(), retrievedCase.getCreatedOn(), "Created on should match");
-        assertEquals(testCase.getModifiedOn(), retrievedCase.getModifiedOn(), "Modified on should match");
+        assertEquals(testCase.getCreatedAt(), retrievedCase.getCreatedAt(), "Created at should match");
+        assertEquals(testCase.getModifiedAt(), retrievedCase.getModifiedAt(), "Modified at should match");
     }
 }

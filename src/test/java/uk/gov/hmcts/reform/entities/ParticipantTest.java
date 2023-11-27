@@ -52,7 +52,7 @@ class ParticipantTest {
         assertEquals(testParticipant.getFirstName(), retrievedParticipant.getFirstName(), "First names should match");
         assertEquals(testParticipant.getLastName(), retrievedParticipant.getLastName(), "Last name should match");
         assertEquals(testParticipant.isDeleted(), retrievedParticipant.isDeleted(), "Deleted status should match");
-        assertEquals(testParticipant.getCreatedOn(), retrievedParticipant.getCreatedOn(), "Created on should match");
-        assertEquals(testParticipant.getModifiedOn(), retrievedParticipant.getModifiedOn(), "Modified on should match");
+        assertEquals(testParticipant.getCreatedAt(), retrievedParticipant.getCreatedAt(), "Created at should match");
+        assertEquals(testParticipant.getModifiedAt(), retrievedParticipant.getModifiedAt(), "Modified at should match");
     }
 }

@@ -13,7 +13,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.Type;
-import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.util.Set;
@@ -22,7 +22,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "participants")
-public class Participant extends CreatedModifiedOnEntity {
+public class Participant extends CreatedModifiedAtEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;

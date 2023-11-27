@@ -20,8 +20,8 @@ import java.sql.Timestamp;
 @Getter
 @Setter
 @Entity
-@Table(name = "recording_versions")
-public class RecordingVersion extends BaseEntity {
+@Table(name = "recordings")
+public class Recording extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "capture_session_id", referencedColumnName = "id")
     private CaptureSession captureSession;
@@ -36,8 +36,8 @@ public class RecordingVersion extends BaseEntity {
     private String filename;
 
     @CreationTimestamp
-    @Column(name = "created_on", nullable = false)
-    private Timestamp createdOn;
+    @Column(name = "created_at", nullable = false)
+    private Timestamp createdAt;
 
     @Column
     private Time duration;

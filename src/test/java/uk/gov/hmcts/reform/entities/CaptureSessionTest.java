@@ -15,8 +15,8 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
-import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -35,7 +35,7 @@ class CaptureSessionTest {
         Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
         entityManager.persist(testCase);
 
-        Booking booking = HelperFactory.createBooking(testCase, new Date(System.currentTimeMillis()), false);
+        Booking booking = HelperFactory.createBooking(testCase, Timestamp.valueOf(LocalDateTime.now()), false);
         entityManager.persist(booking);
 
         User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
@@ -60,6 +60,11 @@ class CaptureSessionTest {
 
         assertEquals(captureSession.getId(), retrievedCaptureSession.getId(), "Id should match");
         assertEquals(captureSession.getBooking(), retrievedCaptureSession.getBooking(), "Booking should match");
+        assertEquals(
+            captureSession.getParentRecording(),
+            retrievedCaptureSession.getParentRecording(),
+            "Parent recording should match"
+        );
         assertEquals(captureSession.getOrigin(), retrievedCaptureSession.getOrigin(), "Origin should match");
         assertEquals(
             captureSession.getIngestAddress(),

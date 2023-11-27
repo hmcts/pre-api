@@ -8,7 +8,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Date;
 
@@ -16,7 +16,7 @@ import java.sql.Date;
 @Setter
 @Entity
 @Table(name = "app_access")
-public class AppAccess extends CreatedModifiedOnEntity {
+public class AppAccess extends CreatedModifiedAtEntity {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;

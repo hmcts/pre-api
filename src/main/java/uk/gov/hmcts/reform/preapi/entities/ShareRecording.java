@@ -32,8 +32,8 @@ public class ShareRecording extends BaseEntity {
     private User sharedBy;
 
     @CreationTimestamp
-    @Column(name = "created_on")
-    private Timestamp createdOn;
+    @Column(name = "created_at")
+    private Timestamp createdAt;
 
     @Column
     private boolean deleted;

@@ -72,19 +72,19 @@ final class HelperFactory {
         return appAccess;
     }
 
-    static Case createCase(Court court, String caseRef, boolean test, boolean deleted) {
+    static Case createCase(Court court, String reference, boolean test, boolean deleted) {
         Case testCase = new Case();
         testCase.setCourt(court);
-        testCase.setCaseRef(caseRef);
+        testCase.setReference(reference);
         testCase.setTest(test);
         testCase.setDeleted(deleted);
         return testCase;
     }
 
-    static Booking createBooking(Case testingCase, Date date, boolean deleted) {
+    static Booking createBooking(Case testingCase, Timestamp scheduledFor, boolean deleted) {
         Booking booking = new Booking();
         booking.setCaseId(testingCase);
-        booking.setDate(date);
+        booking.setScheduledFor(scheduledFor);
         booking.setDeleted(deleted);
         return booking;
     }

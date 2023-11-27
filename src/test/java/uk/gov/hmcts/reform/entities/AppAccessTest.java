@@ -55,6 +55,8 @@ class AppAccessTest {
         assertEquals(appAccess.getLastAccess(), retrievedAppAccess.getLastAccess(), "Last access should match");
         assertEquals(appAccess.isActive(), retrievedAppAccess.isActive(), "Active status should match");
         assertEquals(appAccess.isDeleted(), retrievedAppAccess.isDeleted(), "Deleted status should match");
+        assertEquals(appAccess.getCreatedAt(), retrievedAppAccess.getCreatedAt(), "Created at should match");
+        assertEquals(appAccess.getModifiedAt(), retrievedAppAccess.getModifiedAt(), "Modified at should match");
     }
 }
 

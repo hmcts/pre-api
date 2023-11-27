@@ -12,7 +12,8 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
-import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -31,7 +32,7 @@ class BookingTest {
         Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
         entityManager.persist(testCase);
 
-        Booking booking = HelperFactory.createBooking(testCase, new Date(System.currentTimeMillis()), false);
+        Booking booking = HelperFactory.createBooking(testCase, Timestamp.valueOf(LocalDateTime.now()), false);
         entityManager.persist(booking);
         entityManager.flush();
 
@@ -39,9 +40,9 @@ class BookingTest {
 
         assertEquals(booking.getId(), retrievedBooking.getId(), "Id should match");
         assertEquals(booking.getCaseId(), retrievedBooking.getCaseId(), "Case should match");
-        assertEquals(booking.getDate(), retrievedBooking.getDate(), "Date should match");
+        assertEquals(booking.getScheduledFor(), retrievedBooking.getScheduledFor(), "Scheduled for should match");
         assertEquals(booking.isDeleted(), retrievedBooking.isDeleted(), "Deleted status should match");
-        assertEquals(booking.getCreatedOn(), retrievedBooking.getCreatedOn(), "Created on should match");
-        assertEquals(booking.getModifiedOn(), retrievedBooking.getModifiedOn(), "Modified on should match");
+        assertEquals(booking.getCreatedAt(), retrievedBooking.getCreatedAt(), "Created at should match");
+        assertEquals(booking.getModifiedAt(), retrievedBooking.getModifiedAt(), "Modified at should match");
     }
 }

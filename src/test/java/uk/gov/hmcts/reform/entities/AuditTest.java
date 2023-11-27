@@ -48,6 +48,8 @@ class AuditTest {
         assertEquals(audit.getFunctionalArea(), retrievedAudit.getFunctionalArea(), "Functional area should match");
         assertEquals(audit.getAuditDetails(), retrievedAudit.getAuditDetails(), "Audit details should match");
         assertEquals(audit.getCreatedBy(), retrievedAudit.getCreatedBy(), "Created by should match");
-        assertEquals(audit.getCreatedOn(), retrievedAudit.getCreatedOn(), "Created on should match");
+        assertEquals(audit.getCreatedAt(), retrievedAudit.getCreatedAt(), "Created at should match");
+        assertEquals(audit.getModifiedAt(), retrievedAudit.getModifiedAt(), "Modified at should match");
+        assertEquals(audit.getDeletedAt(), retrievedAudit.getDeletedAt(), "Deleted at should match");
     }
 }

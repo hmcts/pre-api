@@ -36,7 +36,7 @@ public class Court extends BaseEntity {
 
     @ManyToMany
     @JoinTable(
-        name = "court_regions",
+        name = "court_region",
         joinColumns = @JoinColumn(name = "court_id", referencedColumnName = "id"),
         inverseJoinColumns = @JoinColumn(name = "region_id", referencedColumnName = "id")
     )

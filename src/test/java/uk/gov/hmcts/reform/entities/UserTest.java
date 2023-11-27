@@ -32,7 +32,7 @@ class UserTest {
         assertEquals(user.getOrganisation(), retrievedUser.getOrganisation(), "Organisation should match");
         assertEquals(user.getPhone(), retrievedUser.getPhone(), "Phone should match");
         assertEquals(user.isDeleted(), retrievedUser.isDeleted(), "Deleted status should match");
-        assertEquals(user.getCreatedOn(), retrievedUser.getCreatedOn(), "Created on should match");
-        assertEquals(user.getModifiedOn(), retrievedUser.getModifiedOn(), "Modified on should match");
+        assertEquals(user.getCreatedAt(), retrievedUser.getCreatedAt(), "Created at should match");
+        assertEquals(user.getModifiedAt(), retrievedUser.getModifiedAt(), "Modified at should match");
     }
 }
