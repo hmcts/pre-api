@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import io.hypersistence.utils.hibernate.type.basic.PostgreSQLEnumType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,6 +9,7 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Type;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
@@ -27,11 +29,13 @@ public class Audit extends BaseEntity {
     private UUID tableRecordId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "audit_log_source")
+    @Type(PostgreSQLEnumType.class)
     private AuditLogSource source;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "audit_log_type")
+    @Type(PostgreSQLEnumType.class)
     private AuditLogType type;
 
     @Column(length = 100)

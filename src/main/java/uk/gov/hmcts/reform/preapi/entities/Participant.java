@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import io.hypersistence.utils.hibernate.type.basic.PostgreSQLEnumType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Type;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
@@ -23,7 +25,8 @@ public class Participant extends CreatedModifiedOnEntity {
     private Case caseId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "participant_type", nullable = false)
+    @Column(name = "participant_type", nullable = false, columnDefinition = "participant_type")
+    @Type(PostgreSQLEnumType.class)
     private ParticipantType participantType;
 
     @Column(name = "first_name", length = 100, nullable = false)

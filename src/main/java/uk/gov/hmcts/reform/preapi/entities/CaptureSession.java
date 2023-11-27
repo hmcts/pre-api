@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
 
+import io.hypersistence.utils.hibernate.type.basic.PostgreSQLEnumType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -11,6 +12,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Type;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -27,7 +29,8 @@ public class CaptureSession extends BaseEntity {
     private Booking booking;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "recording_origin")
+    @Type(PostgreSQLEnumType.class)
     private RecordingOrigin origin;
 
     @Column(name = "ingest_address")
@@ -51,7 +54,8 @@ public class CaptureSession extends BaseEntity {
     private User finishedByUserId;
 
     @Enumerated(EnumType.STRING)
-    @Column
+    @Column(columnDefinition = "recording_status")
+    @Type(PostgreSQLEnumType.class)
     private RecordingStatus status;
 
     @Column
