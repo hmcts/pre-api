@@ -10,20 +10,19 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
 
+import java.sql.Date;
+
 @Getter
 @Setter
 @Entity
-@Table(name = "cases")
-public class Case extends CreatedModifiedOnEntity { //NOPMD - suppressed ShortClassName
+@Table(name = "bookings")
+public class Booking extends CreatedModifiedOnEntity {
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "court_id", referencedColumnName = "id")
-    private Court court;
+    @JoinColumn(name = "case_id", referencedColumnName = "id")
+    private Case caseId;
 
-    @Column(name = "case_ref", nullable = false, length = 25)
-    private String caseRef;
-
-    @Column
-    private boolean test;
+    @Column(nullable = false)
+    private Date date;
 
     @Column
     private boolean deleted;

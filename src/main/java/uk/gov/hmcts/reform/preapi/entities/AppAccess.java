@@ -10,20 +10,30 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
 
+import java.sql.Date;
+
 @Getter
 @Setter
 @Entity
-@Table(name = "cases")
-public class Case extends CreatedModifiedOnEntity { //NOPMD - suppressed ShortClassName
-    @ManyToOne(fetch = FetchType.LAZY)
+@Table(name = "app_access")
+public class AppAccess extends CreatedModifiedOnEntity {
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
+
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "court_id", referencedColumnName = "id")
     private Court court;
 
-    @Column(name = "case_ref", nullable = false, length = 25)
-    private String caseRef;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", referencedColumnName = "id")
+    private Role role;
+
+    @Column(name = "last_access")
+    private Date lastAccess;
 
     @Column
-    private boolean test;
+    private boolean active = true;
 
     @Column
     private boolean deleted;

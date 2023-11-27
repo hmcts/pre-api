@@ -1,15 +1,16 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -19,22 +20,37 @@ import java.util.UUID;
 @Entity
 @Table(name = "audits")
 public class Audit extends BaseEntity {
-    @Column(name = "auditable_id", nullable = false)
-    private UUID auditableId;
+    @Column(name = "table_name", length = 25)
+    private String tableName;
 
-    @Column(name = "auditable_type", nullable = false, length = 16)
-    private String type;
+    @Column(name = "table_record_id")
+    private UUID tableRecordId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @Column(nullable = false, length = 16)
-    private String action;
-
-    @Column(nullable = false, length = 16)
-    private String source;
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Timestamp timestamp;
+    private AuditLogSource source;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AuditLogType type;
+
+    @Column(length = 100)
+    private String category;
+
+    @Column(length = 100)
+    private String activity;
+
+    @Column(name = "functional_area", length = 100)
+    private String functionalArea;
+
+    @Column(name = "audit_details")
+    private String auditDetails;
+
+    @Column(name = "created_by", length = 50)
+    private String createdBy;
+
+    @CreationTimestamp
+    @Column(name = "created_on", nullable = false)
+    private Timestamp createdOn;
 }
+
