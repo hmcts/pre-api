@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -14,6 +15,8 @@ import lombok.Setter;
 import org.hibernate.annotations.Type;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedOnEntity;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+
+import java.util.Set;
 
 @Getter
 @Setter
@@ -37,4 +40,7 @@ public class Participant extends CreatedModifiedOnEntity {
 
     @Column
     private boolean deleted;
+
+    @ManyToMany(mappedBy = "participants")
+    private Set<Booking> bookings;
 }

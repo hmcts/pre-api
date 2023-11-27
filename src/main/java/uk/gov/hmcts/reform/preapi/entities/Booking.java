@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -26,4 +28,12 @@ public class Booking extends CreatedModifiedOnEntity {
 
     @Column
     private boolean deleted;
+
+    @ManyToMany
+    @JoinTable(
+        name = "booking_participant",
+        joinColumns = @JoinColumn(name = "booking_id", referencedColumnName = "id"),
+        inverseJoinColumns = @JoinColumn(name = "participant_id", referencedColumnName = "id")
+    )
+    private Set<Participant> participants;
 }
