@@ -147,6 +147,13 @@ task migratePostgresDatabase(type: org.flywaydb.gradle.task.FlywayMigrateTask) {
   }
 }
 
+// this can be run to clean the DB down allowing from a fresh migration from scratch
+task cleanPostgresDatabase(type: org.flywaydb.gradle.task.FlywayCleanTask) {
+  if (project.hasProperty("dburl")) {
+    url = "jdbc:postgresql://${dburl}"
+  }
+}
+
 project.tasks['sonarqube'].dependsOn jacocoTestReport
 project.tasks['check'].dependsOn integration
 
@@ -303,32 +310,4 @@ rootProject.tasks.named("processSmokeTestResources") {
 
 wrapper {
   distributionType = Wrapper.DistributionType.ALL
-}
-
-flyway {
-  url = System.getenv('FLYWAY_URL')
-  println "FLYWAY url=${url}"
-  user = System.getenv('FLYWAY_USER')
-  password = System.getenv('FLYWAY_PASSWORD')
-  schemas = ['darts']
-  println "FLYWAY schemas=${schemas}"
-  baselineOnMigrate = true
-  baselineVersion = '000'
-  locations = ["db/migration/common", "db/migration/postgres"]
-  // change to false to allow flyway clean to be run
-  cleanDisabled = true
-}
-
-// this can be run to clean the DB down allowing from a fresh migration from scratch
-task cleanPostgresDatabase(type: org.flywaydb.gradle.task.FlywayCleanTask) {
-  if (project.hasProperty("dburl")) {
-    url = "jdbc:postgresql://${dburl}"
-  }
-}
-
-task migratePostgresDatabase(type: org.flywaydb.gradle.task.FlywayMigrateTask) {
-  baselineOnMigrate = true
-  if (project.hasProperty("dburl")) {
-    url = "jdbc:postgresql://${dburl}"
-  }
 }
