@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.entities;
 
+import java.sql.Timestamp;
+
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
@@ -21,7 +23,7 @@ class CourtTest {
     @Test
     @Transactional
     void testSaveAndRetrieveCourt() {
-        User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
+        User user = HelperFactory.createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);
         entityManager.persist(user);
 
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", "Test123");

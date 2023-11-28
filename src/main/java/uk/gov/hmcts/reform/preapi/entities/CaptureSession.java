@@ -29,7 +29,7 @@ public class CaptureSession extends BaseEntity {
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_recording_id", nullable = false)
+    @JoinColumn(name = "parent_recording_id")
     private Recording parentRecording;
 
     @Enumerated(EnumType.STRING)

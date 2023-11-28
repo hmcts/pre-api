@@ -28,7 +28,7 @@ class ParticipantTest {
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
         entityManager.persist(court);
 
-        Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
+        Case testCase = HelperFactory.createCase(court, "ref1234", true, new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testCase);
 
         Participant testParticipant = HelperFactory.createParticipant(

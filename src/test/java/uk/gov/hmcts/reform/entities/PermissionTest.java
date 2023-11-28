@@ -25,9 +25,9 @@ class PermissionTest {
         entityManager.persist(permission);
         entityManager.flush();
 
-        Role retrievedRole = entityManager.find(Role.class, permission.getId());
+        Permission retrievedPermission = entityManager.find(Permission.class, permission.getId());
 
-        assertEquals(permission.getId(), retrievedRole.getId(), "Id should match");
-        assertEquals(permission.getName(), retrievedRole.getName(), "Name should match");
+        assertEquals(permission.getId(), retrievedPermission.getId(), "Id should match");
+        assertEquals(permission.getName(), retrievedPermission.getName(), "Name should match");
     }
 }
