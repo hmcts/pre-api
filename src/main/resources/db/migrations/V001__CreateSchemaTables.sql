@@ -161,13 +161,12 @@ CREATE TABLE public.app_access (
 CREATE TABLE public.capture_sessions (
     id UUID PRIMARY KEY,
     booking_id UUID REFERENCES bookings(id) NOT NULL,
-    parent_recording_id UUID NOT NULL,
     origin RECORDING_ORIGIN NOT NULL,
     ingest_address VARCHAR(255),
     live_output_url VARCHAR(100),
-    started_on TIMESTAMPTZ,
+    started_at TIMESTAMPTZ,
     started_by_user_id UUID REFERENCES users(id),
-    finished_on TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
     finished_by_user_id UUID REFERENCES users(id),
     status RECORDING_STATUS,
     deleted_at TIMESTAMPTZ DEFAULT NULL
@@ -176,6 +175,7 @@ CREATE TABLE public.capture_sessions (
 CREATE TABLE public.recordings (
     id UUID PRIMARY KEY,
     capture_session_id UUID REFERENCES capture_sessions(id) NOT NULL,
+    parent_recording_id UUID,
     version INT NOT NULL,
     url VARCHAR(255) NOT NULL,
     filename VARCHAR(255) NOT NULL,
@@ -184,7 +184,6 @@ CREATE TABLE public.recordings (
     edit_instruction JSON,
     deleted_at TIMESTAMPTZ DEFAULT NULL
 );
-
 
 
 CREATE TABLE public.share_recordings (
@@ -225,4 +224,4 @@ CREATE TABLE public.audits (
     deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 
-ALTER TABLE public.capture_sessions ADD FOREIGN KEY (parent_recording_id) REFERENCES recordings(id);
+ALTER TABLE public.recordings ADD FOREIGN KEY (parent_recording_id) REFERENCES recordings(id);
