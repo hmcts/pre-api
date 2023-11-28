@@ -1,7 +1,5 @@
 package uk.gov.hmcts.reform.entities;
 
-import java.sql.Timestamp;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
@@ -13,6 +11,8 @@ import uk.gov.hmcts.reform.preapi.entities.Courtroom;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+
+import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
