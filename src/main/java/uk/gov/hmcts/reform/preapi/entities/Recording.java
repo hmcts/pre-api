@@ -26,6 +26,10 @@ public class Recording extends BaseEntity {
     @JoinColumn(name = "capture_session_id", referencedColumnName = "id")
     private CaptureSession captureSession;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_recording_id")
+    private Recording parentRecording;
+
     @Column(name = "version", nullable = false)
     private int version;
 

@@ -90,6 +90,11 @@ class RecordingTest {
             retrievedRecording.getCaptureSession(),
             "Capture session should match"
         );
+        assertEquals(
+            testRecording.getParentRecording(),
+            retrievedRecording.getParentRecording(),
+            "Parent recording should match"
+        );
         assertEquals(testRecording.getVersion(), retrievedRecording.getVersion(), "Version should match");
         assertEquals(testRecording.getUrl(), retrievedRecording.getUrl(), "Url should match");
         assertEquals(

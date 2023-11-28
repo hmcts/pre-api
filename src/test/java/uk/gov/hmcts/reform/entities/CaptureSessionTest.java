@@ -71,11 +71,6 @@ class CaptureSessionTest {
 
         assertEquals(captureSession.getId(), retrievedCaptureSession.getId(), "Id should match");
         assertEquals(captureSession.getBooking(), retrievedCaptureSession.getBooking(), "Booking should match");
-        assertEquals(
-            captureSession.getParentRecording(),
-            retrievedCaptureSession.getParentRecording(),
-            "Parent recording should match"
-        );
         assertEquals(captureSession.getOrigin(), retrievedCaptureSession.getOrigin(), "Origin should match");
         assertEquals(
             captureSession.getIngestAddress(),
@@ -87,21 +82,21 @@ class CaptureSessionTest {
             retrievedCaptureSession.getLiveOutputUrl(),
             "Live output url should match"
         );
-        assertEquals(captureSession.getStartedOn(), retrievedCaptureSession.getStartedOn(), "Started on should match");
+        assertEquals(captureSession.getStartedAt(), retrievedCaptureSession.getStartedAt(), "Started at should match");
         assertEquals(
             captureSession.getStartedByUser(),
             retrievedCaptureSession.getStartedByUser(),
-            "Started on by user should match"
+            "Started by by user should match"
         );
         assertEquals(
-            captureSession.getFinishedOn(),
-            retrievedCaptureSession.getFinishedOn(),
-            "Finished on should match"
+            captureSession.getFinishedAt(),
+            retrievedCaptureSession.getFinishedAt(),
+            "Finished at should match"
         );
         assertEquals(
             captureSession.getFinishedByUserId(),
             retrievedCaptureSession.getFinishedByUserId(),
-            "Finished on by user should match"
+            "Finished by user should match"
         );
         assertEquals(captureSession.getStatus(), retrievedCaptureSession.getStatus(), "Status should match");
         assertEquals(captureSession.getDeletedAt(), retrievedCaptureSession.getDeletedAt(), "Deleted at should match");

@@ -94,9 +94,9 @@ final class HelperFactory {
         RecordingOrigin origin,
         @Nullable String ingestAddress,
         @Nullable String liveOutputUrl,
-        @Nullable Timestamp startedOn,
+        @Nullable Timestamp startedAt,
         @Nullable User startedBy,
-        @Nullable Timestamp finishedOn,
+        @Nullable Timestamp finishedAt,
         @Nullable User finishedBy,
         @Nullable RecordingStatus status,
         @Nullable Timestamp deletedAt
@@ -106,9 +106,9 @@ final class HelperFactory {
         captureSession.setOrigin(origin);
         captureSession.setIngestAddress(ingestAddress);
         captureSession.setLiveOutputUrl(liveOutputUrl);
-        captureSession.setStartedOn(startedOn);
+        captureSession.setStartedAt(startedAt);
         captureSession.setStartedByUser(startedBy);
-        captureSession.setFinishedOn(finishedOn);
+        captureSession.setFinishedAt(finishedAt);
         captureSession.setFinishedByUserId(finishedBy);
         captureSession.setStatus(status);
         captureSession.setDeletedAt(deletedAt);

@@ -28,10 +28,6 @@ public class CaptureSession extends BaseEntity {
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Booking booking;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_recording_id")
-    private Recording parentRecording;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "origin", nullable = false, columnDefinition = "recording_origin")
     @Type(PostgreSQLEnumType.class)
@@ -43,15 +39,15 @@ public class CaptureSession extends BaseEntity {
     @Column(name = "live_output_url", length = 100)
     private String liveOutputUrl;
 
-    @Column(name = "started_on")
-    private Timestamp startedOn;
+    @Column(name = "started_at")
+    private Timestamp startedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "started_by_user_id", referencedColumnName = "id")
     private User startedByUser;
 
-    @Column(name = "finished_on")
-    private Timestamp finishedOn;
+    @Column(name = "finished_at")
+    private Timestamp finishedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "finished_by_user_id", referencedColumnName = "id")
