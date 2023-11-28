@@ -35,6 +35,6 @@ public class ShareRecording extends BaseEntity {
     @Column(name = "created_at")
     private Timestamp createdAt;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 }

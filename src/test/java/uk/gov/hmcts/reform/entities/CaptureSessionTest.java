@@ -32,13 +32,24 @@ class CaptureSessionTest {
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
         entityManager.persist(court);
 
-        Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
+        Case testCase = HelperFactory.createCase(court, "ref1234", true, new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testCase);
 
-        Booking booking = HelperFactory.createBooking(testCase, Timestamp.valueOf(LocalDateTime.now()), false);
+        Booking booking = HelperFactory.createBooking(
+            testCase,
+            Timestamp.valueOf(LocalDateTime.now()),
+            new Timestamp(System.currentTimeMillis())
+        );
         entityManager.persist(booking);
 
-        User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
+        User user = HelperFactory.createUser(
+            "Test",
+            "User",
+            "example@example.com",
+            new Timestamp(System.currentTimeMillis()),
+            null,
+            null
+        );
         entityManager.persist(user);
 
         CaptureSession captureSession = HelperFactory.createCaptureSession(
@@ -51,7 +62,7 @@ class CaptureSessionTest {
             new Timestamp(System.currentTimeMillis()),
             user,
             RecordingStatus.finished,
-            false
+            new Timestamp(System.currentTimeMillis())
         );
         entityManager.persist(captureSession);
         entityManager.flush();
@@ -93,6 +104,6 @@ class CaptureSessionTest {
             "Finished on by user should match"
         );
         assertEquals(captureSession.getStatus(), retrievedCaptureSession.getStatus(), "Status should match");
-        assertEquals(captureSession.isDeleted(), retrievedCaptureSession.isDeleted(), "Deleted status should match");
+        assertEquals(captureSession.getDeletedAt(), retrievedCaptureSession.getDeletedAt(), "Deleted at should match");
     }
 }

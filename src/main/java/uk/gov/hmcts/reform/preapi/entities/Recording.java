@@ -26,26 +26,26 @@ public class Recording extends BaseEntity {
     @JoinColumn(name = "capture_session_id", referencedColumnName = "id")
     private CaptureSession captureSession;
 
-    @Column(nullable = false)
+    @Column(name = "version", nullable = false)
     private int version;
 
-    @Column(nullable = false)
+    @Column(name = "url", nullable = false)
     private String url;
 
-    @Column(nullable = false)
+    @Column(name = "filename", nullable = false)
     private String filename;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 
-    @Column
+    @Column(name = "duration")
     private Time duration;
 
     @Column(name = "edit_instruction")
     @JdbcTypeCode(SqlTypes.JSON)
     private String editInstruction;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 }

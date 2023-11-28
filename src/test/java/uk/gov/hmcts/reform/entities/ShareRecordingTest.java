@@ -32,13 +32,24 @@ class ShareRecordingTest {
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
         entityManager.persist(court);
 
-        Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
+        Case testCase = HelperFactory.createCase(court, "ref1234", true, new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testCase);
 
-        Booking booking = HelperFactory.createBooking(testCase, new Timestamp(System.currentTimeMillis()), false);
+        Booking booking = HelperFactory.createBooking(
+            testCase,
+            new Timestamp(System.currentTimeMillis()),
+            new Timestamp(System.currentTimeMillis())
+        );
         entityManager.persist(booking);
 
-        User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
+        User user = HelperFactory.createUser(
+            "Test",
+            "User",
+            "example@example.com",
+            new Timestamp(System.currentTimeMillis()),
+            null,
+            null
+        );
         entityManager.persist(user);
 
         CaptureSession captureSession = HelperFactory.createCaptureSession(
@@ -51,7 +62,7 @@ class ShareRecordingTest {
             new Timestamp(System.currentTimeMillis()),
             user,
             RecordingStatus.finished,
-            false
+            new Timestamp(System.currentTimeMillis())
         );
         entityManager.persist(captureSession);
 
@@ -60,7 +71,7 @@ class ShareRecordingTest {
         testShareRecording.setSharedWith(user);
         testShareRecording.setSharedBy(user);
         testShareRecording.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-        testShareRecording.setDeleted(false);
+        testShareRecording.setDeletedAt(new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testShareRecording);
         entityManager.flush();
 
@@ -88,9 +99,9 @@ class ShareRecordingTest {
             "Created at should match"
         );
         assertEquals(
-            testShareRecording.isDeleted(),
-            retrievedShareRecording.isDeleted(),
-            "Deleted status should match"
+            testShareRecording.getDeletedAt(),
+            retrievedShareRecording.getDeletedAt(),
+            "Deleted at should match"
         );
     }
 }

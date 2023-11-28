@@ -28,19 +28,19 @@ public class Audit extends CreatedModifiedAtEntity {
     private UUID tableRecordId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "audit_log_source")
+    @Column(name = "source", nullable = false, columnDefinition = "audit_log_source")
     @Type(PostgreSQLEnumType.class)
     private AuditLogSource source;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "audit_log_type")
+    @Column(name = "type", nullable = false, columnDefinition = "audit_log_type")
     @Type(PostgreSQLEnumType.class)
     private AuditLogType type;
 
-    @Column(length = 100)
+    @Column(name = "category", length = 100)
     private String category;
 
-    @Column(length = 100)
+    @Column(name = "activity", length = 100)
     private String activity;
 
     @Column(name = "functional_area", length = 100)
@@ -52,7 +52,7 @@ public class Audit extends CreatedModifiedAtEntity {
     @Column(name = "created_by", length = 50)
     private String createdBy;
 
-    @Column(name = "deleted_at", nullable = false)
+    @Column(name = "deleted_at")
     private Timestamp deletedAt;
 }
 

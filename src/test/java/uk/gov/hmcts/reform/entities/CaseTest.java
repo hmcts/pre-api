@@ -10,6 +10,8 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
+import java.sql.Timestamp;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
@@ -24,7 +26,7 @@ class CaseTest {
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
         entityManager.persist(court);
 
-        Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
+        Case testCase = HelperFactory.createCase(court, "ref1234", true, new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testCase);
         entityManager.flush();
 
@@ -34,7 +36,7 @@ class CaseTest {
         assertEquals(testCase.getCourt(), retrievedCase.getCourt(), "Court should match");
         assertEquals(testCase.getReference(), retrievedCase.getReference(), "Case reference should match");
         assertEquals(testCase.isTest(), retrievedCase.isTest(), "Test status should match");
-        assertEquals(testCase.isDeleted(), retrievedCase.isDeleted(), "Deleted status should match");
+        assertEquals(testCase.getDeletedAt(), retrievedCase.getDeletedAt(), "Deleted at should match");
         assertEquals(testCase.getCreatedAt(), retrievedCase.getCreatedAt(), "Created at should match");
         assertEquals(testCase.getModifiedAt(), retrievedCase.getModifiedAt(), "Modified at should match");
     }

@@ -33,7 +33,7 @@ public class CaptureSession extends BaseEntity {
     private Recording parentRecording;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "recording_origin")
+    @Column(name = "origin", nullable = false, columnDefinition = "recording_origin")
     @Type(PostgreSQLEnumType.class)
     private RecordingOrigin origin;
 
@@ -58,10 +58,10 @@ public class CaptureSession extends BaseEntity {
     private User finishedByUserId;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "recording_status")
+    @Column(name = "status", columnDefinition = "recording_status")
     @Type(PostgreSQLEnumType.class)
     private RecordingStatus status;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 }

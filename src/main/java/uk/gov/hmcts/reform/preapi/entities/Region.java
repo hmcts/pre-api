@@ -16,7 +16,7 @@ import java.util.Set;
 @Entity
 @Table(name = "regions")
 public class Region extends BaseEntity {
-    @Column(nullable = false, length = 100)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
     @ManyToMany(mappedBy = "regions")

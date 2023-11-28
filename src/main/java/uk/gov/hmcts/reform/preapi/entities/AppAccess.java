@@ -11,6 +11,7 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 
 @Getter
 @Setter
@@ -32,9 +33,9 @@ public class AppAccess extends CreatedModifiedAtEntity {
     @Column(name = "last_access")
     private Date lastAccess;
 
-    @Column
+    @Column(name = "active")
     private boolean active = true;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 }

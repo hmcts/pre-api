@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
+import java.sql.Timestamp;
+
 @Getter
 @Setter
 @Entity
@@ -18,15 +20,15 @@ public class User extends CreatedModifiedAtEntity { //NOPMD - suppressed ShortCl
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(nullable = false, length = 100)
+    @Column(name = "email", nullable = false, length = 100)
     private String email;
 
-    @Column(length = 250)
+    @Column(name = "organisation", length = 250)
     private String organisation;
 
-    @Column(length = 50)
+    @Column(name = "phone", length = 50)
     private String phone;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 }

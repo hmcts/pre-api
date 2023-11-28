@@ -23,7 +23,14 @@ class PortalAccessTest {
     @Test
     @Transactional
     void testSaveAndRetrievePortalAccess() {
-        User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
+        User user = HelperFactory.createUser(
+            "Test",
+            "User",
+            "example@example.com",
+            new Timestamp(System.currentTimeMillis()),
+            null,
+            null
+        );
         entityManager.persist(user);
 
         PortalAccess testPortalAccess = new PortalAccess();
@@ -33,7 +40,7 @@ class PortalAccessTest {
         testPortalAccess.setStatus(AccessStatus.registered);
         testPortalAccess.setInvitationDateTime(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setRegisteredDateTime(new Timestamp(System.currentTimeMillis()));
-        testPortalAccess.setDeleted(false);
+        testPortalAccess.setDeletedAt(new Timestamp(System.currentTimeMillis()));
 
         entityManager.persist(testPortalAccess);
         entityManager.flush();
@@ -59,7 +66,7 @@ class PortalAccessTest {
             retrievedPortalAccess.getRegisteredDateTime(),
             "Registered date time should match"
         );
-        assertEquals(testPortalAccess.isDeleted(), retrievedPortalAccess.isDeleted(), "Deleted status should match");
+        assertEquals(testPortalAccess.getDeletedAt(), retrievedPortalAccess.getDeletedAt(), "Deleted at should match");
         assertEquals(testPortalAccess.getCreatedAt(), retrievedPortalAccess.getCreatedAt(), "Created at should match");
         assertEquals(
             testPortalAccess.getModifiedAt(),

@@ -16,6 +16,7 @@ import org.hibernate.annotations.Type;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
+import java.sql.Timestamp;
 import java.util.Set;
 
 @Getter
@@ -38,8 +39,8 @@ public class Participant extends CreatedModifiedAtEntity {
     @Column(name = "last_name", length = 100, nullable = false)
     private String lastName;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 
     @ManyToMany(mappedBy = "participants")
     private Set<Booking> bookings;

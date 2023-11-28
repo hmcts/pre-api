@@ -33,13 +33,24 @@ class RecordingTest {
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
         entityManager.persist(court);
 
-        Case testCase = HelperFactory.createCase(court, "ref1234", true, false);
+        Case testCase = HelperFactory.createCase(court, "ref1234", true, new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testCase);
 
-        Booking booking = HelperFactory.createBooking(testCase, new Timestamp(System.currentTimeMillis()), false);
+        Booking booking = HelperFactory.createBooking(
+            testCase,
+            new Timestamp(System.currentTimeMillis()),
+            new Timestamp(System.currentTimeMillis())
+        );
         entityManager.persist(booking);
 
-        User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
+        User user = HelperFactory.createUser(
+            "Test",
+            "User",
+            "example@example.com",
+            new Timestamp(System.currentTimeMillis()),
+            null,
+            null
+        );
         entityManager.persist(user);
 
         CaptureSession captureSession = HelperFactory.createCaptureSession(
@@ -52,7 +63,7 @@ class RecordingTest {
             new Timestamp(System.currentTimeMillis()),
             user,
             RecordingStatus.finished,
-            false
+            new Timestamp(System.currentTimeMillis())
         );
         entityManager.persist(captureSession);
 
@@ -64,7 +75,7 @@ class RecordingTest {
         testRecording.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         testRecording.setEditInstruction("{\"instruction\":\"TestInstruction\"}");
         testRecording.setDuration(Time.valueOf("00:05:00"));
-        testRecording.setDeleted(false);
+        testRecording.setDeletedAt(new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testRecording);
         entityManager.flush();
 
@@ -102,9 +113,9 @@ class RecordingTest {
             "Edit instructions should match"
         );
         assertEquals(
-            testRecording.isDeleted(),
-            retrievedRecording.isDeleted(),
-            "Deleted status should match"
+            testRecording.getDeletedAt(),
+            retrievedRecording.getDeletedAt(),
+            "Deleted at should match"
         );
     }
 }

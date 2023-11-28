@@ -27,7 +27,7 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 
-    @Column(nullable = false, length = 45)
+    @Column(name = "password", nullable = false, length = 45)
     private String password;
 
     @Column(name = "last_access")
@@ -44,6 +44,6 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "registered_datetime")
     private Timestamp registeredDateTime;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 }

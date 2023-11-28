@@ -28,7 +28,7 @@ public class Court extends BaseEntity {
     @Type(PostgreSQLEnumType.class)
     private CourtType courtType;
 
-    @Column(nullable = false)
+    @Column(name = "name", nullable = false)
     private String name;
 
     @Column(name = "location_code", length = 25)

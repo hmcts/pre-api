@@ -12,6 +12,8 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
+import java.sql.Timestamp;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
@@ -34,7 +36,7 @@ class ParticipantTest {
             ParticipantType.defendant,
             "Test",
             "Participant",
-            false
+            new Timestamp(System.currentTimeMillis())
         );
 
         entityManager.persist(testParticipant);
@@ -51,7 +53,7 @@ class ParticipantTest {
         );
         assertEquals(testParticipant.getFirstName(), retrievedParticipant.getFirstName(), "First names should match");
         assertEquals(testParticipant.getLastName(), retrievedParticipant.getLastName(), "Last name should match");
-        assertEquals(testParticipant.isDeleted(), retrievedParticipant.isDeleted(), "Deleted status should match");
+        assertEquals(testParticipant.getDeletedAt(), retrievedParticipant.getDeletedAt(), "Deleted at should match");
         assertEquals(testParticipant.getCreatedAt(), retrievedParticipant.getCreatedAt(), "Created at should match");
         assertEquals(testParticipant.getModifiedAt(), retrievedParticipant.getModifiedAt(), "Modified at should match");
     }

@@ -8,6 +8,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
+import java.sql.Timestamp;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
@@ -19,7 +21,14 @@ class UserTest {
     @Test
     @Transactional
     void testSaveAndRetrieveUser() {
-        User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
+        User user = HelperFactory.createUser(
+            "Test",
+            "User",
+            "example@example.com",
+            new Timestamp(System.currentTimeMillis()),
+            null,
+            null
+        );
         entityManager.persist(user);
         entityManager.flush();
 
@@ -31,7 +40,7 @@ class UserTest {
         assertEquals(user.getEmail(), retrievedUser.getEmail(), "Email should match");
         assertEquals(user.getOrganisation(), retrievedUser.getOrganisation(), "Organisation should match");
         assertEquals(user.getPhone(), retrievedUser.getPhone(), "Phone should match");
-        assertEquals(user.isDeleted(), retrievedUser.isDeleted(), "Deleted status should match");
+        assertEquals(user.getDeletedAt(), retrievedUser.getDeletedAt(), "Deleted at should match");
         assertEquals(user.getCreatedAt(), retrievedUser.getCreatedAt(), "Created at should match");
         assertEquals(user.getModifiedAt(), retrievedUser.getModifiedAt(), "Modified at should match");
     }

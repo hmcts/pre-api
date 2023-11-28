@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -25,7 +26,14 @@ class AppAccessTest {
     @Test
     @Transactional
     void testSaveAndRetrieveAppAccess() {
-        User user = HelperFactory.createUser("Test", "User", "example@example.com", false, null, null);
+        User user = HelperFactory.createUser(
+            "Test",
+            "User",
+            "example@example.com",
+            new Timestamp(System.currentTimeMillis()),
+            null,
+            null
+        );
         entityManager.persist(user);
 
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", "Test123");
@@ -39,7 +47,7 @@ class AppAccessTest {
             court,
             role,
             true,
-            false,
+            new Timestamp(System.currentTimeMillis()),
             new Date(System.currentTimeMillis())
         );
 
@@ -54,7 +62,7 @@ class AppAccessTest {
         assertEquals(appAccess.getRole(), retrievedAppAccess.getRole(), "Roles should match");
         assertEquals(appAccess.getLastAccess(), retrievedAppAccess.getLastAccess(), "Last access should match");
         assertEquals(appAccess.isActive(), retrievedAppAccess.isActive(), "Active status should match");
-        assertEquals(appAccess.isDeleted(), retrievedAppAccess.isDeleted(), "Deleted status should match");
+        assertEquals(appAccess.getDeletedAt(), retrievedAppAccess.getDeletedAt(), "Deleted at should match");
         assertEquals(appAccess.getCreatedAt(), retrievedAppAccess.getCreatedAt(), "Created at should match");
         assertEquals(appAccess.getModifiedAt(), retrievedAppAccess.getModifiedAt(), "Modified at should match");
     }

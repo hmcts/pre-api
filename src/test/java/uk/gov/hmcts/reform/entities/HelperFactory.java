@@ -26,7 +26,7 @@ final class HelperFactory {
         String firstName,
         String lastName,
         String email,
-        boolean deleted,
+        Timestamp deletedAt,
         @Nullable String phone,
         @Nullable String organisation
     ) { //NOPMD - suppressed UseObjectForClearerAPI
@@ -34,7 +34,7 @@ final class HelperFactory {
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setEmail(email);
-        user.setDeleted(deleted);
+        user.setDeletedAt(deletedAt);
         user.setPhone(phone);
         user.setOrganisation(organisation);
         return user;
@@ -59,7 +59,7 @@ final class HelperFactory {
         Court court,
         Role role,
         boolean active,
-        boolean deleted,
+        Timestamp deletedAt,
         @Nullable Date lastAccess
     ) {
         AppAccess appAccess = new AppAccess();
@@ -68,24 +68,24 @@ final class HelperFactory {
         appAccess.setRole(role);
         appAccess.setLastAccess(lastAccess);
         appAccess.setActive(active);
-        appAccess.setDeleted(deleted);
+        appAccess.setDeletedAt(deletedAt);
         return appAccess;
     }
 
-    static Case createCase(Court court, String reference, boolean test, boolean deleted) {
+    static Case createCase(Court court, String reference, boolean test, Timestamp deletedAt) {
         Case testCase = new Case();
         testCase.setCourt(court);
         testCase.setReference(reference);
         testCase.setTest(test);
-        testCase.setDeleted(deleted);
+        testCase.setDeletedAt(deletedAt);
         return testCase;
     }
 
-    static Booking createBooking(Case testingCase, Timestamp scheduledFor, boolean deleted) {
+    static Booking createBooking(Case testingCase, Timestamp scheduledFor, Timestamp deletedAt) {
         Booking booking = new Booking();
         booking.setCaseId(testingCase);
         booking.setScheduledFor(scheduledFor);
-        booking.setDeleted(deleted);
+        booking.setDeletedAt(deletedAt);
         return booking;
     }
 
@@ -99,7 +99,7 @@ final class HelperFactory {
         @Nullable Timestamp finishedOn,
         @Nullable User finishedBy,
         @Nullable RecordingStatus status,
-        boolean deleted
+        @Nullable Timestamp deletedAt
     ) {
         CaptureSession captureSession = new CaptureSession();
         captureSession.setBooking(booking);
@@ -111,7 +111,7 @@ final class HelperFactory {
         captureSession.setFinishedOn(finishedOn);
         captureSession.setFinishedByUserId(finishedBy);
         captureSession.setStatus(status);
-        captureSession.setDeleted(deleted);
+        captureSession.setDeletedAt(deletedAt);
         return captureSession;
     }
 
@@ -120,14 +120,14 @@ final class HelperFactory {
         ParticipantType type,
         String firstName,
         String lastName,
-        boolean deleted
+        Timestamp deletedAt
     ) {
         Participant participant = new Participant();
         participant.setCaseId(testCase);
         participant.setParticipantType(type);
         participant.setFirstName(firstName);
         participant.setLastName(lastName);
-        participant.setDeleted(deleted);
+        participant.setDeletedAt(deletedAt);
         return participant;
     }
 }

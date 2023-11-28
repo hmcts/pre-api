@@ -10,6 +10,8 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
+import java.sql.Timestamp;
+
 @Getter
 @Setter
 @Entity
@@ -19,12 +21,12 @@ public class Case extends CreatedModifiedAtEntity { //NOPMD - suppressed ShortCl
     @JoinColumn(name = "court_id", referencedColumnName = "id")
     private Court court;
 
-    @Column(nullable = false, length = 25)
+    @Column(name = "reference", nullable = false, length = 25)
     private String reference;
 
-    @Column
+    @Column(name = "test")
     private boolean test;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 }

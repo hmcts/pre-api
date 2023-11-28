@@ -27,8 +27,8 @@ public class Booking extends CreatedModifiedAtEntity {
     @Column(name = "scheduled_for", nullable = false)
     private Timestamp scheduledFor;
 
-    @Column
-    private boolean deleted;
+    @Column(name = "deleted_at")
+    private Timestamp deletedAt;
 
     @ManyToMany
     @JoinTable(
