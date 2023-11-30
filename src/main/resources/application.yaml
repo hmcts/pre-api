@@ -47,7 +47,6 @@ spring:
             lob:
               # silence the 'wall-of-text' - unnecessary exception throw about blob types
               non_contextual_creation: true
-            time_zone: UTC
       open-in-view: true # https://www.baeldung.com/spring-open-session-in-view may want to disable
 
 azure:
