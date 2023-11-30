@@ -14,6 +14,17 @@ final class HelperFactory {
     private HelperFactory() {
     }
 
+    static User createDefaultTestUser() {
+        return createUser(
+            "Test",
+            "User",
+            "example@example.com",
+            new Timestamp(System.currentTimeMillis()),
+            null,
+            null
+        );
+    }
+
     static User createUser(
         String firstName,
         String lastName,

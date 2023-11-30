@@ -7,8 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 
-import java.sql.Timestamp;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
@@ -20,14 +18,7 @@ class UserTest {
     @Test
     @Transactional
     public void testSaveAndRetrieveUser() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
-        User user = HelperFactory.createUser(
-            "Test",
-            "User",
-            "example@example.com",
-            new Timestamp(System.currentTimeMillis()),
-            null,
-            null
-        );
+        User user = HelperFactory.createDefaultTestUser();
         entityManager.persist(user);
         entityManager.flush();
 

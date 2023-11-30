@@ -8,8 +8,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
-import java.sql.Timestamp;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
@@ -21,14 +19,7 @@ class CourtTest {
     @Test
     @Transactional
     public void testSaveAndRetrieveCourt() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
-        User user = HelperFactory.createUser(
-            "Test",
-            "User",
-            "example@example.com",
-            new Timestamp(System.currentTimeMillis()),
-            null,
-            null
-        );
+        User user = HelperFactory.createDefaultTestUser();
         entityManager.persist(user);
 
         Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", "Test123");

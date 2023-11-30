@@ -21,14 +21,7 @@ class PortalAccessTest {
     @Test
     @Transactional
     public void testSaveAndRetrievePortalAccess() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
-        User user = HelperFactory.createUser(
-            "Test",
-            "User",
-            "example@example.com",
-            new Timestamp(System.currentTimeMillis()),
-            null,
-            null
-        );
+        User user = HelperFactory.createDefaultTestUser();
         entityManager.persist(user);
 
         PortalAccess testPortalAccess = new PortalAccess();
