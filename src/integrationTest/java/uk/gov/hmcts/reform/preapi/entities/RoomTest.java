@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.entities;
+package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
-import uk.gov.hmcts.reform.preapi.entities.Room;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,7 +17,7 @@ class RoomTest {
 
     @Test
     @Transactional
-    void testSaveAndRetrieveRoom() {
+    public void testSaveAndRetrieveRoom() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
         Room testRoom = new Room();
         testRoom.setName("TestRoomName");
         entityManager.persist(testRoom);

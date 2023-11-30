@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.entities;
+package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
-import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
@@ -23,7 +22,7 @@ class AuditTest {
 
     @Test
     @Transactional
-    void testSaveAndRetrieveAudit() {
+    public void testSaveAndRetrieveAudit() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
         Audit audit = new Audit();
         audit.setTableName("TestTable");
         audit.setTableRecordId(UUID.randomUUID());

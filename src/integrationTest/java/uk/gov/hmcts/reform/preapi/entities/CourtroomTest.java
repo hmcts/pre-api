@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.entities;
+package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -6,10 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
-import uk.gov.hmcts.reform.preapi.entities.Court;
-import uk.gov.hmcts.reform.preapi.entities.Courtroom;
-import uk.gov.hmcts.reform.preapi.entities.Room;
-import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
 import java.sql.Timestamp;
@@ -24,7 +20,7 @@ class CourtroomTest {
 
     @Test
     @Transactional
-    void testSaveAndRetrieveCourtroom() {
+    public void testSaveAndRetrieveCourtroom() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
         User user = HelperFactory.createUser(
             "Test",
             "User",

@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.entities;
+package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
-import uk.gov.hmcts.reform.preapi.entities.Region;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -18,7 +17,7 @@ class RegionTest {
 
     @Test
     @Transactional
-    void testSaveAndRetrieveRegion() {
+    public void testSaveAndRetrieveRegion() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
         Region testRegion = new Region();
         testRegion.setName("TestRegionName");
         entityManager.persist(testRegion);

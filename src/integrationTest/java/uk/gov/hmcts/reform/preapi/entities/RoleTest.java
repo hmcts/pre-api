@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.entities;
+package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -6,11 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
-import uk.gov.hmcts.reform.preapi.entities.Role;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
+@SuppressWarnings("PMD - JUnit5TestShouldBePackagePrivate")
 class RoleTest {
 
     @Autowired
@@ -18,7 +18,7 @@ class RoleTest {
 
     @Test
     @Transactional
-    void testSaveAndRetrieveRole() {
+    public void testSaveAndRetrieveRole() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
         Role testRole = new Role();
         testRole.setName("TestRoleName");
         entityManager.persist(testRole);
