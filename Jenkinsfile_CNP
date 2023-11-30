@@ -1,6 +1,6 @@
 #!groovy
 
-@Library("Infrastructure")
+@Library("Infrastructure@jason/debug-db-migration-credentials")
 
 def type = "java"
 def product = "pre"
