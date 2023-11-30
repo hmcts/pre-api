@@ -15,7 +15,6 @@ springdoc:
   packagesToScan: uk.gov.hmcts.reform.preapi.controllers
   writer-with-order-by-keys: true
 
-#If you use a database then uncomment below lines and update db properties accordingly
 spring:
   config:
     import: "optional:configtree:/mnt/secrets/pre/"
@@ -36,9 +35,13 @@ spring:
       maxLifetime: 7200000
       connectionTimeout: 30000
     jpa:
+      hibernate:
+        ddl-auto: none
       database-platform: org.hibernate.dialect.PostgreSQLDialect
       properties:
         hibernate:
+          default_schema: ${spring.datasource.schema}
+          dialect: org.hibernate.dialect.PostgreSQLDialect
           globally_quoted_identifiers: true
           jdbc:
             lob:

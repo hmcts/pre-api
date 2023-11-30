@@ -3,7 +3,6 @@ java:
   image: 'sdshmctspublic.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
   aadIdentityName: pre
-#  Uncomment once the vault containing the app insights key has been set up
   keyVaults:
     pre:
       secrets:
