@@ -24,7 +24,7 @@ class RecordingTest {
     @Test
     @Transactional
     public void testSaveAndRetrieveRecordingVersion() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
-        Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", null);
         entityManager.persist(court);
 
         Case testCase = HelperFactory.createCase(court, "ref1234", true, new Timestamp(System.currentTimeMillis()));
@@ -42,14 +42,14 @@ class RecordingTest {
 
         CaptureSession captureSession = HelperFactory.createCaptureSession(
             booking,
-            RecordingOrigin.pre,
+            RecordingOrigin.PRE,
             "TestIngrestAddress",
             "TestLiveOutputAddress",
             new Timestamp(System.currentTimeMillis()),
             user,
             new Timestamp(System.currentTimeMillis()),
             user,
-            RecordingStatus.finished,
+            RecordingStatus.FINISHED,
             new Timestamp(System.currentTimeMillis())
         );
         entityManager.persist(captureSession);

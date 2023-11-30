@@ -26,8 +26,8 @@ class AuditTest {
         Audit audit = new Audit();
         audit.setTableName("TestTable");
         audit.setTableRecordId(UUID.randomUUID());
-        audit.setSource(AuditLogSource.portal);
-        audit.setType(AuditLogType.create);
+        audit.setSource(AuditLogSource.PORTAL);
+        audit.setType(AuditLogType.CREATE);
         audit.setCategory("TestCategory");
         audit.setActivity("TestActivity");
         audit.setFunctionalArea("TestFunctionalArea");

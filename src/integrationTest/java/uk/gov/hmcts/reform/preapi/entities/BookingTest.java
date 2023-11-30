@@ -23,7 +23,7 @@ class BookingTest {
     @Transactional
     public void testSaveAndRetrieveBooking() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
         Timestamp now = new Timestamp(System.currentTimeMillis());
-        Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", null);
         entityManager.persist(court);
 
         Case testCase = HelperFactory.createCase(court, "ref1234", true, now);

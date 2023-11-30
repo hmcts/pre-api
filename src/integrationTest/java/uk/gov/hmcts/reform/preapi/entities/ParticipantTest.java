@@ -22,7 +22,7 @@ class ParticipantTest {
     @Test
     @Transactional
     public void testSaveAndRetrieveParticipant() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
-        Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", null);
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", null);
         entityManager.persist(court);
 
         Case testCase = HelperFactory.createCase(court, "ref1234", true, new Timestamp(System.currentTimeMillis()));
@@ -30,7 +30,7 @@ class ParticipantTest {
 
         Participant testParticipant = HelperFactory.createParticipant(
             testCase,
-            ParticipantType.defendant,
+            ParticipantType.DEFENDANT,
             "Test",
             "Participant",
             new Timestamp(System.currentTimeMillis())

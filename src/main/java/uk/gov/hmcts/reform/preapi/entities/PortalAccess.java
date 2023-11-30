@@ -36,7 +36,7 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Enumerated(EnumType.STRING)
     @Type(PostgreSQLEnumType.class)
     @Column(name = "status", nullable = false)
-    private AccessStatus status = AccessStatus.invitation_sent;
+    private AccessStatus status = AccessStatus.INVITATION_SENT;
 
     @Column(name = "invitation_datetime")
     private Timestamp invitationDateTime;

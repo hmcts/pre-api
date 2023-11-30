@@ -22,7 +22,7 @@ class CourtTest {
         User user = HelperFactory.createDefaultTestUser();
         entityManager.persist(user);
 
-        Court court = HelperFactory.createCourt(CourtType.crown, "Test Court", "Test123");
+        Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "Test123");
         entityManager.persist(court);
         entityManager.flush();
 
