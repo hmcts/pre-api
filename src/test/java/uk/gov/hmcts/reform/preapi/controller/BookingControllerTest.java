@@ -69,7 +69,8 @@ class BookingControllerTest {
             .andExpect(status().is4xxClientError())
             .andReturn();
 
-        assertThat(response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Path caseId does not match payload property booking.caseId\"}");
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Path caseId does not match payload property booking.caseId\"}");
     }
 
     @DisplayName("Should fail to create a booking with 400 response code bookingId mismatch")
@@ -91,7 +92,8 @@ class BookingControllerTest {
             .andExpect(status().is4xxClientError())
             .andReturn();
 
-        assertThat(response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Path bookingId does not match payload property booking.id\"}");
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Path bookingId does not match payload property booking.id\"}");
     }
 
     @DisplayName("Should fail to create a booking with 400 response code")
