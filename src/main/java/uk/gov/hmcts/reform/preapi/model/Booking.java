@@ -2,10 +2,8 @@ package uk.gov.hmcts.reform.preapi.model;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-import jakarta.persistence.Column;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 
 import java.sql.Timestamp;
@@ -17,7 +15,7 @@ import java.util.Set;
 public class Booking {
 
     private Long id;
-    private Case forCase;
+    private Long caseId;
     private Timestamp scheduledFor;
     private Timestamp deletedAt;
     private Timestamp createdAt;
