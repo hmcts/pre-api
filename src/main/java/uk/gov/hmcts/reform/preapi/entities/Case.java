@@ -17,7 +17,7 @@ import java.sql.Timestamp;
 @Entity
 @Table(name = "cases")
 public class Case extends CreatedModifiedAtEntity { //NOPMD - suppressed ShortClassName
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "court_id", referencedColumnName = "id")
     private Court court;
 
