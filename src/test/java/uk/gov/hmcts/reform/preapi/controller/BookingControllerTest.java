@@ -35,13 +35,13 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var b = new Booking();
-        b.setId(bookingId);
-        b.setCaseId(caseId);
+        var booking = new Booking();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(b))
+                            .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isCreated())
@@ -57,13 +57,13 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var b = new Booking();
-        b.setId(bookingId);
-        b.setCaseId(UUID.randomUUID());
+        var booking = new Booking();
+        booking.setId(bookingId);
+        booking.setCaseId(UUID.randomUUID());
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(b))
+                            .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is4xxClientError())
@@ -80,13 +80,13 @@ class BookingControllerTest {
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
 
-        var b = new Booking();
-        b.setId(UUID.randomUUID());
-        b.setCaseId(caseId);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(caseId);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(b))
+                            .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is4xxClientError())
