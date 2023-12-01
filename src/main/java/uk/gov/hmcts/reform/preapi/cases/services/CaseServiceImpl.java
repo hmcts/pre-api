@@ -24,14 +24,8 @@ public class CaseServiceImpl implements CaseService {
 
     @Transactional
     @Override
-    public List<Case> findByReference(String reference) {
-        return caseRepository.findByReferenceContainsIgnoreCase(reference);
-    }
-
-    @Transactional
-    @Override
-    public List<Case> findAll() {
-        return caseRepository.findAll();
+    public List<Case> searchBy(String reference, UUID courtId) {
+        return caseRepository.searchCasesBy(reference, courtId);
     }
 
     @Transactional
@@ -43,9 +37,7 @@ public class CaseServiceImpl implements CaseService {
     @Transactional
     @Override
     public void delete(Case caseEntity) {
-        if (caseEntity.getDeletedAt() != null) {
-            caseEntity.setDeletedAt(new Timestamp(System.currentTimeMillis()));
-            caseRepository.save(caseEntity);
-        }
+        caseEntity.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+        caseRepository.save(caseEntity);
     }
 }

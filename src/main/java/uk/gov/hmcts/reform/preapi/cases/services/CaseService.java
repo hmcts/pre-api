@@ -9,9 +9,7 @@ import java.util.UUID;
 public interface CaseService {
     Case findById(UUID id);
 
-    List<Case> findAll();
-
-    List<Case> findByReference(String searchParams);
+    List<Case> searchBy(String reference, UUID courtId);
 
     Case save(Case caseEntity);
 

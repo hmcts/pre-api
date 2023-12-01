@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.cases.controllers;
+package uk.gov.hmcts.reform.preapi.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -10,11 +10,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.gov.hmcts.reform.preapi.cases.models.PutCaseRequestModel;
+import uk.gov.hmcts.reform.preapi.cases.models.PutCaseRequest;
 import uk.gov.hmcts.reform.preapi.cases.services.CaseService;
 import uk.gov.hmcts.reform.preapi.courts.services.CourtService;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.models.CaseDto;
+import uk.gov.hmcts.reform.preapi.models.Case;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,43 +30,45 @@ public class CaseController {
     private CourtService courtService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<CaseDto> getCaseById(@PathVariable(name = "id") UUID caseId) {
-        Case foundCase = caseService.findById(caseId);
-        if (foundCase == null) {
+    public ResponseEntity<Case> getCaseById(@PathVariable(name = "id") UUID caseId) {
+        var foundCase = caseService.findById(caseId);
+
+        if (foundCase == null || foundCase.isDeleted()) {
+            // TODO throw not found error
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(new CaseDto(foundCase));
+        return ResponseEntity.ok(new Case(foundCase));
     }
 
     @GetMapping
-    public ResponseEntity<List<CaseDto>> getCases(@RequestParam(name = "reference", required = false) String caseReference) {
-        List<Case> foundCases;
-        if (caseReference != null && !caseReference.isEmpty()) {
-            foundCases = caseService.findByReference(caseReference);
-        } else {
-            foundCases = caseService.findAll();
-        }
+    public ResponseEntity<List<Case>> getCases(
+        @RequestParam(name = "reference", required = false) String caseReference,
+        @RequestParam(name = "courtId", required = false) UUID courtId
+    ) {
+        var foundCases = caseService.searchBy(caseReference, courtId);
 
         return foundCases.isEmpty()
             ? ResponseEntity.noContent().build()
             : ResponseEntity.ok(foundCases
                                     .stream()
-                                    .map(CaseDto::new)
+                                    .map(Case::new)
                                     .collect(Collectors.toList())
         );
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CaseDto> updateCase(@PathVariable UUID id, @RequestBody PutCaseRequestModel updatedCase) {
-        Case existingCase = caseService.findById(id);
+    public ResponseEntity<Case> updateCase(@PathVariable UUID id, @RequestBody PutCaseRequest updatedCase) {
+        var existingCase = caseService.findById(id);
 
-        if (existingCase == null) {
+        if (existingCase == null || existingCase.isDeleted()) {
+            // todo throw not found
             return ResponseEntity.notFound().build();
         }
 
         if (updatedCase.getCourtId() != null) {
             var court = courtService.findById(updatedCase.getCourtId());
             if (court == null) {
+                // todo throw bad request
                 return ResponseEntity.badRequest().build();
             }
             existingCase.setCourt(court);
@@ -81,21 +82,19 @@ public class CaseController {
             existingCase.setTest(updatedCase.getTest());
         }
 
-        CaseDto savedCase = new CaseDto(caseService.save(existingCase));
-
-        return ResponseEntity.ok(savedCase);
+        return ResponseEntity.ok(new Case(caseService.save(existingCase)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCase(@PathVariable UUID id) {
-        Case existingCase = caseService.findById(id);
+        var existingCase = caseService.findById(id);
 
-        if (existingCase == null) {
+        if (existingCase == null || existingCase.isDeleted()) {
+            // todo throw not found
             return ResponseEntity.notFound().build();
         }
 
         caseService.delete(existingCase);
-
         return ResponseEntity.noContent().build();
     }
 }
