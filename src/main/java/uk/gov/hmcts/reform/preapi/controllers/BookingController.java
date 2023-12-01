@@ -11,6 +11,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.model.Booking;
 
+import java.util.UUID;
+
 import static org.springframework.http.ResponseEntity.created;
 
 @RestController
@@ -18,7 +20,7 @@ import static org.springframework.http.ResponseEntity.created;
 public class BookingController {
 
     @PutMapping("/{bookingId}")
-    public ResponseEntity<Booking> create(@PathVariable Long caseId, @PathVariable Long bookingId, @RequestBody Booking booking) {
+    public ResponseEntity<Booking> create(@PathVariable UUID caseId, @PathVariable UUID bookingId, @RequestBody Booking booking) {
 
         // @todo check case exists else 404
 

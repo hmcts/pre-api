@@ -12,6 +12,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
 import uk.gov.hmcts.reform.preapi.model.Booking;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -31,11 +33,13 @@ class BookingControllerTest {
     @Test
     void createBookingEndpointCreated() throws Exception {
 
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
         var b = new Booking();
-        b.setId(456L);
-        b.setCaseId(123L);
+        b.setId(bookingId);
+        b.setCaseId(caseId);
 
-        MvcResult response = mockMvc.perform(put("/cases/123/bookings/456")
+        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(b))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -44,18 +48,20 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/cases/123/bookings/456");
+        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId));
     }
 
     @DisplayName("Should fail to create a booking with 400 response code caseId mismatch")
     @Test
     void createBookingEndpointCaseIdMismatch() throws Exception {
 
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
         var b = new Booking();
-        b.setId(456L);
-        b.setCaseId(789L);
+        b.setId(bookingId);
+        b.setCaseId(UUID.randomUUID());
 
-        MvcResult response = mockMvc.perform(put("/cases/123/bookings/456")
+        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(b))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -70,11 +76,14 @@ class BookingControllerTest {
     @Test
     void createBookingEndpointBookingIdMismatch() throws Exception {
 
-        var b = new Booking();
-        b.setId(789L);
-        b.setCaseId(123L);
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
 
-        MvcResult response = mockMvc.perform(put("/cases/123/bookings/456")
+        var b = new Booking();
+        b.setId(UUID.randomUUID());
+        b.setCaseId(caseId);
+
+        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(b))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -88,6 +97,10 @@ class BookingControllerTest {
     @DisplayName("Should fail to create a booking with 400 response code")
     @Test
     void createBookingEndpointNotAcceptable() throws Exception {
-        mockMvc.perform(put("/cases/123/bookings/456")).andExpect(status().is4xxClientError());
+        mockMvc.perform(put(getPath(UUID.randomUUID(), UUID.randomUUID()))).andExpect(status().is4xxClientError());
+    }
+
+    private String getPath(UUID caseId, UUID bookingId) {
+        return "/cases/" + caseId + "/bookings/" + bookingId;
     }
 }

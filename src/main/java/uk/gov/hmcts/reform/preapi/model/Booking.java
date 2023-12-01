@@ -8,14 +8,15 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 
 import java.sql.Timestamp;
 import java.util.Set;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class Booking {
 
-    private Long id;
-    private Long caseId;
+    private UUID id;
+    private UUID caseId;
     private Timestamp scheduledFor;
     private Timestamp deletedAt;
     private Timestamp createdAt;
