@@ -23,15 +23,20 @@ public class GlobalControllerExceptionHandler {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error), responseHeaders, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
+                                    responseHeaders,
+                                    HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(PathPayloadMismatchException.class)
-    ResponseEntity<String> pathPayloadMismatchExceptionHandler(final PathPayloadMismatchException ex) throws JsonProcessingException {
+    ResponseEntity<String> pathPayloadMismatchExceptionHandler(final PathPayloadMismatchException ex)
+        throws JsonProcessingException {
         HashMap<String, String> error = new HashMap<>();
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error), responseHeaders, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
+                                    responseHeaders,
+                                    HttpStatus.BAD_REQUEST);
     }
 }
