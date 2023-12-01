@@ -31,16 +31,58 @@ class BookingControllerTest {
     @Test
     void createBookingEndpointCreated() throws Exception {
 
+        var b = new Booking();
+        b.setId(456L);
+        b.setCaseId(123L);
+
         MvcResult response = mockMvc.perform(put("/cases/123/bookings/456")
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(new Booking()))
+                            .content(OBJECT_MAPPER.writeValueAsString(b))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isCreated())
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/cases/123/bookings/456/");
+        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/cases/123/bookings/456");
+    }
+
+    @DisplayName("Should fail to create a booking with 400 response code caseId mismatch")
+    @Test
+    void createBookingEndpointCaseIdMismatch() throws Exception {
+
+        var b = new Booking();
+        b.setId(456L);
+        b.setCaseId(789L);
+
+        MvcResult response = mockMvc.perform(put("/cases/123/bookings/456")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(b))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Path caseId does not match payload property booking.caseId\"}");
+    }
+
+    @DisplayName("Should fail to create a booking with 400 response code bookingId mismatch")
+    @Test
+    void createBookingEndpointBookingIdMismatch() throws Exception {
+
+        var b = new Booking();
+        b.setId(789L);
+        b.setCaseId(123L);
+
+        MvcResult response = mockMvc.perform(put("/cases/123/bookings/456")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(b))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Path bookingId does not match payload property booking.id\"}");
     }
 
     @DisplayName("Should fail to create a booking with 400 response code")
