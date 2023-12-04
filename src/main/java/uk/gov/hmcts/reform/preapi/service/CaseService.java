@@ -11,8 +11,12 @@ import java.util.UUID;
 @Service
 public class CaseService {
 
+    private final CaseRepository caseRepository;
+
     @Autowired
-    private CaseRepository caseRepository;
+    CaseService(CaseRepository caseRepository) {
+        this.caseRepository = caseRepository;
+    }
 
     @Transactional
     public Case findById(UUID id) {
