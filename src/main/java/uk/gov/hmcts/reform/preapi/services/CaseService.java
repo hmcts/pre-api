@@ -50,7 +50,6 @@ public class CaseService {
         }
 
         if (caseRepository.findById(caseModel.getId()).isPresent()) {
-            // todo throw 409 conflict (id already exists)
             throw new ConflictException(caseModel.getId().toString());
         }
 
