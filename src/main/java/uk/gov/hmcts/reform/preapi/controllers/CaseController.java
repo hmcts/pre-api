@@ -11,8 +11,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.models.Case;
-import uk.gov.hmcts.reform.preapi.services.cases.CaseService;
+import uk.gov.hmcts.reform.preapi.service.CaseService;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,8 +35,7 @@ public class CaseController {
         var foundCase = caseService.findById(caseId);
 
         if (foundCase == null || foundCase.getDeletedAt() != null) {
-            // TODO throw not found error
-            return ResponseEntity.notFound().build();
+            throw new NotFoundException("Case: " + caseId);
         }
         return ResponseEntity.ok(foundCase);
     }
@@ -44,17 +45,13 @@ public class CaseController {
         @RequestParam(name = "reference", required = false) String caseReference,
         @RequestParam(name = "courtId", required = false) UUID courtId
     ) {
-        var foundCases = caseService.searchBy(caseReference, courtId);
-
-        return foundCases.isEmpty()
-            ? ResponseEntity.noContent().build()
-            : ResponseEntity.ok(foundCases);
+        return ResponseEntity.ok(caseService.searchBy(caseReference, courtId));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Case> createCase(@PathVariable UUID id, @RequestBody Case newCaseRequest) {
         if (!id.toString().equals(newCaseRequest.getId().toString())) {
-            return ResponseEntity.badRequest().build();
+            throw new PathPayloadMismatchException("id", "newCaseRequest.id");
         }
 
         caseService.create(newCaseRequest);
@@ -71,6 +68,6 @@ public class CaseController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCase(@PathVariable UUID id) {
         caseService.deleteById(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

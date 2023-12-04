@@ -25,7 +25,7 @@ class CaseControllerPutRequestFunctionalTest {
 
     private static final String INVALID_CASE_ID = "abc";
     private static final String VALID_CASE_ID = "d44b6109-65d2-46a7-ab94-bee374f8b780";
-    private static final String VALID_COURT_ID = "47d75f66-a1aa-4deb-b527-e199ecc6cf97";
+    private static final String VALID_COURT_ID = "7983a646-7168-43cf-81fc-14d5c35297c2";
 
     private static final String CREATE_CASE_JSON = """
         {
@@ -69,11 +69,13 @@ class CaseControllerPutRequestFunctionalTest {
             .then()
             .extract().response();
 
+        System.out.println(res.getBody().prettyPrint());
+
         Assertions.assertEquals(201, res.statusCode());
     }
 
     @Test
-    void createCaseFoundTest() {
+    void createCaseAlreadyExistsTest() {
         Response res = given()
             .contentType(ContentType.JSON)
             .body(getCreateCaseJson(
@@ -120,7 +122,7 @@ class CaseControllerPutRequestFunctionalTest {
             .then()
             .extract().response();
 
-        Assertions.assertEquals(400, res.statusCode());
+        Assertions.assertEquals(404, res.statusCode());
     }
 
     @Test

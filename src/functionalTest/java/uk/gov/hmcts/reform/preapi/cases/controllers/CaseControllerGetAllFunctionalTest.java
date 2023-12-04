@@ -137,6 +137,8 @@ class CaseControllerGetAllFunctionalTest {
             .then()
             .extract().response();
 
-        Assertions.assertEquals(204, res.statusCode());
+        Assertions.assertEquals(200, res.statusCode());
+        Assertions.assertEquals(0, res.jsonPath().getList("").size());
+
     }
 }

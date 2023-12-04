@@ -1,7 +1,7 @@
 INSERT INTO public.courts (id, court_type, name, location_code)
 VALUES ('7983a646-7168-43cf-81fc-14d5c35297c2', 'CROWN', 'Example Court', '54321');
 
-INSERT INTO courts (id, court_type, name, location_code)
+INSERT INTO public.courts (id, court_type, name, location_code)
 VALUES ('47d75f66-a1aa-4deb-b527-e199ecc6cf98', 'FAMILY', 'Family Court', 'abc123');
 
 INSERT INTO public.cases (id, created_at, reference, court_id, test, deleted_at)
