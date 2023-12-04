@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.cases.services;
+package uk.gov.hmcts.reform.preapi.service;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,13 +9,12 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import java.util.UUID;
 
 @Service
-public class CaseServiceImpl implements CaseService {
+public class CaseService {
 
     @Autowired
     private CaseRepository caseRepository;
 
     @Transactional
-    @Override
     public Case findById(UUID id) {
         return caseRepository
             .findById(id)

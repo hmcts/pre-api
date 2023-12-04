@@ -9,7 +9,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CaseTest {
+class CaseTest {
 
     private static uk.gov.hmcts.reform.preapi.entities.Case caseEntity;
 
@@ -28,6 +28,6 @@ public class CaseTest {
         var model = new Case(caseEntity);
 
         assertThat(model.getId()).isEqualTo(caseEntity.getId());
-        assertThat(model.getId()).isEqualTo(caseEntity.getCourt().getId());
+        assertThat(model.getCourtId()).isEqualTo(caseEntity.getCourt().getId());
     }
 }
