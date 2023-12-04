@@ -8,24 +8,26 @@ from collections import Counter
 
 # parse date string to timestamp UTC value
 def parse_to_timestamp(input_text):
-    uk_timezone = pytz.timezone('Europe/London')
     if input_text:
         try:
-            parsed_datetime = datetime.strptime(input_text, "%d/%m/%Y %H:%M")
-            
-            # to check if the parsed time is in UTC time forrmat
-            if parsed_datetime.tzinfo is None or parsed_datetime.tzinfo.utcoffset(parsed_datetime) == timedelta(0):
-                utc_timezone = pytz.timezone('UTC')
-                parsed_datetime = utc_timezone.localize(parsed_datetime)
-                
-            # convets the parsed time to bst format
-            bst_datetime = parsed_datetime.astimezone(uk_timezone)
-            return bst_datetime.isoformat()
-        except ValueError:
+            parsed_datetime = None
+            # try parsing with different formats
+            formats_to_try = ["%d/%m/%Y %H:%M:%S", "%d-%m-%Y %H:%M:%S"]
+            for date_format in formats_to_try:
+                try:
+                    parsed_datetime = datetime.strptime(input_text, date_format)
+                    break 
+                except ValueError:
+                    pass
+
+            if parsed_datetime:
+                uk_timezone = pytz.timezone('Europe/London')
+                parsed_datetime = uk_timezone.localize(parsed_datetime)
+                return parsed_datetime.strftime('%Y-%m-%d %H:%M:%S')
+        except (ValueError, TypeError):
             pass
-    uk_timezone = pytz.timezone('Europe/London')
-    current_time = datetime.now(tz=uk_timezone)
-    return current_time.isoformat()
+    # if input is invalid or empty, returning the current time in UK timezone
+    return datetime.now(tz=pytz.timezone('Europe/London')).strftime('%Y-%m-%d %H:%M:%S')
 
 # checks if a record has already been imported
 def check_existing_record(table_name, field, record):
