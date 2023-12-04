@@ -12,8 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.cases.services.CaseService;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
-import uk.gov.hmcts.reform.preapi.model.Case;
 import uk.gov.hmcts.reform.preapi.model.Booking;
+import uk.gov.hmcts.reform.preapi.model.Case;
 
 import java.util.UUID;
 
