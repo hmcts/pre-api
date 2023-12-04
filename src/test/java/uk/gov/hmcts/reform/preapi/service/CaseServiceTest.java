@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CaseService.class)
+@SuppressWarnings("PMD.LawOfDemeter")
 class CaseServiceTest {
 
     private static uk.gov.hmcts.reform.preapi.entities.Case caseEntity;

@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SuppressWarnings("PMD.LawOfDemeter")
 class CaseTest {
 
     private static uk.gov.hmcts.reform.preapi.entities.Case caseEntity;
