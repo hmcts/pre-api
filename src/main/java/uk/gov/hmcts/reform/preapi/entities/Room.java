@@ -12,7 +12,8 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 @Setter
 @Entity
 @Table(name = "rooms")
-public class Room extends BaseEntity { //NOPMD - suppressed ShortClassName
+@SuppressWarnings("PMD.ShortClassName")
+public class Room extends BaseEntity {
     @Column(name = "room", nullable = false, length = 45)
     private String name;
 }
