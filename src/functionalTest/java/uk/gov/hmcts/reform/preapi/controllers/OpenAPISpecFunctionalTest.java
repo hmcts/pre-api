@@ -1,19 +1,18 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
-import io.restassured.response.Response;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.http.HttpStatus.OK;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-class SampleFunctionalTest {
-    protected static final String CONTENT_TYPE_VALUE = "application/json";
+class OpenAPISpecFunctionalTest {
+    private static final String SPEC_ENDPOINT = "/v3/api-docs";
 
     @Value("${TEST_URL:http://localhost:4550}")
     private String testUrl;
@@ -21,19 +20,16 @@ class SampleFunctionalTest {
     @BeforeEach
     public void setUp() {
         RestAssured.baseURI = testUrl;
-        RestAssured.useRelaxedHTTPSValidation();
     }
 
     @Test
     void functionalTest() {
-        Response response = given()
-            .contentType(ContentType.JSON)
+        final var response = given()
+            .relaxedHTTPSValidation()
             .when()
-            .get()
-            .then()
-            .extract().response();
+            .get(SPEC_ENDPOINT)
+            .thenReturn();
 
-        Assertions.assertEquals(200, response.statusCode());
-        Assertions.assertTrue(response.asString().startsWith("Welcome"));
+        assertThat(response.statusCode()).isEqualTo(OK.value());
     }
 }
