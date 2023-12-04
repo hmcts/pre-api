@@ -10,14 +10,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.gov.hmcts.reform.preapi.cases.models.PutCaseRequest;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.hmcts.reform.preapi.cases.services.CaseService;
-import uk.gov.hmcts.reform.preapi.courts.services.CourtService;
 import uk.gov.hmcts.reform.preapi.models.Case;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/cases")
@@ -25,19 +23,15 @@ public class CaseController {
 
     @Autowired
     private CaseService caseService;
-
-    @Autowired
-    private CourtService courtService;
-
     @GetMapping("/{id}")
     public ResponseEntity<Case> getCaseById(@PathVariable(name = "id") UUID caseId) {
         var foundCase = caseService.findById(caseId);
 
-        if (foundCase == null || foundCase.isDeleted()) {
+        if (foundCase == null || foundCase.getDeletedAt() != null) {
             // TODO throw not found error
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(new Case(foundCase));
+        return ResponseEntity.ok(foundCase);
     }
 
     @GetMapping
@@ -49,52 +43,30 @@ public class CaseController {
 
         return foundCases.isEmpty()
             ? ResponseEntity.noContent().build()
-            : ResponseEntity.ok(foundCases
-                                    .stream()
-                                    .map(Case::new)
-                                    .collect(Collectors.toList())
-        );
+            : ResponseEntity.ok(foundCases);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Case> updateCase(@PathVariable UUID id, @RequestBody PutCaseRequest updatedCase) {
-        var existingCase = caseService.findById(id);
-
-        if (existingCase == null || existingCase.isDeleted()) {
-            // todo throw not found
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<Case> createCase(@PathVariable UUID id, @RequestBody Case newCaseRequest) {
+        System.out.println(newCaseRequest);
+        if (!id.toString().equals(newCaseRequest.getId().toString())) {
+            return ResponseEntity.badRequest().build();
         }
 
-        if (updatedCase.getCourtId() != null) {
-            var court = courtService.findById(updatedCase.getCourtId());
-            if (court == null) {
-                // todo throw bad request
-                return ResponseEntity.badRequest().build();
-            }
-            existingCase.setCourt(court);
-        }
+        caseService.create(newCaseRequest);
 
-        if (updatedCase.getReference() != null) {
-            existingCase.setReference(updatedCase.getReference());
-        }
-
-        if (updatedCase.getTest() != null) {
-            existingCase.setTest(updatedCase.getTest());
-        }
-
-        return ResponseEntity.ok(new Case(caseService.save(existingCase)));
+        return ResponseEntity.created(
+            ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("")
+                .buildAndExpand(id)
+                .toUri())
+            .build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCase(@PathVariable UUID id) {
-        var existingCase = caseService.findById(id);
-
-        if (existingCase == null || existingCase.isDeleted()) {
-            // todo throw not found
-            return ResponseEntity.notFound().build();
-        }
-
-        caseService.delete(existingCase);
+        caseService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }

@@ -15,8 +15,11 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
     @Query(
         """
         SELECT c FROM Case c WHERE
-        (:reference IS NULL OR LOWER(c.reference) LIKE LOWER(CONCAT('%', :reference, '%'))) AND
-        (CAST(:courtId AS java.util.UUID) IS NULL OR c.court.id = :courtId) AND
+        (
+            CAST(:reference as text) IS NULL OR
+            LOWER(CAST(c.reference as text)) LIKE CONCAT('%', LOWER(CAST(:reference as text)), '%')
+        ) AND
+        (CAST(:courtId as java.util.UUID) IS NULL OR c.court.id = :courtId) AND
         c.deletedAt IS NULL
         """
     )

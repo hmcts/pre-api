@@ -1,6 +1,6 @@
 package uk.gov.hmcts.reform.preapi.cases.services;
 
-import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.models.Case;
 
 import java.util.List;
 import java.util.UUID;
@@ -11,7 +11,7 @@ public interface CaseService {
 
     List<Case> searchBy(String reference, UUID courtId);
 
-    Case save(Case caseEntity);
+    void create(Case caseEntity);
 
-    void delete(Case caseEntity);
+    void deleteById(UUID id);
 }
