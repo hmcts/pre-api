@@ -43,7 +43,12 @@ public class CaseServiceImpl implements CaseService {
         var court = courtRepository.findById(caseModel.getCourtId());
 
         if (court.isEmpty()) {
-            // throw
+            // todo throw court not found
+            return;
+        }
+
+        if (caseRepository.findById(caseModel.getId()).isPresent()) {
+            // todo throw 409 conflict (id already exists)
             return;
         }
 
@@ -67,6 +72,7 @@ public class CaseServiceImpl implements CaseService {
 
         if (caseEntity.isDeleted()) {
             // todo throw not found
+            return;
         }
 
         caseEntity.setDeletedAt(new Timestamp(System.currentTimeMillis()));

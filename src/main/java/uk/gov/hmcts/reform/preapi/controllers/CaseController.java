@@ -48,7 +48,6 @@ public class CaseController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Case> createCase(@PathVariable UUID id, @RequestBody Case newCaseRequest) {
-        System.out.println(newCaseRequest);
         if (!id.toString().equals(newCaseRequest.getId().toString())) {
             return ResponseEntity.badRequest().build();
         }
