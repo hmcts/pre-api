@@ -23,6 +23,7 @@ public class CaseController {
 
     @Autowired
     private CaseService caseService;
+
     @GetMapping("/{id}")
     public ResponseEntity<Case> getCaseById(@PathVariable(name = "id") UUID caseId) {
         var foundCase = caseService.findById(caseId);

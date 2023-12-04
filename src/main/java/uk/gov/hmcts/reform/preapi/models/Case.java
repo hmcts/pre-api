@@ -12,7 +12,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Case {
+public class Case { //NOPMD - suppressed ShortClassName
     private UUID id;
     private UUID courtId;
     private String reference;
