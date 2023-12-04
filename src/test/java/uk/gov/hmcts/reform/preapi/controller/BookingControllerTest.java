@@ -10,10 +10,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import uk.gov.hmcts.reform.preapi.cases.services.CaseService;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
 import uk.gov.hmcts.reform.preapi.model.Booking;
 import uk.gov.hmcts.reform.preapi.model.Case;
+import uk.gov.hmcts.reform.preapi.service.CaseService;
 
 import java.util.UUID;
 
@@ -91,7 +91,6 @@ class BookingControllerTest {
     void createBookingEndpointBookingIdMismatch() throws Exception {
 
         var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
 
         var booking = new Booking();
         booking.setId(UUID.randomUUID());
@@ -100,7 +99,7 @@ class BookingControllerTest {
         var mockCase = new Case();
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
-        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
+        MvcResult response = mockMvc.perform(put(getPath(caseId, UUID.randomUUID()))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
