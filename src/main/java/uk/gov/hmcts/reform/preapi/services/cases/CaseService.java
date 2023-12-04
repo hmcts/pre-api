@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.cases.services;
+package uk.gov.hmcts.reform.preapi.services.cases;
 
 import uk.gov.hmcts.reform.preapi.models.Case;
 

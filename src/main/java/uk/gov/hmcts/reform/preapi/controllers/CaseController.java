@@ -11,8 +11,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-import uk.gov.hmcts.reform.preapi.cases.services.CaseService;
 import uk.gov.hmcts.reform.preapi.models.Case;
+import uk.gov.hmcts.reform.preapi.services.cases.CaseService;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,8 +21,12 @@ import java.util.UUID;
 @RequestMapping("/cases")
 public class CaseController {
 
+    private final CaseService caseService;
+
     @Autowired
-    private CaseService caseService;
+    public CaseController(CaseService caseService) {
+        this.caseService = caseService;
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<Case> getCaseById(@PathVariable(name = "id") UUID caseId) {

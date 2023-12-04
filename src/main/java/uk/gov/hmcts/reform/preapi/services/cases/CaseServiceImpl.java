@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.cases.services;
+package uk.gov.hmcts.reform.preapi.services.cases;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,11 +15,15 @@ import java.util.stream.Collectors;
 @Service
 public class CaseServiceImpl implements CaseService {
 
-    @Autowired
-    private CaseRepository caseRepository;
+    private final CaseRepository caseRepository;
+
+    private final CourtRepository courtRepository;
 
     @Autowired
-    private CourtRepository courtRepository;
+    public CaseServiceImpl(CaseRepository caseRepository, CourtRepository courtRepository) {
+        this.caseRepository = caseRepository;
+        this.courtRepository = courtRepository;
+    }
 
     @Transactional
     @Override
