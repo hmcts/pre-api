@@ -1,0 +1,33 @@
+package uk.gov.hmcts.reform.preapi.model;
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.sql.Timestamp;
+import java.util.UUID;
+
+@Data
+@NoArgsConstructor
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class Case {
+    private UUID id;
+    private UUID courtId;
+    private String reference;
+    private boolean test;
+    private Timestamp deletedAt;
+    private Timestamp createdAt;
+    private Timestamp modifiedAt;
+
+    public Case(uk.gov.hmcts.reform.preapi.entities.Case caseEntity) {
+        this.id = caseEntity.getId();
+        this.courtId = caseEntity.getCourt().getId();
+        this.reference = caseEntity.getReference();
+        this.test = caseEntity.isTest();
+        this.deletedAt = caseEntity.getDeletedAt();
+        this.createdAt = caseEntity.getCreatedAt();
+        this.modifiedAt = caseEntity.getModifiedAt();
+    }
+
+}
