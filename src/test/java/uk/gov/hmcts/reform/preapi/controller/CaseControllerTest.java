@@ -12,19 +12,15 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CaseController;
-import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.model.Case;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,8 +29,8 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -42,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(CaseController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class CaseControllerTest {
 
     @Autowired
@@ -56,16 +53,18 @@ class CaseControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
 
+    private static final String CASES_ID_PATH = "/cases/{id}";
+
 
     @DisplayName("Should get case by ID with 200 response code")
     @Test
-    void getCaseById() throws Exception {
+    void testGetCaseByIdSuccess() throws Exception {
         UUID caseId = UUID.randomUUID();
         Case mockCase = new Case();
         mockCase.setId(caseId);
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
-        mockMvc.perform(get("/cases/{id}", caseId))
+        mockMvc.perform(get(CASES_ID_PATH, caseId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(caseId.toString()));
@@ -73,32 +72,32 @@ class CaseControllerTest {
 
     @DisplayName("Should return 404 when trying to get non-existing case")
     @Test
-    void getNonExistingCaseById() throws Exception {
+    void testGetNonExistingCaseById() throws Exception {
         UUID caseId = UUID.randomUUID();
         when(caseService.findById(caseId)).thenReturn(null);
 
-        mockMvc.perform(get("/cases/{id}", caseId))
+        mockMvc.perform(get(CASES_ID_PATH, caseId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: Case: " + caseId));
     }
 
     @DisplayName("Should return 404 when trying to get a case that doesn't exist")
     @Test
-    void getDeletedCaseById() throws Exception {
+    void testGetDeletedCaseById() throws Exception {
         UUID caseId = UUID.randomUUID();
         Case mockCase = new Case();
         mockCase.setId(caseId);
         mockCase.setDeletedAt(Timestamp.from(Instant.now()));
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
-        mockMvc.perform(get("/cases/{id}", caseId))
+        mockMvc.perform(get(CASES_ID_PATH, caseId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: Case: " + caseId));
     }
 
     @DisplayName("Should get list of cases with 200 response code")
     @Test
-    void getCases() throws Exception {
+    void testGetCases() throws Exception {
         String caseReference = "ABC123";
         UUID courtId = UUID.randomUUID();
         Case mockCase = new Case();
@@ -118,14 +117,14 @@ class CaseControllerTest {
 
     @DisplayName("Should create case with 201 response code")
     @Test
-    void createCase() throws Exception {
+    void testCreateCase() throws Exception {
         UUID caseId = UUID.randomUUID();
         Case newCaseRequest = new Case();
         newCaseRequest.setId(caseId);
 
         when(caseService.findById(caseId)).thenReturn(newCaseRequest);
 
-        MvcResult response = mockMvc.perform(put("/cases/{id}", caseId)
+        MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -139,12 +138,12 @@ class CaseControllerTest {
 
     @DisplayName("Should return 400 when creating case with path and payload mismatch")
     @Test
-    void createCasePathPayloadMismatch() throws Exception {
+    void testCreateCasePathPayloadMismatch() throws Exception {
         UUID caseId = UUID.randomUUID();
         Case newCaseRequest = new Case();
         newCaseRequest.setId(UUID.randomUUID());
 
-        mockMvc.perform(put("/cases/{id}", caseId)
+        mockMvc.perform(put(CASES_ID_PATH, caseId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -156,7 +155,7 @@ class CaseControllerTest {
 
     @DisplayName("Should return 400 when creating case with court that does not exist")
     @Test
-    void createCaseCourtNotFound() throws Exception {
+    void testCreateCaseCourtNotFound() throws Exception {
         UUID caseId = UUID.randomUUID();
         UUID courtId = UUID.randomUUID();
         Case newCaseRequest = new Case();
@@ -166,7 +165,7 @@ class CaseControllerTest {
         doThrow(new NotFoundException("Court: " + courtId)).when(caseService).create(newCaseRequest);
 
 
-        mockMvc.perform(put("/cases/{id}", caseId)
+        mockMvc.perform(put(CASES_ID_PATH, caseId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -178,14 +177,14 @@ class CaseControllerTest {
 
     @DisplayName("Should return 409 when creating case with an id that is already in use")
     @Test
-    void createCaseAlreadyExists() throws Exception {
+    void testCreateCaseAlreadyExists() throws Exception {
         UUID caseId = UUID.randomUUID();
         Case newCaseRequest = new Case();
         newCaseRequest.setId(caseId);
 
         doThrow(new ConflictException(caseId.toString())).when(caseService).create(any());
 
-        mockMvc.perform(put("/cases/{id}", caseId)
+        mockMvc.perform(put(CASES_ID_PATH, caseId)
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -197,24 +196,12 @@ class CaseControllerTest {
 
     @DisplayName("Should delete case with 200 response code")
     @Test
-    void deleteCase() throws Exception {
+    void testDeleteCase() throws Exception {
         UUID caseId = UUID.randomUUID();
         doNothing().when(caseService).deleteById(caseId);
 
-        mockMvc.perform(delete("/cases/{id}", caseId)
+        mockMvc.perform(delete(CASES_ID_PATH, caseId)
                             .with(csrf()))
             .andExpect(status().isOk());
     }
-
-    //    @DisplayName("Should return 404 when trying to get deleted case")
-    //    @Test
-    //    void getDeletedCaseById() throws Exception {
-    //        UUID caseId = UUID.randomUUID();
-    //        Case deletedCase = new Case();
-    //        deletedCase.setId(caseId);
-    //        deletedCase.setDeletedAt(Timestamp.from(Instant.now()));
-    //        when(caseService.findById(caseId)).thenReturn(deletedCase);
-    //        mockMvc.perform(get("/cases/{id}", caseId))
-    //            .andExpect(status().isNotFound());
-    //    }
 }

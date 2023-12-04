@@ -33,10 +33,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CaseService.class)
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods"})
 class CaseServiceTest {
 
-    private static uk.gov.hmcts.reform.preapi.entities.Case caseEntity;
+    private static Case caseEntity;
 
     private static List<Case> allCaseEntities = new ArrayList<>();
 
@@ -51,15 +51,15 @@ class CaseServiceTest {
 
     @BeforeAll
     static void setUp() {
-        caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
+        caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         var court = new Court();
         court.setId(UUID.randomUUID());
         caseEntity.setCourt(court);
         caseEntity.setReference("1234567890");
         caseEntity.setTest(false);
-        caseEntity.setCreatedAt(Timestamp.from(java.time.Instant.now()));
-        caseEntity.setModifiedAt(Timestamp.from(java.time.Instant.now()));
+        caseEntity.setCreatedAt(Timestamp.from(Instant.now()));
+        caseEntity.setModifiedAt(Timestamp.from(Instant.now()));
 
         allCaseEntities.add(caseEntity);
     }
@@ -204,7 +204,7 @@ class CaseServiceTest {
     }
 
     Case createTestingCase() {
-        var testCase = new uk.gov.hmcts.reform.preapi.entities.Case();
+        var testCase = new Case();
         testCase.setId(UUID.randomUUID());
         var court = new Court();
         court.setId(UUID.randomUUID());
@@ -212,8 +212,8 @@ class CaseServiceTest {
         testCase.setReference("0987654321");
         testCase.setTest(false);
         testCase.setDeletedAt(null);
-        testCase.setCreatedAt(Timestamp.from(java.time.Instant.now()));
-        testCase.setModifiedAt(Timestamp.from(java.time.Instant.now()));
+        testCase.setCreatedAt(Timestamp.from(Instant.now()));
+        testCase.setModifiedAt(Timestamp.from(Instant.now()));
         return testCase;
     }
 
