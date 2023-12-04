@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
 import uk.gov.hmcts.reform.preapi.model.Booking;
 import uk.gov.hmcts.reform.preapi.model.Case;
-import uk.gov.hmcts.reform.preapi.service.CaseService;
+import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.UUID;
 
@@ -46,7 +46,7 @@ class BookingControllerTest {
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
-        var mockCase = new Case();
+        Case mockCase = new Case();
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))

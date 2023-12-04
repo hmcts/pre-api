@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
-import uk.gov.hmcts.reform.preapi.models.Case;
-import uk.gov.hmcts.reform.preapi.service.CaseService;
+import uk.gov.hmcts.reform.preapi.model.Case;
+import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.List;
 import java.util.UUID;

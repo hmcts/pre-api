@@ -11,7 +11,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.model.Booking;
-import uk.gov.hmcts.reform.preapi.service.CaseService;
+import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.UUID;
 

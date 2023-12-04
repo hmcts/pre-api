@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.service;
+package uk.gov.hmcts.reform.preapi.services;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.util.Optional;
@@ -24,6 +25,9 @@ class CaseServiceTest {
 
     @MockBean
     private CaseRepository caseRepository;
+
+    @MockBean
+    private CourtRepository courtRepository;
 
     @Autowired
     private CaseService caseService;
