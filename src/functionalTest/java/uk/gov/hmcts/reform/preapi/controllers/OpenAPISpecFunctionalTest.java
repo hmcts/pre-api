@@ -3,19 +3,16 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.OK;
 
-@ExtendWith(SpringExtension.class)
-class SmokeTest {
-    private static final String CONTENT_TYPE_VALUE = "application/json";
-    private static final String HEALTH_ENDPOINT = "/health";
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+class OpenAPISpecFunctionalTest {
+    private static final String SPEC_ENDPOINT = "/v3/api-docs";
 
     @Value("${TEST_URL:http://localhost:4550}")
     private String testUrl;
@@ -26,15 +23,13 @@ class SmokeTest {
     }
 
     @Test
-    void healthCheck() {
+    void functionalTest() {
         final var response = given()
             .relaxedHTTPSValidation()
-            .headers(CONTENT_TYPE, CONTENT_TYPE_VALUE)
             .when()
-            .get(HEALTH_ENDPOINT)
+            .get(SPEC_ENDPOINT)
             .thenReturn();
 
         assertThat(response.statusCode()).isEqualTo(OK.value());
-        assertThat(response.asString().substring(1)).startsWith("\"status\":\"UP\"");
     }
 }
