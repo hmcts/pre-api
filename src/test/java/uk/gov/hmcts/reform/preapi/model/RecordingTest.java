@@ -13,7 +13,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("PMD.LawOfDemeter")
-public class RecordingTest {
+class RecordingTest {
     private static uk.gov.hmcts.reform.preapi.entities.Recording recordingEntity;
 
     @BeforeAll

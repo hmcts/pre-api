@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = RecordingService.class)
 @SuppressWarnings("PMD.LawOfDemeter")
-public class RecordingServiceTest {
+class RecordingServiceTest {
     private static Recording recordingEntity;
 
     private static Booking bookingEntity;
@@ -45,7 +45,7 @@ public class RecordingServiceTest {
 
     @BeforeAll
     static void setUp() {
-        recordingEntity = new uk.gov.hmcts.reform.preapi.entities.Recording();
+        recordingEntity = new Recording();
         recordingEntity.setId(UUID.randomUUID());
         bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
