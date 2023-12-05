@@ -17,8 +17,12 @@ import java.util.UUID;
 @RequestMapping("/bookings/{bookingId}/recordings")
 public class RecordingController {
 
+    private final RecordingService recordingService;
+
     @Autowired
-    private RecordingService recordingService;
+    public RecordingController(RecordingService recordingService) {
+        this.recordingService = recordingService;
+    }
 
     @GetMapping("/{recordingId}")
     public ResponseEntity<Recording> getRecordingById(
@@ -28,7 +32,7 @@ public class RecordingController {
         // TODO Recordings returned need to be shared with the current user
         Recording recording = recordingService.findById(bookingId, recordingId);
         if (recording == null) {
-            throw new NotFoundException(String.format("Recording: " + recordingId));
+            throw new NotFoundException("Recording: " + recordingId);
         }
         return ResponseEntity.ok(recording);
     }
