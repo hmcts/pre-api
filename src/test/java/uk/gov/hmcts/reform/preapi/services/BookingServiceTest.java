@@ -24,6 +24,24 @@ class BookingServiceTest {
     @Autowired
     private BookingService bookingService;
 
+    @DisplayName("Get a booking")
+    @Test
+    @SuppressWarnings({"PMD.LinguisticNaming", "PMD.LawOfDemeter"})
+    void getBookingSuccess() {
+
+        var bookingId = UUID.randomUUID();
+        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
+        bookingEntity.setId(bookingId);
+        var caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
+        caseEntity.setId(UUID.randomUUID());
+        bookingEntity.setCaseId(caseEntity);
+        var bookingModel = new Booking(bookingEntity);
+
+        when(bookingRepository.findById(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
+
+        assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
+    }
+
     @DisplayName("Create a booking")
     @Test
     void upsertBookingSuccessCreated() {
