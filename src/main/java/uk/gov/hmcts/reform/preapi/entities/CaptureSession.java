@@ -24,7 +24,7 @@ import java.sql.Timestamp;
 @Entity
 @Table(name = "capture_sessions")
 public class CaptureSession extends BaseEntity {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Booking booking;
 
@@ -42,14 +42,14 @@ public class CaptureSession extends BaseEntity {
     @Column(name = "started_at")
     private Timestamp startedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "started_by_user_id", referencedColumnName = "id")
     private User startedByUser;
 
     @Column(name = "finished_at")
     private Timestamp finishedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "finished_by_user_id", referencedColumnName = "id")
     private User finishedByUserId;
 
