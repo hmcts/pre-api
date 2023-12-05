@@ -35,7 +35,7 @@ public class BookingService {
         bookingEntity.setId(booking.getId());
         bookingEntity.setCaseId(caseEntity);
         bookingEntity.setParticipants(
-            Stream.ofNullable(bookingEntity.getParticipants())
+            Stream.ofNullable(booking.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
                     var entity = new uk.gov.hmcts.reform.preapi.entities.Participant();
                     entity.setId(model.getId());
