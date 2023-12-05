@@ -11,8 +11,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.model.Booking;
 import uk.gov.hmcts.reform.preapi.model.Case;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.UUID;
@@ -33,6 +35,9 @@ class BookingControllerTest {
     @MockBean
     private CaseService caseService;
 
+    @MockBean
+    private BookingService bookingService;
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
 
@@ -48,13 +53,40 @@ class BookingControllerTest {
 
         Case mockCase = new Case();
         when(caseService.findById(caseId)).thenReturn(mockCase);
+        when(bookingService.upsert(booking)).thenReturn(UpsertResult.CREATED);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isCreated())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId));
+    }
+
+    @DisplayName("Should update a booking with 204 response code")
+    @Test
+    void createBookingEndpointUpdate() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+
+        Case mockCase = new Case();
+        when(caseService.findById(caseId)).thenReturn(mockCase);
+        when(bookingService.upsert(booking)).thenReturn(UpsertResult.UPDATED);
+
+        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent())
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
@@ -144,6 +176,27 @@ class BookingControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Not found: Case " + caseId + "\"}");
+    }
+
+    @DisplayName("Should fail to create a booking with 500 response code")
+    @Test
+    void createBookingEndpoint500() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+
+        Case mockCase = new Case();
+        when(caseService.findById(caseId)).thenReturn(mockCase);
+
+        mockMvc.perform(put(getPath(caseId, bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is5xxServerError());
     }
 
     private String getPath(UUID caseId, UUID bookingId) {
