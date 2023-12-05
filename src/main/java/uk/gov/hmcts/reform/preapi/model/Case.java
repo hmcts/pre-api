@@ -30,5 +30,4 @@ public class Case {
         this.createdAt = caseEntity.getCreatedAt();
         this.modifiedAt = caseEntity.getModifiedAt();
     }
-
 }
