@@ -23,7 +23,7 @@ public class RecordingService {
         this.bookingRepository = bookingRepository;
     }
 
-    public Recording getRecordingById(UUID bookingId, UUID recordingId) {
+    public Recording findById(UUID bookingId, UUID recordingId) {
         if (!bookingRepository.existsById(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
         }

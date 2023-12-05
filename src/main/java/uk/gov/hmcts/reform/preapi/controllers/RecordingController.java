@@ -25,7 +25,8 @@ public class RecordingController {
         @PathVariable UUID bookingId,
         @PathVariable UUID recordingId
     ) {
-        Recording recording = recordingService.getRecordingById(bookingId, recordingId);
+        // TODO Recordings returned need to be shared with the current user
+        Recording recording = recordingService.findById(bookingId, recordingId);
         if (recording == null) {
             throw new NotFoundException(String.format("Recording: " + recordingId));
         }
