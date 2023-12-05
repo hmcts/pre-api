@@ -13,7 +13,8 @@ import java.sql.Timestamp;
 @Setter
 @Entity
 @Table(name = "users")
-public class User extends CreatedModifiedAtEntity { //NOPMD - suppressed ShortClassName
+@SuppressWarnings("PMD.ShortClassName")
+public class User extends CreatedModifiedAtEntity {
     @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 

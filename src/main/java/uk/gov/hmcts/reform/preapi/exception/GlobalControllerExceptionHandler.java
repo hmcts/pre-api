@@ -39,4 +39,16 @@ public class GlobalControllerExceptionHandler {
                                     responseHeaders,
                                     HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(ConflictException.class)
+    ResponseEntity<String> pathPayloadMismatchExceptionHandler(final ConflictException ex)
+        throws JsonProcessingException {
+        HashMap<String, String> error = new HashMap<>();
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
+        error.put(MESSAGE, ex.getMessage());
+        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
+                                    responseHeaders,
+                                    HttpStatus.CONFLICT);
+    }
 }
