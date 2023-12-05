@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -8,7 +9,9 @@ import uk.gov.hmcts.reform.preapi.model.Recording;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class RecordingService {
@@ -23,6 +26,7 @@ public class RecordingService {
         this.bookingRepository = bookingRepository;
     }
 
+    @Transactional
     public Recording findById(UUID bookingId, UUID recordingId) {
         if (!bookingRepository.existsById(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
@@ -32,5 +36,18 @@ public class RecordingService {
             .findByIdAndCaptureSession_Booking_Id(recordingId, bookingId)
             .map(Recording::new)
             .orElse(null);
+    }
+
+    @Transactional
+    public List<Recording> findAllByBookingId(UUID bookingId) {
+        if (!bookingRepository.existsById(bookingId)) {
+            throw new NotFoundException("Booking: " + bookingId);
+        }
+
+        return recordingRepository
+            .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingId)
+            .stream()
+            .map(Recording::new)
+            .collect(Collectors.toList());
     }
 }
