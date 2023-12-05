@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,7 +77,7 @@ class RecordingServiceTest {
 
     @DisplayName("Find a recording by it's id which is missing")
     @Test
-    void findCaseByIdMissing() {
+    void findRecordingByIdMissing() {
         when(
             bookingRepository.existsById(bookingEntity.getId())
         ).thenReturn(true);
@@ -90,7 +91,7 @@ class RecordingServiceTest {
 
     @DisplayName("Find a recording by it's id when the booking id is missing")
     @Test
-    void findCaseByIdBookingIdMissing() {
+    void findRecordingByIdBookingIdMissing() {
         when(
             bookingRepository.existsById(bookingEntity.getId())
         ).thenReturn(false);
@@ -102,5 +103,37 @@ class RecordingServiceTest {
 
         verify(bookingRepository, times(1)).existsById(bookingEntity.getId());
         verify(recordingRepository, never()).findByIdAndCaptureSession_Booking_Id(any(), any());
+    }
+
+    @DisplayName("Find a list of recordings by it's related booking id and return a list of models")
+    @Test
+    void findAllRecordingsSuccess() {
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingEntity.getId())
+        ).thenReturn(List.of(recordingEntity));
+
+        var modelList = recordingService.findAllByBookingId(bookingEntity.getId());
+        assertThat(modelList.size()).isEqualTo(1);
+        assertThat(modelList.get(0).getId()).isEqualTo(recordingEntity.getId());
+        assertThat(modelList.get(0).getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
+    }
+
+    @DisplayName("Find a list of recordings by it's related booking id when booking does not exist")
+    @Test
+    void findAllRecordingsBookingNotFound() {
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(false);
+
+        assertThrows(
+            NotFoundException.class,
+            () -> recordingService.findAllByBookingId(bookingEntity.getId())
+        );
+
+        verify(bookingRepository, times(1)).existsById(bookingEntity.getId());
+        verify(recordingRepository, never()).findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(any());
     }
 }
