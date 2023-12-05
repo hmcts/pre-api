@@ -22,11 +22,11 @@ import java.sql.Timestamp;
 @Entity
 @Table(name = "recordings")
 public class Recording extends BaseEntity {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "capture_session_id", referencedColumnName = "id")
     private CaptureSession captureSession;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_recording_id")
     private Recording parentRecording;
 
