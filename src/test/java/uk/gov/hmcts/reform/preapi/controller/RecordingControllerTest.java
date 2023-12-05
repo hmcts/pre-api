@@ -15,8 +15,11 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.model.Recording;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -78,6 +81,35 @@ class RecordingControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Booking: " + bookingId));
+    }
+
+    // TODO 200 response
+    @DisplayName("Should get a list of recordings by booking id with 200 response code")
+    @Test
+    void testGetRecordingByBookingIdSuccess() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        UUID recordingId = UUID.randomUUID();
+        Recording mockRecording = new Recording();
+        mockRecording.setId(recordingId);
+        List<Recording> recordingList = List.of(mockRecording);
+        when(recordingService.findAllByBookingId(bookingId)).thenReturn(recordingList);
+
+        mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isNotEmpty())
+            .andExpect(jsonPath("$[0].id").value(recordingId.toString()));
+    }
+
+    @DisplayName("Should return 404 when trying to get recordings for a booking that doesn't exist")
+    @Test
+    void testGetRecordingsBookingNotFound() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        doThrow(new NotFoundException("Booking: " + bookingId)).when(recordingService).findAllByBookingId(any());
+
+        mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Not found: Booking: " + bookingId));
     }
 
     private static String getPath(String bookingId, String recordingId) {

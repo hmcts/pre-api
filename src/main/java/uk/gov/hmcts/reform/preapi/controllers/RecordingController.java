@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.model.Recording;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -35,5 +36,13 @@ public class RecordingController {
             throw new NotFoundException("Recording: " + recordingId);
         }
         return ResponseEntity.ok(recording);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Recording>> getAllRecordingsByBookingId(
+        @PathVariable UUID bookingId
+    ) {
+        // TODO Recordings returned need to be shared with the user
+        return ResponseEntity.ok(recordingService.findAllByBookingId(bookingId));
     }
 }
