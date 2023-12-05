@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.services.CaseService;
 import java.util.UUID;
 
 import static org.springframework.http.ResponseEntity.created;
+import static org.springframework.http.ResponseEntity.ok;
 import static org.springframework.http.ResponseEntity.status;
 
 @RestController
@@ -35,11 +37,19 @@ public class BookingController {
         this.bookingService = bookingService;
     }
 
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<Booking> get(@PathVariable UUID caseId,
+                                       @PathVariable UUID bookingId) {
+        validateRequest(caseId);
+
+        return ok(bookingService.findById(bookingId));
+    }
+
     @PutMapping("/{bookingId}")
     public ResponseEntity<Booking> upsert(@PathVariable UUID caseId,
                                           @PathVariable UUID bookingId,
                                           @RequestBody Booking booking) {
-        this.validateRequest(caseId, bookingId, booking);
+        this.validateRequestWithBody(caseId, bookingId, booking);
 
         var result = bookingService.upsert(booking);
         var location = ServletUriComponentsBuilder
@@ -56,10 +66,14 @@ public class BookingController {
         throw new UnknownServerException("Unexpected result: " + result);
     }
 
-    private void validateRequest(UUID caseId, UUID bookingId, Booking booking) {
+    private void validateRequest(UUID caseId) {
         if (caseService.findById(caseId) == null) {
             throw new NotFoundException("Case " + caseId);
         }
+    }
+
+    private void validateRequestWithBody(UUID caseId, UUID bookingId, Booking booking) {
+        validateRequest(caseId);
         if (!caseId.equals(booking.getCaseId())) {
             throw new PathPayloadMismatchException("caseId", "booking.caseId");
         }
