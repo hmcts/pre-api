@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.model.Booking;
+import uk.gov.hmcts.reform.preapi.model.Participant;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 
 import java.util.Set;
@@ -49,7 +51,12 @@ class BookingServiceTest {
         var bookingModel = new Booking();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
-        bookingModel.setParticipants(Set.of());
+        var participantModel = new Participant();
+        participantModel.setId(UUID.randomUUID());
+        participantModel.setParticipantType(ParticipantType.WITNESS);
+        participantModel.setFirstName("John");
+        participantModel.setLastName("Smith");
+        bookingModel.setParticipants(Set.of(participantModel));
 
         var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
 
