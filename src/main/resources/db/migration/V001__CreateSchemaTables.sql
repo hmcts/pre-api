@@ -13,7 +13,7 @@ CREATE TYPE public.PARTICIPANT_TYPE AS ENUM (
 CREATE TYPE public.RECORDING_STATUS AS ENUM (
     'standby',
     'initialisation',
-    'recordingDTO',
+    'recording',
     'finished',
     'processing',
     'available',
