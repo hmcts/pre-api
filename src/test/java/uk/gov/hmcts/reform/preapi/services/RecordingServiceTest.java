@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,6 +65,11 @@ class RecordingServiceTest {
         recordingEntity.setUrl("http://localhost");
         recordingEntity.setFilename("example-filename.txt");
         recordingEntity.setCreatedAt(Timestamp.from(Instant.now()));
+    }
+
+    @BeforeEach
+    void resetDelete() {
+        recordingEntity.setDeletedAt(null);
     }
 
     @DisplayName("Find a recording by it's id and related booking id and return a model")
@@ -273,4 +279,111 @@ class RecordingServiceTest {
         });
     }
 
+
+    @DisplayName("Find a list of recordings by it's related booking id when recording has been deleted")
+    @Test
+    void findAllRecordingsDeleted() {
+        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        recordingRepository.save(recordingEntity);
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(true);
+
+        var models = recordingService.findAllByBookingId(bookingEntity.getId());
+
+        verify(bookingRepository, times(1)).existsById(bookingEntity.getId());
+        verify(recordingRepository, times(1))
+            .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingEntity.getId());
+
+        assertThat(models.size()).isEqualTo(0);
+    }
+
+    @DisplayName("Delete a recording by it's id and related booking id")
+    @Test
+    void deleteRecordingSuccess() {
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+        ).thenReturn(Optional.of(recordingEntity));
+
+        recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId());
+
+        verify(recordingRepository, times(1)).findByIdAndCaptureSession_Booking_Id(
+            recordingEntity.getId(),
+            bookingEntity.getId()
+        );
+        verify(recordingRepository, times(1)).save(recordingEntity);
+
+        assertThat(recordingEntity.isDeleted()).isTrue();
+    }
+
+    @DisplayName("Delete a recording by it's id and related booking id when recording doesn't exist")
+    @Test
+    void deleteRecordingNotFound() {
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+        ).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId())
+        );
+
+        verify(recordingRepository, times(1)).findByIdAndCaptureSession_Booking_Id(
+            recordingEntity.getId(),
+            bookingEntity.getId()
+        );
+        verify(recordingRepository, never()).save(recordingEntity);
+    }
+
+    @DisplayName("Delete a recording by it's id and related booking id when recording has already been deleted")
+    @Test
+    void deleteRecordingAlreadyDeleted() {
+        Timestamp now = Timestamp.from(Instant.now());
+        recordingEntity.setDeletedAt(now);
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+        ).thenReturn(Optional.of(recordingEntity));
+
+        assertThrows(
+            NotFoundException.class,
+            () -> recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId())
+        );
+
+        verify(recordingRepository, times(1)).findByIdAndCaptureSession_Booking_Id(
+            recordingEntity.getId(),
+            bookingEntity.getId()
+        );
+        verify(recordingRepository, never()).save(recordingEntity);
+
+        assertThat(recordingEntity.isDeleted()).isTrue();
+        assertThat(recordingEntity.getDeletedAt()).isEqualTo(now);
+    }
+
+    @DisplayName("Delete a recording by it's id and related booking id when booking doesn't exist")
+    @Test
+    void deleteRecordingBookingNotFound() {
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(false);
+
+        assertThrows(
+            NotFoundException.class,
+            () -> recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId())
+        );
+
+        verify(recordingRepository, never()).findByIdAndCaptureSession_Booking_Id(
+            any(),
+            any()
+        );
+        verify(recordingRepository, never()).save(recordingEntity);
+    }
 }

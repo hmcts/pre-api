@@ -12,6 +12,8 @@ import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,9 +35,7 @@ public class RecordingService {
 
     @Transactional
     public RecordingDTO findById(UUID bookingId, UUID recordingId) {
-        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
-            throw new NotFoundException("BookingDTO: " + bookingId);
-        }
+        checkBookingValid(bookingId);
 
         return recordingRepository
             .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
@@ -48,9 +48,7 @@ public class RecordingService {
 
     @Transactional
     public List<RecordingDTO> findAllByBookingId(UUID bookingId) {
-        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
-            throw new NotFoundException("BookingDTO: " + bookingId);
-        }
+        checkBookingValid(bookingId);
 
         return recordingRepository
             .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingId)
@@ -97,5 +95,26 @@ public class RecordingService {
         recordingRepository.save(recordingEntity);
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional
+    public void deleteById(UUID bookingId, UUID recordingId) {
+        checkBookingValid(bookingId);
+
+        var recording = recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingId, bookingId);
+
+        if (recording.isEmpty() || recording.get().isDeleted()) {
+            throw new NotFoundException("Recording: " + recordingId);
+        }
+
+        var recordingEntity = recording.get();
+        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        recordingRepository.save(recordingEntity);
+    }
+
+    private void checkBookingValid(UUID bookingId) {
+        if (!bookingRepository.existsById(bookingId)) {
+            throw new NotFoundException("Booking: " + bookingId);
+        }
     }
 }

@@ -22,9 +22,12 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -258,7 +261,51 @@ class RecordingControllerTest {
             .isEqualTo("{\"message\":\"Not found: Recording: " + parentRecordingId + "\"}");
     }
 
-    private static String getPath(UUID bookingId, UUID recordingId) {
+    @DisplayName("Should delete recording with 200 response code")
+    @Test
+    void testDeleteRecordingSuccess() throws Exception {
+        UUID recordingId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
+        doNothing().when(recordingService).deleteById(bookingId, recordingId);
+
+        mockMvc.perform(delete(getPath(bookingId.toString(), recordingId.toString()))
+                            .with(csrf()))
+            .andExpect(status().isOk());
+    }
+
+    @DisplayName("Should return 404 when booking doesn't exist")
+    @Test
+    void testDeleteRecordingBookingNotFound() throws Exception {
+        UUID recordingId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
+        doThrow(new NotFoundException("Booking: " + bookingId))
+            .when(recordingService)
+            .deleteById(bookingId, recordingId);
+
+        mockMvc.perform(delete(getPath(bookingId.toString(), recordingId.toString()))
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Booking: " + bookingId));
+    }
+
+    @DisplayName("Should return 404 when recording doesn't exist")
+    @Test
+    void testDeleteRecordingNotFound() throws Exception {
+        UUID recordingId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
+        doThrow(new NotFoundException("Recording: " + recordingId))
+            .when(recordingService)
+            .deleteById(bookingId, recordingId);
+
+        mockMvc.perform(delete(getPath(bookingId.toString(), recordingId.toString()))
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Recording: " + recordingId));
+    }
+
+    private static String getPath(String bookingId, String recordingId) {
         return "/bookings/" + bookingId + "/recordings/" + recordingId;
     }
 }
