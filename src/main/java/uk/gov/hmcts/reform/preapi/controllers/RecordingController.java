@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.model.Recording;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
@@ -27,20 +27,20 @@ public class RecordingController {
     }
 
     @GetMapping("/{recordingId}")
-    public ResponseEntity<Recording> getRecordingById(
+    public ResponseEntity<RecordingDTO> getRecordingById(
         @PathVariable UUID bookingId,
         @PathVariable UUID recordingId
     ) {
         // TODO Recordings returned need to be shared with the current user
-        Recording recording = recordingService.findById(bookingId, recordingId);
-        if (recording == null) {
-            throw new NotFoundException("Recording: " + recordingId);
+        RecordingDTO recordingDTO = recordingService.findById(bookingId, recordingId);
+        if (recordingDTO == null) {
+            throw new NotFoundException("RecordingDTO: " + recordingId);
         }
-        return ResponseEntity.ok(recording);
+        return ResponseEntity.ok(recordingDTO);
     }
 
     @GetMapping
-    public ResponseEntity<List<Recording>> getAllRecordingsByBookingId(
+    public ResponseEntity<List<RecordingDTO>> getAllRecordingsByBookingId(
         @PathVariable UUID bookingId
     ) {
         // TODO Recordings returned need to be shared with the user

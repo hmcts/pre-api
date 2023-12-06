@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
-import uk.gov.hmcts.reform.preapi.model.Case;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.List;
@@ -31,17 +31,17 @@ public class CaseController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Case> getCaseById(@PathVariable(name = "id") UUID caseId) {
+    public ResponseEntity<CaseDTO> getCaseById(@PathVariable(name = "id") UUID caseId) {
         var foundCase = caseService.findById(caseId);
 
         if (foundCase == null || foundCase.getDeletedAt() != null) {
-            throw new NotFoundException("Case: " + caseId);
+            throw new NotFoundException("CaseDTO: " + caseId);
         }
         return ResponseEntity.ok(foundCase);
     }
 
     @GetMapping
-    public ResponseEntity<List<Case>> getCases(
+    public ResponseEntity<List<CaseDTO>> getCases(
         @RequestParam(name = "reference", required = false) String caseReference,
         @RequestParam(name = "courtId", required = false) UUID courtId
     ) {
@@ -49,12 +49,12 @@ public class CaseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Case> createCase(@PathVariable UUID id, @RequestBody Case newCaseRequest) {
-        if (!id.toString().equals(newCaseRequest.getId().toString())) {
-            throw new PathPayloadMismatchException("id", "newCaseRequest.id");
+    public ResponseEntity<CaseDTO> createCase(@PathVariable UUID id, @RequestBody CaseDTO newCaseRequestDTO) {
+        if (!id.toString().equals(newCaseRequestDTO.getId().toString())) {
+            throw new PathPayloadMismatchException("id", "newCaseRequestDTO.id");
         }
 
-        caseService.create(newCaseRequest);
+        caseService.create(newCaseRequestDTO);
 
         return ResponseEntity.created(
             ServletUriComponentsBuilder

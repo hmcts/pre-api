@@ -1,10 +1,11 @@
-package uk.gov.hmcts.reform.preapi.model;
+package uk.gov.hmcts.reform.preapi.dto;
 
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -13,7 +14,7 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class Recording {
+public class RecordingDTO {
     UUID id;
     UUID captureSessionId;
     UUID parentRecordingId;
@@ -25,7 +26,7 @@ public class Recording {
     String editInstructions;
     Timestamp deletedAt;
 
-    public Recording(uk.gov.hmcts.reform.preapi.entities.Recording recording) {
+    public RecordingDTO(Recording recording) {
         id = recording.getId();
         captureSessionId = recording.getCaptureSession().getId();
         parentRecordingId = recording.getParentRecording() != null

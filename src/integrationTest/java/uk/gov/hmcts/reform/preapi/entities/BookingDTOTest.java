@@ -14,7 +14,7 @@ import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
-class BookingTest {
+class BookingDTOTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -36,7 +36,7 @@ class BookingTest {
         Booking retrievedBooking = entityManager.find(Booking.class, booking.getId());
 
         assertEquals(booking.getId(), retrievedBooking.getId(), "Id should match");
-        assertEquals(booking.getCaseId(), retrievedBooking.getCaseId(), "Case should match");
+        assertEquals(booking.getCaseId(), retrievedBooking.getCaseId(), "CaseDTO should match");
         assertEquals(booking.getScheduledFor(), retrievedBooking.getScheduledFor(), "Scheduled for should match");
         assertEquals(booking.getDeletedAt(), retrievedBooking.getDeletedAt(), "Deleted at should match");
         assertEquals(booking.getCreatedAt(), retrievedBooking.getCreatedAt(), "Created at should match");

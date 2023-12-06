@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -34,7 +35,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CaseService.class)
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods"})
-class CaseServiceTest {
+class CaseDTOServiceTest {
 
     private static Case caseEntity;
 
@@ -93,7 +94,7 @@ class CaseServiceTest {
     void findAllSuccess() {
         when(caseRepository.searchCasesBy(null, null)).thenReturn(allCaseEntities);
 
-        List<uk.gov.hmcts.reform.preapi.model.Case> models = caseService.searchBy(null, null);
+        List<CaseDTO> models = caseService.searchBy(null, null);
         assertThat(models.size()).isEqualTo(1);
         assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get(0).getCourtId()).isEqualTo(caseEntity.getCourt().getId());
@@ -104,7 +105,7 @@ class CaseServiceTest {
     void findAllReferenceParamSuccess() {
         when(caseRepository.searchCasesBy("234", null)).thenReturn(allCaseEntities);
 
-        List<uk.gov.hmcts.reform.preapi.model.Case> models = caseService.searchBy("234", null);
+        List<CaseDTO> models = caseService.searchBy("234", null);
         assertThat(models.size()).isEqualTo(1);
         assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get(0).getCourtId()).isEqualTo(caseEntity.getCourt().getId());
@@ -115,7 +116,7 @@ class CaseServiceTest {
     void findAllReferenceParamNotFoundSuccess() {
         when(caseRepository.searchCasesBy("abc", null)).thenReturn(Collections.emptyList());
 
-        List<uk.gov.hmcts.reform.preapi.model.Case> models = caseService.searchBy("234", null);
+        List<CaseDTO> models = caseService.searchBy("234", null);
         assertThat(models.size()).isEqualTo(0);
     }
 
@@ -124,7 +125,7 @@ class CaseServiceTest {
     void findAllCourtIdParamSuccess() {
         when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId())).thenReturn(allCaseEntities);
 
-        List<uk.gov.hmcts.reform.preapi.model.Case> models = caseService.searchBy(null, caseEntity.getCourt().getId());
+        List<CaseDTO> models = caseService.searchBy(null, caseEntity.getCourt().getId());
         assertThat(models.size()).isEqualTo(1);
         assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get(0).getCourtId()).isEqualTo(caseEntity.getCourt().getId());
@@ -136,37 +137,37 @@ class CaseServiceTest {
         UUID uuid = UUID.randomUUID();
         when(caseRepository.searchCasesBy(null, uuid)).thenReturn(Collections.emptyList());
 
-        List<uk.gov.hmcts.reform.preapi.model.Case> models = caseService.searchBy(null, uuid);
+        List<CaseDTO> models = caseService.searchBy(null, uuid);
         assertThat(models.size()).isEqualTo(0);
     }
 
     @Test
     void createSuccess() {
         Case testingCase = createTestingCase();
-        uk.gov.hmcts.reform.preapi.model.Case caseModel = new uk.gov.hmcts.reform.preapi.model.Case(testingCase);
+        CaseDTO caseDTOModel = new CaseDTO(testingCase);
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
             Optional.ofNullable(testingCase.getCourt()));
         when(caseRepository.findById(testingCase.getId())).thenReturn(Optional.empty());
 
-        caseService.create(caseModel);
+        caseService.create(caseDTOModel);
 
-        verify(courtRepository, times(1)).findById(caseModel.getCourtId());
-        verify(caseRepository, times(1)).findById(caseModel.getId());
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseRepository, times(1)).save(any());
     }
 
     @Test
     void createCourtNotFound() {
         Case testingCase = createTestingCase();
-        uk.gov.hmcts.reform.preapi.model.Case caseModel = new uk.gov.hmcts.reform.preapi.model.Case(testingCase);
+        CaseDTO caseDTOModel = new CaseDTO(testingCase);
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> caseService.create(caseModel));
+        assertThrows(NotFoundException.class, () -> caseService.create(caseDTOModel));
 
         // Verify that repository methods are not called
-        verify(courtRepository, times(1)).findById(caseModel.getCourtId());
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, never()).findById(any());
         verify(caseRepository, never()).save(any());
     }
@@ -174,32 +175,34 @@ class CaseServiceTest {
     @Test
     void createDuplicateCaseId() {
         Case testingCase = createTestingCase();
-        uk.gov.hmcts.reform.preapi.model.Case caseModel = new uk.gov.hmcts.reform.preapi.model.Case(testingCase);
-        when(courtRepository.findById(caseModel.getCourtId())).thenReturn(Optional.ofNullable(testingCase.getCourt()));
-        when(caseRepository.findById(caseModel.getId()))
+        CaseDTO caseDTOModel = new CaseDTO(testingCase);
+        when(
+            courtRepository.findById(caseDTOModel.getCourtId())).thenReturn(Optional.ofNullable(testingCase.getCourt())
+        );
+        when(caseRepository.findById(caseDTOModel.getId()))
             .thenReturn(Optional.of(testingCase));
 
-        assertThrows(ConflictException.class, () -> caseService.create(caseModel));
+        assertThrows(ConflictException.class, () -> caseService.create(caseDTOModel));
 
-        verify(courtRepository, times(1)).findById(caseModel.getCourtId());
-        verify(caseRepository, times(1)).findById(caseModel.getId());
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseRepository, never()).save(any());
     }
 
     @Test
     void createDataIntegrityViolationException() {
         Case testingCase = createTestingCase();
-        uk.gov.hmcts.reform.preapi.model.Case caseModel = new uk.gov.hmcts.reform.preapi.model.Case(testingCase);
+        CaseDTO caseDTOModel = new CaseDTO(testingCase);
 
-        when(courtRepository.findById(caseModel.getCourtId())).thenReturn(Optional.of(testingCase.getCourt()));
-        when(caseRepository.findById(caseModel.getId())).thenReturn(Optional.empty());
+        when(courtRepository.findById(caseDTOModel.getCourtId())).thenReturn(Optional.of(testingCase.getCourt()));
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());
 
         doThrow(DataIntegrityViolationException.class).when(caseRepository).save(any());
 
-        assertThrows(DataIntegrityViolationException.class, () -> caseService.create(caseModel));
+        assertThrows(DataIntegrityViolationException.class, () -> caseService.create(caseDTOModel));
 
-        verify(courtRepository, times(1)).findById(caseModel.getCourtId());
-        verify(caseRepository, times(1)).findById(caseModel.getId());
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseRepository, times(1)).save(any());
     }
 

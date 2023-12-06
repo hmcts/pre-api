@@ -11,8 +11,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.RecordingController;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.model.Recording;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
@@ -33,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(RecordingController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-class RecordingControllerTest {
+class RecordingDTOControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
@@ -49,9 +49,9 @@ class RecordingControllerTest {
     void testGetRecordingByIdSuccess() throws Exception {
         UUID recordingId = UUID.randomUUID();
         UUID bookingId = UUID.randomUUID();
-        Recording mockRecording = new Recording();
-        mockRecording.setId(recordingId);
-        when(recordingService.findById(bookingId, recordingId)).thenReturn(mockRecording);
+        RecordingDTO mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(recordingId);
+        when(recordingService.findById(bookingId, recordingId)).thenReturn(mockRecordingDTO);
 
         mockMvc.perform(get(getPath(bookingId.toString(), recordingId.toString())))
             .andExpect(status().isOk())
@@ -68,7 +68,7 @@ class RecordingControllerTest {
 
         mockMvc.perform(get(getPath(bookingId.toString(), recordingId.toString())))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: Recording: " + recordingId));
+            .andExpect(jsonPath("$.message").value("Not found: RecordingDTO: " + recordingId));
     }
 
     @DisplayName("Should return 404 when trying to get a non-existing booking")
@@ -77,13 +77,13 @@ class RecordingControllerTest {
         UUID recordingId = UUID.randomUUID();
         UUID bookingId = UUID.randomUUID();
         when(recordingService.findById(bookingId, recordingId)).thenThrow(
-            new NotFoundException("Booking: " + bookingId)
+            new NotFoundException("BookingDTO: " + bookingId)
         );
 
         mockMvc.perform(get(getPath(bookingId.toString(), recordingId.toString())))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
-                           .value("Not found: Booking: " + bookingId));
+                           .value("Not found: BookingDTO: " + bookingId));
     }
 
     // TODO 200 response
@@ -92,10 +92,10 @@ class RecordingControllerTest {
     void testGetRecordingByBookingIdSuccess() throws Exception {
         UUID bookingId = UUID.randomUUID();
         UUID recordingId = UUID.randomUUID();
-        Recording mockRecording = new Recording();
-        mockRecording.setId(recordingId);
-        List<Recording> recordingList = List.of(mockRecording);
-        when(recordingService.findAllByBookingId(bookingId)).thenReturn(recordingList);
+        RecordingDTO mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(recordingId);
+        List<RecordingDTO> recordingDTOList = List.of(mockRecordingDTO);
+        when(recordingService.findAllByBookingId(bookingId)).thenReturn(recordingDTOList);
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isOk())
@@ -108,11 +108,11 @@ class RecordingControllerTest {
     @Test
     void testGetRecordingsBookingNotFound() throws Exception {
         UUID bookingId = UUID.randomUUID();
-        doThrow(new NotFoundException("Booking: " + bookingId)).when(recordingService).findAllByBookingId(any());
+        doThrow(new NotFoundException("BookingDTO: " + bookingId)).when(recordingService).findAllByBookingId(any());
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: Booking: " + bookingId));
+            .andExpect(jsonPath("$.message").value("Not found: BookingDTO: " + bookingId));
     }
 
     @DisplayName("Should delete recording with 200 response code")
