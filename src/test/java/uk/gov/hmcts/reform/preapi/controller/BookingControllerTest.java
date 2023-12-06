@@ -22,11 +22,13 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(BookingController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@SuppressWarnings({"PMD.LinguisticNaming"})
 class BookingControllerTest {
 
     @Autowired
@@ -40,6 +42,54 @@ class BookingControllerTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
+
+    @DisplayName("Should get a booking with 200 response code")
+    @Test
+    void getBookingEndpointOk() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+
+        Case mockCase = new Case();
+        mockCase.setId(caseId);
+        when(caseService.findById(caseId)).thenReturn(mockCase);
+        when(bookingService.findById(bookingId)).thenReturn(booking);
+
+        MvcResult response = mockMvc.perform(get(getPath(caseId, bookingId))
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo(OBJECT_MAPPER.writeValueAsString(booking));
+    }
+
+    @DisplayName("Should get a booking with 404 response code as case not found")
+    @Test
+    void getBookingEndpointCaseNotFound() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+
+        when(caseService.findById(caseId)).thenReturn(null);
+        when(bookingService.findById(bookingId)).thenReturn(booking);
+
+        MvcResult response = mockMvc.perform(get(getPath(caseId, bookingId))
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+        assertThat(
+            response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Not found: Case " + caseId + "\"}"
+        );
+    }
 
     @DisplayName("Should create a booking with 201 response code")
     @Test
@@ -64,7 +114,9 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId));
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId)
+        );
     }
 
     @DisplayName("Should update a booking with 204 response code")
@@ -90,7 +142,9 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId));
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId)
+        );
     }
 
     @DisplayName("Should fail to create a booking with 400 response code caseId mismatch")
