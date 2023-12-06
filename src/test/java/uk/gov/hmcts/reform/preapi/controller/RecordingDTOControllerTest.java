@@ -209,12 +209,12 @@ class RecordingDTOControllerTest {
     @DisplayName("Should fail to create/update a recording with 404 response code when capture session does not exist")
     @Test
     void createRecordingCaptureSessionNotFound() throws Exception {
-        var bookingId = UUID.randomUUID();
         var recordingId = UUID.randomUUID();
         var captureSessionId = UUID.randomUUID();
         var recording = new RecordingDTO();
         recording.setId(recordingId);
         recording.setCaptureSessionId(captureSessionId);
+        var bookingId = UUID.randomUUID();
 
         doThrow(new NotFoundException("Capture Session: " + captureSessionId))
             .when(recordingService)
@@ -235,13 +235,12 @@ class RecordingDTOControllerTest {
     @DisplayName("Should fail to create/update a recording with 404 response code when parent recording does not exist")
     @Test
     void createRecordingParentRecordingNotFound() throws Exception {
-        var bookingId = UUID.randomUUID();
         var recordingId = UUID.randomUUID();
         var parentRecordingId = UUID.randomUUID();
         var recording = new RecordingDTO();
         recording.setId(recordingId);
         recording.setParentRecordingId(parentRecordingId);
-
+        var bookingId = UUID.randomUUID();
 
         doThrow(new NotFoundException("Recording: " + parentRecordingId))
             .when(recordingService)
