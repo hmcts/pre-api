@@ -12,9 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CaseController;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.model.Case;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CaseController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-class CaseControllerTest {
+class CaseDTOControllerTest {
 
     @Autowired
     private transient MockMvc mockMvc;
@@ -60,9 +60,9 @@ class CaseControllerTest {
     @Test
     void testGetCaseByIdSuccess() throws Exception {
         UUID caseId = UUID.randomUUID();
-        Case mockCase = new Case();
-        mockCase.setId(caseId);
-        when(caseService.findById(caseId)).thenReturn(mockCase);
+        CaseDTO mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setId(caseId);
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
         mockMvc.perform(get(CASES_ID_PATH, caseId))
             .andExpect(status().isOk())
@@ -78,21 +78,21 @@ class CaseControllerTest {
 
         mockMvc.perform(get(CASES_ID_PATH, caseId))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: Case: " + caseId));
+            .andExpect(jsonPath("$.message").value("Not found: CaseDTO: " + caseId));
     }
 
     @DisplayName("Should return 404 when trying to get a case that doesn't exist")
     @Test
     void testGetDeletedCaseById() throws Exception {
         UUID caseId = UUID.randomUUID();
-        Case mockCase = new Case();
-        mockCase.setId(caseId);
-        mockCase.setDeletedAt(Timestamp.from(Instant.now()));
-        when(caseService.findById(caseId)).thenReturn(mockCase);
+        CaseDTO mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setId(caseId);
+        mockCaseDTO.setDeletedAt(Timestamp.from(Instant.now()));
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
         mockMvc.perform(get(CASES_ID_PATH, caseId))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: Case: " + caseId));
+            .andExpect(jsonPath("$.message").value("Not found: CaseDTO: " + caseId));
     }
 
     @DisplayName("Should get list of cases with 200 response code")
@@ -100,10 +100,10 @@ class CaseControllerTest {
     void testGetCases() throws Exception {
         String caseReference = "ABC123";
         UUID courtId = UUID.randomUUID();
-        Case mockCase = new Case();
-        mockCase.setId(UUID.randomUUID());
-        List<Case> caseList = List.of(mockCase);
-        when(caseService.searchBy(caseReference, courtId)).thenReturn(caseList);
+        CaseDTO mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setId(UUID.randomUUID());
+        List<CaseDTO> caseDTOList = List.of(mockCaseDTO);
+        when(caseService.searchBy(caseReference, courtId)).thenReturn(caseDTOList);
 
         mockMvc.perform(get("/cases")
                             .param("reference", caseReference)
@@ -119,14 +119,14 @@ class CaseControllerTest {
     @Test
     void testCreateCase() throws Exception {
         UUID caseId = UUID.randomUUID();
-        Case newCaseRequest = new Case();
-        newCaseRequest.setId(caseId);
+        CaseDTO newCaseRequestDTO = new CaseDTO();
+        newCaseRequestDTO.setId(caseId);
 
-        when(caseService.findById(caseId)).thenReturn(newCaseRequest);
+        when(caseService.findById(caseId)).thenReturn(newCaseRequestDTO);
 
         MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isCreated())
@@ -140,17 +140,17 @@ class CaseControllerTest {
     @Test
     void testCreateCasePathPayloadMismatch() throws Exception {
         UUID caseId = UUID.randomUUID();
-        Case newCaseRequest = new Case();
-        newCaseRequest.setId(UUID.randomUUID());
+        CaseDTO newCaseRequestDTO = new CaseDTO();
+        newCaseRequestDTO.setId(UUID.randomUUID());
 
         mockMvc.perform(put(CASES_ID_PATH, caseId)
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
+                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("Path id does not match payload property newCaseRequest.id"));
+                           .value("Path id does not match payload property newCaseRequestDTO.id"));
     }
 
     @DisplayName("Should return 400 when creating case with court that does not exist")
@@ -158,16 +158,16 @@ class CaseControllerTest {
     void testCreateCaseCourtNotFound() throws Exception {
         UUID caseId = UUID.randomUUID();
         UUID courtId = UUID.randomUUID();
-        Case newCaseRequest = new Case();
-        newCaseRequest.setId(caseId);
-        newCaseRequest.setCourtId(courtId);
+        CaseDTO newCaseRequestDTO = new CaseDTO();
+        newCaseRequestDTO.setId(caseId);
+        newCaseRequestDTO.setCourtId(courtId);
 
-        doThrow(new NotFoundException("Court: " + courtId)).when(caseService).create(newCaseRequest);
+        doThrow(new NotFoundException("Court: " + courtId)).when(caseService).create(newCaseRequestDTO);
 
 
         mockMvc.perform(put(CASES_ID_PATH, caseId)
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
+                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNotFound())
@@ -179,14 +179,14 @@ class CaseControllerTest {
     @Test
     void testCreateCaseAlreadyExists() throws Exception {
         UUID caseId = UUID.randomUUID();
-        Case newCaseRequest = new Case();
-        newCaseRequest.setId(caseId);
+        CaseDTO newCaseRequestDTO = new CaseDTO();
+        newCaseRequestDTO.setId(caseId);
 
         doThrow(new ConflictException(caseId.toString())).when(caseService).create(any());
 
         mockMvc.perform(put(CASES_ID_PATH, caseId)
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequest))
+                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isConflict())

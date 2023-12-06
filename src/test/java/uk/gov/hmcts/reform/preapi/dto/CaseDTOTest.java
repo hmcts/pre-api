@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.model;
+package uk.gov.hmcts.reform.preapi.dto;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -11,7 +11,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("PMD.LawOfDemeter")
-class CaseTest {
+class CaseDTOTest {
 
     private static uk.gov.hmcts.reform.preapi.entities.Case caseEntity;
 
@@ -32,7 +32,7 @@ class CaseTest {
     @DisplayName("Should create a case from entity")
     @Test
     void createCaseFromEntity() {
-        var model = new Case(caseEntity);
+        var model = new CaseDTO(caseEntity);
 
         assertThat(model.getId()).isEqualTo(caseEntity.getId());
         assertThat(model.getCourtId()).isEqualTo(caseEntity.getCourt().getId());
