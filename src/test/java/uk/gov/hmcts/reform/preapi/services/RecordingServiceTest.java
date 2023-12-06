@@ -393,10 +393,11 @@ class RecordingServiceTest {
             () -> recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId())
         );
 
-        verify(recordingRepository, never()).findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
-            any(),
-            any()
-        );
+        verify(recordingRepository, never())
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                any(),
+                any()
+            );
         verify(recordingRepository, never()).save(recordingEntity);
     }
 }

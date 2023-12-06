@@ -99,10 +99,11 @@ public class RecordingService {
     public void deleteById(UUID bookingId, UUID recordingId) {
         checkBookingValid(bookingId);
 
-        var recording = recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
-            recordingId,
-            bookingId
-        );
+        var recording = recordingRepository
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingId,
+                bookingId
+            );
 
         if (recording.isEmpty() || recording.get().isDeleted()) {
             throw new NotFoundException("Recording: " + recordingId);
