@@ -2,9 +2,9 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.model.Booking;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 
 import java.util.UUID;
@@ -21,21 +21,21 @@ public class BookingService {
         this.bookingRepository = bookingRepository;
     }
 
-    public Booking findById(UUID id) {
+    public BookingDTO findById(UUID id) {
 
         return bookingRepository.findById(id)
-            .map(Booking::new)
-            .orElseThrow(() -> new NotFoundException("Booking not found"));
+            .map(BookingDTO::new)
+            .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
-    public UpsertResult upsert(Booking booking) {
+    public UpsertResult upsert(BookingDTO bookingDTO) {
         var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
         var caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
-        caseEntity.setId(booking.getCaseId());
-        bookingEntity.setId(booking.getId());
+        caseEntity.setId(bookingDTO.getCaseId());
+        bookingEntity.setId(bookingDTO.getId());
         bookingEntity.setCaseId(caseEntity);
         bookingEntity.setParticipants(
-            Stream.ofNullable(booking.getParticipants())
+            Stream.ofNullable(bookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
                     var entity = new uk.gov.hmcts.reform.preapi.entities.Participant();
                     entity.setId(model.getId());
@@ -45,9 +45,9 @@ public class BookingService {
                     return entity;
                 }))
                 .collect(Collectors.toSet()));
-        bookingEntity.setScheduledFor(booking.getScheduledFor());
+        bookingEntity.setScheduledFor(bookingDTO.getScheduledFor());
 
-        var updated = bookingRepository.existsById(booking.getId());
+        var updated = bookingRepository.existsById(bookingDTO.getId());
         bookingRepository.save(bookingEntity);
 
         return updated ? UpsertResult.UPDATED : UpsertResult.CREATED;

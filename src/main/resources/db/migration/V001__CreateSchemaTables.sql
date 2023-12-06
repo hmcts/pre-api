@@ -1,7 +1,7 @@
 -------------------------------------- Create types
 CREATE TYPE public.COURT_TYPE AS ENUM (
-    'crown', 
-    'magistrate', 
+    'crown',
+    'magistrate',
     'family'
 );
 
@@ -11,38 +11,38 @@ CREATE TYPE public.PARTICIPANT_TYPE AS ENUM (
 );
 
 CREATE TYPE public.RECORDING_STATUS AS ENUM (
-    'standby', 
-    'initialisation', 
-    'recording', 
-    'finished', 
-    'processing', 
-    'available', 
+    'standby',
+    'initialisation',
+    'recordingDTO',
+    'finished',
+    'processing',
+    'available',
     'future'
 );
 
 CREATE TYPE public.RECORDING_ORIGIN AS ENUM (
-    'pre', 
+    'pre',
     'vodafone'
 );
 
 CREATE TYPE public.AUDIT_LOG_SOURCE AS ENUM (
-    'application', 
-    'portal', 
-    'admin', 
+    'application',
+    'portal',
+    'admin',
     'auto'
 );
 
 CREATE TYPE public.AUDIT_LOG_TYPE AS ENUM (
-    'create', 
-    'update', 
-    'delete', 
+    'create',
+    'update',
+    'delete',
     'action'
 );
 
 CREATE TYPE public.ACCESS_STATUS AS ENUM (
-    'invitation_sent', 
-    'registered', 
-    'active', 
+    'invitation_sent',
+    'registered',
+    'active',
     'inactive'
 );
 
@@ -80,7 +80,7 @@ CREATE TABLE public.courtrooms (
 CREATE TABLE public.cases (
     id UUID PRIMARY KEY,
     court_id UUID REFERENCES courts(id) NOT NULL ,
-    reference VARCHAR(25) NOT NULL, 
+    reference VARCHAR(25) NOT NULL,
     test BOOLEAN DEFAULT FALSE,
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -112,7 +112,7 @@ CREATE TABLE public.bookings (
 CREATE TABLE public.booking_participant (
     id UUID PRIMARY KEY,
     participant_id UUID REFERENCES participants(id) NOT NULL,
-    booking_id UUID REFERENCES bookings(id) NOT NULL  
+    booking_id UUID REFERENCES bookings(id) NOT NULL
 );
 
 CREATE TABLE public.users (
@@ -219,7 +219,7 @@ CREATE TABLE public.audits (
     functional_area VARCHAR(100),
     audit_details TEXT,
     created_by VARCHAR(50),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), 
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ DEFAULT NULL
 );

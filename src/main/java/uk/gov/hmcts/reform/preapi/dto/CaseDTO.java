@@ -1,9 +1,10 @@
-package uk.gov.hmcts.reform.preapi.model;
+package uk.gov.hmcts.reform.preapi.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -12,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @SuppressWarnings("PMD.ShortClassName")
-public class Case {
+public class CaseDTO {
     private UUID id;
     private UUID courtId;
     private String reference;
@@ -21,7 +22,7 @@ public class Case {
     private Timestamp createdAt;
     private Timestamp modifiedAt;
 
-    public Case(uk.gov.hmcts.reform.preapi.entities.Case caseEntity) {
+    public CaseDTO(Case caseEntity) {
         this.id = caseEntity.getId();
         this.courtId = caseEntity.getCourt().getId();
         this.reference = caseEntity.getReference();

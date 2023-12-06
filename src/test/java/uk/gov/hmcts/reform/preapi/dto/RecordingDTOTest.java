@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.model;
+package uk.gov.hmcts.reform.preapi.dto;
 
 
 import org.junit.jupiter.api.BeforeAll;
@@ -13,7 +13,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("PMD.LawOfDemeter")
-class RecordingTest {
+class RecordingDTOTest {
     private static uk.gov.hmcts.reform.preapi.entities.Recording recordingEntity;
 
     @BeforeAll
@@ -35,7 +35,7 @@ class RecordingTest {
         var parentRecording = new uk.gov.hmcts.reform.preapi.entities.Recording();
         parentRecording.setId(UUID.randomUUID());
         recordingEntity.setParentRecording(parentRecording);
-        var model = new Recording(recordingEntity);
+        var model = new RecordingDTO(recordingEntity);
 
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
         assertThat(model.getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -46,7 +46,7 @@ class RecordingTest {
     @Test
     void createCaseFromEntityParentRecordingNull() {
         recordingEntity.setParentRecording(null);
-        var model = new Recording(recordingEntity);
+        var model = new RecordingDTO(recordingEntity);
 
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
         assertThat(model.getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());

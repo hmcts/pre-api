@@ -11,9 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-import uk.gov.hmcts.reform.preapi.model.Booking;
-import uk.gov.hmcts.reform.preapi.model.Case;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(BookingController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @SuppressWarnings({"PMD.LinguisticNaming"})
-class BookingControllerTest {
+class BookingDTOControllerTest {
 
     @Autowired
     private transient MockMvc mockMvc;
@@ -49,13 +49,13 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
-        Case mockCase = new Case();
-        mockCase.setId(caseId);
-        when(caseService.findById(caseId)).thenReturn(mockCase);
+        CaseDTO mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setId(caseId);
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
         when(bookingService.findById(bookingId)).thenReturn(booking);
 
         MvcResult response = mockMvc.perform(get(getPath(caseId, bookingId))
@@ -73,7 +73,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
@@ -87,7 +87,7 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(
-            response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Not found: Case " + caseId + "\"}"
+            response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Not found: CaseDTO " + caseId + "\"}"
         );
     }
 
@@ -97,12 +97,12 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
-        Case mockCase = new Case();
-        when(caseService.findById(caseId)).thenReturn(mockCase);
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
         when(bookingService.upsert(booking)).thenReturn(UpsertResult.CREATED);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
@@ -125,12 +125,12 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
-        Case mockCase = new Case();
-        when(caseService.findById(caseId)).thenReturn(mockCase);
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
         when(bookingService.upsert(booking)).thenReturn(UpsertResult.UPDATED);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
@@ -153,11 +153,11 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(UUID.randomUUID());
 
-        var mockCase = new Case();
+        var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
@@ -169,7 +169,7 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Path caseId does not match payload property booking.caseId\"}");
+            .isEqualTo("{\"message\":\"Path caseId does not match payload property bookingDTO.caseId\"}");
     }
 
     @DisplayName("Should fail to create a booking with 400 response code bookingId mismatch")
@@ -178,11 +178,11 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
 
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseId);
 
-        var mockCase = new Case();
+        var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
         MvcResult response = mockMvc.perform(put(getPath(caseId, UUID.randomUUID()))
@@ -194,7 +194,7 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Path bookingId does not match payload property booking.id\"}");
+            .isEqualTo("{\"message\":\"Path bookingId does not match payload property bookingDTO.id\"}");
     }
 
     @DisplayName("Should fail to create a booking with 400 response code")
@@ -202,7 +202,7 @@ class BookingControllerTest {
     void createBookingEndpointNotAcceptable() throws Exception {
 
         var caseId = UUID.randomUUID();
-        var mockCase = new Case();
+        var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
         mockMvc.perform(put(getPath(caseId, UUID.randomUUID()))).andExpect(status().is4xxClientError());
@@ -214,7 +214,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
@@ -229,7 +229,7 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Not found: Case " + caseId + "\"}");
+            .isEqualTo("{\"message\":\"Not found: CaseDTO " + caseId + "\"}");
     }
 
     @DisplayName("Should fail to create a booking with 500 response code")
@@ -238,12 +238,12 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new Booking();
+        var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
-        Case mockCase = new Case();
-        when(caseService.findById(caseId)).thenReturn(mockCase);
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
         mockMvc.perform(put(getPath(caseId, bookingId))
                                                  .with(csrf())
