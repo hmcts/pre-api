@@ -230,7 +230,7 @@ class CaseServiceTest {
         verify(caseRepository, times(1)).findById(caseEntity.getId());
         verify(caseRepository, times(1)).save(caseEntity);
 
-        assertThat(caseEntity).isNotNull();
+        assertThat(caseEntity.getDeletedAt()).isNotNull();
     }
 
     @Test
