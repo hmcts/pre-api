@@ -185,9 +185,8 @@ class RecordingServiceTest {
         var recordingModel = new RecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setVersion(2);
-
-
         var recordingEntity = new Recording();
+
         when(
             bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
@@ -200,4 +199,78 @@ class RecordingServiceTest {
 
         assertThat(recordingService.upsert(bookingEntity.getId(), recordingModel)).isEqualTo(UpsertResult.UPDATED);
     }
+
+    @DisplayName("Fail to create recording - Booking not found")
+    @Test
+    void createRecordingFailBookingNotFound() {
+        var recordingModel = new RecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+
+        when(
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
+        ).thenReturn(false);
+
+        assertThrows(NotFoundException.class, () -> {
+            recordingService.upsert(bookingEntity.getId(), recordingModel);
+        });
+    }
+
+    @DisplayName("Fail to create recording - CaptureSession not found")
+    @Test
+    void createRecordingFailCaptureSessionNotFound() {
+        var recordingModel = new RecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+
+        when(
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(false);
+        when(
+            captureSessionRepository.findByIdAndBooking_IdAndDeletedAtIsNull(
+                recordingModel.getCaptureSessionId(),
+                bookingEntity.getId()
+            )
+        ).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> {
+            recordingService.upsert(bookingEntity.getId(), recordingModel);
+        });
+    }
+
+    @DisplayName("Fail to create recording - Parent Recording not found")
+    @Test
+    void createRecordingFailParentRecordingNotFound() {
+        var recordingModel = new RecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        recordingModel.setParentRecordingId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+
+
+        when(
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(false);
+        when(
+            captureSessionRepository.findByIdAndBooking_IdAndDeletedAtIsNull(
+                recordingModel.getCaptureSessionId(),
+                bookingEntity.getId()
+            )
+        ).thenReturn(Optional.of(new CaptureSession()));
+        when(
+            recordingRepository.findById(recordingModel.getParentRecordingId())
+        ).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> {
+            recordingService.upsert(bookingEntity.getId(), recordingModel);
+        });
+    }
+
 }
