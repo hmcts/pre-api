@@ -35,7 +35,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CaseService.class)
 @SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods"})
-class CaseDTOServiceTest {
+class CaseServiceTest {
 
     private static Case caseEntity;
 
