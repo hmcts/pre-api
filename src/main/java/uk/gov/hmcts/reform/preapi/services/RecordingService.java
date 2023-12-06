@@ -58,4 +58,43 @@ public class RecordingService {
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
+
+    @Transactional
+    public UpsertResult upsert(UUID bookingId, RecordingDTO recordingDto) {
+        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
+            throw new NotFoundException("BookingDTO: " + bookingId);
+        }
+
+        var isUpdate = recordingRepository.existsByIdAndDeletedAtIsNull(recordingDto.getId());
+
+        var captureSession = captureSessionRepository.findByIdAndBooking_IdAndDeletedAtIsNull(
+            recordingDto.getCaptureSessionId(),
+            bookingId
+        );
+
+        if (!isUpdate && captureSession.isEmpty()) {
+            throw new NotFoundException("CaptureSession: " + recordingDto.getCaptureSessionId());
+        }
+
+        var recordingEntity = new Recording();
+        recordingEntity.setId(recordingDto.getId());
+        if (recordingDto.getParentRecordingId() != null) {
+            var parentRecording = recordingRepository.findById(recordingDto.getParentRecordingId());
+            if (parentRecording.isEmpty()) {
+                throw new NotFoundException("Recording: " + recordingDto.getParentRecordingId());
+            }
+            recordingEntity.setParentRecording(parentRecording.get());
+        } else {
+            recordingEntity.setParentRecording(null);
+        }
+        recordingEntity.setVersion(recordingDto.getVersion());
+        recordingEntity.setUrl(recordingDto.getUrl());
+        recordingEntity.setFilename(recordingDto.getFilename());
+        recordingEntity.setDuration(recordingDto.getDuration());
+        recordingEntity.setEditInstruction(recordingDto.getEditInstructions());
+
+        recordingRepository.save(recordingEntity);
+
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
 }
