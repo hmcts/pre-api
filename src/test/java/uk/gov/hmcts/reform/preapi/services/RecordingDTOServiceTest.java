@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = RecordingService.class)
 @SuppressWarnings("PMD.LawOfDemeter")
-class RecordingServiceTest {
+class RecordingDTOServiceTest {
     private static Recording recordingEntity;
 
     private static Booking bookingEntity;

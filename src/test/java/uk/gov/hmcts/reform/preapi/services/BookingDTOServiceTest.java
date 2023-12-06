@@ -5,10 +5,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-import uk.gov.hmcts.reform.preapi.model.Booking;
-import uk.gov.hmcts.reform.preapi.model.Participant;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 
 import java.util.Set;
@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = BookingService.class)
-class BookingServiceTest {
+class BookingDTOServiceTest {
 
     @MockBean
     private BookingRepository bookingRepository;
@@ -37,7 +37,7 @@ class BookingServiceTest {
         var caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
         caseEntity.setId(UUID.randomUUID());
         bookingEntity.setCaseId(caseEntity);
-        var bookingModel = new Booking(bookingEntity);
+        var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findById(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
 
@@ -48,10 +48,10 @@ class BookingServiceTest {
     @Test
     void upsertBookingSuccessCreated() {
 
-        var bookingModel = new Booking();
+        var bookingModel = new BookingDTO();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
-        var participantModel = new Participant();
+        var participantModel = new ParticipantDTO();
         participantModel.setId(UUID.randomUUID());
         participantModel.setParticipantType(ParticipantType.WITNESS);
         participantModel.setFirstName("John");
@@ -70,7 +70,7 @@ class BookingServiceTest {
     @Test
     void upsertBookingSuccessUpdated() {
 
-        var bookingModel = new Booking();
+        var bookingModel = new BookingDTO();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
         bookingModel.setParticipants(Set.of());

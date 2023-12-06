@@ -58,7 +58,7 @@ class CaptureSessionTest {
         CaptureSession retrievedCaptureSession = entityManager.find(CaptureSession.class, captureSession.getId());
 
         assertEquals(captureSession.getId(), retrievedCaptureSession.getId(), "Id should match");
-        assertEquals(captureSession.getBooking(), retrievedCaptureSession.getBooking(), "Booking should match");
+        assertEquals(captureSession.getBooking(), retrievedCaptureSession.getBooking(), "BookingDTO should match");
         assertEquals(captureSession.getOrigin(), retrievedCaptureSession.getOrigin(), "Origin should match");
         assertEquals(
             captureSession.getIngestAddress(),

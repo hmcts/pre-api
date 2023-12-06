@@ -10,11 +10,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
-import uk.gov.hmcts.reform.preapi.model.Booking;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
@@ -38,24 +38,24 @@ public class BookingController {
     }
 
     @GetMapping("/{bookingId}")
-    public ResponseEntity<Booking> get(@PathVariable UUID caseId,
-                                       @PathVariable UUID bookingId) {
+    public ResponseEntity<BookingDTO> get(@PathVariable UUID caseId,
+                                          @PathVariable UUID bookingId) {
         validateRequest(caseId);
 
         return ok(bookingService.findById(bookingId));
     }
 
     @PutMapping("/{bookingId}")
-    public ResponseEntity<Booking> upsert(@PathVariable UUID caseId,
-                                          @PathVariable UUID bookingId,
-                                          @RequestBody Booking booking) {
-        this.validateRequestWithBody(caseId, bookingId, booking);
+    public ResponseEntity<BookingDTO> upsert(@PathVariable UUID caseId,
+                                             @PathVariable UUID bookingId,
+                                             @RequestBody BookingDTO bookingDTO) {
+        this.validateRequestWithBody(caseId, bookingId, bookingDTO);
 
-        var result = bookingService.upsert(booking);
+        var result = bookingService.upsert(bookingDTO);
         var location = ServletUriComponentsBuilder
             .fromCurrentRequest()
             .path("")
-            .buildAndExpand(booking.getId())
+            .buildAndExpand(bookingDTO.getId())
             .toUri();
 
         if (result == UpsertResult.CREATED) {
@@ -68,17 +68,17 @@ public class BookingController {
 
     private void validateRequest(UUID caseId) {
         if (caseService.findById(caseId) == null) {
-            throw new NotFoundException("Case " + caseId);
+            throw new NotFoundException("CaseDTO " + caseId);
         }
     }
 
-    private void validateRequestWithBody(UUID caseId, UUID bookingId, Booking booking) {
+    private void validateRequestWithBody(UUID caseId, UUID bookingId, BookingDTO bookingDTO) {
         validateRequest(caseId);
-        if (!caseId.equals(booking.getCaseId())) {
-            throw new PathPayloadMismatchException("caseId", "booking.caseId");
+        if (!caseId.equals(bookingDTO.getCaseId())) {
+            throw new PathPayloadMismatchException("caseId", "bookingDTO.caseId");
         }
-        if (!bookingId.equals(booking.getId())) {
-            throw new PathPayloadMismatchException("bookingId", "booking.id");
+        if (!bookingId.equals(bookingDTO.getId())) {
+            throw new PathPayloadMismatchException("bookingId", "bookingDTO.id");
         }
     }
 }

@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.model;
+package uk.gov.hmcts.reform.preapi.dto;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -10,7 +10,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("PMD.LawOfDemeter")
-class ParticipantTest {
+class ParticipantDTOTest {
 
     private static uk.gov.hmcts.reform.preapi.entities.Participant participantEntity;
 
@@ -28,7 +28,7 @@ class ParticipantTest {
     @DisplayName("Should create a participant from entity")
     @Test
     void createParticipantFromEntity() {
-        var model = new Participant(participantEntity);
+        var model = new ParticipantDTO(participantEntity);
 
         assertThat(model.getId()).isEqualTo(participantEntity.getId());
         assertThat(model.getFirstName()).isEqualTo(participantEntity.getFirstName());

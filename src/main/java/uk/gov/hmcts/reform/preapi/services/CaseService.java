@@ -3,9 +3,9 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.model.Case;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
@@ -28,36 +28,36 @@ public class CaseService {
     }
 
     @Transactional
-    public Case findById(UUID id) {
-        return caseRepository.findById(id).map(Case::new).orElse(null);
+    public CaseDTO findById(UUID id) {
+        return caseRepository.findById(id).map(CaseDTO::new).orElse(null);
     }
 
     @Transactional
-    public List<Case> searchBy(String reference, UUID courtId) {
+    public List<CaseDTO> searchBy(String reference, UUID courtId) {
         return caseRepository
             .searchCasesBy(reference, courtId)
             .stream()
-            .map(Case::new)
+            .map(CaseDTO::new)
             .collect(Collectors.toList());
     }
 
     @Transactional
-    public void create(Case caseModel) {
-        var court = courtRepository.findById(caseModel.getCourtId());
+    public void create(CaseDTO caseDTOModel) {
+        var court = courtRepository.findById(caseDTOModel.getCourtId());
 
         if (court.isEmpty()) {
-            throw new NotFoundException("Court: " + caseModel.getCourtId());
+            throw new NotFoundException("Court: " + caseDTOModel.getCourtId());
         }
 
-        if (caseRepository.findById(caseModel.getId()).isPresent()) {
-            throw new ConflictException(caseModel.getId().toString());
+        if (caseRepository.findById(caseDTOModel.getId()).isPresent()) {
+            throw new ConflictException(caseDTOModel.getId().toString());
         }
 
         var newCase = new uk.gov.hmcts.reform.preapi.entities.Case();
-        newCase.setId(caseModel.getId());
+        newCase.setId(caseDTOModel.getId());
         newCase.setCourt(court.get());
-        newCase.setReference(caseModel.getReference());
-        newCase.setTest(caseModel.isTest());
+        newCase.setReference(caseDTOModel.getReference());
+        newCase.setTest(caseDTOModel.isTest());
         caseRepository.save(newCase);
     }
 
@@ -65,12 +65,12 @@ public class CaseService {
     public void deleteById(UUID id) {
         var foundCase = caseRepository.findById(id);
         if (foundCase.isEmpty()) {
-            throw new NotFoundException("Case: " + id);
+            throw new NotFoundException("CaseDTO: " + id);
         }
         var caseEntity = foundCase.get();
 
         if (caseEntity.isDeleted()) {
-            throw new NotFoundException("Case: " + id);
+            throw new NotFoundException("CaseDTO: " + id);
         }
 
         caseEntity.setDeletedAt(new Timestamp(System.currentTimeMillis()));
