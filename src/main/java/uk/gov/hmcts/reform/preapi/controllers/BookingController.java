@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.UUID;
 
+import static org.springframework.http.ResponseEntity.noContent;
 import static org.springframework.http.ResponseEntity.ok;
 
 @RestController
@@ -49,6 +51,14 @@ public class BookingController extends PreApiController {
         this.validateRequestWithBody(caseId, bookingId, createBookingDTO);
 
         return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
+    }
+
+    @DeleteMapping("/{bookingId}")
+    public ResponseEntity<Void> delete(@PathVariable UUID caseId,
+                                          @PathVariable UUID bookingId) {
+        validateRequest(caseId);
+        bookingService.markAsDeleted(bookingId);
+        return noContent().build();
     }
 
     private void validateRequest(UUID caseId) {
