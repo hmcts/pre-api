@@ -286,12 +286,12 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
 
         var models = recordingService.findAllByBookingId(bookingEntity.getId());
 
-        verify(bookingRepository, times(1)).existsById(bookingEntity.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
         verify(recordingRepository, times(1))
             .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingEntity.getId());
 
@@ -302,7 +302,7 @@ class RecordingServiceTest {
     @Test
     void deleteRecordingSuccess() {
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
             recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
@@ -327,7 +327,7 @@ class RecordingServiceTest {
     @Test
     void deleteRecordingNotFound() {
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
             recordingRepository
@@ -356,7 +356,7 @@ class RecordingServiceTest {
         Timestamp now = Timestamp.from(Instant.now());
         recordingEntity.setDeletedAt(now);
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
             recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(

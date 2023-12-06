@@ -114,7 +114,7 @@ public class RecordingService {
     }
 
     private void checkBookingValid(UUID bookingId) {
-        if (!bookingRepository.existsById(bookingId)) {
+        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
         }
     }
