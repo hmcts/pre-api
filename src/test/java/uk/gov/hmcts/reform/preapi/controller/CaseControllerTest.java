@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(CaseController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-class CaseDTOControllerTest {
+class CaseControllerTest {
 
     @Autowired
     private transient MockMvc mockMvc;
