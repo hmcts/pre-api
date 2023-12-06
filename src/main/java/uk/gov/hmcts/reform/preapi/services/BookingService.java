@@ -61,4 +61,11 @@ public class BookingService {
 
         return updated ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
+
+    public void markAsDeleted(UUID id) {
+        var entity = bookingRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Booking not found"));
+        entity.setDeletedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+        bookingRepository.save(entity);
+    }
 }
