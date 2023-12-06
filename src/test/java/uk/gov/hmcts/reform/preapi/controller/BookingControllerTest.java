@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(BookingController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @SuppressWarnings({"PMD.LinguisticNaming"})
-class BookingDTOControllerTest {
+class BookingControllerTest {
 
     @Autowired
     private transient MockMvc mockMvc;
