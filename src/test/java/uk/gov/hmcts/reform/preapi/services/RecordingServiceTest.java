@@ -305,15 +305,19 @@ class RecordingServiceTest {
             bookingRepository.existsById(bookingEntity.getId())
         ).thenReturn(true);
         when(
-            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+            recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            )
         ).thenReturn(Optional.of(recordingEntity));
 
         recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId());
 
-        verify(recordingRepository, times(1)).findByIdAndCaptureSession_Booking_Id(
-            recordingEntity.getId(),
-            bookingEntity.getId()
-        );
+        verify(recordingRepository, times(1))
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            );
         verify(recordingRepository, times(1)).save(recordingEntity);
 
         assertThat(recordingEntity.isDeleted()).isTrue();
@@ -326,7 +330,11 @@ class RecordingServiceTest {
             bookingRepository.existsById(bookingEntity.getId())
         ).thenReturn(true);
         when(
-            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+            recordingRepository
+                .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                    recordingEntity.getId(),
+                    bookingEntity.getId()
+                )
         ).thenReturn(Optional.empty());
 
         assertThrows(
@@ -334,10 +342,11 @@ class RecordingServiceTest {
             () -> recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId())
         );
 
-        verify(recordingRepository, times(1)).findByIdAndCaptureSession_Booking_Id(
-            recordingEntity.getId(),
-            bookingEntity.getId()
-        );
+        verify(recordingRepository, times(1))
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            );
         verify(recordingRepository, never()).save(recordingEntity);
     }
 
@@ -350,7 +359,10 @@ class RecordingServiceTest {
             bookingRepository.existsById(bookingEntity.getId())
         ).thenReturn(true);
         when(
-            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+            recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            )
         ).thenReturn(Optional.of(recordingEntity));
 
         assertThrows(
@@ -358,10 +370,11 @@ class RecordingServiceTest {
             () -> recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId())
         );
 
-        verify(recordingRepository, times(1)).findByIdAndCaptureSession_Booking_Id(
-            recordingEntity.getId(),
-            bookingEntity.getId()
-        );
+        verify(recordingRepository, times(1))
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            );
         verify(recordingRepository, never()).save(recordingEntity);
 
         assertThat(recordingEntity.isDeleted()).isTrue();
@@ -380,7 +393,7 @@ class RecordingServiceTest {
             () -> recordingService.deleteById(bookingEntity.getId(), recordingEntity.getId())
         );
 
-        verify(recordingRepository, never()).findByIdAndCaptureSession_Booking_Id(
+        verify(recordingRepository, never()).findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
             any(),
             any()
         );

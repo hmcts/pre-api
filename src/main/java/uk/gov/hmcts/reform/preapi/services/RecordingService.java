@@ -60,9 +60,7 @@ public class RecordingService {
     @Transactional
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(UUID bookingId, RecordingDTO recordingDto) {
-        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
-            throw new NotFoundException("BookingDTO: " + bookingId);
-        }
+        checkBookingValid(bookingId);
 
         var isUpdate = recordingRepository.existsByIdAndDeletedAtIsNull(recordingDto.getId());
 
@@ -101,7 +99,10 @@ public class RecordingService {
     public void deleteById(UUID bookingId, UUID recordingId) {
         checkBookingValid(bookingId);
 
-        var recording = recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingId, bookingId);
+        var recording = recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            recordingId,
+            bookingId
+        );
 
         if (recording.isEmpty() || recording.get().isDeleted()) {
             throw new NotFoundException("Recording: " + recordingId);

@@ -268,7 +268,7 @@ class RecordingControllerTest {
         UUID bookingId = UUID.randomUUID();
         doNothing().when(recordingService).deleteById(bookingId, recordingId);
 
-        mockMvc.perform(delete(getPath(bookingId.toString(), recordingId.toString()))
+        mockMvc.perform(delete(getPath(bookingId, recordingId))
                             .with(csrf()))
             .andExpect(status().isOk());
     }
@@ -282,7 +282,7 @@ class RecordingControllerTest {
             .when(recordingService)
             .deleteById(bookingId, recordingId);
 
-        mockMvc.perform(delete(getPath(bookingId.toString(), recordingId.toString()))
+        mockMvc.perform(delete(getPath(bookingId, recordingId))
                             .with(csrf()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
@@ -298,14 +298,14 @@ class RecordingControllerTest {
             .when(recordingService)
             .deleteById(bookingId, recordingId);
 
-        mockMvc.perform(delete(getPath(bookingId.toString(), recordingId.toString()))
+        mockMvc.perform(delete(getPath(bookingId, recordingId))
                             .with(csrf()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Recording: " + recordingId));
     }
 
-    private static String getPath(String bookingId, String recordingId) {
+    private static String getPath(UUID bookingId, UUID recordingId) {
         return "/bookings/" + bookingId + "/recordings/" + recordingId;
     }
 }
