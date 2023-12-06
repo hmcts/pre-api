@@ -20,4 +20,14 @@ public class Participant {
     private Timestamp deletedAt;
     private Timestamp createdAt;
     private Timestamp modifiedAt;
+
+    public Participant(uk.gov.hmcts.reform.preapi.entities.Participant participantEntity) {
+        this.id = participantEntity.getId();
+        this.participantType = participantEntity.getParticipantType();
+        this.firstName = participantEntity.getFirstName();
+        this.lastName = participantEntity.getLastName();
+        this.deletedAt = participantEntity.getDeletedAt();
+        this.createdAt = participantEntity.getCreatedAt();
+        this.modifiedAt = participantEntity.getModifiedAt();
+    }
 }
