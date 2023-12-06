@@ -24,6 +24,11 @@
   </suppress>
 
   <suppress>
+    <notes>Will be fixable when we can upgrade to Spring Boot 3.2.1</notes>
+    <cve>CVE-2023-6378</cve>
+  </suppress>
+
+  <suppress>
     <notes>Dependency brought in through gov-notify, so we can't control this.</notes>
     <cve>CVE-2022-45688</cve>
   </suppress>

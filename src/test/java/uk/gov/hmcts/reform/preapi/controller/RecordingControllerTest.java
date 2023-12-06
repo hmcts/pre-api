@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(RecordingController.class)
 @AutoConfigureMockMvc(addFilters = false)
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
-class RecordingDTOControllerTest {
+class RecordingControllerTest {
     @Autowired
     private transient MockMvc mockMvc;
 
