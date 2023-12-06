@@ -7,11 +7,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.sql.Timestamp;
@@ -23,6 +26,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -40,6 +44,9 @@ class RecordingDTOServiceTest {
 
     @MockBean
     private BookingRepository bookingRepository;
+
+    @MockBean
+    private CaptureSessionRepository captureSessionRepository;
 
     @Autowired
     private RecordingService recordingService;
@@ -64,10 +71,13 @@ class RecordingDTOServiceTest {
     @Test
     void findRecordingByIdSuccess() {
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
-            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+            recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            )
         ).thenReturn(Optional.of(recordingEntity));
 
         var model = recordingService.findById(bookingEntity.getId(), recordingEntity.getId());
@@ -79,10 +89,13 @@ class RecordingDTOServiceTest {
     @Test
     void findRecordingByIdMissing() {
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
-            recordingRepository.findByIdAndCaptureSession_Booking_Id(recordingEntity.getId(), bookingEntity.getId())
+            recordingRepository.findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            )
         ).thenReturn(Optional.empty());
 
         var model = recordingService.findById(bookingEntity.getId(), recordingEntity.getId());
@@ -93,7 +106,7 @@ class RecordingDTOServiceTest {
     @Test
     void findRecordingByIdBookingIdMissing() {
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(false);
 
         assertThrows(
@@ -101,15 +114,16 @@ class RecordingDTOServiceTest {
             () -> recordingService.findById(bookingEntity.getId(), recordingEntity.getId())
         );
 
-        verify(bookingRepository, times(1)).existsById(bookingEntity.getId());
-        verify(recordingRepository, never()).findByIdAndCaptureSession_Booking_Id(any(), any());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
+        verify(recordingRepository, never())
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(any(), any());
     }
 
     @DisplayName("Find a list of recordings by it's related booking id and return a list of models")
     @Test
     void findAllRecordingsSuccess() {
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
             recordingRepository.findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingEntity.getId())
@@ -125,7 +139,7 @@ class RecordingDTOServiceTest {
     @Test
     void findAllRecordingsBookingNotFound() {
         when(
-            bookingRepository.existsById(bookingEntity.getId())
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(false);
 
         assertThrows(
@@ -133,7 +147,58 @@ class RecordingDTOServiceTest {
             () -> recordingService.findAllByBookingId(bookingEntity.getId())
         );
 
-        verify(bookingRepository, times(1)).existsById(bookingEntity.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
         verify(recordingRepository, never()).findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(any());
+    }
+
+    @DisplayName("Create a recording")
+    @Test
+    void createRecordingSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        var recordingModel = new RecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(captureSession.getId());
+        recordingModel.setVersion(1);
+
+        var recordingEntity = new Recording();
+        when(
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(false);
+        when(
+            captureSessionRepository.findByIdAndBooking_IdAndDeletedAtIsNull(
+                captureSession.getId(),
+                bookingEntity.getId()
+            )
+        ).thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(any())).thenReturn(Optional.empty());
+        when(recordingRepository.save(recordingEntity)).thenReturn(recordingEntity);
+
+        assertThat(recordingService.upsert(bookingEntity.getId(), recordingModel)).isEqualTo(UpsertResult.CREATED);
+    }
+
+    @DisplayName("Update a recording")
+    @Test
+    void updateRecordingSuccess() {
+        var recordingModel = new RecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setVersion(2);
+
+
+        var recordingEntity = new Recording();
+        when(
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(true);
+
+        when(recordingRepository.findById(any())).thenReturn(Optional.empty());
+        when(recordingRepository.save(recordingEntity)).thenReturn(recordingEntity);
+
+        assertThat(recordingService.upsert(bookingEntity.getId(), recordingModel)).isEqualTo(UpsertResult.UPDATED);
     }
 }
