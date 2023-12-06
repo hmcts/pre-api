@@ -5,8 +5,11 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.util.List;
@@ -17,30 +20,35 @@ import java.util.stream.Collectors;
 public class RecordingService {
 
     private final RecordingRepository recordingRepository;
-
     private final BookingRepository bookingRepository;
+    private final CaptureSessionRepository captureSessionRepository;
 
     @Autowired
-    public RecordingService(RecordingRepository recordingRepository, BookingRepository bookingRepository) {
+    public RecordingService(RecordingRepository recordingRepository, BookingRepository bookingRepository,
+                            CaptureSessionRepository captureSessionRepository) {
         this.recordingRepository = recordingRepository;
         this.bookingRepository = bookingRepository;
+        this.captureSessionRepository = captureSessionRepository;
     }
 
     @Transactional
     public RecordingDTO findById(UUID bookingId, UUID recordingId) {
-        if (!bookingRepository.existsById(bookingId)) {
+        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
             throw new NotFoundException("BookingDTO: " + bookingId);
         }
 
         return recordingRepository
-            .findByIdAndCaptureSession_Booking_Id(recordingId, bookingId)
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingId,
+                bookingId
+            )
             .map(RecordingDTO::new)
             .orElse(null);
     }
 
     @Transactional
     public List<RecordingDTO> findAllByBookingId(UUID bookingId) {
-        if (!bookingRepository.existsById(bookingId)) {
+        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
             throw new NotFoundException("BookingDTO: " + bookingId);
         }
 
