@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@SuppressWarnings("PMD.MethodNamingConventions")
 public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndBooking_IdAndDeletedAtIsNull(UUID captureSessionId, UUID bookingId);
 }

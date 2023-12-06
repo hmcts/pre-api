@@ -60,6 +60,7 @@ public class RecordingService {
     }
 
     @Transactional
+    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(UUID bookingId, RecordingDTO recordingDto) {
         if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
             throw new NotFoundException("BookingDTO: " + bookingId);
