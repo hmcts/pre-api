@@ -143,6 +143,24 @@ class RecordingServiceTest {
         verify(recordingRepository, never()).findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(any());
     }
 
+    @DisplayName("Find a list of recordings by it's related booking id when recording has been deleted")
+    @Test
+    void findAllRecordingsDeleted() {
+        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        recordingRepository.save(recordingEntity);
+        when(
+            bookingRepository.existsById(bookingEntity.getId())
+        ).thenReturn(true);
+
+        var models = recordingService.findAllByBookingId(bookingEntity.getId());
+
+        verify(bookingRepository, times(1)).existsById(bookingEntity.getId());
+        verify(recordingRepository, times(1))
+            .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingEntity.getId());
+
+        assertThat(models.size()).isEqualTo(0);
+    }
+
     @DisplayName("Delete a recording by it's id and related booking id")
     @Test
     void deleteRecordingSuccess() {
