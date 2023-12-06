@@ -15,5 +15,4 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     Optional<Recording> findByIdAndCaptureSession_Booking_Id(UUID recordingId, UUID bookingId);
 
     List<Recording> findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(UUID bookingId);
-
 }

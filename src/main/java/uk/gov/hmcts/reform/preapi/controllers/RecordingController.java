@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,5 +45,15 @@ public class RecordingController {
     ) {
         // TODO Recordings returned need to be shared with the user
         return ResponseEntity.ok(recordingService.findAllByBookingId(bookingId));
+    }
+
+    @DeleteMapping("/{recordingId}")
+    public ResponseEntity<Void> deleteRecordingById(
+        @PathVariable UUID bookingId,
+        @PathVariable UUID recordingId
+    ) {
+        // TODO Ensure user has access to the recording
+        recordingService.deleteById(bookingId, recordingId);
+        return ResponseEntity.ok().build();
     }
 }
