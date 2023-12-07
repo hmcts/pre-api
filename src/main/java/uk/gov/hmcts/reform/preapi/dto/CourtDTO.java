@@ -29,7 +29,7 @@ public class CourtDTO {
         this.courtType = courtEntity.getCourtType();
         this.locationCode = courtEntity.getLocationCode();
         this.regions = Stream.ofNullable(courtEntity.getRegions())
-            .flatMap(participants -> participants.stream().map(RegionDTO::new))
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
     }
 }
