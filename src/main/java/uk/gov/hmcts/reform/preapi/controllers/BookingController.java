@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -21,7 +22,7 @@ import static org.springframework.http.ResponseEntity.ok;
 
 @RestController
 @RequestMapping(path = "/cases/{caseId}/bookings")
-public class BookingController extends PreApiController<BookingDTO> {
+public class BookingController extends PreApiController {
 
     private final CaseService caseService;
     private final BookingService bookingService;
@@ -42,12 +43,12 @@ public class BookingController extends PreApiController<BookingDTO> {
     }
 
     @PutMapping("/{bookingId}")
-    public ResponseEntity<BookingDTO> upsert(@PathVariable UUID caseId,
-                                             @PathVariable UUID bookingId,
-                                             @RequestBody BookingDTO bookingDTO) {
-        this.validateRequestWithBody(caseId, bookingId, bookingDTO);
+    public ResponseEntity<Void> upsert(@PathVariable UUID caseId,
+                                                   @PathVariable UUID bookingId,
+                                                   @RequestBody CreateBookingDTO createBookingDTO) {
+        this.validateRequestWithBody(caseId, bookingId, createBookingDTO);
 
-        return getUpsertResponse(bookingService.upsert(bookingDTO), bookingDTO.getId());
+        return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
     }
 
     private void validateRequest(UUID caseId) {
@@ -56,12 +57,12 @@ public class BookingController extends PreApiController<BookingDTO> {
         }
     }
 
-    private void validateRequestWithBody(UUID caseId, UUID bookingId, BookingDTO bookingDTO) {
+    private void validateRequestWithBody(UUID caseId, UUID bookingId, CreateBookingDTO createBookingDTO) {
         validateRequest(caseId);
-        if (!caseId.equals(bookingDTO.getCaseId())) {
+        if (!caseId.equals(createBookingDTO.getCaseId())) {
             throw new PathPayloadMismatchException("caseId", "bookingDTO.caseId");
         }
-        if (!bookingId.equals(bookingDTO.getId())) {
+        if (!bookingId.equals(createBookingDTO.getId())) {
             throw new PathPayloadMismatchException("bookingId", "bookingDTO.id");
         }
     }

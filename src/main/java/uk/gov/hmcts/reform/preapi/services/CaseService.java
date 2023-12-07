@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -46,19 +47,19 @@ public class CaseService {
     }
 
     @Transactional
-    public UpsertResult upsert(CaseDTO caseDTOModel) {
-        var isUpdate = caseRepository.existsByIdAndDeletedAtIsNull(caseDTOModel.getId());
-        var court = courtRepository.findById(caseDTOModel.getCourtId()).orElse(null);
+    public UpsertResult upsert(CreateCaseDTO createCaseDTO) {
+        var isUpdate = caseRepository.existsByIdAndDeletedAtIsNull(createCaseDTO.getId());
+        var court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
 
         if (!isUpdate && court == null) {
-            throw new NotFoundException("Court: " + caseDTOModel.getCourtId());
+            throw new NotFoundException("Court: " + createCaseDTO.getCourtId());
         }
 
         var newCase = new Case();
-        newCase.setId(caseDTOModel.getId());
+        newCase.setId(createCaseDTO.getId());
         newCase.setCourt(court);
-        newCase.setReference(caseDTOModel.getReference());
-        newCase.setTest(caseDTOModel.isTest());
+        newCase.setReference(createCaseDTO.getReference());
+        newCase.setTest(createCaseDTO.isTest());
         caseRepository.save(newCase);
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }

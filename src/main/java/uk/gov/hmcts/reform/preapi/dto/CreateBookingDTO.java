@@ -15,27 +15,21 @@ import java.util.stream.Stream;
 @Data
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class BookingDTO {
+public class CreateBookingDTO {
 
     private UUID id;
-    private CaseDTO caseDTO;
+    private UUID caseId;
     private Timestamp scheduledFor;
-    private Set<ParticipantDTO> participants;
-    private Timestamp deletedAt;
-    private Timestamp createdAt;
-    private Timestamp modifiedAt;
+    private Set<CreateParticipantDTO> participants;
 
     // room?
 
-    public BookingDTO(Booking bookingEntity) {
+    public CreateBookingDTO(Booking bookingEntity) {
         this.id = bookingEntity.getId();
-        this.caseDTO = new CaseDTO(bookingEntity.getCaseId());
+        this.caseId = bookingEntity.getCaseId().getId();
         this.scheduledFor = bookingEntity.getScheduledFor();
         this.participants = Stream.ofNullable(bookingEntity.getParticipants())
-            .flatMap(participants -> participants.stream().map(ParticipantDTO::new))
+            .flatMap(participants -> participants.stream().map(CreateParticipantDTO::new))
             .collect(Collectors.toSet());
-        this.deletedAt = bookingEntity.getDeletedAt();
-        this.createdAt = bookingEntity.getCreatedAt();
-        this.modifiedAt = bookingEntity.getModifiedAt();
     }
 }
