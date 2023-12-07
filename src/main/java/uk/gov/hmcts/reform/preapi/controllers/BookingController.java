@@ -28,6 +28,7 @@ public class BookingController extends PreApiController<BookingDTO> {
 
     @Autowired
     public BookingController(final CaseService caseService, final BookingService bookingService) {
+        super();
         this.caseService = caseService;
         this.bookingService = bookingService;
     }

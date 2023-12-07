@@ -26,6 +26,7 @@ public class CaseController extends PreApiController<CaseDTO> {
 
     @Autowired
     public CaseController(CaseService caseService) {
+        super();
         this.caseService = caseService;
     }
 

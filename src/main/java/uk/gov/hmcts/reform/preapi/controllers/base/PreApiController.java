@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.controllers.base;
 
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -8,7 +10,8 @@ import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.util.UUID;
 
-public abstract class PreApiController<T> {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class PreApiController<T> {
 
     protected ResponseEntity<T> getUpsertResponse(UpsertResult result, UUID id) {
         var location = ServletUriComponentsBuilder
