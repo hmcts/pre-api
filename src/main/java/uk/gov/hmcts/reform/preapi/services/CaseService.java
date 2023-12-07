@@ -4,7 +4,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
-import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -29,7 +30,10 @@ public class CaseService {
 
     @Transactional
     public CaseDTO findById(UUID id) {
-        return caseRepository.findById(id).map(CaseDTO::new).orElse(null);
+        return caseRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .map(CaseDTO::new)
+            .orElseThrow(() -> new NotFoundException("Case: " + id));
     }
 
     @Transactional
@@ -42,23 +46,21 @@ public class CaseService {
     }
 
     @Transactional
-    public void create(CaseDTO caseDTOModel) {
-        var court = courtRepository.findById(caseDTOModel.getCourtId());
+    public UpsertResult upsert(CaseDTO caseDTOModel) {
+        var isUpdate = caseRepository.existsByIdAndDeletedAtIsNull(caseDTOModel.getId());
+        var court = courtRepository.findById(caseDTOModel.getCourtId()).orElse(null);
 
-        if (court.isEmpty()) {
+        if (!isUpdate && court == null) {
             throw new NotFoundException("Court: " + caseDTOModel.getCourtId());
         }
 
-        if (caseRepository.findById(caseDTOModel.getId()).isPresent()) {
-            throw new ConflictException(caseDTOModel.getId().toString());
-        }
-
-        var newCase = new uk.gov.hmcts.reform.preapi.entities.Case();
+        var newCase = new Case();
         newCase.setId(caseDTOModel.getId());
-        newCase.setCourt(court.get());
+        newCase.setCourt(court);
         newCase.setReference(caseDTOModel.getReference());
         newCase.setTest(caseDTOModel.isTest());
         caseRepository.save(newCase);
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional
