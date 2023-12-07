@@ -6,10 +6,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
@@ -45,6 +51,32 @@ public class RecordingController {
     ) {
         // TODO Recordings returned need to be shared with the user
         return ResponseEntity.ok(recordingService.findAllByBookingId(bookingId));
+    }
+
+    @PutMapping("/{recordingId}")
+    public ResponseEntity<RecordingDTO> upsert(
+        @PathVariable UUID bookingId,
+        @PathVariable UUID recordingId,
+        @RequestBody RecordingDTO recordingDTO
+    ) {
+        if (!recordingId.equals(recordingDTO.getId())) {
+            throw new PathPayloadMismatchException("recordingId", "recordingDto.id");
+        }
+
+        var result = recordingService.upsert(bookingId, recordingDTO);
+        var location = ServletUriComponentsBuilder
+            .fromCurrentRequest()
+            .path("")
+            .buildAndExpand(recordingDTO.getId())
+            .toUri();
+
+        if (result == UpsertResult.CREATED) {
+            return ResponseEntity.created(location).build();
+        } else if (result == UpsertResult.UPDATED) {
+            return ResponseEntity.noContent().location(location).build();
+        }
+
+        throw new UnknownServerException("Unexpected result: " + result);
     }
 
     @DeleteMapping("/{recordingId}")
