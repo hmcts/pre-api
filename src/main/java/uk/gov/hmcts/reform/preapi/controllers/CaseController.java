@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
@@ -20,7 +21,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/cases")
-public class CaseController extends PreApiController<CaseDTO> {
+public class CaseController extends PreApiController {
 
     private final CaseService caseService;
 
@@ -44,12 +45,12 @@ public class CaseController extends PreApiController<CaseDTO> {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CaseDTO> upsertCase(@PathVariable UUID id, @RequestBody CaseDTO caseDTO) {
-        if (!id.toString().equals(caseDTO.getId().toString())) {
-            throw new PathPayloadMismatchException("id", "caseDTO.id");
+    public ResponseEntity<Void> upsertCase(@PathVariable UUID id, @RequestBody CreateCaseDTO createCaseDTO) {
+        if (!id.toString().equals(createCaseDTO.getId().toString())) {
+            throw new PathPayloadMismatchException("id", "createCaseDTO.id");
         }
 
-        return getUpsertResponse(caseService.upsert(caseDTO), caseDTO.getId());
+        return getUpsertResponse(caseService.upsert(createCaseDTO), createCaseDTO.getId());
     }
 
     @DeleteMapping("/{id}")

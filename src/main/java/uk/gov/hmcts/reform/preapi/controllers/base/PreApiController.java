@@ -11,9 +11,9 @@ import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PreApiController<T> {
+public class PreApiController {
 
-    protected ResponseEntity<T> getUpsertResponse(UpsertResult result, UUID id) {
+    protected ResponseEntity<Void> getUpsertResponse(UpsertResult result, UUID id) {
         var location = ServletUriComponentsBuilder
             .fromCurrentRequest()
             .path("")

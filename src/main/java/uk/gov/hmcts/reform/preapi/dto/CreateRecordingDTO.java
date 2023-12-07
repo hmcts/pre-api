@@ -8,25 +8,22 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Time;
-import java.sql.Timestamp;
 import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class RecordingDTO {
+public class CreateRecordingDTO {
     UUID id;
     UUID captureSessionId;
     UUID parentRecordingId;
     Integer version;
-    String url;
+    String url; // is this not needed now as it's different for every user?
     String filename;
-    Timestamp createdAt;
     Time duration;
     String editInstructions;
-    Timestamp deletedAt;
 
-    public RecordingDTO(Recording recording) {
+    public CreateRecordingDTO(Recording recording) {
         id = recording.getId();
         captureSessionId = recording.getCaptureSession().getId();
         parentRecordingId = recording.getParentRecording() != null
@@ -35,9 +32,7 @@ public class RecordingDTO {
         version = recording.getVersion();
         url = recording.getUrl();
         filename = recording.getFilename();
-        createdAt = recording.getCreatedAt();
         duration = recording.getDuration();
         editInstructions = recording.getEditInstruction();
-        deletedAt = recording.getDeletedAt();
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CaseController;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -103,7 +104,7 @@ class CaseControllerTest {
     @Test
     void testCreateCase() throws Exception {
         UUID caseId = UUID.randomUUID();
-        CaseDTO caseDTO = new CaseDTO();
+        var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
@@ -124,7 +125,7 @@ class CaseControllerTest {
     @Test
     void testUpdateCase() throws Exception {
         UUID caseId = UUID.randomUUID();
-        CaseDTO caseDTO = new CaseDTO();
+        var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.UPDATED);
@@ -155,7 +156,7 @@ class CaseControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
-                           .value("Path id does not match payload property caseDTO.id"));
+                           .value("Path id does not match payload property createCaseDTO.id"));
     }
 
     @DisplayName("Should return 400 when creating case with court that does not exist")
@@ -163,7 +164,7 @@ class CaseControllerTest {
     void testCreateCaseCourtNotFound() throws Exception {
         UUID caseId = UUID.randomUUID();
         UUID courtId = UUID.randomUUID();
-        CaseDTO newCaseRequestDTO = new CaseDTO();
+        var newCaseRequestDTO = new CreateCaseDTO();
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
 
