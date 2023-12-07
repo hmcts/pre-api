@@ -46,8 +46,8 @@ public class BookingController extends PreApiController {
 
     @PutMapping("/{bookingId}")
     public ResponseEntity<Void> upsert(@PathVariable UUID caseId,
-                                                   @PathVariable UUID bookingId,
-                                                   @RequestBody CreateBookingDTO createBookingDTO) {
+                                       @PathVariable UUID bookingId,
+                                       @RequestBody CreateBookingDTO createBookingDTO) {
         this.validateRequestWithBody(caseId, bookingId, createBookingDTO);
 
         return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
@@ -55,7 +55,7 @@ public class BookingController extends PreApiController {
 
     @DeleteMapping("/{bookingId}")
     public ResponseEntity<Void> delete(@PathVariable UUID caseId,
-                                          @PathVariable UUID bookingId) {
+                                       @PathVariable UUID bookingId) {
         validateRequest(caseId);
         bookingService.markAsDeleted(bookingId);
         return noContent().build();
