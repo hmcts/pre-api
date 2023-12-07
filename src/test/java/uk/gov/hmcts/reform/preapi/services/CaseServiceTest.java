@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -76,7 +77,7 @@ class CaseServiceTest {
 
         var model = caseService.findById(caseEntity.getId());
         assertThat(model.getId()).isEqualTo(caseEntity.getId());
-        assertThat(model.getCourtId()).isEqualTo(caseEntity.getCourt().getId());
+        assertThat(model.getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
     @DisplayName("Find a case by it's id which does not exist")
@@ -105,7 +106,7 @@ class CaseServiceTest {
         List<CaseDTO> models = caseService.searchBy(null, null);
         assertThat(models.size()).isEqualTo(1);
         assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
-        assertThat(models.get(0).getCourtId()).isEqualTo(caseEntity.getCourt().getId());
+        assertThat(models.get(0).getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
     @DisplayName("Find all cases and return list of models where reference is in list")
@@ -116,7 +117,7 @@ class CaseServiceTest {
         List<CaseDTO> models = caseService.searchBy("234", null);
         assertThat(models.size()).isEqualTo(1);
         assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
-        assertThat(models.get(0).getCourtId()).isEqualTo(caseEntity.getCourt().getId());
+        assertThat(models.get(0).getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
     @DisplayName("Find all cases and return list of models where reference is not the in list")
@@ -136,7 +137,7 @@ class CaseServiceTest {
         List<CaseDTO> models = caseService.searchBy(null, caseEntity.getCourt().getId());
         assertThat(models.size()).isEqualTo(1);
         assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
-        assertThat(models.get(0).getCourtId()).isEqualTo(caseEntity.getCourt().getId());
+        assertThat(models.get(0).getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
     @DisplayName("Find all cases and return list of models where case with court is in list")
@@ -152,7 +153,7 @@ class CaseServiceTest {
     @Test
     void createSuccess() {
         Case testingCase = createTestingCase();
-        CaseDTO caseDTOModel = new CaseDTO(testingCase);
+        var caseDTOModel = new CreateCaseDTO(testingCase);
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
             Optional.of(testingCase.getCourt()));
@@ -168,7 +169,7 @@ class CaseServiceTest {
     @Test
     void updateSuccess() {
         Case testingCase = createTestingCase();
-        CaseDTO caseDTOModel = new CaseDTO(testingCase);
+        var caseDTOModel = new CreateCaseDTO(testingCase);
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
             Optional.of(testingCase.getCourt()));
@@ -184,7 +185,7 @@ class CaseServiceTest {
     @Test
     void createCourtNotFound() {
         Case testingCase = createTestingCase();
-        CaseDTO caseDTOModel = new CaseDTO(testingCase);
+        var caseDTOModel = new CreateCaseDTO(testingCase);
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(Optional.empty());
 
@@ -199,7 +200,7 @@ class CaseServiceTest {
     @Test
     void createDataIntegrityViolationException() {
         Case testingCase = createTestingCase();
-        CaseDTO caseDTOModel = new CaseDTO(testingCase);
+        var caseDTOModel = new CreateCaseDTO(testingCase);
 
         when(courtRepository.findById(caseDTOModel.getCourtId())).thenReturn(Optional.of(testingCase.getCourt()));
         when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());

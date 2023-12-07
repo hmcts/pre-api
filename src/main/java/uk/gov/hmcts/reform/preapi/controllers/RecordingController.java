@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
@@ -21,7 +21,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/bookings/{bookingId}/recordings")
-public class RecordingController extends PreApiController<RecordingDTO> {
+public class RecordingController extends PreApiController {
 
     private final RecordingService recordingService;
 
@@ -32,20 +32,20 @@ public class RecordingController extends PreApiController<RecordingDTO> {
     }
 
     @GetMapping("/{recordingId}")
-    public ResponseEntity<RecordingDTO> getRecordingById(
+    public ResponseEntity<CreateRecordingDTO> getRecordingById(
         @PathVariable UUID bookingId,
         @PathVariable UUID recordingId
     ) {
         // TODO Recordings returned need to be shared with the current user
-        RecordingDTO recordingDTO = recordingService.findById(bookingId, recordingId);
-        if (recordingDTO == null) {
+        CreateRecordingDTO createRecordingDTO = recordingService.findById(bookingId, recordingId);
+        if (createRecordingDTO == null) {
             throw new NotFoundException("RecordingDTO: " + recordingId);
         }
-        return ResponseEntity.ok(recordingDTO);
+        return ResponseEntity.ok(createRecordingDTO);
     }
 
     @GetMapping
-    public ResponseEntity<List<RecordingDTO>> getAllRecordingsByBookingId(
+    public ResponseEntity<List<CreateRecordingDTO>> getAllRecordingsByBookingId(
         @PathVariable UUID bookingId
     ) {
         // TODO Recordings returned need to be shared with the user
@@ -53,17 +53,17 @@ public class RecordingController extends PreApiController<RecordingDTO> {
     }
 
     @PutMapping("/{recordingId}")
-    public ResponseEntity<RecordingDTO> upsert(
+    public ResponseEntity<Void> upsert(
         @PathVariable UUID bookingId,
         @PathVariable UUID recordingId,
-        @RequestBody RecordingDTO recordingDTO
+        @RequestBody CreateRecordingDTO createRecordingDTO
     ) {
         // TODO Check user has access to booking and capture session (and recording if is update)
-        if (!recordingId.equals(recordingDTO.getId())) {
+        if (!recordingId.equals(createRecordingDTO.getId())) {
             throw new PathPayloadMismatchException("recordingId", "recordingDto.id");
         }
 
-        return getUpsertResponse(recordingService.upsert(bookingId, recordingDTO), recordingDTO.getId());
+        return getUpsertResponse(recordingService.upsert(bookingId, createRecordingDTO), createRecordingDTO.getId());
     }
 
     @DeleteMapping("/{recordingId}")

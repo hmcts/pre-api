@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CaseController;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
@@ -103,7 +104,7 @@ class CaseControllerTest {
     @Test
     void testCreateCase() throws Exception {
         UUID caseId = UUID.randomUUID();
-        CaseDTO caseDTO = new CaseDTO();
+        var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
@@ -124,7 +125,7 @@ class CaseControllerTest {
     @Test
     void testUpdateCase() throws Exception {
         UUID caseId = UUID.randomUUID();
-        CaseDTO caseDTO = new CaseDTO();
+        var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.UPDATED);
@@ -163,7 +164,7 @@ class CaseControllerTest {
     void testCreateCaseCourtNotFound() throws Exception {
         UUID caseId = UUID.randomUUID();
         UUID courtId = UUID.randomUUID();
-        CaseDTO newCaseRequestDTO = new CaseDTO();
+        var newCaseRequestDTO = new CreateCaseDTO();
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
 
