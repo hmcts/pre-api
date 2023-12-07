@@ -47,12 +47,15 @@ public class RecordingService {
     }
 
     @Transactional
-    public List<RecordingDTO> findAllByBookingId(UUID bookingId) {
+    public List<RecordingDTO> findAllByBookingId(UUID bookingId, UUID captureSessionId, UUID parentRecordingId) {
         checkBookingValid(bookingId);
 
         return recordingRepository
-            .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingId)
-            .stream()
+            .searchAllBy(
+                bookingId,
+                captureSessionId,
+                parentRecordingId
+            ).stream()
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
