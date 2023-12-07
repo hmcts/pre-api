@@ -26,7 +26,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -100,7 +99,7 @@ class RecordingControllerTest {
         RecordingDTO mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         List<RecordingDTO> recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAllByBookingId(bookingId)).thenReturn(recordingDTOList);
+        when(recordingService.findAllByBookingId(bookingId, null, null)).thenReturn(recordingDTOList);
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isOk())
@@ -113,7 +112,9 @@ class RecordingControllerTest {
     @Test
     void testGetRecordingsBookingNotFound() throws Exception {
         UUID bookingId = UUID.randomUUID();
-        doThrow(new NotFoundException("BookingDTO: " + bookingId)).when(recordingService).findAllByBookingId(any());
+        doThrow(new NotFoundException("BookingDTO: " + bookingId))
+            .when(recordingService)
+            .findAllByBookingId(any(), any(), any());
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isNotFound())
