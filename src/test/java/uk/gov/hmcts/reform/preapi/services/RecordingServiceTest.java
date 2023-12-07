@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
@@ -161,7 +161,7 @@ class RecordingServiceTest {
     void createRecordingSuccess() {
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
-        var recordingModel = new RecordingDTO();
+        var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setCaptureSessionId(captureSession.getId());
         recordingModel.setVersion(1);
@@ -188,7 +188,7 @@ class RecordingServiceTest {
     @DisplayName("Update a recording")
     @Test
     void updateRecordingSuccess() {
-        var recordingModel = new RecordingDTO();
+        var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setVersion(2);
         var recordingEntity = new Recording();
@@ -209,7 +209,7 @@ class RecordingServiceTest {
     @DisplayName("Fail to create recording - Booking not found")
     @Test
     void createRecordingFailBookingNotFound() {
-        var recordingModel = new RecordingDTO();
+        var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setVersion(1);
 
@@ -225,7 +225,7 @@ class RecordingServiceTest {
     @DisplayName("Fail to create recording - CaptureSession not found")
     @Test
     void createRecordingFailCaptureSessionNotFound() {
-        var recordingModel = new RecordingDTO();
+        var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setVersion(1);
         recordingModel.setCaptureSessionId(UUID.randomUUID());
@@ -251,7 +251,7 @@ class RecordingServiceTest {
     @DisplayName("Fail to create recording - Parent Recording not found")
     @Test
     void createRecordingFailParentRecordingNotFound() {
-        var recordingModel = new RecordingDTO();
+        var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setVersion(1);
         recordingModel.setParentRecordingId(UUID.randomUUID());
