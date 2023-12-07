@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,24 +8,20 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
-import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.UUID;
 
-import static org.springframework.http.ResponseEntity.created;
 import static org.springframework.http.ResponseEntity.ok;
-import static org.springframework.http.ResponseEntity.status;
 
 @RestController
 @RequestMapping(path = "/cases/{caseId}/bookings")
-public class BookingController {
+public class BookingController extends PreApiController<BookingDTO> {
 
     private final CaseService caseService;
     private final BookingService bookingService;
@@ -51,19 +46,7 @@ public class BookingController {
                                              @RequestBody BookingDTO bookingDTO) {
         this.validateRequestWithBody(caseId, bookingId, bookingDTO);
 
-        var result = bookingService.upsert(bookingDTO);
-        var location = ServletUriComponentsBuilder
-            .fromCurrentRequest()
-            .path("")
-            .buildAndExpand(bookingDTO.getId())
-            .toUri();
-
-        if (result == UpsertResult.CREATED) {
-            return created(location).build();
-        } else if (result == UpsertResult.UPDATED) {
-            return status(HttpStatus.NO_CONTENT).location(location).build();
-        }
-        throw new UnknownServerException("Unexpected result: " + result);
+        return getUpsertResponse(bookingService.upsert(bookingDTO), bookingDTO.getId());
     }
 
     private void validateRequest(UUID caseId) {
