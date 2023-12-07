@@ -11,7 +11,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
-import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -73,20 +72,29 @@ class CaseServiceTest {
     @DisplayName("Find a case by it's id and return a model")
     @Test
     void findCaseByIdSuccess() {
-        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.ofNullable(caseEntity));
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseEntity.getId())).thenReturn(Optional.ofNullable(caseEntity));
 
         var model = caseService.findById(caseEntity.getId());
         assertThat(model.getId()).isEqualTo(caseEntity.getId());
         assertThat(model.getCourtId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
-    @DisplayName("Find a case by it's id which is missing")
+    @DisplayName("Find a case by it's id which does not exist")
     @Test
-    void findCaseByIdMissing() {
-        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.ofNullable(null));
+    void findCaseByIdNotFound() {
+        var randomId = UUID.randomUUID();
+        when(caseRepository.findByIdAndDeletedAtIsNull(randomId)).thenReturn(Optional.empty());
 
-        var model = caseService.findById(caseEntity.getId());
-        assertThat(model).isNull();
+        assertThrows(NotFoundException.class, () -> caseService.findById(randomId));
+    }
+
+    @DisplayName("Find a case by it's id which does not exist since it has been deleted")
+    @Test
+    void findCaseByIdNotFoundDeleted() {
+        caseEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseEntity.getId())).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> caseService.findById(caseEntity.getId()));
     }
 
     @DisplayName("Find all cases and return a list of models")
@@ -147,13 +155,29 @@ class CaseServiceTest {
         CaseDTO caseDTOModel = new CaseDTO(testingCase);
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
-            Optional.ofNullable(testingCase.getCourt()));
-        when(caseRepository.findById(testingCase.getId())).thenReturn(Optional.empty());
+            Optional.of(testingCase.getCourt()));
+        when(caseRepository.existsByIdAndDeletedAtIsNull(testingCase.getId())).thenReturn(false);
 
-        caseService.create(caseDTOModel);
+        caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
-        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, times(1)).existsByIdAndDeletedAtIsNull(caseDTOModel.getId());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
+    void updateSuccess() {
+        Case testingCase = createTestingCase();
+        CaseDTO caseDTOModel = new CaseDTO(testingCase);
+
+        when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
+            Optional.of(testingCase.getCourt()));
+        when(caseRepository.existsByIdAndDeletedAtIsNull(testingCase.getId())).thenReturn(true);
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).existsByIdAndDeletedAtIsNull(caseDTOModel.getId());
         verify(caseRepository, times(1)).save(any());
     }
 
@@ -164,28 +188,11 @@ class CaseServiceTest {
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> caseService.create(caseDTOModel));
+        assertThrows(NotFoundException.class, () -> caseService.upsert(caseDTOModel));
 
         // Verify that repository methods are not called
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, never()).findById(any());
-        verify(caseRepository, never()).save(any());
-    }
-
-    @Test
-    void createDuplicateCaseId() {
-        Case testingCase = createTestingCase();
-        CaseDTO caseDTOModel = new CaseDTO(testingCase);
-        when(
-            courtRepository.findById(caseDTOModel.getCourtId())).thenReturn(Optional.ofNullable(testingCase.getCourt())
-        );
-        when(caseRepository.findById(caseDTOModel.getId()))
-            .thenReturn(Optional.of(testingCase));
-
-        assertThrows(ConflictException.class, () -> caseService.create(caseDTOModel));
-
-        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
-        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseRepository, never()).save(any());
     }
 
@@ -199,10 +206,10 @@ class CaseServiceTest {
 
         doThrow(DataIntegrityViolationException.class).when(caseRepository).save(any());
 
-        assertThrows(DataIntegrityViolationException.class, () -> caseService.create(caseDTOModel));
+        assertThrows(DataIntegrityViolationException.class, () -> caseService.upsert(caseDTOModel));
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
-        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, times(1)).existsByIdAndDeletedAtIsNull(caseDTOModel.getId());
         verify(caseRepository, times(1)).save(any());
     }
 

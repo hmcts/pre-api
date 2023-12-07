@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -27,4 +28,8 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
         @Param("reference") String reference,
         @Param("courtId") UUID courtId
     );
+
+    Optional<Case> findByIdAndDeletedAtIsNull(UUID id);
+
+    boolean existsByIdAndDeletedAtIsNull(UUID id);
 }
