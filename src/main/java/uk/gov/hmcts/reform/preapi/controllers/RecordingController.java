@@ -39,7 +39,7 @@ public class RecordingController extends PreApiController {
         // TODO Recordings returned need to be shared with the current user
         CreateRecordingDTO createRecordingDTO = recordingService.findById(bookingId, recordingId);
         if (createRecordingDTO == null) {
-            throw new NotFoundException("RecordingDTO: " + recordingId);
+            throw new NotFoundException("CreateRecordingDTO: " + recordingId);
         }
         return ResponseEntity.ok(createRecordingDTO);
     }
@@ -60,7 +60,7 @@ public class RecordingController extends PreApiController {
     ) {
         // TODO Check user has access to booking and capture session (and recording if is update)
         if (!recordingId.equals(createRecordingDTO.getId())) {
-            throw new PathPayloadMismatchException("recordingId", "recordingDto.id");
+            throw new PathPayloadMismatchException("recordingId", "createRecordingDTO.id");
         }
 
         return getUpsertResponse(recordingService.upsert(bookingId, createRecordingDTO), createRecordingDTO.getId());

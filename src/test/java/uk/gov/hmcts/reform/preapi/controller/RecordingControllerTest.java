@@ -98,8 +98,8 @@ class RecordingControllerTest {
         UUID recordingId = UUID.randomUUID();
         CreateRecordingDTO mockCreateRecordingDTO = new CreateRecordingDTO();
         mockCreateRecordingDTO.setId(recordingId);
-        List<CreateRecordingDTO> CreateRecordingDTOList = List.of(mockCreateRecordingDTO);
-        when(recordingService.findAllByBookingId(bookingId)).thenReturn(CreateRecordingDTOList);
+        List<CreateRecordingDTO> createRecordingDTOList = List.of(mockCreateRecordingDTO);
+        when(recordingService.findAllByBookingId(bookingId)).thenReturn(createRecordingDTOList);
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isOk())
@@ -183,7 +183,7 @@ class RecordingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Path recordingId does not match payload property CreateRecordingDTO.id\"}");
+            .isEqualTo("{\"message\":\"Path recordingId does not match payload property createRecordingDTO.id\"}");
     }
 
     @DisplayName("Should fail to create/update a recording with 404 response code when booking does not exist")
