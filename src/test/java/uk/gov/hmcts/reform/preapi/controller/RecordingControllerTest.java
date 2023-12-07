@@ -12,7 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.RecordingController;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
@@ -53,9 +53,9 @@ class RecordingControllerTest {
     void testGetRecordingByIdSuccess() throws Exception {
         UUID recordingId = UUID.randomUUID();
         UUID bookingId = UUID.randomUUID();
-        RecordingDTO mockRecordingDTO = new RecordingDTO();
-        mockRecordingDTO.setId(recordingId);
-        when(recordingService.findById(bookingId, recordingId)).thenReturn(mockRecordingDTO);
+        var mockCreateRecordingDTO = new CreateRecordingDTO();
+        mockCreateRecordingDTO.setId(recordingId);
+        when(recordingService.findById(bookingId, recordingId)).thenReturn(mockCreateRecordingDTO);
 
         mockMvc.perform(get(getPath(bookingId, recordingId)))
             .andExpect(status().isOk())
@@ -72,7 +72,7 @@ class RecordingControllerTest {
 
         mockMvc.perform(get(getPath(bookingId, recordingId)))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: RecordingDTO: " + recordingId));
+            .andExpect(jsonPath("$.message").value("Not found: CreateRecordingDTO: " + recordingId));
     }
 
     @DisplayName("Should return 404 when trying to get a non-existing booking")
@@ -96,10 +96,10 @@ class RecordingControllerTest {
     void testGetRecordingByBookingIdSuccess() throws Exception {
         UUID bookingId = UUID.randomUUID();
         UUID recordingId = UUID.randomUUID();
-        RecordingDTO mockRecordingDTO = new RecordingDTO();
-        mockRecordingDTO.setId(recordingId);
-        List<RecordingDTO> recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAllByBookingId(bookingId, null, null)).thenReturn(recordingDTOList);
+        CreateRecordingDTO mockCreateRecordingDTO = new CreateRecordingDTO();
+        mockCreateRecordingDTO.setId(recordingId);
+        List<CreateRecordingDTO> createRecordingDTOList = List.of(mockCreateRecordingDTO);
+        when(recordingService.findAllByBookingId(bookingId, null, null)).thenReturn(createRecordingDTOList);
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isOk())
@@ -126,7 +126,7 @@ class RecordingControllerTest {
     void createRecordingCreated() throws Exception {
         var bookingId = UUID.randomUUID();
         var recordingId = UUID.randomUUID();
-        var recording = new RecordingDTO();
+        var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
 
         when(recordingService.upsert(bookingId, recording)).thenReturn(UpsertResult.CREATED);
@@ -150,7 +150,7 @@ class RecordingControllerTest {
     void updateRecordingUpdate() throws Exception {
         var bookingId = UUID.randomUUID();
         var recordingId = UUID.randomUUID();
-        var recording = new RecordingDTO();
+        var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
 
         when(recordingService.upsert(bookingId, recording)).thenReturn(UpsertResult.UPDATED);
@@ -173,7 +173,7 @@ class RecordingControllerTest {
     @Test
     void createRecordingIdMismatch() throws Exception {
         var bookingId = UUID.randomUUID();
-        var recording = new RecordingDTO();
+        var recording = new CreateRecordingDTO();
         recording.setId(UUID.randomUUID());
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId, UUID.randomUUID()))
@@ -185,7 +185,7 @@ class RecordingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Path recordingId does not match payload property recordingDto.id\"}");
+            .isEqualTo("{\"message\":\"Path recordingId does not match payload property createRecordingDTO.id\"}");
     }
 
     @DisplayName("Should fail to create/update a recording with 404 response code when booking does not exist")
@@ -193,7 +193,7 @@ class RecordingControllerTest {
     void createRecordingBookingNotFound() throws Exception {
         var bookingId = UUID.randomUUID();
         var recordingId = UUID.randomUUID();
-        var recording = new RecordingDTO();
+        var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
 
         doThrow(new NotFoundException("Booking: " + bookingId)).when(recordingService).upsert(any(), any());
@@ -215,7 +215,7 @@ class RecordingControllerTest {
     void createRecordingCaptureSessionNotFound() throws Exception {
         var recordingId = UUID.randomUUID();
         var captureSessionId = UUID.randomUUID();
-        var recording = new RecordingDTO();
+        var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
         recording.setCaptureSessionId(captureSessionId);
         var bookingId = UUID.randomUUID();
@@ -241,7 +241,7 @@ class RecordingControllerTest {
     void createRecordingParentRecordingNotFound() throws Exception {
         var recordingId = UUID.randomUUID();
         var parentRecordingId = UUID.randomUUID();
-        var recording = new RecordingDTO();
+        var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
         recording.setParentRecordingId(parentRecordingId);
         var bookingId = UUID.randomUUID();

@@ -82,8 +82,8 @@ class CaptureSessionTest {
             "Finished at should match"
         );
         assertEquals(
-            captureSession.getFinishedByUserId(),
-            retrievedCaptureSession.getFinishedByUserId(),
+            captureSession.getFinishedByUser(),
+            retrievedCaptureSession.getFinishedByUser(),
             "Finished by user should match"
         );
         assertEquals(captureSession.getStatus(), retrievedCaptureSession.getStatus(), "Status should match");

@@ -10,7 +10,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("PMD.LawOfDemeter")
-class ParticipantDTOTest {
+class CreateParticipantDTOTest {
 
     private static uk.gov.hmcts.reform.preapi.entities.Participant participantEntity;
 
@@ -28,7 +28,7 @@ class ParticipantDTOTest {
     @DisplayName("Should create a participant from entity")
     @Test
     void createParticipantFromEntity() {
-        var model = new ParticipantDTO(participantEntity);
+        var model = new CreateParticipantDTO(participantEntity);
 
         assertThat(model.getId()).isEqualTo(participantEntity.getId());
         assertThat(model.getFirstName()).isEqualTo(participantEntity.getFirstName());

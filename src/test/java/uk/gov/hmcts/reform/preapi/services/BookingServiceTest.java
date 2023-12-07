@@ -6,7 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -36,6 +37,8 @@ class BookingServiceTest {
         bookingEntity.setId(bookingId);
         var caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
         caseEntity.setId(UUID.randomUUID());
+        var courtEntity = new uk.gov.hmcts.reform.preapi.entities.Court();
+        caseEntity.setCourt(courtEntity);
         bookingEntity.setCaseId(caseEntity);
         var bookingModel = new BookingDTO(bookingEntity);
 
@@ -48,10 +51,10 @@ class BookingServiceTest {
     @Test
     void upsertBookingSuccessCreated() {
 
-        var bookingModel = new BookingDTO();
+        var bookingModel = new CreateBookingDTO();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
-        var participantModel = new ParticipantDTO();
+        var participantModel = new CreateParticipantDTO();
         participantModel.setId(UUID.randomUUID());
         participantModel.setParticipantType(ParticipantType.WITNESS);
         participantModel.setFirstName("John");
@@ -70,7 +73,7 @@ class BookingServiceTest {
     @Test
     void upsertBookingSuccessUpdated() {
 
-        var bookingModel = new BookingDTO();
+        var bookingModel = new CreateBookingDTO();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
         bookingModel.setParticipants(Set.of());

@@ -6,29 +6,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 
-import java.sql.Timestamp;
 import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @SuppressWarnings("PMD.ShortClassName")
-public class CaseDTO {
+public class CreateCaseDTO {
     private UUID id;
-    private CourtDTO court;
+    private UUID courtId;
     private String reference;
     private boolean test;
-    private Timestamp deletedAt;
-    private Timestamp createdAt;
-    private Timestamp modifiedAt;
 
-    public CaseDTO(Case caseEntity) {
+    public CreateCaseDTO(Case caseEntity) {
         this.id = caseEntity.getId();
-        this.court = new CourtDTO(caseEntity.getCourt());
+        this.courtId = caseEntity.getCourt().getId();
         this.reference = caseEntity.getReference();
         this.test = caseEntity.isTest();
-        this.deletedAt = caseEntity.getDeletedAt();
-        this.createdAt = caseEntity.getCreatedAt();
-        this.modifiedAt = caseEntity.getModifiedAt();
     }
 }

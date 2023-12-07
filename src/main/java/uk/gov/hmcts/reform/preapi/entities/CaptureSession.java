@@ -51,7 +51,7 @@ public class CaptureSession extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "finished_by_user_id", referencedColumnName = "id")
-    private User finishedByUserId;
+    private User finishedByUser;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", columnDefinition = "recording_status")

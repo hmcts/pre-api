@@ -112,7 +112,7 @@ final class HelperFactory {
         captureSession.setStartedAt(startedAt);
         captureSession.setStartedByUser(startedBy);
         captureSession.setFinishedAt(finishedAt);
-        captureSession.setFinishedByUserId(finishedBy);
+        captureSession.setFinishedByUser(finishedBy);
         captureSession.setStatus(status);
         captureSession.setDeletedAt(deletedAt);
         return captureSession;

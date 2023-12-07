@@ -13,7 +13,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("PMD.LawOfDemeter")
-class RecordingDTOTest {
+class CreateRecordingDTOTest {
     private static uk.gov.hmcts.reform.preapi.entities.Recording recordingEntity;
 
     @BeforeAll
@@ -35,7 +35,7 @@ class RecordingDTOTest {
         var parentRecording = new uk.gov.hmcts.reform.preapi.entities.Recording();
         parentRecording.setId(UUID.randomUUID());
         recordingEntity.setParentRecording(parentRecording);
-        var model = new RecordingDTO(recordingEntity);
+        var model = new CreateRecordingDTO(recordingEntity);
 
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
         assertThat(model.getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -46,7 +46,7 @@ class RecordingDTOTest {
     @Test
     void createCaseFromEntityParentRecordingNull() {
         recordingEntity.setParentRecording(null);
-        var model = new RecordingDTO(recordingEntity);
+        var model = new CreateRecordingDTO(recordingEntity);
 
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
         assertThat(model.getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
