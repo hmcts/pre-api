@@ -10,6 +10,7 @@ plugins {
   id 'org.sonarqube' version '4.4.1.3373'
   id "io.freefair.lombok" version "8.4"
   id 'org.flywaydb.flyway' version '9.22.3' // issues with 10.0.x https://github.com/spring-projects/spring-boot/issues/38164
+  id "info.solidsoft.pitest" version '1.15.0'
 }
 
 group = 'uk.gov.hmcts.reform'
@@ -135,6 +136,28 @@ flyway {
   baselineVersion = '000'
 }
 
+pitest {
+    targetClasses = ['uk.gov.hmcts.reform.preapi.*']
+    excludedClasses = [
+            'uk.gov.hmcts.reform.preapi.Application.java'
+    ]
+
+    enableDefaultIncrementalAnalysis = true
+    historyInputLocation = 'build/reports/pitest/fastermutationtesting'
+    historyOutputLocation ='build/reports/pitest/fastermutationtestingoutput'
+    threads = 15
+    testSourceSets = [sourceSets.test]
+    mainSourceSets = [sourceSets.main]
+    fileExtensionsToFilter.addAll('xml','json')
+    outputFormats = ['XML', 'HTML','CSV']
+    mutationThreshold = 5
+    coverageThreshold = 0
+    jvmArgs = ['-Xms1G','-Xmx3G']
+    timestampedReports = false
+    failWhenNoMutations = false
+    detectInlinedCode = true
+}
+
 task migratePostgresDatabase(type: org.flywaydb.gradle.task.FlywayMigrateTask) {
   baselineOnMigrate = true
   if (project.hasProperty("dburl")) {
@@ -238,6 +261,7 @@ dependencies {
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '9.22.3'
   implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.1'
   implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-62', version: '3.6.1'
+  implementation group: 'org.pitest', name: 'pitest-junit5-plugin', version: '1.2.1'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
