@@ -4,9 +4,9 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -34,7 +34,7 @@ public class RecordingService {
     }
 
     @Transactional
-    public RecordingDTO findById(UUID bookingId, UUID recordingId) {
+    public CreateRecordingDTO findById(UUID bookingId, UUID recordingId) {
         checkBookingValid(bookingId);
 
         return recordingRepository
@@ -42,53 +42,53 @@ public class RecordingService {
                 recordingId,
                 bookingId
             )
-            .map(RecordingDTO::new)
+            .map(CreateRecordingDTO::new)
             .orElse(null);
     }
 
     @Transactional
-    public List<RecordingDTO> findAllByBookingId(UUID bookingId) {
+    public List<CreateRecordingDTO> findAllByBookingId(UUID bookingId) {
         checkBookingValid(bookingId);
 
         return recordingRepository
             .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingId)
             .stream()
-            .map(RecordingDTO::new)
+            .map(CreateRecordingDTO::new)
             .collect(Collectors.toList());
     }
 
     @Transactional
     @SuppressWarnings("PMD.CyclomaticComplexity")
-    public UpsertResult upsert(UUID bookingId, RecordingDTO recordingDto) {
+    public UpsertResult upsert(UUID bookingId, CreateRecordingDTO createRecordingDTO) {
         checkBookingValid(bookingId);
 
-        var isUpdate = recordingRepository.existsByIdAndDeletedAtIsNull(recordingDto.getId());
+        var isUpdate = recordingRepository.existsByIdAndDeletedAtIsNull(createRecordingDTO.getId());
 
         var captureSession = captureSessionRepository.findByIdAndBooking_IdAndDeletedAtIsNull(
-            recordingDto.getCaptureSessionId(),
+            createRecordingDTO.getCaptureSessionId(),
             bookingId
         );
 
         if (!isUpdate && captureSession.isEmpty()) {
-            throw new NotFoundException("CaptureSession: " + recordingDto.getCaptureSessionId());
+            throw new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId());
         }
 
         var recordingEntity = new Recording();
-        recordingEntity.setId(recordingDto.getId());
-        if (recordingDto.getParentRecordingId() != null) {
-            var parentRecording = recordingRepository.findById(recordingDto.getParentRecordingId());
+        recordingEntity.setId(createRecordingDTO.getId());
+        if (createRecordingDTO.getParentRecordingId() != null) {
+            var parentRecording = recordingRepository.findById(createRecordingDTO.getParentRecordingId());
             if (parentRecording.isEmpty()) {
-                throw new NotFoundException("Recording: " + recordingDto.getParentRecordingId());
+                throw new NotFoundException("Recording: " + createRecordingDTO.getParentRecordingId());
             }
             recordingEntity.setParentRecording(parentRecording.get());
         } else {
             recordingEntity.setParentRecording(null);
         }
-        recordingEntity.setVersion(recordingDto.getVersion());
-        recordingEntity.setUrl(recordingDto.getUrl());
-        recordingEntity.setFilename(recordingDto.getFilename());
-        recordingEntity.setDuration(recordingDto.getDuration());
-        recordingEntity.setEditInstruction(recordingDto.getEditInstructions());
+        recordingEntity.setVersion(createRecordingDTO.getVersion());
+        recordingEntity.setUrl(createRecordingDTO.getUrl());
+        recordingEntity.setFilename(createRecordingDTO.getFilename());
+        recordingEntity.setDuration(createRecordingDTO.getDuration());
+        recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());
 
         recordingRepository.save(recordingEntity);
 

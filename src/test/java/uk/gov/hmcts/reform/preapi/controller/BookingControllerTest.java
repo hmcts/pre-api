@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
@@ -47,18 +48,17 @@ class BookingControllerTest {
     @Test
     void getBookingEndpointOk() throws Exception {
 
-        var caseId = UUID.randomUUID();
+        var caseDTO = new CaseDTO();
+        caseDTO.setId(UUID.randomUUID());
         var bookingId = UUID.randomUUID();
         var booking = new BookingDTO();
         booking.setId(bookingId);
-        booking.setCaseId(caseId);
+        booking.setCaseDTO(caseDTO);
 
-        CaseDTO mockCaseDTO = new CaseDTO();
-        mockCaseDTO.setId(caseId);
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
         when(bookingService.findById(bookingId)).thenReturn(booking);
 
-        MvcResult response = mockMvc.perform(get(getPath(caseId, bookingId))
+        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId(), bookingId))
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
@@ -71,24 +71,24 @@ class BookingControllerTest {
     @Test
     void getBookingEndpointCaseNotFound() throws Exception {
 
-        var caseId = UUID.randomUUID();
+        var caseDTO = new CaseDTO();
+        caseDTO.setId(UUID.randomUUID());
         var bookingId = UUID.randomUUID();
         var booking = new BookingDTO();
         booking.setId(bookingId);
-        booking.setCaseId(caseId);
+        booking.setCaseDTO(caseDTO);
 
-        when(caseService.findById(caseId)).thenReturn(null);
+        when(caseService.findById(caseDTO.getId())).thenReturn(null);
         when(bookingService.findById(bookingId)).thenReturn(booking);
 
-        MvcResult response = mockMvc.perform(get(getPath(caseId, bookingId))
+        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId(), bookingId))
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNotFound())
             .andReturn();
 
-        assertThat(
-            response.getResponse().getContentAsString()).isEqualTo("{\"message\":\"Not found: CaseDTO " + caseId + "\"}"
-        );
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Not found: CaseDTO " + caseDTO.getId() + "\"}");
     }
 
     @DisplayName("Should create a booking with 201 response code")
@@ -97,7 +97,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new BookingDTO();
+        var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
@@ -125,7 +125,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new BookingDTO();
+        var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
@@ -153,7 +153,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new BookingDTO();
+        var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(UUID.randomUUID());
 
@@ -178,7 +178,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
 
-        var booking = new BookingDTO();
+        var booking = new CreateBookingDTO();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseId);
 
@@ -214,7 +214,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new BookingDTO();
+        var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
@@ -238,7 +238,7 @@ class BookingControllerTest {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
-        var booking = new BookingDTO();
+        var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
 
