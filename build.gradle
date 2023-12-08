@@ -11,6 +11,7 @@ plugins {
   id "io.freefair.lombok" version "8.4"
   id 'org.flywaydb.flyway' version '9.22.3' // issues with 10.0.x https://github.com/spring-projects/spring-boot/issues/38164
   id "info.solidsoft.pitest" version '1.15.0'
+  id 'org.flywaydb.flyway' version '9.22.3'
 }
 
 group = 'uk.gov.hmcts.reform'
