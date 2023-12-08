@@ -7,11 +7,7 @@ class PortalAccessManager:
         self.source_cursor = source_cursor
 
     def get_data(self):
-<<<<<<< HEAD
-        self.source_cursor.execute("SELECT * FROM public.users WHERE prerole = 'Level 3' AND (sendinvite ILIKE 'true' OR invited ILIKE 'true')")
-=======
         self.source_cursor.execute("SELECT * FROM public.users WHERE prerole = 'Level 3'")
->>>>>>> 90b5173 (converted enum types to uppercase, added in exceptions and functions for failed imports on some tables and added in scripts to count records)
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_user_data):
@@ -23,18 +19,15 @@ class PortalAccessManager:
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
                 id=str(uuid.uuid4())
                 password = 'password' # ?
-<<<<<<< HEAD
-                status = 'active' # ? 
-=======
                 status = 'ACTIVE' # ? 
->>>>>>> 90b5173 (converted enum types to uppercase, added in exceptions and functions for failed imports on some tables and added in scripts to count records)
 
                 last_access = datetime.now() # ?
                 invitation_datetime = datetime.now() # ?
                 registered_datetime = datetime.now() # ?
-                created_at = parse_to_timestamp(user[15])
+                status = 'ACTIVE' # ? 
                 modified_at =parse_to_timestamp(user[17])
                 created_by = user[14]
+                created_at = parse_to_timestamp(user[15])
 
                 batch_portal_user_data.append((
                     id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at
@@ -60,4 +53,5 @@ class PortalAccessManager:
             )
 
             destination_cursor.connection.commit()
+            
 

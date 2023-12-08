@@ -1,14 +1,11 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 from datetime import datetime
 import uuid
 
 class AppAccessManager:
     def __init__(self, source_cursor):
         self.source_cursor = source_cursor
-<<<<<<< HEAD
-=======
         self.failed_imports = set()
->>>>>>> 90b5173 (converted enum types to uppercase, added in exceptions and functions for failed imports on some tables and added in scripts to count records)
 
     def get_data(self):
         self.source_cursor.execute("SELECT * FROM public.users WHERE prerole != 'Level 3'")
@@ -16,10 +13,7 @@ class AppAccessManager:
 
     def migrate_data(self, destination_cursor, source_data):
         batch_app_users_data = []
-<<<<<<< HEAD
-=======
         id = None
->>>>>>> 90b5173 (converted enum types to uppercase, added in exceptions and functions for failed imports on some tables and added in scripts to count records)
 
         for user in source_data:
             user_id = user[0]
@@ -53,20 +47,9 @@ class AppAccessManager:
                     created_by=created_by,
                 )
 
-<<<<<<< HEAD
-        if batch_app_users_data:
-            destination_cursor.executemany(
-                """
-                INSERT INTO public.app_access
-                    (id, user_id, court_id, role_id, last_access, active, created_at, modified_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                batch_app_users_data,
-            )
-            destination_cursor.connection.commit()
-=======
             else:
                 self.failed_imports.add(('app_access',id)) 
+                log_failed_imports(self.failed_imports)
 
         try: 
             if batch_app_users_data:
@@ -81,10 +64,5 @@ class AppAccessManager:
                 destination_cursor.connection.commit()
         except Exception as e:  
             self.failed_imports.add(('app_access',id)) 
+            log_failed_imports(self.failed_imports)
                 
-
-    def log_failed_imports(self, filename='failed_imports_log.txt'):
-        with open(filename, 'w') as file:
-            for table_name, failed_id in self.failed_imports:
-                file.write(f"Table: {table_name}, ID: {failed_id}\n")
->>>>>>> 90b5173 (converted enum types to uppercase, added in exceptions and functions for failed imports on some tables and added in scripts to count records)

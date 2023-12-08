@@ -46,7 +46,7 @@ destination_db = DatabaseManager(
 # managers for different tables
 room_manager = RoomManager(source_db.connection.cursor())
 user_manager = UserManager(source_db.connection.cursor())
-role_manager = RoleManager(source_db.connection.cursor())
+role_manager = RoleManager()
 court_manager = CourtManager(source_db.connection.cursor())
 courtroom_manager = CourtRoomManager()
 region_manager = RegionManager()
@@ -87,7 +87,6 @@ def main():
     migrate_manager_data(capture_session_manager, destination_db_cursor)
     migrate_manager_data(recording_manager, destination_db_cursor)
 
-    participant_manager.log_failed_imports()
 
     source_db.close_connection()
     destination_db.close_connection()

@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 
 class UserManager:
     def __init__(self, source_cursor):
@@ -51,8 +51,5 @@ class UserManager:
                     )
         except Exception as e:  
             self.failed_imports.add(('users', id))
+            log_failed_imports(self.failed_imports)
 
-    def log_failed_imports(self, filename='failed_imports_log.txt'):
-        with open(filename, 'w') as file:
-            for table_name, failed_id in self.failed_imports:
-                file.write(f"Table: {table_name}, ID: {failed_id}\n")

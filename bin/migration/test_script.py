@@ -1,4 +1,8 @@
 import psycopg2
+import os
+
+source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
+destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
 
 def count_records_in_all_tables_source_db(connection):
     cursor = connection.cursor()
@@ -21,7 +25,7 @@ def count_records_in_all_tables_source_db(connection):
 conn = psycopg2.connect(
     database="pre-pdb-demo",
     user="psqladmin",
-    password="***",
+    password=source_db_password,
     host="pre-db-demo.postgres.database.azure.com",
     port="5432",
 )
@@ -54,7 +58,7 @@ def count_records_in_all_tables_destination_db(connection):
 conn = psycopg2.connect(
     database="dev-pre-copy",
     user="psqladmin",
-    password="***",
+    password=destination_db_password,
     host="pre-db-dev.postgres.database.azure.com",
     port="5432",
 )
