@@ -1,10 +1,11 @@
 from collections import Counter
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 
 
 class RecordingManager:
     def __init__(self, source_cursor):
         self.source_cursor = source_cursor
+        self.failed_imports = set()
 
     def get_data(self):
         self.source_cursor.execute("SELECT * FROM public.recordings")
@@ -65,22 +66,28 @@ class RecordingManager:
                     created_at = parse_to_timestamp(recording[22])
             #         duration =  ? - this info is in the asset files on AMS 
             #         edit_instruction = ?
+                
+                    try:
+                        destination_cursor.execute(
+                            """
+                            INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            (id, capture_session_id, parent_recording_id, version, url, filename, created_at),  
+                        )
 
-                    destination_cursor.execute(
-                        """
-                        INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (id, capture_session_id, parent_recording_id, version, url, filename, created_at),  
-                    )
-
-                    audit_entry_creation(
-                        destination_cursor,
-                        table_name="recordings",
-                        record_id=id,
-                        record=capture_session_id,
-                    )
-
+                        audit_entry_creation(
+                            destination_cursor,
+                            table_name="recordings",
+                            record_id=id,
+                            record=capture_session_id,
+                        )
+                    except Exception as e:  
+                        self.failed_imports.add(('recordings', id))
+                        log_failed_imports(self.failed_imports)
+                else:  
+                    self.failed_imports.add(('cases', id))
+                    log_failed_imports(self.failed_imports)
 
 
 

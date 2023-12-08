@@ -1,7 +1,9 @@
-from .helpers import check_existing_record, audit_entry_creation
+from .helpers import check_existing_record, audit_entry_creation, log_failed_imports
 import uuid
 
 class CourtRoomManager:
+    def __init__(self):
+        self.failed_imports = set()
 
     def migrate_data(self, destination_cursor):
         # CVP room data - https://tools.hmcts.net/confluence/display/S28/CVP+Guides#CVPGuides-CVPRooms-EnvironmentandCourtAllocation
@@ -63,4 +65,6 @@ class CourtRoomManager:
                         record=courtroom[1]
                     )
         except Exception as e:
-            print(f"Error during insertion: {e}")    
+            self.failed_imports.add(('court_rooms', id))
+            log_failed_imports(self.failed_imports)
+    

@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp
+from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp, log_failed_imports
 from datetime import datetime
 import uuid
 
@@ -46,8 +46,5 @@ class RoomManager:
 
         except Exception as e:
             self.failed_imports.add(('rooms', id))
+            log_failed_imports(self.failed_imports)
 
-    def log_failed_imports(self, filename='failed_imports_log.txt'):
-        with open(filename, 'w') as file:
-            for table_name, failed_id in self.failed_imports:
-                file.write(f"Table: {table_name}, ID: {failed_id}\n")

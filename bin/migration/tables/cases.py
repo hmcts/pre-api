@@ -1,12 +1,13 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 import uuid
 
 class CaseManager:
     def __init__(self, source_cursor):
         self.source_cursor = source_cursor
+        self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT * FROM public.cases WHERE caseref IS NOT NULL")
+        self.source_cursor.execute("SELECT * FROM public.cases")
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
@@ -31,28 +32,31 @@ class CaseManager:
         temp_cases_data = []
         for case in source_data:
             reference = case[1]
+            
+            if reference is None:
+                self.failed_imports.add(('cases', case[0]))
+                log_failed_imports(self.failed_imports)
 
-            if not check_existing_record(destination_cursor,'temp_cases', 'reference', reference):
-                destination_cursor.execute(
-                    "SELECT id FROM public.courts WHERE name = %s", (case[2],)
-                )
-                court_id = destination_cursor.fetchone()
-                booking_id= case[0]
-                case_id = str(uuid.uuid4())
-                court_name = case[2]
-                created_at = parse_to_timestamp(case[5])
-                created_by = case[4]
-                modified_at = parse_to_timestamp(case[6])
-                temp_cases_data.append((booking_id, case_id, reference, court_name, court_id, created_at, created_by, modified_at))
+            else:
+                if not check_existing_record(destination_cursor,'temp_cases', 'reference', reference):
+                    destination_cursor.execute(
+                        "SELECT id FROM public.courts WHERE name = %s", (case[2],)
+                    )
+                    court_id = destination_cursor.fetchone()
+                    booking_id= case[0]
+                    case_id = str(uuid.uuid4())
+                    court_name = case[2]
+                    created_at = parse_to_timestamp(case[5])
+                    created_by = case[4]
+                    modified_at = parse_to_timestamp(case[6])
+                    temp_cases_data.append((booking_id, case_id, reference, court_name, court_id, created_at, created_by, modified_at))
 
         destination_cursor.executemany(
             """INSERT INTO public.temp_cases (booking_id, case_id, reference, court_name, court_id, created_at, created_by, modified_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
             temp_cases_data
         )   
-
         destination_cursor.connection.commit()
-
 
         destination_cursor.execute("SELECT * FROM public.temp_cases")
         source_temp_cases_data = destination_cursor.fetchall()
@@ -79,15 +83,21 @@ class CaseManager:
                     created_at=created_at,
                     created_by=created_by,
                 )
+            else:
+                self.failed_imports.add(('cases', id))
+                log_failed_imports(self.failed_imports)
+        try: 
+            if cases_data:
+                destination_cursor.executemany(
+                    """
+                    INSERT INTO public.cases
+                        (id, court_id, reference, test, created_at, modified_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    cases_data,
+                )
+                destination_cursor.connection.commit()
 
-        if cases_data:
-            destination_cursor.executemany(
-                """
-                INSERT INTO public.cases
-                    (id, court_id, reference, test, created_at, modified_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                cases_data,
-            )
-            destination_cursor.connection.commit()
-
+        except Exception as e:  
+            self.failed_imports.add(('cases', id))
+            log_failed_imports(self.failed_imports)

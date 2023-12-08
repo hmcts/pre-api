@@ -1,7 +1,10 @@
-from .helpers import check_existing_record, audit_entry_creation
+from .helpers import check_existing_record, audit_entry_creation, log_failed_imports
 import uuid
 
 class CourtRegionManager:
+    def __init__(self):
+        self.failed_imports = set()
+
     def migrate_data(self,destination_cursor):
         # Court regions data -  https://cjscommonplatform-my.sharepoint.com/:x:/r/personal/lawrie_baber-scovell2_hmcts_net/_layouts/15/Doc.aspx?sourcedoc=%7B07C83A7F-EF01-4C78-9B02-AEDD443D15A1%7D&file=Courts%20PRE%20NRO.xlsx&wdOrigin=TEAMS-WEB.undefined_ns.rwc&action=default&mobileredirect=true
         court_regions = [
@@ -31,20 +34,25 @@ class CourtRegionManager:
             region_name = court_regions_dict.get(court_name)
             region_id = regions_dict.get(region_name)
 
-
             if not check_existing_record(destination_cursor,'court_region', 'court_id', court_id):
                 id = str(uuid.uuid4())
 
-                destination_cursor.execute(
-                    "INSERT INTO public.court_region (id, court_id, region_id) VALUES (%s, %s, %s)",
-                    (id, court_id, region_id)
-                )
+                try: 
 
-                destination_cursor.connection.commit()
+                    destination_cursor.execute(
+                        "INSERT INTO public.court_region (id, court_id, region_id) VALUES (%s, %s, %s)",
+                        (id, court_id, region_id)
+                    )
 
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name="court_region",
-                    record_id=id,
-                    record=court_id,
-                )
+                    destination_cursor.connection.commit()
+
+                    audit_entry_creation(
+                        destination_cursor,
+                        table_name="court_region",
+                        record_id=id,
+                        record=court_id,
+                    )
+                except Exception as e:  
+                    self.failed_imports.add(('court_regions', id))
+                    log_failed_imports(self.failed_imports)
+            

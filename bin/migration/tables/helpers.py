@@ -25,9 +25,6 @@ def parse_to_timestamp(input_text):
     # if input is invalid or empty, returning the current time in UK timezone
     return datetime.now(tz=pytz.timezone('Europe/London')).strftime('%Y-%m-%d %H:%M:%S')
 
-
-
-
 # checks if a record has already been imported
 def check_existing_record(db_connection, table_name, field, record):
     query = f"SELECT EXISTS (SELECT 1 FROM public.{table_name} WHERE {field} = %s)"
@@ -35,22 +32,18 @@ def check_existing_record(db_connection, table_name, field, record):
     return db_connection.fetchone()[0]
 
 
-
 # audit entry into database
 def audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry"):
     created_at = created_at or datetime.now()
+    
+    failed_imports = set()
 
     audit_entry = {
         "id": str(uuid.uuid4()),
         "table_name": table_name,
         "table_record_id": record_id,
-<<<<<<< HEAD
-        "source": "auto",
-        "type": "create",
-=======
         "source": "AUTO",
         "type": "CREATE",
->>>>>>> 90b5173 (converted enum types to uppercase, added in exceptions and functions for failed imports on some tables and added in scripts to count records)
         "category": "data_migration",
         "activity": f"{table_name}_record_creation",
         "functional_area": "data_processing",
@@ -73,4 +66,11 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         db_connection.connection.commit()
         
     except Exception as e:
-        print(f"Error during insertion: {e}")
+        failed_imports.add(('court_regions', table_name, record_id))
+        log_failed_imports(failed_imports)
+
+
+def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
+    with open(filename, 'a') as file:
+        for table_name, failed_id in failed_imports:
+            file.write(f"Table: {table_name}, ID: {failed_id}\n")
