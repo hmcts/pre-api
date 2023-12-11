@@ -49,10 +49,10 @@ class BookingManager:
                                 created_by=created_by,
                             )
                 except Exception as e:  
-                    self.failed_imports.add(('bookings', id))
-                    log_failed_imports(self.failed_imports)
+                    self.failed_imports.add(('bookings', id,e))
+                 
             else:
                 self.failed_imports.add(('bookings', id))
-                log_failed_imports(self.failed_imports)
+        log_failed_imports(self.failed_imports)
     
    

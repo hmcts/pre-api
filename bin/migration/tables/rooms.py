@@ -45,6 +45,7 @@ class RoomManager:
                     )
 
         except Exception as e:
-            self.failed_imports.add(('rooms', id))
-            log_failed_imports(self.failed_imports)
+            self.failed_imports.add(('rooms', id, e))
+
+        log_failed_imports(self.failed_imports)    
 

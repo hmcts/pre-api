@@ -1,8 +1,12 @@
-from .helpers import check_existing_record, audit_entry_creation
+from .helpers import check_existing_record, audit_entry_creation, log_failed_imports
 import uuid
 
 class RegionManager:
+    def __init__(self):
+        self.failed_imports = set()
+
     def migrate_data(self,destination_cursor):
+        batch_region_data = []
         # Regions data -  https://cjscommonplatform-my.sharepoint.com/:x:/r/personal/lawrie_baber-scovell2_hmcts_net/_layouts/15/Doc.aspx?sourcedoc=%7B07C83A7F-EF01-4C78-9B02-AEDD443D15A1%7D&file=Courts%20PRE%20NRO.xlsx&wdOrigin=TEAMS-WEB.undefined_ns.rwc&action=default&mobileredirect=true
         region_data = [
             'London',
@@ -21,18 +25,27 @@ class RegionManager:
         for region in region_data:
             if not check_existing_record(destination_cursor,'regions', 'name', region):
                 id = str(uuid.uuid4())
+                batch_region_data.append((id, region))
 
-                destination_cursor.execute(
+        try:
+            if batch_region_data:
+                destination_cursor.executemany(
                     "INSERT INTO public.regions (id, name) VALUES (%s, %s)",
-                    (id, region)
+                    batch_region_data
                 )
 
                 destination_cursor.connection.commit()
-
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name="regions",
-                    record_id=id,
-                    record=region,
-                )
+                
+                for entry in batch_region_data:
+                    audit_entry_creation(
+                        destination_cursor,
+                        table_name="regions",
+                        record_id=entry[0],
+                        record=entry[1],
+                    )
+        except Exception as e:
+            self.failed_imports.add(('regions', batch_region_data[0], e))
+ 
+        log_failed_imports(self.failed_imports)
+            
 

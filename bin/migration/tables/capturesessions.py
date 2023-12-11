@@ -75,9 +75,9 @@ class CaptureSessionManager:
                         record=booking_id,
                     )
                 except Exception as e:  
-                        self.failed_imports.add(('capture_sessions', id))
-                        log_failed_imports(self.failed_imports)
-            else:
-                self.failed_imports.add(('capture_sessions', id))
-                log_failed_imports(self.failed_imports)
+                    self.failed_imports.add(('capture_sessions', id,e))
 
+            # else:
+            #     self.failed_imports.add(('capture_sessions', id))
+                
+        log_failed_imports(self.failed_imports)

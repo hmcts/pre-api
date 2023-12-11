@@ -65,6 +65,7 @@ class CourtRoomManager:
                         record=courtroom[1]
                     )
         except Exception as e:
-            self.failed_imports.add(('court_rooms', id))
-            log_failed_imports(self.failed_imports)
+            self.failed_imports.add(('court_rooms', id, e))
+        
+        log_failed_imports(self.failed_imports)
     

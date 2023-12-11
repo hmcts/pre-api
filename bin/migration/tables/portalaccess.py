@@ -1,10 +1,11 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 from datetime import datetime
 import uuid
 
 class PortalAccessManager:
     def __init__(self, source_cursor):
         self.source_cursor = source_cursor
+        self.failed_imports = set()
 
     def get_data(self):
         self.source_cursor.execute("SELECT * FROM public.users WHERE prerole = 'Level 3'")
@@ -30,28 +31,37 @@ class PortalAccessManager:
                 created_at = parse_to_timestamp(user[15])
 
                 batch_portal_user_data.append((
-                    id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at
+                    id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at, created_by
                 ))
 
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name='portal_access',
-                    record_id=id,
-                    record=user_id,
-                    created_at=created_at,
-                    created_by=created_by,
+                
+
+        try: 
+            if batch_portal_user_data:
+                destination_cursor.executemany(
+                    """
+                    INSERT INTO public.portal_access
+                        (id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    [entry[:-1] for entry in batch_portal_user_data],
                 )
 
-        if batch_portal_user_data:
-            destination_cursor.executemany(
-                """
-                INSERT INTO public.portal_access
-                    (id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,
-                batch_portal_user_data,
-            )
+                destination_cursor.connection.commit()
 
-            destination_cursor.connection.commit()
+                for entry in batch_portal_user_data:
+                    audit_entry_creation(
+                        destination_cursor,
+                        table_name='portal_access',
+                        record_id=entry[0],
+                        record=entry[1],
+                        created_at=entry[7],
+                        created_by=entry[9],
+                    )
+
+        except Exception as e:
+            self.failed_imports.add(('portal_access', user_id, e))
+ 
+        log_failed_imports(self.failed_imports)
             
 
