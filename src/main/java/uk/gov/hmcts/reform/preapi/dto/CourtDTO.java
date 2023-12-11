@@ -21,7 +21,7 @@ public class CourtDTO {
     private CourtType courtType;
     private String locationCode;
     private Set<RegionDTO> regions; // this was removed??
-    // Set<Room> room;
+    private Set<RoomDTO> rooms;
 
     public CourtDTO(Court courtEntity) {
         this.id = courtEntity.getId();
@@ -30,6 +30,9 @@ public class CourtDTO {
         this.locationCode = courtEntity.getLocationCode();
         this.regions = Stream.ofNullable(courtEntity.getRegions())
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
+            .collect(Collectors.toSet());
+        this.rooms = Stream.ofNullable(courtEntity.getRooms())
+            .flatMap(rooms -> rooms.stream().map(RoomDTO::new))
             .collect(Collectors.toSet());
     }
 }
