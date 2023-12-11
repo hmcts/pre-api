@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 
@@ -19,14 +18,12 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 
 import java.util.Optional;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -137,19 +134,9 @@ class BookingServiceTest {
         recordingEntity.setId(UUID.randomUUID());
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
-        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
-        when(recordingRepository.searchAllBy(bookingId, null, null))
-            .thenReturn(new ArrayList<Recording>() {
-                {
-                    add(recordingEntity);
-                }
-            });
 
         bookingService.markAsDeleted(bookingId);
-        assertThat(bookingEntity.getDeletedAt()).isNotNull();
-        assertTrue(recordingEntity.isDeleted());
-        verify(bookingRepository, times(1)).save(bookingEntity);
-        verify(recordingRepository, times(1)).save(recordingEntity);
+        verify(bookingRepository, times(1)).deleteById(bookingId);
     }
 
     @DisplayName("Delete a booking that doesn't exist")
@@ -164,7 +151,6 @@ class BookingServiceTest {
         recordingEntity.setId(UUID.randomUUID());
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.empty());
-        verify(bookingRepository, times(0)).save(bookingEntity);
-        verify(recordingRepository, times(0)).save(recordingEntity);
+        verify(bookingRepository, times(0)).deleteById(bookingId);
     }
 }

@@ -13,12 +13,12 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
-import java.sql.Timestamp;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
+@SuppressWarnings("PMD.SingularField")
 public class BookingService {
 
     private final BookingRepository bookingRepository;
@@ -75,13 +75,7 @@ public class BookingService {
     public void markAsDeleted(UUID id) {
         var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
         if (entity.isPresent()) {
-            entity.get().setDeletedAt(new Timestamp(System.currentTimeMillis()));
-            bookingRepository.save(entity.get());
-            recordingRepository.searchAllBy(id, null, null)
-                .forEach(recording -> {
-                    recording.setDeletedAt(new Timestamp(System.currentTimeMillis()));
-                    recordingRepository.save(recording);
-                });
+            bookingRepository.deleteById(id);
         }
     }
 }
