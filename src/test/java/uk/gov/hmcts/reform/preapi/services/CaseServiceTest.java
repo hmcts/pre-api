@@ -198,7 +198,7 @@ class CaseServiceTest {
             () -> caseService.upsert(caseDTOModel)
         );
 
-        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(courtRepository, never()).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseRepository, never()).save(any());
     }
