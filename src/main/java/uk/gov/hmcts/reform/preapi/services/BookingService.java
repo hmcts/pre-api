@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -18,15 +17,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@DependsOn({"bookingRepository", "recordingRepository"})
 public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final RecordingRepository recordingRepository;
 
     @Autowired
-    public BookingService(final BookingRepository bookingRepository,
-                          final RecordingRepository recordingRepository) {
+    public BookingService(BookingRepository bookingRepository,
+                          RecordingRepository recordingRepository) {
         this.bookingRepository = bookingRepository;
         this.recordingRepository = recordingRepository;
     }
