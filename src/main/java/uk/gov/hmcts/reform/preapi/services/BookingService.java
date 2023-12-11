@@ -73,7 +73,7 @@ public class BookingService {
 
     @Transactional
     public void markAsDeleted(UUID id) {
-        var entity = bookingRepository.findById(id);
+        var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
         if (entity.isPresent()) {
             entity.get().setDeletedAt(new Timestamp(System.currentTimeMillis()));
             bookingRepository.save(entity.get());
