@@ -4,8 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 
 import java.util.UUID;
@@ -30,8 +33,13 @@ public class BookingService {
     }
 
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
-        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
-        var caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
+        var foundBooking = bookingRepository.findById(createBookingDTO.getId());
+        if (foundBooking.isPresent() && foundBooking.get().isDeleted()) {
+            throw new UpdateDeletedException("Booking: " + createBookingDTO.getId());
+        }
+        var bookingEntity = new Booking();
+        var caseEntity = new Case();
+
         caseEntity.setId(createBookingDTO.getCaseId());
         bookingEntity.setId(createBookingDTO.getId());
         bookingEntity.setCaseId(caseEntity);
@@ -48,7 +56,7 @@ public class BookingService {
                 .collect(Collectors.toSet()));
         bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
 
-        var updated = bookingRepository.existsById(createBookingDTO.getId());
+        var updated = foundBooking.isPresent();
         bookingRepository.save(bookingEntity);
 
         return updated ? UpsertResult.UPDATED : UpsertResult.CREATED;

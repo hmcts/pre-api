@@ -8,14 +8,20 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = BookingService.class)
@@ -78,11 +84,31 @@ class BookingServiceTest {
         bookingModel.setCaseId(UUID.randomUUID());
         bookingModel.setParticipants(Set.of());
 
-        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
+        var bookingEntity = new Booking();
 
-        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity))
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
+    }
+
+    @DisplayName("Update a booking when booking has been deleted")
+    @Test
+    void upsertBookingBadRequestUpdate() {
+        var bookingModel = new CreateBookingDTO();
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(UUID.randomUUID());
+        bookingModel.setParticipants(Set.of());
+
+        var bookingEntity = new Booking();
+        bookingEntity.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity))
+        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
+
+        assertThrows(
+            UpdateDeletedException.class,
+            () -> bookingService.upsert(bookingModel)
+        );
     }
 }
