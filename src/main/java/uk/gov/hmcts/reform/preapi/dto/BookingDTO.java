@@ -16,7 +16,6 @@ import java.util.stream.Stream;
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class BookingDTO {
-
     private UUID id;
     private CaseDTO caseDTO;
     private Timestamp scheduledFor;
