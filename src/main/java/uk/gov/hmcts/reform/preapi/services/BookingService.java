@@ -77,7 +77,7 @@ public class BookingService {
         if (entity.isPresent()) {
             entity.get().setDeletedAt(new Timestamp(System.currentTimeMillis()));
             bookingRepository.save(entity.get());
-            recordingRepository.findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(id)
+            recordingRepository.searchAllBy(id, null, null)
                 .forEach(recording -> {
                     recording.setDeletedAt(new Timestamp(System.currentTimeMillis()));
                     recordingRepository.save(recording);
