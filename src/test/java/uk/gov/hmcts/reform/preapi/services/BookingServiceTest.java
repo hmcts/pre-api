@@ -86,7 +86,7 @@ class BookingServiceTest {
 
         var bookingEntity = new Booking();
 
-        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity))
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
@@ -103,7 +103,7 @@ class BookingServiceTest {
         var bookingEntity = new Booking();
         bookingEntity.setDeletedAt(Timestamp.from(Instant.now()));
 
-        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity))
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         assertThrows(
