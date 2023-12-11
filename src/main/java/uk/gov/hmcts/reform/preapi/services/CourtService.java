@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 @Service
 public class CourtService {
     private final CourtRepository courtRepository;
+
     @Autowired
     public CourtService(CourtRepository courtRepository) {
         this.courtRepository = courtRepository;
