@@ -8,7 +8,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -69,7 +69,7 @@ public class RecordingService {
         var recording = recordingRepository.findById(createRecordingDTO.getId());
 
         if (recording.isPresent() && recording.get().isDeleted()) {
-            throw new UpdateDeletedException("Recording: " + createRecordingDTO.getId());
+            throw new ResourceInDeletedStateException("RecordingDTO", createRecordingDTO.getId().toString());
         }
 
         var isUpdate = recording.isPresent();

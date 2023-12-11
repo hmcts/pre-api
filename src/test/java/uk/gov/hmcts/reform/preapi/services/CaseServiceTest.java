@@ -13,7 +13,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
@@ -194,7 +194,7 @@ class CaseServiceTest {
         when(caseRepository.findById(testingCase.getId())).thenReturn(Optional.of(caseEntity));
 
         assertThrows(
-            UpdateDeletedException.class,
+            ResourceInDeletedStateException.class,
             () -> caseService.upsert(caseDTOModel)
         );
 
