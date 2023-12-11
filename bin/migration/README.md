@@ -20,6 +20,10 @@ Checks if a record exists in the database.
 ### `audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry")`
 Creates an audit entry in the database for a new record.
 
+### `log_failed_imports(failed_imports, filename='failed_imports_log.txt')`
+Writes to failed_imports_log if record import fails
+
+
 ## Main Logic 
 
 1. Initializes database connections.
@@ -38,7 +42,7 @@ Manages the migration of user data.
 Manages user roles migration.
 
 ### CourtManager
-Handles the migration of court-related data.
+Handles the migration of court-related data. An added 'Default Court' added for records with no data of which courts they're tried in. 
 
 ### CourtRoomManager
 Manages the migration of courtroom data.
@@ -75,24 +79,3 @@ Handles the migration of recording data.
 
 
 
-| Table Name         | Source DB Records | Destination DB Records |
-|--------------------|-------------------|------------------------|
-| recordings         | 643               | 585                    | 
-| share_recordings   | 0                 | 0                      |
-| portal_access      | 0                 | 0                      |
-| audits             | 9490              | 0                      |
-| courts             | 9                 | 10                     |
-| court_region       | 0                 | 10                     |
-| regions            | 0                 | 10                     |
-| courtrooms         | 0                 | 20                     |
-| rooms              | 20                | 20                     |
-| participants       | 1746              | 465                    |
-| bookings           | 0                 | 475                    |
-| cases              | 484               | 475                    |
-| booking_participant| 0                 | 475                    |
-| roles              | 0                 | 5                      |
-| role_permission    | 0                 | 0                      |
-| permissions        | 0                 | 0                      |
-| users              | 264               | 264                    |
-| app_access         | 0                 | 153                    |
-| capture_sessions   | 0                 | 573                    |

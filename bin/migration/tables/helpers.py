@@ -72,5 +72,13 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
 
 def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
     with open(filename, 'a') as file:
-        for table_name, failed_id in failed_imports:
-            file.write(f"Table: {table_name}, ID: {failed_id}\n")
+        for entry in failed_imports:
+            if len(entry) == 2:
+                table_name, failed_id = entry
+                details = 'Import failed'
+            elif len(entry) == 3:
+                table_name, failed_id, details = entry
+            else:
+                raise ValueError("Each entry in failed_imports should have 2 or 3 elements")
+            
+            file.write(f"Table: {table_name}, ID: {failed_id}, Details: {details}\n")

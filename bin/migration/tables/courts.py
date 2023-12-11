@@ -1,10 +1,11 @@
 import uuid
-from .helpers import audit_entry_creation, check_existing_record
+from .helpers import audit_entry_creation, check_existing_record, log_failed_imports
 
 
 class CourtManager:
     def __init__(self, source_cursor):
         self.source_cursor = source_cursor
+        self.failed_imports = set()
 
     def get_data(self):
         self.source_cursor.execute("SELECT * from public.courts")
@@ -33,20 +34,23 @@ class CourtManager:
 
             if not check_existing_record(destination_cursor,'courts', 'id', id ):
                 batch_courts_data.append((id, court_type.upper(), name, location_code))
-
-        if batch_courts_data:
-            destination_cursor.executemany(
-                'INSERT INTO public.courts (id, court_type, name, location_code) VALUES (%s, %s, %s, %s)',
-                batch_courts_data
-            )
-
-            for court in batch_courts_data:
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name='courts',
-                    record_id=court[0],
-                    record=court[2]
+        
+        try:
+            if batch_courts_data:
+                destination_cursor.executemany(
+                    'INSERT INTO public.courts (id, court_type, name, location_code) VALUES (%s, %s, %s, %s)',
+                    batch_courts_data
                 )
+
+                for court in batch_courts_data:
+                    audit_entry_creation(
+                        destination_cursor,
+                        table_name='courts',
+                        record_id=court[0],
+                        record=court[2]
+                    )
+        except Exception as e:
+            self.failed_imports.add(('courts', id, e ))
 
         # Inserting an 'Unknown' court type for records missing this info
         default_court_id = str(uuid.uuid4())
@@ -67,4 +71,6 @@ class CourtManager:
                     record='Default Court'
                 ) 
         except Exception as e:
-            print(f"Error during insertion: {e}")
+            self.failed_imports.add(('courts', default_court_id, e))
+ 
+        log_failed_imports(self.failed_imports)

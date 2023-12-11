@@ -50,6 +50,7 @@ class UserManager:
                         created_by=created_by,
                     )
         except Exception as e:  
-            self.failed_imports.add(('users', id))
-            log_failed_imports(self.failed_imports)
+            self.failed_imports.add(('users', id, e))
+
+        log_failed_imports(self.failed_imports)    
 

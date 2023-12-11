@@ -34,7 +34,8 @@ class RoleManager:
                     )
                     
         except Exception as e:
-            self.failed_imports.add(('roles', id))
-            log_failed_imports(self.failed_imports)    
+            self.failed_imports.add(('roles', id,e ))
+            
+        log_failed_imports(self.failed_imports)        
 
    

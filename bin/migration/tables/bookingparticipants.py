@@ -39,6 +39,7 @@ class BookingParticipantManager:
                     record=booking_id,
                 )
             except Exception as e:  
-                self.failed_imports.add(('booking_participants',id))
-                log_failed_imports(self.failed_imports) 
+                self.failed_imports.add(('booking_participants',id,e))
+                
+        log_failed_imports(self.failed_imports)         
                 
