@@ -50,13 +50,13 @@ public class CaseService {
     @Transactional
     public UpsertResult upsert(CreateCaseDTO createCaseDTO) {
         var foundCase = caseRepository.findById(createCaseDTO.getId());
-        var court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
 
         if (foundCase.isPresent() && foundCase.get().isDeleted()) {
             throw new UpdateDeletedException("Case: " + createCaseDTO.getId());
         }
 
         var isUpdate = foundCase.isPresent();
+        var court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
 
         if (!isUpdate && court == null) {
             throw new NotFoundException("Court: " + createCaseDTO.getCourtId());
