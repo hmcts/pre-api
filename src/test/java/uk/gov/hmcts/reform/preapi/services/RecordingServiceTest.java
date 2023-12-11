@@ -68,8 +68,9 @@ class RecordingServiceTest {
     }
 
     @BeforeEach
-    void resetDelete() {
+    void reset() {
         recordingEntity.setDeletedAt(null);
+        recordingEntity.setParentRecording(null);
     }
 
     @DisplayName("Find a recording by it's id and related booking id and return a model")
@@ -131,10 +132,10 @@ class RecordingServiceTest {
             bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
-            recordingRepository.findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingEntity.getId())
+            recordingRepository.searchAllBy(bookingEntity.getId(), null, null)
         ).thenReturn(List.of(recordingEntity));
 
-        var modelList = recordingService.findAllByBookingId(bookingEntity.getId());
+        var modelList = recordingService.findAllByBookingId(bookingEntity.getId(), null, null);
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.get(0).getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.get(0).getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -149,11 +150,11 @@ class RecordingServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> recordingService.findAllByBookingId(bookingEntity.getId())
+            () -> recordingService.findAllByBookingId(bookingEntity.getId(), null, null)
         );
 
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
-        verify(recordingRepository, never()).findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(any());
+        verify(recordingRepository, never()).searchAllBy(any(), any(), any());
     }
 
     @DisplayName("Create a recording")
@@ -289,11 +290,11 @@ class RecordingServiceTest {
             bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
 
-        var models = recordingService.findAllByBookingId(bookingEntity.getId());
+        var models = recordingService.findAllByBookingId(bookingEntity.getId(), null, null);
 
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
         verify(recordingRepository, times(1))
-            .findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingEntity.getId());
+            .searchAllBy(bookingEntity.getId(), null, null);
 
         assertThat(models.size()).isEqualTo(0);
     }

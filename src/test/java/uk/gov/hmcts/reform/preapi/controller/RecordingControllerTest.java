@@ -99,7 +99,7 @@ class RecordingControllerTest {
         CreateRecordingDTO mockCreateRecordingDTO = new CreateRecordingDTO();
         mockCreateRecordingDTO.setId(recordingId);
         List<CreateRecordingDTO> createRecordingDTOList = List.of(mockCreateRecordingDTO);
-        when(recordingService.findAllByBookingId(bookingId)).thenReturn(createRecordingDTOList);
+        when(recordingService.findAllByBookingId(bookingId, null, null)).thenReturn(createRecordingDTOList);
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isOk())
@@ -112,7 +112,9 @@ class RecordingControllerTest {
     @Test
     void testGetRecordingsBookingNotFound() throws Exception {
         UUID bookingId = UUID.randomUUID();
-        doThrow(new NotFoundException("BookingDTO: " + bookingId)).when(recordingService).findAllByBookingId(any());
+        doThrow(new NotFoundException("BookingDTO: " + bookingId))
+            .when(recordingService)
+            .findAllByBookingId(any(), any(), any());
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isNotFound())
