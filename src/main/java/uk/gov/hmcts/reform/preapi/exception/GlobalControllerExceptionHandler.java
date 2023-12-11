@@ -51,4 +51,16 @@ public class GlobalControllerExceptionHandler {
                                     responseHeaders,
                                     HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @ExceptionHandler(UpdateDeletedException.class)
+    ResponseEntity<String> unknownServerExceptionHandler(final UpdateDeletedException ex)
+        throws JsonProcessingException {
+        HashMap<String, String> error = new HashMap<>();
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
+        error.put(MESSAGE, ex.getMessage());
+        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
+                                    responseHeaders,
+                                    HttpStatus.BAD_REQUEST);
+    }
 }

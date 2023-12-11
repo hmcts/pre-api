@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -65,7 +66,13 @@ public class RecordingService {
     public UpsertResult upsert(UUID bookingId, CreateRecordingDTO createRecordingDTO) {
         checkBookingValid(bookingId);
 
-        var isUpdate = recordingRepository.existsByIdAndDeletedAtIsNull(createRecordingDTO.getId());
+        var recording = recordingRepository.findById(createRecordingDTO.getId());
+
+        if (recording.isPresent() && recording.get().isDeleted()) {
+            throw new UpdateDeletedException("Recording: " + createRecordingDTO.getId());
+        }
+
+        var isUpdate = recording.isPresent();
 
         var captureSession = captureSessionRepository.findByIdAndBooking_IdAndDeletedAtIsNull(
             createRecordingDTO.getCaptureSessionId(),
