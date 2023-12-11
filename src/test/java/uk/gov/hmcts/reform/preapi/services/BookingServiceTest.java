@@ -11,7 +11,11 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+<<<<<<< HEAD
 import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+=======
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+>>>>>>> couple of extra tests
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
@@ -23,7 +27,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+<<<<<<< HEAD
 import static org.junit.jupiter.api.Assertions.assertThrows;
+=======
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+>>>>>>> couple of extra tests
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = BookingService.class)
@@ -99,23 +107,24 @@ class BookingServiceTest {
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
     }
 
-    @DisplayName("Update a booking when booking has been deleted")
+    @DisplayName("Update a booking deleted booking")
     @Test
-    void upsertBookingBadRequestUpdate() {
+    void upsertBookingFailureAlreadyDeleted() {
+
         var bookingModel = new CreateBookingDTO();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
         bookingModel.setParticipants(Set.of());
 
-        var bookingEntity = new Booking();
-        bookingEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
 
-        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
-        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
-
-        assertThrows(
-            UpdateDeletedException.class,
-            () -> bookingService.upsert(bookingModel)
-        );
+        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(true);
+        assertThatExceptionOfType(ResourceInDeletedStateException.class)
+            .isThrownBy(() -> {
+                bookingService.upsert(bookingModel);
+            })
+            .withMessage("Resource BookingDTO("
+                             + bookingModel.getId().toString()
+                             + ") is in a deleted state and cannot be updated");
     }
 }
