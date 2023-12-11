@@ -11,13 +11,10 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
-
-import java.util.Optional;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -95,7 +92,7 @@ class BookingServiceTest {
 
         var bookingEntity = new Booking();
 
-        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);

@@ -8,7 +8,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
@@ -52,7 +52,7 @@ public class CaseService {
         var foundCase = caseRepository.findById(createCaseDTO.getId());
 
         if (foundCase.isPresent() && foundCase.get().isDeleted()) {
-            throw new UpdateDeletedException("Case: " + createCaseDTO.getId());
+            throw new ResourceInDeletedStateException("CaseDTO", createCaseDTO.getId().toString());
         }
 
         var isUpdate = foundCase.isPresent();
