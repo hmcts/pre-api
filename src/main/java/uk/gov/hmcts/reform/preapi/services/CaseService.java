@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
@@ -48,7 +49,13 @@ public class CaseService {
 
     @Transactional
     public UpsertResult upsert(CreateCaseDTO createCaseDTO) {
-        var isUpdate = caseRepository.existsByIdAndDeletedAtIsNull(createCaseDTO.getId());
+        var foundCase = caseRepository.findById(createCaseDTO.getId());
+
+        if (foundCase.isPresent() && foundCase.get().isDeleted()) {
+            throw new UpdateDeletedException("Case: " + createCaseDTO.getId());
+        }
+
+        var isUpdate = foundCase.isPresent();
         var court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
 
         if (!isUpdate && court == null) {

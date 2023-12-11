@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -190,21 +191,46 @@ class RecordingServiceTest {
     @Test
     void updateRecordingSuccess() {
         var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(recordingEntity.getId());
+        recordingModel.setVersion(2);
+        when(
+            bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
+        ).thenReturn(true);
+        when(
+            recordingRepository.findById(recordingModel.getId())
+        ).thenReturn(Optional.of(recordingEntity));
+
+        when(recordingRepository.save(recordingEntity)).thenReturn(recordingEntity);
+
+        assertThat(recordingService.upsert(bookingEntity.getId(), recordingModel)).isEqualTo(UpsertResult.UPDATED);
+    }
+
+    @DisplayName("Update a deleted recording")
+    @Test
+    void updateRecordingBadRequest() {
+        var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setVersion(2);
         var recordingEntity = new Recording();
+        recordingEntity.setId(recordingModel.getId());
+        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
 
         when(
             bookingRepository.existsByIdAndDeletedAtIsNull(bookingEntity.getId())
         ).thenReturn(true);
         when(
-            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
-        ).thenReturn(true);
+            recordingRepository.findById(recordingModel.getId())
+        ).thenReturn(Optional.of(recordingEntity));
 
-        when(recordingRepository.findById(any())).thenReturn(Optional.empty());
-        when(recordingRepository.save(recordingEntity)).thenReturn(recordingEntity);
+        assertThrows(
+            UpdateDeletedException.class,
+            () -> recordingService.upsert(bookingEntity.getId(), recordingModel)
+        );
 
-        assertThat(recordingService.upsert(bookingEntity.getId(), recordingModel)).isEqualTo(UpsertResult.UPDATED);
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
+        verify(recordingRepository, times(1))
+            .findById(recordingModel.getId());
+        verify(recordingRepository, never()).save(any());
     }
 
     @DisplayName("Fail to create recording - Booking not found")

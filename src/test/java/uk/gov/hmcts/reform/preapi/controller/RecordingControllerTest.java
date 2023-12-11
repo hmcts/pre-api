@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.controllers.RecordingController;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
@@ -208,6 +209,28 @@ class RecordingControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Not found: Booking: " + bookingId + "\"}");
+    }
+
+    @DisplayName("Should fail to update a recording with 400 response code when it has been marked as deleted")
+    @Test
+    void updateRecordingBookingBadRequest() throws Exception {
+        var bookingId = UUID.randomUUID();
+        var recordingId = UUID.randomUUID();
+        var recording = new CreateRecordingDTO();
+        recording.setId(recordingId);
+
+        doThrow(new UpdateDeletedException("Recording: " + recordingId)).when(recordingService).upsert(any(), any());
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Trying to undeleted: Recording: " + recordingId + "\"}");
     }
 
     @DisplayName("Should fail to create/update a recording with 404 response code when capture session does not exist")

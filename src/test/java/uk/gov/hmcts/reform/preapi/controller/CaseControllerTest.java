@@ -16,7 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.List;
@@ -45,9 +45,6 @@ class CaseControllerTest {
 
     @MockBean
     private CaseService caseService;
-
-    @MockBean
-    private CaseRepository caseRepository;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
@@ -179,6 +176,29 @@ class CaseControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Court: " + courtId));
+    }
+
+    @DisplayName("Should return 400 when case has been marked as deleted")
+    @Test
+    void updateCaseBadRequest() throws Exception {
+        UUID caseId = UUID.randomUUID();
+        UUID courtId = UUID.randomUUID();
+        var newCaseRequestDTO = new CreateCaseDTO();
+        newCaseRequestDTO.setId(caseId);
+        newCaseRequestDTO.setCourtId(courtId);
+
+        doThrow(new UpdateDeletedException("Case: " + caseId)).when(caseService).upsert(newCaseRequestDTO);
+
+        MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Trying to undeleted: Case: " + caseId + "\"}");
     }
 
     @DisplayName("Should delete case with 200 response code")
