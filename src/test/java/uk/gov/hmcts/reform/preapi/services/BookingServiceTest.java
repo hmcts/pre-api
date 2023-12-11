@@ -13,10 +13,12 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,6 +31,9 @@ class BookingServiceTest {
 
     @MockBean
     private BookingRepository bookingRepository;
+
+    @MockBean
+    private RecordingRepository recordingRepository;
 
     @Autowired
     private BookingService bookingService;
@@ -48,8 +53,9 @@ class BookingServiceTest {
         bookingEntity.setCaseId(caseEntity);
         var bookingModel = new BookingDTO(bookingEntity);
 
-        when(bookingRepository.findById(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
-
+        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
+        when(recordingRepository.findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(bookingId))
+            .thenReturn(Collections.emptyList());
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }
 
@@ -69,6 +75,7 @@ class BookingServiceTest {
 
         var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
 
+        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(false);
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
