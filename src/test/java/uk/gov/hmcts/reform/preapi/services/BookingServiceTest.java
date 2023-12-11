@@ -9,29 +9,26 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-<<<<<<< HEAD
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
-=======
+
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
->>>>>>> couple of extra tests
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
-import java.sql.Timestamp;
-import java.time.Instant;
+
 import java.util.Optional;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-<<<<<<< HEAD
-import static org.junit.jupiter.api.Assertions.assertThrows;
-=======
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
->>>>>>> couple of extra tests
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = BookingService.class)
@@ -126,5 +123,48 @@ class BookingServiceTest {
             .withMessage("Resource BookingDTO("
                              + bookingModel.getId().toString()
                              + ") is in a deleted state and cannot be updated");
+    }
+
+    @DisplayName("Delete a booking")
+    @Test
+    void deleteBookingSuccess() {
+
+        var bookingId = UUID.randomUUID();
+        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
+        bookingEntity.setId(bookingId);
+
+        var recordingEntity = new uk.gov.hmcts.reform.preapi.entities.Recording();
+        recordingEntity.setId(UUID.randomUUID());
+
+        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
+        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
+        when(recordingRepository.searchAllBy(bookingId, null, null))
+            .thenReturn(new ArrayList<Recording>() {
+                {
+                    add(recordingEntity);
+                }
+            });
+
+        bookingService.markAsDeleted(bookingId);
+        assertThat(bookingEntity.getDeletedAt()).isNotNull();
+        assertTrue(recordingEntity.isDeleted());
+        verify(bookingRepository, times(1)).save(bookingEntity);
+        verify(recordingRepository, times(1)).save(recordingEntity);
+    }
+
+    @DisplayName("Delete a booking that doesn't exist")
+    @Test
+    void deleteBookingSuccessAlthoughDoesntExist() {
+
+        var bookingId = UUID.randomUUID();
+        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
+        bookingEntity.setId(bookingId);
+
+        var recordingEntity = new uk.gov.hmcts.reform.preapi.entities.Recording();
+        recordingEntity.setId(UUID.randomUUID());
+
+        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.empty());
+        verify(bookingRepository, times(0)).save(bookingEntity);
+        verify(recordingRepository, times(0)).save(recordingEntity);
     }
 }
