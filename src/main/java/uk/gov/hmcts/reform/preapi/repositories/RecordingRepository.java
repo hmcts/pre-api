@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.repositories;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
@@ -17,7 +19,26 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         UUID bookingId
     );
 
-    List<Recording> findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(UUID bookingId);
+    @Query(
+        """
+        SELECT r FROM Recording r
+        WHERE r.deletedAt IS NULL
+        AND r.captureSession.booking.id = :bookingId
+        AND (
+            CAST(:captureSessionId as uuid) IS NULL OR
+            r.captureSession.id = :captureSessionId
+        )
+        AND (
+            CAST(:parentRecordingId as uuid) IS NULL OR
+            r.parentRecording.id = :parentRecordingId
+        )
+        """
+    )
+    List<Recording> searchAllBy(
+        @Param("bookingId") UUID bookingId,
+        @Param("captureSessionId") UUID captureSessionId,
+        @Param("parentRecordingId") UUID parentRecordingId
+    );
 
     boolean existsByIdAndDeletedAtIsNull(UUID id);
 }

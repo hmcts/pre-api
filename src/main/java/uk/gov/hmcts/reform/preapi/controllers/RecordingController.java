@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
@@ -46,10 +47,12 @@ public class RecordingController extends PreApiController {
 
     @GetMapping
     public ResponseEntity<List<CreateRecordingDTO>> getAllRecordingsByBookingId(
-        @PathVariable UUID bookingId
+        @PathVariable UUID bookingId,
+        @RequestParam(required = false) UUID captureSessionId,
+        @RequestParam(required = false) UUID parentRecordingId
     ) {
         // TODO Recordings returned need to be shared with the user
-        return ResponseEntity.ok(recordingService.findAllByBookingId(bookingId));
+        return ResponseEntity.ok(recordingService.findAllByBookingId(bookingId, captureSessionId, parentRecordingId));
     }
 
     @PutMapping("/{recordingId}")
