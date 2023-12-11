@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -256,10 +257,10 @@ class BookingControllerTest {
             .andExpect(status().is5xxServerError());
     }
 
-    @DisplayName("Should fail to update a booking with 400 response code")
-    @Test
-    void updateBookingEndpoint400() throws Exception {
 
+    @DisplayName("Should delete a booking with 202 response code")
+    @Test
+    void deleteBookingEndpoint202() throws Exception {
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
         var booking = new CreateBookingDTO();
@@ -269,21 +270,13 @@ class BookingControllerTest {
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
-        doThrow(new UpdateDeletedException("Booking: " + bookingId)).when(bookingService).upsert(any());
 
-        var response = mockMvc.perform(put(getPath(caseId, bookingId))
+        mockMvc.perform(delete(getPath(caseId, bookingId))
                             .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
+            .andExpect(status().isNoContent());
 
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Trying to undeleted: Booking: " + bookingId + "\"}");
     }
-
-
 
     private String getPath(UUID caseId, UUID bookingId) {
         return "/cases/" + caseId + "/bookings/" + bookingId;
