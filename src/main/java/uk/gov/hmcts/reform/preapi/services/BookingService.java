@@ -1,13 +1,17 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.sql.Timestamp;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -16,20 +20,28 @@ import java.util.stream.Stream;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
+    private final RecordingRepository recordingRepository;
 
     @Autowired
-    public BookingService(final BookingRepository bookingRepository) {
+    public BookingService(final BookingRepository bookingRepository,
+                          final RecordingRepository recordingRepository) {
         this.bookingRepository = bookingRepository;
+        this.recordingRepository = recordingRepository;
     }
 
     public BookingDTO findById(UUID id) {
 
-        return bookingRepository.findById(id)
+        return bookingRepository.findByIdAndDeletedAtIsNull(id)
             .map(BookingDTO::new)
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
+
+        if (bookingAlreadyDeleted(createBookingDTO.getId())) {
+            throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
+        }
+
         var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
         var caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
         caseEntity.setId(createBookingDTO.getCaseId());
@@ -54,10 +66,21 @@ public class BookingService {
         return updated ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
+    private boolean bookingAlreadyDeleted(UUID id) {
+        return bookingRepository.existsByIdAndDeletedAtIsNotNull(id);
+    }
+
+    @Transactional
     public void markAsDeleted(UUID id) {
-        var entity = bookingRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Booking not found"));
-        entity.setDeletedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        bookingRepository.save(entity);
+        var entity = bookingRepository.findById(id);
+        if (entity.isPresent()) {
+            entity.get().setDeletedAt(new Timestamp(System.currentTimeMillis()));
+            bookingRepository.save(entity.get());
+            recordingRepository.findAllByCaptureSession_Booking_IdAndDeletedAtIsNull(id)
+                .forEach(recording -> {
+                    recording.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+                    recordingRepository.save(recording);
+                });
+        }
     }
 }
