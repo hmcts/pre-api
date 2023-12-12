@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Time;
+import java.time.Duration;
 import java.util.UUID;
 
 @Data
@@ -20,7 +21,7 @@ public class CreateRecordingDTO {
     Integer version;
     String url; // is this not needed now as it's different for every user?
     String filename;
-    Time duration;
+    Duration duration;
     String editInstructions;
 
     public CreateRecordingDTO(Recording recording) {
