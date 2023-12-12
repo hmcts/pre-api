@@ -16,7 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.List;
@@ -187,7 +187,8 @@ class CaseControllerTest {
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
 
-        doThrow(new UpdateDeletedException("Case: " + caseId)).when(caseService).upsert(newCaseRequestDTO);
+        doThrow(new ResourceInDeletedStateException("CaseDTO", caseId.toString()))
+            .when(caseService).upsert(newCaseRequestDTO);
 
         MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
                                                  .with(csrf())
@@ -198,7 +199,9 @@ class CaseControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Trying to undeleted: Case: " + caseId + "\"}");
+            .isEqualTo("{\"message\":\"Resource CaseDTO("
+                           + caseId + ") is in a deleted state and cannot be updated\"}"
+            );
     }
 
     @DisplayName("Should delete case with 200 response code")
