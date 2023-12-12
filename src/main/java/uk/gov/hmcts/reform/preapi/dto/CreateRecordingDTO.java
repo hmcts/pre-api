@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
-import java.sql.Time;
 import java.time.Duration;
 import java.util.UUID;
 
