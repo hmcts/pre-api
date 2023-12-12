@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
@@ -78,5 +79,19 @@ public class RecordingController extends PreApiController {
         // TODO Ensure user has access to the recording
         recordingService.deleteById(bookingId, recordingId);
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{recordingId}/share")
+    public ResponseEntity<Void> shareRecordingById(
+        @PathVariable UUID bookingId,
+        @PathVariable UUID recordingId,
+        @RequestBody ShareRecordingDTO shareRecordingDTO
+    ) {
+        // TODO Ensure user has access to share the recording
+        if (!recordingId.equals(shareRecordingDTO.getCaptureSessionId())) {
+            throw new PathPayloadMismatchException("recordingId", "shareRecordingDTO.captureSessionId");
+        }
+
+        return getUpsertResponse(recordingService.shareRecordingById(bookingId, shareRecordingDTO), shareRecordingDTO.getId());
     }
 }
