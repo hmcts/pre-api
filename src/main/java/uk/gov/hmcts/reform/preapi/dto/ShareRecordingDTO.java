@@ -16,4 +16,11 @@ public class ShareRecordingDTO {
     private UUID captureSessionId;
     private UUID sharedWithUserId;
     private UUID sharedByUserId;
+
+    public ShareRecordingDTO(ShareRecording shareRecordingEntity) {
+        this.id = shareRecordingEntity.getId();
+        this.captureSessionId = shareRecordingEntity.getCaptureSession().getId();
+        this.sharedWithUserId = shareRecordingEntity.getSharedWith().getId();
+        this.sharedByUserId = shareRecordingEntity.getSharedBy().getId();
+    }
 }
