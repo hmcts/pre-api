@@ -56,6 +56,10 @@ public class FunctionalTestBase {
             .thenReturn();
     }
 
+    protected Response doPostRequest(final String path) {
+        return doPostRequest(path, null, "");
+    }
+
     protected Response doPostRequest(final String path, final String body) {
         return doPostRequest(path, null, body);
     }
