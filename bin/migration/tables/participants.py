@@ -10,6 +10,11 @@ class ParticipantManager:
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
+        batch_participant_data = []
+        case_not_found_count = 0
+        type_not_found_count = 0
+        created_by = None
+
         for participant in source_data:
             id = participant[0]
             p_type = participant[3]
@@ -18,13 +23,16 @@ class ParticipantManager:
                 "SELECT case_id FROM public.bookings WHERE id = %s", (participant[4],)
             )
             case_id = destination_cursor.fetchone()
+
             
             if not case_id:
-                self.failed_imports.add(('participants', id, 'case_id not found in cases table'))
+                case_not_found_count += 1
+                self.failed_imports.add(('contacts', id, 'case_id not found in cases table'))
                 continue
             
-            if not p_type:
-                self.failed_imports.add(('participants', id, 'no participant type detail'))
+            if p_type is None:
+                type_not_found_count += 1
+                self.failed_imports.add(('contacts', id, 'no participant type detail'))
                 continue
 
             if not check_existing_record(destination_cursor,'participants','case_id', case_id):
@@ -33,28 +41,39 @@ class ParticipantManager:
                 last_name = participant[7]
                 created_at = parse_to_timestamp(participant[9])
                 modified_at = parse_to_timestamp(participant[11])
+                created_by = participant[8]
 
-                try:
-                    destination_cursor.execute(
-                        """
-                        INSERT INTO public.participants 
-                            (id, case_id, participant_type, first_name, last_name, created_at, modified_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s )
-                        """,
-                        (id, case_id, participant_type, first_name, last_name,  created_at, modified_at),
-                    )
+                batch_participant_data.append((id, case_id, participant_type, first_name, last_name, created_at, modified_at))
+                
+        try:
+            if batch_participant_data:
+                print("Batch Participant Data:", batch_participant_data)  # Check data before insertion
+                
+                destination_cursor.executemany(
+                    """
+                    INSERT INTO public.participants 
+                        (id, case_id, participant_type, first_name, last_name, created_at, modified_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    batch_participant_data,
+                )
 
-                    created_by = participant[8]
+                destination_cursor.connection.commit()
+
+                for entry in batch_participant_data:
                     audit_entry_creation(
                         destination_cursor,
                         table_name="participants",
-                        record_id=id,
-                        record=case_id,
-                        created_at=created_at,
-                        created_by=created_by,
+                        record_id=entry[0],
+                        record=entry[1],
+                        created_at=entry[5],
+                        created_by=created_by
                     )
 
-                except Exception as e:  
-                    self.failed_imports.add(('participants', id, e))
+        except Exception as e:
+            print("Exception occurred during insertion:", e)  # Print exception details for debugging
+            self.failed_imports.add(('contacts', id, e))
+
         
-        log_failed_imports(self.failed_imports)            
+        log_failed_imports(self.failed_imports) 
+      

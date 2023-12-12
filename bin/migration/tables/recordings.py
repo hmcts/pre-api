@@ -37,9 +37,9 @@ class RecordingManager:
             destination_cursor.execute("SELECT capture_session_id FROM public.temp_recordings WHERE parent_recording_id = %s", (parent_recording_id,)) 
             result = destination_cursor.fetchone()
 
-            # if not result: 
-            #     self.failed_imports.add(('recordings', recording[0], 'parent recording id does not match a recording id'))
-            #     continue
+            if result is None: 
+                self.failed_imports.add(('recordings', recording[0], 'parent recording id does not match a recording id'))
+                continue
 
             capture_session_id = result[0]
             if not check_existing_record(destination_cursor,'recordings', 'id', id) and check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):

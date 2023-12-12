@@ -2,7 +2,7 @@ from datetime import datetime
 import pytz
 import uuid
 
-# parse date string to timestamp UTC value
+# Parses timestamp string to date format
 def parse_to_timestamp(input_text):
     if input_text:
         try:
@@ -25,7 +25,7 @@ def parse_to_timestamp(input_text):
     # if input is invalid or empty, returning the current time in UK timezone
     return datetime.now(tz=pytz.timezone('Europe/London')).strftime('%Y-%m-%d %H:%M:%S')
 
-# checks if a record has already been imported
+# Checks if
 def check_existing_record(db_connection, table_name, field, record):
     query = f"SELECT EXISTS (SELECT 1 FROM public.{table_name} WHERE {field} = %s)"
     db_connection.execute(query, (record,))
@@ -69,7 +69,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         failed_imports.add(('court_regions', table_name, record_id))
         log_failed_imports(failed_imports)
 
-
+# logs failed imports to file
 def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
     with open(filename, 'a') as file:
         for entry in failed_imports:
@@ -82,3 +82,6 @@ def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
                 raise ValueError("Each entry in failed_imports should have 2 or 3 elements")
             
             file.write(f"Table: {table_name}, ID: {failed_id}, Details: {details}\n")
+
+
+            

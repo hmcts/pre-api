@@ -2,6 +2,33 @@
 
 This script manages the migration of data from a source database to a destination database.
 
+
+## How to Run the Script
+
+1. **Set Environment Variables:** :
+    ```
+    export SOURCE_DB_PASSWORD=<source_db_password>
+    export DESTINATION_DB_PASSWORD=<destination_db_password>
+    ```
+
+2. **Install Dependencies:** Install the required Python packages if not installed already:
+    ```
+    pip install -r requirements.txt
+    ```
+
+3. **Execute the Script:** Run the migration script:
+    ```
+    python migration_script.py
+    ```
+
+4. **Test the migrated counts:** Run the summary script:
+    ```
+    python summary.py
+    ```
+
+## Summary
+The `summary.py` file provides an overview of database record counts for the source and destination dbs and count of failed imports
+
 ## DatabaseManager Class
 
 ### Methods:
@@ -76,6 +103,4 @@ Manages the migration of capture session data.
 
 ### RecordingManager
 Handles the migration of recording data.
-
-
 
