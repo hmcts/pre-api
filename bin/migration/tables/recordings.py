@@ -71,22 +71,12 @@ class RecordingManager:
         for recording in non_duplicate_parent_id_records:
             id = recording[0]
             parent_recording_id = recording[9]
-            # parent_recording_id = recording[9] if recording[9] in [rec[0] for rec in source_data] else None
-
-            # if parent_recording_id is None:
-            #     self.failed_imports.add(('recordings', recording[0], 'no parent recording'))
-            #     continue
-
-            # if parent_recording_id not in [rec[0] for rec in duplicate_parent_id_records]:
-            #     self.failed_imports.add(('recordings', recording[0], 'parent recording id does not match a recording id'))
-            #     continue
+            
 
             destination_cursor.execute("SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s",(parent_recording_id,)) 
             result = destination_cursor.fetchone()
 
-            # if not result:
-            #     self.failed_imports.add(('recordings', id,'recording not in capture sessions'))
-            #     continue
+
 
             capture_session_id = result[0]
 

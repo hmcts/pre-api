@@ -11,8 +11,7 @@ class ParticipantManager:
 
     def migrate_data(self, destination_cursor, source_data):
         batch_participant_data = []
-        case_not_found_count = 0
-        type_not_found_count = 0
+
         created_by = None
 
         for participant in source_data:
@@ -26,12 +25,10 @@ class ParticipantManager:
 
             
             if not case_id:
-                case_not_found_count += 1
                 self.failed_imports.add(('contacts', id, 'case_id not found in cases table'))
                 continue
             
             if p_type is None:
-                type_not_found_count += 1
                 self.failed_imports.add(('contacts', id, 'no participant type detail'))
                 continue
 
@@ -47,7 +44,6 @@ class ParticipantManager:
                 
         try:
             if batch_participant_data:
-                print("Batch Participant Data:", batch_participant_data)  # Check data before insertion
                 
                 destination_cursor.executemany(
                     """
@@ -71,7 +67,6 @@ class ParticipantManager:
                     )
 
         except Exception as e:
-            print("Exception occurred during insertion:", e)  # Print exception details for debugging
             self.failed_imports.add(('contacts', id, e))
 
         
