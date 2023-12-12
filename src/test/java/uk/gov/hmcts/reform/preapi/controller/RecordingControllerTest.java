@@ -15,7 +15,7 @@ import uk.gov.hmcts.reform.preapi.controllers.RecordingController;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
@@ -219,7 +219,8 @@ class RecordingControllerTest {
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
 
-        doThrow(new UpdateDeletedException("Recording: " + recordingId)).when(recordingService).upsert(any(), any());
+        doThrow(new ResourceInDeletedStateException("RecordingDTO", recordingId.toString()))
+            .when(recordingService).upsert(any(), any());
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
                                                  .with(csrf())
@@ -230,7 +231,9 @@ class RecordingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Trying to undeleted: Recording: " + recordingId + "\"}");
+            .isEqualTo("{\"message\":\"Resource RecordingDTO("
+                           + recordingId + ") is in a deleted state and cannot be updated\"}"
+            );
     }
 
     @DisplayName("Should fail to create/update a recording with 404 response code when capture session does not exist")

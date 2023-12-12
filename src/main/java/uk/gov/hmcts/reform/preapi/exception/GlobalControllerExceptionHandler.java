@@ -52,8 +52,8 @@ public class GlobalControllerExceptionHandler {
                                     HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(UpdateDeletedException.class)
-    ResponseEntity<String> unknownServerExceptionHandler(final UpdateDeletedException ex)
+    @ExceptionHandler(ResourceInDeletedStateException.class)
+    ResponseEntity<String> resourceInDeletedStateException(final ResourceInDeletedStateException ex)
         throws JsonProcessingException {
         HashMap<String, String> error = new HashMap<>();
         HttpHeaders responseHeaders = new HttpHeaders();
