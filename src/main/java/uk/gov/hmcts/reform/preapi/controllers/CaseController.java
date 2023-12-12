@@ -49,7 +49,6 @@ public class CaseController extends PreApiController {
         if (!id.toString().equals(createCaseDTO.getId().toString())) {
             throw new PathPayloadMismatchException("id", "createCaseDTO.id");
         }
-
         return getUpsertResponse(caseService.upsert(createCaseDTO), createCaseDTO.getId());
     }
 
