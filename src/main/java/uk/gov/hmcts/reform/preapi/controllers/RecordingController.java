@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
@@ -33,20 +34,20 @@ public class RecordingController extends PreApiController {
     }
 
     @GetMapping("/{recordingId}")
-    public ResponseEntity<CreateRecordingDTO> getRecordingById(
+    public ResponseEntity<RecordingDTO> getRecordingById(
         @PathVariable UUID bookingId,
         @PathVariable UUID recordingId
     ) {
         // TODO Recordings returned need to be shared with the current user
-        CreateRecordingDTO createRecordingDTO = recordingService.findById(bookingId, recordingId);
-        if (createRecordingDTO == null) {
-            throw new NotFoundException("CreateRecordingDTO: " + recordingId);
+        var recordingDTO = recordingService.findById(bookingId, recordingId);
+        if (recordingDTO == null) {
+            throw new NotFoundException("RecordingDTO: " + recordingId);
         }
-        return ResponseEntity.ok(createRecordingDTO);
+        return ResponseEntity.ok(recordingDTO);
     }
 
     @GetMapping
-    public ResponseEntity<List<CreateRecordingDTO>> getAllRecordingsByBookingId(
+    public ResponseEntity<List<RecordingDTO>> getAllRecordingsByBookingId(
         @PathVariable UUID bookingId,
         @RequestParam(required = false) UUID captureSessionId,
         @RequestParam(required = false) UUID parentRecordingId

@@ -30,8 +30,7 @@ class BookingControllerFT extends FunctionalTestBase {
             MessageFormat.format(RECORDINGS_ENDPOINT, bookingId) + recordingId);
         assertThat(recordingResponse.statusCode()).isEqualTo(200);
         assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recordingId);
-        // @todo add this test once we return the full RecordingDTO instead of the CreateRecordingDTO
-        // assertThat(recordingResponse.body().jsonPath().getString("createdAt")).isNotBlank();
+        assertThat(recordingResponse.body().jsonPath().getString("createdAt")).isNotBlank();
 
         var deleteResponse = doDeleteRequest(
             MessageFormat.format(BOOKINGS_ENDPOINT, caseId) + bookingId);
