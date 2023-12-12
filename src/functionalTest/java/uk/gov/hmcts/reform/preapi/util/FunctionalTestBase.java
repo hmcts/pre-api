@@ -60,7 +60,9 @@ public class FunctionalTestBase {
         return doPostRequest(path, null, body);
     }
 
-    protected Response doPostRequest(final String path, final Map<String, String> additionalHeaders, final String body) {
+    protected Response doPostRequest(final String path,
+                                     final Map<String, String> additionalHeaders,
+                                     final String body) {
         return given()
             .relaxedHTTPSValidation()
             .headers(getRequestHeaders(additionalHeaders))

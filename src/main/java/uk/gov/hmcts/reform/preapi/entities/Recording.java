@@ -17,7 +17,6 @@ import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
 

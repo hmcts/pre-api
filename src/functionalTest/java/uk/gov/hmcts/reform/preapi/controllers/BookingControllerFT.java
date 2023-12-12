@@ -78,8 +78,6 @@ class BookingControllerFT extends FunctionalTestBase {
         room.setName("Foo Room");
         room.setCourts(Set.of(court));
         roomRepository.save(room);
-//        court.setRooms(Set.of(room));
-//        courtRepository.save(court);
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
@@ -90,14 +88,12 @@ class BookingControllerFT extends FunctionalTestBase {
         var participant1 = new Participant();
         participant1.setId(UUID.randomUUID());
         participant1.setParticipantType(ParticipantType.WITNESS);
-//        participant1.setBookings(Set.of(booking));
         participant1.setCaseId(caseEntity);
         participant1.setFirstName("John");
         participant1.setLastName("Smith");
         var participant2 = new Participant();
         participant2.setId(UUID.randomUUID());
         participant2.setParticipantType(ParticipantType.DEFENDANT);
-//        participant2.setBookings(Set.of(booking));
         participant2.setCaseId(caseEntity);
         participant2.setFirstName("Jane");
         participant2.setLastName("Doe");
@@ -151,18 +147,22 @@ class BookingControllerFT extends FunctionalTestBase {
         var savedRec = recordingRepository.save(recording);
         assertThat(savedRec.getCreatedAt()).isNotNull();
 
-        var bookingResponse = doGetRequest(MessageFormat.format(BOOKINGS_ENDPOINT, caseEntity.getId()) + booking.getId());
+        var bookingResponse = doGetRequest(
+            MessageFormat.format(BOOKINGS_ENDPOINT, caseEntity.getId()) + booking.getId());
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookingResponse.body().jsonPath().getString("id")).isEqualTo(booking.getId().toString());
 
-        var recordingResponse = doGetRequest(MessageFormat.format(RECORDINGS_ENDPOINT, booking.getId()) + recording.getId());
+        var recordingResponse = doGetRequest(
+            MessageFormat.format(RECORDINGS_ENDPOINT, booking.getId()) + recording.getId());
         assertThat(recordingResponse.statusCode()).isEqualTo(200);
         assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recording.getId().toString());
 
-        var deleteResponse = doDeleteRequest(MessageFormat.format(BOOKINGS_ENDPOINT, caseEntity.getId()) + booking.getId());
+        var deleteResponse = doDeleteRequest(
+            MessageFormat.format(BOOKINGS_ENDPOINT, caseEntity.getId()) + booking.getId());
         assertThat(deleteResponse.statusCode()).isEqualTo(204);
 
-        var recordingResponse2 = doGetRequest(MessageFormat.format(RECORDINGS_ENDPOINT, booking.getId()) + recording.getId());
+        var recordingResponse2 = doGetRequest(
+            MessageFormat.format(RECORDINGS_ENDPOINT, booking.getId()) + recording.getId());
         assertThat(recordingResponse2.statusCode()).isEqualTo(404);
     }
 }
