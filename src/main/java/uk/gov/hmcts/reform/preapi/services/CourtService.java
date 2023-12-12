@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -74,28 +73,31 @@ public class CourtService {
             }
         });
 
-        var regions = createCourtDTO.getRegions()
-            .stream()
-            .map(regionRepository::findById)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toSet());
+        /*
+                var regions = createCourtDTO.getRegions()
+                    .stream()
+                    .map(regionRepository::findById)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toSet());
 
-        var rooms = createCourtDTO.getRooms()
-            .stream()
-            .map(roomRepository::findById)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(Collectors.toSet());
+                var rooms = createCourtDTO.getRooms()
+                    .stream()
+                    .map(roomRepository::findById)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toSet());
+        */
 
         var courtEntity = new Court();
         courtEntity.setName(createCourtDTO.getName());
         courtEntity.setCourtType(createCourtDTO.getCourtType());
         courtEntity.setLocationCode(createCourtDTO.getLocationCode());
-        // TODO waiting for db migration
-        //        courtEntity.setRegions(regions);
-        //        courtEntity.setRooms(rooms);
-
+        /*
+         TODO waiting for db migration
+         courtEntity.setRegions(regions);
+         courtEntity.setRooms(rooms);
+        */
         var isUpdate = courtRepository.existsById(createCourtDTO.getId());
         courtEntity.setId(createCourtDTO.getId());
         courtRepository.save(courtEntity);
