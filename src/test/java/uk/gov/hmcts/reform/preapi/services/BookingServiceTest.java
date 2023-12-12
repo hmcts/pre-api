@@ -98,7 +98,7 @@ class BookingServiceTest {
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
     }
 
-    @DisplayName("Update a booking deleted booking")
+    @DisplayName("Update a booking when booking has been deleted")
     @Test
     void upsertBookingFailureAlreadyDeleted() {
 
