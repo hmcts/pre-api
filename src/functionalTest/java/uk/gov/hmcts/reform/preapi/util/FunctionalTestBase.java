@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.Application;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 import static io.restassured.RestAssured.given;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
@@ -32,6 +33,7 @@ public class FunctionalTestBase {
     }
 
     protected Response doGetRequest(final String path, final Map<String, String> additionalHeaders) {
+        Logger.getAnonymousLogger().info("GET " + path);
         return given()
             .relaxedHTTPSValidation()
             .headers(getRequestHeaders(additionalHeaders))
@@ -68,15 +70,14 @@ public class FunctionalTestBase {
             .thenReturn();
     }
 
-    protected Response doDeleteRequest(final String path, final String body) {
-        return doDeleteRequest(path, null, body);
+    protected Response doDeleteRequest(final String path) {
+        return doDeleteRequest(path, null);
     }
 
-    protected Response doDeleteRequest(final String path, final Map<String, String> additionalHeaders, final String body) {
+    protected Response doDeleteRequest(final String path, final Map<String, String> additionalHeaders) {
         return given()
             .relaxedHTTPSValidation()
             .headers(getRequestHeaders(additionalHeaders))
-            .body(body)
             .when()
             .delete(path)
             .thenReturn();

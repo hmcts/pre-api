@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
 
+import io.hypersistence.utils.hibernate.type.interval.PostgreSQLIntervalType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -12,11 +13,13 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Duration;
 
 @Getter
 @Setter
@@ -44,8 +47,12 @@ public class Recording extends BaseEntity {
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 
-    @Column(name = "duration")
-    private Time duration;
+    @Type(PostgreSQLIntervalType.class)
+    @Column(
+        name = "duration",
+        columnDefinition = "interval"
+    )
+    private Duration duration;
 
     @Column(name = "edit_instruction")
     @JdbcTypeCode(SqlTypes.JSON)
