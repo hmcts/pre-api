@@ -50,6 +50,8 @@ Creates an audit entry in the database for a new record.
 ### `log_failed_imports(failed_imports, filename='failed_imports_log.txt')`
 Writes to failed_imports_log if record import fails
 
+### `clear_migrations_file(filename='failed_imports_log.txt')`
+Clears the failed imports log before the migration to avoid duplicate entries
 
 ## Main Logic 
 

@@ -29,9 +29,9 @@ class CaptureSessionManager:
                 """SELECT * FROM public.temp_recordings WHERE recording_id = %s""",
                 (recording_id,)
             )
-            existing_record = destination_cursor.fetchone()
+            existing_record_in_temp_table = destination_cursor.fetchone()
 
-            if not existing_record:
+            if not existing_record_in_temp_table:
                 capture_session_id = str(uuid.uuid4())
                 booking_id = recording[1]
                 parent_recording_id = recording[9]
@@ -76,8 +76,7 @@ class CaptureSessionManager:
                     )
                 except Exception as e:  
                     self.failed_imports.add(('capture_sessions', id,e))
-
-            # else:
-            #     self.failed_imports.add(('capture_sessions', id))
+            else:
+                self.failed_imports.add(('capture_sessions', id))
                 
         log_failed_imports(self.failed_imports)

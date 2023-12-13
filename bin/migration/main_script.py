@@ -19,6 +19,7 @@ from tables.capturesessions import CaptureSessionManager
 from tables.recordings import RecordingManager
 from tables.audits import AuditLogManager
 
+from tables.helpers import clear_migrations_file
 
 # get passwords from env variables
 source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
@@ -68,6 +69,8 @@ def migrate_manager_data(manager, destination_cursor):
 
 
 def main():
+    clear_migrations_file()
+
     destination_db_cursor = destination_db.connection.cursor()
 
     migrate_manager_data(room_manager, destination_db_cursor) 
