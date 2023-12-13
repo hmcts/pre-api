@@ -18,7 +18,7 @@ public class BaseEntity {
     private UUID id;
 
     @PrePersist
-    protected void prePersist() {
+    public void prePersist() {
         if (getId() == null) {
             setId(UUID.randomUUID());
         }
