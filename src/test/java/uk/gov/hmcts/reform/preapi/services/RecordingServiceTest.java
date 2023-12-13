@@ -14,7 +14,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -223,7 +223,7 @@ class RecordingServiceTest {
         ).thenReturn(Optional.of(recordingEntity));
 
         assertThrows(
-            UpdateDeletedException.class,
+            ResourceInDeletedStateException.class,
             () -> recordingService.upsert(bookingEntity.getId(), recordingModel)
         );
 
