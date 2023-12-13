@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.entities.base;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,8 +25,9 @@ public class CreatedModifiedAtEntity extends BaseEntity {
         setModifiedAt(new Timestamp(System.currentTimeMillis()));
     }
 
-    @PrePersist
+    @Override
     public void prePersist() {
+        super.prePersist();
         setCreatedAt(new Timestamp(System.currentTimeMillis()));
     }
 }
