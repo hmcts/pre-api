@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@SuppressWarnings("PMD.MethodNamingConventions")
 public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
     Optional<AppAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID userId);
 }
