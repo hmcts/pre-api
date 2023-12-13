@@ -30,7 +30,8 @@ class BookingControllerFT extends FunctionalTestBase {
             MessageFormat.format(RECORDINGS_ENDPOINT, bookingId) + recordingId);
         assertThat(recordingResponse.statusCode()).isEqualTo(200);
         assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recordingId);
-        assertThat(recordingResponse.body().jsonPath().getString("createdAt")).isNotBlank();
+        var recordingCreatedAt = recordingResponse.body().prettyPrint();
+        assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
         var deleteResponse = doDeleteRequest(
             MessageFormat.format(BOOKINGS_ENDPOINT, caseId) + bookingId);
