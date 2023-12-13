@@ -9,12 +9,15 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
@@ -36,6 +39,79 @@ class BookingServiceTest {
 
     @Autowired
     private BookingService bookingService;
+
+    @DisplayName("Find All By CaseId")
+    @Test
+    void findAllByCaseIdSuccess() {
+
+
+        var courtEntity = new Court();
+        courtEntity.setId(UUID.randomUUID());
+        var caseEntity = new Case();
+        caseEntity.setId(UUID.randomUUID());
+        caseEntity.setCourt(courtEntity);
+        var bookingEntity1 = new Booking();
+        bookingEntity1.setId(UUID.randomUUID());
+        bookingEntity1.setCaseId(caseEntity);
+        var bookingEntity2 = new Booking();
+        bookingEntity2.setId(UUID.randomUUID());
+        bookingEntity2.setCaseId(caseEntity);
+        var bookingModel1 = new BookingDTO(bookingEntity1);
+        var bookingModel2 = new BookingDTO(bookingEntity2);
+
+        when(bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseEntity.getId()))
+            .thenReturn(new ArrayList<>() {
+                {
+                    add(bookingEntity1);
+                    add(bookingEntity2);
+                }
+            });
+        assertThat(bookingService.findAllByCaseId(caseEntity.getId())).isEqualTo(new ArrayList<>() {
+            {
+                add(bookingModel1);
+                add(bookingModel2);
+            }
+        });
+    }
+
+    @DisplayName("Search By Case Ref")
+    @Test
+    void searchByCaseRefSuccess() {
+
+
+        var courtEntity = new Court();
+        courtEntity.setId(UUID.randomUUID());
+        var caseEntity1 = new Case();
+        caseEntity1.setId(UUID.randomUUID());
+        caseEntity1.setCourt(courtEntity);
+        caseEntity1.setReference("MyRef1");
+        var caseEntity2 = new Case();
+        caseEntity2.setId(UUID.randomUUID());
+        caseEntity2.setCourt(courtEntity);
+        caseEntity2.setReference("MyRef2");
+        var bookingEntity1 = new Booking();
+        bookingEntity1.setId(UUID.randomUUID());
+        bookingEntity1.setCaseId(caseEntity1);
+        var bookingEntity2 = new Booking();
+        bookingEntity2.setId(UUID.randomUUID());
+        bookingEntity2.setCaseId(caseEntity2);
+        var bookingModel1 = new BookingDTO(bookingEntity1);
+        var bookingModel2 = new BookingDTO(bookingEntity2);
+
+        when(bookingRepository.searchBookingsBy("MyRef"))
+            .thenReturn(new ArrayList<>() {
+                {
+                    add(bookingEntity1);
+                    add(bookingEntity2);
+                }
+            });
+        assertThat(bookingService.searchBy("MyRef")).isEqualTo(new ArrayList<>() {
+            {
+                add(bookingModel1);
+                add(bookingModel2);
+            }
+        });
+    }
 
     @DisplayName("Get a booking")
     @Test

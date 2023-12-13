@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,6 +37,22 @@ public class BookingService {
         return bookingRepository.findByIdAndDeletedAtIsNull(id)
             .map(BookingDTO::new)
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
+    }
+
+    public List<BookingDTO> findAllByCaseId(UUID caseId) {
+        return bookingRepository
+            .findByCaseId_IdAndDeletedAtIsNull(caseId)
+            .stream()
+            .map(BookingDTO::new)
+            .collect(Collectors.toList());
+    }
+
+    public List<BookingDTO> searchBy(String caseReference) {
+        return bookingRepository
+            .searchBookingsBy(caseReference)
+            .stream()
+            .map(BookingDTO::new)
+            .collect(Collectors.toList());
     }
 
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
