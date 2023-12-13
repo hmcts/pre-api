@@ -7,13 +7,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class CreateRecordingDTO {
+public class RecordingDTO {
     UUID id;
     UUID captureSessionId;
     UUID parentRecordingId;
@@ -22,8 +23,10 @@ public class CreateRecordingDTO {
     String filename;
     Duration duration;
     String editInstructions;
+    Timestamp deletedAt;
+    Timestamp createdAt;
 
-    public CreateRecordingDTO(Recording recording) {
+    public RecordingDTO(Recording recording) {
         id = recording.getId();
         captureSessionId = recording.getCaptureSession().getId();
         parentRecordingId = recording.getParentRecording() != null
@@ -34,5 +37,7 @@ public class CreateRecordingDTO {
         filename = recording.getFilename();
         duration = recording.getDuration();
         editInstructions = recording.getEditInstruction();
+        deletedAt = recording.getDeletedAt();
+        createdAt = recording.getCreatedAt();
     }
 }

@@ -5,10 +5,11 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UpdateDeletedException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -35,7 +36,7 @@ public class RecordingService {
     }
 
     @Transactional
-    public CreateRecordingDTO findById(UUID bookingId, UUID recordingId) {
+    public RecordingDTO findById(UUID bookingId, UUID recordingId) {
         checkBookingValid(bookingId);
 
         return recordingRepository
@@ -43,12 +44,12 @@ public class RecordingService {
                 recordingId,
                 bookingId
             )
-            .map(CreateRecordingDTO::new)
+            .map(RecordingDTO::new)
             .orElse(null);
     }
 
     @Transactional
-    public List<CreateRecordingDTO> findAllByBookingId(UUID bookingId, UUID captureSessionId, UUID parentRecordingId) {
+    public List<RecordingDTO> findAllByBookingId(UUID bookingId, UUID captureSessionId, UUID parentRecordingId) {
         checkBookingValid(bookingId);
 
         return recordingRepository
@@ -57,7 +58,7 @@ public class RecordingService {
                 captureSessionId,
                 parentRecordingId
             ).stream()
-            .map(CreateRecordingDTO::new)
+            .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
 
@@ -69,7 +70,7 @@ public class RecordingService {
         var recording = recordingRepository.findById(createRecordingDTO.getId());
 
         if (recording.isPresent() && recording.get().isDeleted()) {
-            throw new UpdateDeletedException("Recording: " + createRecordingDTO.getId());
+            throw new ResourceInDeletedStateException("RecordingDTO", createRecordingDTO.getId().toString());
         }
 
         var isUpdate = recording.isPresent();

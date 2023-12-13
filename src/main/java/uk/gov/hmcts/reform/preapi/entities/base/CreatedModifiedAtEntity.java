@@ -24,4 +24,10 @@ public class CreatedModifiedAtEntity extends BaseEntity {
     public void preUpdate() {
         setModifiedAt(new Timestamp(System.currentTimeMillis()));
     }
+
+    @Override
+    public void prePersist() {
+        super.prePersist();
+        setCreatedAt(new Timestamp(System.currentTimeMillis()));
+    }
 }
