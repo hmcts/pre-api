@@ -14,7 +14,8 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "roles")
-public class Role extends BaseEntity { //NOPMD - suppressed ShortClassName
+@SuppressWarnings("PMD.ShortClassName")
+public class Role extends BaseEntity {
     @Column(name = "name", nullable = false, length = 45)
     private String name;
 

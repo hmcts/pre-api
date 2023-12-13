@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
-class CaseTest {
+class CaseDTOTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -32,7 +32,7 @@ class CaseTest {
 
         assertEquals(testCase.getId(), retrievedCase.getId(), "Id should match");
         assertEquals(testCase.getCourt(), retrievedCase.getCourt(), "Court should match");
-        assertEquals(testCase.getReference(), retrievedCase.getReference(), "Case reference should match");
+        assertEquals(testCase.getReference(), retrievedCase.getReference(), "CaseDTO reference should match");
         assertEquals(testCase.isTest(), retrievedCase.isTest(), "Test status should match");
         assertEquals(testCase.getDeletedAt(), retrievedCase.getDeletedAt(), "Deleted at should match");
         assertEquals(testCase.getCreatedAt(), retrievedCase.getCreatedAt(), "Created at should match");

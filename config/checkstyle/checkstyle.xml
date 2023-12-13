@@ -187,6 +187,7 @@
       <property name="ignoreFinal" value="false"/>
       <property name="allowedAbbreviationLength" value="1"/>
       <property name="allowedAbbreviations" value="API"/>
+      <property name="allowedAbbreviations" value="DTO"/>
     </module>
     <module name="OverloadMethodsDeclarationOrder"/>
     <module name="VariableDeclarationUsageDistance"/>

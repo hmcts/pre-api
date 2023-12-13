@@ -8,6 +8,7 @@ import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
@@ -37,4 +38,12 @@ public class Booking extends CreatedModifiedAtEntity {
         inverseJoinColumns = @JoinColumn(name = "participant_id", referencedColumnName = "id")
     )
     private Set<Participant> participants;
+
+
+    @Transient
+    private boolean deleted;
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.entities.base;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
@@ -18,4 +20,14 @@ public class CreatedModifiedAtEntity extends BaseEntity {
 
     @Column(name = "modified_at")
     private Timestamp modifiedAt;
+
+    @PreUpdate
+    public void preUpdate() {
+        setModifiedAt(new Timestamp(System.currentTimeMillis()));
+    }
+
+    @PrePersist
+    public void prePersist() {
+        setCreatedAt(new Timestamp(System.currentTimeMillis()));
+    }
 }

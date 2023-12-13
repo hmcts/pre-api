@@ -10,13 +10,13 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
-import java.sql.Time;
 import java.sql.Timestamp;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
-class RecordingTest {
+class CreateRecordingDTOTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -61,7 +61,7 @@ class RecordingTest {
         testRecording.setFilename("TestFilename");
         testRecording.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         testRecording.setEditInstruction("{\"instruction\":\"TestInstruction\"}");
-        testRecording.setDuration(Time.valueOf("00:05:00"));
+        testRecording.setDuration(Duration.ofMinutes(5));
         testRecording.setDeletedAt(new Timestamp(System.currentTimeMillis()));
         entityManager.persist(testRecording);
         entityManager.flush();

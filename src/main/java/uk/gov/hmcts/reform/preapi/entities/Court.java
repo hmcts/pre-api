@@ -41,4 +41,12 @@ public class Court extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "region_id", referencedColumnName = "id")
     )
     private Set<Region> regions;
+
+    @ManyToMany
+    @JoinTable(
+        name = "courtrooms",
+        joinColumns = @JoinColumn(name = "court_id", referencedColumnName = "id"),
+        inverseJoinColumns = @JoinColumn(name = "room_id", referencedColumnName = "id")
+    )
+    private Set<Room> rooms;
 }
