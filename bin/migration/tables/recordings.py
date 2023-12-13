@@ -31,14 +31,14 @@ class RecordingManager:
             parent_recording_id = recording[9]
 
             if parent_recording_id not in (rec[0] for rec in source_data):
-                self.failed_imports.add(('recordings', recording[0], 'parent recording id does not match a recording id'))
+                self.failed_imports.add(('recordings', id, 'parent recording id does not match a recording id'))
                 continue
             
             destination_cursor.execute("SELECT capture_session_id FROM public.temp_recordings WHERE parent_recording_id = %s", (parent_recording_id,)) 
             result = destination_cursor.fetchone()
 
             if result is None: 
-                self.failed_imports.add(('recordings', recording[0], 'parent recording id does not match a recording id'))
+                self.failed_imports.add(('recordings', id, 'recording not included in capture sessions'))
                 continue
 
             capture_session_id = result[0]
@@ -65,18 +65,17 @@ class RecordingManager:
                     )
 
                 except Exception as e:  
-                    self.failed_imports.add(('recordings', id))
+                    self.failed_imports.add(('recordings', id, e))
+            else:
+                self.failed_imports.add(('recordings', id))
 
         # inserting remaining records
         for recording in non_duplicate_parent_id_records:
             id = recording[0]
             parent_recording_id = recording[9]
-            
-
+        
             destination_cursor.execute("SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s",(parent_recording_id,)) 
             result = destination_cursor.fetchone()
-
-
 
             capture_session_id = result[0]
 
@@ -105,6 +104,8 @@ class RecordingManager:
                     )
                 except Exception as e:  
                     self.failed_imports.add(('recordings', id, e))
+            else:
+                 self.failed_imports.add(('recordings', id))
                     
         log_failed_imports(self.failed_imports)
          

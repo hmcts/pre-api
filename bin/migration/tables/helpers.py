@@ -84,4 +84,7 @@ def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
             file.write(f"Table: {table_name}, ID: {failed_id}, Details: {details}\n")
 
 
-            
+# clear the migration file - run before the migration script is run
+def clear_migrations_file(filename='failed_imports_log.txt'):
+    with open(filename, 'w') as file:
+        file.write("") 
