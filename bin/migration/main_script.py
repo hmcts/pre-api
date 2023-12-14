@@ -21,11 +21,14 @@ from tables.audits import AuditLogManager
 
 from tables.helpers import clear_migrations_file
 
+
 # get passwords from env variables
 source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
 destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
+test_db_password = os.environ.get('TEST_DB_PASSWORD')
 
 # database connections
+# demo database
 source_db = DatabaseManager(
     database="pre-pdb-demo",
     user="psqladmin",
@@ -34,6 +37,8 @@ source_db = DatabaseManager(
     port="5432",
 )
 
+
+# dummy database on dev server
 destination_db = DatabaseManager(
     database="dev-pre-copy",
     user="psqladmin",
@@ -89,7 +94,6 @@ def main():
     migrate_manager_data(capture_session_manager, destination_db_cursor)
     migrate_manager_data(recording_manager, destination_db_cursor)
     migrate_manager_data(audit_log_manager, destination_db_cursor)
-
 
     source_db.close_connection()
     destination_db.close_connection()

@@ -18,7 +18,7 @@ This script manages the migration of data from a source database to a destinatio
 
 3. **Execute the Script:** Run the migration script:
     ```
-    python migration_script.py
+    python main_script.py
     ```
 
 4. **Test the migrated counts:** Run the summary script:

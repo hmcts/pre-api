@@ -23,8 +23,7 @@ class ParticipantManager:
             )
             case_id = destination_cursor.fetchone()
 
-            
-            if not case_id:
+            if case_id is None:
                 self.failed_imports.add(('contacts', id, 'case_id not found in cases table'))
                 continue
             
@@ -34,8 +33,13 @@ class ParticipantManager:
 
             if not check_existing_record(destination_cursor,'participants','case_id', case_id):
                 participant_type = p_type.upper()
+                
                 first_name = participant[6]
                 last_name = participant[7]
+                if (first_name is None) or (last_name is None):
+                    self.failed_imports.add(('contacts', id, 'no participant names'))
+                    continue
+                
                 created_at = parse_to_timestamp(participant[9])
                 modified_at = parse_to_timestamp(participant[11])
                 created_by = participant[8]
@@ -68,7 +72,7 @@ class ParticipantManager:
 
         except Exception as e:
             self.failed_imports.add(('contacts', id, e))
-
+        
         
         log_failed_imports(self.failed_imports) 
       
