@@ -124,6 +124,38 @@ class BookingControllerTest {
             .isEqualTo('"' + booking2.getId().toString() + '"');
     }
 
+    @DisplayName("Requesting a page out of bounds")
+    @Test
+    void getOutOfBoundsPageError() throws Exception {
+        var caseDTO = new CaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+        var booking1 = new BookingDTO();
+        booking1.setId(UUID.randomUUID());
+        booking1.setCaseDTO(caseDTO);
+        var booking2 = new BookingDTO();
+        booking2.setId(UUID.randomUUID());
+        booking2.setCaseDTO(caseDTO);
+
+        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
+        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
+            {
+                add(booking1);
+                add(booking2);
+            }
+        }));
+
+        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
+                                                 .param("page", "2")
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Requested page {2} is out of range. Max page is {1}\"}");
+    }
+
     @DisplayName("Should get all bookings for a case with 200 response code even when no bookings attached to case")
     @Test
     void getAllBookingsForCaseIdEndpointEmptyOk() throws Exception {
