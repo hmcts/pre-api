@@ -36,11 +36,12 @@ class CourtRegionManager:
             region_name = court_regions_dict.get(court_name)
             region_id = regions_dict.get(region_name)
 
-            if not check_existing_record(destination_cursor,'court_region', 'court_id', court_id):
-                id = str(uuid.uuid4())
-                batch_court_region_data.append((id, court_id, region_id))
-
-                
+            if region_id is None:
+                self.failed_imports.add(('court_region', court_id, 'Missing region_id'))
+            else:
+                if not check_existing_record(destination_cursor,'court_region', 'court_id', court_id):
+                    id = str(uuid.uuid4())
+                    batch_court_region_data.append((id, court_id, region_id))
 
         try: 
             if batch_court_region_data:
@@ -60,7 +61,7 @@ class CourtRegionManager:
                 )
 
         except Exception as e:  
-            self.failed_imports.add(('court_regions', id,e))
+            self.failed_imports.add(('court_region', id,e))
                     
         log_failed_imports(self.failed_imports)            
             

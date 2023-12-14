@@ -4,6 +4,7 @@ import os
 # Connection
 source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
 destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
+test_db_password = os.environ.get('TEST_DB_PASSWORD')
 
 destination_conn = psycopg2.connect(
     database="dev-pre-copy",
@@ -67,13 +68,15 @@ def count_failed_imports(file_path):
     
     with open(file_path, 'r') as file:
         for line in file:
-            table_name = line.split(', ')[0].split(': ')[1].strip()
+            split_line = line.split(', ')
+            if len(split_line) >= 2:
+                table_name = split_line[0].split(': ')[1].strip()
             
             if table_name in table_counts:
                 table_counts[table_name] += 1
             else:
                 table_counts[table_name] = 1
-    
+            # print('table counts: ',table_counts)
     return table_counts
 
 source_table_counts = count_records_in_all_tables(source_conn)
