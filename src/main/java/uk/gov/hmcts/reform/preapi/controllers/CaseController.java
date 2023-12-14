@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,11 +33,13 @@ public class CaseController extends PreApiController {
     }
 
     @GetMapping("/{id}")
+    @Operation(operationId = "getCaseById", summary = "Get a case by id")
     public ResponseEntity<CaseDTO> getCaseById(@PathVariable(name = "id") UUID caseId) {
         return ResponseEntity.ok(caseService.findById(caseId));
     }
 
     @GetMapping
+    @Operation(operationId = "getCases", summary = "Get a case by reference or court id")
     public ResponseEntity<List<CaseDTO>> getCases(
         @RequestParam(name = "reference", required = false) String caseReference,
         @RequestParam(name = "courtId", required = false) UUID courtId
@@ -45,6 +48,7 @@ public class CaseController extends PreApiController {
     }
 
     @PutMapping("/{id}")
+    @Operation(operationId = "putCase", summary = "Create or Update a Case")
     public ResponseEntity<Void> upsertCase(@PathVariable UUID id, @RequestBody CreateCaseDTO createCaseDTO) {
         if (!id.toString().equals(createCaseDTO.getId().toString())) {
             throw new PathPayloadMismatchException("id", "createCaseDTO.id");
@@ -53,6 +57,7 @@ public class CaseController extends PreApiController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(operationId = "deleteCase", summary = "Mark a Case as deleted")
     public ResponseEntity<Void> deleteCase(@PathVariable UUID id) {
         caseService.deleteById(id);
         return ResponseEntity.ok().build();
