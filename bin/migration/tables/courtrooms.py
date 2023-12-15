@@ -46,26 +46,19 @@ class CourtRoomManager:
                 court_id = court_dict[court]
 
                 if not check_existing_record(destination_cursor,'courtrooms', 'room_id', room_id):
-                    id = str(uuid.uuid4())
-                    batch_courtrooms_data.append((id, court_id, room_id))
+                    batch_courtrooms_data.append((court_id, room_id))
 
         try:
             if batch_courtrooms_data:
+
                 destination_cursor.executemany(
-                    "INSERT INTO public.courtrooms (id, court_id, room_id) VALUES (%s, %s, %s)",
+                    "INSERT INTO public.courtrooms ( court_id, room_id) VALUES ( %s, %s)",
                     batch_courtrooms_data
                 )
                 destination_cursor.connection.commit()
-
-                for courtroom in batch_courtrooms_data:
-                    audit_entry_creation(
-                        destination_cursor,
-                        table_name='courtrooms',
-                        record_id=courtroom[0],
-                        record=courtroom[1]
-                    )
+  
         except Exception as e:
-            self.failed_imports.add(('court_rooms', id, e))
+            self.failed_imports.add(('court_rooms', None, e))
         
         log_failed_imports(self.failed_imports)
-    
+       

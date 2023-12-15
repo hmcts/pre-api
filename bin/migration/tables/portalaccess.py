@@ -19,7 +19,7 @@ class PortalAccessManager:
 
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
                 id=str(uuid.uuid4())
-                password = 'password' # ?
+                password = 'password' # temporary field - to be removed once B2C implemented
                 status = 'ACTIVE' # ? 
 
                 last_access = datetime.now() # ?
@@ -33,8 +33,6 @@ class PortalAccessManager:
                 batch_portal_user_data.append((
                     id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at, created_by
                 ))
-
-                
 
         try: 
             if batch_portal_user_data:

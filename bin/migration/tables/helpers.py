@@ -66,7 +66,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         db_connection.connection.commit()
         
     except Exception as e:
-        failed_imports.add(('court_regions', table_name, record_id))
+        failed_imports.add(('audit table', table_name, e))
         log_failed_imports(failed_imports)
 
 # logs failed imports to file
