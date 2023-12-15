@@ -34,7 +34,7 @@ class RoomManager:
                 for room in batch_rooms_data:
                     created_at = parse_to_timestamp(source_room[2])
                     created_by = source_room[1]
-                    
+
                     audit_entry_creation(
                         destination_cursor,
                         table_name="rooms",
@@ -47,5 +47,4 @@ class RoomManager:
         except Exception as e:
             self.failed_imports.add(('rooms', id, e))
 
-        log_failed_imports(self.failed_imports)    
-
+        log_failed_imports(self.failed_imports)  

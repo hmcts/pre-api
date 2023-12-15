@@ -21,25 +21,18 @@ class BookingParticipantManager:
 
         for row in booking_participant_query:
             participant_id, booking_id = row
-            id = str(uuid.uuid4())
 
             try: 
                 destination_cursor.execute(
                     """
-                    INSERT INTO public.booking_participant (id, participant_id, booking_id)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO public.booking_participant (participant_id, booking_id)
+                    VALUES (%s, %s)
                     """,
-                    (id, participant_id, booking_id),  
+                    (participant_id, booking_id),  
                 )
                         
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name="booking_participant",
-                    record_id=id,
-                    record=booking_id,
-                )
             except Exception as e:  
-                self.failed_imports.add(('booking_participants',id,e))
+                self.failed_imports.add(('booking_participants',None,e))
                 
         log_failed_imports(self.failed_imports)         
                 
