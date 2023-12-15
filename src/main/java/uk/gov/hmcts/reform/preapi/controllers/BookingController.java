@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -37,17 +38,20 @@ public class BookingController extends PreApiController {
     }
 
     @GetMapping("/bookings")
+    @Operation(operationId = "searchBookings", summary = "Search for Bookings by case reference")
     public ResponseEntity<List<BookingDTO>> search(@RequestParam String caseReference) {
         return ok(bookingService.searchBy(caseReference));
     }
 
     @GetMapping("/cases/{caseId}/bookings")
+    @Operation(operationId = "getBookingsByCaseId", summary = "Get all Bookings for a Case")
     public ResponseEntity<List<BookingDTO>> searchByCaseId(@PathVariable UUID caseId) {
         validateRequest(caseId);
         return ok(bookingService.findAllByCaseId(caseId));
     }
 
     @GetMapping("/cases/{caseId}/bookings/{bookingId}")
+    @Operation(operationId = "getBookingById", summary = "Get a Booking by Id")
     public ResponseEntity<BookingDTO> get(@PathVariable UUID caseId,
                                           @PathVariable UUID bookingId) {
         validateRequest(caseId);
@@ -56,6 +60,7 @@ public class BookingController extends PreApiController {
     }
 
     @PutMapping("/cases/{caseId}/bookings/{bookingId}")
+    @Operation(operationId = "putBooking", summary = "Create or Update a Booking")
     public ResponseEntity<Void> upsert(@PathVariable UUID caseId,
                                        @PathVariable UUID bookingId,
                                        @RequestBody CreateBookingDTO createBookingDTO) {
@@ -65,6 +70,7 @@ public class BookingController extends PreApiController {
     }
 
     @DeleteMapping("/cases/{caseId}/bookings/{bookingId}")
+    @Operation(operationId = "deleteBooking", summary = "Delete a Booking")
     public ResponseEntity<Void> delete(@PathVariable UUID caseId,
                                        @PathVariable UUID bookingId) {
         validateRequest(caseId);

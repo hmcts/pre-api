@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,11 +33,16 @@ public class CourtController extends PreApiController {
     }
 
     @GetMapping("/{courtId}")
+    @Operation(operationId = "getCourtById", summary = "Get a Court by Id")
     public ResponseEntity<CourtDTO> getCourtById(@PathVariable UUID courtId) {
         return ResponseEntity.ok(courtService.findById(courtId));
     }
 
     @GetMapping
+    @Operation(
+        operationId = "searchCourts",
+        summary = "Search for Courts by court type, name, location code or region name"
+    )
     public ResponseEntity<List<CourtDTO>> getCourts(
         @RequestParam(required = false) CourtType courtType,
         @RequestParam(required = false) String name,
@@ -47,6 +53,7 @@ public class CourtController extends PreApiController {
     }
 
     @PutMapping("/{courtId}")
+    @Operation(operationId = "putCourt", summary = "Create or Update a Court")
     public ResponseEntity<Void> upsert(@PathVariable UUID courtId, @RequestBody CreateCourtDTO createCourtDTO) {
         if (!createCourtDTO.getId().equals(courtId)) {
             throw new PathPayloadMismatchException("courtId", "createCourtDTO.id");
