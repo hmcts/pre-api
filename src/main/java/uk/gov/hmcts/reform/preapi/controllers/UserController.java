@@ -33,6 +33,10 @@ public class UserController {
     }
 
     @GetMapping
+    @Operation(
+        operationId = "getUsers",
+        summary = "Search for Users by first name, last name, email, organisation, court or role"
+    )
     @SuppressWarnings("PMD.UseObejctForClearerAPI")
     public ResponseEntity<List<UserDTO>> getUsers(
         @RequestParam(required = false) String firstName,
