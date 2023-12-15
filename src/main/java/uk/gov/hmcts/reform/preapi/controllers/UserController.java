@@ -4,6 +4,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +28,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    @Operation(operationId = "getUserById", summary = "get a User by Id")
+    @Operation(operationId = "getUserById", summary = "Get a User by Id")
     public ResponseEntity<UserDTO> getUserById(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.findById(userId));
     }
@@ -37,7 +38,7 @@ public class UserController {
         operationId = "getUsers",
         summary = "Search for Users by first name, last name, email, organisation, court or role"
     )
-    @SuppressWarnings("PMD.UseObejctForClearerAPI")
+    @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public ResponseEntity<List<UserDTO>> getUsers(
         @RequestParam(required = false) String firstName,
         @RequestParam(required = false) String lastName,
@@ -47,5 +48,12 @@ public class UserController {
         @RequestParam(required = false) UUID roleId
     ) {
         return ResponseEntity.ok(userService.findAllBy(firstName, lastName, email, organisation, courtId, roleId));
+    }
+
+    @DeleteMapping("/{userId}")
+    @Operation(operationId = "deleteUser", summary = "Delete a User")
+    public ResponseEntity<Void> deleteUserById(@PathVariable UUID userId) {
+        userService.deleteById(userId);
+        return ResponseEntity.ok().build();
     }
 }

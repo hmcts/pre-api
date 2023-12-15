@@ -18,8 +18,11 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.util.List;
 import java.util.UUID;
 
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -110,5 +113,31 @@ public class UserControllerTest {
                             .param("roleId", roleId.toString()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: Role: " + roleId));
+    }
+
+    @DisplayName("Should delete user with 200 response code")
+    @Test
+    void deleteUserByIdSuccess() throws Exception {
+        var userId = UUID.randomUUID();
+        doNothing().when(userService).deleteById(userId);
+
+        mockMvc.perform(delete("/users/" + userId)
+                            .with(csrf()))
+            .andExpect(status().isOk());
+    }
+
+    @DisplayName("Should return 404 when user doesn't exist")
+    @Test
+    void deleteUserByIdNotFound() throws Exception {
+        var userId = UUID.randomUUID();
+        doThrow(new NotFoundException("User: " + userId))
+            .when(userService)
+            .deleteById(userId);
+
+        mockMvc.perform(delete("/users/" + userId)
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: User: " + userId));
     }
 }
