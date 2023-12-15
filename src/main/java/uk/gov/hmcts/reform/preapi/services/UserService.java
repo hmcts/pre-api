@@ -36,6 +36,7 @@ public class UserService {
     }
 
     @Transactional
+    @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public List<UserDTO> findAllBy(
         String firstName,
         String lastName,

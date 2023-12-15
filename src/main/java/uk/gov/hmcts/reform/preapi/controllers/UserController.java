@@ -33,6 +33,7 @@ public class UserController {
     }
 
     @GetMapping
+    @SuppressWarnings("PMD.UseObejctForClearerAPI")
     public ResponseEntity<List<UserDTO>> getUsers(
         @RequestParam(required = false) String firstName,
         @RequestParam(required = false) String lastName,
