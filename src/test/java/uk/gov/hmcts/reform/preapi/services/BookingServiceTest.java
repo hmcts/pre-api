@@ -11,19 +11,25 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -36,6 +42,9 @@ class BookingServiceTest {
 
     @MockBean
     private RecordingRepository recordingRepository;
+
+    @MockBean
+    private ParticipantRepository participantRepository;
 
     @Autowired
     private BookingService bookingService;
@@ -137,7 +146,6 @@ class BookingServiceTest {
     @DisplayName("Create a booking")
     @Test
     void upsertBookingSuccessCreated() {
-
         var bookingModel = new CreateBookingDTO();
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(UUID.randomUUID());
@@ -148,11 +156,16 @@ class BookingServiceTest {
         participantModel.setLastName("Smith");
         bookingModel.setParticipants(Set.of(participantModel));
 
-        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
+        var bookingEntity = new Booking();
+        var participantEntity = new Participant();
 
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.empty());
         when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(false);
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
+
+        when(participantRepository.findById(participantModel.getId())).thenReturn(Optional.empty());
+        when(participantRepository.save(any())).thenReturn(participantEntity);
 
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.CREATED);
     }
@@ -168,6 +181,7 @@ class BookingServiceTest {
 
         var bookingEntity = new Booking();
 
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
@@ -183,8 +197,6 @@ class BookingServiceTest {
         bookingModel.setCaseId(UUID.randomUUID());
         bookingModel.setParticipants(Set.of());
 
-        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
-
         when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(true);
         assertThatExceptionOfType(ResourceInDeletedStateException.class)
             .isThrownBy(() -> {
@@ -192,6 +204,41 @@ class BookingServiceTest {
             })
             .withMessage("Resource BookingDTO("
                              + bookingModel.getId().toString()
+                             + ") is in a deleted state and cannot be updated");
+    }
+
+    @DisplayName("Update a booking when participant has been deleted")
+    @Test
+    void upsertBookingFailureParticipantAlreadyDeleted() {
+
+        var bookingModel = new CreateBookingDTO();
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(UUID.randomUUID());
+        bookingModel.setParticipants(Set.of());
+        var participantModel = new CreateParticipantDTO();
+        participantModel.setId(UUID.randomUUID());
+        participantModel.setParticipantType(ParticipantType.WITNESS);
+        participantModel.setFirstName("John");
+        participantModel.setLastName("Smith");
+        bookingModel.setParticipants(Set.of(participantModel));
+
+        var bookingEntity = new Booking();
+        var participantEntity = new Participant();
+        participantEntity.setId(participantModel.getId());
+        participantEntity.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
+        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(false);
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
+        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
+
+        when(participantRepository.findById(participantModel.getId())).thenReturn(Optional.of(participantEntity));
+        assertThatExceptionOfType(ResourceInDeletedStateException.class)
+            .isThrownBy(() -> {
+                bookingService.upsert(bookingModel);
+            })
+            .withMessage("Resource Participant("
+                             + participantModel.getId().toString()
                              + ") is in a deleted state and cannot be updated");
     }
 
