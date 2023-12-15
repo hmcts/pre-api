@@ -8,8 +8,8 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.List;
@@ -25,6 +25,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PortalAccessRepository portalAccessRepository;
 
+    @Autowired
     public UserService(AppAccessRepository appAccessRepository,
                        CourtRepository courtRepository,
                        RoleRepository roleRepository,
