@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -13,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,15 +26,12 @@ import java.util.stream.Stream;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
-    private final RecordingRepository recordingRepository;
     private final ParticipantRepository participantRepository;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
-                          final RecordingRepository recordingRepository,
                           final ParticipantRepository participantRepository) {
         this.bookingRepository = bookingRepository;
-        this.recordingRepository = recordingRepository;
         this.participantRepository = participantRepository;
     }
 
@@ -44,12 +42,9 @@ public class BookingService {
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
-    public List<BookingDTO> findAllByCaseId(UUID caseId) {
-        return bookingRepository
-            .findByCaseId_IdAndDeletedAtIsNull(caseId)
-            .stream()
-            .map(BookingDTO::new)
-            .collect(Collectors.toList());
+    public Page<BookingDTO> findAllByCaseId(UUID caseId, Pageable pageable) {
+        return bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseId, pageable)
+            .map(BookingDTO::new);
     }
 
     public List<BookingDTO> searchBy(String caseReference) {

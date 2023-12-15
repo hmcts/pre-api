@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -22,8 +24,9 @@ import uk.gov.hmcts.reform.preapi.services.CaseService;
 import java.util.ArrayList;
 import java.util.UUID;
 
-import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -99,12 +102,12 @@ class BookingControllerTest {
         booking2.setCaseDTO(caseDTO);
 
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
-        when(bookingService.findAllByCaseId(caseDTO.getId())).thenReturn(new ArrayList<>() {
+        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
             {
                 add(booking1);
                 add(booking2);
             }
-        });
+        }));
 
         MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
                                                  .with(csrf())
@@ -112,13 +115,45 @@ class BookingControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
+        ObjectMapper mapper = new ObjectMapper();
+        var rootNode = mapper.readTree(response.getResponse().getContentAsString());
+        assertThat(rootNode.get("page").get("totalElements").asInt()).isEqualTo(2);
+        assertThat(rootNode.get("_embedded").get("bookingDTOList").get(0).get("id").toString())
+            .isEqualTo('"' + booking1.getId().toString() + '"');
+        assertThat(rootNode.get("_embedded").get("bookingDTOList").get(1).get("id").toString())
+            .isEqualTo('"' + booking2.getId().toString() + '"');
+    }
+
+    @DisplayName("Requesting a page out of bounds")
+    @Test
+    void getOutOfBoundsPageError() throws Exception {
+        var caseDTO = new CaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+        var booking1 = new BookingDTO();
+        booking1.setId(UUID.randomUUID());
+        booking1.setCaseDTO(caseDTO);
+        var booking2 = new BookingDTO();
+        booking2.setId(UUID.randomUUID());
+        booking2.setCaseDTO(caseDTO);
+
+        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
+        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
+            {
+                add(booking1);
+                add(booking2);
+            }
+        }));
+
+        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
+                                                 .param("page", "2")
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(OBJECT_MAPPER.writeValueAsString(new ArrayList<>() {
-                {
-                    add(booking1);
-                    add(booking2);
-                }
-            }));
+            .isEqualTo("{\"message\":\"Requested page {2} is out of range. Max page is {1}\"}");
     }
 
     @DisplayName("Should get all bookings for a case with 200 response code even when no bookings attached to case")
@@ -128,7 +163,7 @@ class BookingControllerTest {
         caseDTO.setId(UUID.randomUUID());
 
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
-        when(bookingService.findAllByCaseId(caseDTO.getId())).thenReturn(emptyList());
+        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any())).thenReturn(Page.empty());
 
         MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
                                                  .with(csrf())
@@ -136,8 +171,10 @@ class BookingControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(OBJECT_MAPPER.writeValueAsString(emptyList()));
+        ObjectMapper mapper = new ObjectMapper();
+        var rootNode = mapper.readTree(response.getResponse().getContentAsString());
+
+        assertThat(rootNode.get("page").get("totalElements").asInt()).isEqualTo(0);
     }
 
     @DisplayName("Should get a booking with 200 response code")
