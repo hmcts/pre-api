@@ -19,8 +19,10 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
+import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -45,6 +47,98 @@ class BookingControllerTest {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
+
+    @DisplayName("Should search for bookings")
+    @Test
+    void searchBookingsOk() throws Exception {
+        var caseDTO1 = new CaseDTO();
+        caseDTO1.setId(UUID.randomUUID());
+        caseDTO1.setReference("MyRef1");
+        var caseDTO2 = new CaseDTO();
+        caseDTO2.setId(UUID.randomUUID());
+        caseDTO2.setReference("MyRef2");
+        var booking1 = new BookingDTO();
+        booking1.setId(UUID.randomUUID());
+        booking1.setCaseDTO(caseDTO1);
+        var booking2 = new BookingDTO();
+        booking2.setId(UUID.randomUUID());
+        booking2.setCaseDTO(caseDTO2);
+
+        when(bookingService.searchBy("MyRef")).thenReturn(new ArrayList<>() {
+            {
+                add(booking1);
+                add(booking2);
+            }
+        });
+
+        MvcResult response = mockMvc.perform(get("/bookings?caseReference=MyRef")
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(OBJECT_MAPPER.writeValueAsString(new ArrayList<>() {
+                {
+                    add(booking1);
+                    add(booking2);
+                }
+            }));
+    }
+
+    @DisplayName("Should get all bookings for a case with 200 response code")
+    @Test
+    void getAllBookingsForCaseIDEndpointOk() throws Exception {
+        var caseDTO = new CaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+        var booking1 = new BookingDTO();
+        booking1.setId(UUID.randomUUID());
+        booking1.setCaseDTO(caseDTO);
+        var booking2 = new BookingDTO();
+        booking2.setId(UUID.randomUUID());
+        booking2.setCaseDTO(caseDTO);
+
+        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
+        when(bookingService.findAllByCaseId(caseDTO.getId())).thenReturn(new ArrayList<>() {
+            {
+                add(booking1);
+                add(booking2);
+            }
+        });
+
+        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(OBJECT_MAPPER.writeValueAsString(new ArrayList<>() {
+                {
+                    add(booking1);
+                    add(booking2);
+                }
+            }));
+    }
+
+    @DisplayName("Should get all bookings for a case with 200 response code even when no bookings attached to case")
+    @Test
+    void getAllBookingsForCaseIdEndpointEmptyOk() throws Exception {
+        var caseDTO = new CaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+
+        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
+        when(bookingService.findAllByCaseId(caseDTO.getId())).thenReturn(emptyList());
+
+        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
+                                                 .with(csrf())
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(OBJECT_MAPPER.writeValueAsString(emptyList()));
+    }
 
     @DisplayName("Should get a booking with 200 response code")
     @Test
@@ -303,6 +397,10 @@ class BookingControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent());
 
+    }
+
+    private String getPath(UUID caseId) {
+        return "/cases/" + caseId + "/bookings";
     }
 
     private String getPath(UUID caseId, UUID bookingId) {
