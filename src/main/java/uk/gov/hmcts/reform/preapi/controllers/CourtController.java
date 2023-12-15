@@ -39,7 +39,10 @@ public class CourtController extends PreApiController {
     }
 
     @GetMapping
-    @Operation(operationId = "searchCourts", summary = "Search for Courts by court type, name, location code or region name")
+    @Operation(
+        operationId = "searchCourts",
+        summary = "Search for Courts by court type, name, location code or region name"
+    )
     public ResponseEntity<List<CourtDTO>> getCourts(
         @RequestParam(required = false) CourtType courtType,
         @RequestParam(required = false) String name,
