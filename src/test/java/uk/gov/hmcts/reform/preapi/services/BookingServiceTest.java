@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -68,19 +69,21 @@ class BookingServiceTest {
         var bookingModel1 = new BookingDTO(bookingEntity1);
         var bookingModel2 = new BookingDTO(bookingEntity2);
 
-        when(bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseEntity.getId()))
-            .thenReturn(new ArrayList<>() {
+        when(bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseEntity.getId(), null))
+            .thenReturn(new PageImpl<>(new ArrayList<>() {
                 {
                     add(bookingEntity1);
                     add(bookingEntity2);
                 }
+            }));
+        assertThat(bookingService.findAllByCaseId(caseEntity.getId(), null).getContent())
+            .isEqualTo(new ArrayList<>() {
+                    {
+                    add(bookingModel1);
+                    add(bookingModel2);
+                }
             });
-        assertThat(bookingService.findAllByCaseId(caseEntity.getId())).isEqualTo(new ArrayList<>() {
-            {
-                add(bookingModel1);
-                add(bookingModel2);
-            }
-        });
+
     }
 
     @DisplayName("Search By Case Ref")

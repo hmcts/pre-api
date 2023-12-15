@@ -77,12 +77,12 @@ class BookingServiceIT {
         entityManager.persist(booking1);
         entityManager.persist(booking2);
 
-        var findByCaseResult = bookingService.findAllByCaseId(caseEntity1.getId());
-        assertEquals(1, findByCaseResult.size(), "Should find 1 booking");
-        assertEquals(booking1.getId(), findByCaseResult.get(0).getId(), "Should find booking 1");
-        var findByCaseResult2 = bookingService.findAllByCaseId(caseEntity2.getId());
-        assertEquals(1, findByCaseResult2.size(), "Should find 1 booking");
-        assertEquals(booking2.getId(), findByCaseResult2.get(0).getId(), "Should find booking 2");
+        var findByCaseResult = bookingService.findAllByCaseId(caseEntity1.getId(), null);
+        assertEquals(1, findByCaseResult.toList().size(), "Should find 1 booking");
+        assertEquals(booking1.getId(), findByCaseResult.toList().get(0).getId(), "Should find booking 1");
+        var findByCaseResult2 = bookingService.findAllByCaseId(caseEntity2.getId(), null);
+        assertEquals(1, findByCaseResult2.toList().size(), "Should find 1 booking");
+        assertEquals(booking2.getId(), findByCaseResult2.toList().get(0).getId(), "Should find booking 2");
 
         var findByCaseReferenceResult = bookingService.searchBy("1234");
         assertEquals(2, findByCaseReferenceResult.size(), "Should find 2 bookings");
