@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.Mockito.doNothing;
@@ -62,12 +63,56 @@ public class UserControllerTest {
         var userId = UUID.randomUUID();
         var mockUser = new UserDTO();
         mockUser.setId(userId);
-        doThrow(new NotFoundException("User: " + userId)).when(userService).findById(userId);
 
+        doThrow(new NotFoundException("User: " + userId)).when(userService).findById(userId);
 
         mockMvc.perform(get("/users/" + userId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: User: " + userId));
+    }
+
+    @DisplayName("Should return a list of users with 200 response code")
+    @Test
+    void getUsersSuccess() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UserDTO mockCourt = new UserDTO();
+        mockCourt.setId(userId);
+        List<UserDTO> userList = List.of(mockCourt);
+        when(userService.findAllBy(null, null, null, null, null, null)).thenReturn(userList);
+
+        mockMvc.perform(get("/users"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isNotEmpty())
+            .andExpect(jsonPath("$[0].id").value(userId.toString()));
+    }
+
+    @DisplayName("Should return a 404 when searching by a court that doesn't exist")
+    @Test
+    void getUsersCourtNotFound() throws Exception {
+        UUID courtId = UUID.randomUUID();
+        doThrow(new NotFoundException("Court: " + courtId))
+            .when(userService)
+            .findAllBy(null, null, null, null, courtId, null);
+
+        mockMvc.perform(get("/users")
+                            .param("courtId", courtId.toString()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Not found: Court: " + courtId));
+    }
+
+    @DisplayName("Should return a 404 when searching by a role that doesn't exist")
+    @Test
+    void getUsersRoleNotFound() throws Exception {
+        UUID roleId = UUID.randomUUID();
+        doThrow(new NotFoundException("Role: " + roleId))
+            .when(userService)
+            .findAllBy(null, null, null, null, null, roleId);
+
+        mockMvc.perform(get("/users")
+                            .param("roleId", roleId.toString()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Not found: Role: " + roleId));
     }
 
     @DisplayName("Should delete user with 200 response code")

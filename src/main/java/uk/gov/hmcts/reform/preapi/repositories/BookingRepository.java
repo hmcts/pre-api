@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
+@SuppressWarnings("PMD.MethodNamingConventions")
 public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
     boolean existsByIdAndDeletedAtIsNull(UUID id);
 
