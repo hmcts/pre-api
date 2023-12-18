@@ -29,6 +29,7 @@ public class UserController extends PreApiController {
 
     @Autowired
     public UserController(UserService userService) {
+        super();
         this.userService = userService;
     }
 

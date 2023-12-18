@@ -75,25 +75,32 @@ public class UserService {
     }
 
     @Transactional
+    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         var user = userRepository.findById(createUserDTO.getId());
         if (user.isPresent() && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
 
-        var isUpdate = user.isPresent();
-        var userEntity = user.orElse(new User());
-
         var court = courtRepository.findById(createUserDTO.getCourtId());
-        var role = roleRepository.findById(createUserDTO.getRoleId());
 
-        if ((!isUpdate && court.isEmpty()) || (createUserDTO.getCourtId() != null && court.isEmpty())) {
+        var isUpdate = user.isPresent();
+
+        if (!isUpdate && court.isEmpty()
+            || createUserDTO.getCourtId() != null && court.isEmpty()
+        ) {
             throw new NotFoundException("Court: " + createUserDTO.getCourtId());
         }
 
-        if ((!isUpdate && role.isEmpty()) || (createUserDTO.getRoleId() != null && role.isEmpty())) {
+        var role = roleRepository.findById(createUserDTO.getRoleId());
+
+        if (!isUpdate && role.isEmpty()
+            || createUserDTO.getRoleId() != null && role.isEmpty()
+        ) {
             throw new NotFoundException("Role: " + createUserDTO.getRoleId());
         }
+
+        var userEntity = user.orElse(new User());
 
         userEntity.setId(createUserDTO.getId());
         userEntity.setFirstName(createUserDTO.getFirstName());
