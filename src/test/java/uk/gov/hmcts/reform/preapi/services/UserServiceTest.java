@@ -463,7 +463,6 @@ public class UserServiceTest {
         userModel.setFirstName("Test Name");
 
         when(userRepository.findById(userModel.getId())).thenReturn(Optional.empty());
-        when(courtRepository.findById(userModel.getCourtId())).thenReturn(Optional.empty());
 
         assertThrows(
             NotFoundException.class,
@@ -471,7 +470,7 @@ public class UserServiceTest {
         );
 
         verify(userRepository, times(1)).findById(userModel.getId());
-        verify(courtRepository, times(1)).findById(userModel.getCourtId());
+        verify(courtRepository, never()).findById(userModel.getCourtId());
         verify(userRepository, never()).save(any());
         verify(appAccessRepository, never()).save(any());
     }
