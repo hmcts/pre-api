@@ -33,4 +33,7 @@ public class CreateUserDTO {
 
     @Schema(description = "CreateUserCourtId")
     private UUID courtId;
+
+    @Schema(description = "CreateUserRoleId")
+    private UUID roleId;
 }
