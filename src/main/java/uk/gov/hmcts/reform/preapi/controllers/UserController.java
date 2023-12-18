@@ -7,10 +7,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.List;
@@ -18,7 +23,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
-public class UserController {
+public class UserController extends PreApiController {
 
     private final UserService userService;
 
@@ -48,6 +53,16 @@ public class UserController {
         @RequestParam(required = false) UUID roleId
     ) {
         return ResponseEntity.ok(userService.findAllBy(firstName, lastName, email, organisation, courtId, roleId));
+    }
+
+    @PutMapping("/{userId}")
+    @Operation(operationId = "putUser", summary = "Create or Update a User")
+    public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody CreateUserDTO createUserDTO) {
+        if (!userId.equals(createUserDTO.getId())) {
+            throw new PathPayloadMismatchException("userId", "createUserDTO.userId");
+        }
+
+        return getUpsertResponse(userService.upsert(createUserDTO), userId);
     }
 
     @DeleteMapping("/{userId}")

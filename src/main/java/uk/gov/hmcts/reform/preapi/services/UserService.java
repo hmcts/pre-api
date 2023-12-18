@@ -4,8 +4,13 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
@@ -67,6 +72,47 @@ public class UserService {
             .stream()
             .map(UserDTO::new)
             .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public UpsertResult upsert(CreateUserDTO createUserDTO) {
+        var user = userRepository.findById(createUserDTO.getId());
+        if (user.isPresent() && user.get().isDeleted()) {
+            throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
+        }
+
+        var isUpdate = user.isPresent();
+        var userEntity = user.orElse(new User());
+
+        var court = courtRepository.findById(createUserDTO.getCourtId());
+        var role = roleRepository.findById(createUserDTO.getRoleId());
+
+        if ((!isUpdate && court.isEmpty()) || (createUserDTO.getCourtId() != null && court.isEmpty())) {
+            throw new NotFoundException("Court: " + createUserDTO.getCourtId());
+        }
+
+        if ((!isUpdate && role.isEmpty()) || (createUserDTO.getRoleId() != null && role.isEmpty())) {
+            throw new NotFoundException("Role: " + createUserDTO.getRoleId());
+        }
+
+        userEntity.setId(createUserDTO.getId());
+        userEntity.setFirstName(createUserDTO.getFirstName());
+        userEntity.setLastName(createUserDTO.getLastName());
+        userEntity.setEmail(createUserDTO.getEmail());
+        userEntity.setOrganisation(createUserDTO.getOrganisation());
+        userEntity.setPhone(createUserDTO.getPhoneNumber());
+        userRepository.save(userEntity);
+
+        var appAccessEntity = appAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createUserDTO.getId())
+            .orElse(new AppAccess());
+
+        appAccessEntity.setUser(userEntity);
+        appAccessEntity.setCourt(court.orElse(null));
+        appAccessEntity.setRole(role.orElse(null));
+        appAccessRepository.save(appAccessEntity);
+
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional
