@@ -3,27 +3,25 @@ package uk.gov.hmcts.reform.preapi.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
-import java.time.Duration;
-import java.util.UUID;
 
 @Data
+@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
+@Schema(description = "RecordingDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class RecordingDTO {
-    UUID id;
-    UUID captureSessionId;
-    UUID parentRecordingId;
-    Integer version;
-    String url; // is this not needed now as it's different for every user?
-    String filename;
-    Duration duration;
-    String editInstructions;
+public class RecordingDTO extends BaseRecordingDTO {
+    @Schema(description = "RecordingDeletedAt")
     Timestamp deletedAt;
+
+    @Schema(description = "RecordingCreatedAt")
     Timestamp createdAt;
 
     public RecordingDTO(Recording recording) {

@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.dto;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -14,14 +15,28 @@ import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
+@Schema(description = "BookingDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class BookingDTO {
+    @Schema(description = "BookingId")
     private UUID id;
+
+    @Schema(description = "BookingCase")
     private CaseDTO caseDTO;
+
+    @Schema(description = "BookingScheduledFor")
     private Timestamp scheduledFor;
+
+    @Schema(description = "BookingParticipants")
     private Set<ParticipantDTO> participants;
+
+    @Schema(description = "BookingDeletedAt")
     private Timestamp deletedAt;
+
+    @Schema(description = "BookingCreatedAt")
     private Timestamp createdAt;
+
+    @Schema(description = "BookingModifiedAt")
     private Timestamp modifiedAt;
 
     // room?
