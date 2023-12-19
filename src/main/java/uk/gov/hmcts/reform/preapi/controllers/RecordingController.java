@@ -41,11 +41,7 @@ public class RecordingController extends PreApiController {
         @PathVariable UUID recordingId
     ) {
         // TODO Recordings returned need to be shared with the current user
-        var recordingDTO = recordingService.findById(bookingId, recordingId);
-        if (recordingDTO == null) {
-            throw new NotFoundException("RecordingDTO: " + recordingId);
-        }
-        return ResponseEntity.ok(recordingDTO);
+        return ResponseEntity.ok(recordingService.findById(bookingId, recordingId));
     }
 
     @GetMapping

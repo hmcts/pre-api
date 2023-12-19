@@ -45,7 +45,7 @@ public class RecordingService {
                 bookingId
             )
             .map(RecordingDTO::new)
-            .orElse(null);
+            .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
     @Transactional

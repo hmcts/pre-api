@@ -105,8 +105,17 @@ class RecordingServiceTest {
             )
         ).thenReturn(Optional.empty());
 
-        var model = recordingService.findById(bookingEntity.getId(), recordingEntity.getId());
-        assertThat(model).isNull();
+        assertThrows(
+            NotFoundException.class,
+            () -> recordingService.findById(bookingEntity.getId(), recordingEntity.getId())
+        );
+
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
+        verify(recordingRepository, times(1))
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            );
     }
 
     @DisplayName("Find a recording by it's id when the booking id is missing")
