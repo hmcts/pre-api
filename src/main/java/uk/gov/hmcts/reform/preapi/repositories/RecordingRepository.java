@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -13,7 +12,7 @@ import java.util.UUID;
 
 @Repository
 @SuppressWarnings("PMD.MethodNamingConventions")
-public interface RecordingRepository extends JpaRepository<Recording, UUID> {
+public interface RecordingRepository extends SoftDeleteRepository<Recording, UUID> {
     Optional<Recording> findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
         UUID recordingId,
         UUID bookingId
