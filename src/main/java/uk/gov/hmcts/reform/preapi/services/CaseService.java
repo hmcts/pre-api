@@ -62,7 +62,7 @@ public class CaseService {
             throw new NotFoundException("Court: " + createCaseDTO.getCourtId());
         }
 
-        var newCase = new Case();
+        var newCase = foundCase.orElse(new Case());
         newCase.setId(createCaseDTO.getId());
         newCase.setCourt(court);
         newCase.setReference(createCaseDTO.getReference());
@@ -73,17 +73,9 @@ public class CaseService {
 
     @Transactional
     public void deleteById(UUID id) {
-        var foundCase = caseRepository.findById(id);
-        if (foundCase.isEmpty()) {
+        if (!caseRepository.existsByIdAndDeletedAtIsNull(id)) {
             throw new NotFoundException("CaseDTO: " + id);
         }
-        var caseEntity = foundCase.get();
-
-        if (caseEntity.isDeleted()) {
-            throw new NotFoundException("CaseDTO: " + id);
-        }
-
-        caseEntity.setDeletedAt(new Timestamp(System.currentTimeMillis()));
-        caseRepository.save(caseEntity);
+        caseRepository.deleteById(id);
     }
 }
