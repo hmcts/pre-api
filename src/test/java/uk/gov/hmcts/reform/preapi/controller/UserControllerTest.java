@@ -10,20 +10,27 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -139,5 +146,140 @@ public class UserControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: User: " + userId));
+    }
+
+    @DisplayName("Should create a user with 201 response code")
+    @Test
+    void createUserCreated() throws Exception {
+        var userId = UUID.randomUUID();
+        var user =  new CreateUserDTO();
+        user.setId(userId);
+
+        when(userService.upsert(user)).thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/users/" + userId
+        );
+    }
+
+    @DisplayName("Should update a user with 204 response code")
+    @Test
+    void updateUserNoContent() throws Exception {
+        var userId = UUID.randomUUID();
+        var user =  new CreateUserDTO();
+        user.setId(userId);
+
+        when(userService.upsert(user)).thenReturn(UpsertResult.UPDATED);
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/users/" + userId
+        );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 response code userId mismatch")
+    @Test
+    void createUserIdMismatch() throws Exception {
+        var userId = UUID.randomUUID();
+        var user =  new CreateUserDTO();
+        user.setId(userId);
+
+        MvcResult response = mockMvc.perform(put("/users/" + UUID.randomUUID())
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Path userId does not match payload property createUserDTO.userId\"}");
+    }
+
+    @DisplayName("Should fail to create/update a user with 404 response code when user has been deleted")
+    @Test
+    void createUserDeletedBadRequest() throws Exception {
+        var userId = UUID.randomUUID();
+        var user =  new CreateUserDTO();
+        user.setId(userId);
+
+        doThrow(new ResourceInDeletedStateException("UserDTO", user.getId().toString()))
+            .when(userService).upsert(any());
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"message\":\"Resource UserDTO(" + userId + ") is in a deleted state and cannot be updated\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 404 response code when court cannot be found")
+    @Test
+    void createUserCourtNotFound() throws Exception {
+        var userId = UUID.randomUUID();
+        var courtId = UUID.randomUUID();
+        var user =  new CreateUserDTO();
+        user.setId(userId);
+        user.setCourtId(courtId);
+
+        doThrow(new NotFoundException("Court: " + courtId)).when(userService).upsert(any());
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Not found: Court: " + courtId + "\"}");
+    }
+
+    @DisplayName("Should fail to create/update a user with 404 response code when role cannot be found")
+    @Test
+    void createUserRoleNotFound() throws Exception {
+        var userId = UUID.randomUUID();
+        var roleId = UUID.randomUUID();
+        var user =  new CreateUserDTO();
+        user.setId(userId);
+        user.setRoleId(roleId);
+
+        doThrow(new NotFoundException("Role: " + roleId)).when(userService).upsert(any());
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Not found: Role: " + roleId + "\"}");
     }
 }
