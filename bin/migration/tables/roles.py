@@ -2,24 +2,29 @@ from .helpers import check_existing_record, audit_entry_creation, log_failed_imp
 import uuid
 
 class RoleManager:
-    def __init__(self):
+    def __init__(self, source_cursor):
+        self.source_cursor = source_cursor
         self.failed_imports = set()
 
-    def migrate_data(self,destination_cursor):
-        allowed_roles = ['Level 1', 'Level 2', 'Level 3', 'Level 4', 'Super User']
+    def get_data(self):
+        self.source_cursor.execute("SELECT groupid, groupname, groupdescription from public.grouplist where grouptype = 'Security'")
+        return self.source_cursor.fetchall()
+
+    def migrate_data(self,destination_cursor, source_roles_data):
         batch_roles_data = []
 
-        for role in allowed_roles:
-            id = str(uuid.uuid4())
-            name = role
+        for role in source_roles_data:
+            id = role[0]
+            name = role[1]
+            description = role[2]
 
-            if name in allowed_roles and not check_existing_record(destination_cursor,'roles', 'id', id):
-                batch_roles_data.append((id, name))
+            if not check_existing_record(destination_cursor,'roles', 'id', id):
+                batch_roles_data.append((id, name, description))
 
         try:
             if batch_roles_data:
                 destination_cursor.executemany(
-                    'INSERT INTO public.roles (id, name) VALUES (%s, %s)',
+                    'INSERT INTO public.roles (id, name, description) VALUES (%s, %s, %s)',
                     batch_roles_data
                 )
 
@@ -34,7 +39,7 @@ class RoleManager:
                     )
                     
         except Exception as e:
-            self.failed_imports.add(('roles', id,e ))
+            self.failed_imports.add(('roles', id, e))
             
         log_failed_imports(self.failed_imports)        
 
