@@ -1,5 +1,6 @@
 from .helpers import check_existing_record, audit_entry_creation, log_failed_imports
 import uuid
+import re
 
 class CourtRoomManager:
     def __init__(self):
@@ -41,12 +42,17 @@ class CourtRoomManager:
         court_dict = {court[2]: court[0] for court in dest_courts_data}
 
         for room, court in courtroom_data.items():
-            if room in rooms_dict and court in court_dict:
-                room_id = rooms_dict[room]
-                court_id = court_dict[court]
+            court_name_pattern = re.compile(rf"{re.escape(court)}", re.IGNORECASE)
 
-                if not check_existing_record(destination_cursor,'courtrooms', 'room_id', room_id):
-                    batch_courtrooms_data.append((court_id, room_id))
+            if room in rooms_dict:
+                room_id = rooms_dict[room]
+
+                matched_court_ids = [court_id for court_name, court_id in court_dict.items() if re.search(court_name_pattern, court_name)]
+                if matched_court_ids:
+                    court_id = matched_court_ids[0]
+
+                    if not check_existing_record(destination_cursor,'courtrooms', 'room_id', room_id):
+                        batch_courtrooms_data.append((court_id, room_id))
 
         try:
             if batch_courtrooms_data:
