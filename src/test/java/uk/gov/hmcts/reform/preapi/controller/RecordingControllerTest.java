@@ -334,6 +334,40 @@ class RecordingControllerTest {
                            .value("Not found: Recording: " + recordingId));
     }
 
+    @DisplayName("Should create a share recording with 201 response code")
+    @Test
+    void testShareRecordingCreated() throws Exception {
+        UUID shareRecordingId = UUID.randomUUID();
+        UUID recordingId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
+        UUID sharedWithUserId = UUID.randomUUID();
+        UUID sharedByUserId = UUID.randomUUID();
+
+        var shareRecording = new uk.gov.hmcts.reform.preapi.dto.ShareRecordingDTO();
+        shareRecording.setId(shareRecordingId);
+        shareRecording.setSharedWithUserId(sharedWithUserId);
+        shareRecording.setSharedByUserId(sharedByUserId);
+        shareRecording.setCaptureSessionId(recordingId);
+
+        when(recordingService.shareRecordingById(bookingId, shareRecording))
+            .thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId) + "/share")
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(shareRecording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+                                                 .andExpect(status().isCreated())
+                                                 .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId, recordingId)
+            + "/share"
+        );
+    }
+
     private static String getPath(UUID bookingId, UUID recordingId) {
         return "/bookings/" + bookingId + "/recordings/" + recordingId;
     }
