@@ -8,18 +8,23 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -339,5 +344,230 @@ public class UserServiceTest {
         verify(appAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessRepository, never()).deleteById(appAccessEntity.getId());
         verify(userRepository, never()).deleteById(userEntity.getId());
+    }
+
+    @DisplayName("Create a user")
+    @Test
+    void createUserSuccess() {
+        var userId = UUID.randomUUID();
+        var courtId = UUID.randomUUID();
+        var roleId = UUID.randomUUID();
+        var userModel = new CreateUserDTO();
+        userModel.setId(userId);
+        userModel.setCourtId(courtId);
+        userModel.setRoleId(roleId);
+        var court = new Court();
+        court.setId(courtId);
+        var role = new Role();
+        role.setId(roleId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(courtRepository.findById(courtId)).thenReturn(Optional.of(court));
+        when(roleRepository.findById(roleId)).thenReturn(Optional.of(role));
+        when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
+            .thenReturn(Optional.empty());
+
+        var result = userService.upsert(userModel);
+
+        assertThat(result).isEqualTo(UpsertResult.CREATED);
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(courtRepository, times(1)).findById(courtId);
+        verify(roleRepository, times(1)).findById(roleId);
+        verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId);
+        verify(userRepository, times(1)).save(any());
+        verify(appAccessRepository, times(1)).save(any());
+    }
+
+    @DisplayName("Update a user")
+    @Test
+    void updateUserSuccess() {
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(appAccessEntity.getCourt().getId());
+        userModel.setRoleId(appAccessEntity.getRole().getId());
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.of(userEntity));
+        when(courtRepository.findById(userModel.getCourtId())).thenReturn(Optional.of(appAccessEntity.getCourt()));
+        when(roleRepository.findById(userModel.getRoleId())).thenReturn(Optional.of(appAccessEntity.getRole()));
+        when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userModel.getId()))
+            .thenReturn(Optional.of(appAccessEntity));
+
+        var result = userService.upsert(userModel);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(courtRepository, times(1)).findById(userModel.getCourtId());
+        verify(roleRepository, times(1)).findById(userModel.getRoleId());
+        verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userModel.getId());
+        verify(userRepository, times(1)).save(any());
+        verify(appAccessRepository, times(1)).save(any());
+    }
+
+    @DisplayName("Create/update a user is deleted")
+    @Test
+    void updateUserDeletedBadRequest() {
+        userEntity.setDeletedAt(Timestamp.from(Instant.now()));
+
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(appAccessEntity.getCourt().getId());
+        userModel.setRoleId(appAccessEntity.getRole().getId());
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.of(userEntity));
+
+        assertThrows(
+            ResourceInDeletedStateException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
+
+    }
+
+    @DisplayName("Create a user and court doesn't exist")
+    @Test
+    void createUserCourtIdNotFound() {
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(appAccessEntity.getCourt().getId());
+        userModel.setRoleId(appAccessEntity.getRole().getId());
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.empty());
+        when(courtRepository.findById(userModel.getCourtId())).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(courtRepository, times(1)).findById(userModel.getCourtId());
+        verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Create a user and court not set")
+    @Test
+    void createUserCourtIdNullNotFound() {
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(null);
+        userModel.setRoleId(appAccessEntity.getRole().getId());
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(courtRepository, never()).findById(userModel.getCourtId());
+        verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Create a user and role doesn't exist")
+    @Test
+    void createUserRoleIdNotFound() {
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(appAccessEntity.getCourt().getId());
+        userModel.setRoleId(appAccessEntity.getRole().getId());
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.empty());
+        when(courtRepository.findById(userModel.getCourtId())).thenReturn(Optional.of(appAccessEntity.getCourt()));
+        when(roleRepository.findById(userModel.getRoleId())).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(courtRepository, times(1)).findById(userModel.getCourtId());
+        verify(roleRepository, times(1)).findById(userModel.getRoleId());
+        verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Create a user and role not set")
+    @Test
+    void createUserRoleIdNullNotFound() {
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(appAccessEntity.getCourt().getId());
+        userModel.setRoleId(null);
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.empty());
+        when(courtRepository.findById(userModel.getCourtId())).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(courtRepository, times(1)).findById(userModel.getCourtId());
+        verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Update a user and court doesn't exist")
+    @Test
+    void updateUserCourtIdNotFound() {
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(appAccessEntity.getCourt().getId());
+        userModel.setRoleId(appAccessEntity.getRole().getId());
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.of(userEntity));
+        when(courtRepository.findById(userModel.getCourtId())).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(courtRepository, times(1)).findById(userModel.getCourtId());
+        verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Update a user and role doesn't exist")
+    @Test
+    void updateUserRoleIdNotFound() {
+        var userModel = new CreateUserDTO();
+        userModel.setId(userEntity.getId());
+        userModel.setCourtId(appAccessEntity.getCourt().getId());
+        userModel.setRoleId(appAccessEntity.getRole().getId());
+        userModel.setFirstName("Test Name");
+
+        when(userRepository.findById(userModel.getId())).thenReturn(Optional.of(userEntity));
+        when(courtRepository.findById(userModel.getCourtId())).thenReturn(Optional.of(appAccessEntity.getCourt()));
+        when(roleRepository.findById(userModel.getRoleId())).thenReturn(Optional.empty());
+
+        assertThrows(
+            NotFoundException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userModel.getId());
+        verify(courtRepository, times(1)).findById(userModel.getCourtId());
+        verify(roleRepository, times(1)).findById(userModel.getRoleId());
+        verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
     }
 }

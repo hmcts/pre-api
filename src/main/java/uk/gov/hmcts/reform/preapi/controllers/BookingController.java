@@ -62,7 +62,7 @@ public class BookingController extends PreApiController {
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
         }
-        return ResponseEntity.ok(assembler.toModel(resultPage));
+        return ok(assembler.toModel(resultPage));
     }
 
     @GetMapping("/cases/{caseId}/bookings/{bookingId}")
