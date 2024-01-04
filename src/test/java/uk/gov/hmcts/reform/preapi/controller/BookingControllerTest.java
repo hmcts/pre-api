@@ -67,7 +67,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy("MyRef")).thenReturn(new ArrayList<>() {
+        when(bookingService.searchBy(null, "MyRef")).thenReturn(new ArrayList<>() {
             {
                 add(booking1);
                 add(booking2);

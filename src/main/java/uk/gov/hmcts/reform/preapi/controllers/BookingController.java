@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchBookings;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -26,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.http.ResponseEntity.noContent;
@@ -45,9 +47,10 @@ public class BookingController extends PreApiController {
     }
 
     @GetMapping("/bookings")
-    @Operation(operationId = "searchBookings", summary = "Search for Bookings by case reference")
-    public ResponseEntity<List<BookingDTO>> search(@RequestParam String caseReference) {
-        return ok(bookingService.searchBy(caseReference));
+    @Operation(operationId = "searchBookings", summary = "Search for Bookings by case reference or case id")
+    public ResponseEntity<List<BookingDTO>> search(@RequestParam Map<String,String> params) {
+        var searchParams = SearchBookings.from(params);
+        return ok(bookingService.searchBy(searchParams.caseId(), searchParams.caseReference()));
     }
 
     @GetMapping("/cases/{caseId}/bookings")

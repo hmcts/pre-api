@@ -28,14 +28,22 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
         INNER JOIN b.caseId
         WHERE
             (
-                CAST(:reference as text) IS NULL OR
-                LOWER(CAST(b.caseId.reference as text)) LIKE CONCAT('%', LOWER(CAST(:reference as text)), '%')
+                (
+                    CAST(:reference as text) IS NULL OR
+                    LOWER(CAST(b.caseId.reference as text)) LIKE CONCAT('%', LOWER(CAST(:reference as text)), '%')
+                )
+                AND
+                (
+                    CAST(:caseId as org.hibernate.type.UUIDCharType) IS NULL OR
+                    b.caseId.id = :caseId
+                )
             )
             AND b.deletedAt IS NULL
         ORDER BY b.scheduledFor ASC
         """
     )
     List<Booking> searchBookingsBy(
+        @Param("caseId") UUID caseId,
         @Param("reference") String reference
     );
 }
