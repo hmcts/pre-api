@@ -84,9 +84,9 @@ class BookingServiceIT {
         assertEquals(1, findByCaseResult2.toList().size(), "Should find 1 booking");
         assertEquals(booking2.getId(), findByCaseResult2.toList().getFirst().getId(), "Should find booking 2");
 
-        var findByCaseReferenceResult = bookingService.searchBy(null, "1234");
-        assertEquals(2, findByCaseReferenceResult.size(), "Should find 2 bookings");
-        assertEquals(booking1.getId(), findByCaseReferenceResult.get(0).getId(), "Should find booking 1");
-        assertEquals(booking2.getId(), findByCaseReferenceResult.get(1).getId(), "Should find booking 2");
+        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", null);
+        assertEquals(2, findByCaseReferenceResult.getContent().size(), "Should find 2 bookings");
+        assertEquals(booking1.getId(), findByCaseReferenceResult.getContent().get(0).getId(), "Should find booking 1");
+        assertEquals(booking2.getId(), findByCaseReferenceResult.getContent().get(1).getId(), "Should find booking 2");
     }
 }
