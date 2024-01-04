@@ -47,9 +47,9 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
-    public List<BookingDTO> searchBy(String caseReference) {
+    public List<BookingDTO> searchBy(UUID caseId, String caseReference) {
         return bookingRepository
-            .searchBookingsBy(caseReference)
+            .searchBookingsBy(caseId, caseReference)
             .stream()
             .map(BookingDTO::new)
             .collect(Collectors.toList());
