@@ -67,12 +67,12 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy(null, "MyRef")).thenReturn(new ArrayList<>() {
+        when(bookingService.searchBy(any(), eq("MyRef"), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
             {
                 add(booking1);
                 add(booking2);
             }
-        });
+        }));
 
         MvcResult response = mockMvc.perform(get("/bookings?caseReference=MyRef")
                                                  .with(csrf())
@@ -80,13 +80,12 @@ class BookingControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(OBJECT_MAPPER.writeValueAsString(new ArrayList<>() {
-                {
-                    add(booking1);
-                    add(booking2);
-                }
-            }));
+        ObjectMapper mapper = new ObjectMapper();
+        var rootNode = mapper.readTree(response.getResponse().getContentAsString());
+        assertThat(rootNode.get("_embedded").get("bookingDTOList").get(0).get("id").toString())
+            .isEqualTo('"' + booking1.getId().toString() + '"');
+        assertThat(rootNode.get("_embedded").get("bookingDTOList").get(1).get("id").toString())
+            .isEqualTo('"' + booking2.getId().toString() + '"');
     }
 
     @DisplayName("Should get all bookings for a case with 200 response code")
@@ -101,15 +100,14 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
 
-        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
-        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
             {
                 add(booking1);
                 add(booking2);
             }
         }));
 
-        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
+        MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
@@ -135,16 +133,14 @@ class BookingControllerTest {
         var booking2 = new BookingDTO();
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
-
-        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
-        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
+        when(bookingService.searchBy(any(), any(), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
             {
                 add(booking1);
                 add(booking2);
             }
         }));
 
-        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
+        MvcResult response = mockMvc.perform(get("/bookings")
                                                  .param("page", "2")
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -162,10 +158,9 @@ class BookingControllerTest {
         var caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
 
-        when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
-        when(bookingService.findAllByCaseId(eq(caseDTO.getId()), any())).thenReturn(Page.empty());
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any())).thenReturn(Page.empty());
 
-        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId()))
+        MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
@@ -191,37 +186,13 @@ class BookingControllerTest {
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
         when(bookingService.findById(bookingId)).thenReturn(booking);
 
-        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId(), bookingId))
+        MvcResult response = mockMvc.perform(get(getPath(bookingId))
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo(OBJECT_MAPPER.writeValueAsString(booking));
-    }
-
-    @DisplayName("Should get a booking with 404 response code as case not found")
-    @Test
-    void getBookingEndpointCaseNotFound() throws Exception {
-
-        var caseDTO = new CaseDTO();
-        caseDTO.setId(UUID.randomUUID());
-        var bookingId = UUID.randomUUID();
-        var booking = new BookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseDTO(caseDTO);
-
-        when(caseService.findById(caseDTO.getId())).thenReturn(null);
-        when(bookingService.findById(bookingId)).thenReturn(booking);
-
-        MvcResult response = mockMvc.perform(get(getPath(caseDTO.getId(), bookingId))
-                                                 .with(csrf())
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNotFound())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Not found: CaseDTO " + caseDTO.getId() + "\"}");
     }
 
     @DisplayName("Should create a booking with 201 response code")
@@ -238,7 +209,7 @@ class BookingControllerTest {
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
         when(bookingService.upsert(booking)).thenReturn(UpsertResult.CREATED);
 
-        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(booking))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -248,7 +219,7 @@ class BookingControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(
-            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId)
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId)
         );
     }
 
@@ -266,7 +237,7 @@ class BookingControllerTest {
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
         when(bookingService.upsert(booking)).thenReturn(UpsertResult.UPDATED);
 
-        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(booking))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -276,33 +247,8 @@ class BookingControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(
-            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(caseId, bookingId)
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId)
         );
-    }
-
-    @DisplayName("Should fail to create a booking with 400 response code caseId mismatch")
-    @Test
-    void createBookingEndpointCaseIdMismatch() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(UUID.randomUUID());
-
-        var mockCase = new CaseDTO();
-        when(caseService.findById(caseId)).thenReturn(mockCase);
-
-        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(booking))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Path caseId does not match payload property bookingDTO.caseId\"}");
     }
 
     @DisplayName("Should fail to create a booking with 400 response code bookingId mismatch")
@@ -318,7 +264,7 @@ class BookingControllerTest {
         var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
-        MvcResult response = mockMvc.perform(put(getPath(caseId, UUID.randomUUID()))
+        MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -338,31 +284,7 @@ class BookingControllerTest {
         var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
 
-        mockMvc.perform(put(getPath(caseId, UUID.randomUUID()))).andExpect(status().is4xxClientError());
-    }
-
-    @DisplayName("Should fail to find case with 404 response code")
-    @Test
-    void createBookingEndpointCaseNotFound() throws Exception {
-
-        var caseId = UUID.randomUUID();
-        var bookingId = UUID.randomUUID();
-        var booking = new CreateBookingDTO();
-        booking.setId(bookingId);
-        booking.setCaseId(caseId);
-
-        when(caseService.findById(caseId)).thenReturn(null);
-
-        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNotFound())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Not found: CaseDTO " + caseId + "\"}");
+        mockMvc.perform(put(getPath(UUID.randomUUID()))).andExpect(status().is4xxClientError());
     }
 
     @DisplayName("Should fail to create a booking with 500 response code")
@@ -378,7 +300,7 @@ class BookingControllerTest {
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
-        mockMvc.perform(put(getPath(caseId, bookingId))
+        mockMvc.perform(put(getPath(bookingId))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -401,7 +323,7 @@ class BookingControllerTest {
         when(bookingService.upsert(booking))
             .thenThrow(new ResourceInDeletedStateException("BookingDTO", bookingId.toString()));
 
-        MvcResult response = mockMvc.perform(put(getPath(caseId, bookingId))
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(booking))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -429,18 +351,14 @@ class BookingControllerTest {
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
 
-        mockMvc.perform(delete(getPath(caseId, bookingId))
+        mockMvc.perform(delete(getPath(bookingId))
                             .with(csrf())
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent());
 
     }
 
-    private String getPath(UUID caseId) {
-        return "/cases/" + caseId + "/bookings";
-    }
-
-    private String getPath(UUID caseId, UUID bookingId) {
-        return "/cases/" + caseId + "/bookings/" + bookingId;
+    private String getPath(UUID bookingId) {
+        return "/bookings/" + bookingId;
     }
 }

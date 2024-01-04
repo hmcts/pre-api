@@ -7,7 +7,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,8 +41,9 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
         ORDER BY b.scheduledFor ASC
         """
     )
-    List<Booking> searchBookingsBy(
+    Page<Booking> searchBookingsBy(
         @Param("caseId") UUID caseId,
-        @Param("reference") String reference
+        @Param("reference") String reference,
+        Pageable pageable
     );
 }
