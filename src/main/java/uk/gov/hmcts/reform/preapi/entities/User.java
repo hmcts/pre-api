@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.entities;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
@@ -32,4 +33,11 @@ public class User extends CreatedModifiedAtEntity {
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
+
+    @Transient
+    private boolean deleted;
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

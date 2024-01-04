@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.RecordingController;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -54,9 +55,9 @@ class RecordingControllerTest {
     void testGetRecordingByIdSuccess() throws Exception {
         UUID recordingId = UUID.randomUUID();
         UUID bookingId = UUID.randomUUID();
-        var mockCreateRecordingDTO = new CreateRecordingDTO();
-        mockCreateRecordingDTO.setId(recordingId);
-        when(recordingService.findById(bookingId, recordingId)).thenReturn(mockCreateRecordingDTO);
+        var mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(recordingId);
+        when(recordingService.findById(bookingId, recordingId)).thenReturn(mockRecordingDTO);
 
         mockMvc.perform(get(getPath(bookingId, recordingId)))
             .andExpect(status().isOk())
@@ -73,7 +74,7 @@ class RecordingControllerTest {
 
         mockMvc.perform(get(getPath(bookingId, recordingId)))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: CreateRecordingDTO: " + recordingId));
+            .andExpect(jsonPath("$.message").value("Not found: RecordingDTO: " + recordingId));
     }
 
     @DisplayName("Should return 404 when trying to get a non-existing booking")
@@ -97,10 +98,10 @@ class RecordingControllerTest {
     void testGetRecordingByBookingIdSuccess() throws Exception {
         UUID bookingId = UUID.randomUUID();
         UUID recordingId = UUID.randomUUID();
-        CreateRecordingDTO mockCreateRecordingDTO = new CreateRecordingDTO();
-        mockCreateRecordingDTO.setId(recordingId);
-        List<CreateRecordingDTO> createRecordingDTOList = List.of(mockCreateRecordingDTO);
-        when(recordingService.findAllByBookingId(bookingId, null, null)).thenReturn(createRecordingDTOList);
+        var mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(recordingId);
+        var recordingDTOList = List.of(mockRecordingDTO);
+        when(recordingService.findAllByBookingId(bookingId, null, null)).thenReturn(recordingDTOList);
 
         mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
             .andExpect(status().isOk())
