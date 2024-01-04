@@ -135,19 +135,9 @@ public class RecordingService {
         checkBookingValid(bookingId);
         checkRecordingValid(shareRecordingDTO.getId());
 
-        var captureSession = captureSessionRepository.findById(shareRecordingDTO.getCaptureSessionId()).orElse(null);
-        var sharedByUser = userRepository.findById(shareRecordingDTO.getSharedByUserId()).orElse(null);
-        var sharedWithUser = userRepository.findById(shareRecordingDTO.getSharedWithUserId()).orElse(null);
-
-        if (captureSession == null) {
-            throw new NotFoundException("Capture Session: " + shareRecordingDTO.getCaptureSessionId());
-        }
-        if (sharedByUser == null) {
-            throw new NotFoundException("Shared by User: " + shareRecordingDTO.getSharedByUserId());
-        }
-        if (sharedWithUser == null) {
-            throw new NotFoundException("Shared with User: " + shareRecordingDTO.getSharedWithUserId());
-        }
+        var captureSession = captureSessionRepository.findById(shareRecordingDTO.getCaptureSessionId()).orElseThrow(() -> new NotFoundException("Capture Session: " + shareRecordingDTO.getCaptureSessionId()));
+        var sharedByUser = userRepository.findById(shareRecordingDTO.getSharedByUserId()).orElseThrow(() -> new NotFoundException("Shared by User: " + shareRecordingDTO.getSharedByUserId()));
+        var sharedWithUser = userRepository.findById(shareRecordingDTO.getSharedWithUserId()).orElseThrow(() -> new NotFoundException("Shared with User: " + shareRecordingDTO.getSharedWithUserId()));
 
         var shareRecordingEntity = new ShareRecording();
         shareRecordingEntity.setId(shareRecordingDTO.getId());
