@@ -82,6 +82,7 @@ public class RecordingController extends PreApiController {
     }
 
     @PutMapping("/{recordingId}/share")
+    @Operation(operationId = "shareRecordingById", summary = "Share a Recording")
     public ResponseEntity<Void> shareRecordingById(
         @PathVariable UUID bookingId,
         @PathVariable UUID recordingId,
