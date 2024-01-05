@@ -141,8 +141,8 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(bookingId, null, null))
-            .thenReturn(Collections.emptyList());
+        when(recordingRepository.searchAllBy(null, null, null))
+            .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }
 
