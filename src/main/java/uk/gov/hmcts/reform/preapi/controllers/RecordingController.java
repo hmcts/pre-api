@@ -26,7 +26,6 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
