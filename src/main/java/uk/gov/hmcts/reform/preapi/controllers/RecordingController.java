@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
-import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
@@ -41,11 +40,7 @@ public class RecordingController extends PreApiController {
         @PathVariable UUID recordingId
     ) {
         // TODO Recordings returned need to be shared with the current user
-        var recordingDTO = recordingService.findById(bookingId, recordingId);
-        if (recordingDTO == null) {
-            throw new NotFoundException("RecordingDTO: " + recordingId);
-        }
-        return ResponseEntity.ok(recordingDTO);
+        return ResponseEntity.ok(recordingService.findById(bookingId, recordingId));
     }
 
     @GetMapping
