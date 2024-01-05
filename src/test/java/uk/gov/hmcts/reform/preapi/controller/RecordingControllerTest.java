@@ -392,8 +392,8 @@ class RecordingControllerTest {
                                                  .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Path recordingId does not match payload " +
-                           "property shareRecordingDTO.captureSessionId\"}");
+            .isEqualTo("{\"message\":\"Path recordingId does not match payload "
+                           + "property shareRecordingDTO.captureSessionId\"}");
     }
 
     private static String getPath(UUID bookingId, UUID recordingId) {
