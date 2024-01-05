@@ -368,6 +368,34 @@ class RecordingControllerTest {
         );
     }
 
+    @DisplayName("Should fail to create a share recording with 400 response code when the recordingId does not match")
+    @Test
+    void testShareRecordingIdMismatch() throws Exception {
+        final UUID shareRecordingId = UUID.randomUUID();
+        final UUID recordingId = UUID.randomUUID();
+        final UUID bookingId = UUID.randomUUID();
+        final UUID sharedWithUserId = UUID.randomUUID();
+        final UUID sharedByUserId = UUID.randomUUID();
+
+        var shareRecording = new uk.gov.hmcts.reform.preapi.dto.ShareRecordingDTO();
+        shareRecording.setId(shareRecordingId);
+        shareRecording.setSharedWithUserId(sharedWithUserId);
+        shareRecording.setSharedByUserId(sharedByUserId);
+        shareRecording.setCaptureSessionId(recordingId);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId, UUID.randomUUID()) + "/share")
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(shareRecording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+                                                 .andExpect(status().is4xxClientError())
+                                                 .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Path recordingId does not match payload " +
+                           "property shareRecordingDTO.captureSessionId\"}");
+    }
+
     private static String getPath(UUID bookingId, UUID recordingId) {
         return "/bookings/" + bookingId + "/recordings/" + recordingId;
     }
