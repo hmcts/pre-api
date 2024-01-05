@@ -11,7 +11,6 @@ class RegionManager:
         region_data = [
             'London',
             'West Midlands (England)',
-            'West Midlands (England)',
             'East Midlands (England)',
             'Yorkshire and The Humber',
             'North East (England)',
