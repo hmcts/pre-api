@@ -4,6 +4,11 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,9 +24,10 @@ import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
@@ -62,10 +68,26 @@ public class RecordingController extends PreApiController {
         description = "The parent recording to search by",
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
-    public ResponseEntity<List<RecordingDTO>> searchRecordings(@RequestParam Map<String, String> params) {
+    public HttpEntity<PagedModel<EntityModel<RecordingDTO>>> searchRecordings(
+        @RequestParam Map<String, String> params,
+        Pageable pageable,
+        PagedResourcesAssembler<RecordingDTO> assembler
+    ) {
         // TODO Recordings returned need to be shared with the user
         var searchParams = SearchRecordings.from(params);
-        return ResponseEntity.ok(recordingService.findAll(searchParams.captureSessionId(), searchParams.parentRecordingId()));
+
+        var resultPage = recordingService.findAll(
+            searchParams.captureSessionId(),
+            searchParams.parentRecordingId(),
+            pageable
+        );
+
+        if (pageable.getPageNumber() > resultPage.getTotalPages()) {
+            throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
+        }
+
+        return ResponseEntity.ok(assembler.toModel(resultPage));
+
     }
 
     @PutMapping("/{recordingId}")

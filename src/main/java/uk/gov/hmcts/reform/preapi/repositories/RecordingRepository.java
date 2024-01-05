@@ -1,13 +1,14 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,9 +33,10 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         )
         """
     )
-    List<Recording> searchAllBy(
+    Page<Recording> searchAllBy(
         @Param("captureSessionId") UUID captureSessionId,
-        @Param("parentRecordingId") UUID parentRecordingId
+        @Param("parentRecordingId") UUID parentRecordingId,
+        Pageable pageable
     );
 
     boolean existsByIdAndDeletedAtIsNull(UUID id);

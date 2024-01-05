@@ -3,6 +3,8 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
@@ -44,12 +46,10 @@ public class RecordingService {
     }
 
     @Transactional
-    public List<RecordingDTO> findAll(UUID captureSessionId, UUID parentRecordingId) {
+    public Page<RecordingDTO> findAll(UUID captureSessionId, UUID parentRecordingId, Pageable pageable) {
         return recordingRepository
-            .searchAllBy(captureSessionId, parentRecordingId)
-            .stream()
-            .map(RecordingDTO::new)
-            .collect(Collectors.toList());
+            .searchAllBy(captureSessionId, parentRecordingId, pageable)
+            .map(RecordingDTO::new);
     }
 
     @Transactional
