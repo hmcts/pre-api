@@ -18,6 +18,8 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ShareRecordingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -48,6 +50,12 @@ class RecordingServiceTest {
 
     @MockBean
     private CaptureSessionRepository captureSessionRepository;
+
+    @MockBean
+    private ShareRecordingRepository shareRecordingRepository;
+
+    @MockBean
+    private UserRepository userRepository;
 
     @Autowired
     private RecordingService recordingService;
