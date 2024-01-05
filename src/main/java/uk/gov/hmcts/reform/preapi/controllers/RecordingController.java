@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -20,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -49,12 +52,20 @@ public class RecordingController extends PreApiController {
 
     @GetMapping
     @Operation(operationId = "getRecordings", summary = "Search all Recordings")
-    public ResponseEntity<List<RecordingDTO>> searchRecordings(
-        @RequestParam(required = false) UUID captureSessionId,
-        @RequestParam(required = false) UUID parentRecordingId
-    ) {
+    @Parameter(
+        name = "captureSessionId",
+        description = "The capture session to search by",
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "parentRecordingId",
+        description = "The parent recording to search by",
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    public ResponseEntity<List<RecordingDTO>> searchRecordings(@RequestParam Map<String, String> params) {
         // TODO Recordings returned need to be shared with the user
-        return ResponseEntity.ok(recordingService.findAll(captureSessionId, parentRecordingId));
+        var searchParams = SearchRecordings.from(params);
+        return ResponseEntity.ok(recordingService.findAll(searchParams.captureSessionId(), searchParams.parentRecordingId()));
     }
 
     @PutMapping("/{recordingId}")
