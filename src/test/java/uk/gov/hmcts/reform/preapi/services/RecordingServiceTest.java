@@ -35,7 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = RecordingService.class)
-@SuppressWarnings("PMD.LawOfDemeter")
+@SuppressWarnings({ "PMD.LawOfDemeter", "checkstyle:LineLength"})
 class RecordingServiceTest {
     private static Recording recordingEntity;
 
