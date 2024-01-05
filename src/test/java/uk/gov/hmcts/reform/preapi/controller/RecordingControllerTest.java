@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -54,12 +55,11 @@ class RecordingControllerTest {
     @Test
     void testGetRecordingByIdSuccess() throws Exception {
         UUID recordingId = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
-        when(recordingService.findById(bookingId, recordingId)).thenReturn(mockRecordingDTO);
+        when(recordingService.findById(recordingId)).thenReturn(mockRecordingDTO);
 
-        mockMvc.perform(get(getPath(bookingId, recordingId)))
+        mockMvc.perform(get(getPath(recordingId)))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(recordingId.toString()));
@@ -69,72 +69,43 @@ class RecordingControllerTest {
     @Test
     void testGetNonExistingRecordingById() throws Exception {
         UUID recordingId = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
         doThrow(new NotFoundException("RecordingDTO: " + recordingId))
-            .when(recordingService).findById(bookingId, recordingId);
+            .when(recordingService).findById(recordingId);
 
-        mockMvc.perform(get(getPath(bookingId, recordingId)))
+        mockMvc.perform(get(getPath(recordingId)))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: RecordingDTO: " + recordingId));
     }
 
-    @DisplayName("Should return 404 when trying to get a non-existing booking")
+    @DisplayName("Should get a list of recordings with 200 response code")
     @Test
-    void testGetNonExistingBookingId() throws Exception {
-        UUID recordingId = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
-        when(recordingService.findById(bookingId, recordingId)).thenThrow(
-            new NotFoundException("BookingDTO: " + bookingId)
-        );
-
-        mockMvc.perform(get(getPath(bookingId, recordingId)))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message")
-                           .value("Not found: BookingDTO: " + bookingId));
-    }
-
-    // TODO 200 response
-    @DisplayName("Should get a list of recordings by booking id with 200 response code")
-    @Test
-    void testGetRecordingByBookingIdSuccess() throws Exception {
-        UUID bookingId = UUID.randomUUID();
+    void testGetRecordingIdSuccess() throws Exception {
         UUID recordingId = UUID.randomUUID();
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAllByBookingId(bookingId, null, null)).thenReturn(recordingDTOList);
+        when(recordingService.findAll(any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
 
-        mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
+        mockMvc.perform(get("/recordings")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE)
+            )
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$").isNotEmpty())
-            .andExpect(jsonPath("$[0].id").value(recordingId.toString()));
-    }
-
-    @DisplayName("Should return 404 when trying to get recordings for a booking that doesn't exist")
-    @Test
-    void testGetRecordingsBookingNotFound() throws Exception {
-        UUID bookingId = UUID.randomUUID();
-        doThrow(new NotFoundException("BookingDTO: " + bookingId))
-            .when(recordingService)
-            .findAllByBookingId(any(), any(), any());
-
-        mockMvc.perform(get("/bookings/" + bookingId + "/recordings"))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: BookingDTO: " + bookingId));
+            .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
     }
 
     @DisplayName("Should create a recording with 201 response code")
     @Test
     void createRecordingCreated() throws Exception {
-        var bookingId = UUID.randomUUID();
         var recordingId = UUID.randomUUID();
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
 
-        when(recordingService.upsert(bookingId, recording)).thenReturn(UpsertResult.CREATED);
+        when(recordingService.upsert(recording)).thenReturn(UpsertResult.CREATED);
 
-        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(recording))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -144,21 +115,20 @@ class RecordingControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(
-            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId, recordingId)
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(recordingId)
         );
     }
 
     @DisplayName("Should update a recording with 204 response code")
     @Test
     void updateRecordingUpdate() throws Exception {
-        var bookingId = UUID.randomUUID();
         var recordingId = UUID.randomUUID();
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
 
-        when(recordingService.upsert(bookingId, recording)).thenReturn(UpsertResult.UPDATED);
+        when(recordingService.upsert(recording)).thenReturn(UpsertResult.UPDATED);
 
-        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(recording))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -168,18 +138,17 @@ class RecordingControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(
-            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId, recordingId)
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(recordingId)
         );
     }
 
     @DisplayName("Should fail to create/update a recording with 400 response code recordingId mismatch")
     @Test
     void createRecordingIdMismatch() throws Exception {
-        var bookingId = UUID.randomUUID();
         var recording = new CreateRecordingDTO();
         recording.setId(UUID.randomUUID());
 
-        MvcResult response = mockMvc.perform(put(getPath(bookingId, UUID.randomUUID()))
+        MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(recording))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -191,40 +160,17 @@ class RecordingControllerTest {
             .isEqualTo("{\"message\":\"Path recordingId does not match payload property createRecordingDTO.id\"}");
     }
 
-    @DisplayName("Should fail to create/update a recording with 404 response code when booking does not exist")
-    @Test
-    void createRecordingBookingNotFound() throws Exception {
-        var bookingId = UUID.randomUUID();
-        var recordingId = UUID.randomUUID();
-        var recording = new CreateRecordingDTO();
-        recording.setId(recordingId);
-
-        doThrow(new NotFoundException("Booking: " + bookingId)).when(recordingService).upsert(any(), any());
-
-        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNotFound())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"message\":\"Not found: Booking: " + bookingId + "\"}");
-    }
-
     @DisplayName("Should fail to update a recording with 400 response code when it has been marked as deleted")
     @Test
-    void updateRecordingBookingBadRequest() throws Exception {
-        var bookingId = UUID.randomUUID();
+    void updateRecordingBadRequest() throws Exception {
         var recordingId = UUID.randomUUID();
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
 
         doThrow(new ResourceInDeletedStateException("RecordingDTO", recordingId.toString()))
-            .when(recordingService).upsert(any(), any());
+            .when(recordingService).upsert(any());
 
-        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(recording))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -246,13 +192,12 @@ class RecordingControllerTest {
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
         recording.setCaptureSessionId(captureSessionId);
-        var bookingId = UUID.randomUUID();
 
         doThrow(new NotFoundException("Capture Session: " + captureSessionId))
             .when(recordingService)
-            .upsert(any(), any());
+            .upsert(any());
 
-        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(recording))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -272,13 +217,12 @@ class RecordingControllerTest {
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
         recording.setParentRecordingId(parentRecordingId);
-        var bookingId = UUID.randomUUID();
 
         doThrow(new NotFoundException("Recording: " + parentRecordingId))
             .when(recordingService)
-            .upsert(any(), any());
+            .upsert(any());
 
-        MvcResult response = mockMvc.perform(put(getPath(bookingId, recordingId))
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
                                                  .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(recording))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -294,47 +238,29 @@ class RecordingControllerTest {
     @Test
     void testDeleteRecordingSuccess() throws Exception {
         UUID recordingId = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
-        doNothing().when(recordingService).deleteById(bookingId, recordingId);
+        doNothing().when(recordingService).deleteById(recordingId);
 
-        mockMvc.perform(delete(getPath(bookingId, recordingId))
+        mockMvc.perform(delete(getPath(recordingId))
                             .with(csrf()))
             .andExpect(status().isOk());
-    }
-
-    @DisplayName("Should return 404 when booking doesn't exist")
-    @Test
-    void testDeleteRecordingBookingNotFound() throws Exception {
-        UUID recordingId = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
-        doThrow(new NotFoundException("Booking: " + bookingId))
-            .when(recordingService)
-            .deleteById(bookingId, recordingId);
-
-        mockMvc.perform(delete(getPath(bookingId, recordingId))
-                            .with(csrf()))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message")
-                           .value("Not found: Booking: " + bookingId));
     }
 
     @DisplayName("Should return 404 when recording doesn't exist")
     @Test
     void testDeleteRecordingNotFound() throws Exception {
         UUID recordingId = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
         doThrow(new NotFoundException("Recording: " + recordingId))
             .when(recordingService)
-            .deleteById(bookingId, recordingId);
+            .deleteById(recordingId);
 
-        mockMvc.perform(delete(getPath(bookingId, recordingId))
+        mockMvc.perform(delete(getPath(recordingId))
                             .with(csrf()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Recording: " + recordingId));
     }
 
-    private static String getPath(UUID bookingId, UUID recordingId) {
-        return "/bookings/" + bookingId + "/recordings/" + recordingId;
+    private static String getPath(UUID recordingId) {
+        return "/recordings/" + recordingId;
     }
 }
