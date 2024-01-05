@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -37,8 +39,6 @@ import static org.mockito.Mockito.when;
 class RecordingServiceTest {
     private static Recording recordingEntity;
 
-    private static Booking bookingEntity;
-
     @MockBean
     private RecordingRepository recordingRepository;
 
@@ -52,7 +52,7 @@ class RecordingServiceTest {
     static void setUp() {
         recordingEntity = new Recording();
         recordingEntity.setId(UUID.randomUUID());
-        bookingEntity = new Booking();
+        Booking bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
@@ -101,10 +101,10 @@ class RecordingServiceTest {
     @Test
     void findAllRecordingsSuccess() {
         when(
-            recordingRepository.searchAllBy(null, null)
-        ).thenReturn(List.of(recordingEntity));
+            recordingRepository.searchAllBy(any(), any(), any())
+        ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
 
-        var modelList = recordingService.findAll(null, null);
+        var modelList = recordingService.findAll(null, null, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -191,9 +191,7 @@ class RecordingServiceTest {
             )
         ).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> {
-            recordingService.upsert(recordingModel);
-        });
+        assertThrows(NotFoundException.class, () -> recordingService.upsert(recordingModel));
     }
 
     @DisplayName("Fail to create recording - Parent Recording not found")
@@ -217,9 +215,7 @@ class RecordingServiceTest {
             recordingRepository.findById(recordingModel.getParentRecordingId())
         ).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> {
-            recordingService.upsert(recordingModel);
-        });
+        assertThrows(NotFoundException.class, () -> recordingService.upsert(recordingModel));
     }
 
 
@@ -229,15 +225,17 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
 
-        var models = recordingService.findAll(null, null);
+        when(recordingRepository.searchAllBy(null, null, null)).thenReturn(Page.empty());
+
+        var models = recordingService.findAll(null, null, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(null, null);
+            .searchAllBy(null, null, null);
 
         assertThat(models.size()).isEqualTo(0);
     }
 
-    @DisplayName("Delete a recording by it's id and related booking id")
+    @DisplayName("Delete a recording by it's id")
     @Test
     void deleteRecordingSuccess() {
         when(

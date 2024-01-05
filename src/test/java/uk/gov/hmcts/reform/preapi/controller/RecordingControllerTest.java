@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -82,13 +84,16 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(null, null)).thenReturn(recordingDTOList);
+        when(recordingService.findAll(any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
 
-        mockMvc.perform(get("/recordings"))
+        mockMvc.perform(get("/recordings")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE)
+            )
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$").isNotEmpty())
-            .andExpect(jsonPath("$[0].id").value(recordingId.toString()));
+            .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
     }
 
     @DisplayName("Should create a recording with 201 response code")
