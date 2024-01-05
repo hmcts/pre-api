@@ -95,6 +95,15 @@ class RecordingServiceTest {
 
         var model = recordingService.findById(recordingEntity.getId());
         assertThat(model).isNull();
+        assertThrows(
+            NotFoundException.class,
+            () -> recordingService.findById(recordingEntity.getId())
+        );
+
+        verify(recordingRepository, times(1))
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId()
+            );
     }
 
     @DisplayName("Find a list of recordings and return a list of models")
@@ -250,9 +259,7 @@ class RecordingServiceTest {
             .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
                 recordingEntity.getId()
             );
-        verify(recordingRepository, times(1)).save(recordingEntity);
-
-        assertThat(recordingEntity.isDeleted()).isTrue();
+        verify(recordingRepository, times(1)).deleteById(recordingEntity.getId());
     }
 
     @DisplayName("Delete a recording by it's id when recording doesn't exist")
@@ -274,7 +281,7 @@ class RecordingServiceTest {
             .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
                 recordingEntity.getId()
             );
-        verify(recordingRepository, never()).save(recordingEntity);
+        verify(recordingRepository, never()).deleteById(recordingEntity.getId());
     }
 
     @DisplayName("Delete a recording by it's id when recording has already been deleted")
@@ -297,9 +304,6 @@ class RecordingServiceTest {
             .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
                 recordingEntity.getId()
             );
-        verify(recordingRepository, never()).save(recordingEntity);
-
-        assertThat(recordingEntity.isDeleted()).isTrue();
-        assertThat(recordingEntity.getDeletedAt()).isEqualTo(now);
+        verify(recordingRepository, never()).deleteById(recordingEntity.getId());
     }
 }

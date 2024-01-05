@@ -15,8 +15,6 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -42,7 +40,7 @@ public class RecordingService {
                 recordingId
             )
             .map(RecordingDTO::new)
-            .orElse(null);
+            .orElseThrow(() -> new NotFoundException("RecordingDTO: " + recordingId));
     }
 
     @Transactional
@@ -71,7 +69,7 @@ public class RecordingService {
             throw new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId());
         }
 
-        var recordingEntity = new Recording();
+        var recordingEntity = recording.orElse(new Recording());
         recordingEntity.setId(createRecordingDTO.getId());
         if (createRecordingDTO.getParentRecordingId() != null) {
             var parentRecording = recordingRepository.findById(createRecordingDTO.getParentRecordingId());
@@ -104,8 +102,6 @@ public class RecordingService {
             throw new NotFoundException("Recording: " + recordingId);
         }
 
-        var recordingEntity = recording.get();
-        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
-        recordingRepository.save(recordingEntity);
+        recordingRepository.deleteById(recordingId);
     }
 }

@@ -88,15 +88,16 @@ public class CourtService {
             .map(Optional::get)
             .collect(Collectors.toSet());
 
-        var courtEntity = new Court();
+        var court = courtRepository.findById(createCourtDTO.getId());
+        var courtEntity = court.orElse(new Court());
+        courtEntity.setId(createCourtDTO.getId());
         courtEntity.setName(createCourtDTO.getName());
         courtEntity.setCourtType(createCourtDTO.getCourtType());
         courtEntity.setLocationCode(createCourtDTO.getLocationCode());
         courtEntity.setRegions(regions);
         courtEntity.setRooms(rooms);
 
-        var isUpdate = courtRepository.existsById(createCourtDTO.getId());
-        courtEntity.setId(createCourtDTO.getId());
+        var isUpdate = court.isPresent();
         courtRepository.save(courtEntity);
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;

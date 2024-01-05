@@ -70,7 +70,8 @@ class RecordingControllerTest {
     @Test
     void testGetNonExistingRecordingById() throws Exception {
         UUID recordingId = UUID.randomUUID();
-        when(recordingService.findById(recordingId)).thenReturn(null);
+        doThrow(new NotFoundException("RecordingDTO: " + recordingId))
+            .when(recordingService).findById(recordingId);
 
         mockMvc.perform(get(getPath(recordingId)))
             .andExpect(status().isNotFound())

@@ -251,35 +251,22 @@ class CaseServiceTest {
 
     @Test
     void deleteByIdSuccess() {
-        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(caseRepository.existsByIdAndDeletedAtIsNull(caseEntity.getId())).thenReturn(true);
 
         caseService.deleteById(caseEntity.getId());
 
-        verify(caseRepository, times(1)).findById(caseEntity.getId());
-        verify(caseRepository, times(1)).save(caseEntity);
-
-        assertThat(caseEntity.getDeletedAt()).isNotNull();
+        verify(caseRepository, times(1)).existsByIdAndDeletedAtIsNull(caseEntity.getId());
+        verify(caseRepository, times(1)).deleteById(caseEntity.getId());
     }
 
     @Test
     void deleteByIdNotFound() {
         UUID caseId = UUID.randomUUID();
-        when(caseRepository.findById(caseId)).thenReturn(Optional.empty());
+        when(caseRepository.existsByIdAndDeletedAtIsNull(caseId)).thenReturn(false);
 
         assertThrows(NotFoundException.class, () -> caseService.deleteById(caseId));
 
-        verify(caseRepository, times(1)).findById(caseId);
-        verify(caseRepository, never()).save(any());
-    }
-
-    @Test
-    void deleteByIdAlreadyDeleted() {
-        caseEntity.setDeletedAt(Timestamp.from(Instant.now()));
-        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
-
-        assertThrows(NotFoundException.class, () -> caseService.deleteById(caseEntity.getId()));
-
-        verify(caseRepository, times(1)).findById(caseEntity.getId());
-        verify(caseRepository, never()).save(any());
+        verify(caseRepository, times(1)).existsByIdAndDeletedAtIsNull(caseId);
+        verify(caseRepository, never()).deleteById(caseId);
     }
 }
