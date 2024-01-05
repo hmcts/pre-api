@@ -20,9 +20,10 @@ class CourtManager:
             'Liverpool Crown Court': ('CROWN','433','UKD-North West (England)'),
             'Leeds Youth Court': ('MAGISTRATE','429','UKE-Yorkshire and The Humber'),
             'Leeds Crown Court': ('CROWN','429','UKE-Yorkshire and The Humber'),
-            'Kingston-upon-Thames Crown Court': ('CROWN','427','UKI-London'),
+            'Kingston upon Thames Crown Court': ('CROWN','427','UKI-London'),
             'Durham Crown Court': ('CROWN','422','UKC-North East (England)'),
-            'Birmingham Crown Court': ('CROWN','404','UKG-West Midlands (England)')
+            'Birmingham Crown Court': ('CROWN','404','UKG-West Midlands (England)'),
+            'Birmingham Youth Court': ('CROWN','404','UKG-West Midlands (England)')
         }
         batch_courts_data = []
 
@@ -32,7 +33,7 @@ class CourtManager:
             court_info = None
 
             for court_pattern, info in court_types.items():
-                regex_pattern = re.compile(rf"{re.escape(court_pattern)}", re.IGNORECASE)
+                regex_pattern = re.compile(rf"{re.escape(court_pattern)}(?:\sCourt)?", re.IGNORECASE)
                 if re.search(regex_pattern, name):
                     court_info = info
                     break 
