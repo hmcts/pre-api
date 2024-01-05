@@ -74,7 +74,7 @@ class RecordingServiceTest {
     @Test
     void findRecordingByIdSuccess() {
         when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             )
         ).thenReturn(Optional.of(recordingEntity));
@@ -88,7 +88,7 @@ class RecordingServiceTest {
     @Test
     void findRecordingByIdMissing() {
         when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             )
         ).thenReturn(Optional.empty());
@@ -99,7 +99,7 @@ class RecordingServiceTest {
         );
 
         verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             );
     }
@@ -246,7 +246,7 @@ class RecordingServiceTest {
     @Test
     void deleteRecordingSuccess() {
         when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             )
         ).thenReturn(Optional.of(recordingEntity));
@@ -254,7 +254,7 @@ class RecordingServiceTest {
         recordingService.deleteById(recordingEntity.getId());
 
         verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             );
         verify(recordingRepository, times(1)).deleteById(recordingEntity.getId());
@@ -265,7 +265,7 @@ class RecordingServiceTest {
     void deleteRecordingNotFound() {
         when(
             recordingRepository
-                .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                     recordingEntity.getId()
                 )
         ).thenReturn(Optional.empty());
@@ -276,7 +276,7 @@ class RecordingServiceTest {
         );
 
         verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             );
         verify(recordingRepository, never()).deleteById(recordingEntity.getId());
@@ -288,7 +288,7 @@ class RecordingServiceTest {
         Timestamp now = Timestamp.from(Instant.now());
         recordingEntity.setDeletedAt(now);
         when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             )
         ).thenReturn(Optional.of(recordingEntity));
@@ -299,7 +299,7 @@ class RecordingServiceTest {
         );
 
         verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             );
         verify(recordingRepository, never()).deleteById(recordingEntity.getId());

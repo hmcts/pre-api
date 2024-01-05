@@ -32,9 +32,8 @@ public class RecordingService {
 
     @Transactional
     public RecordingDTO findById(UUID recordingId) {
-
         return recordingRepository
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingId
             )
             .map(RecordingDTO::new)
@@ -92,7 +91,7 @@ public class RecordingService {
     @Transactional
     public void deleteById(UUID recordingId) {
         var recording = recordingRepository
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingId
             );
 
