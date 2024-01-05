@@ -1,5 +1,6 @@
 from .helpers import check_existing_record, audit_entry_creation, log_failed_imports
-import uuid
+import re
+
 
 class CourtRegionManager:
     def __init__(self):
@@ -29,12 +30,17 @@ class CourtRegionManager:
         destination_cursor.execute('SELECT id, name FROM public.regions')
         regions_data = destination_cursor.fetchall()
         regions_dict = {region[1]: region[0] for region in regions_data}
-
+    
         for court in courts_data:
             court_id = court[0]
             court_name = court[1]
-            region_name = court_regions_dict.get(court_name)
-            region_id = regions_dict.get(region_name)
+            region_id = None
+
+            for court_key, region_name in court_regions_dict.items():
+                regex_pattern = re.compile(rf"{re.escape(court_key)}(?:\sCourt)?", re.IGNORECASE)
+                if re.search(regex_pattern, court_name):
+                    region_id = regions_dict.get(region_name)
+                    break 
 
             if region_id is None:
                 self.failed_imports.add(('court_region', court_id, 'Missing region_id'))
