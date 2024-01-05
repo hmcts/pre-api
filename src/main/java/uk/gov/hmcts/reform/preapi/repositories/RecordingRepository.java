@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-@SuppressWarnings({"PMD.MethodNamingConventions", "LineLength"})
+@SuppressWarnings({"PMD.MethodNamingConventions", "checkstyle:LineLength"})
 public interface RecordingRepository extends SoftDeleteRepository<Recording, UUID> {
     Optional<Recording> findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
         UUID recordingId
