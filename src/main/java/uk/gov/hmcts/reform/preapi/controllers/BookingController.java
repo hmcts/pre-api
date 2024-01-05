@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,15 +18,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchBookings;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
-import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
-import uk.gov.hmcts.reform.preapi.services.CaseService;
 
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.http.ResponseEntity.noContent;
@@ -34,76 +34,68 @@ import static org.springframework.http.ResponseEntity.ok;
 @RestController
 public class BookingController extends PreApiController {
 
-    private final CaseService caseService;
     private final BookingService bookingService;
 
     @Autowired
-    public BookingController(final CaseService caseService, final BookingService bookingService) {
+    public BookingController(final BookingService bookingService) {
         super();
-        this.caseService = caseService;
         this.bookingService = bookingService;
     }
 
     @GetMapping("/bookings")
-    @Operation(operationId = "searchBookings", summary = "Search for Bookings by case reference")
-    public ResponseEntity<List<BookingDTO>> search(@RequestParam String caseReference) {
-        return ok(bookingService.searchBy(caseReference));
-    }
-
-    @GetMapping("/cases/{caseId}/bookings")
-    @Operation(operationId = "getBookingsByCaseId", summary = "Get all Bookings for a Case")
+    @Operation(operationId = "getBookingsByCaseId", summary = "Search All Bookings using Case Id or Case Ref")
+    @Parameter(
+        name = "caseId",
+        description = "The Case Id to search for",
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "caseReference",
+        description = "The Case Reference to search for",
+        example = "1234567890123456"
+    )
     public HttpEntity<PagedModel<EntityModel<BookingDTO>>> searchByCaseId(
-        @PathVariable UUID caseId,
+        @RequestParam Map<String,String> params,
         Pageable pageable,
         PagedResourcesAssembler<BookingDTO> assembler) {
-        validateRequest(caseId);
 
-        final Page<BookingDTO> resultPage = bookingService.findAllByCaseId(caseId, pageable);
+        var searchParams = SearchBookings.from(params);
+
+        final Page<BookingDTO> resultPage = bookingService.searchBy(
+            searchParams.caseId(),
+            searchParams.caseReference(),
+            pageable
+        );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
         }
         return ok(assembler.toModel(resultPage));
     }
 
-    @GetMapping("/cases/{caseId}/bookings/{bookingId}")
+    @GetMapping("/bookings/{bookingId}")
     @Operation(operationId = "getBookingById", summary = "Get a Booking by Id")
-    public ResponseEntity<BookingDTO> get(@PathVariable UUID caseId,
-                                          @PathVariable UUID bookingId) {
-        validateRequest(caseId);
+    public ResponseEntity<BookingDTO> get(@PathVariable UUID bookingId) {
 
         return ok(bookingService.findById(bookingId));
     }
 
-    @PutMapping("/cases/{caseId}/bookings/{bookingId}")
+    @PutMapping("/bookings/{bookingId}")
     @Operation(operationId = "putBooking", summary = "Create or Update a Booking")
-    public ResponseEntity<Void> upsert(@PathVariable UUID caseId,
-                                       @PathVariable UUID bookingId,
+    public ResponseEntity<Void> upsert(@PathVariable UUID bookingId,
                                        @RequestBody CreateBookingDTO createBookingDTO) {
-        this.validateRequestWithBody(caseId, bookingId, createBookingDTO);
+        this.validateRequestWithBody(bookingId, createBookingDTO);
 
         return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
     }
 
-    @DeleteMapping("/cases/{caseId}/bookings/{bookingId}")
+    @DeleteMapping("/bookings/{bookingId}")
     @Operation(operationId = "deleteBooking", summary = "Delete a Booking")
-    public ResponseEntity<Void> delete(@PathVariable UUID caseId,
-                                       @PathVariable UUID bookingId) {
-        validateRequest(caseId);
+    public ResponseEntity<Void> delete(@PathVariable UUID bookingId) {
         bookingService.markAsDeleted(bookingId);
         return noContent().build();
     }
 
-    private void validateRequest(UUID caseId) {
-        if (caseService.findById(caseId) == null) {
-            throw new NotFoundException("CaseDTO " + caseId);
-        }
-    }
-
-    private void validateRequestWithBody(UUID caseId, UUID bookingId, CreateBookingDTO createBookingDTO) {
-        validateRequest(caseId);
-        if (!caseId.equals(createBookingDTO.getCaseId())) {
-            throw new PathPayloadMismatchException("caseId", "bookingDTO.caseId");
-        }
+    private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {
         if (!bookingId.equals(createBookingDTO.getId())) {
             throw new PathPayloadMismatchException("bookingId", "bookingDTO.id");
         }
