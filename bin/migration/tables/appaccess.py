@@ -8,7 +8,11 @@ class AppAccessManager:
         self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT * FROM public.users WHERE prerole != 'Level 3' OR prerole IS NULL")
+        query = """ SELECT u.* 
+                    FROM public.users u, public.groupassignments ga
+                    WHERE u.userid = ga.userid
+                    AND u.userid NOT IN (SELECT userid FROM public.groupassignments WHERE groupid = '95ebbcde-c27c-42d5-89f2-b0960350db5e')"""
+        self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):

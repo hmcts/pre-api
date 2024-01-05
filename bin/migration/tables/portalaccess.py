@@ -8,7 +8,11 @@ class PortalAccessManager:
         self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT * FROM public.users WHERE prerole = 'Level 3'")
+        query = """ SELECT u.* 
+                    FROM public.users u, public.groupassignments ga
+                    WHERE u.userid = ga.userid
+                    AND u.loginenabled ILIKE 'true' and u.invited ILIKE 'true'"""
+        self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_user_data):
@@ -20,12 +24,33 @@ class PortalAccessManager:
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
                 id=str(uuid.uuid4())
                 password = 'password' # temporary field - to be removed once B2C implemented
-                status = 'ACTIVE' # ? 
 
-                last_access = datetime.now() # ?
-                invitation_datetime = datetime.now() # ?
-                registered_datetime = datetime.now() # ?
-                status = 'ACTIVE' # ? 
+                login_enabled = str(user[18]).lower() == 'true'
+                login_disabled = str(user[18]).lower() == 'false'
+                invited = str(user[19]).lower() == 'true'
+                email_confirmed = str(user[11]).lower() == 'true'
+                status_active = str(user[10]).lower() == 'active'
+                status_inactive = str(user[10]).lower() == 'inactive'
+
+                login_enabled_and_invited = login_enabled and invited 
+                email_confirmed_and_status_inactive = email_confirmed and status_inactive
+                email_confirmed_and_status_active = email_confirmed and status_active
+                login_disabled_and_status_inactive = login_disabled and status_inactive 
+                
+                if login_enabled_and_invited and email_confirmed_and_status_inactive: 
+                    status = 'REGISTERED'
+                elif login_enabled_and_invited and email_confirmed_and_status_active: 
+                    status = 'ACTIVE'
+                elif login_enabled_and_invited: 
+                    status = "INVITATION_SENT"
+                elif login_disabled_and_status_inactive: 
+                    status = 'INACTIVE'
+                else:
+                    self.failed_imports.add(('portal_access', user_id, "Missing status details"))
+
+                last_access = parse_to_timestamp(user[17])
+                invitation_datetime = parse_to_timestamp(user[16])
+                registered_datetime = parse_to_timestamp(user[16])
                 modified_at =parse_to_timestamp(user[17])
                 created_by = user[14]
                 created_at = parse_to_timestamp(user[15])
