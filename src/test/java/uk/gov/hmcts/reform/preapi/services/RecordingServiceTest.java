@@ -105,8 +105,17 @@ class RecordingServiceTest {
             )
         ).thenReturn(Optional.empty());
 
-        var model = recordingService.findById(bookingEntity.getId(), recordingEntity.getId());
-        assertThat(model).isNull();
+        assertThrows(
+            NotFoundException.class,
+            () -> recordingService.findById(bookingEntity.getId(), recordingEntity.getId())
+        );
+
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingEntity.getId());
+        verify(recordingRepository, times(1))
+            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingEntity.getId(),
+                bookingEntity.getId()
+            );
     }
 
     @DisplayName("Find a recording by it's id when the booking id is missing")
@@ -345,9 +354,7 @@ class RecordingServiceTest {
                 recordingEntity.getId(),
                 bookingEntity.getId()
             );
-        verify(recordingRepository, times(1)).save(recordingEntity);
-
-        assertThat(recordingEntity.isDeleted()).isTrue();
+        verify(recordingRepository, times(1)).deleteById(recordingEntity.getId());
     }
 
     @DisplayName("Delete a recording by it's id and related booking id when recording doesn't exist")
@@ -374,7 +381,7 @@ class RecordingServiceTest {
                 recordingEntity.getId(),
                 bookingEntity.getId()
             );
-        verify(recordingRepository, never()).save(recordingEntity);
+        verify(recordingRepository, never()).deleteById(recordingEntity.getId());
     }
 
     @DisplayName("Delete a recording by it's id and related booking id when recording has already been deleted")
@@ -402,10 +409,7 @@ class RecordingServiceTest {
                 recordingEntity.getId(),
                 bookingEntity.getId()
             );
-        verify(recordingRepository, never()).save(recordingEntity);
-
-        assertThat(recordingEntity.isDeleted()).isTrue();
-        assertThat(recordingEntity.getDeletedAt()).isEqualTo(now);
+        verify(recordingRepository, never()).deleteById(recordingEntity.getId());
     }
 
     @DisplayName("Delete a recording by it's id and related booking id when booking doesn't exist")
@@ -425,6 +429,6 @@ class RecordingServiceTest {
                 any(),
                 any()
             );
-        verify(recordingRepository, never()).save(recordingEntity);
+        verify(recordingRepository, never()).deleteById(recordingEntity.getId());
     }
 }

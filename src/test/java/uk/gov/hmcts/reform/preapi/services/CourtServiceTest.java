@@ -148,7 +148,7 @@ public class CourtServiceTest {
 
         when(regionRepository.existsById(any())).thenReturn(true);
         when(roomRepository.existsById(any())).thenReturn(true);
-        when(courtRepository.existsById(courtModel.getId())).thenReturn(false);
+        when(courtRepository.findById(courtModel.getId())).thenReturn(Optional.empty());
         when(courtRepository.save(courtEntity)).thenReturn(courtEntity);
 
         assertThat(courtService.upsert(courtModel)).isEqualTo(UpsertResult.CREATED);
@@ -167,7 +167,7 @@ public class CourtServiceTest {
 
         when(regionRepository.existsById(any())).thenReturn(true);
         when(roomRepository.existsById(any())).thenReturn(true);
-        when(courtRepository.existsById(courtModel.getId())).thenReturn(true);
+        when(courtRepository.findById(courtModel.getId())).thenReturn(Optional.of(courtEntity));
         when(courtRepository.save(courtEntity)).thenReturn(courtEntity);
 
         assertThat(courtService.upsert(courtModel)).isEqualTo(UpsertResult.UPDATED);
