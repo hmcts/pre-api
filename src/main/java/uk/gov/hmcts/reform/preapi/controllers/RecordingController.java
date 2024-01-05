@@ -93,6 +93,7 @@ public class RecordingController extends PreApiController {
             throw new PathPayloadMismatchException("recordingId", "shareRecordingDTO.captureSessionId");
         }
 
-        return getUpsertResponse(recordingService.shareRecordingById(bookingId, shareRecordingDTO), shareRecordingDTO.getId());
+        return getUpsertResponse(recordingService.shareRecordingById(bookingId, shareRecordingDTO),
+                                 shareRecordingDTO.getId());
     }
 }

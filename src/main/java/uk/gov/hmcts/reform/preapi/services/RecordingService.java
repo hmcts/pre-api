@@ -15,7 +15,8 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.*;
+import uk.gov.hmcts.reform.preapi.repositories.ShareRecordingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -135,9 +136,12 @@ public class RecordingService {
         checkBookingValid(bookingId);
         checkRecordingValid(shareRecordingDTO.getId());
 
-        var captureSession = captureSessionRepository.findById(shareRecordingDTO.getCaptureSessionId()).orElseThrow(() -> new NotFoundException("Capture Session: " + shareRecordingDTO.getCaptureSessionId()));
-        var sharedByUser = userRepository.findById(shareRecordingDTO.getSharedByUserId()).orElseThrow(() -> new NotFoundException("Shared by User: " + shareRecordingDTO.getSharedByUserId()));
-        var sharedWithUser = userRepository.findById(shareRecordingDTO.getSharedWithUserId()).orElseThrow(() -> new NotFoundException("Shared with User: " + shareRecordingDTO.getSharedWithUserId()));
+        var captureSession = captureSessionRepository.findById(shareRecordingDTO.getCaptureSessionId())
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + shareRecordingDTO.getCaptureSessionId()));
+        var sharedByUser = userRepository.findById(shareRecordingDTO.getSharedByUserId())
+            .orElseThrow(() -> new NotFoundException("Shared by User: " + shareRecordingDTO.getSharedByUserId()));
+        var sharedWithUser = userRepository.findById(shareRecordingDTO.getSharedWithUserId())
+            .orElseThrow(() -> new NotFoundException("Shared with User: " + shareRecordingDTO.getSharedWithUserId()));
 
         var shareRecordingEntity = new ShareRecording();
         shareRecordingEntity.setId(shareRecordingDTO.getId());

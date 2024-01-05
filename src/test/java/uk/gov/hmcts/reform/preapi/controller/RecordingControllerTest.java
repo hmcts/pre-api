@@ -337,11 +337,11 @@ class RecordingControllerTest {
     @DisplayName("Should create a share recording with 201 response code")
     @Test
     void testShareRecordingCreated() throws Exception {
-        UUID shareRecordingId = UUID.randomUUID();
-        UUID recordingId = UUID.randomUUID();
-        UUID bookingId = UUID.randomUUID();
-        UUID sharedWithUserId = UUID.randomUUID();
-        UUID sharedByUserId = UUID.randomUUID();
+        final UUID shareRecordingId = UUID.randomUUID();
+        final UUID recordingId = UUID.randomUUID();
+        final UUID bookingId = UUID.randomUUID();
+        final UUID sharedWithUserId = UUID.randomUUID();
+        final UUID sharedByUserId = UUID.randomUUID();
 
         var shareRecording = new uk.gov.hmcts.reform.preapi.dto.ShareRecordingDTO();
         shareRecording.setId(shareRecordingId);
