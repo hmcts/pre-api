@@ -16,7 +16,7 @@ import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
-class ShareRecordingTestDTO {
+class ShareRecordingDTOTest {
 
     @Autowired
     private EntityManager entityManager;

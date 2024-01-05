@@ -9,4 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface ShareRecordingRepository extends JpaRepository<ShareRecording, UUID> {
+    boolean existsByIdAndDeletedAtIsNull(UUID id);
 }
