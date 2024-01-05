@@ -93,8 +93,6 @@ class RecordingServiceTest {
             )
         ).thenReturn(Optional.empty());
 
-        var model = recordingService.findById(recordingEntity.getId());
-        assertThat(model).isNull();
         assertThrows(
             NotFoundException.class,
             () -> recordingService.findById(recordingEntity.getId())
