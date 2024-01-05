@@ -16,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,12 +46,10 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
-    public List<BookingDTO> searchBy(String caseReference) {
+    public Page<BookingDTO> searchBy(UUID caseId, String caseReference, Pageable pageable) {
         return bookingRepository
-            .searchBookingsBy(caseReference)
-            .stream()
-            .map(BookingDTO::new)
-            .collect(Collectors.toList());
+            .searchBookingsBy(caseId, caseReference, pageable)
+            .map(BookingDTO::new);
     }
 
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {

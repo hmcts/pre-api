@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BookingControllerFT extends FunctionalTestBase {
 
-    private static final String BOOKINGS_ENDPOINT = "/cases/{0}/bookings/";
+    private static final String BOOKINGS_ENDPOINT = "/bookings/";
     private static final String RECORDINGS_ENDPOINT = "/bookings/{0}/recordings/";
 
     @Test
@@ -21,8 +21,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var bookingId = testIds.get("bookingId");
         var recordingId = testIds.get("recordingId");
 
-        var bookingResponse = doGetRequest(
-            MessageFormat.format(BOOKINGS_ENDPOINT, caseId) + bookingId);
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + bookingId);
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookingResponse.body().jsonPath().getString("id")).isEqualTo(bookingId);
 
@@ -33,8 +32,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var recordingCreatedAt = recordingResponse.body().prettyPrint();
         assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
-        var deleteResponse = doDeleteRequest(
-            MessageFormat.format(BOOKINGS_ENDPOINT, caseId) + bookingId);
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + bookingId);
         assertThat(deleteResponse.statusCode()).isEqualTo(204);
 
         var recordingResponse2 = doGetRequest(
