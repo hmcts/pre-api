@@ -10,7 +10,6 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
-import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
@@ -24,49 +23,38 @@ import java.util.stream.Collectors;
 public class RecordingService {
 
     private final RecordingRepository recordingRepository;
-    private final BookingRepository bookingRepository;
     private final CaptureSessionRepository captureSessionRepository;
 
     @Autowired
-    public RecordingService(RecordingRepository recordingRepository, BookingRepository bookingRepository,
+    public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository) {
         this.recordingRepository = recordingRepository;
-        this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
     }
 
     @Transactional
-    public RecordingDTO findById(UUID bookingId, UUID recordingId) {
-        checkBookingValid(bookingId);
+    public RecordingDTO findById(UUID recordingId) {
 
         return recordingRepository
-            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
-                recordingId,
-                bookingId
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingId
             )
             .map(RecordingDTO::new)
             .orElse(null);
     }
 
     @Transactional
-    public List<RecordingDTO> findAllByBookingId(UUID bookingId, UUID captureSessionId, UUID parentRecordingId) {
-        checkBookingValid(bookingId);
-
+    public List<RecordingDTO> findAll(UUID captureSessionId, UUID parentRecordingId) {
         return recordingRepository
-            .searchAllBy(
-                bookingId,
-                captureSessionId,
-                parentRecordingId
-            ).stream()
+            .searchAllBy(captureSessionId, parentRecordingId)
+            .stream()
             .map(RecordingDTO::new)
             .collect(Collectors.toList());
     }
 
     @Transactional
     @SuppressWarnings("PMD.CyclomaticComplexity")
-    public UpsertResult upsert(UUID bookingId, CreateRecordingDTO createRecordingDTO) {
-        checkBookingValid(bookingId);
-
+    public UpsertResult upsert(CreateRecordingDTO createRecordingDTO) {
         var recording = recordingRepository.findById(createRecordingDTO.getId());
 
         if (recording.isPresent() && recording.get().isDeleted()) {
@@ -75,9 +63,8 @@ public class RecordingService {
 
         var isUpdate = recording.isPresent();
 
-        var captureSession = captureSessionRepository.findByIdAndBooking_IdAndDeletedAtIsNull(
-            createRecordingDTO.getCaptureSessionId(),
-            bookingId
+        var captureSession = captureSessionRepository.findByIdAndDeletedAtIsNull(
+            createRecordingDTO.getCaptureSessionId()
         );
 
         if (!isUpdate && captureSession.isEmpty()) {
@@ -107,13 +94,10 @@ public class RecordingService {
     }
 
     @Transactional
-    public void deleteById(UUID bookingId, UUID recordingId) {
-        checkBookingValid(bookingId);
-
+    public void deleteById(UUID recordingId) {
         var recording = recordingRepository
-            .findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
-                recordingId,
-                bookingId
+            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+                recordingId
             );
 
         if (recording.isEmpty() || recording.get().isDeleted()) {
@@ -123,11 +107,5 @@ public class RecordingService {
         var recordingEntity = recording.get();
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
-    }
-
-    private void checkBookingValid(UUID bookingId) {
-        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
-            throw new NotFoundException("Booking: " + bookingId);
-        }
     }
 }

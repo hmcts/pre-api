@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/bookings/{bookingId}/recordings")
+@RequestMapping("/recordings")
 public class RecordingController extends PreApiController {
 
     private final RecordingService recordingService;
@@ -37,11 +37,10 @@ public class RecordingController extends PreApiController {
     @GetMapping("/{recordingId}")
     @Operation(operationId = "getRecordingById", summary = "Get a Recording by Id")
     public ResponseEntity<RecordingDTO> getRecordingById(
-        @PathVariable UUID bookingId,
         @PathVariable UUID recordingId
     ) {
         // TODO Recordings returned need to be shared with the current user
-        var recordingDTO = recordingService.findById(bookingId, recordingId);
+        var recordingDTO = recordingService.findById(recordingId);
         if (recordingDTO == null) {
             throw new NotFoundException("RecordingDTO: " + recordingId);
         }
@@ -49,20 +48,18 @@ public class RecordingController extends PreApiController {
     }
 
     @GetMapping
-    @Operation(operationId = "getRecordingsByBookingId", summary = "Get all Recordings by Booking Id")
-    public ResponseEntity<List<RecordingDTO>> getAllRecordingsByBookingId(
-        @PathVariable UUID bookingId,
+    @Operation(operationId = "getRecordings", summary = "Search all Recordings")
+    public ResponseEntity<List<RecordingDTO>> searchRecordings(
         @RequestParam(required = false) UUID captureSessionId,
         @RequestParam(required = false) UUID parentRecordingId
     ) {
         // TODO Recordings returned need to be shared with the user
-        return ResponseEntity.ok(recordingService.findAllByBookingId(bookingId, captureSessionId, parentRecordingId));
+        return ResponseEntity.ok(recordingService.findAll(captureSessionId, parentRecordingId));
     }
 
     @PutMapping("/{recordingId}")
     @Operation(operationId = "putRecordings", summary = "Create or Update a Recording")
     public ResponseEntity<Void> upsert(
-        @PathVariable UUID bookingId,
         @PathVariable UUID recordingId,
         @RequestBody CreateRecordingDTO createRecordingDTO
     ) {
@@ -71,17 +68,16 @@ public class RecordingController extends PreApiController {
             throw new PathPayloadMismatchException("recordingId", "createRecordingDTO.id");
         }
 
-        return getUpsertResponse(recordingService.upsert(bookingId, createRecordingDTO), createRecordingDTO.getId());
+        return getUpsertResponse(recordingService.upsert(createRecordingDTO), createRecordingDTO.getId());
     }
 
     @DeleteMapping("/{recordingId}")
     @Operation(operationId = "deleteRecording", summary = "Delete a Recording")
     public ResponseEntity<Void> deleteRecordingById(
-        @PathVariable UUID bookingId,
         @PathVariable UUID recordingId
     ) {
         // TODO Ensure user has access to the recording
-        recordingService.deleteById(bookingId, recordingId);
+        recordingService.deleteById(recordingId);
         return ResponseEntity.ok().build();
     }
 }

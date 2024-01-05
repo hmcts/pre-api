@@ -14,16 +14,14 @@ import java.util.UUID;
 @Repository
 @SuppressWarnings("PMD.MethodNamingConventions")
 public interface RecordingRepository extends JpaRepository<Recording, UUID> {
-    Optional<Recording> findByIdAndCaptureSession_Booking_IdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
-        UUID recordingId,
-        UUID bookingId
+    Optional<Recording> findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNull(
+        UUID recordingId
     );
 
     @Query(
         """
         SELECT r FROM Recording r
         WHERE r.deletedAt IS NULL
-        AND r.captureSession.booking.id = :bookingId
         AND (
             CAST(:captureSessionId as uuid) IS NULL OR
             r.captureSession.id = :captureSessionId
@@ -35,7 +33,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Recording> searchAllBy(
-        @Param("bookingId") UUID bookingId,
         @Param("captureSessionId") UUID captureSessionId,
         @Param("parentRecordingId") UUID parentRecordingId
     );
