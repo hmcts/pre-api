@@ -107,7 +107,7 @@ class CaseServiceTest {
         when(caseRepository.searchCasesBy(null, null, null)).thenReturn(new PageImpl<>(allCaseEntities));
 
         Page<CaseDTO> models = caseService.searchBy(null, null, null);
-        assertThat(models.getSize()).isEqualTo(1);
+        assertThat(models.getTotalElements()).isEqualTo(1);
         assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
@@ -118,7 +118,7 @@ class CaseServiceTest {
         when(caseRepository.searchCasesBy("234", null, null)).thenReturn(new PageImpl<>(allCaseEntities));
 
         Page<CaseDTO> models = caseService.searchBy("234", null, null);
-        assertThat(models.getSize()).isEqualTo(1);
+        assertThat(models.getTotalElements()).isEqualTo(1);
         assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
@@ -129,7 +129,7 @@ class CaseServiceTest {
         when(caseRepository.searchCasesBy("abc", null, null)).thenReturn(Page.empty());
 
         var models = caseService.searchBy("abc", null, null);
-        assertThat(models.getSize()).isEqualTo(0);
+        assertThat(models.getTotalElements()).isEqualTo(0);
     }
 
     @DisplayName("Find all cases and return list of models where case with court is in list")
@@ -138,7 +138,7 @@ class CaseServiceTest {
         when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), null)).thenReturn(new PageImpl<>(allCaseEntities));
 
         Page<CaseDTO> models = caseService.searchBy(null, caseEntity.getCourt().getId(), null);
-        assertThat(models.getSize()).isEqualTo(1);
+        assertThat(models.getTotalElements()).isEqualTo(1);
         assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
         assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
@@ -150,7 +150,7 @@ class CaseServiceTest {
         when(caseRepository.searchCasesBy(null, uuid, null)).thenReturn(Page.empty());
 
         Page<CaseDTO> models = caseService.searchBy(null, uuid, null);
-        assertThat(models.getSize()).isEqualTo(0);
+        assertThat(models.getTotalElements()).isEqualTo(0);
     }
 
     @Test
