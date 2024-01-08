@@ -89,7 +89,8 @@ public class UserControllerTest {
         UserDTO mockCourt = new UserDTO();
         mockCourt.setId(userId);
         Page<UserDTO> userList = new PageImpl<>(List.of(mockCourt));
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any())).thenReturn(userList);
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
+            .thenReturn(userList);
 
         mockMvc.perform(get("/users"))
             .andExpect(status().isOk())

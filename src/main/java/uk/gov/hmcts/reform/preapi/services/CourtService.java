@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,8 +48,15 @@ public class CourtService {
     }
 
     @Transactional
-    public Page<CourtDTO> findAllBy(CourtType courtType, String name, String locationCode, String regionName, Pageable pageable) {
-        var result =  courtRepository.searchBy(courtType, name, locationCode, pageable)
+    public Page<CourtDTO> findAllBy(
+        CourtType courtType,
+        String name,
+        String locationCode,
+        String regionName,
+        Pageable pageable
+    ) {
+        var result =  courtRepository
+            .searchBy(courtType, name, locationCode, pageable)
             .stream()
             .filter(
                 court -> regionName == null

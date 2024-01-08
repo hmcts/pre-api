@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -135,7 +134,8 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return list of models where case with court is in list")
     @Test
     void findAllCourtIdParamSuccess() {
-        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), null)).thenReturn(new PageImpl<>(allCaseEntities));
+        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), null))
+            .thenReturn(new PageImpl<>(allCaseEntities));
 
         Page<CaseDTO> models = caseService.searchBy(null, caseEntity.getCourt().getId(), null);
         assertThat(models.getTotalElements()).isEqualTo(1);

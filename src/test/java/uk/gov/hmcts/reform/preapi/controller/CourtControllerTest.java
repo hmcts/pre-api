@@ -24,7 +24,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -81,7 +80,8 @@ public class CourtControllerTest {
         CourtDTO mockCourt = new CourtDTO();
         mockCourt.setId(courtId);
         List<CourtDTO> courtDTOList = List.of(mockCourt);
-        when(courtService.findAllBy(isNull(), isNull(), isNull(), isNull(), any())).thenReturn(new PageImpl<>(courtDTOList));
+        when(courtService.findAllBy(isNull(), isNull(), isNull(), isNull(), any()))
+            .thenReturn(new PageImpl<>(courtDTOList));
 
         mockMvc.perform(get("/courts")
                             .accept(MediaType.APPLICATION_JSON_VALUE))

@@ -85,8 +85,6 @@ public class UserController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
     ) {
-        System.out.println(params.getRoleId());
-
         var resultPage = userService.findAllBy(
             params.getFirstName(),
             params.getLastName(),
