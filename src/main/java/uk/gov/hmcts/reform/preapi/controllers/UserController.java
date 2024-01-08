@@ -2,23 +2,30 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -44,16 +51,56 @@ public class UserController extends PreApiController {
         operationId = "getUsers",
         summary = "Search for Users by first name, last name, email, organisation, court or role"
     )
-    @SuppressWarnings("PMD.UseObjectForClearerAPI")
-    public ResponseEntity<List<UserDTO>> getUsers(
-        @RequestParam(required = false) String firstName,
-        @RequestParam(required = false) String lastName,
-        @RequestParam(required = false) String email,
-        @RequestParam(required = false) String organisation,
-        @RequestParam(required = false) UUID courtId,
-        @RequestParam(required = false) UUID roleId
+    @Parameter(
+        name = "firstName",
+        description = "The first name of the user to search by"
+    )
+    @Parameter(
+        name = "lastName",
+        description = "The last name of the user to search by"
+    )
+    @Parameter(
+        name = "email",
+        description = "The email of the user to search by",
+        example = "example@example.com"
+    )
+    @Parameter(
+        name = "organisation",
+        description = "The organisation of the user to search by"
+    )
+    @Parameter(
+        name = "courtId",
+        description = "The court id of the user to search by",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "roleId",
+        description = "The role id of the user to search by",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> getUsers(
+        @Parameter(hidden = true) @ModelAttribute SearchUsers params,
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
     ) {
-        return ResponseEntity.ok(userService.findAllBy(firstName, lastName, email, organisation, courtId, roleId));
+        var resultPage = userService.findAllBy(
+            params.getFirstName(),
+            params.getLastName(),
+            params.getEmail(),
+            params.getOrganisation(),
+            params.getCourtId(),
+            params.getRoleId(),
+            pageable
+        );
+
+
+        if (pageable.getPageNumber() > resultPage.getTotalPages()) {
+            throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
+        }
+
+        return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
     @PutMapping("/{userId}")

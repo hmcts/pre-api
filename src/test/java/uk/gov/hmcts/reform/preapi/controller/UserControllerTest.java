@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -24,6 +26,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -84,14 +88,14 @@ public class UserControllerTest {
         UUID userId = UUID.randomUUID();
         UserDTO mockCourt = new UserDTO();
         mockCourt.setId(userId);
-        List<UserDTO> userList = List.of(mockCourt);
-        when(userService.findAllBy(null, null, null, null, null, null)).thenReturn(userList);
+        Page<UserDTO> userList = new PageImpl<>(List.of(mockCourt));
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
+            .thenReturn(userList);
 
         mockMvc.perform(get("/users"))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$").isNotEmpty())
-            .andExpect(jsonPath("$[0].id").value(userId.toString()));
+            .andExpect(jsonPath("$._embedded.userDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
     }
 
     @DisplayName("Should return a 404 when searching by a court that doesn't exist")
@@ -100,7 +104,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(null, null, null, null, courtId, null);
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -114,7 +118,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(null, null, null, null, null, roleId);
+            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))

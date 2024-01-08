@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -23,6 +24,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -78,13 +80,14 @@ public class CourtControllerTest {
         CourtDTO mockCourt = new CourtDTO();
         mockCourt.setId(courtId);
         List<CourtDTO> courtDTOList = List.of(mockCourt);
-        when(courtService.findAllBy(null, null, null, null)).thenReturn(courtDTOList);
+        when(courtService.findAllBy(isNull(), isNull(), isNull(), isNull(), any()))
+            .thenReturn(new PageImpl<>(courtDTOList));
 
-        mockMvc.perform(get("/courts"))
+        mockMvc.perform(get("/courts")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$").isNotEmpty())
-            .andExpect(jsonPath("$[0].id").value(courtId.toString()));
+            .andExpect(jsonPath("$._embedded.courtDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.courtDTOList[0].id").value(courtId.toString()));
     }
 
     @DisplayName("Should create a court with 201 response code")

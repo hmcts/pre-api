@@ -3,6 +3,8 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
@@ -19,10 +21,8 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -55,13 +55,14 @@ public class UserService {
 
     @Transactional
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
-    public List<UserDTO> findAllBy(
+    public Page<UserDTO> findAllBy(
         String firstName,
         String lastName,
         String email,
         String organisation,
         UUID court,
-        UUID role
+        UUID role,
+        Pageable pageable
     ) {
         if (court != null && !courtRepository.existsById(court)) {
             throw new NotFoundException("Court: " + court);
@@ -71,10 +72,8 @@ public class UserService {
             throw new NotFoundException("Role: " + role);
         }
 
-        return appAccessRepository.searchAllBy(firstName, lastName, email, organisation, court, role)
-            .stream()
-            .map(UserDTO::new)
-            .collect(Collectors.toList());
+        return appAccessRepository.searchAllBy(firstName, lastName, email, organisation, court, role, pageable)
+            .map(UserDTO::new);
     }
 
     @Transactional

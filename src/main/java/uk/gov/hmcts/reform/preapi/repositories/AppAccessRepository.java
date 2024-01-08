@@ -1,12 +1,13 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,13 +29,14 @@ public interface AppAccessRepository extends SoftDeleteRepository<AppAccess, UUI
         AND (CAST(:roleId as uuid) IS NULL OR a.role.id = :roleId)
         """
     )
-    List<AppAccess> searchAllBy(
+    Page<AppAccess> searchAllBy(
         @Param("firstName") String firstName,
         @Param("lastName") String lastName,
         @Param("email") String email,
         @Param("organisation") String organisation,
         @Param("courtId") UUID courtId,
-        @Param("roleId") UUID roleId
+        @Param("roleId") UUID roleId,
+        Pageable pageable
     );
 
 }

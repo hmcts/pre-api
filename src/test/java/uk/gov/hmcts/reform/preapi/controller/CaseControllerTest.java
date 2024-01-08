@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -24,6 +26,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -84,15 +87,16 @@ class CaseControllerTest {
         UUID courtId = UUID.randomUUID();
         CaseDTO mockCaseDTO = new CaseDTO();
         mockCaseDTO.setId(UUID.randomUUID());
-        List<CaseDTO> caseDTOList = List.of(mockCaseDTO);
-        when(caseService.searchBy(caseReference, courtId)).thenReturn(caseDTOList);
+        Page<CaseDTO> caseDTOList = new PageImpl<>(List.of(mockCaseDTO));
+        when(caseService.searchBy(eq(caseReference), eq(courtId), any())).thenReturn(caseDTOList);
 
         mockMvc.perform(get("/cases")
                             .param("reference", caseReference)
-                            .param("courtId", courtId.toString()))
+                            .param("courtId", courtId.toString())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].id").exists());
+            .andExpect(jsonPath("$._embedded.caseDTOList[0].id").exists());
     }
 
     // TODO Search params
