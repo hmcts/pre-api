@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -38,12 +40,10 @@ public class CaseService {
     }
 
     @Transactional
-    public List<CaseDTO> searchBy(String reference, UUID courtId) {
+    public Page<CaseDTO> searchBy(String reference, UUID courtId, Pageable pageable) {
         return caseRepository
-            .searchCasesBy(reference, courtId)
-            .stream()
-            .map(CaseDTO::new)
-            .collect(Collectors.toList());
+            .searchCasesBy(reference, courtId, pageable)
+            .map(CaseDTO::new);
     }
 
     @Transactional

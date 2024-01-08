@@ -1,7 +1,13 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,11 +46,13 @@ public class CaseController extends PreApiController {
 
     @GetMapping
     @Operation(operationId = "getCases", summary = "Get a case by reference or court id")
-    public ResponseEntity<List<CaseDTO>> getCases(
+    public HttpEntity<PagedModel<EntityModel<CaseDTO>>> getCases(
         @RequestParam(name = "reference", required = false) String caseReference,
-        @RequestParam(name = "courtId", required = false) UUID courtId
+        @RequestParam(name = "courtId", required = false) UUID courtId,
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<CaseDTO> assembler
     ) {
-        return ResponseEntity.ok(caseService.searchBy(caseReference, courtId));
+        return ResponseEntity.ok(assembler.toModel(caseService.searchBy(caseReference, courtId, pageable)));
     }
 
     @PutMapping("/{id}")

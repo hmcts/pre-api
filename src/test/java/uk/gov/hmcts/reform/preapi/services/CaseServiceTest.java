@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -102,53 +104,53 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return a list of models")
     @Test
     void findAllSuccess() {
-        when(caseRepository.searchCasesBy(null, null)).thenReturn(allCaseEntities);
+        when(caseRepository.searchCasesBy(null, null, null)).thenReturn(new PageImpl<>(allCaseEntities));
 
-        List<CaseDTO> models = caseService.searchBy(null, null);
-        assertThat(models.size()).isEqualTo(1);
-        assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
-        assertThat(models.get(0).getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
+        Page<CaseDTO> models = caseService.searchBy(null, null, null);
+        assertThat(models.getSize()).isEqualTo(1);
+        assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
+        assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
     @DisplayName("Find all cases and return list of models where reference is in list")
     @Test
     void findAllReferenceParamSuccess() {
-        when(caseRepository.searchCasesBy("234", null)).thenReturn(allCaseEntities);
+        when(caseRepository.searchCasesBy("234", null, null)).thenReturn(new PageImpl<>(allCaseEntities));
 
-        List<CaseDTO> models = caseService.searchBy("234", null);
-        assertThat(models.size()).isEqualTo(1);
-        assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
-        assertThat(models.get(0).getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
+        Page<CaseDTO> models = caseService.searchBy("234", null, null);
+        assertThat(models.getSize()).isEqualTo(1);
+        assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
+        assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
     @DisplayName("Find all cases and return list of models where reference is not the in list")
     @Test
     void findAllReferenceParamNotFoundSuccess() {
-        when(caseRepository.searchCasesBy("abc", null)).thenReturn(Collections.emptyList());
+        when(caseRepository.searchCasesBy("abc", null, null)).thenReturn(Page.empty());
 
-        List<CaseDTO> models = caseService.searchBy("234", null);
-        assertThat(models.size()).isEqualTo(0);
+        var models = caseService.searchBy("abc", null, null);
+        assertThat(models.getSize()).isEqualTo(0);
     }
 
     @DisplayName("Find all cases and return list of models where case with court is in list")
     @Test
     void findAllCourtIdParamSuccess() {
-        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId())).thenReturn(allCaseEntities);
+        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), null)).thenReturn(new PageImpl<>(allCaseEntities));
 
-        List<CaseDTO> models = caseService.searchBy(null, caseEntity.getCourt().getId());
-        assertThat(models.size()).isEqualTo(1);
-        assertThat(models.get(0).getId()).isEqualTo(caseEntity.getId());
-        assertThat(models.get(0).getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
+        Page<CaseDTO> models = caseService.searchBy(null, caseEntity.getCourt().getId(), null);
+        assertThat(models.getSize()).isEqualTo(1);
+        assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
+        assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
     @DisplayName("Find all cases and return list of models where case with court is in list")
     @Test
     void findAllCourtIdParamNotFoundSuccess() {
         UUID uuid = UUID.randomUUID();
-        when(caseRepository.searchCasesBy(null, uuid)).thenReturn(Collections.emptyList());
+        when(caseRepository.searchCasesBy(null, uuid, null)).thenReturn(Page.empty());
 
-        List<CaseDTO> models = caseService.searchBy(null, uuid);
-        assertThat(models.size()).isEqualTo(0);
+        Page<CaseDTO> models = caseService.searchBy(null, uuid, null);
+        assertThat(models.getSize()).isEqualTo(0);
     }
 
     @Test
