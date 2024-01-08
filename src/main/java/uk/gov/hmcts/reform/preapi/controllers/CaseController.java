@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.List;
@@ -52,7 +53,13 @@ public class CaseController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<CaseDTO> assembler
     ) {
-        return ResponseEntity.ok(assembler.toModel(caseService.searchBy(caseReference, courtId, pageable)));
+        var resultPage = caseService.searchBy(caseReference, courtId, pageable);
+
+        if (pageable.getPageNumber() > resultPage.getTotalPages()) {
+            throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
+        }
+
+        return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
     @PutMapping("/{id}")
