@@ -1,17 +1,71 @@
 # pre-api
 
-# Spring Boot application template
+# Pre-Recorded Evidence API
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api)
 
 ## Purpose
 
-The purpose of this template is to speed up the creation of new Spring applications within HMCTS
-and help keep the same standards across multiple teams. If you need to create a new app, you can
-simply use this one as a starting point and build on top of it.
+This code repository contains the source code for the Pre-Recorded Evidence API.
+
+The API hosts numerous endpoints, [documented here](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
+
+```mermaid
+    C4Context
+      title System Context diagram for Pre-Recorded Evidence
+
+      Person(adminUser, "Admin User", "")
+      Person(judicialUser, "Judicial User", "")
+
+      Enterprise_Boundary(a0, "CFT Azure Tenant") {
+
+        System(frontend, "pre-portal", "Admin Portal")
+        System(function, "pre-functions", "Function apps to control Azure Media PLayer")
+
+        System_Boundary(api, "API") {
+            System(api, "pre-api")
+            SystemDb(db, "API db")
+        }
+
+        System_Boundary(media, "Media") {
+            System(ams, "Azure Media Services")
+            SystemDb(blob, "Azure Blob Storage")
+        }
+
+      }
+
+      Enterprise_Boundary(a1, "Justice Azure Tenant") {
+
+        System_Boundary(PowerPlatform, "Power Platform") {
+            System(PowerApps, "Power Apps", "Frontend")
+            System(PowerFlows, "Power Flows", "Flows")
+        }
+      }
+
+      BiRel(judicialUser, PowerApps, "")
+      BiRel(adminUser, PowerApps, "")
+      BiRel(adminUser, frontend, "")
+      BiRel(PowerApps, PowerFlows, "")
+      Rel(PowerApps, api, "")
+      Rel(PowerFlows, api, "")
+      Rel(PowerFlows, function, "")
+      Rel(api, db, "")
+      Rel(frontend, api, "")
+      Rel(ams, blob, "")
+      Rel(function, ams, "")
+
+```
+
+## Related Repositories
+ * [PRE Power Platform Frontend](https://github.com/hmcts/pre-power-platform)
+ * [PRE Shared Infrastructure](https://github.com/hmcts/pre-shared-infrastructure)
+ * [PRE Function Apps](https://github.com/hmcts/pre-functions)
+ * [PRE Portal](https://github.com/hmcts/pre-portal)
 
 ## What's inside
 
 The template is a working application with a minimal setup. It contains:
- * application skeleton
+ * application code
  * setup script to prepare project
  * common plugins and libraries
  * docker setup
