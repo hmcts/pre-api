@@ -63,9 +63,9 @@ public class RecordingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     public HttpEntity<PagedModel<EntityModel<RecordingDTO>>> searchRecordings(
-        @RequestParam Map<String, String> params,
-        Pageable pageable,
-        PagedResourcesAssembler<RecordingDTO> assembler
+        @Parameter(hidden = true) @RequestParam Map<String, String> params,
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
         // TODO Recordings returned need to be shared with the user
         var searchParams = SearchRecordings.from(params);

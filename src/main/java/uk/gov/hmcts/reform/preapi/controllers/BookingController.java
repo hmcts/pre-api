@@ -55,9 +55,9 @@ public class BookingController extends PreApiController {
         example = "1234567890123456"
     )
     public HttpEntity<PagedModel<EntityModel<BookingDTO>>> searchByCaseId(
-        @RequestParam Map<String,String> params,
-        Pageable pageable,
-        PagedResourcesAssembler<BookingDTO> assembler) {
+        @Parameter(hidden = true) @RequestParam Map<String,String> params,
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<BookingDTO> assembler) {
 
         var searchParams = SearchBookings.from(params);
 
