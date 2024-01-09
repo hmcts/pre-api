@@ -1,0 +1,1242 @@
+basePath: /pre-api
+definitions:
+  BookingDTO:
+    description: BookingDTO
+    properties:
+      case_dto:
+        $ref: '#/definitions/CaseDTO'
+      created_at:
+        description: BookingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: BookingDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: BookingId
+        format: uuid
+        type: string
+      modified_at:
+        description: BookingModifiedAt
+        format: date-time
+        type: string
+      participants:
+        description: BookingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: BookingScheduledFor
+        format: date-time
+        type: string
+    type: object
+  CaseDTO:
+    description: CaseDTO
+    properties:
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: CaseCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: CaseDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: CaseId
+        format: uuid
+        type: string
+      modified_at:
+        description: CaseModifiedAt
+        format: date-time
+        type: string
+      reference:
+        description: CaseReference
+        type: string
+      test:
+        description: CaseIsTest
+        type: boolean
+    type: object
+  CourtDTO:
+    description: CourtDTO
+    properties:
+      court_type:
+        description: CourtType
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      id:
+        description: CourtId
+        format: uuid
+        type: string
+      location_code:
+        description: CourtLocationCode
+        type: string
+      name:
+        description: CourtName
+        type: string
+      regions:
+        description: CourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      rooms:
+        description: CourtRooms
+        items:
+          $ref: '#/definitions/RoomDTO'
+        type: array
+        uniqueItems: true
+    type: object
+  CreateBookingDTO:
+    description: CreateBookingDTO
+    properties:
+      case_id:
+        description: CreateBookingCaseId
+        format: uuid
+        type: string
+      id:
+        description: CreateBookingId
+        format: uuid
+        type: string
+      participants:
+        description: CreateBookingParticipants
+        items:
+          $ref: '#/definitions/CreateParticipantDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: CreateBookingScheduledFor
+        format: date-time
+        type: string
+    type: object
+  CreateCaseDTO:
+    description: CreateCaseDTO
+    properties:
+      court_id:
+        description: CreateCaseCourtId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaseId
+        format: uuid
+        type: string
+      reference:
+        description: CreateCaseReference
+        type: string
+      test:
+        description: CreateCaseIsTest
+        type: boolean
+    type: object
+  CreateCourtDTO:
+    description: CreateCourtDTO
+    properties:
+      court_type:
+        description: CreateCourtType
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      id:
+        description: CreateCourtId
+        format: uuid
+        type: string
+      location_code:
+        description: CreateCourtLocationCode
+        type: string
+      name:
+        description: CreateCourtName
+        type: string
+      regions:
+        description: CreateCourtRegionIds
+        items:
+          description: CreateCourtRegionIds
+          format: uuid
+          type: string
+        type: array
+      rooms:
+        description: CreateCourtRoomIds
+        items:
+          description: CreateCourtRoomIds
+          format: uuid
+          type: string
+        type: array
+    type: object
+  CreateParticipantDTO:
+    description: CreateParticipantDTO
+    properties:
+      first_name:
+        description: CreateParticipantFirstName
+        type: string
+      id:
+        description: CreateParticipantId
+        format: uuid
+        type: string
+      last_name:
+        description: CreateParticipantLastName
+        type: string
+      participant_type:
+        description: CreateParticipantType
+        enum:
+          - WITNESS
+          - DEFENDANT
+        type: string
+    type: object
+  CreateRecordingDTO:
+    description: CreateRecordingDTO
+    properties:
+      capture_session_id:
+        description: RecordingCaptureSessionId
+        format: uuid
+        type: string
+      duration:
+        description: RecordingDuration
+        properties:
+          nano:
+            format: int32
+            type: integer
+          negative:
+            type: boolean
+          positive:
+            type: boolean
+          seconds:
+            format: int64
+            type: integer
+          units:
+            items:
+              properties:
+                dateBased:
+                  type: boolean
+                duration:
+                  properties:
+                    nano:
+                      format: int32
+                      type: integer
+                    negative:
+                      type: boolean
+                    positive:
+                      type: boolean
+                    seconds:
+                      format: int64
+                      type: integer
+                    zero:
+                      type: boolean
+                  type: object
+                durationEstimated:
+                  type: boolean
+                timeBased:
+                  type: boolean
+              type: object
+            type: array
+          zero:
+            type: boolean
+        type: object
+      edit_instructions:
+        description: RecordingEditInstructions
+        type: string
+      filename:
+        description: RecordingFilename
+        type: string
+      id:
+        description: RecordingId
+        format: uuid
+        type: string
+      parent_recording_id:
+        description: RecordingParentRecordingId
+        format: uuid
+        type: string
+      url:
+        description: RecordingURL
+        type: string
+      version:
+        description: RecordingVersion
+        format: int32
+        type: integer
+    type: object
+  CreateUserDTO:
+    description: CreateUserDTO
+    properties:
+      active:
+        description: active
+        type: boolean
+      court_id:
+        description: UserCourtId
+        format: uuid
+        type: string
+      email:
+        description: UserEmail
+        type: string
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      role_id:
+        description: UserRoleId
+        format: uuid
+        type: string
+    type: object
+  EntityModelBookingDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      case_dto:
+        $ref: '#/definitions/CaseDTO'
+      created_at:
+        description: BookingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: BookingDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: BookingId
+        format: uuid
+        type: string
+      modified_at:
+        description: BookingModifiedAt
+        format: date-time
+        type: string
+      participants:
+        description: BookingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: BookingScheduledFor
+        format: date-time
+        type: string
+    type: object
+  EntityModelCaseDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: CaseCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: CaseDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: CaseId
+        format: uuid
+        type: string
+      modified_at:
+        description: CaseModifiedAt
+        format: date-time
+        type: string
+      reference:
+        description: CaseReference
+        type: string
+      test:
+        description: CaseIsTest
+        type: boolean
+    type: object
+  EntityModelCourtDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      court_type:
+        description: CourtType
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      id:
+        description: CourtId
+        format: uuid
+        type: string
+      location_code:
+        description: CourtLocationCode
+        type: string
+      name:
+        description: CourtName
+        type: string
+      regions:
+        description: CourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      rooms:
+        description: CourtRooms
+        items:
+          $ref: '#/definitions/RoomDTO'
+        type: array
+        uniqueItems: true
+    type: object
+  EntityModelRecordingDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      capture_session_id:
+        description: RecordingCaptureSessionId
+        format: uuid
+        type: string
+      created_at:
+        description: RecordingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: RecordingDeletedAt
+        format: date-time
+        type: string
+      duration:
+        description: RecordingDuration
+        properties:
+          nano:
+            format: int32
+            type: integer
+          negative:
+            type: boolean
+          positive:
+            type: boolean
+          seconds:
+            format: int64
+            type: integer
+          units:
+            items:
+              properties:
+                dateBased:
+                  type: boolean
+                duration:
+                  properties:
+                    nano:
+                      format: int32
+                      type: integer
+                    negative:
+                      type: boolean
+                    positive:
+                      type: boolean
+                    seconds:
+                      format: int64
+                      type: integer
+                    zero:
+                      type: boolean
+                  type: object
+                durationEstimated:
+                  type: boolean
+                timeBased:
+                  type: boolean
+              type: object
+            type: array
+          zero:
+            type: boolean
+        type: object
+      edit_instructions:
+        description: RecordingEditInstructions
+        type: string
+      filename:
+        description: RecordingFilename
+        type: string
+      id:
+        description: RecordingId
+        format: uuid
+        type: string
+      parent_recording_id:
+        description: RecordingParentRecordingId
+        format: uuid
+        type: string
+      url:
+        description: RecordingURL
+        type: string
+      version:
+        description: RecordingVersion
+        format: int32
+        type: integer
+    type: object
+  EntityModelUserDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      active:
+        description: active
+        type: boolean
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: UserCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: UserDeletedAt
+        format: date-time
+        type: string
+      email:
+        description: UserEmail
+        type: string
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      modified_at:
+        description: UserModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      role:
+        $ref: '#/definitions/RoleDTO'
+    type: object
+  Link:
+    properties:
+      deprecation:
+        type: string
+      href:
+        type: string
+      hreflang:
+        type: string
+      name:
+        type: string
+      profile:
+        type: string
+      templated:
+        type: boolean
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  Links:
+    additionalProperties:
+      $ref: '#/definitions/Link'
+    type: object
+  PageMetadata:
+    properties:
+      number:
+        format: int64
+        type: integer
+      size:
+        format: int64
+        type: integer
+      totalElements:
+        format: int64
+        type: integer
+      totalPages:
+        format: int64
+        type: integer
+    type: object
+  PagedModelEntityModelBookingDTO:
+    properties:
+      _embedded:
+        properties:
+          bookingDTOList:
+            items:
+              $ref: '#/definitions/EntityModelBookingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCaseDTO:
+    properties:
+      _embedded:
+        properties:
+          caseDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCaseDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCourtDTO:
+    properties:
+      _embedded:
+        properties:
+          courtDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCourtDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelRecordingDTO:
+    properties:
+      _embedded:
+        properties:
+          recordingDTOList:
+            items:
+              $ref: '#/definitions/EntityModelRecordingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelUserDTO:
+    properties:
+      _embedded:
+        properties:
+          userDTOList:
+            items:
+              $ref: '#/definitions/EntityModelUserDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  ParticipantDTO:
+    description: ParticipantDTO
+    properties:
+      created_at:
+        description: ParticipantCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: ParticipantDeletedAt
+        format: date-time
+        type: string
+      first_name:
+        description: ParticipantFirstName
+        type: string
+      id:
+        description: ParticipantId
+        format: uuid
+        type: string
+      last_name:
+        description: ParticipantLastName
+        type: string
+      modified_at:
+        description: ParticipantModifiedAt
+        format: date-time
+        type: string
+      participant_type:
+        description: ParticipantType
+        enum:
+          - WITNESS
+          - DEFENDANT
+        type: string
+    type: object
+  PermissionDTO:
+    description: PermissionDTO
+    properties:
+      id:
+        description: PermissionId
+        format: uuid
+        type: string
+      name:
+        description: PermissionName
+        type: string
+    type: object
+  RecordingDTO:
+    description: RecordingDTO
+    properties:
+      capture_session_id:
+        description: RecordingCaptureSessionId
+        format: uuid
+        type: string
+      created_at:
+        description: RecordingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: RecordingDeletedAt
+        format: date-time
+        type: string
+      duration:
+        description: RecordingDuration
+        properties:
+          nano:
+            format: int32
+            type: integer
+          negative:
+            type: boolean
+          positive:
+            type: boolean
+          seconds:
+            format: int64
+            type: integer
+          units:
+            items:
+              properties:
+                dateBased:
+                  type: boolean
+                duration:
+                  properties:
+                    nano:
+                      format: int32
+                      type: integer
+                    negative:
+                      type: boolean
+                    positive:
+                      type: boolean
+                    seconds:
+                      format: int64
+                      type: integer
+                    zero:
+                      type: boolean
+                  type: object
+                durationEstimated:
+                  type: boolean
+                timeBased:
+                  type: boolean
+              type: object
+            type: array
+          zero:
+            type: boolean
+        type: object
+      edit_instructions:
+        description: RecordingEditInstructions
+        type: string
+      filename:
+        description: RecordingFilename
+        type: string
+      id:
+        description: RecordingId
+        format: uuid
+        type: string
+      parent_recording_id:
+        description: RecordingParentRecordingId
+        format: uuid
+        type: string
+      url:
+        description: RecordingURL
+        type: string
+      version:
+        description: RecordingVersion
+        format: int32
+        type: integer
+    type: object
+  RegionDTO:
+    description: RegionDTO
+    properties:
+      name:
+        description: RegionName
+        type: string
+    type: object
+  RoleDTO:
+    description: RoleDTO
+    properties:
+      id:
+        description: RoleId
+        format: uuid
+        type: string
+      name:
+        description: RoleName
+        type: string
+      permissions:
+        description: RolePermissions
+        items:
+          $ref: '#/definitions/PermissionDTO'
+        type: array
+        uniqueItems: true
+    type: object
+  RoomDTO:
+    description: RoomDTO
+    properties:
+      id:
+        description: RoomId
+        format: uuid
+        type: string
+      name:
+        description: RoomName
+        type: string
+    type: object
+  UserDTO:
+    description: UserDTO
+    properties:
+      active:
+        description: active
+        type: boolean
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: UserCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: UserDeletedAt
+        format: date-time
+        type: string
+      email:
+        description: UserEmail
+        type: string
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      modified_at:
+        description: UserModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      role:
+        $ref: '#/definitions/RoleDTO'
+    type: object
+externalDocs:
+  description: README
+  url: 'https://github.com/hmcts/pre-api'
+host: 'sds-api-mgmt.staging.platform.hmcts.net'
+info:
+  description: PRE API
+  license:
+    name: MIT
+    url: 'https://opensource.org/licenses/MIT'
+  title: PRE API
+  version: v0.0.1
+paths:
+  /bookings:
+    get:
+      operationId: getBookingsByCaseId
+      parameters:
+        - description: The Case Id to search for
+          format: uuid
+          in: query
+          name: caseId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The Case Reference to search for
+          in: query
+          name: caseReference
+          x-example: 1234567890123456
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelBookingDTO'
+      summary: Search All Bookings using Case Id or Case Ref
+      tags:
+        - booking-controller
+  '/bookings/{bookingId}':
+    delete:
+      operationId: deleteBooking
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+      summary: Delete a Booking
+      tags:
+        - booking-controller
+    get:
+      operationId: getBookingById
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/BookingDTO'
+      summary: Get a Booking by Id
+      tags:
+        - booking-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putBooking
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateBookingDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Booking
+      tags:
+        - booking-controller
+  /cases:
+    get:
+      operationId: getCases
+      parameters:
+        - description: The case reference to search by
+          in: query
+          name: reference
+          x-example: 1234567890123456
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelCaseDTO'
+      summary: Get a case by reference or court id
+      tags:
+        - case-controller
+  '/cases/{id}':
+    delete:
+      operationId: deleteCase
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+      summary: Mark a Case as deleted
+      tags:
+        - case-controller
+    get:
+      operationId: getCaseById
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaseDTO'
+      summary: Get a case by id
+      tags:
+        - case-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putCase
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCaseDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Case
+      tags:
+        - case-controller
+  /courts:
+    get:
+      operationId: searchCourts
+      parameters:
+        - description: The type of the court to search by
+          enum:
+            - CROWN
+            - MAGISTRATE
+            - FAMILY
+          in: query
+          name: courtType
+          type: string
+        - description: The name of the court to search by
+          in: query
+          name: name
+          x-example: Example
+        - description: The location code of the court to search by
+          in: query
+          name: locationCode
+        - description: The region name of the court to search by
+          in: query
+          name: regionName
+          x-example: London
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelCourtDTO'
+      summary: 'Search for Courts by court type, name, location code or region name'
+      tags:
+        - court-controller
+  '/courts/{courtId}':
+    get:
+      operationId: getCourtById
+      parameters:
+        - format: uuid
+          in: path
+          name: courtId
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CourtDTO'
+      summary: Get a Court by Id
+      tags:
+        - court-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putCourt
+      parameters:
+        - format: uuid
+          in: path
+          name: courtId
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCourtDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Court
+      tags:
+        - court-controller
+  /recordings:
+    get:
+      operationId: getRecordings
+      parameters:
+        - description: The capture session to search by
+          format: uuid
+          in: query
+          name: captureSessionId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The parent recording to search by
+          format: uuid
+          in: query
+          name: parentRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelRecordingDTO'
+      summary: Search all Recordings
+      tags:
+        - recording-controller
+  '/recordings/{recordingId}':
+    delete:
+      operationId: deleteRecording
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+      summary: Delete a Recording
+      tags:
+        - recording-controller
+    get:
+      operationId: getRecordingById
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/RecordingDTO'
+      summary: Get a Recording by Id
+      tags:
+        - recording-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putRecordings
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateRecordingDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Recording
+      tags:
+        - recording-controller
+  /users:
+    get:
+      operationId: getUsers
+      parameters:
+        - description: The first name of the user to search by
+          in: query
+          name: firstName
+        - description: The last name of the user to search by
+          in: query
+          name: lastName
+        - description: The email of the user to search by
+          in: query
+          name: email
+          x-example: example@example.com
+        - description: The organisation of the user to search by
+          in: query
+          name: organisation
+        - description: The court id of the user to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The role id of the user to search by
+          format: uuid
+          in: query
+          name: roleId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelUserDTO'
+      summary: >-
+        Search for Users by first name, last name, email, organisation, court or
+        role
+      tags:
+        - user-controller
+  '/users/{userId}':
+    delete:
+      operationId: deleteUser
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+      summary: Delete a User
+      tags:
+        - user-controller
+    get:
+      operationId: getUserById
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/UserDTO'
+      summary: Get a User by Id
+      tags:
+        - user-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putUser
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateUserDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a User
+      tags:
+        - user-controller
+schemes:
+  - https
+swagger: '2.0'
+x-components: {}
+
