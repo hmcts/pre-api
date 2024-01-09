@@ -3,6 +3,9 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
@@ -15,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -46,8 +48,15 @@ public class CourtService {
     }
 
     @Transactional
-    public List<CourtDTO> findAllBy(CourtType courtType, String name, String locationCode, String regionName) {
-        return courtRepository.searchBy(courtType, name, locationCode)
+    public Page<CourtDTO> findAllBy(
+        CourtType courtType,
+        String name,
+        String locationCode,
+        String regionName,
+        Pageable pageable
+    ) {
+        var result =  courtRepository
+            .searchBy(courtType, name, locationCode, pageable)
             .stream()
             .filter(
                 court -> regionName == null
@@ -57,7 +66,8 @@ public class CourtService {
                     .anyMatch(n -> n.toLowerCase(Locale.ROOT).contains(regionName.toLowerCase(Locale.ROOT)))
             )
             .map(CourtDTO::new)
-            .collect(Collectors.toList());
+            .toList();
+        return new PageImpl<>(result, pageable, result.size());
     }
 
     @Transactional

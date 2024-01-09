@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -12,11 +13,11 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
@@ -26,7 +27,6 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -55,24 +55,25 @@ public class RecordingController extends PreApiController {
     @Parameter(
         name = "captureSessionId",
         description = "The capture session to search by",
+        schema = @Schema(implementation = UUID.class),
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
         name = "parentRecordingId",
         description = "The parent recording to search by",
+        schema = @Schema(implementation = UUID.class),
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     public HttpEntity<PagedModel<EntityModel<RecordingDTO>>> searchRecordings(
-        @RequestParam Map<String, String> params,
-        Pageable pageable,
-        PagedResourcesAssembler<RecordingDTO> assembler
+        @Parameter(hidden = true) @ModelAttribute SearchRecordings params,
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
         // TODO Recordings returned need to be shared with the user
-        var searchParams = SearchRecordings.from(params);
 
         var resultPage = recordingService.findAll(
-            searchParams.captureSessionId(),
-            searchParams.parentRecordingId(),
+            params.getCaptureSessionId(),
+            params.getParentRecordingId(),
             pageable
         );
 

@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Region;
@@ -44,6 +47,8 @@ public class CourtServiceTest {
 
     @Autowired
     private CourtService courtService;
+
+    private Pageable pageable = PageRequest.of(0, 20);
 
     @BeforeAll
     static void setUp() {
@@ -89,13 +94,13 @@ public class CourtServiceTest {
     @Test
     void findAllCourtsSuccess() {
         when(
-            courtRepository.searchBy(null, null, null)
-        ).thenReturn(List.of(courtEntity));
+            courtRepository.searchBy(null, null, null, pageable)
+        ).thenReturn(new PageImpl<>(List.of(courtEntity)));
 
-        var models = courtService.findAllBy(null, null, null, null);
-        assertThat(models.size()).isEqualTo(1);
+        var models = courtService.findAllBy(null, null, null, null, pageable);
+        assertThat(models.getTotalElements()).isEqualTo(1);
 
-        var first = models.get(0);
+        var first = models.get().toList().getFirst();
         assertThat(first.getId()).isEqualTo(courtEntity.getId());
         assertThat(first.getName()).isEqualTo(courtEntity.getName());
         assertThat(first.getLocationCode()).isEqualTo(courtEntity.getLocationCode());
@@ -106,13 +111,13 @@ public class CourtServiceTest {
     @Test
     void findAllCourtsRegionSearchSuccess() {
         when(
-            courtRepository.searchBy(null, null, null)
-        ).thenReturn(List.of(courtEntity));
+            courtRepository.searchBy(null, null, null, pageable)
+        ).thenReturn(new PageImpl<>(List.of(courtEntity)));
 
-        var models = courtService.findAllBy(null, null, null, "example");
-        assertThat(models.size()).isEqualTo(1);
+        var models = courtService.findAllBy(null, null, null, "example", pageable);
+        assertThat(models.getTotalElements()).isEqualTo(1);
 
-        var first = models.get(0);
+        var first = models.get().toList().getFirst();
         assertThat(first.getId()).isEqualTo(courtEntity.getId());
         assertThat(first.getName()).isEqualTo(courtEntity.getName());
         assertThat(first.getLocationCode()).isEqualTo(courtEntity.getLocationCode());
@@ -128,11 +133,11 @@ public class CourtServiceTest {
     @Test
     void findAllCourtsRegionSearchEmptySuccess() {
         when(
-            courtRepository.searchBy(null, null, null)
-        ).thenReturn(List.of(courtEntity));
+            courtRepository.searchBy(null, null, null, pageable)
+        ).thenReturn(new PageImpl<>(List.of(courtEntity)));
 
-        var models = courtService.findAllBy(null, null, null, "invalid region");
-        assertThat(models.size()).isEqualTo(0);
+        var models = courtService.findAllBy(null, null, null, "invalid region", pageable);
+        assertThat(models.getNumberOfElements()).isEqualTo(0);
     }
 
     @DisplayName("Create a court")
