@@ -6,17 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.ShareRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.ShareRecording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.ShareRecordingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -28,19 +24,13 @@ public class RecordingService {
     private final RecordingRepository recordingRepository;
     private final BookingRepository bookingRepository;
     private final CaptureSessionRepository captureSessionRepository;
-    private final ShareRecordingRepository shareRecordingRepository;
-    private final UserRepository userRepository;
 
     @Autowired
     public RecordingService(RecordingRepository recordingRepository, BookingRepository bookingRepository,
-                            CaptureSessionRepository captureSessionRepository,
-                            ShareRecordingRepository shareRecordingRepository,
-                            UserRepository userRepository) {
+                            CaptureSessionRepository captureSessionRepository) {
         this.recordingRepository = recordingRepository;
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
-        this.shareRecordingRepository = shareRecordingRepository;
-        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -131,37 +121,9 @@ public class RecordingService {
         recordingRepository.deleteById(recordingId);
     }
 
-    @Transactional
-    public UpsertResult shareRecordingById(UUID bookingId, ShareRecordingDTO shareRecordingDTO) {
-        checkBookingValid(bookingId);
-        checkRecordingValid(shareRecordingDTO.getId());
-
-        var captureSession = captureSessionRepository.findById(shareRecordingDTO.getCaptureSessionId())
-            .orElseThrow(() -> new NotFoundException("Capture Session: " + shareRecordingDTO.getCaptureSessionId()));
-        var sharedByUser = userRepository.findById(shareRecordingDTO.getSharedByUserId())
-            .orElseThrow(() -> new NotFoundException("Shared by User: " + shareRecordingDTO.getSharedByUserId()));
-        var sharedWithUser = userRepository.findById(shareRecordingDTO.getSharedWithUserId())
-            .orElseThrow(() -> new NotFoundException("Shared with User: " + shareRecordingDTO.getSharedWithUserId()));
-
-        var shareRecordingEntity = new ShareRecording();
-        shareRecordingEntity.setId(shareRecordingDTO.getId());
-        shareRecordingEntity.setCaptureSession(captureSession);
-        shareRecordingEntity.setSharedBy(sharedByUser);
-        shareRecordingEntity.setSharedWith(sharedWithUser);
-        shareRecordingRepository.save(shareRecordingEntity);
-
-        return UpsertResult.CREATED;
-    }
-
     private void checkBookingValid(UUID bookingId) {
         if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
-        }
-    }
-
-    private void checkRecordingValid(UUID recordingId) {
-        if (!recordingRepository.existsByIdAndDeletedAtIsNull(recordingId)) {
-            throw new NotFoundException("Recording: " + recordingId);
         }
     }
 }

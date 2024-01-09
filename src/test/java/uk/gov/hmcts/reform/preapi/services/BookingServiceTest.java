@@ -9,16 +9,20 @@ import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -46,6 +50,12 @@ class BookingServiceTest {
 
     @MockBean
     private ParticipantRepository participantRepository;
+
+    @MockBean
+    private ShareBookingRepository shareBookingRepository;
+
+    @MockBean
+    private UserRepository userRepository;
 
     @Autowired
     private BookingService bookingService;
@@ -275,5 +285,31 @@ class BookingServiceTest {
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.empty());
         verify(bookingRepository, times(0)).deleteById(bookingId);
+    }
+
+    @DisplayName("Share a booking by its id")
+    @Test
+    void shareBookingSuccess() {
+        var shareBookingDTO = new ShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+
+        var bookingEntity = new Booking();
+        var sharedByUser = new User();
+        var sharedWithUser = new User();
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(bookingEntity));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedByUserId())
+        ).thenReturn(Optional.of(sharedByUser));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedWithUserId())
+        ).thenReturn(Optional.of(sharedWithUser));
+
+        assertThat(bookingService.shareBookingById(shareBookingDTO)).isEqualTo(UpsertResult.CREATED);
     }
 }
