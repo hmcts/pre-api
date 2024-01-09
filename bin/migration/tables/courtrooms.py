@@ -9,9 +9,9 @@ class CourtRoomManager:
     def migrate_data(self, destination_cursor):
         # CVP room data - https://tools.hmcts.net/confluence/display/S28/CVP+Guides#CVPGuides-CVPRooms-EnvironmentandCourtAllocation
         courtroom_data = {
-            "PRE001": "Leeds Mags Court",
-            "PRE002": "Leeds Mags Court",
-            "PRE003": "Leeds Mags Court",
+            "PRE001": "Leeds Youth Court - Magistrate court",
+            "PRE002": "Leeds Youth Court - Magistrate court",
+            "PRE003": "Leeds Youth Court - Magistrate court",
             "PRE004": "Mold Crown Court",
             "PRE005": "Mold Crown Court",
             "PRE006": "Leeds Crown Court",
@@ -39,6 +39,7 @@ class CourtRoomManager:
 
         destination_cursor.execute("SELECT * FROM public.courts")
         dest_courts_data = destination_cursor.fetchall()
+
         court_dict = {court[2]: court[0] for court in dest_courts_data}
 
         for room, court in courtroom_data.items():
@@ -56,7 +57,6 @@ class CourtRoomManager:
 
         try:
             if batch_courtrooms_data:
-
                 destination_cursor.executemany(
                     "INSERT INTO public.courtrooms ( court_id, room_id) VALUES ( %s, %s)",
                     batch_courtrooms_data
