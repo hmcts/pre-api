@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -94,9 +95,8 @@ public class BookingController extends PreApiController {
     @PutMapping("/bookings/{bookingId}")
     @Operation(operationId = "putBooking", summary = "Create or Update a Booking")
     public ResponseEntity<Void> upsert(@PathVariable UUID bookingId,
-                                       @RequestBody CreateBookingDTO createBookingDTO) {
+                                       @Valid @RequestBody CreateBookingDTO createBookingDTO) {
         this.validateRequestWithBody(bookingId, createBookingDTO);
-
         return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
     }
 
