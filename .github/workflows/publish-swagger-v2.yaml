@@ -1,6 +1,5 @@
-name: Publish OpenAPI specs
+name: Publish Swagger V2
 on:
-  push:
   pull_request:
     branches:
       - master
@@ -9,13 +8,16 @@ jobs:
   publish-swagger-v2:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-npm@v1
-      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          ref: ${{ github.ref }}
+          node-version: 18
 
       - name: Install dependencies
         run: npm install -g api-spec-converter
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -46,7 +48,5 @@ jobs:
         run: |
           git config --global user.name 'Swagger V2 bot'
           git config --global user.email 'jasonpaige@users.noreply.github.com'
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
-          git pull
           git add pre-api-stg.yaml
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update Swagger v2 Spec"; git push --set-upstream upstream master)
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update Swagger v2 Spec"; git push)
