@@ -125,7 +125,9 @@ public class UserService {
         appAccessEntity.setUser(userEntity);
         court.ifPresent(o -> appAccessEntity.setCourt((Court) o));
         role.ifPresent(o -> appAccessEntity.setRole((Role) o));
-        appAccessEntity.setActive(createUserDTO.getActive() != null && createUserDTO.getActive());
+        if (!isUpdate || createUserDTO.getActive() != null) {
+            appAccessEntity.setActive(createUserDTO.getActive() != null && createUserDTO.getActive());
+        }
         appAccessRepository.save(appAccessEntity);
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
