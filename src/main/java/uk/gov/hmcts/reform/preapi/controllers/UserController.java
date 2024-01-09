@@ -53,20 +53,24 @@ public class UserController extends PreApiController {
     )
     @Parameter(
         name = "firstName",
-        description = "The first name of the user to search by"
+        description = "The first name of the user to search by",
+        schema = @Schema(implementation = String.class)
     )
     @Parameter(
         name = "lastName",
-        description = "The last name of the user to search by"
+        description = "The last name of the user to search by",
+        schema = @Schema(implementation = String.class)
     )
     @Parameter(
         name = "email",
         description = "The email of the user to search by",
-        example = "example@example.com"
+        example = "example@example.com",
+        schema = @Schema(implementation = String.class)
     )
     @Parameter(
         name = "organisation",
-        description = "The organisation of the user to search by"
+        description = "The organisation of the user to search by",
+        schema = @Schema(implementation = String.class)
     )
     @Parameter(
         name = "courtId",
@@ -79,6 +83,12 @@ public class UserController extends PreApiController {
         description = "The role id of the user to search by",
         schema = @Schema(implementation = UUID.class),
         example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "1"
     )
     public ResponseEntity<PagedModel<EntityModel<UserDTO>>> getUsers(
         @Parameter(hidden = true) @ModelAttribute SearchUsers params,

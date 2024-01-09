@@ -60,16 +60,25 @@ public class CourtController extends PreApiController {
     @Parameter(
         name = "name",
         description = "The name of the court to search by",
+        schema = @Schema(implementation = String.class),
         example = "Example"
     )
     @Parameter(
         name = "locationCode",
-        description = "The location code of the court to search by"
+        description = "The location code of the court to search by",
+        schema = @Schema(implementation = String.class)
     )
     @Parameter(
         name = "regionName",
         description = "The region name of the court to search by",
+        schema = @Schema(implementation = String.class),
         example = "London"
+    )
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "1"
     )
     public HttpEntity<PagedModel<EntityModel<CourtDTO>>> getCourts(
         @Parameter(hidden = true) @ModelAttribute() SearchCourts params,
