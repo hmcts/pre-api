@@ -53,7 +53,14 @@ public class BookingController extends PreApiController {
     @Parameter(
         name = "caseReference",
         description = "The Case Reference to search for",
+        schema = @Schema(implementation = String.class),
         example = "1234567890123456"
+    )
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "1"
     )
     public HttpEntity<PagedModel<EntityModel<BookingDTO>>> searchByCaseId(
         @Parameter(hidden = true) @ModelAttribute SearchBookings params,
