@@ -62,6 +62,12 @@ public class BookingController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "1"
     )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
     public HttpEntity<PagedModel<EntityModel<BookingDTO>>> searchByCaseId(
         @Parameter(hidden = true) @ModelAttribute SearchBookings params,
         @Parameter(hidden = true) Pageable pageable,

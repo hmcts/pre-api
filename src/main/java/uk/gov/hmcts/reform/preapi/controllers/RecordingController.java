@@ -64,6 +64,18 @@ public class RecordingController extends PreApiController {
         schema = @Schema(implementation = UUID.class),
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "1"
+    )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
     public HttpEntity<PagedModel<EntityModel<RecordingDTO>>> searchRecordings(
         @Parameter(hidden = true) @ModelAttribute SearchRecordings params,
         @Parameter(hidden = true) Pageable pageable,
