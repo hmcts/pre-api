@@ -2,23 +2,32 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchCourts;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
+import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.CourtService;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -43,13 +52,43 @@ public class CourtController extends PreApiController {
         operationId = "searchCourts",
         summary = "Search for Courts by court type, name, location code or region name"
     )
-    public ResponseEntity<List<CourtDTO>> getCourts(
-        @RequestParam(required = false) CourtType courtType,
-        @RequestParam(required = false) String name,
-        @RequestParam(required = false) String locationCode,
-        @RequestParam(required = false) String regionName
+    @Parameter(
+        name = "courtType",
+        description = "The type of the court to search by",
+        schema = @Schema(implementation = CourtType.class)
+    )
+    @Parameter(
+        name = "name",
+        description = "The name of the court to search by",
+        example = "Example"
+    )
+    @Parameter(
+        name = "locationCode",
+        description = "The location code of the court to search by"
+    )
+    @Parameter(
+        name = "regionName",
+        description = "The region name of the court to search by",
+        example = "London"
+    )
+    public HttpEntity<PagedModel<EntityModel<CourtDTO>>> getCourts(
+        @Parameter(hidden = true) @ModelAttribute() SearchCourts params,
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<CourtDTO> assembler
     ) {
-        return ResponseEntity.ok(courtService.findAllBy(courtType, name, locationCode, regionName));
+        Page<CourtDTO> resultPage = courtService.findAllBy(
+            params.getCourtType(),
+            params.getName(),
+            params.getLocationCode(),
+            params.getRegionName(),
+            pageable
+        );
+
+        if (pageable.getPageNumber() > resultPage.getTotalPages()) {
+            throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
+        }
+
+        return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
     @PutMapping("/{courtId}")
