@@ -9,9 +9,9 @@ class CourtRoomManager:
     def migrate_data(self, destination_cursor):
         # CVP room data - https://tools.hmcts.net/confluence/display/S28/CVP+Guides#CVPGuides-CVPRooms-EnvironmentandCourtAllocation
         courtroom_data = {
-            "PRE001": "Leeds Crown Court",
-            "PRE002": "Leeds Crown Court",
-            "PRE003": "Leeds Crown Court",
+            "PRE001": "Leeds Mags Court",
+            "PRE002": "Leeds Mags Court",
+            "PRE003": "Leeds Mags Court",
             "PRE004": "Mold Crown Court",
             "PRE005": "Mold Crown Court",
             "PRE006": "Leeds Crown Court",
