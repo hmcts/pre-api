@@ -24,17 +24,18 @@ import java.util.stream.Stream;
 @SuppressWarnings("PMD.SingularField")
 public class BookingService {
 
+
     private final BookingRepository bookingRepository;
-    private final ParticipantRepository participantRepository;
     private final CaseRepository caseRepository;
+    private final ParticipantRepository participantRepository;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
-                          final ParticipantRepository participantRepository,
-                          final CaseRepository caseRepository) {
+                          final CaseRepository caseRepository,
+                          final ParticipantRepository participantRepository) {
         this.bookingRepository = bookingRepository;
-        this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
+        this.participantRepository = participantRepository;
     }
 
     public BookingDTO findById(UUID id) {
@@ -56,7 +57,9 @@ public class BookingService {
     }
 
     @SuppressWarnings("PMD.CyclomaticComplexity")
+    @Transactional
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
+
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
@@ -73,12 +76,9 @@ public class BookingService {
         }
 
         var bookingEntity = bookingRepository.findById(createBookingDTO.getId()).orElse(new Booking());
+
         bookingEntity.setId(createBookingDTO.getId());
-
-        if (caseEntity != null) {
-            bookingEntity.setCaseId(caseEntity);
-        }
-
+        bookingEntity.setCaseId(caseEntity);
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
@@ -91,7 +91,7 @@ public class BookingService {
                     entity.setFirstName(model.getFirstName());
                     entity.setLastName(model.getLastName());
                     entity.setParticipantType(model.getParticipantType());
-                    entity.setCaseId(bookingEntity.getCaseId());
+                    entity.setCaseId(caseEntity);
                     participantRepository.save(entity);
                     return entity;
                 }))
