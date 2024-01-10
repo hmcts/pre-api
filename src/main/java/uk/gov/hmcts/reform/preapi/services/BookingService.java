@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 
 import java.util.UUID;
@@ -26,12 +27,15 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final ParticipantRepository participantRepository;
+    private final CaseRepository caseRepository;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
-                          final ParticipantRepository participantRepository) {
+                          final ParticipantRepository participantRepository,
+                          final CaseRepository caseRepository) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
+        this.caseRepository = caseRepository;
     }
 
     public BookingDTO findById(UUID id) {
@@ -57,11 +61,12 @@ public class BookingService {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
 
+        var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
+            .orElseThrow(() -> new NotFoundException("Case: " + createBookingDTO.getCaseId()));
+
         var bookingEntity = bookingRepository.findById(createBookingDTO.getId()).orElse(new Booking());
-        var caseEntity = new Case();
-        caseEntity.setId(createBookingDTO.getCaseId());
         bookingEntity.setId(createBookingDTO.getId());
-        bookingEntity.setCaseId(caseEntity);
+
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
