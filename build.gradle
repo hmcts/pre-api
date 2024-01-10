@@ -129,7 +129,7 @@ jacocoTestReport {
 }
 
 flyway {
-  url = System.getenv('POSTGRES_HOST') ?: "localhost"
+  url = System.getenv('POSTGRES_HOST') ?: "jdbc:postgresql://localhost:5432/api"
   user = System.getenv('POSTGRES_USER') ?: "pre"
   password = System.getenv('POSTGRES_PASSWORD') ?: "pre"
   baselineOnMigrate = true
