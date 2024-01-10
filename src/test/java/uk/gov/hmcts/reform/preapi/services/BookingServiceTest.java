@@ -294,10 +294,10 @@ class BookingServiceTest {
         participantModel.setLastName("Smith");
         bookingModel.setParticipants(Set.of(participantModel));
 
-        var bookingEntity = new Booking();
         var participantEntity = new Participant();
         participantEntity.setId(participantModel.getId());
         participantEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        var bookingEntity = new Booking();
 
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(caseEntity));
         when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
