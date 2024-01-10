@@ -8,7 +8,7 @@ def parse_to_timestamp(input_text):
         try:
             parsed_datetime = None
             # try parsing with different formats
-            formats_to_try = ["%d/%m/%Y %H:%M", "%d/%m/%Y %H:%M:%S", "%d-%m-%Y %H:%M:%S","%Y-%m-%d %H:%M:%S"]
+            formats_to_try = ["%d/%m/%Y %H:%M", "%d/%m/%Y %H:%M:%S", "%d-%m-%Y %H:%M:%S","%Y-%m-%d %H:%M:%S", "%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M"]
             for date_format in formats_to_try:
                 try:
                     parsed_datetime = datetime.strptime(input_text, date_format)
