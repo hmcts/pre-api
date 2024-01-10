@@ -61,8 +61,16 @@ public class BookingService {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
 
+        var isUpdate = bookingRepository.existsById(createBookingDTO.getId());
+
         var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
-            .orElseThrow(() -> new NotFoundException("Case: " + createBookingDTO.getCaseId()));
+            .orElse(null);
+
+        if ((!isUpdate && caseEntity == null)
+            || (isUpdate && createBookingDTO.getCaseId() != null && caseEntity == null)
+        ) {
+            throw new NotFoundException("Case: " + createBookingDTO.getCaseId());
+        }
 
         var bookingEntity = bookingRepository.findById(createBookingDTO.getId()).orElse(new Booking());
         bookingEntity.setId(createBookingDTO.getId());
@@ -85,10 +93,9 @@ public class BookingService {
                 .collect(Collectors.toSet()));
         bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
 
-        var updated = bookingRepository.existsById(createBookingDTO.getId());
         bookingRepository.save(bookingEntity);
 
-        return updated ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     private boolean bookingAlreadyDeleted(UUID id) {

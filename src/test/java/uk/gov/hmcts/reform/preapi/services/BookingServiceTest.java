@@ -184,9 +184,34 @@ class BookingServiceTest {
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.CREATED);
     }
 
-    @DisplayName("Create/update a booking when case not found")
+    @DisplayName("Create a booking when case not found")
     @Test
-    void upsertBookingCaseNotFound() {
+    void upsertCreateBookingCaseNotFound() {
+        var bookingModel = new CreateBookingDTO();
+        var caseId = UUID.randomUUID();
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(caseId);
+        bookingModel.setParticipants(Set.of());
+
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.empty());
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
+
+        assertThrows(
+            NotFoundException.class,
+            () -> bookingService.upsert(bookingModel)
+        );
+
+        verify(bookingRepository, times(1)).existsById(bookingModel.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(bookingModel.getId());
+        verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseId);
+        verify(bookingRepository, never()).findById(bookingModel.getId());
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @DisplayName("Update a booking when case not found")
+    @Test
+    void upsertUpdateBookingCaseNotFound() {
         var bookingModel = new CreateBookingDTO();
         var caseId = UUID.randomUUID();
         bookingModel.setId(UUID.randomUUID());
@@ -197,16 +222,16 @@ class BookingServiceTest {
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.empty());
         when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
-        when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         assertThrows(
             NotFoundException.class,
             () -> bookingService.upsert(bookingModel)
         );
 
+        verify(bookingRepository, times(1)).existsById(bookingModel.getId());
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(bookingModel.getId());
         verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseId);
-        verify(bookingRepository, never()).findById(bookingEntity.getId());
+        verify(bookingRepository, never()).findById(bookingModel.getId());
         verify(bookingRepository, never()).save(any());
     }
 
