@@ -75,10 +75,15 @@ public class BookingService {
         var bookingEntity = bookingRepository.findById(createBookingDTO.getId()).orElse(new Booking());
         bookingEntity.setId(createBookingDTO.getId());
 
+        if (caseEntity != null) {
+            bookingEntity.setCaseId(caseEntity);
+        }
+
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
                     var entity = participantRepository.findById(model.getId()).orElse(new Participant());
+
                     if (entity.getDeletedAt() != null) {
                         throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
                     }
@@ -86,7 +91,7 @@ public class BookingService {
                     entity.setFirstName(model.getFirstName());
                     entity.setLastName(model.getLastName());
                     entity.setParticipantType(model.getParticipantType());
-                    entity.setCaseId(caseEntity);
+                    entity.setCaseId(bookingEntity.getCaseId());
                     participantRepository.save(entity);
                     return entity;
                 }))
