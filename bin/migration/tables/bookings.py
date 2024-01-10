@@ -1,5 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
-from datetime import datetime
+import uuid
 
 
 class BookingManager:
@@ -8,51 +8,97 @@ class BookingManager:
         self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT * FROM public.cases")
+        self.source_cursor.execute("SELECT * FROM public.recordings WHERE recordingversion = '1'")
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
-        for booking in source_data:
-            id = booking[0]
+        destination_cursor.execute("SELECT id FROM public.cases")
+        cases_data = destination_cursor.fetchall()
+        existing_case_ids = {case[0] for case in cases_data} 
 
-            if not check_existing_record(destination_cursor,'bookings', 'id', id):
-                destination_cursor.execute(
-                    "SELECT * FROM public.temp_cases WHERE reference = %s", (booking[1],)
-                )
-                case_details = destination_cursor.fetchone()
-                case_id = case_details[1] if case_details else None
-                
+        destination_cursor.execute(
+            """CREATE TABLE IF NOT EXISTS public.temp_recordings (
+                capture_session_id UUID,
+                recording_id UUID,
+                booking_id UUID,
+                parent_recording_id UUID,
+                case_id UUID,
+                scheduled_for TIMESTAMPTZ,
+                deleted_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ,
+                modified_at TIMESTAMPTZ,
+                created_by VARCHAR(50)
+            )
+            """
+        )
+
+        for recording in source_data:
+            case_id = recording[1]
+            recording_id = recording[0]
+            booking_id = str(uuid.uuid4())
+            scheduled_for = parse_to_timestamp(recording[10])
+
+            recording_status = recording[11]
+            deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
+            created_at = parse_to_timestamp(recording[22])
+            modified_at = parse_to_timestamp(recording[24])
+            created_by = recording[21]
+
+            # Check if the case has been migrated into the cases table 
+            if case_id not in existing_case_ids:
+                self.failed_imports.add(('bookings', booking_id, f'Case ID {case_id} not found in cases data'))
+                continue
+            
+            # Insert into temp table 
+            if not check_existing_record(destination_cursor,'temp_recordings', 'recording_id', recording_id):
                 try:
-                    if case_id:
-                        # Check if case_id exists in the cases table
-                        if check_existing_record(destination_cursor,'cases','id', case_id):
-                            scheduled_for = (datetime.today()) 
-                            created_at = parse_to_timestamp(case_details[1])
-                            modified_at = parse_to_timestamp(case_details[3])
-                            created_by = case_details[2]
+                    destination_cursor.execute(
+                        """
+                        INSERT INTO public.temp_recordings 
+                            (case_id, recording_id, booking_id,scheduled_for, deleted_at, created_at, modified_at, created_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        (case_id, recording_id, booking_id,scheduled_for,deleted_at, created_at, modified_at,created_by),
+                    )
+                except Exception as e:
+                    self.failed_imports.add(('temp_recordings', recording_id, f'Failed to insert into temp_recordings: {e}'))
+                    continue
 
-                            destination_cursor.execute(
-                                """
-                                INSERT INTO public.bookings 
-                                    (id, case_id, scheduled_for, created_at, modified_at)
-                                VALUES (%s, %s, %s, %s, %s )
-                                """,
-                                (id, case_id, scheduled_for, created_at, modified_at),
-                            )
+        # Fetch temp data
+        destination_cursor.execute("SELECT * FROM public.temp_recordings")
+        temp_recordings_data = destination_cursor.fetchall()
 
-                            audit_entry_creation(
-                                destination_cursor,
-                                table_name="bookings",
-                                record_id=id,
-                                record=case_id,
-                                created_at=created_at,
-                                created_by=created_by,
-                            )
+        for booking in temp_recordings_data:
+            id = booking[2]
+            case_id = booking[4]
+
+            if not check_existing_record(destination_cursor,'bookings', 'case_id', case_id):   
+                try:
+                    scheduled_for = booking[5]
+                    created_at = parse_to_timestamp(booking[7])
+                    modified_at = parse_to_timestamp(booking[8])
+                    created_by = booking[9]
+
+                    destination_cursor.execute(
+                        """
+                        INSERT INTO public.bookings 
+                            (id, case_id, scheduled_for, created_at, modified_at)
+                        VALUES (%s, %s, %s, %s, %s )
+                        """,
+                        (id, case_id, scheduled_for, created_at, modified_at),
+                    )
+
+                    audit_entry_creation(
+                        destination_cursor,
+                        table_name="bookings",
+                        record_id=id,
+                        record=case_id,
+                        created_at=created_at,
+                        created_by=created_by,
+                    )
                 except Exception as e:  
                     self.failed_imports.add(('bookings', id,e))
-                 
-            else:
-                self.failed_imports.add(('bookings', id))
+                    
         log_failed_imports(self.failed_imports)
     
    

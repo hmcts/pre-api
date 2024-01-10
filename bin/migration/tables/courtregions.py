@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, log_failed_imports
 import re
 
 
@@ -20,6 +20,7 @@ class CourtRegionManager:
             {"name": "Liverpool Crown Court", "region": "North West (England)"},
             {"name": "Nottingham Crown Court", "region": "East Midlands (England)"},
             {"name": "Kingston upon Thames Crown Court", "region": "London"},
+            {"name": "Kingston-upon-Thames Crown Court", "region": "London"},
             {"name": "Leeds Youth Court", "region": "Yorkshire and The Humber"},
             {"name": "Default Court", "region": "London"}
         ]
@@ -36,18 +37,21 @@ class CourtRegionManager:
             court_id = court[0]
             court_name = court[1]
             region_id = None
+        
 
             for court_key, region_name in court_regions_dict.items():
                 regex_pattern = re.compile(rf"{re.escape(court_key)}(?:\sCourt)?", re.IGNORECASE)
+
                 if re.search(regex_pattern, court_name):
                     region_id = regions_dict.get(region_name)
                     break 
 
             if region_id is None:
-                self.failed_imports.add(('court_region', court_id, 'Missing region_id'))
-            else:
-                if not check_existing_record(destination_cursor,'court_region', 'court_id', court_id):
-                    batch_court_region_data.append((court_id, region_id))
+                self.failed_imports.add(('court_region', court_id, f'Missing region_id for {court_name}'))
+                continue
+
+            if not check_existing_record(destination_cursor,'court_region', 'court_id', court_id):
+                batch_court_region_data.append((court_id, region_id))
 
         try: 
             if batch_court_region_data:
@@ -59,7 +63,7 @@ class CourtRegionManager:
                 destination_cursor.connection.commit()
 
         except Exception as e:  
-            self.failed_imports.add(('court_region', None ,e))
+            self.failed_imports.add(('court_region', None, e))
                     
         log_failed_imports(self.failed_imports)            
             

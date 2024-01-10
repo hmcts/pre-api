@@ -8,10 +8,17 @@ class AppAccessManager:
         self.failed_imports = set()
 
     def get_data(self):
-        query = """ SELECT u.* 
-                    FROM public.users u, public.groupassignments ga
-                    WHERE u.userid = ga.userid
-                    AND u.userid NOT IN (SELECT userid FROM public.groupassignments WHERE groupid = '95ebbcde-c27c-42d5-89f2-b0960350db5e')"""
+        query = """
+            SELECT u.*, gl.groupname
+            FROM public.users u
+            JOIN public.groupassignments ga ON u.userid = ga.userid
+            JOIN public.grouplist gl ON ga.groupid = gl.groupid
+            WHERE u.userid NOT IN (
+                SELECT userid
+                FROM public.groupassignments
+                WHERE groupid = '95ebbcde-c27c-42d5-89f2-b0960350db5e'
+            )
+        """
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
 
@@ -28,17 +35,25 @@ class AppAccessManager:
             if not check_existing_record(destination_cursor,'app_access', 'user_id', user_id):
                 id=str(uuid.uuid4())
                 court_id = default_court_id  
-                user_role = user[3]
+                user_role = user[20]
 
                 if user_role is None:
-                    self.failed_imports.add(('app_access',user_id, "no role info for this user")) 
+                    self.failed_imports.add(('app_access',user_id, f"No role info for user_id {user_id}")) 
                     continue
 
-                destination_cursor.execute("SELECT id FROM public.roles WHERE name = %s", (user[3],))
+                destination_cursor.execute("SELECT id FROM public.roles WHERE name = %s", (user_role,))
                 role_id = destination_cursor.fetchone()
 
+                if role_id is None:
+                    self.failed_imports.add(('app_access',user_id, f"Role not listed in roles table {user_role}"))
+                    continue
+
                 last_access = datetime.now() # ?
-                active = True # ?
+                
+                if str(user[10]).lower() == 'active':
+                    active = True
+                elif str(user[10]).lower() == 'inactive':
+                    active = False
                 created_at = parse_to_timestamp(user[15])
                 modified_at =parse_to_timestamp(user[17])
                 created_by = user[14]

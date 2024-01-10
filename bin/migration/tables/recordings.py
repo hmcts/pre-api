@@ -31,18 +31,23 @@ class RecordingManager:
             parent_recording_id = recording[9]
 
             if parent_recording_id not in (rec[0] for rec in source_data):
-                self.failed_imports.add(('recordings', id, 'parent recording id does not match a recording id'))
+                self.failed_imports.add(('recordings', id, f'Parent recording id: {parent_recording_id} does not match a recording id'))
                 continue
             
             destination_cursor.execute("SELECT capture_session_id FROM public.temp_recordings WHERE parent_recording_id = %s", (parent_recording_id,)) 
             result = destination_cursor.fetchone()
 
             if result is None: 
-                self.failed_imports.add(('recordings', id, 'recording not included in capture sessions'))
+                self.failed_imports.add(('recordings', id, f'No capture_session id found for parent recording id {parent_recording_id}'))
                 continue
 
             capture_session_id = result[0]
-            if not check_existing_record(destination_cursor,'recordings', 'id', id) and check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
+
+            if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
+                self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
+                continue
+
+            if not check_existing_record(destination_cursor,'recordings', 'id', id):
                 version = recording[12] 
                 url = recording[20] if recording[20] is not None else 'Unknown URL'
                 filename = recording[14]
@@ -66,8 +71,6 @@ class RecordingManager:
 
                 except Exception as e:  
                     self.failed_imports.add(('recordings', id, e))
-            else:
-                self.failed_imports.add(('recordings', id))
 
         # inserting remaining records
         for recording in non_duplicate_parent_id_records:
@@ -77,9 +80,17 @@ class RecordingManager:
             destination_cursor.execute("SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s",(parent_recording_id,)) 
             result = destination_cursor.fetchone()
 
+            if result is None:
+                self.failed_imports.add(('recordings', id, f'No capture_session id found for parent recording id {parent_recording_id}'))
+                continue
+
             capture_session_id = result[0]
 
-            if not check_existing_record(destination_cursor,'recordings', 'id', id,) and check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
+            if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
+                self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
+                continue
+
+            if not check_existing_record(destination_cursor,'recordings', 'id', id,):
                 version = recording[12] 
                 url = recording[20] if recording[20] is not None else 'Unknown URL'
                 filename = recording[14]
@@ -104,8 +115,6 @@ class RecordingManager:
                     )
                 except Exception as e:  
                     self.failed_imports.add(('recordings', id, e))
-            else:
-                 self.failed_imports.add(('recordings', id))
                     
         log_failed_imports(self.failed_imports)
          

@@ -7,41 +7,40 @@ class CaptureSessionManager:
         self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings")
+        self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings WHERE recordingversion = '1'")
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
-        # creating a temporary table for the unique recordings and capture session values
-        destination_cursor.execute(
-            """CREATE TABLE IF NOT EXISTS public.temp_recordings (
-                capture_session_id UUID,
-                recording_id UUID,
-                booking_id UUID,
-                parent_recording_id UUID
-            )
-            """
-        )
+        destination_cursor.execute("SELECT * FROM public.temp_recordings")
+        temp_recording_data = destination_cursor.fetchall()
 
         for recording in source_data:
             recording_id = recording[0]
+            capture_session_id = str(uuid.uuid4())
+            booking_id = next((temp_rec[2] for temp_rec in temp_recording_data if temp_rec[1] == recording_id), None)
+            parent_recording_id = recording[9]
+            ingest_address = recording[8] 
+            live_output_url = recording[20]
+            # started_at =  ?
+            # started_by_user_id = ?
+            # finished_at = ?
+            # finished_by_user_id = ?
+            # status = ?
 
-            destination_cursor.execute(
-                """SELECT * FROM public.temp_recordings WHERE recording_id = %s""",
-                (recording_id,)
-            )
-            existing_record_in_temp_table = destination_cursor.fetchone()
-
-            if not existing_record_in_temp_table:
-                capture_session_id = str(uuid.uuid4())
-                booking_id = recording[1]
-                parent_recording_id = recording[9]
-
+            try: 
                 destination_cursor.execute(
-                    """ INSERT INTO public.temp_recordings (capture_session_id, recording_id, booking_id, parent_recording_id) 
-                        VALUES (%s, %s, %s,%s)""",
-                    (capture_session_id, recording_id, booking_id, parent_recording_id),
-                )
+                """
+                UPDATE public.temp_recordings
+                SET capture_session_id = %s, parent_recording_id = %s
+                WHERE recording_id = %s AND (capture_session_id IS NULL OR parent_recording_id IS NULL)
+                """,
+                (capture_session_id, parent_recording_id, recording_id),
+            )
+            except Exception as e:
+                self.failed_imports.add(('temp_recordings', recording_id, f'Failed to insert into temp_recordings: {e}'))
+                continue
 
+        # inserting only version 1 into capture sessions as this would be the parent recording
         destination_cursor.execute("SELECT * FROM public.temp_recordings WHERE recording_id = parent_recording_id")
         temp_recording_data = destination_cursor.fetchall()
 
@@ -49,16 +48,13 @@ class CaptureSessionManager:
             id = temp_recording[0]
             booking_id = temp_recording[2]
 
-            if check_existing_record(destination_cursor,'bookings', 'id', booking_id) and not check_existing_record(destination_cursor,'capture_sessions','id', id):
-                origin = 'PRE'
-                ingest_address = recording[8] 
-                live_output_url = recording[20]
-                # started_at =  ?
-                # started_by_user_id = ?
-                # finished_at = ?
-                # finished_by_user_id = ?
-                # status = ?
+            if not check_existing_record(destination_cursor,'bookings', 'id', booking_id):
+                self.failed_imports.add(('capture_sessions', id, f"Booking id: {booking_id} not recorded in bookings table"))
+                continue
 
+            if not check_existing_record(destination_cursor,'capture_sessions','id', id):
+                origin = 'PRE'
+                
                 try:
                     destination_cursor.execute(
                         """
@@ -76,7 +72,5 @@ class CaptureSessionManager:
                     )
                 except Exception as e:  
                     self.failed_imports.add(('capture_sessions', id,e))
-            else:
-                self.failed_imports.add(('capture_sessions', id))
                 
         log_failed_imports(self.failed_imports)

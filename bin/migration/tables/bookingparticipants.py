@@ -1,5 +1,4 @@
-from .helpers import audit_entry_creation, log_failed_imports
-import uuid
+from .helpers import log_failed_imports
 
 class BookingParticipantManager:
     def __init__(self):
@@ -30,9 +29,10 @@ class BookingParticipantManager:
                     """,
                     (participant_id, booking_id),  
                 )
+                destination_cursor.connection.commit()
                         
             except Exception as e:  
-                self.failed_imports.add(('booking_participants',None,e))
+                self.failed_imports.add(('booking_participants', None, e))
                 
         log_failed_imports(self.failed_imports)         
                 

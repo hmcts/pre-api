@@ -17,22 +17,32 @@ class ParticipantManager:
         for participant in source_data:
             id = participant[0]
             p_type = participant[3]
-            
-            destination_cursor.execute(
-                "SELECT case_id FROM public.bookings WHERE id = %s", (participant[4],)
-            )
-            case_id = destination_cursor.fetchone()
+            case_id = participant[4]
 
             if case_id is None:
-                self.failed_imports.add(('contacts', id, 'case_id not found in cases table'))
-                continue
-            
-            if p_type is None:
-                self.failed_imports.add(('contacts', id, 'no participant type detail'))
+                self.failed_imports.add(('contacts', id, 'No case id associated with this participant'))
                 continue
 
+            if p_type is None:
+                self.failed_imports.add(('contacts', id, 'No participant type detail'))
+                continue
+            
+            
+            destination_cursor.execute(
+                "SELECT id FROM public.cases WHERE id = %s", (case_id,)
+            )
+            case_id_exists = destination_cursor.fetchone()
+
+            if case_id_exists is None:
+                self.failed_imports.add(('contacts', id, f'Invalid case id {case_id} associated with this participant'))
+                continue
+        
             if not check_existing_record(destination_cursor,'participants','case_id', case_id):
                 participant_type = p_type.upper()
+
+                if participant_type not in ('WITNESS', 'DEFENDANT'):
+                    self.failed_imports.add(('contacts', id, f'Invalid participant type: {p_type}'))
+                    continue
                 
                 first_name = participant[6]
                 last_name = participant[7]
