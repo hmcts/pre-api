@@ -844,7 +844,20 @@ paths:
         - description: The Case Reference to search for
           in: query
           name: caseReference
+          type: string
           x-example: 1234567890123456
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
@@ -916,6 +929,7 @@ paths:
         - description: The case reference to search by
           in: query
           name: reference
+          type: string
           x-example: 1234567890123456
         - description: The court id to search by
           format: uuid
@@ -923,6 +937,18 @@ paths:
           name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
@@ -1002,14 +1028,29 @@ paths:
         - description: The name of the court to search by
           in: query
           name: name
+          type: string
           x-example: Example
         - description: The location code of the court to search by
           in: query
           name: locationCode
+          type: string
         - description: The region name of the court to search by
           in: query
           name: regionName
+          type: string
           x-example: London
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
@@ -1076,6 +1117,18 @@ paths:
           name: parentRecordingId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
@@ -1147,16 +1200,20 @@ paths:
         - description: The first name of the user to search by
           in: query
           name: firstName
+          type: string
         - description: The last name of the user to search by
           in: query
           name: lastName
+          type: string
         - description: The email of the user to search by
           in: query
           name: email
+          type: string
           x-example: example@example.com
         - description: The organisation of the user to search by
           in: query
           name: organisation
+          type: string
         - description: The court id of the user to search by
           format: uuid
           in: query
@@ -1169,6 +1226,18 @@ paths:
           name: roleId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
