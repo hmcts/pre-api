@@ -380,8 +380,7 @@ class BookingControllerTest {
         var mockBookingDTO = new BookingDTO();
         mockBookingDTO.setId(bookingId);
 
-        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.findById(bookingId)).thenReturn(mockBookingDTO);
+        when(bookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
                                                  .with(csrf())
