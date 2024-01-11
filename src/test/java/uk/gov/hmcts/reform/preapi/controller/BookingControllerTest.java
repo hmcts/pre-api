@@ -366,19 +366,12 @@ class BookingControllerTest {
         final UUID bookingId = UUID.randomUUID();
         final UUID sharedWithUserId = UUID.randomUUID();
         final UUID sharedByUserId = UUID.randomUUID();
-        final UUID caseId = UUID.randomUUID();
 
         var shareBooking = new ShareBookingDTO();
         shareBooking.setId(shareBookingId);
         shareBooking.setSharedWithUserId(sharedWithUserId);
         shareBooking.setSharedByUserId(sharedByUserId);
         shareBooking.setBookingId(bookingId);
-
-        var mockCaseDTO = new CaseDTO();
-        mockCaseDTO.setId(caseId);
-
-        var mockBookingDTO = new BookingDTO();
-        mockBookingDTO.setId(bookingId);
 
         when(bookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
 
@@ -405,24 +398,16 @@ class BookingControllerTest {
         final UUID bookingId = UUID.randomUUID();
         final UUID sharedWithUserId = UUID.randomUUID();
         final UUID sharedByUserId = UUID.randomUUID();
-        final UUID caseId = UUID.randomUUID();
 
-        var shareRecording = new ShareBookingDTO();
-        shareRecording.setId(shareBookingId);
-        shareRecording.setBookingId(UUID.randomUUID());
-        shareRecording.setSharedWithUserId(sharedWithUserId);
-        shareRecording.setSharedByUserId(sharedByUserId);
-
-        var mockCaseDTO = new CaseDTO();
-        mockCaseDTO.setId(caseId);
-
-        var mockBookingDTO = new BookingDTO();
-        mockBookingDTO.setId(bookingId);
-
+        var shareBooking = new ShareBookingDTO();
+        shareBooking.setId(shareBookingId);
+        shareBooking.setBookingId(UUID.randomUUID());
+        shareBooking.setSharedWithUserId(sharedWithUserId);
+        shareBooking.setSharedByUserId(sharedByUserId);
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
                                                  .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(shareRecording))
+                                                 .content(OBJECT_MAPPER.writeValueAsString(shareBooking))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
                                                  .andExpect(status().is4xxClientError())
