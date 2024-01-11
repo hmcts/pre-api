@@ -25,16 +25,26 @@ from tables.helpers import clear_migrations_file
 # get passwords from env variables
 source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
 destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
+test_db_password = os.environ.get('TEST_DB_PASSWORD')
+
 
 # database connections
-# demo database
 source_db = DatabaseManager(
-    database="pre-pdb-demo",
+    database="pre-pdb-test",
     user="psqladmin",
-    password=source_db_password,
-    host="pre-db-demo.postgres.database.azure.com",
+    password=test_db_password,
+    host="pre-db-test.postgres.database.azure.com",
     port="5432",
 )
+
+# demo database
+# source_db = DatabaseManager(
+#     database="pre-pdb-demo",
+#     user="psqladmin",
+#     password=source_db_password,
+#     host="pre-db-demo.postgres.database.azure.com",
+#     port="5432",
+# )
 
 
 # dummy database on dev server
@@ -59,7 +69,7 @@ app_access_manager = AppAccessManager(source_db.connection.cursor())
 case_manager = CaseManager(source_db.connection.cursor())
 booking_manager = BookingManager(source_db.connection.cursor())
 participant_manager = ParticipantManager(source_db.connection.cursor())
-booking_participant_manager = BookingParticipantManager()
+booking_participant_manager = BookingParticipantManager(source_db.connection.cursor())
 capture_session_manager = CaptureSessionManager(source_db.connection.cursor())
 recording_manager = RecordingManager(source_db.connection.cursor())
 audit_log_manager = AuditLogManager(source_db.connection.cursor())
@@ -77,22 +87,22 @@ def main():
 
     destination_db_cursor = destination_db.connection.cursor()
 
-    # migrate_manager_data(room_manager, destination_db_cursor)
-    # migrate_manager_data(user_manager, destination_db_cursor) 
+    migrate_manager_data(room_manager, destination_db_cursor)
+    migrate_manager_data(user_manager, destination_db_cursor) 
     migrate_manager_data(role_manager, destination_db_cursor) 
-    # migrate_manager_data(court_manager, destination_db_cursor) 
-    # migrate_manager_data(courtroom_manager, destination_db_cursor) 
-    # migrate_manager_data(region_manager, destination_db_cursor) 
-    # migrate_manager_data(court_region_manager, destination_db_cursor) 
-    # migrate_manager_data(portal_access_manager, destination_db_cursor) 
-    # migrate_manager_data(app_access_manager, destination_db_cursor) 
-    # migrate_manager_data(case_manager, destination_db_cursor) 
-    # migrate_manager_data(booking_manager, destination_db_cursor)
-    # migrate_manager_data(participant_manager, destination_db_cursor)
-    # migrate_manager_data(booking_participant_manager, destination_db_cursor)
-    # migrate_manager_data(capture_session_manager, destination_db_cursor)
-    # migrate_manager_data(recording_manager, destination_db_cursor)
-    # migrate_manager_data(audit_log_manager, destination_db_cursor)
+    migrate_manager_data(court_manager, destination_db_cursor) 
+    migrate_manager_data(courtroom_manager, destination_db_cursor) 
+    migrate_manager_data(region_manager, destination_db_cursor) 
+    migrate_manager_data(court_region_manager, destination_db_cursor) 
+    migrate_manager_data(portal_access_manager, destination_db_cursor) 
+    migrate_manager_data(app_access_manager, destination_db_cursor) 
+    migrate_manager_data(case_manager, destination_db_cursor) 
+    migrate_manager_data(booking_manager, destination_db_cursor)
+    migrate_manager_data(participant_manager, destination_db_cursor)
+    migrate_manager_data(booking_participant_manager, destination_db_cursor)
+    migrate_manager_data(capture_session_manager, destination_db_cursor)
+    migrate_manager_data(recording_manager, destination_db_cursor)
+    migrate_manager_data(audit_log_manager, destination_db_cursor)
 
     source_db.close_connection()
     destination_db.close_connection()
