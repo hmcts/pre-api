@@ -75,7 +75,6 @@ class BookingControllerFT extends FunctionalTestBase {
         // set scheduledFor to yesterday
         createBooking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusDays(1).toInstant()));
 
-        System.out.println(OBJECT_MAPPER.writeValueAsString(createBooking));
         var putResponse = doPutRequest(BOOKINGS_ENDPOINT + bookingId, OBJECT_MAPPER.writeValueAsString(createBooking));
 
         assertThat(putResponse.statusCode()).isEqualTo(400);

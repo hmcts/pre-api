@@ -54,9 +54,6 @@ class BookingServiceTest {
     @MockBean
     private ParticipantRepository participantRepository;
 
-    @MockBean
-    private CaseRepository caseRepository;
-
     @Autowired
     private BookingService bookingService;
 

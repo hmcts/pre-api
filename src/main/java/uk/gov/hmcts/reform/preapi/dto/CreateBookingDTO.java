@@ -21,15 +21,16 @@ import java.util.stream.Stream;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateBookingDTO {
     @Schema(description = "CreateBookingId")
-    @NotNull(message = "Id is required")
+    @NotNull(message = "id is required")
     private UUID id;
 
     @Schema(description = "CreateBookingCaseId")
-    @NotNull(message = "CaseId is required")
+    @NotNull(message = "case_id is required")
     private UUID caseId;
 
     @Schema(description = "CreateBookingScheduledFor")
-    @FutureDateConstraint(message = "scheduledFor must be in the future")
+    @NotNull(message = "scheduled_for is required and must be in the future")
+    @FutureDateConstraint(message = "scheduled_for is required and must be in the future")
     private Timestamp scheduledFor;
 
     @Schema(description = "CreateBookingParticipants")

@@ -114,6 +114,9 @@ definitions:
         description: CreateBookingScheduledFor
         format: date-time
         type: string
+    required:
+      - case_id
+      - id
     type: object
   CreateCaseDTO:
     description: CreateCaseDTO
@@ -1193,6 +1196,36 @@ paths:
       summary: Create or Update a Recording
       tags:
         - recording-controller
+  /testing-support/should-delete-recordings-for-booking:
+    post:
+      operationId: shouldDeleteRecordingsForBooking
+      parameters: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+        - testing-support-controller
+  /testing-support/should-not-have-past-scheduled-for-date:
+    post:
+      operationId: shouldNotHavePastScheduledForDate
+      parameters: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+        - testing-support-controller
   /users:
     get:
       operationId: getUsers
