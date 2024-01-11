@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 
 import java.util.UUID;
@@ -26,12 +26,15 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final ParticipantRepository participantRepository;
+    private final CaseRepository caseRepository;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
-                          final ParticipantRepository participantRepository) {
+                          final ParticipantRepository participantRepository,
+                          final CaseRepository caseRepository) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
+        this.caseRepository = caseRepository;
     }
 
     public BookingDTO findById(UUID id) {
@@ -52,20 +55,35 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
+    @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
 
+        var isUpdate = bookingRepository.existsById(createBookingDTO.getId());
+
+        var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
+            .orElse(null);
+
+        if ((!isUpdate && caseEntity == null)
+            || (isUpdate && createBookingDTO.getCaseId() != null && caseEntity == null)
+        ) {
+            throw new NotFoundException("Case: " + createBookingDTO.getCaseId());
+        }
+
         var bookingEntity = bookingRepository.findById(createBookingDTO.getId()).orElse(new Booking());
-        var caseEntity = new Case();
-        caseEntity.setId(createBookingDTO.getCaseId());
         bookingEntity.setId(createBookingDTO.getId());
-        bookingEntity.setCaseId(caseEntity);
+
+        if (caseEntity != null) {
+            bookingEntity.setCaseId(caseEntity);
+        }
+
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
                     var entity = participantRepository.findById(model.getId()).orElse(new Participant());
+
                     if (entity.getDeletedAt() != null) {
                         throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
                     }
@@ -73,17 +91,16 @@ public class BookingService {
                     entity.setFirstName(model.getFirstName());
                     entity.setLastName(model.getLastName());
                     entity.setParticipantType(model.getParticipantType());
-                    entity.setCaseId(caseEntity);
+                    entity.setCaseId(bookingEntity.getCaseId());
                     participantRepository.save(entity);
                     return entity;
                 }))
                 .collect(Collectors.toSet()));
         bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
 
-        var updated = bookingRepository.existsById(createBookingDTO.getId());
         bookingRepository.save(bookingEntity);
 
-        return updated ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     private boolean bookingAlreadyDeleted(UUID id) {
