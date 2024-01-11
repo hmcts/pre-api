@@ -26,8 +26,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -89,7 +87,7 @@ public class UserControllerTest {
         UserDTO mockCourt = new UserDTO();
         mockCourt.setId(userId);
         Page<UserDTO> userList = new PageImpl<>(List.of(mockCourt));
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
+        when(userService.findAllBy(any(), any()))
             .thenReturn(userList);
 
         mockMvc.perform(get("/users"))
@@ -104,7 +102,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), any());
+            .findAllBy(any(), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -118,7 +116,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), isNull(), any());
+            .findAllBy(any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -55,25 +56,16 @@ public class UserService {
 
     @Transactional
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
-    public Page<UserDTO> findAllBy(
-        String firstName,
-        String lastName,
-        String email,
-        String organisation,
-        UUID court,
-        UUID role,
-        Boolean active,
-        Pageable pageable
-    ) {
-        if (court != null && !courtRepository.existsById(court)) {
-            throw new NotFoundException("Court: " + court);
+    public Page<UserDTO> findAllBy(SearchUsers params, Pageable pageable) {
+        if (params.getCourtId() != null && !courtRepository.existsById(params.getCourtId())) {
+            throw new NotFoundException("Court: " + params.getCourtId());
         }
 
-        if (role != null && !roleRepository.existsById(role)) {
-            throw new NotFoundException("Role: " + role);
+        if (params.getRoleId() != null && !roleRepository.existsById(params.getRoleId())) {
+            throw new NotFoundException("Role: " + params.getRoleId());
         }
 
-        return appAccessRepository.searchAllBy(firstName, lastName, email, organisation, court, role, active, pageable)
+        return appAccessRepository.searchAllBy(params, pageable)
             .map(UserDTO::new);
     }
 

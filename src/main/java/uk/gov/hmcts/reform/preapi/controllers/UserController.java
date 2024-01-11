@@ -107,16 +107,7 @@ public class UserController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
     ) {
-        var resultPage = userService.findAllBy(
-            params.getFirstName(),
-            params.getLastName(),
-            params.getEmail(),
-            params.getOrganisation(),
-            params.getCourtId(),
-            params.getRoleId(),
-            params.getActive(),
-            pageable
-        );
+        var resultPage = userService.findAllBy(params, pageable);
 
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {

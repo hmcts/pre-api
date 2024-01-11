@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
@@ -127,11 +128,12 @@ public class UserServiceTest {
     @DisplayName("Find all users and return a list of models")
     @Test
     void findAllUsersSuccess() {
+        var params = new SearchUsers();
         when(
-            appAccessRepository.searchAllBy(null, null, null, null, null, null, null, null)
+            appAccessRepository.searchAllBy(params,null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, null, null, null, null, null, null, null);
+        var models = userService.findAllBy(params, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -145,11 +147,13 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by first name")
     @Test
     void findAllUsersFirstNameFilterSuccess() {
+        var params = new SearchUsers();
+        params.setFirstName(userEntity.getFirstName());
         when(
-            appAccessRepository.searchAllBy(userEntity.getFirstName(), null, null, null, null, null, null, null)
+            appAccessRepository.searchAllBy(params, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(userEntity.getFirstName(), null, null, null, null, null, null, null);
+        var models = userService.findAllBy(params, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -163,11 +167,13 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by last name")
     @Test
     void findAllUsersLastNameFilterSuccess() {
+        var params = new SearchUsers();
+        params.setLastName(userEntity.getLastName());
         when(
-            appAccessRepository.searchAllBy(null, userEntity.getLastName(), null, null, null, null, null, null)
+            appAccessRepository.searchAllBy(params, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, userEntity.getLastName(), null, null, null, null, null, null);
+        var models = userService.findAllBy(params, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -181,13 +187,15 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by email")
     @Test
     void findAllUsersEmailFilterSuccess() {
+        var params = new SearchUsers();
+        params.setEmail(userEntity.getEmail());
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            appAccessRepository.searchAllBy(null, null, userEntity.getEmail(), null, null, null, null, null)
+            appAccessRepository.searchAllBy(params, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, null, userEntity.getEmail(), null, null, null, null, null);
+        var models = userService.findAllBy(params, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -201,13 +209,15 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by organisation")
     @Test
     void findAllUsersOrganisationFilterSuccess() {
+        var params = new SearchUsers();
+        params.setOrganisation(userEntity.getOrganisation());
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            appAccessRepository.searchAllBy(null, null, null, userEntity.getOrganisation(), null, null, null, null)
+            appAccessRepository.searchAllBy(params, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, null, null, userEntity.getOrganisation(), null, null, null, null);
+        var models = userService.findAllBy(params, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -221,15 +231,17 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by court")
     @Test
     void findAllUsersCourtFilterSuccess() {
+        var params = new SearchUsers();
+        params.setCourtId(appAccessEntity.getCourt().getId());
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
             appAccessRepository
-                .searchAllBy(null, null, null, null, appAccessEntity.getCourt().getId(), null, null, null)
+                .searchAllBy(params, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
         var models = userService
-            .findAllBy(null, null, null, null, appAccessEntity.getCourt().getId(), null, null, null);
+            .findAllBy(params, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -243,13 +255,15 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by role")
     @Test
     void findAllUsersRoleFilterSuccess() {
+        var params = new SearchUsers();
+        params.setRoleId(appAccessEntity.getRole().getId());
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            appAccessRepository.searchAllBy(null, null, null, null, null, appAccessEntity.getRole().getId(), null, null)
+            appAccessRepository.searchAllBy(params, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, null, null, null, null, appAccessEntity.getRole().getId(), null, null);
+        var models = userService.findAllBy(params, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -264,32 +278,36 @@ public class UserServiceTest {
     @Test
     void findAllUsersCourtFilterNotFound() {
         UUID courtId = UUID.randomUUID();
+        var params = new SearchUsers();
+        params.setCourtId(courtId);
         when(courtRepository.existsById(courtId)).thenReturn(false);
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null, null, courtId, null, null, null)
+            () -> userService.findAllBy(params, null)
         );
 
         verify(courtRepository, times(1)).existsById(courtId);
         verify(roleRepository, never()).existsById(any());
-        verify(appAccessRepository, never()).searchAllBy(any(), any(), any(), any(), any(), any(), any(), any());
+        verify(appAccessRepository, never()).searchAllBy(any(), any());
     }
 
     @DisplayName("Find all users when filtered by role that doesn't exist")
     @Test
     void findAllUsersRoleFilterNotFound() {
         UUID roleId = UUID.randomUUID();
+        var params = new SearchUsers();
+        params.setRoleId(roleId);
         when(roleRepository.existsById(roleId)).thenReturn(false);
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null, null, null, roleId, null, null)
+            () -> userService.findAllBy(params, null)
         );
 
         verify(courtRepository, never()).existsById(any());
         verify(roleRepository, times(1)).existsById(roleId);
-        verify(appAccessRepository, never()).searchAllBy(any(), any(), any(), any(), any(), any(), any(), any());
+        verify(appAccessRepository, never()).searchAllBy(any(), any());
     }
 
     @DisplayName("Delete a user by it's id")
