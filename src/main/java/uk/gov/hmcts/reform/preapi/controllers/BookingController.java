@@ -96,7 +96,7 @@ public class BookingController extends PreApiController {
         return noContent().build();
     }
 
-    @PutMapping("/{bookingId}/share")
+    @PutMapping("/bookings/{bookingId}/share")
     @Operation(operationId = "shareBookingById", summary = "Share a Booking")
     public ResponseEntity<Void> shareBookingById(
         @PathVariable UUID bookingId,

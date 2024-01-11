@@ -16,6 +16,8 @@ import uk.gov.hmcts.reform.preapi.controllers.BookingController;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -356,6 +358,83 @@ class BookingControllerTest {
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent());
 
+    }
+
+    @DisplayName("Should create a share booking with 201 response code")
+    @Test
+    void testShareBookingCreated() throws Exception {
+        final UUID shareBookingId = UUID.randomUUID();
+        final UUID bookingId = UUID.randomUUID();
+        final UUID sharedWithUserId = UUID.randomUUID();
+        final UUID sharedByUserId = UUID.randomUUID();
+        final UUID caseId = UUID.randomUUID();
+
+        var shareBooking = new ShareBookingDTO();
+        shareBooking.setId(shareBookingId);
+        shareBooking.setSharedWithUserId(sharedWithUserId);
+        shareBooking.setSharedByUserId(sharedByUserId);
+        shareBooking.setBookingId(bookingId);
+
+        var mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setId(caseId);
+
+        var mockBookingDTO = new BookingDTO();
+        mockBookingDTO.setId(bookingId);
+
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(bookingService.findById(bookingId)).thenReturn(mockBookingDTO);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(shareBooking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+                                                 .andExpect(status().isCreated())
+                                                 .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId)
+            + "/share"
+        );
+    }
+
+    @DisplayName("Should fail to create a share booking with 400 response code when the bookingId does not match")
+    @Test
+    void testShareBookingIdMismatch() throws Exception {
+        final UUID shareBookingId = UUID.randomUUID();
+        final UUID bookingId = UUID.randomUUID();
+        final UUID sharedWithUserId = UUID.randomUUID();
+        final UUID sharedByUserId = UUID.randomUUID();
+        final UUID caseId = UUID.randomUUID();
+
+        var shareRecording = new ShareBookingDTO();
+        shareRecording.setId(shareBookingId);
+        shareRecording.setBookingId(UUID.randomUUID());
+        shareRecording.setSharedWithUserId(sharedWithUserId);
+        shareRecording.setSharedByUserId(sharedByUserId);
+
+        var mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setId(caseId);
+
+        var mockBookingDTO = new BookingDTO();
+        mockBookingDTO.setId(bookingId);
+
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(bookingService.findById(bookingId)).thenReturn(mockBookingDTO);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(shareRecording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+                                                 .andExpect(status().is4xxClientError())
+                                                 .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Path bookingId does not match payload "
+                           + "property shareBookingDTO.bookingId\"}");
     }
 
     private String getPath(UUID bookingId) {
