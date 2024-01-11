@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 
-import java.sql.Time;
+import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.LocalDate;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 @Data
@@ -18,18 +20,11 @@ import java.util.UUID;
 @Schema(description = "CaptureSessionReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CaptureSessionReportDTO {
-
-    @Schema(
-        description = "CaptureSessionDate",
-        implementation = LocalDate.class
-    )
-    private String date;
-
     @Schema(description = "CaptureSessionStartTime")
-    private String startTime;
+    private Timestamp startTime;
 
     @Schema(description = "CaptureSessionEndTime")
-    private String endTime;
+    private Timestamp endTime;
 
     @Schema(description = "CaptureSessionDuration")
     private Duration duration;
@@ -44,8 +39,21 @@ public class CaptureSessionReportDTO {
     private String court;
 
     @Schema(description = "CaptureSessionRegionName")
-    private String region;
+    private Set<RegionDTO> region;
 
-    public CaptureSessionReportDTO(CaptureSession entity) {
+    public CaptureSessionReportDTO(Recording entity) {
+        var captureSession = entity.getCaptureSession();
+        startTime = captureSession.getStartedAt();
+        endTime = captureSession.getFinishedAt();
+        duration = entity.getDuration();
+        court = captureSession.getBooking().getCaseId().getCourt().getName();
+        region = captureSession
+            .getBooking()
+            .getCaseId()
+            .getCourt()
+            .getRegions()
+            .stream()
+            .map(RegionDTO::new)
+            .collect(Collectors.toSet());
     }
 }
