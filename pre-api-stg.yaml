@@ -262,6 +262,9 @@ definitions:
   CreateUserDTO:
     description: CreateUserDTO
     properties:
+      active:
+        description: active
+        type: boolean
       court_id:
         description: UserCourtId
         format: uuid
@@ -470,6 +473,9 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      active:
+        description: active
+        type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
       created_at:
@@ -774,6 +780,9 @@ definitions:
   UserDTO:
     description: UserDTO
     properties:
+      active:
+        description: active
+        type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
       created_at:
