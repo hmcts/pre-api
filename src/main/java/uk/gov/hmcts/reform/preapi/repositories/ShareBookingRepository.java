@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface ShareBookingRepository extends JpaRepository<ShareBooking, UUID> {
-    boolean existsByIdAndDeletedAtIsNull(UUID id);
+
 }
