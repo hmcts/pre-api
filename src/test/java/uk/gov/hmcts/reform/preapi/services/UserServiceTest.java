@@ -128,7 +128,7 @@ public class UserServiceTest {
     @Test
     void findAllUsersSuccess() {
         when(
-            appAccessRepository.searchAllBy(null, null, null, null, null, null, null,null)
+            appAccessRepository.searchAllBy(null, null, null, null, null, null, null, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
         var models = userService.findAllBy(null, null, null, null, null, null, null, null);
@@ -146,10 +146,10 @@ public class UserServiceTest {
     @Test
     void findAllUsersFirstNameFilterSuccess() {
         when(
-            appAccessRepository.searchAllBy(userEntity.getFirstName(), null, null, null, null, null, null,null)
+            appAccessRepository.searchAllBy(userEntity.getFirstName(), null, null, null, null, null, null, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(userEntity.getFirstName(), null, null, null, null, null, null,null);
+        var models = userService.findAllBy(userEntity.getFirstName(), null, null, null, null, null, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -164,10 +164,10 @@ public class UserServiceTest {
     @Test
     void findAllUsersLastNameFilterSuccess() {
         when(
-            appAccessRepository.searchAllBy(null, userEntity.getLastName(), null, null, null, null, null,null)
+            appAccessRepository.searchAllBy(null, userEntity.getLastName(), null, null, null, null, null, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, userEntity.getLastName(), null, null, null, null, null,null);
+        var models = userService.findAllBy(null, userEntity.getLastName(), null, null, null, null, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -184,7 +184,7 @@ public class UserServiceTest {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            appAccessRepository.searchAllBy(null, null, userEntity.getEmail(), null, null, null, null,null)
+            appAccessRepository.searchAllBy(null, null, userEntity.getEmail(), null, null, null, null, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
         var models = userService.findAllBy(null, null, userEntity.getEmail(), null, null, null, null, null);
@@ -204,10 +204,10 @@ public class UserServiceTest {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            appAccessRepository.searchAllBy(null, null, null, userEntity.getOrganisation(), null, null, null,null)
+            appAccessRepository.searchAllBy(null, null, null, userEntity.getOrganisation(), null, null, null, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, null, null, userEntity.getOrganisation(), null, null, null,null);
+        var models = userService.findAllBy(null, null, null, userEntity.getOrganisation(), null, null, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -224,10 +224,12 @@ public class UserServiceTest {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            appAccessRepository.searchAllBy(null, null, null, null, appAccessEntity.getCourt().getId(), null, null,null)
+            appAccessRepository
+                .searchAllBy(null, null, null, null, appAccessEntity.getCourt().getId(), null, null, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, null, null, null, appAccessEntity.getCourt().getId(), null, null,null);
+        var models = userService
+            .findAllBy(null, null, null, null, appAccessEntity.getCourt().getId(), null, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -244,10 +246,10 @@ public class UserServiceTest {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            appAccessRepository.searchAllBy(null, null, null, null, null, appAccessEntity.getRole().getId(), null,null)
+            appAccessRepository.searchAllBy(null, null, null, null, null, appAccessEntity.getRole().getId(), null, null)
         ).thenReturn(new PageImpl<>(List.of(appAccessEntity)));
 
-        var models = userService.findAllBy(null, null, null, null, null, appAccessEntity.getRole().getId(), null,null);
+        var models = userService.findAllBy(null, null, null, null, null, appAccessEntity.getRole().getId(), null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -266,7 +268,7 @@ public class UserServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null, null, courtId, null, null,null)
+            () -> userService.findAllBy(null, null, null, null, courtId, null, null, null)
         );
 
         verify(courtRepository, times(1)).existsById(courtId);
