@@ -312,4 +312,78 @@ class BookingServiceTest {
 
         assertThat(bookingService.shareBookingById(shareBookingDTO)).isEqualTo(UpsertResult.CREATED);
     }
+
+    @DisplayName("Share a booking by its id when booking doesn't exist")
+    @Test
+    void shareBookingFailureBookingDoesntExist() {
+        var shareBookingDTO = new ShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
+            .isThrownBy(() -> {
+                bookingService.shareBookingById(shareBookingDTO);
+            })
+            .withMessage("Not found: Booking: " + shareBookingDTO.getBookingId());
+    }
+
+    @DisplayName("Share a booking by its id when shared by user doesn't exist")
+    @Test
+    void shareBookingFailureSharedByUserDoesntExist() {
+        var shareBookingDTO = new ShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+
+        var bookingEntity = new Booking();
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(bookingEntity));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedByUserId())
+        ).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
+            .isThrownBy(() -> {
+                bookingService.shareBookingById(shareBookingDTO);
+            })
+            .withMessage("Not found: Shared by User: " + shareBookingDTO.getSharedByUserId());
+    }
+
+    @DisplayName("Share a booking by its id when shared with user doesn't exist")
+    @Test
+    void shareBookingFailureSharedWithUserDoesntExist() {
+        var shareBookingDTO = new ShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+
+        var bookingEntity = new Booking();
+        var sharedByUser = new User();
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(bookingEntity));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedByUserId())
+        ).thenReturn(Optional.of(sharedByUser));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedWithUserId())
+        ).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
+            .isThrownBy(() -> {
+                bookingService.shareBookingById(shareBookingDTO);
+            })
+            .withMessage("Not found: Shared with User: " + shareBookingDTO.getSharedWithUserId());
+    }
 }
