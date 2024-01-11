@@ -12,4 +12,5 @@ public class SearchUsers {
     private String organisation;
     private UUID courtId;
     private UUID roleId;
+    private Boolean active;
 }

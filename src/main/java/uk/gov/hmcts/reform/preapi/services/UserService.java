@@ -62,6 +62,7 @@ public class UserService {
         String organisation,
         UUID court,
         UUID role,
+        Boolean active,
         Pageable pageable
     ) {
         if (court != null && !courtRepository.existsById(court)) {
@@ -72,7 +73,7 @@ public class UserService {
             throw new NotFoundException("Role: " + role);
         }
 
-        return appAccessRepository.searchAllBy(firstName, lastName, email, organisation, court, role, pageable)
+        return appAccessRepository.searchAllBy(firstName, lastName, email, organisation, court, role, active, pageable)
             .map(UserDTO::new);
     }
 

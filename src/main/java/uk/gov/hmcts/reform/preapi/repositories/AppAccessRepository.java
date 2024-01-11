@@ -27,6 +27,7 @@ public interface AppAccessRepository extends SoftDeleteRepository<AppAccess, UUI
         AND (:organisation IS NULL OR a.user.organisation ILIKE %:organisation%)
         AND (CAST(:courtId as uuid) IS NULL OR a.court.id = :courtId)
         AND (CAST(:roleId as uuid) IS NULL OR a.role.id = :roleId)
+        AND (:active IS NULL OR a.active = :active)
         """
     )
     Page<AppAccess> searchAllBy(
@@ -36,6 +37,7 @@ public interface AppAccessRepository extends SoftDeleteRepository<AppAccess, UUI
         @Param("organisation") String organisation,
         @Param("courtId") UUID courtId,
         @Param("roleId") UUID roleId,
+        @Param("active") Boolean active,
         Pageable pageable
     );
 

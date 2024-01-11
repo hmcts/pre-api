@@ -85,6 +85,12 @@ public class UserController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "active",
+        description = "The active status of the user to search by",
+        schema = @Schema(implementation = Boolean.class),
+        example = "true"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -108,6 +114,7 @@ public class UserController extends PreApiController {
             params.getOrganisation(),
             params.getCourtId(),
             params.getRoleId(),
+            params.getActive(),
             pageable
         );
 
