@@ -5,7 +5,7 @@ plugins {
   id 'jacoco'
   id 'io.spring.dependency-management' version '1.1.4'
   id 'org.springframework.boot' version '3.1.5' // issues with 3.2.0 https://github.com/spring-projects/spring-framework/issues/31705
-  id 'org.owasp.dependencycheck' version '9.0.7'
+  id 'org.owasp.dependencycheck' version '9.0.8'
   id 'com.github.ben-manes.versions' version '0.50.0'
   id 'org.sonarqube' version '4.4.1.3373'
   id "io.freefair.lombok" version "8.4"
@@ -106,7 +106,7 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.12.5'
+  toolVersion = '10.12.7'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
@@ -129,7 +129,7 @@ jacocoTestReport {
 }
 
 flyway {
-  url = System.getenv('POSTGRES_HOST') ?: "localhost"
+  url = System.getenv('POSTGRES_HOST') ?: "jdbc:postgresql://localhost:5432/api"
   user = System.getenv('POSTGRES_USER') ?: "pre"
   password = System.getenv('POSTGRES_PASSWORD') ?: "pre"
   baselineOnMigrate = true

@@ -323,6 +323,189 @@ definitions:
         format: date-time
         type: string
     type: object
+  EntityModelCaseDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: CaseCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: CaseDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: CaseId
+        format: uuid
+        type: string
+      modified_at:
+        description: CaseModifiedAt
+        format: date-time
+        type: string
+      reference:
+        description: CaseReference
+        type: string
+      test:
+        description: CaseIsTest
+        type: boolean
+    type: object
+  EntityModelCourtDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      court_type:
+        description: CourtType
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      id:
+        description: CourtId
+        format: uuid
+        type: string
+      location_code:
+        description: CourtLocationCode
+        type: string
+      name:
+        description: CourtName
+        type: string
+      regions:
+        description: CourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      rooms:
+        description: CourtRooms
+        items:
+          $ref: '#/definitions/RoomDTO'
+        type: array
+        uniqueItems: true
+    type: object
+  EntityModelRecordingDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      capture_session_id:
+        description: RecordingCaptureSessionId
+        format: uuid
+        type: string
+      created_at:
+        description: RecordingCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: RecordingDeletedAt
+        format: date-time
+        type: string
+      duration:
+        description: RecordingDuration
+        properties:
+          nano:
+            format: int32
+            type: integer
+          negative:
+            type: boolean
+          positive:
+            type: boolean
+          seconds:
+            format: int64
+            type: integer
+          units:
+            items:
+              properties:
+                dateBased:
+                  type: boolean
+                duration:
+                  properties:
+                    nano:
+                      format: int32
+                      type: integer
+                    negative:
+                      type: boolean
+                    positive:
+                      type: boolean
+                    seconds:
+                      format: int64
+                      type: integer
+                    zero:
+                      type: boolean
+                  type: object
+                durationEstimated:
+                  type: boolean
+                timeBased:
+                  type: boolean
+              type: object
+            type: array
+          zero:
+            type: boolean
+        type: object
+      edit_instructions:
+        description: RecordingEditInstructions
+        type: string
+      filename:
+        description: RecordingFilename
+        type: string
+      id:
+        description: RecordingId
+        format: uuid
+        type: string
+      parent_recording_id:
+        description: RecordingParentRecordingId
+        format: uuid
+        type: string
+      url:
+        description: RecordingURL
+        type: string
+      version:
+        description: RecordingVersion
+        format: int32
+        type: integer
+    type: object
+  EntityModelUserDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: UserCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: UserDeletedAt
+        format: date-time
+        type: string
+      email:
+        description: UserEmail
+        type: string
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      modified_at:
+        description: UserModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      role:
+        $ref: '#/definitions/RoleDTO'
+    type: object
   Link:
     properties:
       deprecation:
@@ -361,21 +544,6 @@ definitions:
         format: int64
         type: integer
     type: object
-  Pageable:
-    properties:
-      page:
-        format: int32
-        minimum: 0
-        type: integer
-      size:
-        format: int32
-        minimum: 1
-        type: integer
-      sort:
-        items:
-          type: string
-        type: array
-    type: object
   PagedModelEntityModelBookingDTO:
     properties:
       _embedded:
@@ -390,10 +558,61 @@ definitions:
       page:
         $ref: '#/definitions/PageMetadata'
     type: object
-  PagedResourcesAssemblerBookingDTO:
+  PagedModelEntityModelCaseDTO:
     properties:
-      forceFirstAndLastRels:
-        type: boolean
+      _embedded:
+        properties:
+          caseDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCaseDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCourtDTO:
+    properties:
+      _embedded:
+        properties:
+          courtDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCourtDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelRecordingDTO:
+    properties:
+      _embedded:
+        properties:
+          recordingDTOList:
+            items:
+              $ref: '#/definitions/EntityModelRecordingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelUserDTO:
+    properties:
+      _embedded:
+        properties:
+          userDTOList:
+            items:
+              $ref: '#/definitions/EntityModelUserDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
     type: object
   ParticipantDTO:
     description: ParticipantDTO
@@ -552,21 +771,6 @@ definitions:
         description: RoomName
         type: string
     type: object
-  ShareBookingDTO:
-    properties:
-      booking_id:
-        format: uuid
-        type: string
-      id:
-        format: uuid
-        type: string
-      shared_by_user_id:
-        format: uuid
-        type: string
-      shared_with_user_id:
-        format: uuid
-        type: string
-    type: object
   UserDTO:
     description: UserDTO
     properties:
@@ -622,28 +826,29 @@ paths:
     get:
       operationId: getBookingsByCaseId
       parameters:
-        - additionalProperties:
-            type: string
-          in: query
-          name: params
-          required: true
-          type: object
-        - in: query
-          name: pageable
-          required: true
-          type: object
-        - in: query
-          name: assembler
-          required: true
-          type: object
         - description: The Case Id to search for
+          format: uuid
           in: query
           name: caseId
+          type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The Case Reference to search for
           in: query
           name: caseReference
+          type: string
           x-example: 1234567890123456
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
@@ -708,150 +913,40 @@ paths:
       summary: Create or Update a Booking
       tags:
         - booking-controller
-  '/bookings/{bookingId}/recordings':
-    get:
-      operationId: getRecordingsByBookingId
-      parameters:
-        - format: uuid
-          in: path
-          name: bookingId
-          required: true
-          type: string
-        - format: uuid
-          in: query
-          name: captureSessionId
-          required: false
-          type: string
-        - format: uuid
-          in: query
-          name: parentRecordingId
-          required: false
-          type: string
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/RecordingDTO'
-            type: array
-      summary: Get all Recordings by Booking Id
-      tags:
-        - recording-controller
-  '/bookings/{bookingId}/recordings/{recordingId}':
-    delete:
-      operationId: deleteRecording
-      parameters:
-        - format: uuid
-          in: path
-          name: bookingId
-          required: true
-          type: string
-        - format: uuid
-          in: path
-          name: recordingId
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-      summary: Delete a Recording
-      tags:
-        - recording-controller
-    get:
-      operationId: getRecordingById
-      parameters:
-        - format: uuid
-          in: path
-          name: bookingId
-          required: true
-          type: string
-        - format: uuid
-          in: path
-          name: recordingId
-          required: true
-          type: string
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/RecordingDTO'
-      summary: Get a Recording by Id
-      tags:
-        - recording-controller
-    put:
-      consumes:
-        - application/json
-      operationId: putRecordings
-      parameters:
-        - format: uuid
-          in: path
-          name: bookingId
-          required: true
-          type: string
-        - format: uuid
-          in: path
-          name: recordingId
-          required: true
-          type: string
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/CreateRecordingDTO'
-      responses:
-        '200':
-          description: OK
-      summary: Create or Update a Recording
-      tags:
-        - recording-controller
-  '/bookings/{bookingId}/share':
-    put:
-      consumes:
-        - application/json
-      operationId: shareBookingById
-      parameters:
-        - format: uuid
-          in: path
-          name: bookingId
-          required: true
-          type: string
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/ShareBookingDTO'
-      responses:
-        '200':
-          description: OK
-      summary: Share a Booking
-      tags:
-        - booking-controller
   /cases:
     get:
       operationId: getCases
       parameters:
-        - in: query
+        - description: The case reference to search by
+          in: query
           name: reference
-          required: false
           type: string
-        - format: uuid
+          x-example: 1234567890123456
+        - description: The court id to search by
+          format: uuid
           in: query
           name: courtId
-          required: false
           type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
         '200':
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/CaseDTO'
-            type: array
+            $ref: '#/definitions/PagedModelEntityModelCaseDTO'
       summary: Get a case by reference or court id
       tags:
         - case-controller
@@ -913,35 +1008,47 @@ paths:
     get:
       operationId: searchCourts
       parameters:
-        - enum:
+        - description: The type of the court to search by
+          enum:
             - CROWN
             - MAGISTRATE
             - FAMILY
           in: query
           name: courtType
-          required: false
           type: string
-        - in: query
+        - description: The name of the court to search by
+          in: query
           name: name
-          required: false
           type: string
-        - in: query
+          x-example: Example
+        - description: The location code of the court to search by
+          in: query
           name: locationCode
-          required: false
           type: string
-        - in: query
+        - description: The region name of the court to search by
+          in: query
           name: regionName
-          required: false
           type: string
+          x-example: London
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
       produces:
         - application/octet-stream
       responses:
         '200':
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/CourtDTO'
-            type: array
+            $ref: '#/definitions/PagedModelEntityModelCourtDTO'
       summary: 'Search for Courts by court type, name, location code or region name'
       tags:
         - court-controller
@@ -985,35 +1092,66 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
-  /users:
+  /recordings:
     get:
-      operationId: getUsers
+      operationId: getRecordings
       parameters:
-        - in: query
-          name: firstName
-          required: false
-          type: string
-        - in: query
-          name: lastName
-          required: false
-          type: string
-        - in: query
-          name: email
-          required: false
-          type: string
-        - in: query
-          name: organisation
-          required: false
-          type: string
-        - format: uuid
+        - description: The capture session to search by
+          format: uuid
           in: query
-          name: courtId
-          required: false
+          name: captureSessionId
           type: string
-        - format: uuid
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The parent recording to search by
+          format: uuid
           in: query
-          name: roleId
-          required: false
+          name: parentRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelRecordingDTO'
+      summary: Search all Recordings
+      tags:
+        - recording-controller
+  '/recordings/{recordingId}':
+    delete:
+      operationId: deleteRecording
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+      summary: Delete a Recording
+      tags:
+        - recording-controller
+    get:
+      operationId: getRecordingById
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
           type: string
       produces:
         - application/octet-stream
@@ -1021,9 +1159,83 @@ paths:
         '200':
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/UserDTO'
-            type: array
+            $ref: '#/definitions/RecordingDTO'
+      summary: Get a Recording by Id
+      tags:
+        - recording-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putRecordings
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateRecordingDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Recording
+      tags:
+        - recording-controller
+  /users:
+    get:
+      operationId: getUsers
+      parameters:
+        - description: The first name of the user to search by
+          in: query
+          name: firstName
+          type: string
+        - description: The last name of the user to search by
+          in: query
+          name: lastName
+          type: string
+        - description: The email of the user to search by
+          in: query
+          name: email
+          type: string
+          x-example: example@example.com
+        - description: The organisation of the user to search by
+          in: query
+          name: organisation
+          type: string
+        - description: The court id of the user to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The role id of the user to search by
+          format: uuid
+          in: query
+          name: roleId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelUserDTO'
       summary: >-
         Search for Users by first name, last name, email, organisation, court or
         role

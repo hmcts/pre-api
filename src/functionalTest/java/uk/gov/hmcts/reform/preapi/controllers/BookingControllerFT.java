@@ -3,14 +3,12 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
-import java.text.MessageFormat;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BookingControllerFT extends FunctionalTestBase {
 
     private static final String BOOKINGS_ENDPOINT = "/bookings/";
-    private static final String RECORDINGS_ENDPOINT = "/bookings/{0}/recordings/";
+    private static final String RECORDINGS_ENDPOINT = "/recordings/";
 
     @Test
     void shouldDeleteRecordingsForBooking() {
@@ -25,8 +23,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookingResponse.body().jsonPath().getString("id")).isEqualTo(bookingId);
 
-        var recordingResponse = doGetRequest(
-            MessageFormat.format(RECORDINGS_ENDPOINT, bookingId) + recordingId);
+        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + recordingId);
         assertThat(recordingResponse.statusCode()).isEqualTo(200);
         assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recordingId);
         var recordingCreatedAt = recordingResponse.body().prettyPrint();
@@ -35,8 +32,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + bookingId);
         assertThat(deleteResponse.statusCode()).isEqualTo(204);
 
-        var recordingResponse2 = doGetRequest(
-            MessageFormat.format(RECORDINGS_ENDPOINT, bookingId) + recordingId);
+        var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + recordingId);
         assertThat(recordingResponse2.statusCode()).isEqualTo(404);
     }
 }

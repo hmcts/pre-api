@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.UUID;
 
 @Data
-public class SearchBookings {
-    private UUID caseId;
-    private String caseReference;
+public class SearchRecordings {
+    private UUID captureSessionId;
+    private UUID parentRecordingId;
 }
