@@ -46,5 +46,6 @@ public class UserDTO extends BaseUserDTO {
         modifiedAt = user.getModifiedAt();
         court = new CourtDTO(access.getCourt());
         role = new RoleDTO(access.getRole());
+        active = access.isActive();
     }
 }
