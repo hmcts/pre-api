@@ -386,4 +386,37 @@ class BookingServiceTest {
             })
             .withMessage("Not found: Shared with User: " + shareBookingDTO.getSharedWithUserId());
     }
+
+    @DisplayName("Share a booking by its id when share booking already exists")
+    @Test
+    void shareBookingFailureShareBookingAlreadyExists() {
+        var shareBookingDTO = new ShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+
+        var bookingEntity = new Booking();
+        var sharedByUser = new User();
+        var sharedWithUser = new User();
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(bookingEntity));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedByUserId())
+        ).thenReturn(Optional.of(sharedByUser));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedWithUserId())
+        ).thenReturn(Optional.of(sharedWithUser));
+        when(
+            shareBookingRepository.existsById(shareBookingDTO.getId())
+        ).thenReturn(true);
+
+        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.ConflictException.class)
+            .isThrownBy(() -> {
+                bookingService.shareBookingById(shareBookingDTO);
+            })
+            .withMessage("Conflict: Share booking already exists");
+    }
 }

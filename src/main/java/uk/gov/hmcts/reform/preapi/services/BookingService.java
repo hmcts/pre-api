@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -110,12 +111,16 @@ public class BookingService {
 
     @Transactional
     public UpsertResult shareBookingById(ShareBookingDTO shareBookingDTO) {
-        var booking = bookingRepository.findById(shareBookingDTO.getBookingId())
+        final var booking = bookingRepository.findById(shareBookingDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + shareBookingDTO.getBookingId()));
-        var sharedByUser = userRepository.findById(shareBookingDTO.getSharedByUserId())
+        final var sharedByUser = userRepository.findById(shareBookingDTO.getSharedByUserId())
             .orElseThrow(() -> new NotFoundException("Shared by User: " + shareBookingDTO.getSharedByUserId()));
-        var sharedWithUser = userRepository.findById(shareBookingDTO.getSharedWithUserId())
+        final var sharedWithUser = userRepository.findById(shareBookingDTO.getSharedWithUserId())
             .orElseThrow(() -> new NotFoundException("Shared with User: " + shareBookingDTO.getSharedWithUserId()));
+
+        if (shareBookingRepository.existsById(shareBookingDTO.getId())) {
+            throw new ConflictException("Share booking already exists");
+        }
 
         var shareBookingEntity = new ShareBooking();
         shareBookingEntity.setId(shareBookingDTO.getId());
