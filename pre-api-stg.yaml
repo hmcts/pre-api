@@ -1226,6 +1226,11 @@ paths:
           name: roleId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The active status of the user to search by
+          in: query
+          name: active
+          type: boolean
+          x-example: true
         - description: The page number of search result to return
           format: int32
           in: query
