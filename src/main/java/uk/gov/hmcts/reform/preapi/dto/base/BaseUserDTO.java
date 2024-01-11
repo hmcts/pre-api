@@ -27,4 +27,7 @@ public abstract class BaseUserDTO {
 
     @Schema(description = "UserOrganisation")
     protected String organisation;
+
+    @Schema(description = "active")
+    protected Boolean active;
 }
