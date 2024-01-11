@@ -41,7 +41,10 @@ class BookingManager:
             recording_status = recording[11]
             deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
             created_at = parse_to_timestamp(recording[22])
-            modified_at = parse_to_timestamp(recording[24])
+            # modified_at = parse_to_timestamp(recording[24])
+            
+            modified_at = parse_to_timestamp(recording[24]) if recording[24] else None
+            # print( modified_at)
             created_by = recording[21]
 
             # Check if the case has been migrated into the cases table 
@@ -58,7 +61,7 @@ class BookingManager:
                             (case_id, recording_id, booking_id,scheduled_for, deleted_at, created_at, modified_at, created_by)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
-                        (case_id, recording_id, booking_id,scheduled_for,deleted_at, created_at, modified_at,created_by),
+                        (case_id, recording_id, booking_id,scheduled_for,deleted_at, created_at, modified_at if modified_at is not None else None,created_by),
                     )
                 except Exception as e:
                     self.failed_imports.add(('temp_recordings', recording_id, f'Failed to insert into temp_recordings: {e}'))
@@ -75,8 +78,10 @@ class BookingManager:
             if not check_existing_record(destination_cursor,'bookings', 'case_id', case_id):   
                 try:
                     scheduled_for = booking[5]
-                    created_at = parse_to_timestamp(booking[7])
-                    modified_at = parse_to_timestamp(booking[8])
+                    created_at = booking[7]
+                    modified_at = booking[8]
+                    print(created_at, modified_at)
+                    # modified_at = parse_to_timestamp(booking[8]) if booking[8] else None
                     created_by = booking[9]
 
                     destination_cursor.execute(

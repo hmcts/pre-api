@@ -2,13 +2,24 @@ from datetime import datetime
 import pytz
 import uuid
 
+
 # Parses timestamp string to date format
 def parse_to_timestamp(input_text):
     if input_text:
         try:
             parsed_datetime = None
             # try parsing with different formats
-            formats_to_try = ["%d/%m/%Y %H:%M", "%d/%m/%Y %H:%M:%S", "%d-%m-%Y %H:%M:%S","%Y-%m-%d %H:%M:%S", "%Y/%m/%d %H:%M:%S", "%Y/%m/%d %H:%M"] 
+            formats_to_try = [
+                "%d/%m/%Y", 
+                "%d/%m/%Y %H:%M", 
+                "%d/%m/%Y %H:%M:%S",
+                "%Y/%m/%d %H:%M:%S", 
+                "%Y/%m/%d %H:%M", 
+                "%d-%m-%Y %H:%M:%S",
+                "%d-%m-%Y %H:%M",
+                "%Y-%m-%d %H:%M:%S",
+
+                ] 
             for date_format in formats_to_try:
                 try:
                     parsed_datetime = datetime.strptime(input_text, date_format)
@@ -19,11 +30,11 @@ def parse_to_timestamp(input_text):
             if parsed_datetime:
                 uk_timezone = pytz.timezone('Europe/London')
                 parsed_datetime = uk_timezone.localize(parsed_datetime)
-                return parsed_datetime.strftime('%Y-%m-%d %H:%M:%S')
+                return parsed_datetime
         except (ValueError, TypeError):
             pass
     # if input is invalid or empty, returning the current time in UK timezone
-    return datetime.now(tz=pytz.timezone('Europe/London')).strftime('%Y-%m-%d %H:%M:%S')
+    return datetime.now(tz=pytz.timezone('Europe/London'))
 
 # Checks if
 def check_existing_record(db_connection, table_name, field, record):

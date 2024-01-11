@@ -35,6 +35,7 @@ class CaseManager:
                 created_at = parse_to_timestamp(case[5])
                 created_by = case[4]
                 modified_at = parse_to_timestamp(case[7])
+                # modified_at = parse_to_timestamp(case[7]) if case[7] else None
                 deleted_at = parse_to_timestamp(case[7]) if case[3] == "Deleted" else None
 
                 cases_data.append((id, court_id, reference, test, deleted_at, created_at, modified_at))
