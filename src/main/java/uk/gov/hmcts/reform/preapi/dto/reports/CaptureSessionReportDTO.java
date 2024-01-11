@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
@@ -20,6 +21,10 @@ import java.util.stream.Collectors;
 @Schema(description = "CaptureSessionReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CaptureSessionReportDTO {
+
+    @Schema(description = "CaptureSessionId")
+    private UUID id;
+
     @Schema(description = "CaptureSessionStartTime")
     private Timestamp startTime;
 
@@ -32,9 +37,6 @@ public class CaptureSessionReportDTO {
     @Schema(description = "CaptureSessionCaseReference")
     private String caseReference;
 
-    @Schema(description = "CaptureSessionId")
-    private UUID id;
-
     @Schema(description = "CaptureSessionCourtName")
     private String court;
 
@@ -42,15 +44,23 @@ public class CaptureSessionReportDTO {
     private Set<RegionDTO> region;
 
     public CaptureSessionReportDTO(Recording entity) {
-        var captureSession = entity.getCaptureSession();
-        startTime = captureSession.getStartedAt();
-        endTime = captureSession.getFinishedAt();
+        setCaptureSessionValues(entity.getCaptureSession());
         duration = entity.getDuration();
-        court = captureSession.getBooking().getCaseId().getCourt().getName();
-        region = captureSession
-            .getBooking()
-            .getCaseId()
-            .getCourt()
+    }
+
+    public CaptureSessionReportDTO(CaptureSession entity) {
+        setCaptureSessionValues(entity);
+    }
+
+    private void setCaptureSessionValues(CaptureSession entity) {
+        id = entity.getId();
+        startTime = entity.getStartedAt();
+        endTime = entity.getFinishedAt();
+        var caseEntity = entity.getBooking().getCaseId();
+        var courtEntity = caseEntity.getCourt();
+        court = courtEntity.getName();
+        caseReference = caseEntity.getReference();
+        region = courtEntity
             .getRegions()
             .stream()
             .map(RegionDTO::new)
