@@ -9,9 +9,9 @@ class CourtRoomManager:
     def migrate_data(self, destination_cursor):
         # CVP room data - https://tools.hmcts.net/confluence/display/S28/CVP+Guides#CVPGuides-CVPRooms-EnvironmentandCourtAllocation
         courtroom_data = {
-            "PRE001": "Leeds Youth Court - Magistrate court",
-            "PRE002": "Leeds Youth Court - Magistrate court",
-            "PRE003": "Leeds Youth Court - Magistrate court",
+            "PRE001": "Leeds Youth Court",
+            "PRE002": "Leeds Youth Court",
+            "PRE003": "Leeds Youth Court",
             "PRE004": "Mold Crown Court",
             "PRE005": "Mold Crown Court",
             "PRE006": "Leeds Crown Court",
@@ -21,8 +21,8 @@ class CourtRoomManager:
             "PRE010": "Default Court",
             "PRE011": "Durham Crown Court",
             "PRE012": "Durham Crown Court",
-            "PRE013": "Kingston upon Thames Crown Court",
-            "PRE014": "Kingston upon Thames Crown Court",
+            "PRE013": "Kingston-upon-Thames Crown Court",
+            "PRE014": "Kingston-upon-Thames Crown Court",
             "PRE015": "Liverpool Crown Court",
             "PRE016": "Liverpool Crown Court",
             "PRE017": "Nottingham Crown Court",
