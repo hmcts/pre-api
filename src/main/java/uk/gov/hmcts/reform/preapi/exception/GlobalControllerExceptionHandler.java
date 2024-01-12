@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -71,6 +72,21 @@ public class GlobalControllerExceptionHandler {
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         error.put(MESSAGE, ex.getMessage());
+        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
+                                    responseHeaders,
+                                    HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<String> onMethodArgumentNotValidException(final MethodArgumentNotValidException e)
+        throws JsonProcessingException {
+
+        var error = new HashMap<String, String>();
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
+        for (var fieldError : e.getBindingResult().getFieldErrors()) {
+            error.put(fieldError.getField(), fieldError.getDefaultMessage());
+        }
         return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
                                     responseHeaders,
                                     HttpStatus.BAD_REQUEST);
