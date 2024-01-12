@@ -16,11 +16,11 @@ The API hosts numerous endpoints, [documented here](https://hmcts.github.io/cnp-
 
       Person(adminUser, "Admin User", "")
       Person(judicialUser, "Judicial User", "")
+      Person(professionalUser, "Professional User", "")
 
       Enterprise_Boundary(a0, "CFT Azure Tenant") {
 
-        System(frontend, "pre-portal", "Admin Portal")
-        System(function, "pre-functions", "Function apps to control Azure Media PLayer")
+        System(function, "pre-functions", "Function apps to control Azure Media Services")
 
         System_Boundary(api, "API") {
             System(api, "pre-api")
@@ -34,25 +34,28 @@ The API hosts numerous endpoints, [documented here](https://hmcts.github.io/cnp-
 
       }
 
-      Enterprise_Boundary(a1, "Justice Azure Tenant") {
+      Enterprise_Boundary(a1, "Power Platform Azure Tenant") {
 
         System_Boundary(PowerPlatform, "Power Platform") {
-            System(PowerApps, "Power Apps", "Frontend")
-            System(PowerFlows, "Power Flows", "Flows")
+            System(Portal, "Portal", "")
+            System(PowerApps, "Power Apps Forms", "")
+            System(PowerFlows, "Power Flows", "")
         }
       }
 
-      BiRel(judicialUser, PowerApps, "")
-      BiRel(adminUser, PowerApps, "")
-      BiRel(adminUser, frontend, "")
+      BiRel(judicialUser, Portal, "")
+      BiRel(adminUser, Portal, "")
+      BiRel(professionalUser, Portal, "")
       BiRel(PowerApps, PowerFlows, "")
+      BiRel(PowerApps, Portal, "")
       Rel(PowerApps, api, "")
       Rel(PowerFlows, api, "")
       Rel(PowerFlows, function, "")
       Rel(api, db, "")
-      Rel(frontend, api, "")
       Rel(ams, blob, "")
       Rel(function, ams, "")
+      UpdateElementStyle(api,  $bgColor="green", $borderColor="black")
+
 
 ```
 
