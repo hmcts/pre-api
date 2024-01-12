@@ -117,6 +117,7 @@ definitions:
     required:
       - case_id
       - id
+      - scheduled_for
     type: object
   CreateCaseDTO:
     description: CreateCaseDTO
