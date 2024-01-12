@@ -1026,6 +1026,21 @@ definitions:
         description: RoomName
         type: string
     type: object
+  ShareBookingDTO:
+    properties:
+      booking_id:
+        format: uuid
+        type: string
+      id:
+        format: uuid
+        type: string
+      shared_by_user_id:
+        format: uuid
+        type: string
+      shared_with_user_id:
+        format: uuid
+        type: string
+    type: object
   User:
     properties:
       createdAt:
@@ -1196,6 +1211,28 @@ paths:
         '200':
           description: OK
       summary: Create or Update a Booking
+      tags:
+        - booking-controller
+  '/bookings/{bookingId}/share':
+    put:
+      consumes:
+        - application/json
+      operationId: shareBookingById
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/ShareBookingDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Share a Booking
       tags:
         - booking-controller
   /cases:
