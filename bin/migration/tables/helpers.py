@@ -44,8 +44,10 @@ def check_existing_record(db_connection, table_name, field, record):
 
 
 # audit entry into database
-def audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry"):
+def audit_entry_creation(db_connection, table_name, record_id, record,modified_at, created_at=None, created_by="Data Entry"):
     created_at = created_at or datetime.now()
+    modified_at = modified_at or datetime.now()
+
     
     failed_imports = set()
 
@@ -60,16 +62,17 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         "functional_area": "data_processing",
         "audit_details": f"Created {table_name}_record for: {record}",
         "created_by": created_by,
-        "created_at": created_at
+        "created_at": created_at,
+        "updated_at": modified_at
     }
 
     try:
         db_connection.execute(
             """
             INSERT INTO public.audits 
-                (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at) 
+                (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at, updated_at) 
             VALUES 
-                (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s)
+                (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s, %(updated_at)s)
             """,
             audit_entry
         )

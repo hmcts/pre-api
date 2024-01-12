@@ -95,6 +95,7 @@ class BookingManager:
                         record=case_id,
                         created_at=created_at,
                         created_by=created_by,
+                        modified_at = modified_at
                     )
                 except Exception as e:  
                     self.failed_imports.add(('bookings', id,e))

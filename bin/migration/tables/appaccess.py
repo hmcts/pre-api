@@ -82,6 +82,7 @@ class AppAccessManager:
                     record=entry[1],
                     created_at=entry[6],
                     created_by=entry[8],
+                    modified_at=entry[7]
                 )
                     
         except Exception as e:  

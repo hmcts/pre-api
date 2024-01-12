@@ -54,7 +54,7 @@ class ParticipantManager:
                 modified_at = parse_to_timestamp(participant[11])
                 created_by = participant[8]
 
-                batch_participant_data.append((id, case_id, participant_type, first_name, last_name, created_at, modified_at))
+                batch_participant_data.append((id, case_id, participant_type, first_name, last_name, created_at, modified_at, created_by))
                 
         try:
             if batch_participant_data:
@@ -65,7 +65,8 @@ class ParticipantManager:
                         (id, case_id, participant_type, first_name, last_name, created_at, modified_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
-                    batch_participant_data,
+                    # batch_participant_data,
+                    [entry[:-1] for entry in batch_participant_data],
                 )
 
                 destination_cursor.connection.commit()
@@ -77,7 +78,9 @@ class ParticipantManager:
                         record_id=entry[0],
                         record=entry[1],
                         created_at=entry[5],
-                        created_by=created_by
+                        created_by=entry[7],
+                        modified_at=entry[6]
+                    
                     )
 
         except Exception as e:

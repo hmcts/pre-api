@@ -52,6 +52,8 @@ class RecordingManager:
                 url = recording[20] if recording[20] is not None else 'Unknown URL'
                 filename = recording[14]
                 created_at = parse_to_timestamp(recording[22])
+                modified_at = parse_to_timestamp(recording[24])
+                created_by = recording[21]
 
                 try:
                     destination_cursor.execute(
@@ -67,6 +69,9 @@ class RecordingManager:
                         table_name="recordings",
                         record_id=id,
                         record=capture_session_id,
+                        created_at=created_at,
+                        created_by=created_by,
+                        modified_at=modified_at
                     )
 
                 except Exception as e:  
@@ -95,6 +100,9 @@ class RecordingManager:
                 url = recording[20] if recording[20] is not None else 'Unknown URL'
                 filename = recording[14]
                 created_at = parse_to_timestamp(recording[22])
+                modified_at = parse_to_timestamp(recording[24])
+                created_by = recording[21]
+                
         #         duration =  ? - this info is in the asset files on AMS 
         #         edit_instruction = ?
             
@@ -112,6 +120,9 @@ class RecordingManager:
                         table_name="recordings",
                         record_id=id,
                         record=capture_session_id,
+                        created_at=created_at,
+                        created_by=created_by,
+                        modified_at=modified_at
                     )
                 except Exception as e:  
                     self.failed_imports.add(('recordings', id, e))

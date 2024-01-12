@@ -34,6 +34,7 @@ class RoomManager:
                 for room in batch_rooms_data:
                     created_at = parse_to_timestamp(source_room[2])
                     created_by = source_room[1]
+                    modified_at = parse_to_timestamp(source_room[4])
 
                     audit_entry_creation(
                         destination_cursor,
@@ -42,6 +43,7 @@ class RoomManager:
                         record=room[1],
                         created_at=created_at,
                         created_by=created_by,
+                        modified_at=modified_at
                     )
 
         except Exception as e:

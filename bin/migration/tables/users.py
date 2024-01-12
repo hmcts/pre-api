@@ -26,7 +26,7 @@ class UserManager:
                 created_by = user[14]
 
                 batch_users_data.append((
-                    id, first_name, last_name, email, organisation, phone, created_at, modified_at
+                    id, first_name, last_name, email, organisation, phone, created_at, modified_at, created_by
                 ))
         try:
             if batch_users_data:
@@ -36,7 +36,7 @@ class UserManager:
                         (id, first_name, last_name, email, organisation, phone, created_at, modified_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
-                    batch_users_data
+                    [entry[:-1] for entry in batch_users_data],
                 )
                 destination_cursor.connection.commit()
 
@@ -47,7 +47,8 @@ class UserManager:
                         record_id=user[0],
                         record=f"{user[1]} {user[2]}",  
                         created_at=user[6],
-                        created_by=created_by,
+                        created_by=user[8],
+                        modified_at=user[7]
                     )
         except Exception as e:  
             self.failed_imports.add(('users', id, e))
