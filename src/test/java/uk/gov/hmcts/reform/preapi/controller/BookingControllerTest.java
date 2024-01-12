@@ -439,7 +439,7 @@ class BookingControllerTest {
                            + "property shareBookingDTO.bookingId\"}");
     }
 
-       @DisplayName("Should fail to create a booking with 500 response code")
+    @DisplayName("Should fail to create a booking with 500 response code")
     @Test
     void createBookingEndpoint500() throws Exception {
         var caseId = UUID.randomUUID();
