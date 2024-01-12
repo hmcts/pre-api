@@ -10,12 +10,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.ReportController;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
@@ -33,7 +35,7 @@ public class ReportControllerTest {
     @MockBean
     private ReportService reportService;
 
-    @DisplayName("Should get a report containing a list of concurret capture sessions")
+    @DisplayName("Should get a report containing a list of concurrent capture sessions")
     @Test
     void reportConcurrentCaptureSessionsSuccess() throws Exception {
         var reportItem = new CaptureSessionReportDTO();
@@ -50,5 +52,22 @@ public class ReportControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].id").value(reportItem.getId().toString()));
+    }
+
+    @DisplayName("Should get a report containing a list of cases with the count of completed capture sessions")
+    @Test
+    void reportRecordingsPerCaseSuccess() throws Exception {
+        var reportItem = new RecordingsPerCaseReportDTO();
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example Court");
+        reportItem.setRegions(Set.of());
+        reportItem.setCount(2);
+
+        when(reportService.reportRecordingsPerCase()).thenReturn(List.of(reportItem));
+        mockMvc.perform(get("/reports/recordings-per-case"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].count").value(reportItem.getCount()));
     }
 }
