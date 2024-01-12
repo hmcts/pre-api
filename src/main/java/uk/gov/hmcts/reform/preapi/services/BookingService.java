@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 
 import java.util.UUID;
@@ -24,13 +24,17 @@ import java.util.stream.Stream;
 @SuppressWarnings("PMD.SingularField")
 public class BookingService {
 
+
     private final BookingRepository bookingRepository;
+    private final CaseRepository caseRepository;
     private final ParticipantRepository participantRepository;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
+                          final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository) {
         this.bookingRepository = bookingRepository;
+        this.caseRepository = caseRepository;
         this.participantRepository = participantRepository;
     }
 
@@ -52,20 +56,34 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    @Transactional
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
+
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
 
+        var isUpdate = bookingRepository.existsById(createBookingDTO.getId());
+
+        var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
+            .orElse(null);
+
+        if ((!isUpdate && caseEntity == null)
+            || (isUpdate && createBookingDTO.getCaseId() != null && caseEntity == null)
+        ) {
+            throw new NotFoundException("Case: " + createBookingDTO.getCaseId());
+        }
+
         var bookingEntity = bookingRepository.findById(createBookingDTO.getId()).orElse(new Booking());
-        var caseEntity = new Case();
-        caseEntity.setId(createBookingDTO.getCaseId());
+
         bookingEntity.setId(createBookingDTO.getId());
         bookingEntity.setCaseId(caseEntity);
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
                     var entity = participantRepository.findById(model.getId()).orElse(new Participant());
+
                     if (entity.getDeletedAt() != null) {
                         throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
                     }
@@ -80,10 +98,9 @@ public class BookingService {
                 .collect(Collectors.toSet()));
         bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
 
-        var updated = bookingRepository.existsById(createBookingDTO.getId());
         bookingRepository.save(bookingEntity);
 
-        return updated ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     private boolean bookingAlreadyDeleted(UUID id) {
