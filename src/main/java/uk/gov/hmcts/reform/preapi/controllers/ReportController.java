@@ -28,7 +28,10 @@ public class ReportController {
     }
 
     @GetMapping("/recordings-per-case")
-    @Operation(operationId = "reportRecordingsPerCase", summary = "Get the number of recordings by each case")
+    @Operation(
+        operationId = "reportRecordingsPerCase",
+        summary = "Get the number of completed capture sessions for each case"
+    )
     public ResponseEntity<List<RecordingsPerCaseReportDTO>> reportRecordingsPerCase() {
         return ResponseEntity.ok(reportService.reportRecordingsPerCase());
     }
