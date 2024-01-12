@@ -17,12 +17,12 @@ import java.sql.Timestamp;
 @Getter
 @Setter
 @Entity
-@Table(name = "share_recordings")
-public class ShareRecording extends BaseEntity {
+@Table(name = "share_bookings")
+public class ShareBooking extends BaseEntity {
     // @todo should be able to share before capture session created and after
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "capture_session_id", referencedColumnName = "id")
-    private CaptureSession captureSession;
+    @JoinColumn(name = "booking_id", referencedColumnName = "id")
+    private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shared_with_user_id", referencedColumnName = "id")
