@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchBookings;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -105,6 +106,20 @@ public class BookingController extends PreApiController {
     public ResponseEntity<Void> delete(@PathVariable UUID bookingId) {
         bookingService.markAsDeleted(bookingId);
         return noContent().build();
+    }
+
+    @PutMapping("/bookings/{bookingId}/share")
+    @Operation(operationId = "shareBookingById", summary = "Share a Booking")
+    public ResponseEntity<Void> shareBookingById(
+        @PathVariable UUID bookingId,
+        @RequestBody ShareBookingDTO shareBookingDTO
+    ) {
+        // TODO Ensure user has access to share the recording
+        if (!bookingId.equals(shareBookingDTO.getBookingId())) {
+            throw new PathPayloadMismatchException("bookingId", "shareBookingDTO.bookingId");
+        }
+
+        return getUpsertResponse(bookingService.shareBookingById(shareBookingDTO), shareBookingDTO.getId());
     }
 
     private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {
