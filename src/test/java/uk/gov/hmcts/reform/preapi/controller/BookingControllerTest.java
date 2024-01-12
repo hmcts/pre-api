@@ -19,9 +19,13 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -50,6 +54,7 @@ class BookingControllerTest {
     private BookingService bookingService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private static final String TEST_URL = "http://localhost";
 
     @DisplayName("Should search for bookings")
@@ -205,6 +210,9 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -233,6 +241,9 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -261,6 +272,7 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseId);
+        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
 
         var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
@@ -288,9 +300,9 @@ class BookingControllerTest {
         mockMvc.perform(put(getPath(UUID.randomUUID()))).andExpect(status().is4xxClientError());
     }
 
-    @DisplayName("Should fail to create a booking with 500 response code")
+    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is not supplied")
     @Test
-    void createBookingEndpoint500() throws Exception {
+    void createBookingEndpoint400ScheduledForInThePast() throws Exception {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
@@ -301,12 +313,18 @@ class BookingControllerTest {
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
-        mockMvc.perform(put(getPath(bookingId))
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is5xxServerError());
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"scheduledFor\":\"scheduled_for is required and must be in the future\"}"
+            );
     }
 
     @DisplayName("Should fail to update a booking with 400 response code as its already deleted")
@@ -318,6 +336,9 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -416,6 +437,29 @@ class BookingControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Path bookingId does not match payload "
                            + "property shareBookingDTO.bookingId\"}");
+    }
+
+       @DisplayName("Should fail to create a booking with 500 response code")
+    @Test
+    void createBookingEndpoint500() throws Exception {
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new CreateBookingDTO();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(bookingService.upsert(booking)).thenThrow(new UnknownServerException("Test exception"));
+
+        mockMvc.perform(put(getPath(bookingId))
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(booking))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is5xxServerError());
     }
 
     private String getPath(UUID bookingId) {

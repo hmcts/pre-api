@@ -50,6 +50,9 @@ class BookingServiceTest {
     private BookingRepository bookingRepository;
 
     @MockBean
+    private CaseRepository caseRepository;
+
+    @MockBean
     private RecordingRepository recordingRepository;
 
     @MockBean
@@ -60,9 +63,6 @@ class BookingServiceTest {
 
     @MockBean
     private UserRepository userRepository;
-
-    @MockBean
-    private CaseRepository caseRepository;
 
     @Autowired
     private BookingService bookingService;
@@ -186,6 +186,7 @@ class BookingServiceTest {
         when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.empty());
         when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(false);
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
+        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         when(participantRepository.findById(participantModel.getId())).thenReturn(Optional.empty());
@@ -260,9 +261,32 @@ class BookingServiceTest {
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(caseEntity));
         when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
+        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         assertThat(bookingService.upsert(bookingModel)).isEqualTo(UpsertResult.UPDATED);
+    }
+
+    @DisplayName("Update a booking when case doesn't exist")
+    @Test
+    void upsertBookingFailureCaseDoesntExist() {
+
+        var bookingModel = new CreateBookingDTO();
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(UUID.randomUUID());
+        bookingModel.setParticipants(Set.of());
+
+        var bookingEntity = new Booking();
+
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(true);
+        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(NotFoundException.class)
+            .isThrownBy(() -> {
+                bookingService.upsert(bookingModel);
+            })
+            .withMessage("Not found: Case: " + bookingModel.getCaseId());
     }
 
     @DisplayName("Update a booking when booking has been deleted")
@@ -313,6 +337,7 @@ class BookingServiceTest {
         when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.of(bookingEntity));
         when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(false);
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
+        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
 
         when(participantRepository.findById(participantModel.getId())).thenReturn(Optional.of(participantEntity));

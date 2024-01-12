@@ -1,5 +1,32 @@
 basePath: /pre-api
 definitions:
+  Booking:
+    properties:
+      caseId:
+        $ref: '#/definitions/Case'
+      createdAt:
+        format: date-time
+        type: string
+      deleted:
+        type: boolean
+      deletedAt:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      modifiedAt:
+        format: date-time
+        type: string
+      participants:
+        items:
+          $ref: '#/definitions/Participant'
+        type: array
+        uniqueItems: true
+      scheduledFor:
+        format: date-time
+        type: string
+    type: object
   BookingDTO:
     description: BookingDTO
     properties:
@@ -32,6 +59,141 @@ definitions:
         format: date-time
         type: string
     type: object
+  CaptureSession:
+    properties:
+      booking:
+        $ref: '#/definitions/Booking'
+      deletedAt:
+        format: date-time
+        type: string
+      finishedAt:
+        format: date-time
+        type: string
+      finishedByUser:
+        $ref: '#/definitions/User'
+      id:
+        format: uuid
+        type: string
+      ingestAddress:
+        type: string
+      liveOutputUrl:
+        type: string
+      origin:
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
+      startedAt:
+        format: date-time
+        type: string
+      startedByUser:
+        $ref: '#/definitions/User'
+      status:
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
+        type: string
+    type: object
+  CaptureSessionReportDTO:
+    description: CaptureSessionReportDTO
+    properties:
+      captureSessionValues:
+        $ref: '#/definitions/CaptureSession'
+      case_reference:
+        description: CaptureSessionCaseReference
+        type: string
+      court:
+        description: CaptureSessionCourtName
+        type: string
+      duration:
+        description: CaptureSessionDuration
+        properties:
+          nano:
+            format: int32
+            type: integer
+          negative:
+            type: boolean
+          positive:
+            type: boolean
+          seconds:
+            format: int64
+            type: integer
+          units:
+            items:
+              properties:
+                dateBased:
+                  type: boolean
+                duration:
+                  properties:
+                    nano:
+                      format: int32
+                      type: integer
+                    negative:
+                      type: boolean
+                    positive:
+                      type: boolean
+                    seconds:
+                      format: int64
+                      type: integer
+                    zero:
+                      type: boolean
+                  type: object
+                durationEstimated:
+                  type: boolean
+                timeBased:
+                  type: boolean
+              type: object
+            type: array
+          zero:
+            type: boolean
+        type: object
+      end_time:
+        description: CaptureSessionEndTime
+        format: date-time
+        type: string
+      id:
+        description: CaptureSessionId
+        format: uuid
+        type: string
+      region:
+        description: CaptureSessionRegionName
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      start_time:
+        description: CaptureSessionStartTime
+        format: date-time
+        type: string
+    type: object
+  Case:
+    properties:
+      court:
+        $ref: '#/definitions/Court'
+      createdAt:
+        format: date-time
+        type: string
+      deleted:
+        type: boolean
+      deletedAt:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      modifiedAt:
+        format: date-time
+        type: string
+      reference:
+        type: string
+      test:
+        type: boolean
+    type: object
   CaseDTO:
     description: CaseDTO
     properties:
@@ -59,6 +221,32 @@ definitions:
       test:
         description: CaseIsTest
         type: boolean
+    type: object
+  Court:
+    properties:
+      courtType:
+        enum:
+          - CROWN
+          - MAGISTRATE
+          - FAMILY
+        type: string
+      id:
+        format: uuid
+        type: string
+      locationCode:
+        type: string
+      name:
+        type: string
+      regions:
+        items:
+          $ref: '#/definitions/Region'
+        type: array
+        uniqueItems: true
+      rooms:
+        items:
+          $ref: '#/definitions/Room'
+        type: array
+        uniqueItems: true
     type: object
   CourtDTO:
     description: CourtDTO
@@ -114,6 +302,10 @@ definitions:
         description: CreateBookingScheduledFor
         format: date-time
         type: string
+    required:
+      - case_id
+      - id
+      - scheduled_for
     type: object
   CreateCaseDTO:
     description: CreateCaseDTO
@@ -620,6 +812,37 @@ definitions:
       page:
         $ref: '#/definitions/PageMetadata'
     type: object
+  Participant:
+    properties:
+      bookings:
+        items:
+          $ref: '#/definitions/Booking'
+        type: array
+        uniqueItems: true
+      caseId:
+        $ref: '#/definitions/Case'
+      createdAt:
+        format: date-time
+        type: string
+      deletedAt:
+        format: date-time
+        type: string
+      firstName:
+        type: string
+      id:
+        format: uuid
+        type: string
+      lastName:
+        type: string
+      modifiedAt:
+        format: date-time
+        type: string
+      participantType:
+        enum:
+          - WITNESS
+          - DEFENDANT
+        type: string
+    type: object
   ParticipantDTO:
     description: ParticipantDTO
     properties:
@@ -742,6 +965,19 @@ definitions:
         format: int32
         type: integer
     type: object
+  Region:
+    properties:
+      courts:
+        items:
+          $ref: '#/definitions/Court'
+        type: array
+        uniqueItems: true
+      id:
+        format: uuid
+        type: string
+      name:
+        type: string
+    type: object
   RegionDTO:
     description: RegionDTO
     properties:
@@ -766,6 +1002,19 @@ definitions:
         type: array
         uniqueItems: true
     type: object
+  Room:
+    properties:
+      courts:
+        items:
+          $ref: '#/definitions/Court'
+        type: array
+        uniqueItems: true
+      id:
+        format: uuid
+        type: string
+      name:
+        type: string
+    type: object
   RoomDTO:
     description: RoomDTO
     properties:
@@ -777,19 +1026,31 @@ definitions:
         description: RoomName
         type: string
     type: object
-  ShareBookingDTO:
+  User:
     properties:
-      booking_id:
-        format: uuid
+      createdAt:
+        format: date-time
+        type: string
+      deleted:
+        type: boolean
+      deletedAt:
+        format: date-time
+        type: string
+      email:
+        type: string
+      firstName:
         type: string
       id:
         format: uuid
         type: string
-      shared_by_user_id:
-        format: uuid
+      lastName:
         type: string
-      shared_with_user_id:
-        format: uuid
+      modifiedAt:
+        format: date-time
+        type: string
+      organisation:
+        type: string
+      phone:
         type: string
     type: object
   UserDTO:
@@ -935,28 +1196,6 @@ paths:
         '200':
           description: OK
       summary: Create or Update a Booking
-      tags:
-        - booking-controller
-  '/bookings/{bookingId}/share':
-    put:
-      consumes:
-        - application/json
-      operationId: shareBookingById
-      parameters:
-        - format: uuid
-          in: path
-          name: bookingId
-          required: true
-          type: string
-        - in: body
-          name: body
-          required: true
-          schema:
-            $ref: '#/definitions/ShareBookingDTO'
-      responses:
-        '200':
-          description: OK
-      summary: Share a Booking
       tags:
         - booking-controller
   /cases:
@@ -1230,6 +1469,51 @@ paths:
       summary: Create or Update a Recording
       tags:
         - recording-controller
+  /reports/capture-sessions-concurrent:
+    get:
+      operationId: reportConcurrentCaptureSessions
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CaptureSessionReportDTO'
+            type: array
+      tags:
+        - report-controller
+  /testing-support/should-delete-recordings-for-booking:
+    post:
+      operationId: shouldDeleteRecordingsForBooking
+      parameters: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+        - testing-support-controller
+  /testing-support/should-not-have-past-scheduled-for-date:
+    post:
+      operationId: shouldNotHavePastScheduledForDate
+      parameters: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+        - testing-support-controller
   /users:
     get:
       operationId: getUsers

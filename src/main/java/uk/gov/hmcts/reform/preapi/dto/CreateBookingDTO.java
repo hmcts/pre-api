@@ -3,8 +3,10 @@ package uk.gov.hmcts.reform.preapi.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.FutureDateConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 
 import java.sql.Timestamp;
@@ -19,12 +21,16 @@ import java.util.stream.Stream;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateBookingDTO {
     @Schema(description = "CreateBookingId")
+    @NotNull(message = "id is required")
     private UUID id;
 
     @Schema(description = "CreateBookingCaseId")
+    @NotNull(message = "case_id is required")
     private UUID caseId;
 
     @Schema(description = "CreateBookingScheduledFor")
+    @NotNull(message = "scheduled_for is required and must be in the future")
+    @FutureDateConstraint(message = "scheduled_for is required and must be in the future")
     private Timestamp scheduledFor;
 
     @Schema(description = "CreateBookingParticipants")

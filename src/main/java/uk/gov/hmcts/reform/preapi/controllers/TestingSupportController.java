@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -40,7 +40,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "/testing-support")
-@ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
     private final BookingRepository bookingRepository;
@@ -72,6 +71,57 @@ class TestingSupportController {
         this.regionRepository = regionRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
+    }
+
+    @PostMapping(path = "/should-not-have-past-scheduled-for-date", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> shouldNotHavePastScheduledForDate() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        court.setName("Foo Court");
+        court.setCourtType(CourtType.CROWN);
+        court.setLocationCode("1234");
+        courtRepository.save(court);
+
+        var region = new Region();
+        region.setName("Foo Region");
+        region.setCourts(Set.of(court));
+        court.setRegions(Set.of(region));
+        regionRepository.save(region);
+
+        var caseEntity = new Case();
+        caseEntity.setId(UUID.randomUUID());
+        caseEntity.setReference("4567");
+        caseEntity.setCourt(court);
+        caseRepository.save(caseEntity);
+
+        var participant1 = new Participant();
+        participant1.setId(UUID.randomUUID());
+        participant1.setParticipantType(ParticipantType.WITNESS);
+        participant1.setCaseId(caseEntity);
+        participant1.setFirstName("John");
+        participant1.setLastName("Smith");
+        var participant2 = new Participant();
+        participant2.setId(UUID.randomUUID());
+        participant2.setParticipantType(ParticipantType.DEFENDANT);
+        participant2.setCaseId(caseEntity);
+        participant2.setFirstName("Jane");
+        participant2.setLastName("Doe");
+        participantRepository.saveAll(Set.of(participant1, participant2));
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(caseEntity);
+        booking.setParticipants(Set.of(participant1, participant2));
+        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
+        bookingRepository.save(booking);
+
+        var response = new HashMap<String, String>() {
+            {
+                put("bookingId", booking.getId().toString());
+            }
+        };
+
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(path = "/should-delete-recordings-for-booking", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -118,7 +168,8 @@ class TestingSupportController {
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseEntity);
         booking.setParticipants(Set.of(participant1, participant2));
-        booking.setScheduledFor(Timestamp.valueOf("2024-06-28 12:00:00"));
+        var scheduledFor = OffsetDateTime.now().plusWeeks(1);
+        booking.setScheduledFor(Timestamp.from(scheduledFor.toInstant()));
         bookingRepository.save(booking);
 
         var finishUser = new User();
@@ -142,8 +193,8 @@ class TestingSupportController {
         captureSession.setBooking(booking);
         captureSession.setOrigin(RecordingOrigin.PRE);
         captureSession.setStatus(RecordingStatus.AVAILABLE);
-        captureSession.setStartedAt(Timestamp.valueOf("2024-06-28 12:00:00"));
-        captureSession.setFinishedAt(Timestamp.valueOf("2024-06-28 12:30:00"));
+        captureSession.setStartedAt(booking.getScheduledFor());
+        captureSession.setFinishedAt(Timestamp.from(scheduledFor.plusMinutes(30).toInstant()));
         captureSession.setStartedByUser(startUser);
         captureSession.setFinishedByUser(finishUser);
         captureSession.setIngestAddress("http://localhost:8080/ingest");
