@@ -128,16 +128,16 @@ public class BookingService {
 
     @Transactional
     public UpsertResult shareBookingById(ShareBookingDTO shareBookingDTO) {
+        if (shareBookingRepository.existsById(shareBookingDTO.getId())) {
+            throw new ConflictException("Share booking already exists");
+        }
+
         final var booking = bookingRepository.findById(shareBookingDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + shareBookingDTO.getBookingId()));
         final var sharedByUser = userRepository.findById(shareBookingDTO.getSharedByUserId())
             .orElseThrow(() -> new NotFoundException("Shared by User: " + shareBookingDTO.getSharedByUserId()));
         final var sharedWithUser = userRepository.findById(shareBookingDTO.getSharedWithUserId())
             .orElseThrow(() -> new NotFoundException("Shared with User: " + shareBookingDTO.getSharedWithUserId()));
-
-        if (shareBookingRepository.existsById(shareBookingDTO.getId())) {
-            throw new ConflictException("Share booking already exists");
-        }
 
         var shareBookingEntity = new ShareBooking();
         shareBookingEntity.setId(shareBookingDTO.getId());
