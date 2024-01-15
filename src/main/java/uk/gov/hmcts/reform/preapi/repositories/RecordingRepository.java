@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,4 +43,6 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     );
 
     boolean existsByIdAndDeletedAtIsNull(UUID id);
+
+    List<Recording> findAllByParentRecordingIsNotNull();
 }
