@@ -485,6 +485,34 @@ definitions:
         format: uuid
         type: string
     type: object
+  EditReportDTO:
+    description: EditReportDTO
+    properties:
+      case_reference:
+        description: EditReportCaseReference
+        type: string
+      court:
+        description: EditReportCourtName
+        type: string
+      created_at:
+        description: EditReportEditCreatedAt
+        format: date-time
+        type: string
+      recording_id:
+        description: EditReportRecordingId
+        format: uuid
+        type: string
+      regions:
+        description: EditReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      version:
+        description: EditReportRecordingVersion
+        format: int32
+        type: integer
+    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -1539,6 +1567,22 @@ paths:
             items:
               $ref: '#/definitions/CaptureSessionReportDTO'
             type: array
+      tags:
+        - report-controller
+  /reports/edits:
+    get:
+      operationId: reportEdits
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/EditReportDTO'
+            type: array
+      summary: Get a report on recordings edits
       tags:
         - report-controller
   /reports/recordings-per-case:
