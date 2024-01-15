@@ -101,6 +101,8 @@ public class ReportServiceTest {
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
         recordingEntity.setDuration(null);
+        recordingEntity.setVersion(1);
+        recordingEntity.setParentRecording(null);
     }
 
     @DisplayName("Find all capture sessions and return a list of models as a report when capture session is incomplete")
@@ -207,6 +209,39 @@ public class ReportServiceTest {
                        .getFirst()
                        .getName()
         ).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Find all edited recordings and return a report list")
+    @Test
+    void reportEditsSuccess() {
+        recordingEntity.setVersion(2);
+        var recording2 = new Recording();
+        recording2.setId(UUID.randomUUID());
+        recording2.setVersion(3);
+        recording2.setCreatedAt(Timestamp.from(Instant.MIN));
+        recording2.setCaptureSession(captureSessionEntity);
+
+        when(recordingRepository.findAllByParentRecordingIsNotNull()).thenReturn(List.of(recording2, recordingEntity));
+
+        var report = reportService.reportEdits();
+
+        assertThat(report.size()).isEqualTo(2);
+
+        assertThat(report.getFirst().getCreatedAt()).isEqualTo(recordingEntity.getCreatedAt());
+        assertThat(report.getFirst().getVersion()).isEqualTo(recordingEntity.getVersion());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report
+                       .getFirst()
+                       .getRegions()
+                       .stream()
+                       .toList()
+                       .getFirst()
+                       .getName()
+        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+
+        assertThat(report.getLast().getRecordingId()).isEqualTo(recording2.getId());
     }
 
     @DisplayName("Find shared bookings and return report list")

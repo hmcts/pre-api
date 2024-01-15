@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.ReportController;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
@@ -70,6 +71,26 @@ public class ReportControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].count").value(reportItem.getCount()));
+    }
+
+    @DisplayName("Should get a report containing a list of edited recordings")
+    @Test
+    void reportEditsSuccess() throws Exception  {
+        var reportItem = new EditReportDTO();
+        reportItem.setCreatedAt(Timestamp.from(Instant.now()));
+        reportItem.setVersion(2);
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example Court");
+        reportItem.setRegions(Set.of());
+        reportItem.setRecordingId(UUID.randomUUID());
+
+        when(reportService.reportEdits()).thenReturn(List.of(reportItem));
+        mockMvc.perform(get("/reports/edits"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].version").value(reportItem.getVersion()))
+            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
     }
 
     @DisplayName("Should get a report containing a list of details relating to shared bookings")
