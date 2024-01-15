@@ -965,6 +965,26 @@ definitions:
         format: int32
         type: integer
     type: object
+  RecordingsPerCaseReportDTO:
+    description: RecordingsPerCaseReportDTO
+    properties:
+      case_reference:
+        description: RecordingsPerCaseCaseReference
+        type: string
+      count:
+        description: RecordingsPerCaseCount
+        format: int32
+        type: integer
+      court:
+        description: RecordingsPerCaseCourt
+        type: string
+      regions:
+        description: RecordingsPerCaseRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+    type: object
   Region:
     properties:
       courts:
@@ -1519,6 +1539,22 @@ paths:
             items:
               $ref: '#/definitions/CaptureSessionReportDTO'
             type: array
+      tags:
+        - report-controller
+  /reports/recordings-per-case:
+    get:
+      operationId: reportRecordingsPerCase
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingsPerCaseReportDTO'
+            type: array
+      summary: Get the number of completed capture sessions for each case
       tags:
         - report-controller
   /testing-support/should-delete-recordings-for-booking:

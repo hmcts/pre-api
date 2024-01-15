@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
 import java.sql.Timestamp;
@@ -46,6 +47,9 @@ public class ReportServiceTest {
 
     @MockBean
     private RecordingRepository recordingRepository;
+
+    @MockBean
+    private CaseRepository caseRepository;
 
     @Autowired
     private ReportService reportService;
@@ -156,6 +160,47 @@ public class ReportServiceTest {
         assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
         assertThat(first.getRegion().stream().findFirst().isPresent()).isTrue();
         assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Find counts for recordings per case an return a report list")
+    @Test
+    void reportRecordingsPerCaseSuccess() {
+        var anotherCase = new Case();
+        anotherCase.setId(UUID.randomUUID());
+        anotherCase.setCourt(courtEntity);
+        anotherCase.setReference("XYZ456");
+
+        when(caseRepository.findAll()).thenReturn(List.of(anotherCase, caseEntity));
+        when(
+            captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
+                anotherCase.getId(),
+                RecordingStatus.AVAILABLE
+            )
+        ).thenReturn(0);
+        when(
+            captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
+                caseEntity.getId(),
+                RecordingStatus.AVAILABLE
+            )
+        ).thenReturn(1);
+
+        var report = reportService.reportRecordingsPerCase();
+
+        assertThat(report.size()).isEqualTo(2);
+        assertThat(report.get(0).getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.get(0).getCount()).isEqualTo(1);
+        assertThat(report.get(1).getCaseReference()).isEqualTo(anotherCase.getReference());
+        assertThat(report.get(1).getCount()).isEqualTo(0);
+
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report
+                       .getFirst()
+                       .getRegions()
+                       .stream()
+                       .toList()
+                       .getFirst()
+                       .getName()
+        ).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find all capture sessions with recording available and get report on booking details")
