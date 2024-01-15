@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -28,12 +28,12 @@ class CaseControllerFT extends FunctionalTestBase {
         createCase.setId(java.util.UUID.randomUUID());
         createCase.setCourtId(courtId);
         createCase.setReference("FT1234");
-        var participant1 = new ParticipantDTO();
+        var participant1 = new CreateParticipantDTO();
         participant1.setId(java.util.UUID.randomUUID());
         participant1.setFirstName("John");
         participant1.setLastName("Smith");
         participant1.setParticipantType(ParticipantType.DEFENDANT);
-        var participant2 = new ParticipantDTO();
+        var participant2 = new CreateParticipantDTO();
         participant2.setId(java.util.UUID.randomUUID());
         participant2.setFirstName("John");
         participant2.setLastName("Smith");

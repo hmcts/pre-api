@@ -28,7 +28,7 @@ public class CreateCaseDTO {
     private String reference;
 
     @Schema(description = "CaseParticipants")
-    private Set<ParticipantDTO> participants;
+    private Set<CreateParticipantDTO> participants;
 
     @Schema(description = "CreateCaseIsTest")
     private boolean test;
@@ -38,7 +38,7 @@ public class CreateCaseDTO {
         this.courtId = caseEntity.getCourt().getId();
         this.reference = caseEntity.getReference();
         this.participants = Stream.ofNullable(caseEntity.getParticipants())
-            .flatMap(participants -> participants.stream().map(ParticipantDTO::new))
+            .flatMap(participants -> participants.stream().map(CreateParticipantDTO::new))
             .collect(Collectors.toSet());
         this.test = caseEntity.isTest();
     }
