@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 
 import java.util.Comparator;
 import java.util.List;
@@ -21,14 +23,17 @@ public class ReportService {
     private final CaptureSessionRepository captureSessionRepository;
     private final RecordingRepository recordingRepository;
     private final CaseRepository caseRepository;
+    private final ShareBookingRepository shareBookingRepository;
 
     @Autowired
     public ReportService(CaptureSessionRepository captureSessionRepository,
                          RecordingRepository recordingRepository,
-                         CaseRepository caseRepository) {
+                         CaseRepository caseRepository,
+                         ShareBookingRepository shareBookingRepository) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.caseRepository = caseRepository;
+        this.shareBookingRepository = shareBookingRepository;
     }
 
     @Transactional
@@ -64,6 +69,16 @@ public class ReportService {
             .stream()
             .map(EditReportDTO::new)
             .sorted(Comparator.comparing(EditReportDTO::getCreatedAt))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<SharedReportDTO> reportShared() {
+        return shareBookingRepository
+            .findAll()
+            .stream()
+            .map(SharedReportDTO::new)
+            .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))
             .collect(Collectors.toList());
     }
 }
