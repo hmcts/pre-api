@@ -332,7 +332,7 @@ definitions:
       participants:
         description: CaseParticipants
         items:
-          $ref: '#/definitions/ParticipantDTO'
+          $ref: '#/definitions/CreateParticipantDTO'
         type: array
         uniqueItems: true
       reference:
