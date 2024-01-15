@@ -189,6 +189,11 @@ definitions:
       modifiedAt:
         format: date-time
         type: string
+      participants:
+        items:
+          $ref: '#/definitions/Participant'
+        type: array
+        uniqueItems: true
       reference:
         type: string
       test:
@@ -215,6 +220,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -318,6 +329,12 @@ definitions:
         description: CreateCaseId
         format: uuid
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CreateCaseReference
         type: string
@@ -568,6 +585,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -1601,6 +1624,21 @@ paths:
       summary: Get the number of completed capture sessions for each case
       tags:
         - report-controller
+  /testing-support/create-court:
+    post:
+      operationId: createCourt
+      parameters: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+        - testing-support-controller
   /testing-support/should-delete-recordings-for-booking:
     post:
       operationId: shouldDeleteRecordingsForBooking
