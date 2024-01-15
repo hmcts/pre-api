@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto.reports;
 
-import javax.annotation.Nullable;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -16,6 +15,7 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 @Data
 @NoArgsConstructor

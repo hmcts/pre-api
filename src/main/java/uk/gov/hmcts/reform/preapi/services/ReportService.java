@@ -76,8 +76,6 @@ public class ReportService {
             final var functionalAreaVideoPlayer = "Video Player";
             final var functionalAreaViewRecordings = "View Recordings";
 
-
-
             return auditRepository
                 .findBySourceAndFunctionalAreaAndActivity(
                     source,
