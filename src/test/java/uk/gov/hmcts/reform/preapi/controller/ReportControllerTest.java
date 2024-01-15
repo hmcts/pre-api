@@ -10,12 +10,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.ReportController;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
@@ -50,5 +52,26 @@ public class ReportControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].id").value(reportItem.getId().toString()));
+    }
+
+    @DisplayName("Should get a report containing a list of bookings with an available recording")
+    @Test
+    void reportScheduledSuccess() throws Exception {
+        var reportItem = new ScheduleReportDTO();
+        reportItem.setScheduledFor(Timestamp.from(Instant.now()));
+        reportItem.setBookingCreatedAt(Timestamp.from(Instant.now()));
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCaptureSessionUser("example@example.com");
+        reportItem.setCourt("Example court");
+        reportItem.setRegions(Set.of());
+
+        when(reportService.reportScheduled()).thenReturn(List.of(reportItem));
+
+        mockMvc.perform(get("/reports/schedules"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].capture_session_user").value(reportItem.getCaptureSessionUser()));
     }
 }

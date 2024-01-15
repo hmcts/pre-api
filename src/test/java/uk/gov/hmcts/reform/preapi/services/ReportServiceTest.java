@@ -13,6 +13,8 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
+import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
@@ -87,6 +89,7 @@ public class ReportServiceTest {
     void reset() {
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
+        captureSessionEntity.setStatus(null);
         recordingEntity.setDuration(null);
     }
 
@@ -153,5 +156,41 @@ public class ReportServiceTest {
         assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
         assertThat(first.getRegion().stream().findFirst().isPresent()).isTrue();
         assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Find all capture sessions with recording available and get report on booking details")
+    @Test
+    void reportScheduledSuccess() {
+        var userEntity = new User();
+        userEntity.setId(UUID.randomUUID());
+        userEntity.setEmail("example@example.com");
+        captureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+        captureSessionEntity.setStartedByUser(userEntity);
+
+        var otherBooking = new Booking();
+        otherBooking.setId(UUID.randomUUID());
+        otherBooking.setCaseId(caseEntity);
+        otherBooking.setScheduledFor(Timestamp.from(Instant.MIN));
+
+        captureSessionEntity.getBooking().setScheduledFor(Timestamp.from(Instant.MAX));
+
+        var otherCaptureSessionEntity = new CaptureSession();
+        otherCaptureSessionEntity.setId(UUID.randomUUID());
+        otherCaptureSessionEntity.setBooking(otherBooking);
+        otherCaptureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+        otherCaptureSessionEntity.setStartedByUser(userEntity);
+
+        when(captureSessionRepository.findAllByStatus(RecordingStatus.AVAILABLE))
+            .thenReturn(List.of(otherCaptureSessionEntity, captureSessionEntity));
+
+        var report = reportService.reportScheduled();
+
+        assertThat(report.size()).isEqualTo(2);
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getScheduledFor()).isEqualTo(captureSessionEntity.getBooking().getScheduledFor());
+        assertThat(report.getFirst().getCaptureSessionUser()).isEqualTo(userEntity.getEmail());
+
+        assertThat(report.get(1).getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.get(1).getScheduledFor()).isEqualTo(otherBooking.getScheduledFor());
     }
 }
