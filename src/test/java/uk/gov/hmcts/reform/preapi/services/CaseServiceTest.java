@@ -12,18 +12,23 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,6 +53,9 @@ class CaseServiceTest {
 
     @MockBean
     private CourtRepository courtRepository;
+
+    @MockBean
+    private ParticipantRepository participantRepository;
 
     @Autowired
     private CaseService caseService;
@@ -155,18 +163,33 @@ class CaseServiceTest {
 
     @Test
     void createSuccess() {
+
+        var participant1 = new CreateParticipantDTO();
+        participant1.setId(UUID.randomUUID());
+        participant1.setParticipantType(ParticipantType.WITNESS);
+        participant1.setFirstName("John");
+        participant1.setLastName("Smith");
+        var participant2 = new CreateParticipantDTO();
+        participant2.setId(UUID.randomUUID());
+        participant2.setParticipantType(ParticipantType.DEFENDANT);
+        participant2.setFirstName("Jane");
+        participant2.setLastName("Doe");
+
         Case testingCase = createTestingCase();
         var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setParticipants(Set.of(participant1, participant2));
 
         when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
             Optional.of(testingCase.getCourt()));
         when(caseRepository.findById(testingCase.getId())).thenReturn(Optional.empty());
+        when(participantRepository.findById(any())).thenReturn(Optional.empty());
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(participantRepository, times(2)).save(any(Participant.class));
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).save(any(Case.class));
     }
 
     @Test
