@@ -1,12 +1,17 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.util.List;
@@ -34,5 +39,22 @@ public class ReportController {
     )
     public ResponseEntity<List<RecordingsPerCaseReportDTO>> reportRecordingsPerCase() {
         return ResponseEntity.ok(reportService.reportRecordingsPerCase());
+    }
+
+    @GetMapping("/playback")
+    @Operation(
+        operationId = "reportPlayback",
+        summary = "Get report on playback by playback source (PORTAL, APPLICATION)"
+    )
+
+    public ResponseEntity<List<PlaybackReportDTO>> reportPlayback(
+        @Parameter(
+            name = "source",
+            description = "The source of the playback. Only accepts PORTAL or APPLICATION",
+            schema = @Schema(implementation = AuditLogSource.class),
+            required = true
+        ) AuditLogSource source
+    ) {
+        return ResponseEntity.ok(reportService.reportPlayback(source));
     }
 }
