@@ -11,6 +11,8 @@ import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
@@ -46,6 +48,22 @@ public class ReportController {
     public ResponseEntity<List<EditReportDTO>> reportEdits() {
         return ResponseEntity.ok(reportService.reportEdits());
     }
+
+    @GetMapping("/shared-bookings")
+    @Operation(operationId = "reportBookingsShared", summary = "Get a report on the bookings that have been shared")
+    public ResponseEntity<List<SharedReportDTO>> reportBookingsShared() {
+        return ResponseEntity.ok(reportService.reportShared());
+    }
+
+    @GetMapping("/schedules")
+    @Operation(
+        operationId = "reportSchedules",
+        summary = "Get a list of completed capture sessions with booking details"
+    )
+    public ResponseEntity<List<ScheduleReportDTO>> reportSchedules() {
+        return ResponseEntity.ok(reportService.reportScheduled());
+    }
+
 
     @GetMapping("/playback")
     @Operation(

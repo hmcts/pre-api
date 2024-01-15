@@ -189,6 +189,11 @@ definitions:
       modifiedAt:
         format: date-time
         type: string
+      participants:
+        items:
+          $ref: '#/definitions/Participant'
+        type: array
+        uniqueItems: true
       reference:
         type: string
       test:
@@ -215,6 +220,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -318,6 +329,12 @@ definitions:
         description: CreateCaseId
         format: uuid
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/CreateParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CreateCaseReference
         type: string
@@ -568,6 +585,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -1147,6 +1170,33 @@ definitions:
         description: RoomName
         type: string
     type: object
+  ScheduleReportDTO:
+    description: ScheduleReportDTO
+    properties:
+      booking_created_at:
+        description: ScheduleReportBookingCreatedAt
+        format: date-time
+        type: string
+      capture_session_user:
+        description: ScheduleReportUserEmail
+        type: string
+      case_reference:
+        description: ScheduleReportCaseReference
+        type: string
+      court:
+        description: ScheduleReportCourtName
+        type: string
+      regions:
+        description: ScheduleReportCourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: ScheduleReportStartedAt
+        format: date-time
+        type: string
+    type: object
   ShareBookingDTO:
     properties:
       booking_id:
@@ -1160,6 +1210,36 @@ definitions:
         type: string
       shared_with_user_id:
         format: uuid
+        type: string
+    type: object
+  SharedReportDTO:
+    description: SharedReportDTO
+    properties:
+      allocated_by:
+        description: SharedReportAllocatedBy
+        type: string
+      allocated_to:
+        description: SharedReportAllocatedTo
+        type: string
+      booking_id:
+        description: SharedReportBookingId
+        format: uuid
+        type: string
+      case_reference:
+        description: SharedReportCaseReference
+        type: string
+      court:
+        description: SharedReportCourtName
+        type: string
+      regions:
+        description: SharedReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      shared_at:
+        description: SharedReportSharedAt
+        format: date-time
         type: string
     type: object
   User:
@@ -1700,6 +1780,69 @@ paths:
       summary: Get the number of completed capture sessions for each case
       tags:
         - report-controller
+  /reports/schedules:
+    get:
+      operationId: reportSchedules
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ScheduleReportDTO'
+            type: array
+      summary: Get a list of completed capture sessions with booking details
+      tags:
+        - report-controller
+  /reports/shared-bookings:
+    get:
+      operationId: reportBookingsShared
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/SharedReportDTO'
+            type: array
+      summary: Get a report on the bookings that have been shared
+      tags:
+        - report-controller
+  /roles:
+    get:
+      operationId: getRoles
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RoleDTO'
+            type: array
+      summary: Get a list of all roles
+      tags:
+        - role-controller
+  /testing-support/create-court:
+    post:
+      operationId: createCourt
+      parameters: []
+      produces:
+        - application/json
+      responses:
+        '200':
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+        - testing-support-controller
   /testing-support/should-delete-recordings-for-booking:
     post:
       operationId: shouldDeleteRecordingsForBooking

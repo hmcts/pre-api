@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,4 +16,6 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
     int countAllByBooking_CaseId_IdAndStatus(UUID caseId, RecordingStatus status);
+
+    List<CaptureSession> findAllByStatus(RecordingStatus status);
 }

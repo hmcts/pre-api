@@ -7,6 +7,8 @@ import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -15,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.Comparator;
@@ -27,6 +30,7 @@ public class ReportService {
     private final CaptureSessionRepository captureSessionRepository;
     private final RecordingRepository recordingRepository;
     private final CaseRepository caseRepository;
+    private final ShareBookingRepository shareBookingRepository;
     private final AuditRepository auditRepository;
     private final UserRepository userRepository;
 
@@ -34,11 +38,13 @@ public class ReportService {
     public ReportService(CaptureSessionRepository captureSessionRepository,
                          RecordingRepository recordingRepository,
                          CaseRepository caseRepository,
+                         ShareBookingRepository shareBookingRepository,
                          AuditRepository auditRepository,
                          UserRepository userRepository) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.caseRepository = caseRepository;
+        this.shareBookingRepository = shareBookingRepository;
         this.auditRepository = auditRepository;
         this.userRepository = userRepository;
     }
@@ -76,6 +82,26 @@ public class ReportService {
             .stream()
             .map(EditReportDTO::new)
             .sorted(Comparator.comparing(EditReportDTO::getCreatedAt))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<SharedReportDTO> reportShared() {
+        return shareBookingRepository
+            .findAll()
+            .stream()
+            .map(SharedReportDTO::new)
+            .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<ScheduleReportDTO> reportScheduled() {
+        return captureSessionRepository
+            .findAllByStatus(RecordingStatus.AVAILABLE)
+            .stream()
+            .map(ScheduleReportDTO::new)
+            .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
             .collect(Collectors.toList());
     }
 
