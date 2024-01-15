@@ -7,7 +7,7 @@ class CaptureSessionManager:
         self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings WHERE recordingversion = '1'")
+        self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings WHERE recordingversion = '1' and recordingstatus != 'No Recording'")
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
