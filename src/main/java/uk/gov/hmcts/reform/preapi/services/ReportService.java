@@ -4,10 +4,9 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
-import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -20,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
