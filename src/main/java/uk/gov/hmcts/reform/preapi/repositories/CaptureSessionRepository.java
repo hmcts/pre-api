@@ -4,7 +4,9 @@ package uk.gov.hmcts.reform.preapi.repositories;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -12,4 +14,6 @@ import java.util.UUID;
 @SuppressWarnings("PMD.MethodNamingConventions")
 public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
+
+    List<CaptureSession> findAllByStatus(RecordingStatus status);
 }

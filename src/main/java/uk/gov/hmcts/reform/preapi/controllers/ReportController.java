@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.util.List;
@@ -25,4 +26,14 @@ public class ReportController {
     public ResponseEntity<List<CaptureSessionReportDTO>> reportConcurrentCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCaptureSessions());
     }
+
+    @GetMapping("/schedules")
+    @Operation(
+        operationId = "reportSchedules",
+        summary = "Get a list of completed capture sessions with booking details"
+    )
+    public ResponseEntity<List<ScheduleReportDTO>> reportSchedules() {
+        return ResponseEntity.ok(reportService.reportScheduled());
+    }
+
 }

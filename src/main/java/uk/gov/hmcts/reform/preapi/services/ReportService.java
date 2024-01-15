@@ -4,9 +4,12 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,5 +37,15 @@ public class ReportService {
                     .map(CaptureSessionReportDTO::new)
                     .orElse(new CaptureSessionReportDTO(c))
             ).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<ScheduleReportDTO> reportScheduled() {
+        return captureSessionRepository
+            .findAllByStatus(RecordingStatus.AVAILABLE)
+            .stream()
+            .map(ScheduleReportDTO::new)
+            .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
+            .collect(Collectors.toList());
     }
 }
