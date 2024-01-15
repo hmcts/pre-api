@@ -73,14 +73,22 @@ class TestingSupportController {
         this.userRepository = userRepository;
     }
 
+    @PostMapping(path = "/create-court", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createCourt() {
+        var court = createTestCourt();
+
+        var response = new HashMap<String, String>() {
+            {
+                put("courtId", court.getId().toString());
+            }
+        };
+
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping(path = "/should-not-have-past-scheduled-for-date", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> shouldNotHavePastScheduledForDate() {
-        var court = new Court();
-        court.setId(UUID.randomUUID());
-        court.setName("Foo Court");
-        court.setCourtType(CourtType.CROWN);
-        court.setLocationCode("1234");
-        courtRepository.save(court);
+        var court = createTestCourt();
 
         var region = new Region();
         region.setName("Foo Region");
@@ -126,12 +134,7 @@ class TestingSupportController {
 
     @PostMapping(path = "/should-delete-recordings-for-booking", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> shouldDeleteRecordingsForBooking() {
-        var court = new Court();
-        court.setId(UUID.randomUUID());
-        court.setName("Foo Court");
-        court.setCourtType(CourtType.CROWN);
-        court.setLocationCode("1234");
-        courtRepository.save(court);
+        var court = createTestCourt();
 
         var region = new Region();
         region.setName("Foo Region");
@@ -221,5 +224,16 @@ class TestingSupportController {
         };
 
         return ResponseEntity.ok(response);
+    }
+
+    private Court createTestCourt() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        court.setName("Foo Court");
+        court.setCourtType(CourtType.CROWN);
+        court.setLocationCode("1234");
+        courtRepository.save(court);
+
+        return court;
     }
 }
