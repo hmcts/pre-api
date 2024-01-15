@@ -20,15 +20,15 @@ import java.sql.Timestamp;
 @Table(name = "share_bookings")
 public class ShareBooking extends BaseEntity {
     // @todo should be able to share before capture session created and after
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Booking booking;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shared_with_user_id", referencedColumnName = "id")
     private User sharedWith;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "shared_by_user_id", referencedColumnName = "id")
     private User sharedBy;
 

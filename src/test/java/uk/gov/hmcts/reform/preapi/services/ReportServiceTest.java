@@ -13,10 +13,13 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -40,6 +43,7 @@ public class ReportServiceTest {
     private static Court courtEntity;
     private static Region regionEntity;
     private static Case caseEntity;
+    private static Booking bookingEntity;
 
     @MockBean
     private CaptureSessionRepository captureSessionRepository;
@@ -49,6 +53,9 @@ public class ReportServiceTest {
 
     @MockBean
     private CaseRepository caseRepository;
+
+    @MockBean
+    private ShareBookingRepository shareBookingRepository;
 
     @Autowired
     private ReportService reportService;
@@ -72,7 +79,7 @@ public class ReportServiceTest {
         caseEntity.setCourt(courtEntity);
         caseEntity.setReference("ABC123");
 
-        Booking bookingEntity = new Booking();
+        bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
         bookingEntity.setCaseId(caseEntity);
 
@@ -92,6 +99,7 @@ public class ReportServiceTest {
     void reset() {
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
+        captureSessionEntity.setStatus(null);
         recordingEntity.setDuration(null);
         recordingEntity.setVersion(1);
         recordingEntity.setParentRecording(null);
@@ -234,5 +242,88 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
 
         assertThat(report.getLast().getRecordingId()).isEqualTo(recording2.getId());
+    }
+
+    @DisplayName("Find shared bookings and return report list")
+    @Test
+    void reportShared() {
+        var shareWith = new User();
+        shareWith.setId(UUID.randomUUID());
+        shareWith.setEmail("example1@example.com");
+
+        var shareBy = new User();
+        shareBy.setId(UUID.randomUUID());
+        shareBy.setEmail("example2@example.com");
+
+        var sharedBooking1 = new ShareBooking();
+        sharedBooking1.setCreatedAt(Timestamp.from(Instant.MIN));
+        sharedBooking1.setBooking(bookingEntity);
+        sharedBooking1.setSharedWith(shareWith);
+        sharedBooking1.setSharedBy(shareBy);
+
+        var sharedBooking2 = new ShareBooking();
+        sharedBooking2.setCreatedAt(Timestamp.from(Instant.now()));
+        sharedBooking2.setBooking(bookingEntity);
+        sharedBooking2.setSharedWith(shareWith);
+        sharedBooking2.setSharedBy(shareBy);
+
+        when(shareBookingRepository.findAll()).thenReturn(List.of(sharedBooking1, sharedBooking2));
+
+        var report = reportService.reportShared();
+
+        assertThat(report.size()).isEqualTo(2);
+
+        assertThat(report.getFirst().getSharedAt()).isEqualTo(sharedBooking2.getCreatedAt());
+        assertThat(report.getFirst().getAllocatedTo()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
+        assertThat(report.getFirst().getAllocatedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report
+                       .getFirst()
+                       .getRegions()
+                       .stream()
+                       .toList()
+                       .getFirst()
+                       .getName()
+        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getBookingId()).isEqualTo(sharedBooking2.getBooking().getId());
+
+        assertThat(report.getLast().getSharedAt()).isEqualTo(sharedBooking1.getCreatedAt());
+    }
+
+    @DisplayName("Find all capture sessions with recording available and get report on booking details")
+    @Test
+    void reportScheduledSuccess() {
+        var userEntity = new User();
+        userEntity.setId(UUID.randomUUID());
+        userEntity.setEmail("example@example.com");
+        captureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+        captureSessionEntity.setStartedByUser(userEntity);
+
+        var otherBooking = new Booking();
+        otherBooking.setId(UUID.randomUUID());
+        otherBooking.setCaseId(caseEntity);
+        otherBooking.setScheduledFor(Timestamp.from(Instant.MIN));
+
+        captureSessionEntity.getBooking().setScheduledFor(Timestamp.from(Instant.MAX));
+
+        var otherCaptureSessionEntity = new CaptureSession();
+        otherCaptureSessionEntity.setId(UUID.randomUUID());
+        otherCaptureSessionEntity.setBooking(otherBooking);
+        otherCaptureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+        otherCaptureSessionEntity.setStartedByUser(userEntity);
+
+        when(captureSessionRepository.findAllByStatus(RecordingStatus.AVAILABLE))
+            .thenReturn(List.of(otherCaptureSessionEntity, captureSessionEntity));
+
+        var report = reportService.reportScheduled();
+
+        assertThat(report.size()).isEqualTo(2);
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getScheduledFor()).isEqualTo(captureSessionEntity.getBooking().getScheduledFor());
+        assertThat(report.getFirst().getCaptureSessionUser()).isEqualTo(userEntity.getEmail());
+
+        assertThat(report.get(1).getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.get(1).getScheduledFor()).isEqualTo(otherBooking.getScheduledFor());
     }
 }
