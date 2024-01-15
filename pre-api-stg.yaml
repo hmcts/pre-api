@@ -1097,6 +1097,33 @@ definitions:
         description: RoomName
         type: string
     type: object
+  ScheduleReportDTO:
+    description: ScheduleReportDTO
+    properties:
+      booking_created_at:
+        description: ScheduleReportBookingCreatedAt
+        format: date-time
+        type: string
+      capture_session_user:
+        description: ScheduleReportUserEmail
+        type: string
+      case_reference:
+        description: ScheduleReportCaseReference
+        type: string
+      court:
+        description: ScheduleReportCourtName
+        type: string
+      regions:
+        description: ScheduleReportCourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: ScheduleReportStartedAt
+        format: date-time
+        type: string
+    type: object
   ShareBookingDTO:
     properties:
       booking_id:
@@ -1652,6 +1679,22 @@ paths:
               $ref: '#/definitions/RecordingsPerCaseReportDTO'
             type: array
       summary: Get the number of completed capture sessions for each case
+      tags:
+        - report-controller
+  /reports/schedules:
+    get:
+      operationId: reportSchedules
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ScheduleReportDTO'
+            type: array
+      summary: Get a list of completed capture sessions with booking details
       tags:
         - report-controller
   /reports/shared-bookings:
