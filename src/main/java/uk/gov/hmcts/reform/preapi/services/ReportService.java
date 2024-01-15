@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -79,6 +80,16 @@ public class ReportService {
             .stream()
             .map(SharedReportDTO::new)
             .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<ScheduleReportDTO> reportScheduled() {
+        return captureSessionRepository
+            .findAllByStatus(RecordingStatus.AVAILABLE)
+            .stream()
+            .map(ScheduleReportDTO::new)
+            .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
             .collect(Collectors.toList());
     }
 }
