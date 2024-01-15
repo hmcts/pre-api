@@ -914,6 +914,79 @@ definitions:
         description: PermissionName
         type: string
     type: object
+  PlaybackReportDTO:
+    description: PlaybackReportDTO
+    properties:
+      case_reference:
+        description: PlaybackReportCaseReference
+        type: string
+      court:
+        description: PlaybackReportCourt
+        type: string
+      duration:
+        description: PlaybackReportDuration
+        properties:
+          nano:
+            format: int32
+            type: integer
+          negative:
+            type: boolean
+          positive:
+            type: boolean
+          seconds:
+            format: int64
+            type: integer
+          units:
+            items:
+              properties:
+                dateBased:
+                  type: boolean
+                duration:
+                  properties:
+                    nano:
+                      format: int32
+                      type: integer
+                    negative:
+                      type: boolean
+                    positive:
+                      type: boolean
+                    seconds:
+                      format: int64
+                      type: integer
+                    zero:
+                      type: boolean
+                  type: object
+                durationEstimated:
+                  type: boolean
+                timeBased:
+                  type: boolean
+              type: object
+            type: array
+          zero:
+            type: boolean
+        type: object
+      finished_at:
+        description: PlaybackReportFinishTime
+        format: date-time
+        type: string
+      playback_at:
+        description: PlaybackReportPlaybackAt
+        format: date-time
+        type: string
+      recording_id:
+        description: PlaybackReportRecordingId
+        format: uuid
+        type: string
+      regions:
+        description: PlaybackReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      user:
+        description: PlaybackReportUser
+        type: string
+    type: object
   RecordingDTO:
     description: RecordingDTO
     properties:
@@ -1583,6 +1656,32 @@ paths:
               $ref: '#/definitions/EditReportDTO'
             type: array
       summary: Get a report on recordings edits
+      tags:
+        - report-controller
+  /reports/playback:
+    get:
+      operationId: reportPlayback
+      parameters:
+        - description: The source of the playback. Only accepts PORTAL or APPLICATION
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/PlaybackReportDTO'
+            type: array
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
       tags:
         - report-controller
   /reports/recordings-per-case:
