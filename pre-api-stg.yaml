@@ -189,6 +189,11 @@ definitions:
       modifiedAt:
         format: date-time
         type: string
+      participants:
+        items:
+          $ref: '#/definitions/Participant'
+        type: array
+        uniqueItems: true
       reference:
         type: string
       test:
@@ -215,6 +220,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -318,6 +329,12 @@ definitions:
         description: CreateCaseId
         format: uuid
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/CreateParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CreateCaseReference
         type: string
@@ -568,6 +585,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -1089,36 +1112,6 @@ definitions:
         format: uuid
         type: string
     type: object
-  SharedReportDTO:
-    description: SharedReportDTO
-    properties:
-      allocated_by:
-        description: SharedReportAllocatedBy
-        type: string
-      allocated_to:
-        description: SharedReportAllocatedTo
-        type: string
-      booking_id:
-        description: SharedReportBookingId
-        format: uuid
-        type: string
-      case_reference:
-        description: SharedReportCaseReference
-        type: string
-      court:
-        description: SharedReportCourtName
-        type: string
-      regions:
-        description: SharedReportRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      shared_at:
-        description: SharedReportSharedAt
-        format: date-time
-        type: string
-    type: object
   User:
     properties:
       createdAt:
@@ -1631,22 +1624,21 @@ paths:
       summary: Get the number of completed capture sessions for each case
       tags:
         - report-controller
-  /reports/shared-bookings:
-    get:
-      operationId: reportBookingsShared
+  /testing-support/create-court:
+    post:
+      operationId: createCourt
       parameters: []
       produces:
-        - application/octet-stream
+        - application/json
       responses:
         '200':
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/SharedReportDTO'
-            type: array
-      summary: Get a report on the bookings that have been shared
+            additionalProperties:
+              type: string
+            type: object
       tags:
-        - report-controller
+        - testing-support-controller
   /testing-support/should-delete-recordings-for-booking:
     post:
       operationId: shouldDeleteRecordingsForBooking
