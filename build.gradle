@@ -1,15 +1,21 @@
+buildscript {
+  dependencies {
+    classpath("org.flywaydb:flyway-database-postgresql:10.3.0")
+  }
+}
+
 plugins {
   id 'application'
   id 'checkstyle'
   id 'pmd'
   id 'jacoco'
   id 'io.spring.dependency-management' version '1.1.4'
-  id 'org.springframework.boot' version '3.1.5' // issues with 3.2.0 https://github.com/spring-projects/spring-framework/issues/31705
+  id 'org.springframework.boot' version '3.2.1'
   id 'org.owasp.dependencycheck' version '9.0.8'
   id 'com.github.ben-manes.versions' version '0.50.0'
   id 'org.sonarqube' version '4.4.1.3373'
   id "io.freefair.lombok" version "8.4"
-  id 'org.flywaydb.flyway' version '9.22.3' // issues with 10.0.x https://github.com/spring-projects/spring-boot/issues/38164
+  id 'org.flywaydb.flyway' version '10.1.0'
   id "info.solidsoft.pitest" version '1.15.0'
 }
 
@@ -264,9 +270,10 @@ dependencies {
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
 
-  implementation group: 'org.flywaydb', name: 'flyway-core', version: '9.22.3'
+  implementation group: 'org.flywaydb', name: 'flyway-core', version: '10.3.0'
+  implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '10.3.0'
   implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.1'
-  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-62', version: '3.7.0'
+  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.7.0'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
