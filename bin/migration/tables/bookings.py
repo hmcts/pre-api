@@ -27,7 +27,8 @@ class BookingManager:
                 deleted_at TIMESTAMPTZ,
                 created_at TIMESTAMPTZ,
                 modified_at TIMESTAMPTZ,
-                created_by VARCHAR(50)
+                created_by VARCHAR(50),
+                started_by_user_id UUID
             )
             """
         )

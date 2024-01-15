@@ -44,7 +44,7 @@ def check_existing_record(db_connection, table_name, field, record):
 
 
 # audit entry into database
-def audit_entry_creation(db_connection, table_name, record_id, record,modified_at, created_at=None, created_by="Data Entry"):
+def audit_entry_creation(db_connection, table_name, record_id, record,modified_at=None, created_at=None, created_by="Data Entry"):
     created_at = created_at or datetime.now()
     modified_at = modified_at or datetime.now()
 
