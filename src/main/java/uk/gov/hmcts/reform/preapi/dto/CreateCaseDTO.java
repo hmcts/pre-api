@@ -7,7 +7,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
@@ -24,6 +27,9 @@ public class CreateCaseDTO {
     @Schema(description = "CreateCaseReference")
     private String reference;
 
+    @Schema(description = "CaseParticipants")
+    private Set<ParticipantDTO> participants;
+
     @Schema(description = "CreateCaseIsTest")
     private boolean test;
 
@@ -31,6 +37,9 @@ public class CreateCaseDTO {
         this.id = caseEntity.getId();
         this.courtId = caseEntity.getCourt().getId();
         this.reference = caseEntity.getReference();
+        this.participants = Stream.ofNullable(caseEntity.getParticipants())
+            .flatMap(participants -> participants.stream().map(ParticipantDTO::new))
+            .collect(Collectors.toSet());
         this.test = caseEntity.isTest();
     }
 }

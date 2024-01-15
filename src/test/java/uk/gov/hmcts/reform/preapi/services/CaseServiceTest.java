@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -48,6 +49,9 @@ class CaseServiceTest {
 
     @MockBean
     private CourtRepository courtRepository;
+
+    @MockBean
+    private ParticipantRepository participantRepository;
 
     @Autowired
     private CaseService caseService;
