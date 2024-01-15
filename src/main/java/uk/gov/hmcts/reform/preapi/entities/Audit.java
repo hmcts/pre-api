@@ -50,8 +50,8 @@ public class Audit extends BaseEntity {
     @Column(name = "audit_details")
     private String auditDetails;
 
-    @Column(name = "created_by", length = 50)
-    private String createdBy;
+    @Column(name = "created_by")
+    private UUID createdBy;
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
