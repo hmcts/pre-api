@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
@@ -34,5 +35,11 @@ public class ReportController {
     )
     public ResponseEntity<List<RecordingsPerCaseReportDTO>> reportRecordingsPerCase() {
         return ResponseEntity.ok(reportService.reportRecordingsPerCase());
+    }
+
+    @GetMapping("/edits")
+    @Operation(operationId = "reportEdits", summary = "Get a report on recordings edits")
+    public ResponseEntity<List<EditReportDTO>> reportEdits() {
+        return ResponseEntity.ok(reportService.reportEdits());
     }
 }
