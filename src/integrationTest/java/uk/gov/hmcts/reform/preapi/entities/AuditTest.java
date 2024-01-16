@@ -32,7 +32,7 @@ class AuditTest {
         audit.setActivity("TestActivity");
         audit.setFunctionalArea("TestFunctionalArea");
         audit.setAuditDetails("TestAuditDetails");
-        audit.setCreatedBy("TestUser");
+        audit.setCreatedBy(UUID.randomUUID());
         audit.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
         entityManager.persist(audit);
         entityManager.flush();
