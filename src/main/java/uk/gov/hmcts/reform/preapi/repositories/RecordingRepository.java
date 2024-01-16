@@ -45,4 +45,6 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     boolean existsByIdAndDeletedAtIsNull(UUID id);
 
     List<Recording> findAllByParentRecordingIsNotNull();
+
+    List<Recording> findAllByParentRecordingIsNull();
 }
