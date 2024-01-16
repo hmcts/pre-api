@@ -48,7 +48,6 @@ def audit_entry_creation(db_connection, table_name, record_id, record,modified_a
     created_at = created_at or datetime.now()
     modified_at = modified_at or datetime.now()
 
-    
     failed_imports = set()
 
     audit_entry = {
@@ -63,8 +62,11 @@ def audit_entry_creation(db_connection, table_name, record_id, record,modified_a
         "audit_details": f"Created {table_name}_record for: {record}",
         "created_by": created_by,
         "created_at": created_at,
-        "updated_at": modified_at
+        "updated_at": modified_at 
     }
+
+    # if modified_at is not None:
+    #     audit_entry["updated_at"] = modified_at
 
     try:
         db_connection.execute(
@@ -74,6 +76,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record,modified_a
             VALUES 
                 (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s, %(updated_at)s)
             """,
+            # {k: v if v is not None else 'NULL' for k, v in audit_entry.items()}
             audit_entry
         )
 

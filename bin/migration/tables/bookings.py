@@ -73,7 +73,7 @@ class BookingManager:
             id = booking[2]
             case_id = booking[4]
 
-            if not check_existing_record(destination_cursor,'bookings', 'case_id', case_id):   
+            if not check_existing_record(destination_cursor,'bookings', 'id', id):   
                 try:
                     scheduled_for = booking[5]
                     created_at = booking[7]

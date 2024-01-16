@@ -9,7 +9,7 @@ class AppAccessManager:
 
     def get_data(self):
         query = """
-            SELECT u.*, gl.groupname
+            SELECT u.*, gl.groupname, ga.assigned, ga.assignedby
             FROM public.users u
             JOIN public.groupassignments ga ON u.userid = ga.userid
             JOIN public.grouplist gl ON ga.groupid = gl.groupid
@@ -54,12 +54,12 @@ class AppAccessManager:
                     active = True
                 elif str(user[10]).lower() == 'inactive':
                     active = False
-                created_at = parse_to_timestamp(user[15])
-                modified_at =parse_to_timestamp(user[17])
-                created_by = user[14]
+                created_at = parse_to_timestamp(user[21])
+                modified_at =parse_to_timestamp(user[21])
+                created_by = user[22]
 
                 batch_app_users_data.append((
-                    id, user_id, court_id, role_id, last_access, active, created_at, modified_at, created_by
+                    id, user_id, court_id, role_id, last_access, active, created_at, created_by, modified_at
                 ))
 
         try: 
@@ -68,7 +68,7 @@ class AppAccessManager:
                     """
                     INSERT INTO public.app_access
                         (id, user_id, court_id, role_id, last_access, active, created_at, modified_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
                     [entry[:-1] for entry in batch_app_users_data],
                 )

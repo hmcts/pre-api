@@ -8,7 +8,7 @@ class PortalAccessManager:
         self.failed_imports = set()
 
     def get_data(self):
-        query = """ SELECT u.* 
+        query = """ SELECT u.*, ga.assigned, ga.assignedby
                     FROM public.users u, public.groupassignments ga
                     WHERE u.userid = ga.userid
                     AND u.loginenabled ILIKE 'true' and u.invited ILIKE 'true'"""
@@ -51,9 +51,9 @@ class PortalAccessManager:
                 last_access = parse_to_timestamp(user[17])
                 invitation_datetime = parse_to_timestamp(user[16])
                 registered_datetime = parse_to_timestamp(user[16])
-                modified_at =parse_to_timestamp(user[17])
-                created_by = user[14]
-                created_at = parse_to_timestamp(user[15])
+                modified_at =parse_to_timestamp(user[20])
+                created_by = user[21]
+                created_at = parse_to_timestamp(user[20])
 
                 batch_portal_user_data.append((
                     id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at, created_by

@@ -60,6 +60,8 @@ class CaptureSessionManager:
             deleted_at = temp_recording[6]
             started_by_user_id = temp_recording[10] 
             finished_by_user_id = temp_recording[10] 
+            created_at = temp_recording[7]
+            modified_at = temp_recording[8]
       
                 
             if not check_existing_record(destination_cursor,'bookings', 'id', booking_id):
@@ -84,6 +86,8 @@ class CaptureSessionManager:
                         table_name="capture_sessions",
                         record_id=id,
                         record=booking_id,
+                        created_at=created_at,
+                        modified_at=modified_at
                     )
                 except Exception as e:  
                     self.failed_imports.add(('capture_sessions', id,e))
