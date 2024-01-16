@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
@@ -136,5 +137,15 @@ public class ReportService {
         } else {
             throw new NotFoundException("Report for playback source: " + source);
         }
+    }
+
+    @Transactional
+    public List<AccessRemovedReportDTO> reportAccessRemoved() {
+        return shareBookingRepository
+            .findAllByDeletedAtIsNotNull()
+            .stream()
+            .map(AccessRemovedReportDTO::new)
+            .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
+            .collect(Collectors.toList());
     }
 }

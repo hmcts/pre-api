@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
@@ -80,5 +81,14 @@ public class ReportController {
         ) AuditLogSource source
     ) {
         return ResponseEntity.ok(reportService.reportPlayback(source));
+    }
+
+    @GetMapping("/share-bookings-removed")
+    @Operation(
+        operationId = "reportShareBookingRemoved",
+        summary = "Get report on booking share removal"
+    )
+    public ResponseEntity<List<AccessRemovedReportDTO>> reportShareBookingRemoved() {
+        return ResponseEntity.ok(reportService.reportAccessRemoved());
     }
 }
