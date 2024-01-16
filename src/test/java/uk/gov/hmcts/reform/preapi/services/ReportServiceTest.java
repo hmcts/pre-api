@@ -12,11 +12,13 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
@@ -124,6 +126,7 @@ public class ReportServiceTest {
         recordingEntity.setParentRecording(null);
         auditEntity.setSource(null);
         auditEntity.setCreatedBy(null);
+        bookingEntity.setParticipants(Set.of());
     }
 
     @DisplayName("Find all capture sessions and return a list of models as a report when capture session is incomplete")
@@ -450,5 +453,44 @@ public class ReportServiceTest {
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
         verify(userRepository, never()).findById(any());
         verify(recordingRepository, never()).findById(any());
+    }
+
+    @DisplayName("Find a list of completed capture sessions")
+    @Test
+    void reportCompletedCaptureSessionsSuccess() {
+        captureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+
+        final var witness = new Participant();
+        witness.setId(UUID.randomUUID());
+        witness.setParticipantType(ParticipantType.WITNESS);
+        witness.setCaseId(caseEntity);
+        final var defendant = new Participant();
+        defendant.setId(UUID.randomUUID());
+        defendant.setParticipantType(ParticipantType.DEFENDANT);
+        defendant.setCaseId(caseEntity);
+
+        bookingEntity.setParticipants(Set.of(witness, defendant));
+
+        when(recordingRepository.findAllByParentRecordingIsNull()).thenReturn(List.of(recordingEntity));
+
+        var report = reportService.reportCompletedCaptureSessions();
+
+        assertThat(report.getFirst().getStartedAt()).isEqualTo(captureSessionEntity.getStartedAt());
+        assertThat(report.getFirst().getFinishedAt()).isEqualTo(captureSessionEntity.getFinishedAt());
+        assertThat(report.getFirst().getDuration()).isEqualTo(recordingEntity.getDuration());
+        assertThat(report.getFirst().getScheduledFor()).isEqualTo(bookingEntity.getScheduledFor());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCountDefendants()).isEqualTo(1);
+        assertThat(report.getFirst().getCountWitnesses()).isEqualTo(1);
+        assertThat(report.getFirst().getRecordingStatus()).isEqualTo(captureSessionEntity.getStatus());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report
+                       .getFirst()
+                       .getRegions()
+                       .stream()
+                       .toList()
+                       .getFirst()
+                       .getName()
+        ).isEqualTo(regionEntity.getName());
     }
 }

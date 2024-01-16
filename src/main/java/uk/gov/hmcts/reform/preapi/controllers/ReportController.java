@@ -83,7 +83,10 @@ public class ReportController {
     }
 
     @GetMapping("/completed-capture-sessions")
-    @Operation(operationId = "reportCompletedCaptureSessions", summary = "Get a report on capture sessions with available recordings")
+    @Operation(
+        operationId = "reportCompletedCaptureSessions",
+        summary = "Get a report on capture sessions with available recordings"
+    )
     public ResponseEntity<List<CompletedCaptureSessionReportDTO>> reportCompletedCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCompletedCaptureSessions());
     }
