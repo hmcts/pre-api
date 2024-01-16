@@ -20,7 +20,7 @@ class CourtRegionManager:
             {"name": "Liverpool Crown Court", "region": "North West (England)"},
             {"name": "Nottingham Crown Court", "region": "East Midlands (England)"},
             {"name": "Kingston upon Thames Crown Court", "region": "London"},
-            {"name": "Kingston-upon-Thames Crown Court", "region": "London"},
+            # {"name": "Kingston-upon-Thames Crown Court", "region": "London"},
             {"name": "Leeds Youth Court", "region": "Yorkshire and The Humber"},
             {"name": "Default Court", "region": "London"}
         ]
