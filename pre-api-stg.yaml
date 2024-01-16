@@ -709,7 +709,7 @@ definitions:
       _links:
         $ref: '#/definitions/Links'
       capture_session:
-        $ref: '#/definitions/CaptureSession'
+        $ref: '#/definitions/CaptureSessionDTO'
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -1084,7 +1084,7 @@ definitions:
     description: RecordingDTO
     properties:
       capture_session:
-        $ref: '#/definitions/CaptureSession'
+        $ref: '#/definitions/CaptureSessionDTO'
       created_at:
         description: RecordingCreatedAt
         format: date-time
