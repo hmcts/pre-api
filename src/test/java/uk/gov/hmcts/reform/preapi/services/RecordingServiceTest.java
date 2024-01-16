@@ -54,9 +54,15 @@ class RecordingServiceTest {
         recordingEntity.setId(UUID.randomUUID());
         Booking bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
+        
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(bookingEntity);
+        var user = new uk.gov.hmcts.reform.preapi.entities.User();
+        user.setId(UUID.randomUUID());
+        captureSession.setFinishedByUser(user);
+        captureSession.setStartedByUser(user);
+
         recordingEntity.setCaptureSession(captureSession);
         recordingEntity.setVersion(1);
         recordingEntity.setUrl("http://localhost");

@@ -8,7 +8,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
@@ -21,7 +20,7 @@ import java.sql.Timestamp;
 public class RecordingDTO extends BaseRecordingDTO {
 
     @Schema(description = "RecordingCaptureSession")
-    protected CaptureSession captureSession;
+    protected CaptureSessionDTO captureSession;
 
     @Schema(description = "RecordingDeletedAt")
     Timestamp deletedAt;
@@ -31,7 +30,7 @@ public class RecordingDTO extends BaseRecordingDTO {
 
     public RecordingDTO(Recording recording) {
         id = recording.getId();
-        captureSession = recording.getCaptureSession();
+        captureSession = new CaptureSessionDTO(recording.getCaptureSession());
         parentRecordingId = recording.getParentRecording() != null
             ? recording.getParentRecording().getId()
             : null;
