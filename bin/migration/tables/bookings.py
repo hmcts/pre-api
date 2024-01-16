@@ -79,14 +79,15 @@ class BookingManager:
                     created_at = booking[7]
                     modified_at = booking[8]
                     created_by = booking[9]
+                    deleted_at = booking[6]
 
                     destination_cursor.execute(
                         """
                         INSERT INTO public.bookings 
-                            (id, case_id, scheduled_for, created_at, modified_at)
-                        VALUES (%s, %s, %s, %s, %s )
+                            (id, case_id, scheduled_for, created_at, modified_at, deleted_at)
+                        VALUES (%s, %s, %s, %s, %s, %s )
                         """,
-                        (id, case_id, scheduled_for, created_at, modified_at),
+                        (id, case_id, scheduled_for, created_at, modified_at, deleted_at),
                     )
 
                     audit_entry_creation(
