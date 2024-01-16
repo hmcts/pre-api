@@ -18,6 +18,10 @@ import java.sql.Timestamp;
 @Schema(description = "RecordingDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class RecordingDTO extends BaseRecordingDTO {
+
+    @Schema(description = "RecordingCaptureSession")
+    protected CaptureSessionDTO captureSession;
+
     @Schema(description = "RecordingDeletedAt")
     Timestamp deletedAt;
 
@@ -26,7 +30,7 @@ public class RecordingDTO extends BaseRecordingDTO {
 
     public RecordingDTO(Recording recording) {
         id = recording.getId();
-        captureSessionId = recording.getCaptureSession().getId();
+        captureSession = new CaptureSessionDTO(recording.getCaptureSession());
         parentRecordingId = recording.getParentRecording() != null
             ? recording.getParentRecording().getId()
             : null;
