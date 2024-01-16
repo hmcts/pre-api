@@ -55,7 +55,7 @@ class AppAccessManager:
                 elif str(user[10]).lower() == 'inactive':
                     active = False
                 created_at = parse_to_timestamp(user[21])
-                modified_at =parse_to_timestamp(user[21])
+                modified_at =parse_to_timestamp(user[21]) 
                 created_by = user[22]
 
                 batch_app_users_data.append((

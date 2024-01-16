@@ -25,7 +25,7 @@ class BookingParticipantManager:
             booking_participant_data = destination_cursor.fetchall()
 
             for row in booking_participant_data:
-                participant_id, booking_id = row
+                participant_id, booking_id, case_id = row
 
                 try: 
                     destination_cursor.execute(

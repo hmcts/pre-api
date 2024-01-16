@@ -21,7 +21,7 @@ class AuditLogManager:
                 id = str(uuid.uuid4())
                 source = "AUTO"
                 type = "CREATE"
-                category ="data_migration"
+                category =audit_log[20]
                 activity = audit_log[2]
                 functional_area = audit_log[17] 
                 audit_details = audit_log[5]

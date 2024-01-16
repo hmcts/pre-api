@@ -61,7 +61,7 @@ class CaptureSessionManager:
             started_by_user_id = temp_recording[10] 
             finished_by_user_id = temp_recording[10] 
             created_at = temp_recording[7]
-            modified_at = temp_recording[8]
+            modified_at = temp_recording[8] if temp_recording[8] else temp_recording[7]
       
                 
             if not check_existing_record(destination_cursor,'bookings', 'id', booking_id):

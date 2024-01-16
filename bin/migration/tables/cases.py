@@ -9,7 +9,18 @@ class CaseManager:
         self.source_cursor.execute("SELECT * FROM public.cases")
         return self.source_cursor.fetchall()
 
+    def get_case_deleted_date(self, case_id):
+        self.source_cursor.execute("""
+            SELECT createdon FROM audits 
+            WHERE auditdetails = 'Case marked as Deleted.' AND caseuid = %s
+        """, (case_id,))
+
+        deleted_date = self.source_cursor.fetchall()
+        deleted_date_str =deleted_date[0][0]
+        return parse_to_timestamp(deleted_date_str)
+
     def migrate_data(self, destination_cursor, source_data):
+
         destination_cursor.execute("SELECT id, name FROM public.courts")
         courts_data = destination_cursor.fetchall()
         court_name_to_id = {court[1]: court[0] for court in courts_data}  
@@ -34,8 +45,9 @@ class CaseManager:
                 test = False  
                 created_at = parse_to_timestamp(case[5])
                 created_by = case[4]
-                modified_at = parse_to_timestamp(case[7])
-                deleted_at = parse_to_timestamp(case[7]) if case[3] == "Deleted" else None
+                modified_at = parse_to_timestamp(case[7]) if case[7] else case[4]
+                deleted_at = self.get_case_deleted_date(id) if case[3] == "Deleted" else None
+
 
                 cases_data.append((id, court_id, reference, test, deleted_at, created_at, modified_at))
                 
