@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.Length;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 
 import java.util.Set;
@@ -25,6 +26,7 @@ public class CreateCaseDTO {
     private UUID courtId;
 
     @Schema(description = "CreateCaseReference")
+    @Length(min = 9, max = 13)
     private String reference;
 
     @Schema(description = "CaseParticipants")

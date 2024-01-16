@@ -107,6 +107,7 @@ class CaseControllerTest {
         UUID caseId = UUID.randomUUID();
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
+        caseDTO.setReference("TestCase1");
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
 
@@ -120,6 +121,28 @@ class CaseControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/cases/" + caseId);
+    }
+
+    @DisplayName("Should fail create/update case with 400 error message when case reference is too short")
+    @Test
+    void testCreateCaseReferenceTooShortBadRequest() throws Exception {
+        UUID caseId = UUID.randomUUID();
+        var caseDTO = new CreateCaseDTO();
+        caseDTO.setId(caseId);
+        caseDTO.setReference("TestCase");
+
+        when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(caseDTO))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"reference\":\"length must be between 9 and 13\"}");
     }
 
     @DisplayName("Should update case with 204 response code")

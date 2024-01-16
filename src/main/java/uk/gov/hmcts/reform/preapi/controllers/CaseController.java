@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -88,7 +89,7 @@ public class CaseController extends PreApiController {
 
     @PutMapping("/{id}")
     @Operation(operationId = "putCase", summary = "Create or Update a Case")
-    public ResponseEntity<Void> upsertCase(@PathVariable UUID id, @RequestBody CreateCaseDTO createCaseDTO) {
+    public ResponseEntity<Void> upsertCase(@PathVariable UUID id, @Valid @RequestBody CreateCaseDTO createCaseDTO) {
         if (createCaseDTO.getId() == null || !id.toString().equals(createCaseDTO.getId().toString())) {
             throw new PathPayloadMismatchException("id", "createCaseDTO.id");
         }
