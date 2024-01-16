@@ -9,6 +9,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.ReportController;
+import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
@@ -136,5 +137,29 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].capture_session_user").value(reportItem.getCaptureSessionUser()));
+    }
+
+    @DisplayName("Should get a report containing a list of share booking removals with case and user details")
+    @Test
+    void reportAccessRemoved() throws Exception {
+        var reportItem = new AccessRemovedReportDTO();
+        reportItem.setRemovedAt(Timestamp.from(Instant.now()));
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example court");
+        reportItem.setRegions(Set.of());
+        reportItem.setUserFullName("Example Person");
+        reportItem.setUserEmail("example@example.com");
+        reportItem.setRemovalReason("Example reason");
+
+        when(reportService.reportAccessRemoved()).thenReturn(List.of(reportItem));
+
+        mockMvc.perform(get("/reports/share-bookings-removed"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
+            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
+            .andExpect(jsonPath("$[0].removal_reason").value(reportItem.getRemovalReason()));
     }
 }
