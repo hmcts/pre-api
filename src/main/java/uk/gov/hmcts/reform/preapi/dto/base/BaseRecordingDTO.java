@@ -14,9 +14,6 @@ public abstract class BaseRecordingDTO {
     @Schema(description = "RecordingId")
     protected UUID id;
 
-    @Schema(description = "RecordingCaptureSessionId")
-    protected UUID captureSessionId;
-
     @Schema(description = "RecordingParentRecordingId")
     protected UUID parentRecordingId;
 

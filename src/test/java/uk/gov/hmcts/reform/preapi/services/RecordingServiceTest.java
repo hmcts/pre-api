@@ -54,9 +54,15 @@ class RecordingServiceTest {
         recordingEntity.setId(UUID.randomUUID());
         Booking bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
+        
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(bookingEntity);
+        var user = new uk.gov.hmcts.reform.preapi.entities.User();
+        user.setId(UUID.randomUUID());
+        captureSession.setFinishedByUser(user);
+        captureSession.setStartedByUser(user);
+
         recordingEntity.setCaptureSession(captureSession);
         recordingEntity.setVersion(1);
         recordingEntity.setUrl("http://localhost");
@@ -81,7 +87,7 @@ class RecordingServiceTest {
 
         var model = recordingService.findById(recordingEntity.getId());
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
-        assertThat(model.getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
+        assertThat(model.getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
     }
 
     @DisplayName("Find a recording by it's id which is missing")
@@ -114,7 +120,7 @@ class RecordingServiceTest {
         var modelList = recordingService.findAll(null, null, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
-        assertThat(modelList.getFirst().getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
+        assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
     }
 
     @DisplayName("Create a recording")

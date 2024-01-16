@@ -2,6 +2,11 @@ basePath: /pre-api
 definitions:
   Booking:
     properties:
+      captureSessions:
+        items:
+          $ref: '#/definitions/CaptureSession'
+        type: array
+        uniqueItems: true
       caseId:
         $ref: '#/definitions/Case'
       createdAt:
@@ -30,6 +35,12 @@ definitions:
   BookingDTO:
     description: BookingDTO
     properties:
+      capture_sessions:
+        description: CaptureSessions
+        items:
+          $ref: '#/definitions/CaptureSessionDTO'
+        type: array
+        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -89,6 +100,61 @@ definitions:
       startedByUser:
         $ref: '#/definitions/User'
       status:
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
+        type: string
+    type: object
+  CaptureSessionDTO:
+    description: CaptureSessionDTO
+    properties:
+      booking_id:
+        description: CreateCaptureSessionBookingId
+        format: uuid
+        type: string
+      deleted_at:
+        description: CaptureSessionDeletedAt
+        format: date-time
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
         enum:
           - STANDBY
           - INITIALIZATION
@@ -534,6 +600,12 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      capture_sessions:
+        description: CaptureSessions
+        items:
+          $ref: '#/definitions/CaptureSessionDTO'
+        type: array
+        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -636,10 +708,8 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
-      capture_session_id:
-        description: RecordingCaptureSessionId
-        format: uuid
-        type: string
+      capture_session:
+        $ref: '#/definitions/CaptureSessionDTO'
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -1013,10 +1083,8 @@ definitions:
   RecordingDTO:
     description: RecordingDTO
     properties:
-      capture_session_id:
-        description: RecordingCaptureSessionId
-        format: uuid
-        type: string
+      capture_session:
+        $ref: '#/definitions/CaptureSessionDTO'
       created_at:
         description: RecordingCreatedAt
         format: date-time
