@@ -126,10 +126,11 @@ public class BookingService {
     @Transactional
     public void markAsDeleted(UUID id) {
         var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
-        if (entity.isPresent()) {
-            captureSessionService.deleteCascade(entity.get());
-            bookingRepository.deleteById(id);
+        if (entity.isEmpty()) {
+            throw new NotFoundException("Booking: " + id);
         }
+        captureSessionService.deleteCascade(entity.get());
+        bookingRepository.deleteById(id);
     }
 
     @Transactional
@@ -157,7 +158,6 @@ public class BookingService {
 
     @Transactional
     public void deleteCascade(Case caseEntity) {
-        System.out.println("Booking called");
         bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(caseEntity)
             .forEach(captureSessionService::deleteCascade);

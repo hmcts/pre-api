@@ -105,7 +105,6 @@ public class RecordingService {
 
     @Transactional
     public void deleteCascade(CaptureSession captureSession) {
-        System.out.println("recording called");
         recordingRepository.deleteAllByCaptureSession(captureSession);
     }
 }

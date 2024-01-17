@@ -57,6 +57,9 @@ class CaseServiceTest {
     @MockBean
     private ParticipantRepository participantRepository;
 
+    @MockBean
+    private BookingService bookingService;
+
     @Autowired
     private CaseService caseService;
 
@@ -276,22 +279,24 @@ class CaseServiceTest {
 
     @Test
     void deleteByIdSuccess() {
-        when(caseRepository.existsByIdAndDeletedAtIsNull(caseEntity.getId())).thenReturn(true);
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
 
         caseService.deleteById(caseEntity.getId());
 
-        verify(caseRepository, times(1)).existsByIdAndDeletedAtIsNull(caseEntity.getId());
+        verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseEntity.getId());
+        verify(bookingService, times(1)).deleteCascade(caseEntity);
         verify(caseRepository, times(1)).deleteById(caseEntity.getId());
     }
 
     @Test
     void deleteByIdNotFound() {
         UUID caseId = UUID.randomUUID();
-        when(caseRepository.existsByIdAndDeletedAtIsNull(caseId)).thenReturn(false);
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> caseService.deleteById(caseId));
 
-        verify(caseRepository, times(1)).existsByIdAndDeletedAtIsNull(caseId);
+        verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseId);
+        verify(bookingService, never()).deleteCascade(caseEntity);
         verify(caseRepository, never()).deleteById(caseId);
     }
 }

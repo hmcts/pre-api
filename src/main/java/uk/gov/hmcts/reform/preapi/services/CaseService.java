@@ -109,7 +109,6 @@ public class CaseService {
             throw new NotFoundException("CaseDTO: " + id);
         }
         bookingService.deleteCascade(entity.get());
-        System.out.println("Case " + entity.get().getId());
         caseRepository.deleteById(id);
     }
 }

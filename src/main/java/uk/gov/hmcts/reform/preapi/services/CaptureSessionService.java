@@ -21,7 +21,6 @@ public class CaptureSessionService {
 
     @Transactional
     public void deleteCascade(Booking booking) {
-        System.out.println("Capture session called");
         captureSessionRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
             .forEach(recordingService::deleteCascade);
