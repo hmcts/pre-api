@@ -493,4 +493,38 @@ public class ReportServiceTest {
                        .getName()
         ).isEqualTo(regionEntity.getName());
     }
+
+    @DisplayName("Find all share booking removals and return a report")
+    @Test
+    void reportAccessRemovedSuccess() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        var shareBooking = new ShareBooking();
+        shareBooking.setId(UUID.randomUUID());
+        shareBooking.setSharedWith(user);
+        shareBooking.setBooking(bookingEntity);
+        shareBooking.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(shareBookingRepository.findAllByDeletedAtIsNotNull()).thenReturn(List.of(shareBooking));
+
+        var report = reportService.reportAccessRemoved();
+
+        assertThat(report.getFirst().getRemovedAt()).isEqualTo(shareBooking.getDeletedAt());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report
+                       .getFirst()
+                       .getRegions()
+                       .stream()
+                       .toList()
+                       .getFirst()
+                       .getName()
+        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFirstName() + " " + user.getLastName());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getRemovalReason()).isNull();
+    }
 }
