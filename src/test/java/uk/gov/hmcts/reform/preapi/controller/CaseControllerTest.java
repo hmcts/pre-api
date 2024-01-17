@@ -142,7 +142,7 @@ class CaseControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"reference\":\"length must be between 9 and 13\"}");
+            .isEqualTo("{\"reference\":\"size must be between 9 and 13\"}");
     }
 
     @DisplayName("Should fail create/update case with 400 error message when case reference is too long")
@@ -164,7 +164,7 @@ class CaseControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"reference\":\"length must be between 9 and 13\"}");
+            .isEqualTo("{\"reference\":\"size must be between 9 and 13\"}");
     }
 
     @DisplayName("Should update case with 204 response code")
