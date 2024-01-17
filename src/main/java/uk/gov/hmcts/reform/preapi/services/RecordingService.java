@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -100,5 +101,11 @@ public class RecordingService {
         }
 
         recordingRepository.deleteById(recordingId);
+    }
+
+    @Transactional
+    public void deleteCascade(CaptureSession captureSession) {
+        System.out.println("recording called");
+        recordingRepository.deleteAllByCaptureSession(captureSession);
     }
 }
