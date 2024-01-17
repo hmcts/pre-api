@@ -26,7 +26,7 @@ class AuditLogManager:
                 functional_area = audit_log[17] 
                 audit_details = audit_log[5]
                 created_at = parse_to_timestamp(audit_log[12])
-                updated_at = parse_to_timestamp(audit_log[13])
+                # updated_at = parse_to_timestamp(audit_log[13])
 
                 if audit_log[11]:
                     created_by = audit_log[11]
@@ -36,13 +36,12 @@ class AuditLogManager:
                     created_by = 'data_entry'
                 
                 batch_audit_data.append((
-                        id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at, updated_at
-                    ))
+                        id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at))
         try:
             if batch_audit_data:
                 destination_cursor.executemany(
-                    """INSERT INTO public.audits (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at, updated_at) 
-                    VALUES (%s, %s, %s,%s, %s, %s,%s, %s, %s,%s, %s,%s)""",
+                    """INSERT INTO public.audits (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at) 
+                    VALUES (%s, %s, %s,%s, %s, %s,%s, %s, %s,%s, %s)""",
                     batch_audit_data
                 )
                 destination_cursor.connection.commit()    

@@ -48,7 +48,7 @@ class UserManager:
                         record=f"{user[1]} {user[2]}",  
                         created_at=user[6],
                         created_by=user[8],
-                        modified_at=user[7]
+                        # modified_at=user[7]
                     )
         except Exception as e:  
             self.failed_imports.add(('users', id, e))

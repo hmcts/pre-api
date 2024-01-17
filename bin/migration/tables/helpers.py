@@ -18,11 +18,13 @@ def parse_to_timestamp(input_text):
                 "%d-%m-%Y %H:%M:%S",
                 "%d-%m-%Y %H:%M",
                 "%Y-%m-%d %H:%M:%S",
-
                 ] 
             for date_format in formats_to_try:
                 try:
                     parsed_datetime = datetime.strptime(input_text, date_format)
+                    # if parsed_datetime.time() == datetime.min.time():
+                    #     parsed_datetime = parsed_datetime.replace(hour=12, minute=0, second=0)
+
                     break 
                 except ValueError:
                     pass
@@ -44,9 +46,9 @@ def check_existing_record(db_connection, table_name, field, record):
 
 
 # audit entry into database
-def audit_entry_creation(db_connection, table_name, record_id, record,modified_at=None, created_at=None, created_by="Data Entry"):
+def audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry"):
     created_at = created_at or datetime.now()
-    modified_at = modified_at or datetime.now()
+    # modified_at = modified_at or datetime.now()
 
     failed_imports = set()
 
@@ -62,21 +64,18 @@ def audit_entry_creation(db_connection, table_name, record_id, record,modified_a
         "audit_details": f"Created {table_name}_record for: {record}",
         "created_by": created_by,
         "created_at": created_at,
-        "updated_at": modified_at 
+        # "updated_at": modified_at 
     }
 
-    # if modified_at is not None:
-    #     audit_entry["updated_at"] = modified_at
 
     try:
         db_connection.execute(
             """
             INSERT INTO public.audits 
-                (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at, updated_at) 
+                (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by, created_at) 
             VALUES 
-                (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s, %(updated_at)s)
+                (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s)
             """,
-            # {k: v if v is not None else 'NULL' for k, v in audit_entry.items()}
             audit_entry
         )
 

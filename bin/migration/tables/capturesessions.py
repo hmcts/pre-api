@@ -9,6 +9,23 @@ class CaptureSessionManager:
     def get_data(self):
         self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings WHERE recordingversion = '1' and recordingstatus != 'No Recording'")
         return self.source_cursor.fetchall()
+    
+    def map_recording_status(self, status):
+        status_lower = status.lower()
+
+        if status_lower in ["assets created - waiting for event to start", "deleted", "error - failed to start", "no recording available", "no stream detected", "no recording"]:
+            result = "STANDBY"
+        elif status_lower in ["initiating request...","ready to record"]:
+            result =  "INITIALISATION"
+        elif status_lower == "recording":
+            result =  "RECORDING"
+        elif status_lower in ["edit requested","ready to stream", "mp4 ready for viewing", "stream ok"]:
+            result =  "AVAILABLE"
+        elif status_lower == "checking stream...":
+            result =  "PROCESSING"
+        else:
+            result = "STANDBY" 
+        return result
 
     def migrate_data(self, destination_cursor, source_data):
         destination_cursor.execute("SELECT * FROM public.temp_recordings")
@@ -16,6 +33,7 @@ class CaptureSessionManager:
 
         destination_cursor.execute("SELECT * FROM public.users")
         user_data = destination_cursor.fetchall()
+        status = None
 
         for recording in source_data:
             recording_id = recording[0]
@@ -27,9 +45,9 @@ class CaptureSessionManager:
             started_by = recording[21]
             started_by_user_id = next((user[0] for user in user_data if user[3] == started_by), None)
             deleted_at = parse_to_timestamp(recording[24]) if str(recording[11]).lower() == 'deleted' else None
+            status = self.map_recording_status(recording[11])
             # started_at =  ?
             # finished_at = ?
-            # status = ?
     
             try: 
                 destination_cursor.execute(
@@ -61,7 +79,7 @@ class CaptureSessionManager:
             started_by_user_id = temp_recording[10] 
             finished_by_user_id = temp_recording[10] 
             created_at = temp_recording[7]
-            modified_at = temp_recording[8] if temp_recording[8] else temp_recording[7]
+            # modified_at = temp_recording[8] if temp_recording[8] else temp_recording[7]
       
                 
             if not check_existing_record(destination_cursor,'bookings', 'id', booking_id):
@@ -74,10 +92,10 @@ class CaptureSessionManager:
                 try:
                     destination_cursor.execute(
                         """
-                        INSERT INTO public.capture_sessions (id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id)
-                        VALUES (%s, %s, %s,%s,%s, %s,%s,%s)
+                        INSERT INTO public.capture_sessions (id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id, status)
+                        VALUES (%s, %s, %s,%s,%s, %s,%s,%s, %s)
                         """,
-                        ( id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id),  
+                        ( id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id, status),  
                     )
                     destination_cursor.connection.commit()
       
@@ -87,7 +105,7 @@ class CaptureSessionManager:
                         record_id=id,
                         record=booking_id,
                         created_at=created_at,
-                        modified_at=modified_at
+                        # modified_at=modified_at
                     )
                 except Exception as e:  
                     self.failed_imports.add(('capture_sessions', id,e))

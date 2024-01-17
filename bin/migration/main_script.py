@@ -1,4 +1,5 @@
 import os
+import time
 
 from db_utils import DatabaseManager
 
@@ -26,16 +27,28 @@ from tables.helpers import clear_migrations_file
 source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
 destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
 test_db_password = os.environ.get('TEST_DB_PASSWORD')
+staging_db_password = os.environ.get('STAGING_DB_PASSWORD')
 
 
 # database connections
+# staging db
 source_db = DatabaseManager(
-    database="pre-pdb-test",
+     database="pre-pdb-stg",
     user="psqladmin",
-    password=test_db_password,
-    host="pre-db-test.postgres.database.azure.com",
+    password=staging_db_password,
+    host="pre-db-stg.postgres.database.azure.com",
     port="5432",
 )
+ 
+
+# test db
+# source_db = DatabaseManager(
+#     database="pre-pdb-test",
+#     user="psqladmin",
+#     password=test_db_password,
+#     host="pre-db-test.postgres.database.azure.com",
+#     port="5432",
+# )
 
 # demo database
 # source_db = DatabaseManager(
@@ -75,12 +88,18 @@ recording_manager = RecordingManager(source_db.connection.cursor())
 audit_log_manager = AuditLogManager(source_db.connection.cursor())
 
 def migrate_manager_data(manager, destination_cursor):
+    start_time = time.time()
+    print(f"Migrating data for {manager.__class__.__name__}...")
+
     if hasattr(manager, 'get_data') and callable(getattr(manager, 'get_data')):
         source_data = manager.get_data()
         manager.migrate_data(destination_cursor, source_data)
     else:
         manager.migrate_data(destination_cursor)
 
+    end_time = time.time()
+    time_taken = end_time - start_time
+    print(f"Data migration for {manager.__class__.__name__} complete in : {time_taken:.2f} seconds.\n")
 
 def main():
     clear_migrations_file()
@@ -94,7 +113,7 @@ def main():
     migrate_manager_data(courtroom_manager, destination_db_cursor) 
     migrate_manager_data(region_manager, destination_db_cursor) 
     migrate_manager_data(court_region_manager, destination_db_cursor) 
-    migrate_manager_data(portal_access_manager, destination_db_cursor) 
+    migrate_manager_data(portal_access_manager, destination_db_cursor)
     migrate_manager_data(app_access_manager, destination_db_cursor) 
     migrate_manager_data(case_manager, destination_db_cursor) 
     migrate_manager_data(booking_manager, destination_db_cursor)

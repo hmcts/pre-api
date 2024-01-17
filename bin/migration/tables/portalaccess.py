@@ -80,7 +80,7 @@ class PortalAccessManager:
                         record=entry[1],
                         created_at=entry[7],
                         created_by=entry[9],
-                        modified_at = entry[8]
+                        # modified_at = entry[8]
                     )
 
         except Exception as e:

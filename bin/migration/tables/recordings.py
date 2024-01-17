@@ -54,14 +54,16 @@ class RecordingManager:
                 created_at = parse_to_timestamp(recording[22])
                 modified_at = parse_to_timestamp(recording[24])
                 created_by = recording[21]
+                recording_status = recording[11]
+                deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
 
                 try:
                     destination_cursor.execute(
                         """
-                        INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
-                        (id, capture_session_id, parent_recording_id, version, url, filename, created_at),  
+                        (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at),  
                     )
 
                     audit_entry_creation(
@@ -100,19 +102,18 @@ class RecordingManager:
                 url = recording[20] if recording[20] is not None else 'Unknown URL'
                 filename = recording[14]
                 created_at = parse_to_timestamp(recording[22])
-                modified_at = parse_to_timestamp(recording[24])
-                created_by = recording[21]
-                
+                recording_status = recording[11]
+                deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
         #         duration =  ? - this info is in the asset files on AMS 
         #         edit_instruction = ?
             
                 try:
                     destination_cursor.execute(
                         """
-                        INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
-                        (id, capture_session_id, parent_recording_id, version, url, filename, created_at),  
+                        (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at),  
                     )
 
                     audit_entry_creation(
@@ -122,7 +123,7 @@ class RecordingManager:
                         record=capture_session_id,
                         created_at=created_at,
                         created_by=created_by,
-                        modified_at=modified_at
+                        # modified_at=modified_at
                     )
                 except Exception as e:  
                     self.failed_imports.add(('recordings', id, e))

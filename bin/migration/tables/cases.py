@@ -16,8 +16,11 @@ class CaseManager:
         """, (case_id,))
 
         deleted_date = self.source_cursor.fetchall()
-        deleted_date_str =deleted_date[0][0]
-        return parse_to_timestamp(deleted_date_str)
+        if deleted_date:
+            deleted_date_str =deleted_date[0][0]
+            return parse_to_timestamp(deleted_date_str)
+        else:
+            return None
 
     def migrate_data(self, destination_cursor, source_data):
 
@@ -58,7 +61,7 @@ class CaseManager:
                     record=reference,
                     created_at=created_at,
                     created_by=created_by,
-                    modified_at = modified_at
+                    # modified_at = modified_at
                 )
             
         try: 
