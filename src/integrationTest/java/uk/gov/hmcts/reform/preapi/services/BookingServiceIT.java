@@ -11,6 +11,8 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -84,9 +86,22 @@ class BookingServiceIT {
         assertEquals(1, findByCaseResult2.toList().size(), "Should find 1 booking");
         assertEquals(booking2.getId(), findByCaseResult2.toList().getFirst().getId(), "Should find booking 2");
 
-        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", null);
+        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", Optional.empty(), null);
         assertEquals(2, findByCaseReferenceResult.getContent().size(), "Should find 2 bookings");
         assertEquals(booking1.getId(), findByCaseReferenceResult.getContent().get(0).getId(), "Should find booking 1");
         assertEquals(booking2.getId(), findByCaseReferenceResult.getContent().get(1).getId(), "Should find booking 2");
+
+        var findByScheduledforResult = bookingService.searchBy(
+            null,
+            null,
+            Optional.of(Timestamp.from(Instant.parse("2024-06-28T00:00:00.000Z"))),
+            null
+        );
+        assertEquals(1, findByScheduledforResult.getContent().size(), "Should find 1 bookings");
+        assertEquals(
+            booking1.getId(),
+            findByCaseReferenceResult.getContent().getFirst().getId(),
+            "Should find booking 1"
+        );
     }
 }
