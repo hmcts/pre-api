@@ -31,7 +31,7 @@ public class CaptureSessionReportDTO {
     @Schema(description = "CaptureSessionEndTime")
     private Timestamp endTime;
 
-    @Schema(description = "CaptureSessionDuration")
+    @Schema(description = "CaptureSessionDuration", implementation = String.class)
     private Duration duration;
 
     @Schema(description = "CaptureSessionCaseReference")

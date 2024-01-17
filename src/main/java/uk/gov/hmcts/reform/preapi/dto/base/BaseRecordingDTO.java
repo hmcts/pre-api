@@ -26,7 +26,7 @@ public abstract class BaseRecordingDTO {
     @Schema(description = "RecordingFilename")
     protected String filename;
 
-    @Schema(description = "RecordingDuration")
+    @Schema(description = "RecordingDuration", implementation = String.class)
     protected Duration duration;
 
     @Schema(description = "RecordingEditInstructions")
