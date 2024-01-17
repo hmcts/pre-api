@@ -10,12 +10,19 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
+import java.util.UUID;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @Schema(description = "CreateRecordingDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateRecordingDTO extends BaseRecordingDTO {
+
+
+    @Schema(description = "RecordingCaptureSessionId")
+    protected UUID captureSessionId;
+
     public CreateRecordingDTO(Recording recording) {
         id = recording.getId();
         captureSessionId = recording.getCaptureSession().getId();

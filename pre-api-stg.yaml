@@ -2,6 +2,11 @@ basePath: /pre-api
 definitions:
   Booking:
     properties:
+      captureSessions:
+        items:
+          $ref: '#/definitions/CaptureSession'
+        type: array
+        uniqueItems: true
       caseId:
         $ref: '#/definitions/Case'
       createdAt:
@@ -30,6 +35,12 @@ definitions:
   BookingDTO:
     description: BookingDTO
     properties:
+      capture_sessions:
+        description: CaptureSessions
+        items:
+          $ref: '#/definitions/CaptureSessionDTO'
+        type: array
+        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -99,76 +110,59 @@ definitions:
           - FUTURE
         type: string
     type: object
-  CaptureSessionReportDTO:
-    description: CaptureSessionReportDTO
+  CaptureSessionDTO:
+    description: CaptureSessionDTO
     properties:
-      captureSessionValues:
-        $ref: '#/definitions/CaptureSession'
-      case_reference:
-        description: CaptureSessionCaseReference
-        type: string
-      court:
-        description: CaptureSessionCourtName
-        type: string
-      duration:
-        description: CaptureSessionDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
-      end_time:
-        description: CaptureSessionEndTime
-        format: date-time
-        type: string
-      id:
-        description: CaptureSessionId
+      booking_id:
+        description: CreateCaptureSessionBookingId
         format: uuid
         type: string
-      region:
-        description: CaptureSessionRegionName
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      start_time:
-        description: CaptureSessionStartTime
+      deleted_at:
+        description: CaptureSessionDeletedAt
         format: date-time
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
         type: string
     type: object
   Case:
@@ -232,6 +226,89 @@ definitions:
       test:
         description: CaseIsTest
         type: boolean
+    type: object
+  CompletedCaptureSessionReportDTO:
+    description: CompletedCaptureSessionReportDTO
+    properties:
+      case_reference:
+        description: CompletedCaptureSessionReportCaseReference
+        type: string
+      count_defendants:
+        description: CompletedCaptureSessionReportDefendantCount
+        format: int32
+        type: integer
+      count_witnesses:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      court:
+        description: CompletedCaptureSessionReportCourtName
+        type: string
+      duration:
+        description: CompletedCaptureSessionReportDuration
+        type: string
+      finished_at:
+        description: CompletedCaptureSessionReportFinishedAt
+        format: date-time
+        type: string
+      recording_status:
+        description: CompletedCaptureSessionReportRecordingStatus
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
+        type: string
+      regions:
+        description: CompletedCaptureSessionReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: CompletedCaptureSessionReportBookingScheduledFor
+        format: date-time
+        type: string
+      started_at:
+        description: CompletedCaptureSessionReportStartedAt
+        format: date-time
+        type: string
+    type: object
+  ConcurrentCaptureSessionReportDTO:
+    description: ConcurrentCaptureSessionReportDTO
+    properties:
+      captureSessionValues:
+        $ref: '#/definitions/CaptureSession'
+      case_reference:
+        description: CaptureSessionCaseReference
+        type: string
+      court:
+        description: CaptureSessionCourtName
+        type: string
+      duration:
+        description: CaptureSessionDuration
+        type: string
+      end_time:
+        description: CaptureSessionEndTime
+        format: date-time
+        type: string
+      id:
+        description: CaptureSessionId
+        format: uuid
+        type: string
+      region:
+        description: CaptureSessionRegionName
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      start_time:
+        description: CaptureSessionStartTime
+        format: date-time
+        type: string
     type: object
   Court:
     properties:
@@ -337,6 +414,8 @@ definitions:
         uniqueItems: true
       reference:
         description: CreateCaseReference
+        maxLength: 13
+        minLength: 9
         type: string
       test:
         description: CreateCaseIsTest
@@ -406,46 +485,8 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        example: PT3M
+        type: string
       edit_instructions:
         description: RecordingEditInstructions
         type: string
@@ -534,6 +575,12 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      capture_sessions:
+        description: CaptureSessions
+        items:
+          $ref: '#/definitions/CaptureSessionDTO'
+        type: array
+        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -636,10 +683,8 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
-      capture_session_id:
-        description: RecordingCaptureSessionId
-        format: uuid
-        type: string
+      capture_session:
+        $ref: '#/definitions/CaptureSessionDTO'
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -650,46 +695,8 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        example: PT3M
+        type: string
       edit_instructions:
         description: RecordingEditInstructions
         type: string
@@ -948,46 +955,7 @@ definitions:
         type: string
       duration:
         description: PlaybackReportDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        type: string
       finished_at:
         description: PlaybackReportFinishTime
         format: date-time
@@ -1013,10 +981,8 @@ definitions:
   RecordingDTO:
     description: RecordingDTO
     properties:
-      capture_session_id:
-        description: RecordingCaptureSessionId
-        format: uuid
-        type: string
+      capture_session:
+        $ref: '#/definitions/CaptureSessionDTO'
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -1027,46 +993,8 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        example: PT3M
+        type: string
       edit_instructions:
         description: RecordingEditInstructions
         type: string
@@ -1718,8 +1646,24 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/CaptureSessionReportDTO'
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
             type: array
+      tags:
+        - report-controller
+  /reports/completed-capture-sessions:
+    get:
+      operationId: reportCompletedCaptureSessions
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CompletedCaptureSessionReportDTO'
+            type: array
+      summary: Get a report on capture sessions with available recordings
       tags:
         - report-controller
   /reports/edits:

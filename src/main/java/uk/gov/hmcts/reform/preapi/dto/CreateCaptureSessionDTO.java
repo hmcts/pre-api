@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
@@ -45,4 +46,17 @@ public class CreateCaptureSessionDTO {
 
     @Schema(description = "CreateCaptureSessionStatus")
     private RecordingStatus status;
+
+    public CreateCaptureSessionDTO(CaptureSession captureSession) {
+        this.id = captureSession.getId();
+        this.bookingId = captureSession.getBooking().getId();
+        this.origin = captureSession.getOrigin();
+        this.ingestAddress = captureSession.getIngestAddress();
+        this.liveOutputUrl = captureSession.getLiveOutputUrl();
+        this.startedAt = captureSession.getStartedAt();
+        this.startedByUserId = captureSession.getStartedByUser().getId();
+        this.finishedAt = captureSession.getFinishedAt();
+        this.finishedByUserId = captureSession.getFinishedByUser().getId();
+        this.status = captureSession.getStatus();
+    }
 }

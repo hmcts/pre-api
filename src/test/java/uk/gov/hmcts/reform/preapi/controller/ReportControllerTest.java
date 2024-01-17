@@ -9,11 +9,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.ReportController;
-import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.sql.Timestamp;
@@ -41,7 +43,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of concurrent capture sessions")
     @Test
     void reportConcurrentCaptureSessionsSuccess() throws Exception {
-        var reportItem = new CaptureSessionReportDTO();
+        var reportItem = new ConcurrentCaptureSessionReportDTO();
         reportItem.setId(UUID.randomUUID());
         reportItem.setStartTime(Timestamp.from(Instant.now()));
         reportItem.setEndTime(Timestamp.from(Instant.now()));
@@ -136,5 +138,33 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].capture_session_user").value(reportItem.getCaptureSessionUser()));
+    }
+
+    @DisplayName("Should get a report containing a list of completed capture sessions (with available recordings)")
+    @Test
+    void reportCompletedCaptureSessions() throws Exception {
+        var reportItem = new CompletedCaptureSessionReportDTO();
+        reportItem.setStartedAt(Timestamp.from(Instant.now()));
+        reportItem.setFinishedAt(Timestamp.from(Instant.now()));
+        reportItem.setDuration(Duration.ofMinutes(3L));
+        reportItem.setScheduledFor(Timestamp.from(Instant.now()));
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCountDefendants(1);
+        reportItem.setCountWitnesses(5);
+        reportItem.setRecordingStatus(RecordingStatus.AVAILABLE);
+        reportItem.setCourt("Example Court");
+        reportItem.setRegions(Set.of());
+
+        when(reportService.reportCompletedCaptureSessions()).thenReturn(List.of(reportItem));
+
+        mockMvc.perform(get("/reports/completed-capture-sessions"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].duration").value(reportItem.getDuration().toString()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].count_defendants").value(reportItem.getCountDefendants()))
+            .andExpect(jsonPath("$[0].count_witnesses").value(reportItem.getCountWitnesses()))
+            .andExpect(jsonPath("$[0].recording_status").value(reportItem.getRecordingStatus().toString()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()));
     }
 }

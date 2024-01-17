@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -62,6 +63,10 @@ public class CaseService {
         }
 
         var isUpdate = foundCase.isPresent();
+        if (!isCaseReferenceValid(isUpdate, createCaseDTO.getReference(), createCaseDTO.getId()))  {
+            throw new ConflictException("Case reference is already in use");
+        }
+
         var court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
 
         if (!isUpdate && court == null) {
@@ -71,9 +76,10 @@ public class CaseService {
         var newCase = foundCase.orElse(new Case());
         newCase.setId(createCaseDTO.getId());
         newCase.setCourt(court);
-        newCase.setReference(createCaseDTO.getReference());
+        if (createCaseDTO.getReference() != null) {
+            newCase.setReference(createCaseDTO.getReference());
+        }
         newCase.setTest(createCaseDTO.isTest());
-
         caseRepository.save(newCase);
 
         newCase.setParticipants(
@@ -104,5 +110,13 @@ public class CaseService {
             throw new NotFoundException("CaseDTO: " + id);
         }
         caseRepository.deleteById(id);
+    }
+
+    private boolean isCaseReferenceValid(boolean isUpdate, String caseReference, UUID caseId) {
+        var foundCases = caseRepository.findAllByReference(caseReference);
+
+        return isUpdate
+            ? caseReference == null || foundCases.isEmpty() || foundCases.getFirst().getId().equals(caseId)
+            : caseReference != null && foundCases.isEmpty();
     }
 }

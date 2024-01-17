@@ -14,9 +14,6 @@ public abstract class BaseRecordingDTO {
     @Schema(description = "RecordingId")
     protected UUID id;
 
-    @Schema(description = "RecordingCaptureSessionId")
-    protected UUID captureSessionId;
-
     @Schema(description = "RecordingParentRecordingId")
     protected UUID parentRecordingId;
 
@@ -29,7 +26,11 @@ public abstract class BaseRecordingDTO {
     @Schema(description = "RecordingFilename")
     protected String filename;
 
-    @Schema(description = "RecordingDuration")
+    @Schema(
+        description = "RecordingDuration",
+        implementation = String.class,
+        example = "PT3M"
+    )
     protected Duration duration;
 
     @Schema(description = "RecordingEditInstructions")
