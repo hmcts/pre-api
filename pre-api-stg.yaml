@@ -246,46 +246,7 @@ definitions:
         type: string
       duration:
         description: CompletedCaptureSessionReportDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        type: string
       finished_at:
         description: CompletedCaptureSessionReportFinishedAt
         format: date-time
