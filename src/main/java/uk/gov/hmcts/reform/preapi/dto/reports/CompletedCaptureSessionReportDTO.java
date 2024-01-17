@@ -27,7 +27,10 @@ public class CompletedCaptureSessionReportDTO {
     @Schema(description = "CompletedCaptureSessionReportFinishedAt")
     private Timestamp finishedAt;
 
-    @Schema(description = "CompletedCaptureSessionReportDuration")
+    @Schema(
+        description = "CompletedCaptureSessionReportDuration",
+        implementation = String.class
+    )
     private Duration duration;
 
     @Schema(description = "CompletedCaptureSessionReportBookingScheduledFor")
