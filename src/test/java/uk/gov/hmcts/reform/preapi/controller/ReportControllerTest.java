@@ -10,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.ReportController;
 import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;

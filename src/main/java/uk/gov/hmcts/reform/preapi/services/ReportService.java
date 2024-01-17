@@ -4,7 +4,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
