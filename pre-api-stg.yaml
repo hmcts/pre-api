@@ -178,46 +178,7 @@ definitions:
         type: string
       duration:
         description: CaptureSessionDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        type: string
       end_time:
         description: CaptureSessionEndTime
         format: date-time
@@ -474,46 +435,7 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        type: string
       edit_instructions:
         description: RecordingEditInstructions
         type: string
@@ -722,46 +644,7 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        type: string
       edit_instructions:
         description: RecordingEditInstructions
         type: string
@@ -1020,46 +903,7 @@ definitions:
         type: string
       duration:
         description: PlaybackReportDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        type: string
       finished_at:
         description: PlaybackReportFinishTime
         format: date-time
@@ -1097,46 +941,7 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
-        properties:
-          nano:
-            format: int32
-            type: integer
-          negative:
-            type: boolean
-          positive:
-            type: boolean
-          seconds:
-            format: int64
-            type: integer
-          units:
-            items:
-              properties:
-                dateBased:
-                  type: boolean
-                duration:
-                  properties:
-                    nano:
-                      format: int32
-                      type: integer
-                    negative:
-                      type: boolean
-                    positive:
-                      type: boolean
-                    seconds:
-                      format: int64
-                      type: integer
-                    zero:
-                      type: boolean
-                  type: object
-                durationEstimated:
-                  type: boolean
-                timeBased:
-                  type: boolean
-              type: object
-            type: array
-          zero:
-            type: boolean
-        type: object
+        type: string
       edit_instructions:
         description: RecordingEditInstructions
         type: string
