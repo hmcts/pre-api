@@ -483,6 +483,7 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
+        example: PT3M
         type: string
       edit_instructions:
         description: RecordingEditInstructions
@@ -692,6 +693,7 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
+        example: PT3M
         type: string
       edit_instructions:
         description: RecordingEditInstructions
@@ -989,6 +991,7 @@ definitions:
         type: string
       duration:
         description: RecordingDuration
+        example: PT3M
         type: string
       edit_instructions:
         description: RecordingEditInstructions
