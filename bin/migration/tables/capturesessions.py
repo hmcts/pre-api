@@ -27,6 +27,18 @@ class CaptureSessionManager:
             result = "STANDBY" 
         return result
 
+    def get_recording_date(self, recording_id, activity):
+        query = """
+            SELECT createdon
+            FROM public.audits
+            WHERE activity = %s
+            AND recordinguid = %s
+        """
+        self.source_cursor.execute(query, (activity, recording_id))
+        result = self.source_cursor.fetchone()
+        return parse_to_timestamp(result[0]) if result else None
+
+        
     def migrate_data(self, destination_cursor, source_data):
         destination_cursor.execute("SELECT * FROM public.temp_recordings")
         temp_recording_data = destination_cursor.fetchall()
@@ -45,8 +57,6 @@ class CaptureSessionManager:
             started_by_user_id = next((user[0] for user in user_data if user[3] == started_by), None)
             deleted_at = parse_to_timestamp(recording[24]) if str(recording[11]).lower() == 'deleted' else None
             status = self.map_recording_status(recording[11])
-            # started_at =  ?
-            # finished_at = ?
     
             try: 
                 destination_cursor.execute(
@@ -71,9 +81,9 @@ class CaptureSessionManager:
         destination_cursor.execute("SELECT * FROM public.users")
         user_data = destination_cursor.fetchall()
 
-
         for temp_recording in temp_recording_data:
             id = temp_recording[0]
+            recording_id = temp_recording[1]
             booking_id = temp_recording[2]
             deleted_at = temp_recording[6]
             started_by_user_id = temp_recording[10] 
@@ -81,9 +91,9 @@ class CaptureSessionManager:
             created_at = temp_recording[7]
             ingest_address=temp_recording[11]
             live_output_url=temp_recording[12]
-            status=temp_recording[13]
-            # modified_at = temp_recording[8] if temp_recording[8] else temp_recording[7]
-      
+            status=temp_recording[13]      
+            started_at = self.get_recording_date(recording_id, 'Start Recording Clicked') or created_at
+            finished_at = self.get_recording_date(recording_id, 'Finish Recording') or created_at
                 
             if not check_existing_record(destination_cursor,'bookings', 'id', booking_id):
                 self.failed_imports.add(('capture_sessions', id, f"Booking id: {booking_id} not recorded in bookings table"))
@@ -95,10 +105,10 @@ class CaptureSessionManager:
                 try:
                     destination_cursor.execute(
                         """
-                        INSERT INTO public.capture_sessions (id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id, status)
-                        VALUES (%s, %s, %s,%s,%s, %s,%s,%s, %s)
+                        INSERT INTO public.capture_sessions (id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id, status, started_at, finished_at)
+                        VALUES (%s, %s, %s,%s,%s, %s,%s,%s, %s,%s, %s)
                         """,
-                        ( id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id, status),  
+                        ( id, booking_id, origin, ingest_address, live_output_url, deleted_at, started_by_user_id, finished_by_user_id, status, started_at, finished_at),  
                     )
                     destination_cursor.connection.commit()
       
@@ -108,7 +118,6 @@ class CaptureSessionManager:
                         record_id=id,
                         record=booking_id,
                         created_at=created_at,
-                        # modified_at=modified_at
                     )
                 except Exception as e:  
                     self.failed_imports.add(('capture_sessions', id,e))
