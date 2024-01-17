@@ -4,7 +4,7 @@ java:
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
   aadIdentityName: pre
   keyVaults:
-    pre:
+    pre-hmctskv:
       secrets:
         - name: api-POSTGRES-HOST
           alias: POSTGRES_HOST
