@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -226,6 +227,58 @@ class CaseServiceTest {
         verify(courtRepository, never()).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseRepository, never()).save(any());
+    }
+
+    @Test
+    void createCaseReferenceFoundConflict() {
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());
+        when(caseRepository.findAllByReference(caseDTOModel.getReference())).thenReturn(List.of(testingCase));
+
+        assertThrows(
+            ConflictException.class,
+            () -> caseService.upsert(caseDTOModel)
+        );
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, times(1)).findAllByReference(caseDTOModel.getReference());
+    }
+
+    @Test
+    void createCaseReferenceIsNullConflict() {
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setReference(null);
+
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());
+        when(caseRepository.findAllByReference(caseDTOModel.getReference())).thenReturn(List.of());
+
+        assertThrows(
+            ConflictException.class,
+            () -> caseService.upsert(caseDTOModel)
+        );
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, times(1)).findAllByReference(caseDTOModel.getReference());
+    }
+
+    @Test
+    void updateCaseReferenceConflict() {
+        var case2 = new Case();
+        case2.setId(UUID.randomUUID());
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        case2.setReference(testingCase.getReference());
+
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(testingCase));
+        when(caseRepository.findAllByReference(caseDTOModel.getReference())).thenReturn(List.of(case2));
+
+        assertThrows(
+            ConflictException.class,
+            () -> caseService.upsert(caseDTOModel)
+        );
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, times(1)).findAllByReference(caseDTOModel.getReference());
     }
 
     @Test
