@@ -1,0 +1,77 @@
+package uk.gov.hmcts.reform.preapi.services;
+
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
+import uk.gov.hmcts.reform.preapi.entities.Invite;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.InviteRepository;
+
+import java.util.UUID;
+
+@Service
+public class InviteService {
+
+    private final InviteRepository inviteRepository;
+
+    @Autowired
+    public InviteService(InviteRepository inviteRepository) {
+        this.inviteRepository = inviteRepository;
+    }
+
+    @Transactional
+    public InviteDTO findById(UUID id) {
+        return inviteRepository
+            .findById(id)
+            .map(InviteDTO::new)
+            .orElseThrow(() -> new NotFoundException("Invite: " + id));
+    }
+
+    @Transactional
+    public Page<InviteDTO> findAllBy(
+        String firstName,
+        String lastName,
+        String email,
+        String organisation,
+        Pageable pageable
+    ) {
+        var result =  inviteRepository
+            .searchBy(firstName, lastName, email, organisation, pageable)
+            .stream()
+            .map(InviteDTO::new)
+            .toList();
+        return new PageImpl<>(result, pageable, result.size());
+    }
+
+    @Transactional
+    public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
+        final var foundInvite = inviteRepository.findById(createInviteDTO.getId());
+        final var isUpdate = foundInvite.isPresent();
+
+        var newInvite = foundInvite.orElse(new Invite());
+        newInvite.setId(createInviteDTO.getId());
+        newInvite.setFirstName(createInviteDTO.getFirstName());
+        newInvite.setLastName(createInviteDTO.getLastName());
+        newInvite.setEmail(createInviteDTO.getEmail());
+        newInvite.setOrganisation(createInviteDTO.getOrganisation());
+        newInvite.setPhone(createInviteDTO.getPhone());
+        newInvite.setCode(createInviteDTO.getCode());
+        inviteRepository.save(newInvite);
+
+        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional
+    public void deleteById(UUID id) {
+        if (!inviteRepository.existsById(id)) {
+            throw new NotFoundException("InviteDTO: " + id);
+        }
+        inviteRepository.deleteById(id);
+    }
+}
