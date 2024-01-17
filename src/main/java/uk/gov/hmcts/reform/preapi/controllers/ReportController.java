@@ -7,7 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
@@ -30,7 +31,7 @@ public class ReportController {
 
     @GetMapping("/capture-sessions-concurrent")
     @Operation(operationId = "reportConcurrentCaptureSessions")
-    public ResponseEntity<List<CaptureSessionReportDTO>> reportConcurrentCaptureSessions() {
+    public ResponseEntity<List<ConcurrentCaptureSessionReportDTO>> reportConcurrentCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCaptureSessions());
     }
 
@@ -70,7 +71,6 @@ public class ReportController {
         operationId = "reportPlayback",
         summary = "Get report on playback by playback source (PORTAL, APPLICATION)"
     )
-
     public ResponseEntity<List<PlaybackReportDTO>> reportPlayback(
         @Parameter(
             name = "source",
@@ -80,5 +80,14 @@ public class ReportController {
         ) AuditLogSource source
     ) {
         return ResponseEntity.ok(reportService.reportPlayback(source));
+    }
+
+    @GetMapping("/completed-capture-sessions")
+    @Operation(
+        operationId = "reportCompletedCaptureSessions",
+        summary = "Get a report on capture sessions with available recordings"
+    )
+    public ResponseEntity<List<CompletedCaptureSessionReportDTO>> reportCompletedCaptureSessions() {
+        return ResponseEntity.ok(reportService.reportCompletedCaptureSessions());
     }
 }

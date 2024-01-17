@@ -29,7 +29,7 @@ public class PlaybackReportDTO {
     @Schema(description = "PlaybackReportFinishTime")
     private Timestamp finishedAt;
 
-    @Schema(description = "PlaybackReportDuration")
+    @Schema(description = "PlaybackReportDuration", implementation = String.class)
     private Duration duration;
 
     @Schema(description = "PlaybackReportUser")

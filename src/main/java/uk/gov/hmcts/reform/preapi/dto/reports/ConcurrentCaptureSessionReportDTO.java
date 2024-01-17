@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
-@Schema(description = "CaptureSessionReportDTO")
+@Schema(description = "ConcurrentCaptureSessionReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class CaptureSessionReportDTO {
+public class ConcurrentCaptureSessionReportDTO {
 
     @Schema(description = "CaptureSessionId")
     private UUID id;
@@ -31,7 +31,7 @@ public class CaptureSessionReportDTO {
     @Schema(description = "CaptureSessionEndTime")
     private Timestamp endTime;
 
-    @Schema(description = "CaptureSessionDuration")
+    @Schema(description = "CaptureSessionDuration", implementation = String.class)
     private Duration duration;
 
     @Schema(description = "CaptureSessionCaseReference")
@@ -43,12 +43,12 @@ public class CaptureSessionReportDTO {
     @Schema(description = "CaptureSessionRegionName")
     private Set<RegionDTO> region;
 
-    public CaptureSessionReportDTO(Recording entity) {
+    public ConcurrentCaptureSessionReportDTO(Recording entity) {
         setCaptureSessionValues(entity.getCaptureSession());
         duration = entity.getDuration();
     }
 
-    public CaptureSessionReportDTO(CaptureSession entity) {
+    public ConcurrentCaptureSessionReportDTO(CaptureSession entity) {
         setCaptureSessionValues(entity);
     }
 
