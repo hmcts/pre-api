@@ -27,7 +27,7 @@ class CaseControllerFT extends FunctionalTestBase {
         var createCase = new CreateCaseDTO();
         createCase.setId(java.util.UUID.randomUUID());
         createCase.setCourtId(courtId);
-        createCase.setReference("FT1234");
+        createCase.setReference("FT12345678");
         var participant1 = new CreateParticipantDTO();
         participant1.setId(java.util.UUID.randomUUID());
         participant1.setFirstName("John");

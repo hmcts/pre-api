@@ -5,6 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
@@ -51,15 +53,15 @@ public class ReportService {
     }
 
     @Transactional
-    public List<CaptureSessionReportDTO> reportCaptureSessions() {
+    public List<ConcurrentCaptureSessionReportDTO> reportCaptureSessions() {
         return captureSessionRepository
             .findAll()
             .stream()
             .map(c ->
                 recordingRepository
                     .findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(c, 1)
-                    .map(CaptureSessionReportDTO::new)
-                    .orElse(new CaptureSessionReportDTO(c))
+                    .map(ConcurrentCaptureSessionReportDTO::new)
+                    .orElse(new ConcurrentCaptureSessionReportDTO(c))
             ).collect(Collectors.toList());
     }
 
@@ -137,6 +139,16 @@ public class ReportService {
         } else {
             throw new NotFoundException("Report for playback source: " + source);
         }
+    }
+
+    @Transactional
+    public List<CompletedCaptureSessionReportDTO> reportCompletedCaptureSessions() {
+        return recordingRepository
+            .findAllByParentRecordingIsNull()
+            .stream()
+            .map(CompletedCaptureSessionReportDTO::new)
+            .sorted(Comparator.comparing(CompletedCaptureSessionReportDTO::getScheduledFor))
+            .collect(Collectors.toList());
     }
 
     @Transactional
