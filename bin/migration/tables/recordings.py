@@ -73,7 +73,6 @@ class RecordingManager:
                         record=capture_session_id,
                         created_at=created_at,
                         created_by=created_by,
-                        modified_at=modified_at
                     )
 
                 except Exception as e:  
@@ -123,7 +122,6 @@ class RecordingManager:
                         record=capture_session_id,
                         created_at=created_at,
                         created_by=created_by,
-                        # modified_at=modified_at
                     )
                 except Exception as e:  
                     self.failed_imports.add(('recordings', id, e))

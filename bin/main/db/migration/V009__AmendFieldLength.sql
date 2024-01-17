@@ -1,0 +1,1 @@
+ALTER TABLE public.audits ALTER COLUMN created_by TYPE VARCHAR(100);

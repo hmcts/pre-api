@@ -33,7 +33,6 @@ class CaptureSessionManager:
 
         destination_cursor.execute("SELECT * FROM public.users")
         user_data = destination_cursor.fetchall()
-        status = None
 
         for recording in source_data:
             recording_id = recording[0]
@@ -53,10 +52,11 @@ class CaptureSessionManager:
                 destination_cursor.execute(
                     """
                     UPDATE public.temp_recordings
-                    SET capture_session_id = %s, parent_recording_id = %s, deleted_at=%s, started_by_user_id=%s
+                    SET capture_session_id = %s, parent_recording_id = %s, deleted_at=%s, 
+                        started_by_user_id=%s, ingest_address=%s, live_output_url=%s, status=%s
                     WHERE recording_id = %s 
                     """,
-                    (capture_session_id, parent_recording_id, deleted_at, started_by_user_id, recording_id),
+                    (capture_session_id, parent_recording_id, deleted_at, started_by_user_id,  ingest_address, live_output_url, status, recording_id),
                 )
                 destination_cursor.connection.commit()
                    
@@ -79,6 +79,9 @@ class CaptureSessionManager:
             started_by_user_id = temp_recording[10] 
             finished_by_user_id = temp_recording[10] 
             created_at = temp_recording[7]
+            ingest_address=temp_recording[11]
+            live_output_url=temp_recording[12]
+            status=temp_recording[13]
             # modified_at = temp_recording[8] if temp_recording[8] else temp_recording[7]
       
                 

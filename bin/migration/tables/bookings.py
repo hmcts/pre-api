@@ -28,7 +28,10 @@ class BookingManager:
                 created_at TIMESTAMPTZ,
                 modified_at TIMESTAMPTZ,
                 created_by VARCHAR(50),
-                started_by_user_id UUID
+                started_by_user_id UUID,
+                ingest_address VARCHAR(255),
+                live_output_url VARCHAR(255),
+                status TEXT
             )
             """
         )
