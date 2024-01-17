@@ -414,6 +414,8 @@ definitions:
         uniqueItems: true
       reference:
         description: CreateCaseReference
+        maxLength: 13
+        minLength: 9
         type: string
       test:
         description: CreateCaseIsTest

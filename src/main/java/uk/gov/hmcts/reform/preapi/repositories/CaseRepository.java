@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -32,4 +33,6 @@ public interface CaseRepository extends SoftDeleteRepository<Case, UUID> {
     Optional<Case> findByIdAndDeletedAtIsNull(UUID id);
 
     boolean existsByIdAndDeletedAtIsNull(UUID id);
+
+    List<Case> findAllByReference(String caseReference);
 }
