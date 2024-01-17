@@ -165,8 +165,159 @@ definitions:
           - FUTURE
         type: string
     type: object
-  CaptureSessionReportDTO:
-    description: CaptureSessionReportDTO
+  Case:
+    properties:
+      court:
+        $ref: '#/definitions/Court'
+      createdAt:
+        format: date-time
+        type: string
+      deleted:
+        type: boolean
+      deletedAt:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      modifiedAt:
+        format: date-time
+        type: string
+      participants:
+        items:
+          $ref: '#/definitions/Participant'
+        type: array
+        uniqueItems: true
+      reference:
+        type: string
+      test:
+        type: boolean
+    type: object
+  CaseDTO:
+    description: CaseDTO
+    properties:
+      court:
+        $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: CaseCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: CaseDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: CaseId
+        format: uuid
+        type: string
+      modified_at:
+        description: CaseModifiedAt
+        format: date-time
+        type: string
+      participants:
+        description: CaseParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
+      reference:
+        description: CaseReference
+        type: string
+      test:
+        description: CaseIsTest
+        type: boolean
+    type: object
+  CompletedCaptureSessionReportDTO:
+    description: CompletedCaptureSessionReportDTO
+    properties:
+      case_reference:
+        description: CompletedCaptureSessionReportCaseReference
+        type: string
+      count_defendants:
+        description: CompletedCaptureSessionReportDefendantCount
+        format: int32
+        type: integer
+      count_witnesses:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      court:
+        description: CompletedCaptureSessionReportCourtName
+        type: string
+      duration:
+        description: CompletedCaptureSessionReportDuration
+        properties:
+          nano:
+            format: int32
+            type: integer
+          negative:
+            type: boolean
+          positive:
+            type: boolean
+          seconds:
+            format: int64
+            type: integer
+          units:
+            items:
+              properties:
+                dateBased:
+                  type: boolean
+                duration:
+                  properties:
+                    nano:
+                      format: int32
+                      type: integer
+                    negative:
+                      type: boolean
+                    positive:
+                      type: boolean
+                    seconds:
+                      format: int64
+                      type: integer
+                    zero:
+                      type: boolean
+                  type: object
+                durationEstimated:
+                  type: boolean
+                timeBased:
+                  type: boolean
+              type: object
+            type: array
+          zero:
+            type: boolean
+        type: object
+      finished_at:
+        description: CompletedCaptureSessionReportFinishedAt
+        format: date-time
+        type: string
+      recording_status:
+        description: CompletedCaptureSessionReportRecordingStatus
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
+        type: string
+      regions:
+        description: CompletedCaptureSessionReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: CompletedCaptureSessionReportBookingScheduledFor
+        format: date-time
+        type: string
+      started_at:
+        description: CompletedCaptureSessionReportStartedAt
+        format: date-time
+        type: string
+    type: object
+  ConcurrentCaptureSessionReportDTO:
+    description: ConcurrentCaptureSessionReportDTO
     properties:
       captureSessionValues:
         $ref: '#/definitions/CaptureSession'
@@ -236,68 +387,6 @@ definitions:
         description: CaptureSessionStartTime
         format: date-time
         type: string
-    type: object
-  Case:
-    properties:
-      court:
-        $ref: '#/definitions/Court'
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      id:
-        format: uuid
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      participants:
-        items:
-          $ref: '#/definitions/Participant'
-        type: array
-        uniqueItems: true
-      reference:
-        type: string
-      test:
-        type: boolean
-    type: object
-  CaseDTO:
-    description: CaseDTO
-    properties:
-      court:
-        $ref: '#/definitions/CourtDTO'
-      created_at:
-        description: CaseCreatedAt
-        format: date-time
-        type: string
-      deleted_at:
-        description: CaseDeletedAt
-        format: date-time
-        type: string
-      id:
-        description: CaseId
-        format: uuid
-        type: string
-      modified_at:
-        description: CaseModifiedAt
-        format: date-time
-        type: string
-      participants:
-        description: CaseParticipants
-        items:
-          $ref: '#/definitions/ParticipantDTO'
-        type: array
-        uniqueItems: true
-      reference:
-        description: CaseReference
-        type: string
-      test:
-        description: CaseIsTest
-        type: boolean
     type: object
   Court:
     properties:
@@ -1786,8 +1875,24 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/CaptureSessionReportDTO'
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
             type: array
+      tags:
+        - report-controller
+  /reports/completed-capture-sessions:
+    get:
+      operationId: reportCompletedCaptureSessions
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CompletedCaptureSessionReportDTO'
+            type: array
+      summary: Get a report on capture sessions with available recordings
       tags:
         - report-controller
   /reports/edits:
