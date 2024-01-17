@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
@@ -146,6 +147,16 @@ public class ReportService {
             .stream()
             .map(CompletedCaptureSessionReportDTO::new)
             .sorted(Comparator.comparing(CompletedCaptureSessionReportDTO::getScheduledFor))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<AccessRemovedReportDTO> reportAccessRemoved() {
+        return shareBookingRepository
+            .findAllByDeletedAtIsNotNull()
+            .stream()
+            .map(AccessRemovedReportDTO::new)
+            .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
             .collect(Collectors.toList());
     }
 }

@@ -1,5 +1,34 @@
 basePath: /pre-api
 definitions:
+  AccessRemovedReportDTO:
+    description: AccessRemovedReportDTO
+    properties:
+      case_reference:
+        description: AccessRemovedReportCaseReference
+        type: string
+      court:
+        description: AccessRemovedReportCourtName
+        type: string
+      regions:
+        description: AccessRemovedReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      removal_reason:
+        description: AccessRemovedReportRemovalReason
+        type: string
+      removed_at:
+        description: AccessRemovedReportRemovedAt
+        format: date-time
+        type: string
+      user_email:
+        description: AccessRemovedReportUserEmail
+        type: string
+      user_full_name:
+        description: AccessRemovedReportUserFullName
+        type: string
+    type: object
   Booking:
     properties:
       captureSessions:
@@ -1738,6 +1767,22 @@ paths:
               $ref: '#/definitions/ScheduleReportDTO'
             type: array
       summary: Get a list of completed capture sessions with booking details
+      tags:
+        - report-controller
+  /reports/share-bookings-removed:
+    get:
+      operationId: reportShareBookingRemoved
+      parameters: []
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AccessRemovedReportDTO'
+            type: array
+      summary: Get report on booking share removal
       tags:
         - report-controller
   /reports/shared-bookings:
