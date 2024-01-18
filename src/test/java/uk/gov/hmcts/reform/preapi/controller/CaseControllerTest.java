@@ -263,4 +263,14 @@ class CaseControllerTest {
                             .with(csrf()))
             .andExpect(status().isOk());
     }
+
+    @DisplayName("Should return 400 when case id is not a uuid")
+    @Test
+    void testFindByIdBadRequest() throws Exception {
+        mockMvc.perform(get("/cases/12345678")
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Invalid UUID string: 12345678"));
+    }
 }

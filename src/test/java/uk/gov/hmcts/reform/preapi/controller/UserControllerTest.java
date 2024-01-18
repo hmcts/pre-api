@@ -286,4 +286,14 @@ public class UserControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Not found: Role: " + roleId + "\"}");
     }
+
+    @DisplayName("Should return 400 when user id is not a uuid")
+    @Test
+    void testFindByIdBadRequest() throws Exception {
+        mockMvc.perform(get("/users/12345678")
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Invalid UUID string: 12345678"));
+    }
 }
