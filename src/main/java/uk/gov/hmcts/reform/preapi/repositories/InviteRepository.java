@@ -28,4 +28,8 @@ public interface InviteRepository extends JpaRepository<Invite, UUID> {
         @Param("organisation") String organisation,
         Pageable pageable
     );
+
+    boolean existsByEmail(String email);
+
+    boolean existsByCode(String code);
 }

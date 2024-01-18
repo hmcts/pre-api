@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
 import uk.gov.hmcts.reform.preapi.entities.Invite;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.InviteRepository;
 
@@ -49,6 +50,17 @@ public class InviteService {
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
         final var foundInvite = inviteRepository.findById(createInviteDTO.getId());
         final var isUpdate = foundInvite.isPresent();
+
+        if (isUpdate) {
+            throw new ConflictException("InviteDTO: " + createInviteDTO.getId());
+        } else {
+            if (inviteRepository.existsByEmail(createInviteDTO.getEmail())) {
+                throw new ConflictException("InviteDTO: " + createInviteDTO.getId());
+            }
+            if (inviteRepository.existsByCode(createInviteDTO.getCode())) {
+                throw new ConflictException("InviteDTO: " + createInviteDTO.getId());
+            }
+        }
 
         var newInvite = foundInvite.orElse(new Invite());
         newInvite.setId(createInviteDTO.getId());
