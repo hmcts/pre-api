@@ -3,9 +3,9 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -51,7 +51,7 @@ class SmokeTest {
     }
 
     @Test
-    @ConditionalOnExpression("${apim.enabled:false}")
+    @EnabledIfEnvironmentVariable(named = "APIM_ENABLED", matches = "true")
     void apimCheck() {
         RestAssured.baseURI = apimUri;
 
