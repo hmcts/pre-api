@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import static io.restassured.RestAssured.given;
@@ -14,12 +16,16 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpStatus.OK;
 
 @ExtendWith(SpringExtension.class)
+@TestPropertySource("classpath:application.properties")
 class SmokeTest {
     private static final String CONTENT_TYPE_VALUE = "application/json";
     private static final String HEALTH_ENDPOINT = "/health";
 
     @Value("${TEST_URL:http://localhost:4550}")
     private String testUrl;
+
+    @Value("${apim.uri}")
+    private String apimUri;
 
     @Value("${apim.subscription-key.primary}")
     private String primaryApimKey;
@@ -46,8 +52,10 @@ class SmokeTest {
     }
 
     @Test
-    @EnabledIfEnvironmentVariable(named = "APIM_ENABLED", matches = "true")
+    @ConditionalOnExpression("${apim.enabled:false}")
     void apimCheck() {
+        RestAssured.baseURI = apimUri;
+
         var primaryResponse = apimRequest(primaryApimKey);
 
         if (primaryResponse.statusCode() != OK.value()) {
@@ -64,7 +72,7 @@ class SmokeTest {
             .headers(CONTENT_TYPE, CONTENT_TYPE_VALUE)
             .headers("Ocp-Apim-Subscription-Key", key)
             .when()
-            .get("/courts")
+            .get("/pre-api/courts")
             .andReturn();
     }
 }

@@ -25,3 +25,6 @@ java:
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
+    APIM_URI: https://sds-api-mgmt.platform.hmcts.net
+
+

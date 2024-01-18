@@ -63,9 +63,3 @@ dbMigration:
 
 testing-support-endpoints:
   enabled: ${TESTING_SUPPORT_ENDPOINTS_ENABLED:false}
-
-apim:
-  enabled: ${APIM_ENABLED:false}
-  subscription-key:
-    primary: ${APIM_SUB_SMOKETEST_PRIMARY_KEY:000}
-    secondary: ${APIM_SUB_SMOKETEST_SECONDARY_KEY:000}
