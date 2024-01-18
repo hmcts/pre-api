@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,6 +39,12 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
                     CAST(:caseId as org.hibernate.type.UUIDCharType) IS NULL OR
                     b.caseId.id = :caseId
                 )
+                AND
+                (
+                    CAST(:scheduledForFrom as Timestamp) IS NULL OR
+                    CAST(:scheduledForUntil as Timestamp) IS NULL OR
+                    b.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
+                )
             )
             AND b.deletedAt IS NULL
         ORDER BY b.scheduledFor ASC
@@ -46,6 +53,8 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
     Page<Booking> searchBookingsBy(
         @Param("caseId") UUID caseId,
         @Param("reference") String reference,
+        @Param("scheduledForFrom") Timestamp scheduledForFrom,
+        @Param("scheduledForUntil") Timestamp scheduledForUntil,
         Pageable pageable
     );
 

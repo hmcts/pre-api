@@ -22,9 +22,13 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
 
 @Service
 @SuppressWarnings("PMD.SingularField")
@@ -66,9 +70,24 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
-    public Page<BookingDTO> searchBy(UUID caseId, String caseReference, Pageable pageable) {
+    public Page<BookingDTO> searchBy(@Nullable UUID caseId,
+                                     @Nullable String caseReference,
+                                     Optional<Timestamp> scheduledFor,
+                                     Pageable pageable) {
+
+        var until = scheduledFor.isEmpty()
+            ? null
+            : scheduledFor.map(
+                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+
         return bookingRepository
-            .searchBookingsBy(caseId, caseReference, pageable)
+            .searchBookingsBy(
+                caseId,
+                caseReference,
+                scheduledFor.orElse(null),
+                until, // 11:59:59 PM
+                pageable
+            )
             .map(BookingDTO::new);
     }
 
