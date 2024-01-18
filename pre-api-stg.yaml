@@ -1282,7 +1282,7 @@ info:
 paths:
   /bookings:
     get:
-      operationId: getBookingsByCaseId
+      operationId: searchBookings
       parameters:
         - description: The Case Id to search for
           format: uuid
@@ -1295,6 +1295,12 @@ paths:
           name: caseReference
           type: string
           x-example: 1234567890123456
+        - description: The Date the Booking is scheduled for
+          format: date
+          in: query
+          name: scheduledFor
+          type: string
+          x-example: '2024-04-27'
         - description: The page number of search result to return
           format: int32
           in: query
@@ -1314,7 +1320,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/PagedModelEntityModelBookingDTO'
-      summary: Search All Bookings using Case Id or Case Ref
+      summary: 'Search All Bookings using Case Id, Case Ref, or Scheduled For'
       tags:
         - booking-controller
   '/bookings/{bookingId}':
