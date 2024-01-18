@@ -43,12 +43,10 @@ class AppAccessManager:
 
             
             if not check_existing_record(destination_cursor,'users', 'id', user_id):
-                print('user nope')
                 self.failed_imports.add(('app_access',user_id, f"User id not in users table: {user_id}")) 
                 continue
             
             if not check_existing_record(destination_cursor,'roles', 'id', role_id):
-                print('role nope')
                 self.failed_imports.add(('app_access',user_id, f"Role: {role_id} not found in roles table for user_id: {user_id}")) 
                 continue
 
@@ -56,7 +54,6 @@ class AppAccessManager:
                 court_id = default_court_id
             
             if not check_existing_record(destination_cursor,'courts', 'id', court_id):
-                print('court nope')
                 self.failed_imports.add(('app_access',user_id, f"Court: {court_id} not found in courts table for user_id: {user_id}")) 
                 continue
             
