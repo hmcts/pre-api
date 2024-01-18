@@ -4,13 +4,11 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
-import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -18,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -55,19 +52,9 @@ public class CourtService {
         String regionName,
         Pageable pageable
     ) {
-        var result =  courtRepository
-            .searchBy(courtType, name, locationCode, pageable)
-            .stream()
-            .filter(
-                court -> regionName == null
-                    || court.getRegions()
-                    .stream()
-                    .map(Region::getName)
-                    .anyMatch(n -> n.toLowerCase(Locale.ROOT).contains(regionName.toLowerCase(Locale.ROOT)))
-            )
-            .map(CourtDTO::new)
-            .toList();
-        return new PageImpl<>(result, pageable, result.size());
+        return courtRepository
+            .searchBy(courtType, name, locationCode, regionName, pageable)
+            .map(CourtDTO::new);
     }
 
     @Transactional

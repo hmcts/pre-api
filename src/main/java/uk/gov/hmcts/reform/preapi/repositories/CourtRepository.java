@@ -21,12 +21,20 @@ public interface CourtRepository extends JpaRepository<Court, UUID> {
         WHERE (CAST(:courtType as text) IS NULL OR c.courtType = :courtType)
         AND (:name IS NULL OR c.name ILIKE %:name%)
         AND (:locationCode IS NULL OR c.locationCode = :locationCode)
+        AND (
+            :regionName IS NULL OR EXISTS (
+                SELECT 1 FROM c.regions r
+                WHERE r.name ILIKE %:regionName%
+            )
+        )
+
         """
     )
     Page<Court> searchBy(
         @Param("courtType") CourtType courtType,
         @Param("name") String name,
         @Param("locationCode") String locationCode,
+        @Param("regionName") String regionName,
         Pageable pageable
     );
 }
