@@ -18,6 +18,7 @@ from tables.participants import ParticipantManager
 from tables.bookingparticipants import BookingParticipantManager
 from tables.capturesessions import CaptureSessionManager
 from tables.recordings import RecordingManager
+from tables.sharerecordings import ShareRecordingsManager
 from tables.audits import AuditLogManager
 
 from tables.helpers import clear_migrations_file
@@ -32,23 +33,23 @@ staging_db_password = os.environ.get('STAGING_DB_PASSWORD')
 
 # database connections
 # staging db
-source_db = DatabaseManager(
-     database="pre-pdb-stg",
-    user="psqladmin",
-    password=staging_db_password,
-    host="pre-db-stg.postgres.database.azure.com",
-    port="5432",
-)
+# source_db = DatabaseManager(
+#      database="pre-pdb-stg",
+#     user="psqladmin",
+#     password=staging_db_password,
+#     host="pre-db-stg.postgres.database.azure.com",
+#     port="5432",
+# )
  
 
 # test db
-# source_db = DatabaseManager(
-#     database="pre-pdb-test",
-#     user="psqladmin",
-#     password=test_db_password,
-#     host="pre-db-test.postgres.database.azure.com",
-#     port="5432",
-# )
+source_db = DatabaseManager(
+    database="pre-pdb-test",
+    user="psqladmin",
+    password=test_db_password,
+    host="pre-db-test.postgres.database.azure.com",
+    port="5432",
+)
 
 # demo database
 # source_db = DatabaseManager(
@@ -85,6 +86,7 @@ participant_manager = ParticipantManager(source_db.connection.cursor())
 booking_participant_manager = BookingParticipantManager(source_db.connection.cursor())
 capture_session_manager = CaptureSessionManager(source_db.connection.cursor())
 recording_manager = RecordingManager(source_db.connection.cursor())
+share_recordings_manager = ShareRecordingsManager(source_db.connection.cursor())
 audit_log_manager = AuditLogManager(source_db.connection.cursor())
 
 def migrate_manager_data(manager, destination_cursor):
@@ -121,6 +123,7 @@ def main():
     migrate_manager_data(booking_participant_manager, destination_db_cursor)
     migrate_manager_data(capture_session_manager, destination_db_cursor)
     migrate_manager_data(recording_manager, destination_db_cursor)
+    migrate_manager_data(share_recordings_manager, destination_db_cursor)
     migrate_manager_data(audit_log_manager, destination_db_cursor)
 
     source_db.close_connection()
