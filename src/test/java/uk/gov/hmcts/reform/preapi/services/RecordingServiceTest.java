@@ -54,7 +54,7 @@ class RecordingServiceTest {
         recordingEntity.setId(UUID.randomUUID());
         Booking bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
-        
+
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(bookingEntity);
@@ -309,5 +309,13 @@ class RecordingServiceTest {
                 recordingEntity.getId()
             );
         verify(recordingRepository, never()).deleteById(recordingEntity.getId());
+    }
+
+    @DisplayName("Should delete all recordings by capture session")
+    @Test
+    void deleteCascadeSuccess() {
+        recordingService.deleteCascade(recordingEntity.getCaptureSession());
+
+        verify(recordingRepository, times(1)).deleteAllByCaptureSession(recordingEntity.getCaptureSession());
     }
 }

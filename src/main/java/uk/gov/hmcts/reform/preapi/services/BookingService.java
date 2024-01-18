@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -40,17 +41,21 @@ public class BookingService {
     private final ShareBookingRepository shareBookingRepository;
     private final CaseRepository caseRepository;
 
+    private final CaptureSessionService captureSessionService;
+
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
                           final UserRepository userRepository,
-                          final ShareBookingRepository shareBookingRepository) {
+                          final ShareBookingRepository shareBookingRepository,
+                          CaptureSessionService captureSessionService) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.userRepository = userRepository;
         this.shareBookingRepository = shareBookingRepository;
         this.caseRepository = caseRepository;
+        this.captureSessionService = captureSessionService;
     }
 
     public BookingDTO findById(UUID id) {
@@ -140,9 +145,11 @@ public class BookingService {
     @Transactional
     public void markAsDeleted(UUID id) {
         var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
-        if (entity.isPresent()) {
-            bookingRepository.deleteById(id);
+        if (entity.isEmpty()) {
+            throw new NotFoundException("Booking: " + id);
         }
+        captureSessionService.deleteCascade(entity.get());
+        bookingRepository.deleteById(id);
     }
 
     @Transactional
@@ -166,5 +173,13 @@ public class BookingService {
         shareBookingRepository.save(shareBookingEntity);
 
         return UpsertResult.CREATED;
+    }
+
+    @Transactional
+    public void deleteCascade(Case caseEntity) {
+        bookingRepository
+            .findAllByCaseIdAndDeletedAtIsNull(caseEntity)
+            .forEach(captureSessionService::deleteCascade);
+        bookingRepository.deleteAllByCaseId(caseEntity);
     }
 }
