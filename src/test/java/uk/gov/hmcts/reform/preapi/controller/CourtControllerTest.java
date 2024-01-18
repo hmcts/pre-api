@@ -201,6 +201,16 @@ public class CourtControllerTest {
             .isEqualTo("{\"message\":\"Not found: Room: " + roomId + "\"}");
     }
 
+    @DisplayName("Should return 400 when court id is not a uuid")
+    @Test
+    void testFindByIdBadRequest() throws Exception {
+        mockMvc.perform(get("/courts/12345678")
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Invalid UUID string: 12345678"));
+    }
+
     private String getPath(UUID id) {
         return "/courts/" + id;
     }

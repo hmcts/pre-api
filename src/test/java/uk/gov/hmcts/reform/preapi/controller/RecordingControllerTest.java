@@ -260,6 +260,16 @@ class RecordingControllerTest {
                            .value("Not found: Recording: " + recordingId));
     }
 
+    @DisplayName("Should return 400 when recording id is not a uuid")
+    @Test
+    void testFindByIdBadRequest() throws Exception {
+        mockMvc.perform(get("/recordings/12345678")
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Invalid UUID string: 12345678"));
+    }
+
     private static String getPath(UUID recordingId) {
         return "/recordings/" + recordingId;
     }
