@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
 import uk.gov.hmcts.reform.preapi.entities.Invite;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.InviteRepository;
 
@@ -115,16 +116,15 @@ class InviteServiceTest {
     }
 
     @Test
-    void updateSuccess() {
+    void updateDenied() {
         Invite testingInvite = createTestingInvite();
         var inviteDTOModel = new CreateInviteDTO(testingInvite);
 
         when(inviteRepository.findById(testingInvite.getId())).thenReturn(Optional.of(inviteEntity));
 
-        inviteService.upsert(inviteDTOModel);
+        assertThrows(ConflictException.class, () -> inviteService.upsert(inviteDTOModel));
 
         verify(inviteRepository, times(1)).findById(inviteDTOModel.getId());
-        verify(inviteRepository, times(1)).save(any());
     }
 
     Invite createTestingInvite() {
