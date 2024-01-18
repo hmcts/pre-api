@@ -14,26 +14,26 @@ import java.util.UUID;
 @Schema(description = "CreateInviteDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateInviteDTO {
-    @Schema (description = "CreateInviteId")
-    private UUID id;
+    @Schema (description = "InviteId")
+    protected UUID id;
 
-    @Schema(description = "CreateInviteFirstName")
-    private String firstName;
+    @Schema(description = "InviteFirstName")
+    protected String firstName;
 
-    @Schema(description = "CreateInviteLastName")
-    private String lastName;
+    @Schema(description = "InviteLastName")
+    protected String lastName;
 
-    @Schema(description = "CreateInviteEmail")
-    private String email;
+    @Schema(description = "InviteEmail")
+    protected String email;
 
-    @Schema(description = "CreateInviteOrganisation")
-    private String organisation;
+    @Schema(description = "InviteOrganisation")
+    protected String organisation;
 
-    @Schema(description = "CreateInvitePhone")
-    private String phone;
+    @Schema(description = "InvitePhone")
+    protected String phone;
 
-    @Schema(description = "CreateInviteCode")
-    private String code;
+    @Schema(description = "InviteCode")
+    protected String code;
 
     public CreateInviteDTO(Invite invite) {
         this.id = invite.getId();
