@@ -1,6 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 from datetime import datetime
-import uuid
 
 class PortalAccessManager:
     def __init__(self, source_cursor):
@@ -8,10 +7,20 @@ class PortalAccessManager:
         self.failed_imports = set()
 
     def get_data(self):
-        query = """ SELECT u.*, ga.assigned, ga.assignedby
-                    FROM public.users u, public.groupassignments ga
-                    WHERE u.userid = ga.userid
-                    AND u.loginenabled ILIKE 'true' and u.invited ILIKE 'true'"""
+        query = """ SELECT 
+                        u.userid,
+                        MAX(u.status) as active,
+                        MAX(u.loginenabled) as loginenabled,
+                        MAX(u.invited) as invited,
+                        MAX(u.emailconfirmed) as emailconfirmed,
+                        MAX(ga.assigned) AS created,
+                        MAX(ga.assignedby) AS createdby,
+                        MAX(ga.gaid) AS portal_access_id
+                    FROM public.users u
+                    JOIN public.groupassignments ga ON u.userid = ga.userid
+                    JOIN public.grouplist gl ON ga.groupid = gl.groupid
+                    WHERE gl.groupname = 'Level 3'
+                    GROUP BY u.userid """
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
 
@@ -22,15 +31,17 @@ class PortalAccessManager:
             user_id = user[0]
 
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
-                id=str(uuid.uuid4())
+                id=user[7]
                 password = 'password' # temporary field - to be removed once B2C implemented
+                status = 'INVITATION_SENT'
 
-                login_enabled = str(user[18]).lower() == 'true'
-                login_disabled = str(user[18]).lower() == 'false'
-                invited = str(user[19]).lower() == 'true'
-                email_confirmed = str(user[11]).lower() == 'true'
-                status_active = str(user[10]).lower() == 'active'
-                status_inactive = str(user[10]).lower() == 'inactive'
+                login_enabled = str(user[2]).lower() == 'true'
+                login_disabled = str(user[2]).lower() == 'false'
+                email_confirmed = str(user[4]).lower() == 'true'
+                status_active = str(user[1]).lower() == 'active'
+                invited = str(user[3]).lower() == 'true' if user[3] is not None else status_active # alot of users active but invited is set to NULL 
+                 # invited = str(user[3]).lower() == 'true' 
+                status_inactive = str(user[1]).lower() == 'inactive'
 
                 login_enabled_and_invited = login_enabled and invited 
                 email_confirmed_and_status_inactive = email_confirmed and status_inactive
@@ -48,15 +59,15 @@ class PortalAccessManager:
                 else:
                     self.failed_imports.add(('portal_access', user_id, "Missing status details"))
 
-                last_access = parse_to_timestamp(user[17])
-                invitation_datetime = parse_to_timestamp(user[16])
-                registered_datetime = parse_to_timestamp(user[16])
-                modified_at =parse_to_timestamp(user[20])
-                created_by = user[21]
-                created_at = parse_to_timestamp(user[20])
+                # last_access = datetime.now() # this value is obtained from DV
+                # invitation_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
+                # registered_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
+                created_by = user[6]
+                created_at = parse_to_timestamp(user[5])
+                modified_at = created_at
 
                 batch_portal_user_data.append((
-                    id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at, created_by
+                    id, user_id, password, status, created_at, modified_at, created_by
                 ))
 
         try: 
@@ -64,8 +75,8 @@ class PortalAccessManager:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.portal_access
-                        (id, user_id, password, last_access, status, invitation_datetime, registered_datetime, created_at, modified_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        (id, user_id, password, status, created_at, modified_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     """,
                     [entry[:-1] for entry in batch_portal_user_data],
                 )
@@ -80,7 +91,6 @@ class PortalAccessManager:
                         record=entry[1],
                         created_at=entry[7],
                         created_by=entry[9],
-                        # modified_at = entry[8]
                     )
 
         except Exception as e:

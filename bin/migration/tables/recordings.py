@@ -1,4 +1,3 @@
-# from collections import Counter
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 
 

@@ -1,6 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
 from datetime import datetime
-import uuid
 
 class AppAccessManager:
     def __init__(self, source_cursor):
@@ -14,11 +13,12 @@ class AppAccessManager:
                         MAX(CASE WHEN gl.grouptype = 'Location' THEN ga.groupid END) AS court_id,
                         MAX(u.status) as active,
                         MAX(ga.assigned) AS created,
-                        MAX(ga.assignedby) AS createdby
+                        MAX(ga.assignedby) AS createdby,
+                        MAX(ga.gaid) AS app_access_id
                     FROM public.users u
                     JOIN public.groupassignments ga ON u.userid = ga.userid
                     JOIN public.grouplist gl ON ga.groupid = gl.groupid
-                    WHERE ga.groupid != '95ebbcde-c27c-42d5-89f2-b0960350db5e'
+                    WHERE gl.groupname != 'Level 3'
                     GROUP BY u.userid 
                 """
         self.source_cursor.execute(query)
@@ -33,6 +33,7 @@ class AppAccessManager:
         id = None
 
         for user in source_data:
+            id=user[6]
             user_id = user[0]
             role_id = user[1]
             court_id = user[2]
@@ -40,8 +41,7 @@ class AppAccessManager:
             created_at = parse_to_timestamp(user[4])
             modified_at = created_at
             created_by = user[5]
-
-            
+     
             if not check_existing_record(destination_cursor,'users', 'id', user_id):
                 self.failed_imports.add(('app_access',user_id, f"User id not in users table: {user_id}")) 
                 continue
@@ -58,10 +58,10 @@ class AppAccessManager:
                 continue
             
             if not check_existing_record(destination_cursor,'app_access',"user_id",user_id ):          
-                id=str(uuid.uuid4())
-                last_access = datetime.now() # ?
+                
+                # last_access = 
                 batch_app_users_data.append((
-                    id, user_id, court_id, role_id, last_access, active, created_at, modified_at,created_by,
+                    id, user_id, court_id, role_id, active, created_at, modified_at,created_by,
                 ))
 
         try: 
@@ -69,8 +69,8 @@ class AppAccessManager:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.app_access
-                        (id, user_id, court_id, role_id, last_access, active, created_at, modified_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        (id, user_id, court_id, role_id, active, created_at, modified_at)
+                    VALUES (%s, %s, %s, %s, %s, %s,  %s)
                     """,
                     [entry[:-1] for entry in batch_app_users_data],
                 )

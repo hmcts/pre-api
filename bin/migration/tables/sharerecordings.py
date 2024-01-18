@@ -10,12 +10,12 @@ class ShareRecordingsManager:
         self.source_cursor.execute("SELECT * FROM public.videopermissions")
         return self.source_cursor.fetchall()
     
-    def get_capture_session(self, destination_cursor, recordings_data, recording_id):
-        capture_session_id = matched_recording = next((recording[1] for recording in recordings_data if recording[0] == recording_id), None)
+    def get_capture_session(self, recordings_data, recording_id):
+        capture_session_id = next((recording[1] for recording in recordings_data if recording[0] == recording_id), None)
         return capture_session_id
     
-    def get_user(self, destination_cursor, users_data,  user_email):
-        user_id = matched_recording = next((user[0] for user in users_data if user[3] == user_email), None)
+    def get_user(self, users_data,  user_email):
+        user_id = next((user[0] for user in users_data if user[3] == user_email), None)
         return user_id
 
     def migrate_data(self, destination_cursor, source_data):
@@ -31,12 +31,12 @@ class ShareRecordingsManager:
             id = video_permission[0]
 
             recording_id = video_permission[1]
-            capture_session_id = self.get_capture_session(destination_cursor, recordings_data, recording_id)
+            capture_session_id = self.get_capture_session( recordings_data, recording_id)
 
             shared_with_user_id = video_permission[4]
 
             created_by = video_permission[18]
-            shared_by_user_id = self.get_user(destination_cursor,users_data, created_by)
+            shared_by_user_id = self.get_user(users_data, created_by)
 
             created_at = parse_to_timestamp(video_permission[19])
             deleted_at = parse_to_timestamp(video_permission[21]) if video_permission[15] != "True" else None
