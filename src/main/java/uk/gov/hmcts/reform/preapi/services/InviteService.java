@@ -72,7 +72,7 @@ public class InviteService {
         newInvite.setCode(createInviteDTO.getCode());
         inviteRepository.save(newInvite);
 
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return UpsertResult.CREATED;
     }
 
     @Transactional
