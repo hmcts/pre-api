@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.Set;
 import javax.annotation.Nullable;
 
