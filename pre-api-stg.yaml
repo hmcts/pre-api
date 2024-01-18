@@ -476,6 +476,8 @@ definitions:
           description: CreateCourtRegionIds
           format: uuid
           type: string
+        maxItems: 2147483647
+        minItems: 1
         type: array
       rooms:
         description: CreateCourtRoomIds
@@ -483,7 +485,16 @@ definitions:
           description: CreateCourtRoomIds
           format: uuid
           type: string
+        maxItems: 2147483647
+        minItems: 1
         type: array
+    required:
+      - court_type
+      - id
+      - location_code
+      - name
+      - regions
+      - rooms
     type: object
   CreateParticipantDTO:
     description: CreateParticipantDTO
