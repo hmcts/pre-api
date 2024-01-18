@@ -37,6 +37,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(BookingController.class)
@@ -461,6 +462,16 @@ class BookingControllerTest {
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is5xxServerError());
+    }
+
+    @DisplayName("Should return 400 when booking id is not a uuid")
+    @Test
+    void testFindByIdBadRequest() throws Exception {
+        mockMvc.perform(get("/bookings/12345678")
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Invalid UUID string: 12345678"));
     }
 
     private String getPath(UUID bookingId) {
