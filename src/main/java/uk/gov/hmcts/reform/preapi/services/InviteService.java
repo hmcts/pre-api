@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
@@ -41,12 +40,9 @@ public class InviteService {
         String organisation,
         Pageable pageable
     ) {
-        var result =  inviteRepository
+        return inviteRepository
             .searchBy(firstName, lastName, email, organisation, pageable)
-            .stream()
-            .map(InviteDTO::new)
-            .toList();
-        return new PageImpl<>(result, pageable, result.size());
+            .map(InviteDTO::new);
     }
 
     @Transactional

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.entities.Invite;
 
 import java.util.UUID;
 
@@ -33,5 +34,15 @@ public class CreateInviteDTO {
 
     @Schema(description = "CreateInviteCode")
     private String code;
+
+    public CreateInviteDTO(Invite invite) {
+        this.id = invite.getId();
+        this.firstName = invite.getFirstName();
+        this.lastName = invite.getLastName();
+        this.email = invite.getEmail();
+        this.organisation = invite.getOrganisation();
+        this.phone = invite.getPhone();
+        this.code = invite.getCode();
+    }
 }
 
