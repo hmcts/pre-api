@@ -63,10 +63,7 @@ public class RecordingService {
             createRecordingDTO.getCaptureSessionId()
         );
 
-        if (
-            (!isUpdate && captureSession.isEmpty())
-                || (createRecordingDTO.getCaptureSessionId() != null && captureSession.isEmpty())
-        ) {
+        if ((!isUpdate || createRecordingDTO.getCaptureSessionId() != null) && captureSession.isEmpty()) {
             throw new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId());
         }
 
