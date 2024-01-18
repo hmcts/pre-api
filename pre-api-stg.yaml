@@ -460,26 +460,26 @@ definitions:
     description: CreateInviteDTO
     properties:
       code:
-        description: CreateInviteCode
+        description: InviteCode
         type: string
       email:
-        description: CreateInviteEmail
+        description: InviteEmail
         type: string
       first_name:
-        description: CreateInviteFirstName
+        description: InviteFirstName
         type: string
       id:
-        description: CreateInviteId
+        description: InviteId
         format: uuid
         type: string
       last_name:
-        description: CreateInviteLastName
+        description: InviteLastName
         type: string
       organisation:
-        description: CreateInviteOrganisation
+        description: InviteOrganisation
         type: string
       phone:
-        description: CreateInvitePhone
+        description: InvitePhone
         type: string
     type: object
   CreateParticipantDTO:
@@ -712,7 +712,8 @@ definitions:
       code:
         description: InviteCode
         type: string
-      createdAt:
+      created_at:
+        description: InviteCreatedAt
         format: date-time
         type: string
       email:
@@ -728,7 +729,8 @@ definitions:
       last_name:
         description: InviteLastName
         type: string
-      modifiedAt:
+      modified_at:
+        description: InvitedModifiedAt
         format: date-time
         type: string
       organisation:
@@ -827,7 +829,8 @@ definitions:
       code:
         description: InviteCode
         type: string
-      createdAt:
+      created_at:
+        description: InviteCreatedAt
         format: date-time
         type: string
       email:
@@ -843,7 +846,8 @@ definitions:
       last_name:
         description: InviteLastName
         type: string
-      modifiedAt:
+      modified_at:
+        description: InvitedModifiedAt
         format: date-time
         type: string
       organisation:
