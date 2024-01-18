@@ -8,58 +8,63 @@ class AppAccessManager:
         self.failed_imports = set()
 
     def get_data(self):
-        query = """
-            SELECT u.*, gl.groupname, ga.assigned, ga.assignedby
-            FROM public.users u
-            JOIN public.groupassignments ga ON u.userid = ga.userid
-            JOIN public.grouplist gl ON ga.groupid = gl.groupid
-            WHERE u.userid NOT IN (
-                SELECT userid
-                FROM public.groupassignments
-                WHERE groupid = '95ebbcde-c27c-42d5-89f2-b0960350db5e'
-            )
-        """
+        query = """ SELECT 
+                        u.userid,
+                        MAX(CASE WHEN gl.grouptype = 'Security' THEN ga.groupid END) AS role_id,
+                        MAX(CASE WHEN gl.grouptype = 'Location' THEN ga.groupid END) AS court_id,
+                        MAX(u.status) as active,
+                        MAX(ga.assigned) AS created,
+                        MAX(ga.assignedby) AS createdby
+                    FROM public.users u
+                    JOIN public.groupassignments ga ON u.userid = ga.userid
+                    JOIN public.grouplist gl ON ga.groupid = gl.groupid
+                    WHERE ga.groupid != '95ebbcde-c27c-42d5-89f2-b0960350db5e'
+                    GROUP BY u.userid 
+                """
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
+    
 
     def migrate_data(self, destination_cursor, source_data):
+        destination_cursor.execute("SELECT id FROM public.courts WHERE name = 'Default Court'")
+        default_court_id = destination_cursor.fetchone()[0]
+
         batch_app_users_data = []
         id = None
 
         for user in source_data:
             user_id = user[0]
+            role_id = user[1]
+            court_id = user[2]
+            active = True if user[3].lower() == "active" else False
+            created_at = parse_to_timestamp(user[4])
+            modified_at = created_at
+            created_by = user[5]
 
-            destination_cursor.execute("SELECT id FROM public.courts WHERE name = 'Default Court'")
-            default_court_id = destination_cursor.fetchone()[0]
+            
+            if not check_existing_record(destination_cursor,'users', 'id', user_id):
+                print('user nope')
+                self.failed_imports.add(('app_access',user_id, f"User id not in users table: {user_id}")) 
+                continue
+            
+            if not check_existing_record(destination_cursor,'roles', 'id', role_id):
+                print('role nope')
+                self.failed_imports.add(('app_access',user_id, f"Role: {role_id} not found in roles table for user_id: {user_id}")) 
+                continue
 
-            if not check_existing_record(destination_cursor,'app_access', 'user_id', user_id):
+            if court_id is None:
+                court_id = default_court_id
+            
+            if not check_existing_record(destination_cursor,'courts', 'id', court_id):
+                print('court nope')
+                self.failed_imports.add(('app_access',user_id, f"Court: {court_id} not found in courts table for user_id: {user_id}")) 
+                continue
+            
+            if not check_existing_record(destination_cursor,'app_access',"user_id",user_id ):          
                 id=str(uuid.uuid4())
-                court_id = default_court_id  
-                user_role = user[20]
-
-                if user_role is None:
-                    self.failed_imports.add(('app_access',user_id, f"No role info for user_id {user_id}")) 
-                    continue
-
-                destination_cursor.execute("SELECT id FROM public.roles WHERE name = %s", (user_role,))
-                role_id = destination_cursor.fetchone()
-
-                if role_id is None:
-                    self.failed_imports.add(('app_access',user_id, f"Role not listed in roles table {user_role}"))
-                    continue
-
                 last_access = datetime.now() # ?
-                
-                if str(user[10]).lower() == 'active':
-                    active = True
-                elif str(user[10]).lower() == 'inactive':
-                    active = False
-                created_at = parse_to_timestamp(user[21])
-                modified_at =parse_to_timestamp(user[21]) 
-                created_by = user[22]
-
                 batch_app_users_data.append((
-                    id, user_id, court_id, role_id, last_access, active, created_at, created_by, modified_at
+                    id, user_id, court_id, role_id, last_access, active, created_at, modified_at,created_by,
                 ))
 
         try: 
@@ -68,7 +73,7 @@ class AppAccessManager:
                     """
                     INSERT INTO public.app_access
                         (id, user_id, court_id, role_id, last_access, active, created_at, modified_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     [entry[:-1] for entry in batch_app_users_data],
                 )
@@ -82,7 +87,6 @@ class AppAccessManager:
                     record=entry[1],
                     created_at=entry[6],
                     created_by=entry[8],
-                    # modified_at=entry[7]
                 )
                     
         except Exception as e:  
