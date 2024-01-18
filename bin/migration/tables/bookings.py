@@ -45,7 +45,7 @@ class BookingManager:
             recording_status = recording[11]
             deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
             created_at = parse_to_timestamp(recording[22])
-            modified_at = parse_to_timestamp(recording[24]) if recording[24] else None
+            modified_at = parse_to_timestamp(recording[24]) if recording[24] is not None else created_at
             created_by = recording[21]
 
             # Check if the case has been migrated into the cases table 

@@ -48,7 +48,7 @@ class CaseManager:
                 test = False  
                 created_at = parse_to_timestamp(case[5])
                 created_by = case[4]
-                modified_at = parse_to_timestamp(case[7]) if case[7] else case[4]
+                modified_at = parse_to_timestamp(case[7]) if case[7] is not None else created_at
                 deleted_at = self.get_case_deleted_date(id) if case[3] == "Deleted" else None
 
 
@@ -61,7 +61,6 @@ class CaseManager:
                     record=reference,
                     created_at=created_at,
                     created_by=created_by,
-                    # modified_at = modified_at
                 )
             
         try: 
