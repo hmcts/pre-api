@@ -712,8 +712,7 @@ definitions:
       code:
         description: InviteCode
         type: string
-      created_at:
-        description: InvitedCreatedAt
+      createdAt:
         format: date-time
         type: string
       email:
@@ -729,8 +728,7 @@ definitions:
       last_name:
         description: InviteLastName
         type: string
-      modified_at:
-        description: InvitedModifiedAt
+      modifiedAt:
         format: date-time
         type: string
       organisation:
@@ -829,8 +827,7 @@ definitions:
       code:
         description: InviteCode
         type: string
-      created_at:
-        description: InvitedCreatedAt
+      createdAt:
         format: date-time
         type: string
       email:
@@ -846,8 +843,7 @@ definitions:
       last_name:
         description: InviteLastName
         type: string
-      modified_at:
-        description: InvitedModifiedAt
+      modifiedAt:
         format: date-time
         type: string
       organisation:
