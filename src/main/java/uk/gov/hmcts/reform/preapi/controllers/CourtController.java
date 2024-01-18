@@ -109,7 +109,7 @@ public class CourtController extends PreApiController {
     @PutMapping("/{courtId}")
     @Operation(operationId = "putCourt", summary = "Create or Update a Court")
     public ResponseEntity<Void> upsert(@PathVariable UUID courtId, @RequestBody CreateCourtDTO createCourtDTO) {
-        if (!createCourtDTO.getId().equals(courtId)) {
+        if (!courtId.equals(createCourtDTO.getId())) {
             throw new PathPayloadMismatchException("courtId", "createCourtDTO.id");
         }
         return getUpsertResponse(courtService.upsert(createCourtDTO), createCourtDTO.getId());
