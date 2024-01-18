@@ -1,8 +1,10 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -47,4 +49,15 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     List<Recording> findAllByParentRecordingIsNotNull();
 
     List<Recording> findAllByParentRecordingIsNull();
+
+    @Query("""
+        update #{#entityName} e
+        set e.deletedAt=CURRENT_TIMESTAMP
+        where e.captureSession=:captureSession
+        and e.deletedAt is null
+        """
+    )
+    @Modifying
+    @Transactional
+    void deleteAllByCaptureSession(CaptureSession captureSession);
 }

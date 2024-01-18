@@ -30,6 +30,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -64,14 +65,15 @@ class BookingServiceTest {
     @MockBean
     private UserRepository userRepository;
 
+    @MockBean
+    private CaptureSessionService captureSessionService;
+
     @Autowired
     private BookingService bookingService;
 
     @DisplayName("Find All By CaseId")
     @Test
     void findAllByCaseIdSuccess() {
-
-
         var courtEntity = new Court();
         courtEntity.setId(UUID.randomUUID());
         var caseEntity = new Case();
@@ -100,7 +102,6 @@ class BookingServiceTest {
                     add(bookingModel2);
                 }
             });
-
     }
 
     @DisplayName("Search By Case Ref")
@@ -356,33 +357,29 @@ class BookingServiceTest {
     @DisplayName("Delete a booking")
     @Test
     void deleteBookingSuccess() {
-
         var bookingId = UUID.randomUUID();
-        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
+        var bookingEntity = new Booking();
         bookingEntity.setId(bookingId);
 
-        var recordingEntity = new uk.gov.hmcts.reform.preapi.entities.Recording();
-        recordingEntity.setId(UUID.randomUUID());
-
-        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
+        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
 
         bookingService.markAsDeleted(bookingId);
+
+        verify(captureSessionService, times(1)).deleteCascade(bookingEntity);
         verify(bookingRepository, times(1)).deleteById(bookingId);
     }
 
     @DisplayName("Delete a booking that doesn't exist")
     @Test
     void deleteBookingSuccessAlthoughDoesntExist() {
-
         var bookingId = UUID.randomUUID();
-        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
-        bookingEntity.setId(bookingId);
 
-        var recordingEntity = new uk.gov.hmcts.reform.preapi.entities.Recording();
-        recordingEntity.setId(UUID.randomUUID());
+        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.empty());
 
-        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.empty());
-        verify(bookingRepository, times(0)).deleteById(bookingId);
+        assertThrows(NotFoundException.class, () -> bookingService.markAsDeleted(bookingId));
+
+        verify(captureSessionService, never()).deleteCascade(any(Booking.class));
+        verify(bookingRepository, never()).deleteById(bookingId);
     }
 
     @DisplayName("Share a booking by its id")
@@ -516,5 +513,23 @@ class BookingServiceTest {
                 bookingService.shareBookingById(shareBookingDTO);
             })
             .withMessage("Conflict: Share booking already exists");
+    }
+
+    @DisplayName("Should delete all attached capture sessions before marking booking as deleted")
+    @Test
+    void deleteCascadeSuccess() {
+        var caseEntity = new Case();
+        caseEntity.setId(UUID.randomUUID());
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(caseEntity);
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(caseEntity)).thenReturn(List.of(booking));
+
+        bookingService.deleteCascade(caseEntity);
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(caseEntity);
+        verify(captureSessionService, times(1)).deleteCascade(booking);
+        verify(bookingRepository, times(1)).deleteAllByCaseId(caseEntity);
     }
 }
