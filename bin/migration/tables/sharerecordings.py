@@ -70,7 +70,7 @@ class ShareRecordingsManager:
             for entry in batch_share_recordings_data:
                 audit_entry_creation(
                     destination_cursor,
-                    table_name="participants",
+                    table_name="share_recordings",
                     record_id=entry[0],
                     record=entry[1],
                     created_at=entry[4],

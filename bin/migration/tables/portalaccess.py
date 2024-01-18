@@ -70,6 +70,15 @@ class PortalAccessManager:
                     id, user_id, password, status, created_at, modified_at, created_by
                 ))
 
+                audit_entry_creation(
+                    destination_cursor,
+                    table_name='portal_access',
+                    record_id=id,
+                    record=user_id,
+                    created_at=created_at,
+                    created_by=created_by,
+                )
+
         try: 
             if batch_portal_user_data:
                 destination_cursor.executemany(
@@ -83,15 +92,18 @@ class PortalAccessManager:
 
                 destination_cursor.connection.commit()
 
-                for entry in batch_portal_user_data:
-                    audit_entry_creation(
-                        destination_cursor,
-                        table_name='portal_access',
-                        record_id=entry[0],
-                        record=entry[1],
-                        created_at=entry[7],
-                        created_by=entry[9],
-                    )
+                # for entry in batch_portal_user_data:
+                    # print('portal_access 1')
+                    # audit_entry_creation(
+                    #     destination_cursor,
+                    #     table_name='portal_access',
+                    #     record_id=entry[0],
+                    #     record=entry[1],
+                    #     created_at=entry[7],
+                    #     created_by=entry[9],
+                    # )
+                    # print('portal_access 2')
+
 
         except Exception as e:
             self.failed_imports.add(('portal_access', user_id, e))
