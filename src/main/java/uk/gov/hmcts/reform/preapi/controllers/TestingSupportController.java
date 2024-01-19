@@ -5,7 +5,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -227,38 +226,6 @@ class TestingSupportController {
         };
 
         return ResponseEntity.ok(response);
-    }
-
-    @DeleteMapping("/clear-entities")
-    public ResponseEntity<Void> clearEntities() {
-        bookingRepository.deleteAll();
-        bookingRepository.flush();
-
-        captureSessionRepository.deleteAll();
-        captureSessionRepository.flush();
-
-        caseRepository.deleteAll();
-        caseRepository.flush();
-
-        courtRepository.deleteAll();
-        courtRepository.flush();
-
-        participantRepository.deleteAll();
-        participantRepository.flush();
-
-        recordingRepository.deleteAll();
-        recordingRepository.flush();
-
-        regionRepository.deleteAll();
-        regionRepository.flush();
-
-        roomRepository.deleteAll();
-        roomRepository.flush();
-
-        userRepository.deleteAll();
-        userRepository.flush();
-
-        return ResponseEntity.noContent().build();
     }
 
     private Court createTestCourt() {
