@@ -100,7 +100,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("4567");
+        caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -151,7 +151,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("1234");
+        caseEntity.setReference("1234567890");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
