@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 @Data
@@ -57,10 +58,8 @@ public class PlaybackReportDTO {
             var courtEntity = caseEntity.getCourt();
             court = courtEntity.getName();
             caseReference = caseEntity.getReference();
-            regions = courtEntity
-                .getRegions()
-                .stream()
-                .map(RegionDTO::new)
+            regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
+                .flatMap(regions -> regions.stream().map(RegionDTO::new))
                 .collect(Collectors.toSet());
             recordingId = recording.getId();
         }

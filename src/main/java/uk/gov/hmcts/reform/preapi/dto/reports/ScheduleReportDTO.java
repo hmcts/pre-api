@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import java.sql.Timestamp;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
@@ -44,11 +45,8 @@ public class ScheduleReportDTO {
         caseReference = caseEntity.getReference();
         captureSessionUser = captureSession.getStartedByUser().getEmail();
         court = caseEntity.getCourt().getName();
-        regions = caseEntity
-            .getCourt()
-            .getRegions()
-            .stream()
-            .map(RegionDTO::new)
+        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
     }
 }
