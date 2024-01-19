@@ -8,7 +8,7 @@
 
 This code repository contains the source code for the Pre-Recorded Evidence API.
 
-The API hosts numerous endpoints, [documented here](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
+The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
 
 This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
 ```mermaid
