@@ -277,7 +277,7 @@ dependencies {
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.4.1.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.4.2.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.0:all'
