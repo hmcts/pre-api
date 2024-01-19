@@ -18,5 +18,13 @@ java:
           alias: POSTGRES_USER
         - name: AppInsightsInstrumentationKey
           alias: APPINSIGHTS_INSTRUMENTATIONKEY
+        - name: apim-sub-smoketest-primary-key
+          alias: APIM_SUB_SMOKETEST_PRIMARY_KEY
+        - name: apim-sub-smoketest-secondary-key
+          alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
+    APIM_ENABLED: true
+    APIM_URI: https://sds-api-mgmt.platform.hmcts.net
+
+

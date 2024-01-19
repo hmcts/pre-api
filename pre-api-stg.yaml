@@ -1834,51 +1834,6 @@ paths:
       summary: Get a list of all roles
       tags:
         - role-controller
-  /testing-support/create-court:
-    post:
-      operationId: createCourt
-      parameters: []
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      tags:
-        - testing-support-controller
-  /testing-support/should-delete-recordings-for-booking:
-    post:
-      operationId: shouldDeleteRecordingsForBooking
-      parameters: []
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      tags:
-        - testing-support-controller
-  /testing-support/should-not-have-past-scheduled-for-date:
-    post:
-      operationId: shouldNotHavePastScheduledForDate
-      parameters: []
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      tags:
-        - testing-support-controller
   /users:
     get:
       operationId: getUsers

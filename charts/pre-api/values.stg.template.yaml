@@ -2,5 +2,6 @@
 java:
   environment:
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
+    APIM_URI: https://sds-api-mgmt.staging.platform.hmcts.net
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}

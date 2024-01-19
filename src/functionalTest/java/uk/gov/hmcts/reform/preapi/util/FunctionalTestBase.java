@@ -96,4 +96,9 @@ public class FunctionalTestBase {
         }
         return headers;
     }
+
+    @BeforeEach
+    public void cleanUp() {
+        doDeleteRequest("/clear-entities");
+    }
 }
