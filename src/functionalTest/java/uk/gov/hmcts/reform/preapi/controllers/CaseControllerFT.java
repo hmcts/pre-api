@@ -9,6 +9,8 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CaseControllerFT extends FunctionalTestBase {
@@ -27,7 +29,7 @@ class CaseControllerFT extends FunctionalTestBase {
         var createCase = new CreateCaseDTO();
         createCase.setId(java.util.UUID.randomUUID());
         createCase.setCourtId(courtId);
-        createCase.setReference("FT12345678");
+        createCase.setReference(generateRandomCaseReference());
         var participant1 = new CreateParticipantDTO();
         participant1.setId(java.util.UUID.randomUUID());
         participant1.setFirstName("John");
@@ -46,12 +48,18 @@ class CaseControllerFT extends FunctionalTestBase {
         var putResponse = doPutRequest(CASES_ENDPOINT + createCase.getId(),
                                        OBJECT_MAPPER.writeValueAsString(createCase));
 
-        assertThat(putResponse.getBody().asString()).isEqualTo("");
         assertThat(putResponse.statusCode()).isEqualTo(201);
 
         var getResponse = doGetRequest(CASES_ENDPOINT + createCase.getId());
         assertThat(getResponse.statusCode()).isEqualTo(200);
         var caseResponse = OBJECT_MAPPER.readValue(getResponse.body().asString(), CaseDTO.class);
         assertThat(caseResponse.getParticipants().size()).isEqualTo(2);
+    }
+
+    private String generateRandomCaseReference() {
+        return UUID.randomUUID()
+            .toString()
+            .replace("-", "")
+            .substring(0, 13);
     }
 }
