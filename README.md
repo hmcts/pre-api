@@ -221,7 +221,7 @@ docker image rm <image-id>
 There is no need to remove postgres and java or similar core images.
 
 ## How to generate a Power Platform Custom Connector
-Copy the Swagger v2 spec found [here](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
+Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 
 ## License
 
