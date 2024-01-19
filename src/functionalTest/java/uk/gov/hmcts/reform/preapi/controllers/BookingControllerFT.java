@@ -27,7 +27,6 @@ class BookingControllerFT extends FunctionalTestBase {
 
         var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking").body().jsonPath();
 
-        var caseId = testIds.get("caseId");
         var bookingId = testIds.get("bookingId");
         var recordingId = testIds.get("recordingId");
 
@@ -78,5 +77,12 @@ class BookingControllerFT extends FunctionalTestBase {
         var putResponse = doPutRequest(BOOKINGS_ENDPOINT + bookingId, OBJECT_MAPPER.writeValueAsString(createBooking));
 
         assertThat(putResponse.statusCode()).isEqualTo(400);
+    }
+
+    @Test
+    @DisplayName("Deleting a non-existent booking should return 404")
+    void deletingNonExistentBookingShouldReturn404() {
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "00000000-0000-0000-0000-000000000000");
+        assertThat(deleteResponse.statusCode()).isEqualTo(404);
     }
 }
