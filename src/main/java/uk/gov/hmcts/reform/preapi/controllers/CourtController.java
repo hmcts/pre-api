@@ -4,6 +4,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -108,7 +109,7 @@ public class CourtController extends PreApiController {
 
     @PutMapping("/{courtId}")
     @Operation(operationId = "putCourt", summary = "Create or Update a Court")
-    public ResponseEntity<Void> upsert(@PathVariable UUID courtId, @RequestBody CreateCourtDTO createCourtDTO) {
+    public ResponseEntity<Void> upsert(@PathVariable UUID courtId,  @Valid @RequestBody CreateCourtDTO createCourtDTO) {
         if (!courtId.equals(createCourtDTO.getId())) {
             throw new PathPayloadMismatchException("courtId", "createCourtDTO.id");
         }

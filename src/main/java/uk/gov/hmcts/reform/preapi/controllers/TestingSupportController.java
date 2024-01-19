@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,6 +41,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "/testing-support")
+@ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
     private final BookingRepository bookingRepository;
@@ -98,7 +100,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("4567");
+        caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -149,7 +151,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("1234");
+        caseEntity.setReference("1234567890");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 

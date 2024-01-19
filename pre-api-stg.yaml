@@ -476,6 +476,8 @@ definitions:
           description: CreateCourtRegionIds
           format: uuid
           type: string
+        maxItems: 2147483647
+        minItems: 1
         type: array
       rooms:
         description: CreateCourtRoomIds
@@ -483,7 +485,42 @@ definitions:
           description: CreateCourtRoomIds
           format: uuid
           type: string
+        maxItems: 2147483647
+        minItems: 1
         type: array
+    required:
+      - court_type
+      - id
+      - location_code
+      - name
+      - regions
+      - rooms
+    type: object
+  CreateInviteDTO:
+    description: CreateInviteDTO
+    properties:
+      code:
+        description: InviteCode
+        type: string
+      email:
+        description: InviteEmail
+        type: string
+      first_name:
+        description: InviteFirstName
+        type: string
+      id:
+        description: InviteId
+        format: uuid
+        type: string
+      last_name:
+        description: InviteLastName
+        type: string
+      organisation:
+        description: InviteOrganisation
+        type: string
+      phone:
+        description: InvitePhone
+        type: string
     type: object
   CreateParticipantDTO:
     description: CreateParticipantDTO
@@ -708,6 +745,41 @@ definitions:
         type: array
         uniqueItems: true
     type: object
+  EntityModelInviteDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      code:
+        description: InviteCode
+        type: string
+      created_at:
+        description: InviteCreatedAt
+        format: date-time
+        type: string
+      email:
+        description: InviteEmail
+        type: string
+      first_name:
+        description: InviteFirstName
+        type: string
+      id:
+        description: InviteId
+        format: uuid
+        type: string
+      last_name:
+        description: InviteLastName
+        type: string
+      modified_at:
+        description: InvitedModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: InviteOrganisation
+        type: string
+      phone:
+        description: InvitePhone
+        type: string
+    type: object
   EntityModelRecordingDTO:
     properties:
       _links:
@@ -791,6 +863,40 @@ definitions:
       role:
         $ref: '#/definitions/RoleDTO'
     type: object
+  InviteDTO:
+    description: InviteDTO
+    properties:
+      code:
+        description: InviteCode
+        type: string
+      created_at:
+        description: InviteCreatedAt
+        format: date-time
+        type: string
+      email:
+        description: InviteEmail
+        type: string
+      first_name:
+        description: InviteFirstName
+        type: string
+      id:
+        description: InviteId
+        format: uuid
+        type: string
+      last_name:
+        description: InviteLastName
+        type: string
+      modified_at:
+        description: InvitedModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: InviteOrganisation
+        type: string
+      phone:
+        description: InvitePhone
+        type: string
+    type: object
   Link:
     properties:
       deprecation:
@@ -864,6 +970,20 @@ definitions:
           courtDTOList:
             items:
               $ref: '#/definitions/EntityModelCourtDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelInviteDTO:
+    properties:
+      _embedded:
+        properties:
+          inviteDTOList:
+            items:
+              $ref: '#/definitions/EntityModelInviteDTO'
             type: array
         type: object
       _links:
@@ -1578,6 +1698,103 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
+  /invites:
+    get:
+      operationId: searchInvites
+      parameters:
+        - description: The first name of the user to search by
+          in: query
+          name: firstName
+          type: string
+        - description: The last name of the user to search by
+          in: query
+          name: lastName
+          type: string
+        - description: The email of the user to search by
+          in: query
+          name: email
+          type: string
+          x-example: example@example.com
+        - description: The organisation of the user to search by
+          in: query
+          name: organisation
+          type: string
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 1
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelInviteDTO'
+      summary: 'Search for Invites by first name, last name, email or organisation'
+      tags:
+        - invite-controller
+  '/invites/{id}':
+    delete:
+      operationId: deleteInvite
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+      summary: Revoke an invite
+      tags:
+        - invite-controller
+    get:
+      operationId: getInviteById
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/InviteDTO'
+      summary: Get an invite by id
+      tags:
+        - invite-controller
+    put:
+      consumes:
+        - application/json
+      operationId: putInvite
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateInviteDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update an Invite
+      tags:
+        - invite-controller
   /recordings:
     get:
       operationId: getRecordings
@@ -1823,51 +2040,6 @@ paths:
       summary: Get a list of all roles
       tags:
         - role-controller
-  /testing-support/create-court:
-    post:
-      operationId: createCourt
-      parameters: []
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      tags:
-        - testing-support-controller
-  /testing-support/should-delete-recordings-for-booking:
-    post:
-      operationId: shouldDeleteRecordingsForBooking
-      parameters: []
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      tags:
-        - testing-support-controller
-  /testing-support/should-not-have-past-scheduled-for-date:
-    post:
-      operationId: shouldNotHavePastScheduledForDate
-      parameters: []
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      tags:
-        - testing-support-controller
   /users:
     get:
       operationId: getUsers
