@@ -53,7 +53,7 @@ public class AccessRemovedReportDTO {
             .collect(Collectors.toSet());
 
         var user = shareBooking.getSharedWith();
-        userFullName = user.getFirstName() + " " + user.getLastName();
+        userFullName = user.getFullName();
         userEmail = user.getEmail();
     }
 }

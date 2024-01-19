@@ -26,8 +26,14 @@ public class SharedReportDTO {
     @Schema(description = "SharedReportAllocatedTo")
     private String allocatedTo;
 
+    @Schema(description = "SharedReportAllocatedToFullName")
+    private String allocatedToFullName;
+
     @Schema(description = "SharedReportAllocatedBy")
     private String allocatedBy;
+
+    @Schema(description = "SharedReportAllocatedToFullName")
+    private String allocatedByFullName;
 
     @Schema(description = "SharedReportCaseReference")
     private String caseReference;
@@ -44,7 +50,9 @@ public class SharedReportDTO {
     public SharedReportDTO(ShareBooking shareBooking) {
         sharedAt = shareBooking.getCreatedAt();
         allocatedTo = shareBooking.getSharedWith().getEmail();
+        allocatedToFullName = shareBooking.getSharedWith().getFullName();
         allocatedBy = shareBooking.getSharedBy().getEmail();
+        allocatedByFullName = shareBooking.getSharedBy().getFullName();
         var caseEntity = shareBooking.getBooking().getCaseId();
         caseReference = caseEntity.getReference();
         court = caseEntity.getCourt().getName();

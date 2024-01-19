@@ -109,7 +109,7 @@ public class ReportControllerTest {
         reportItem.setRegions(Set.of());
         reportItem.setBookingId(UUID.randomUUID());
 
-        when(reportService.reportShared()).thenReturn(List.of(reportItem));
+        when(reportService.reportShared(null, null, null, null)).thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/shared-bookings"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
