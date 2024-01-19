@@ -1175,8 +1175,14 @@ definitions:
       allocated_by:
         description: SharedReportAllocatedBy
         type: string
+      allocated_by_full_name:
+        description: SharedReportAllocatedToFullName
+        type: string
       allocated_to:
         description: SharedReportAllocatedTo
+        type: string
+      allocated_to_full_name:
+        description: SharedReportAllocatedToFullName
         type: string
       booking_id:
         description: SharedReportBookingId
@@ -1212,6 +1218,8 @@ definitions:
       email:
         type: string
       firstName:
+        type: string
+      fullName:
         type: string
       id:
         format: uuid
@@ -1794,7 +1802,30 @@ paths:
   /reports/shared-bookings:
     get:
       operationId: reportBookingsShared
-      parameters: []
+      parameters:
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The booking id to search by
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The id of the user the booking is shared with to search by
+          format: uuid
+          in: query
+          name: sharedWithId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The email of the user the booking is shared with to search by
+          in: query
+          name: sharedWithEmail
+          type: string
+          x-example: example@example.com
       produces:
         - application/octet-stream
       responses:
