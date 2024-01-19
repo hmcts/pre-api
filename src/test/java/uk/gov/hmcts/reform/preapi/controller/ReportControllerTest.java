@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -103,7 +105,9 @@ public class ReportControllerTest {
         var reportItem = new SharedReportDTO();
         reportItem.setSharedAt(Timestamp.from(Instant.now()));
         reportItem.setAllocatedTo("example1@example.com");
+        reportItem.setAllocatedToFullName("Example One");
         reportItem.setAllocatedBy("example2@example.com");
+        reportItem.setAllocatedByFullName("Example Two");
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example Court");
         reportItem.setRegions(Set.of());
@@ -114,10 +118,138 @@ public class ReportControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].allocated_to").value(reportItem.getAllocatedTo()))
+            .andExpect(jsonPath("$[0].allocated_to_full_name").value(reportItem.getAllocatedToFullName()))
             .andExpect(jsonPath("$[0].allocated_by").value(reportItem.getAllocatedBy()))
+            .andExpect(jsonPath("$[0].allocated_by_full_name").value(reportItem.getAllocatedByFullName()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].booking_id").value(reportItem.getBookingId().toString()));
+
+        verify(reportService, times(1)).reportShared(null, null, null, null);
+    }
+
+    @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by court")
+    @Test
+    void reportBookingsSharedFilterCourtSuccess() throws Exception {
+        var reportItem = new SharedReportDTO();
+        reportItem.setSharedAt(Timestamp.from(Instant.now()));
+        reportItem.setAllocatedTo("example1@example.com");
+        reportItem.setAllocatedToFullName("Example One");
+        reportItem.setAllocatedBy("example2@example.com");
+        reportItem.setAllocatedByFullName("Example Two");
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example Court");
+        reportItem.setRegions(Set.of());
+        reportItem.setBookingId(UUID.randomUUID());
+
+        var courtId = UUID.randomUUID();
+
+        when(reportService.reportShared(courtId, null, null, null)).thenReturn(List.of(reportItem));
+        mockMvc.perform(get("/reports/shared-bookings")
+                            .param("courtId", courtId.toString()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].allocated_to").value(reportItem.getAllocatedTo()))
+            .andExpect(jsonPath("$[0].allocated_to_full_name").value(reportItem.getAllocatedToFullName()))
+            .andExpect(jsonPath("$[0].allocated_by").value(reportItem.getAllocatedBy()))
+            .andExpect(jsonPath("$[0].allocated_by_full_name").value(reportItem.getAllocatedByFullName()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].booking_id").value(reportItem.getBookingId().toString()));
+
+        verify(reportService, times(1)).reportShared(courtId, null, null, null);
+    }
+
+    @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by booking")
+    @Test
+    void reportBookingsSharedFilterBookingSuccess() throws Exception {
+        var reportItem = new SharedReportDTO();
+        reportItem.setSharedAt(Timestamp.from(Instant.now()));
+        reportItem.setAllocatedTo("example1@example.com");
+        reportItem.setAllocatedToFullName("Example One");
+        reportItem.setAllocatedBy("example2@example.com");
+        reportItem.setAllocatedByFullName("Example Two");
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example Court");
+        reportItem.setRegions(Set.of());
+        reportItem.setBookingId(UUID.randomUUID());
+
+        when(reportService.reportShared(null, reportItem.getBookingId(), null, null)).thenReturn(List.of(reportItem));
+        mockMvc.perform(get("/reports/shared-bookings")
+                            .param("bookingId", reportItem.getBookingId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].allocated_to").value(reportItem.getAllocatedTo()))
+            .andExpect(jsonPath("$[0].allocated_to_full_name").value(reportItem.getAllocatedToFullName()))
+            .andExpect(jsonPath("$[0].allocated_by").value(reportItem.getAllocatedBy()))
+            .andExpect(jsonPath("$[0].allocated_by_full_name").value(reportItem.getAllocatedByFullName()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].booking_id").value(reportItem.getBookingId().toString()));
+
+        verify(reportService, times(1)).reportShared(null, reportItem.getBookingId(), null, null);
+    }
+
+    @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by user id")
+    @Test
+    void reportBookingsSharedFilterUserIdSuccess() throws Exception {
+        var reportItem = new SharedReportDTO();
+        reportItem.setSharedAt(Timestamp.from(Instant.now()));
+        reportItem.setAllocatedTo("example1@example.com");
+        reportItem.setAllocatedToFullName("Example One");
+        reportItem.setAllocatedBy("example2@example.com");
+        reportItem.setAllocatedByFullName("Example Two");
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example Court");
+        reportItem.setRegions(Set.of());
+        reportItem.setBookingId(UUID.randomUUID());
+
+        var userId = UUID.randomUUID();
+
+        when(reportService.reportShared(null, null, userId, null)).thenReturn(List.of(reportItem));
+        mockMvc.perform(get("/reports/shared-bookings")
+                            .param("sharedWithId", userId.toString()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].allocated_to").value(reportItem.getAllocatedTo()))
+            .andExpect(jsonPath("$[0].allocated_to_full_name").value(reportItem.getAllocatedToFullName()))
+            .andExpect(jsonPath("$[0].allocated_by").value(reportItem.getAllocatedBy()))
+            .andExpect(jsonPath("$[0].allocated_by_full_name").value(reportItem.getAllocatedByFullName()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].booking_id").value(reportItem.getBookingId().toString()));
+
+        verify(reportService, times(1)).reportShared(null, null, userId, null);
+    }
+
+    @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by user email")
+    @Test
+    void reportBookingsSharedFilterUserEmailSuccess() throws Exception {
+        var reportItem = new SharedReportDTO();
+        reportItem.setSharedAt(Timestamp.from(Instant.now()));
+        reportItem.setAllocatedTo("example1@example.com");
+        reportItem.setAllocatedToFullName("Example One");
+        reportItem.setAllocatedBy("example2@example.com");
+        reportItem.setAllocatedByFullName("Example Two");
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example Court");
+        reportItem.setRegions(Set.of());
+        reportItem.setBookingId(UUID.randomUUID());
+
+        when(reportService.reportShared(null, null, null, reportItem.getAllocatedTo())).thenReturn(List.of(reportItem));
+        mockMvc.perform(get("/reports/shared-bookings")
+                            .param("sharedWithEmail", reportItem.getAllocatedTo()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].allocated_to").value(reportItem.getAllocatedTo()))
+            .andExpect(jsonPath("$[0].allocated_to_full_name").value(reportItem.getAllocatedToFullName()))
+            .andExpect(jsonPath("$[0].allocated_by").value(reportItem.getAllocatedBy()))
+            .andExpect(jsonPath("$[0].allocated_by_full_name").value(reportItem.getAllocatedByFullName()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].booking_id").value(reportItem.getBookingId().toString()));
+
+        verify(reportService, times(1)).reportShared(null, null, null, reportItem.getAllocatedTo());
     }
 
     @DisplayName("Should get a report containing a list of bookings with an available recording")
