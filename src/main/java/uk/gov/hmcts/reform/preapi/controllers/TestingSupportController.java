@@ -232,14 +232,32 @@ class TestingSupportController {
     @DeleteMapping("/clear-entities")
     public ResponseEntity<Void> clearEntities() {
         bookingRepository.deleteAll();
+        bookingRepository.flush();
+
         captureSessionRepository.deleteAll();
+        captureSessionRepository.flush();
+
         caseRepository.deleteAll();
+        caseRepository.flush();
+
         courtRepository.deleteAll();
+        courtRepository.flush();
+
         participantRepository.deleteAll();
+        participantRepository.flush();
+
         recordingRepository.deleteAll();
+        recordingRepository.flush();
+
         regionRepository.deleteAll();
+        regionRepository.flush();
+
         roomRepository.deleteAll();
+        roomRepository.flush();
+
         userRepository.deleteAll();
+        userRepository.flush();
+
         return ResponseEntity.noContent().build();
     }
 
