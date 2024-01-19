@@ -30,13 +30,17 @@ public class CaseService {
 
     private final ParticipantRepository participantRepository;
 
+    private final BookingService bookingService;
+
     @Autowired
     public CaseService(CaseRepository caseRepository,
                        CourtRepository courtRepository,
-                       ParticipantRepository participantRepository) {
+                       ParticipantRepository participantRepository,
+                       BookingService bookingService) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
+        this.bookingService = bookingService;
     }
 
     @Transactional
@@ -106,9 +110,11 @@ public class CaseService {
 
     @Transactional
     public void deleteById(UUID id) {
-        if (!caseRepository.existsByIdAndDeletedAtIsNull(id)) {
+        var entity  = caseRepository.findByIdAndDeletedAtIsNull(id);
+        if (entity.isEmpty()) {
             throw new NotFoundException("CaseDTO: " + id);
         }
+        bookingService.deleteCascade(entity.get());
         caseRepository.deleteById(id);
     }
 

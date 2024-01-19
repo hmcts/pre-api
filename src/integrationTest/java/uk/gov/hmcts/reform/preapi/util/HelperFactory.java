@@ -6,6 +6,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
@@ -167,5 +168,23 @@ public class HelperFactory {
         room.setName(name);
         room.setCourts(courts);
         return room;
+    }
+
+    public static Recording createRecording(
+        CaptureSession captureSession,
+        @Nullable Recording parentRecording,
+        int version,
+        String url,
+        String filename,
+        @Nullable Timestamp deletedAt
+    ) {
+        var recording = new Recording();
+        recording.setCaptureSession(captureSession);
+        recording.setParentRecording(parentRecording);
+        recording.setVersion(version);
+        recording.setUrl(url);
+        recording.setFilename(filename);
+        recording.setDeletedAt(deletedAt);
+        return recording;
     }
 }
