@@ -46,6 +46,7 @@ class CaseControllerFT extends FunctionalTestBase {
         var putResponse = doPutRequest(CASES_ENDPOINT + createCase.getId(),
                                        OBJECT_MAPPER.writeValueAsString(createCase));
 
+        assertThat(putResponse.getBody().asString()).isEqualTo("");
         assertThat(putResponse.statusCode()).isEqualTo(201);
 
         var getResponse = doGetRequest(CASES_ENDPOINT + createCase.getId());
