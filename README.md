@@ -10,13 +10,24 @@ This code repository contains the source code for the Pre-Recorded Evidence API.
 
 The API hosts numerous endpoints, [documented here](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
 
+This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
 ```mermaid
     C4Context
       title System Context diagram for Pre-Recorded Evidence
 
-      Person(adminUser, "Admin User", "")
       Person(judicialUser, "Judicial User", "")
       Person(professionalUser, "Professional User", "")
+      Person(adminUser, "Admin User", "")
+
+      Enterprise_Boundary(a1, "Power Platform Azure Tenant") {
+
+        System_Boundary(PowerPlatform, "Power Platform") {
+            System(Portal, "Portal", "")
+            System(PowerFlows, "Power Flows", "")
+            System(PowerApps, "Power Apps Forms", "")
+            SystemDb(Dataverse, "Dataverse", "")
+        }
+      }
 
       Enterprise_Boundary(a0, "CFT Azure Tenant") {
 
@@ -34,20 +45,14 @@ The API hosts numerous endpoints, [documented here](https://hmcts.github.io/cnp-
 
       }
 
-      Enterprise_Boundary(a1, "Power Platform Azure Tenant") {
-
-        System_Boundary(PowerPlatform, "Power Platform") {
-            System(Portal, "Portal", "")
-            System(PowerApps, "Power Apps Forms", "")
-            System(PowerFlows, "Power Flows", "")
-        }
-      }
-
       BiRel(judicialUser, Portal, "")
       BiRel(adminUser, Portal, "")
+      BiRel(adminUser, PowerApps, "Via MS Teams")
       BiRel(professionalUser, Portal, "")
       BiRel(PowerApps, PowerFlows, "")
-      BiRel(PowerApps, Portal, "")
+      BiRel(Portal, Dataverse, "")
+      Rel(Portal, function, "")
+      BiRel(PowerFlows, Dataverse, "")
       Rel(PowerApps, api, "")
       Rel(PowerFlows, api, "")
       Rel(PowerFlows, function, "")
@@ -55,8 +60,7 @@ The API hosts numerous endpoints, [documented here](https://hmcts.github.io/cnp-
       Rel(ams, blob, "")
       Rel(function, ams, "")
       UpdateElementStyle(api,  $bgColor="green", $borderColor="black")
-
-
+      UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
 
 ## Related Repositories
@@ -215,6 +219,9 @@ docker image rm <image-id>
 ```
 
 There is no need to remove postgres and java or similar core images.
+
+## How to generate a Power Platform Custom Connector
+Copy the Swagger v2 spec found [here](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 
 ## License
 
