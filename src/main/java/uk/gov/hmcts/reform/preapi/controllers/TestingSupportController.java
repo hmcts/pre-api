@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -100,7 +101,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("4567");
+        caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -151,7 +152,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("1234");
+        caseEntity.setReference("1234567890");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -226,6 +227,20 @@ class TestingSupportController {
         };
 
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/clear-entities")
+    public ResponseEntity<Void> clearEntities() {
+        bookingRepository.deleteAll();
+        captureSessionRepository.deleteAll();
+        caseRepository.deleteAll();
+        courtRepository.deleteAll();
+        participantRepository.deleteAll();
+        recordingRepository.deleteAll();
+        regionRepository.deleteAll();
+        roomRepository.deleteAll();
+        userRepository.deleteAll();
+        return ResponseEntity.noContent().build();
     }
 
     private Court createTestCourt() {
