@@ -10,9 +10,10 @@ terraform {
 
 
 locals {
-  app_name      = "pre-api"
-  env_to_deploy = var.env != "prod" ? 1 : 0
-  env_long_name = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
+  app_name         = "pre-api"
+  env_to_deploy    = var.env != "prod" ? 1 : 0
+  env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
+  apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
 }
 
 module "pre_product" {
@@ -36,7 +37,7 @@ module "pre_api" {
   revision              = "16"
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
-  service_url           = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
+  service_url           = local.apim_service_url
   swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api.json"
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
@@ -98,7 +99,7 @@ module "pre-api-mgmt-api-policy" {
 <policies>
     <inbound>
         <base />
-        <set-backend-service base-url="${var.apim_service_url}" />
+        <set-backend-service base-url="${local.apim_service_url}" />
         <cors allow-credentials="false">
             <allowed-origins>
                 <origin>*</origin>
