@@ -11,7 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
-import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -115,7 +115,13 @@ public class ReportService {
 
     @Transactional
     public List<PlaybackReportDTO> reportPlayback(AuditLogSource source) {
-        if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
+        if (source == null) {
+            return auditRepository
+                .findAllAccessAttempts()
+                .stream()
+                .map(this::toPlaybackReport)
+                .collect(Collectors.toList());
+        } else if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
             final var activityPlay = "Play";
             final var functionalAreaVideoPlayer = "Video Player";
             final var functionalAreaViewRecordings = "View Recordings";
@@ -129,17 +135,7 @@ public class ReportService {
                     activityPlay
                 )
                 .stream()
-                .map(a ->
-                         new PlaybackReportDTO(
-                             a,
-                             userRepository
-                                 .findById(a.getCreatedBy())
-                                 .map(User::getEmail)
-                                 .orElse(null),
-                             recordingRepository
-                                 .findById(a.getTableRecordId())
-                                 .orElse(null))
-                )
+                .map(this::toPlaybackReport)
                 .collect(Collectors.toList());
         } else {
             throw new NotFoundException("Report for playback source: " + source);
@@ -164,5 +160,17 @@ public class ReportService {
             .map(AccessRemovedReportDTO::new)
             .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
             .collect(Collectors.toList());
+    }
+
+    private PlaybackReportDTO toPlaybackReport(Audit audit) {
+        return new PlaybackReportDTO(
+            audit,
+            userRepository
+                .findById(audit.getCreatedBy())
+                .orElse(null),
+            recordingRepository
+                .findById(audit.getTableRecordId())
+                .orElse(null)
+        );
     }
 }

@@ -4,11 +4,13 @@ package uk.gov.hmcts.reform.preapi.dto.reports;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -20,6 +22,7 @@ import javax.annotation.Nullable;
 
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 @Schema(description = "PlaybackReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class PlaybackReportDTO {
@@ -33,8 +36,11 @@ public class PlaybackReportDTO {
     @Schema(description = "PlaybackReportDuration", implementation = String.class)
     private Duration duration;
 
-    @Schema(description = "PlaybackReportUser")
-    private String user;
+    @Schema(description = "PlaybackReportUserFullName")
+    private String userFullName;
+
+    @Schema(description = "PlaybackReportUserEmail")
+    private String userEmail;
 
     @Schema(description = "PlaybackReportCaseReference")
     private String caseReference;
@@ -48,11 +54,14 @@ public class PlaybackReportDTO {
     @Schema(description = "PlaybackReportRecordingId")
     private UUID recordingId;
 
-    public PlaybackReportDTO(Audit audit, String email, @Nullable Recording recording) {
+    public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
         playbackAt = audit.getCreatedAt();
         finishedAt = null;
         duration = null;
-        user = email;
+        if (user != null) {
+            userFullName = user.getFullName();
+            userEmail = user.getEmail();
+        }
         if (recording != null) {
             var caseEntity = recording.getCaptureSession().getBooking().getCaseId();
             var courtEntity = caseEntity.getCourt();
