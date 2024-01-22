@@ -7,7 +7,11 @@ class RecordingManager:
         self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT * FROM public.recordings")
+        self.source_cursor.execute("""  SELECT *
+                                        FROM public.recordings
+                                        WHERE (recordingavailable IS NULL OR 
+                                            recordingavailable NOT ILIKE 'false' AND 
+                                            recordingavailable NOT ILIKE 'no')""")
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
