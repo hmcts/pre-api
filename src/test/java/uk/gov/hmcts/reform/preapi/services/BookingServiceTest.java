@@ -107,8 +107,6 @@ class BookingServiceTest {
     @DisplayName("Search By Case Ref")
     @Test
     void searchByCaseRefSuccess() {
-
-
         var courtEntity = new Court();
         courtEntity.setId(UUID.randomUUID());
         var caseEntity1 = new Case();

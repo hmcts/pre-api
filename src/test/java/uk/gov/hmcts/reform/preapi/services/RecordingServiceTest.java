@@ -29,6 +29,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -118,6 +120,22 @@ class RecordingServiceTest {
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
 
         var modelList = recordingService.findAll(null, null, null, Optional.empty(), null).get().toList();
+        assertThat(modelList.size()).isEqualTo(1);
+        assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
+        assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
+    }
+
+    @DisplayName("Find a list of recordings filtered by scheduledFor and return a list of models")
+    @Test
+    void findAllRecordingsScheduledForSuccess() {
+        var from = Timestamp.valueOf("2023-01-01 00:00:00");
+        var until = Timestamp.valueOf("2023-01-01 23:59:59");
+
+        when(
+            recordingRepository.searchAllBy(isNull(), isNull(), isNull(), eq(from), eq(until), isNull())
+        ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
+
+        var modelList = recordingService.findAll(null, null, null, Optional.of(from), null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
