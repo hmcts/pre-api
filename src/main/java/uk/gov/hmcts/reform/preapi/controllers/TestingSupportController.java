@@ -88,7 +88,7 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(path = "/should-not-have-past-scheduled-for-date", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/create-well-formed-booking", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> shouldNotHavePastScheduledForDate() {
         var court = createTestCourt();
 
@@ -97,6 +97,15 @@ class TestingSupportController {
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
+
+        var room = new Room();
+        room.setName("Foo Room");
+        room.setCourts(Set.of(court));
+        roomRepository.save(room);
+
+        court.setRegions(Set.of(region));
+        court.setRooms(Set.of(room));
+        courtRepository.save(court);
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
