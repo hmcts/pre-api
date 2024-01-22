@@ -1,14 +1,3 @@
-terraform {
-  backend "azurerm" {}
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "3.88.0"
-    }
-  }
-}
-
-
 locals {
   app_name         = "pre-api"
   env_to_deploy    = var.env != "prod" ? 1 : 0
