@@ -413,8 +413,6 @@ definitions:
         description: CreateBookingParticipants
         items:
           $ref: '#/definitions/CreateParticipantDTO'
-        maxItems: 2147483647
-        minItems: 1
         type: array
         uniqueItems: true
       scheduled_for:
@@ -424,7 +422,6 @@ definitions:
     required:
       - case_id
       - id
-      - participants
       - scheduled_for
     type: object
   CreateCaseDTO:
