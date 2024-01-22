@@ -90,7 +90,7 @@ public class CaseController extends PreApiController {
     @PutMapping("/{id}")
     @Operation(operationId = "putCase", summary = "Create or Update a Case")
     public ResponseEntity<Void> upsertCase(@PathVariable UUID id, @Valid @RequestBody CreateCaseDTO createCaseDTO) {
-        if (createCaseDTO.getId() == null || !id.toString().equals(createCaseDTO.getId().toString())) {
+        if (!id.equals(createCaseDTO.getId())) {
             throw new PathPayloadMismatchException("id", "createCaseDTO.id");
         }
         return getUpsertResponse(caseService.upsert(createCaseDTO), createCaseDTO.getId());

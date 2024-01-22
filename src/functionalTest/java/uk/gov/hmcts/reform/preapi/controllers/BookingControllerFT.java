@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
@@ -27,7 +29,6 @@ class BookingControllerFT extends FunctionalTestBase {
 
         var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking").body().jsonPath();
 
-        var caseId = testIds.get("caseId");
         var bookingId = testIds.get("bookingId");
         var recordingId = testIds.get("recordingId");
 
@@ -50,7 +51,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: The schedule date should not be amended to the past date")
     void recordingScheduleDateShouldNotBeAmendedToThePast() throws JsonProcessingException {
-        var bookingId = doPostRequest("/testing-support/should-not-have-past-scheduled-for-date")
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking")
             .body()
             .jsonPath()
             .getUUID("bookingId");
@@ -60,6 +61,19 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
 
         BookingDTO booking = bookingResponse.body().as(BookingDTO.class);
+
+        // assert the booking is well-formed
+        assertThat(booking.getId()).isEqualTo(bookingId);
+        var region = booking.getCaseDTO().getCourt().getRegions().stream().findFirst();
+        assertThat(region.orElseGet(RegionDTO::new).getName()).isEqualTo("Foo Region");
+        var rooms = booking.getCaseDTO().getCourt().getRooms().stream().findFirst();
+        assertThat(rooms.orElseGet(RoomDTO::new).getName()).isEqualTo("Foo Room");
+
+        // validate the court referenced does exist
+        var courtResponse = doGetRequest("/courts/" + booking.getCaseDTO().getCourt().getId());
+        assertThat(courtResponse.statusCode()).isEqualTo(200);
+        assertThat(courtResponse.body().jsonPath().getString("name"))
+            .isEqualTo(booking.getCaseDTO().getCourt().getName());
 
         var createBooking = new CreateBookingDTO();
         createBooking.setId(booking.getId());
@@ -78,5 +92,12 @@ class BookingControllerFT extends FunctionalTestBase {
         var putResponse = doPutRequest(BOOKINGS_ENDPOINT + bookingId, OBJECT_MAPPER.writeValueAsString(createBooking));
 
         assertThat(putResponse.statusCode()).isEqualTo(400);
+    }
+
+    @Test
+    @DisplayName("Deleting a non-existent booking should return 404")
+    void deletingNonExistentBookingShouldReturn404() {
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "00000000-0000-0000-0000-000000000000");
+        assertThat(deleteResponse.statusCode()).isEqualTo(404);
     }
 }

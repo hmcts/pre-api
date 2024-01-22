@@ -291,9 +291,10 @@ public class ReportServiceTest {
         sharedBooking2.setSharedWith(shareWith);
         sharedBooking2.setSharedBy(shareBy);
 
-        when(shareBookingRepository.findAll()).thenReturn(List.of(sharedBooking1, sharedBooking2));
+        when(shareBookingRepository.searchAll(null, null, null, null))
+            .thenReturn(List.of(sharedBooking1, sharedBooking2));
 
-        var report = reportService.reportShared();
+        var report = reportService.reportShared(null, null, null, null);
 
         assertThat(report.size()).isEqualTo(2);
 
@@ -357,6 +358,8 @@ public class ReportServiceTest {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.PORTAL);
 
@@ -376,7 +379,8 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
         assertThat(report.getFirst().getFinishedAt()).isNull();
         assertThat(report.getFirst().getDuration()).isNull();
-        assertThat(report.getFirst().getUser()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
         assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
@@ -396,6 +400,8 @@ public class ReportServiceTest {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
 
@@ -415,7 +421,8 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
         assertThat(report.getFirst().getFinishedAt()).isNull();
         assertThat(report.getFirst().getDuration()).isNull();
-        assertThat(report.getFirst().getUser()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
         assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
@@ -427,6 +434,45 @@ public class ReportServiceTest {
                        .getFirst()
                        .getName()
         ).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Find audits relating to all playback attempts and return a report")
+    @Test
+    void reportPlaybackAllSuccess() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        auditEntity.setCreatedBy(user.getId());
+        auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(null);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getFinishedAt()).isNull();
+        assertThat(report.getFirst().getDuration()).isNull();
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+        assertThat(report
+                       .getFirst()
+                       .getRegions()
+                       .stream()
+                       .toList()
+                       .getFirst()
+                       .getName()
+        ).isEqualTo(regionEntity.getName());
+
+        verify(auditRepository, times(1)).findAllAccessAttempts();
+        verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
     }
 
     @DisplayName("Find audits relating to playbacks from the source 'admin' and throw not found error")

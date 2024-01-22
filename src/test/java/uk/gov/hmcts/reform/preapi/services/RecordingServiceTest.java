@@ -54,7 +54,7 @@ class RecordingServiceTest {
         recordingEntity.setId(UUID.randomUUID());
         Booking bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
-        
+
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(bookingEntity);
@@ -207,6 +207,26 @@ class RecordingServiceTest {
         assertThrows(NotFoundException.class, () -> recordingService.upsert(recordingModel));
     }
 
+    @DisplayName("Fail to update recording - CaptureSession not found")
+    @Test
+    void updateRecordingFailCaptureSessionNotFound() {
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(true);
+        when(
+            captureSessionRepository.findByIdAndDeletedAtIsNull(
+                recordingModel.getCaptureSessionId()
+            )
+        ).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> recordingService.upsert(recordingModel));
+    }
+
     @DisplayName("Fail to create recording - Parent Recording not found")
     @Test
     void createRecordingFailParentRecordingNotFound() {
@@ -309,5 +329,13 @@ class RecordingServiceTest {
                 recordingEntity.getId()
             );
         verify(recordingRepository, never()).deleteById(recordingEntity.getId());
+    }
+
+    @DisplayName("Should delete all recordings by capture session")
+    @Test
+    void deleteCascadeSuccess() {
+        recordingService.deleteCascade(recordingEntity.getCaptureSession());
+
+        verify(recordingRepository, times(1)).deleteAllByCaptureSession(recordingEntity.getCaptureSession());
     }
 }

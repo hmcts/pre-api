@@ -37,6 +37,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(BookingController.class)
@@ -73,7 +74,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy(any(), eq("MyRef"), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
+        when(bookingService.searchBy(any(), eq("MyRef"), any(), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
             {
                 add(booking1);
                 add(booking2);
@@ -106,12 +107,13 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
-            {
-                add(booking1);
-                add(booking2);
-            }
-        }));
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any()))
+            .thenReturn(new PageImpl<>(new ArrayList<>() {
+                {
+                    add(booking1);
+                    add(booking2);
+                }
+            }));
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
@@ -139,7 +141,7 @@ class BookingControllerTest {
         var booking2 = new BookingDTO();
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
-        when(bookingService.searchBy(any(), any(), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
+        when(bookingService.searchBy(any(), any(), any(), any())).thenReturn(new PageImpl<>(new ArrayList<>() {
             {
                 add(booking1);
                 add(booking2);
@@ -164,7 +166,7 @@ class BookingControllerTest {
         var caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any())).thenReturn(Page.empty());
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any())).thenReturn(Page.empty());
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
@@ -460,6 +462,16 @@ class BookingControllerTest {
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is5xxServerError());
+    }
+
+    @DisplayName("Should return 400 when booking id is not a uuid")
+    @Test
+    void testFindByIdBadRequest() throws Exception {
+        mockMvc.perform(get("/bookings/12345678")
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Invalid UUID string: 12345678"));
     }
 
     private String getPath(UUID bookingId) {

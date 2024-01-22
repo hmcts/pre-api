@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,6 +41,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(path = "/testing-support")
+@ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
     private final BookingRepository bookingRepository;
@@ -86,7 +88,7 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(path = "/should-not-have-past-scheduled-for-date", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(path = "/create-well-formed-booking", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> shouldNotHavePastScheduledForDate() {
         var court = createTestCourt();
 
@@ -96,9 +98,18 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
+        var room = new Room();
+        room.setName("Foo Room");
+        room.setCourts(Set.of(court));
+        roomRepository.save(room);
+
+        court.setRegions(Set.of(region));
+        court.setRooms(Set.of(room));
+        courtRepository.save(court);
+
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("4567");
+        caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -149,7 +160,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("1234");
+        caseEntity.setReference("1234567890");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -217,7 +228,6 @@ class TestingSupportController {
 
         var response = new HashMap<String, String>() {
             {
-                put("caseId", caseEntity.getId().toString());
                 put("bookingId", booking.getId().toString());
                 put("recordingId", recording.getId().toString());
             }

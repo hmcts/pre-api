@@ -6,7 +6,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchSharedReport;
 import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
@@ -19,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/reports")
@@ -53,8 +56,39 @@ public class ReportController {
 
     @GetMapping("/shared-bookings")
     @Operation(operationId = "reportBookingsShared", summary = "Get a report on the bookings that have been shared")
-    public ResponseEntity<List<SharedReportDTO>> reportBookingsShared() {
-        return ResponseEntity.ok(reportService.reportShared());
+    @Parameter(
+        name = "courtId",
+        description = "The court id to search by",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "bookingId",
+        description = "The booking id to search by",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "sharedWithId",
+        description = "The id of the user the booking is shared with to search by",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "sharedWithEmail",
+        description = "The email of the user the booking is shared with to search by",
+        schema = @Schema(implementation = String.class),
+        example = "example@example.com"
+    )
+    public ResponseEntity<List<SharedReportDTO>> reportBookingsShared(
+        @Parameter(hidden = true) SearchSharedReport params
+    ) {
+        return ResponseEntity.ok(reportService.reportShared(
+            params.getCourtId(),
+            params.getBookingId(),
+            params.getSharedWithId(),
+            params.getSharedWithEmail()
+        ));
     }
 
     @GetMapping("/schedules")
@@ -72,13 +106,13 @@ public class ReportController {
         operationId = "reportPlayback",
         summary = "Get report on playback by playback source (PORTAL, APPLICATION)"
     )
+    @Parameter(
+        name = "source",
+        description = "The source of the playback. Only accepts PORTAL, APPLICATION or null",
+        schema = @Schema(implementation = AuditLogSource.class)
+    )
     public ResponseEntity<List<PlaybackReportDTO>> reportPlayback(
-        @Parameter(
-            name = "source",
-            description = "The source of the playback. Only accepts PORTAL or APPLICATION",
-            schema = @Schema(implementation = AuditLogSource.class),
-            required = true
-        ) AuditLogSource source
+        @RequestParam(required = false) AuditLogSource source
     ) {
         return ResponseEntity.ok(reportService.reportPlayback(source));
     }

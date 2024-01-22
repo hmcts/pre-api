@@ -94,7 +94,7 @@ public class CourtServiceTest {
     @Test
     void findAllCourtsSuccess() {
         when(
-            courtRepository.searchBy(null, null, null, pageable)
+            courtRepository.searchBy(null, null, null, null, pageable)
         ).thenReturn(new PageImpl<>(List.of(courtEntity)));
 
         var models = courtService.findAllBy(null, null, null, null, pageable);
@@ -105,39 +105,6 @@ public class CourtServiceTest {
         assertThat(first.getName()).isEqualTo(courtEntity.getName());
         assertThat(first.getLocationCode()).isEqualTo(courtEntity.getLocationCode());
         assertThat(first.getCourtType()).isEqualTo(courtEntity.getCourtType());
-    }
-
-    @DisplayName("Find all courts when region name is filtered and return a list of model")
-    @Test
-    void findAllCourtsRegionSearchSuccess() {
-        when(
-            courtRepository.searchBy(null, null, null, pageable)
-        ).thenReturn(new PageImpl<>(List.of(courtEntity)));
-
-        var models = courtService.findAllBy(null, null, null, "example", pageable);
-        assertThat(models.getTotalElements()).isEqualTo(1);
-
-        var first = models.get().toList().getFirst();
-        assertThat(first.getId()).isEqualTo(courtEntity.getId());
-        assertThat(first.getName()).isEqualTo(courtEntity.getName());
-        assertThat(first.getLocationCode()).isEqualTo(courtEntity.getLocationCode());
-        assertThat(first.getCourtType()).isEqualTo(courtEntity.getCourtType());
-
-        assertThat(first.getRegions().size()).isEqualTo(1);
-        var region = first.getRegions().stream().findFirst().get();
-        assertThat(region).isNotNull();
-        assertThat(region.getName()).isEqualTo("Example Region");
-    }
-
-    @DisplayName("Find all courts when region name is filtered and return a list of model")
-    @Test
-    void findAllCourtsRegionSearchEmptySuccess() {
-        when(
-            courtRepository.searchBy(null, null, null, pageable)
-        ).thenReturn(new PageImpl<>(List.of(courtEntity)));
-
-        var models = courtService.findAllBy(null, null, null, "invalid region", pageable);
-        assertThat(models.getNumberOfElements()).isEqualTo(0);
     }
 
     @DisplayName("Create a court")

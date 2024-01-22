@@ -28,6 +28,8 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 
+import java.sql.Timestamp;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.springframework.http.ResponseEntity.noContent;
@@ -45,7 +47,9 @@ public class BookingController extends PreApiController {
     }
 
     @GetMapping("/bookings")
-    @Operation(operationId = "getBookingsByCaseId", summary = "Search All Bookings using Case Id or Case Ref")
+    @Operation(
+        operationId = "searchBookings",
+        summary = "Search All Bookings using Case Id, Case Ref, or Scheduled For")
     @Parameter(
         name = "caseId",
         description = "The Case Id to search for",
@@ -57,6 +61,12 @@ public class BookingController extends PreApiController {
         description = "The Case Reference to search for",
         schema = @Schema(implementation = String.class),
         example = "1234567890123456"
+    )
+    @Parameter(
+        name = "scheduledFor",
+        description = "The Date the Booking is scheduled for",
+        schema = @Schema(implementation = String.class, format = "date"),
+        example = "2024-04-27"
     )
     @Parameter(
         name = "page",
@@ -78,6 +88,9 @@ public class BookingController extends PreApiController {
         final Page<BookingDTO> resultPage = bookingService.searchBy(
             params.getCaseId(),
             params.getCaseReference(),
+            params.getScheduledFor() != null
+                ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
+                : Optional.empty(),
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {

@@ -6,9 +6,11 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -167,5 +169,37 @@ public class HelperFactory {
         room.setName(name);
         room.setCourts(courts);
         return room;
+    }
+
+    public static Recording createRecording(
+        CaptureSession captureSession,
+        @Nullable Recording parentRecording,
+        int version,
+        String url,
+        String filename,
+        @Nullable Timestamp deletedAt
+    ) {
+        var recording = new Recording();
+        recording.setCaptureSession(captureSession);
+        recording.setParentRecording(parentRecording);
+        recording.setVersion(version);
+        recording.setUrl(url);
+        recording.setFilename(filename);
+        recording.setDeletedAt(deletedAt);
+        return recording;
+    }
+
+    public static ShareBooking createShareBooking(
+        User sharedWith,
+        User sharedBy,
+        Booking booking,
+        Timestamp deletedAt
+    ) {
+        var share = new ShareBooking();
+        share.setSharedWith(sharedWith);
+        share.setSharedBy(sharedBy);
+        share.setBooking(booking);
+        share.setDeletedAt(deletedAt);
+        return share;
     }
 }
