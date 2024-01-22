@@ -18,11 +18,13 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
@@ -218,7 +220,7 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
-        booking.setParticipants(Set.of(new CreateParticipantDTO()));
+        booking.setParticipants(getCreateParticipantDTOs());
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -250,7 +252,7 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
-        booking.setParticipants(Set.of(new CreateParticipantDTO()));
+        booking.setParticipants(getCreateParticipantDTOs());
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -280,7 +282,7 @@ class BookingControllerTest {
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseId);
         booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
-        booking.setParticipants(Set.of(new CreateParticipantDTO()));
+        booking.setParticipants(getCreateParticipantDTOs());
 
         var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
@@ -317,7 +319,7 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
-        booking.setParticipants(Set.of(new CreateParticipantDTO()));
+        booking.setParticipants(getCreateParticipantDTOs());
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -348,7 +350,7 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
-        booking.setParticipants(Set.of(new CreateParticipantDTO()));
+        booking.setParticipants(getCreateParticipantDTOs());
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -460,7 +462,8 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
-        booking.setParticipants(Set.of(new CreateParticipantDTO()));
+        booking.setParticipants(getCreateParticipantDTOs());
+
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
         when(bookingService.upsert(booking)).thenThrow(new UnknownServerException("Test exception"));
@@ -509,7 +512,7 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"participants\":\"at least 1 participant is required\"}");
+            .isEqualTo("{\"participants\":\"Participants must consist of at least 1 defendant and 1 witness\"}");
     }
 
     @DisplayName("Should fail to create a booking empty participants list")
@@ -539,10 +542,74 @@ class BookingControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo("{\"participants\":\"size must be between 1 and 2147483647\"}");
+            .isEqualTo("{\"participants\":\"Participants must consist of at least 1 defendant and 1 witness\"}");
+    }
+
+    @DisplayName("Should fail to create a booking with 400 response code as only witness supplied")
+    @Test
+    void createBookingOnlyWitnessSupplied() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new CreateBookingDTO();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
+        booking.setParticipants(
+            Set.of(HelperFactory.createParticipantDTO("John", "Smith", ParticipantType.WITNESS)));
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"participants\":\"Participants must consist of at least 1 defendant and 1 witness\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create a booking with 400 response code as only defendant supplied")
+    @Test
+    void createBookingOnlyDefendantSupplied() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new CreateBookingDTO();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
+        booking.setParticipants(
+            Set.of(HelperFactory.createParticipantDTO("John", "Smith", ParticipantType.DEFENDANT)));
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"participants\":\"Participants must consist of at least 1 defendant and 1 witness\"}"
+            );
     }
 
     private String getPath(UUID bookingId) {
         return "/bookings/" + bookingId;
+    }
+
+    private Set<CreateParticipantDTO> getCreateParticipantDTOs() {
+        var witness = HelperFactory.createParticipantDTO("John", "Smith", ParticipantType.WITNESS);
+        var defendant = HelperFactory.createParticipantDTO("John", "Smith", ParticipantType.DEFENDANT);
+        return Set.of(witness, defendant);
     }
 }

@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.FutureDateConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 
 import java.sql.Timestamp;
@@ -35,8 +35,7 @@ public class CreateBookingDTO {
     private Timestamp scheduledFor;
 
     @Schema(description = "CreateBookingParticipants")
-    @Size(min = 1)
-    @NotNull(message = "at least 1 participant is required")
+    @ParticipantTypeConstraint
     private Set<CreateParticipantDTO> participants;
 
     // room?
