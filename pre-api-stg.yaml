@@ -1432,6 +1432,12 @@ paths:
           name: scheduledFor
           type: string
           x-example: '2024-04-27'
+        - description: The Participant Id to search for
+          format: uuid
+          in: query
+          name: participantId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
           format: int32
           in: query
@@ -1820,6 +1826,12 @@ paths:
           format: uuid
           in: query
           name: parentRecordingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The participant to search by
+          format: uuid
+          in: query
+          name: participantId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
