@@ -13,9 +13,11 @@ import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
@@ -323,5 +325,78 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
             .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
             .andExpect(jsonPath("$[0].removal_reason").value(reportItem.getRemovalReason()));
+    }
+
+    @DisplayName("Should get a report containing a list of playback data for source 'PORTAL'")
+    @Test
+    void reportPlaybackPortalSuccess() throws Exception {
+        var reportItem = createPlaybackReport();
+
+        when(reportService.reportPlayback(AuditLogSource.PORTAL)).thenReturn(List.of(reportItem));
+
+        mockMvc.perform(get("/reports/playback")
+                            .param("source", "PORTAL"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
+            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+
+        verify(reportService, times(1)).reportPlayback(AuditLogSource.PORTAL);
+    }
+
+    @DisplayName("Should get a report containing a list of playback data for source 'APPLICATION'")
+    @Test
+    void reportPlaybackApplicationSuccess() throws Exception {
+        var reportItem = createPlaybackReport();
+
+        when(reportService.reportPlayback(AuditLogSource.APPLICATION)).thenReturn(List.of(reportItem));
+
+        mockMvc.perform(get("/reports/playback")
+                            .param("source", "APPLICATION"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
+            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+
+        verify(reportService, times(1)).reportPlayback(AuditLogSource.APPLICATION);
+    }
+
+    @DisplayName("Should get a report containing a list of playback data for no source")
+    @Test
+    void reportPlaybackAllSuccess() throws Exception {
+        var reportItem = createPlaybackReport();
+
+        when(reportService.reportPlayback(null)).thenReturn(List.of(reportItem));
+
+        mockMvc.perform(get("/reports/playback"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
+            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+
+        verify(reportService, times(1)).reportPlayback(null);
+    }
+
+    private PlaybackReportDTO createPlaybackReport() {
+        return new PlaybackReportDTO(
+            Timestamp.from(Instant.now()),
+            Timestamp.from(Instant.now()),
+            Duration.ofMinutes(3),
+            "Example Person",
+            "example@example.com",
+            "CASE123456",
+            "Example Court",
+            Set.of(),
+            UUID.randomUUID()
+        );
     }
 }
