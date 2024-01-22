@@ -69,6 +69,12 @@ public class BookingController extends PreApiController {
         example = "2024-04-27"
     )
     @Parameter(
+        name = "participantId",
+        description = "The Participant Id to search for",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -91,6 +97,7 @@ public class BookingController extends PreApiController {
             params.getScheduledFor() != null
                 ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
                 : Optional.empty(),
+            params.getParticipantId(),
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {

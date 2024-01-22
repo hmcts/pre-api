@@ -10,4 +10,5 @@ public class SearchBookings {
     private UUID caseId;
     private String caseReference;
     private Date scheduledFor;
+    private UUID participantId;
 }

@@ -73,6 +73,7 @@ public class BookingService {
     public Page<BookingDTO> searchBy(@Nullable UUID caseId,
                                      @Nullable String caseReference,
                                      Optional<Timestamp> scheduledFor,
+                                     @Nullable UUID participantId,
                                      Pageable pageable) {
 
         var until = scheduledFor.isEmpty()
@@ -86,6 +87,7 @@ public class BookingService {
                 caseReference,
                 scheduledFor.orElse(null),
                 until, // 11:59:59 PM
+                participantId,
                 pageable
             )
             .map(BookingDTO::new);
