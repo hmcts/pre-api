@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -88,9 +89,14 @@ public class ReportService {
     }
 
     @Transactional
-    public List<SharedReportDTO> reportShared() {
+    public List<SharedReportDTO> reportShared(
+        UUID courtId,
+        UUID bookingId,
+        UUID sharedWithId,
+        String sharedWithEmail
+    ) {
         return shareBookingRepository
-            .findAll()
+            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail)
             .stream()
             .map(SharedReportDTO::new)
             .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))

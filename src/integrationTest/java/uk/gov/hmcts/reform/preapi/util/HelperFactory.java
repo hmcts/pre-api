@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -186,5 +187,19 @@ public class HelperFactory {
         recording.setFilename(filename);
         recording.setDeletedAt(deletedAt);
         return recording;
+    }
+
+    public static ShareBooking createShareBooking(
+        User sharedWith,
+        User sharedBy,
+        Booking booking,
+        Timestamp deletedAt
+    ) {
+        var share = new ShareBooking();
+        share.setSharedWith(sharedWith);
+        share.setSharedBy(sharedBy);
+        share.setBooking(booking);
+        share.setDeletedAt(deletedAt);
+        return share;
     }
 }

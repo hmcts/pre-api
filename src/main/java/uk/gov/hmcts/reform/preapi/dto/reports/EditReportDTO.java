@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Data
@@ -47,11 +48,8 @@ public class EditReportDTO {
             .getCaseId();
         caseReference = caseEntity.getReference();
         court = caseEntity.getCourt().getName();
-        regions = caseEntity
-            .getCourt()
-            .getRegions()
-            .stream()
-            .map(RegionDTO::new)
+        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
         recordingId = recordingEntity.getId();
     }

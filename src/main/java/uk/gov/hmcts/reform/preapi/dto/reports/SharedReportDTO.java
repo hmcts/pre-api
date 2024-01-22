@@ -12,6 +12,7 @@ import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Data
@@ -26,8 +27,14 @@ public class SharedReportDTO {
     @Schema(description = "SharedReportAllocatedTo")
     private String allocatedTo;
 
+    @Schema(description = "SharedReportAllocatedToFullName")
+    private String allocatedToFullName;
+
     @Schema(description = "SharedReportAllocatedBy")
     private String allocatedBy;
+
+    @Schema(description = "SharedReportAllocatedToFullName")
+    private String allocatedByFullName;
 
     @Schema(description = "SharedReportCaseReference")
     private String caseReference;
@@ -44,15 +51,14 @@ public class SharedReportDTO {
     public SharedReportDTO(ShareBooking shareBooking) {
         sharedAt = shareBooking.getCreatedAt();
         allocatedTo = shareBooking.getSharedWith().getEmail();
+        allocatedToFullName = shareBooking.getSharedWith().getFullName();
         allocatedBy = shareBooking.getSharedBy().getEmail();
+        allocatedByFullName = shareBooking.getSharedBy().getFullName();
         var caseEntity = shareBooking.getBooking().getCaseId();
         caseReference = caseEntity.getReference();
         court = caseEntity.getCourt().getName();
-        regions = caseEntity
-            .getCourt()
-            .getRegions()
-            .stream()
-            .map(RegionDTO::new)
+        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
         bookingId = shareBooking.getBooking().getId();
     }
