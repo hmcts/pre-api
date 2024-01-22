@@ -5,6 +5,11 @@ locals {
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
 }
 
+data "azurerm_key_vault" "keyvault" {
+  name                = "pre-hmctskv-${var.env}"
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+
 module "pre_product" {
   count                 = local.env_to_deploy
   source                = "git@github.com:hmcts/cnp-module-api-mgmt-product?ref=master"
