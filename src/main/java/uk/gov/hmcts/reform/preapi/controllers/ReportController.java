@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchSharedReport;
 import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
@@ -105,13 +106,13 @@ public class ReportController {
         operationId = "reportPlayback",
         summary = "Get report on playback by playback source (PORTAL, APPLICATION)"
     )
+    @Parameter(
+        name = "source",
+        description = "The source of the playback. Only accepts PORTAL, APPLICATION or null",
+        schema = @Schema(implementation = AuditLogSource.class)
+    )
     public ResponseEntity<List<PlaybackReportDTO>> reportPlayback(
-        @Parameter(
-            name = "source",
-            description = "The source of the playback. Only accepts PORTAL or APPLICATION",
-            schema = @Schema(implementation = AuditLogSource.class),
-            required = true
-        ) AuditLogSource source
+        @RequestParam(required = false) AuditLogSource source
     ) {
         return ResponseEntity.ok(reportService.reportPlayback(source));
     }

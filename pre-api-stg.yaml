@@ -1123,8 +1123,11 @@ definitions:
           $ref: '#/definitions/RegionDTO'
         type: array
         uniqueItems: true
-      user:
-        description: PlaybackReportUser
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
         type: string
     type: object
   RecordingDTO:
@@ -1957,7 +1960,7 @@ paths:
     get:
       operationId: reportPlayback
       parameters:
-        - description: The source of the playback. Only accepts PORTAL or APPLICATION
+        - description: 'The source of the playback. Only accepts PORTAL, APPLICATION or null'
           enum:
             - APPLICATION
             - PORTAL
@@ -1965,7 +1968,7 @@ paths:
             - AUTO
           in: query
           name: source
-          required: true
+          required: false
           type: string
       produces:
         - application/octet-stream
