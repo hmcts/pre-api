@@ -1,5 +1,6 @@
 provider "azurerm" {
   features {}
+}
 
 locals {
   app_name         = "pre-api"
