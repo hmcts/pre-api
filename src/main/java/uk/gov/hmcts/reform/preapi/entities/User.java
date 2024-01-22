@@ -40,4 +40,11 @@ public class User extends CreatedModifiedAtEntity {
     public boolean isDeleted() {
         return deletedAt != null;
     }
+
+    @Transient
+    private String fullName;
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 }

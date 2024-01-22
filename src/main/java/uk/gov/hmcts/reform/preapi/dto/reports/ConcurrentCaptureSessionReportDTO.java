@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Data
@@ -60,10 +61,8 @@ public class ConcurrentCaptureSessionReportDTO {
         var courtEntity = caseEntity.getCourt();
         court = courtEntity.getName();
         caseReference = caseEntity.getReference();
-        region = courtEntity
-            .getRegions()
-            .stream()
-            .map(RegionDTO::new)
+        region = Stream.ofNullable(caseEntity.getCourt().getRegions())
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
     }
 }
