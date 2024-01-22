@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,12 +41,19 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
             :caseReference IS NULL OR
             r.captureSession.booking.caseId.reference ILIKE %:caseReference%
         )
+        AND (
+            CAST(:scheduledForFrom as Timestamp) IS NULL OR
+            CAST(:scheduledForUntil as Timestamp) IS NULL OR
+            r.captureSession.booking.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
+        )
         """
     )
     Page<Recording> searchAllBy(
         @Param("captureSessionId") UUID captureSessionId,
         @Param("parentRecordingId") UUID parentRecordingId,
         @Param("caseReference") String caseReference,
+        @Param("scheduledForFrom") Timestamp scheduledForFrom,
+        @Param("scheduledForUntil") Timestamp scheduledForUntil,
         Pageable pageable
     );
 

@@ -27,6 +27,8 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.sql.Timestamp;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -71,6 +73,12 @@ public class RecordingController extends PreApiController {
         example = "CASE12345"
     )
     @Parameter(
+        name = "scheduledFor",
+        description = "The Date the recording's booking was scheduled for",
+        schema = @Schema(implementation = String.class, format = "date"),
+        example = "2024-04-27"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -93,6 +101,9 @@ public class RecordingController extends PreApiController {
             params.getCaptureSessionId(),
             params.getParentRecordingId(),
             params.getCaseReference(),
+            params.getScheduledFor() != null
+                ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
+                : Optional.empty(),
             pageable
         );
 

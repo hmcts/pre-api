@@ -16,6 +16,9 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 
+import java.sql.Timestamp;
+import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -46,10 +49,23 @@ public class RecordingService {
         UUID captureSessionId,
         UUID parentRecordingId,
         String caseReference,
+        Optional<Timestamp> scheduledFor,
         Pageable pageable
     ) {
+        var until = scheduledFor.isEmpty()
+            ? null
+            : scheduledFor.map(
+                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+
         return recordingRepository
-            .searchAllBy(captureSessionId, parentRecordingId, caseReference, pageable)
+            .searchAllBy(
+                captureSessionId,
+                parentRecordingId,
+                caseReference,
+                scheduledFor.orElse(null),
+                until,
+                pageable
+            )
             .map(RecordingDTO::new);
     }
 
