@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import java.sql.Timestamp;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
@@ -46,14 +47,12 @@ public class AccessRemovedReportDTO {
         removedAt = shareBooking.getDeletedAt();
         caseReference = booking.getCaseId().getReference();
         court = courtEntity.getName();
-        regions = courtEntity
-            .getRegions()
-            .stream()
-            .map(RegionDTO::new)
+        regions = Stream.ofNullable(courtEntity.getRegions())
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
 
         var user = shareBooking.getSharedWith();
-        userFullName = user.getFirstName() + " " + user.getLastName();
+        userFullName = user.getFullName();
         userEmail = user.getEmail();
     }
 }
