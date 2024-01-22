@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.controllers.BookingController;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -27,8 +28,10 @@ import java.sql.Timestamp;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Set;
 import java.util.UUID;
 
+import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -215,6 +218,7 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
+        booking.setParticipants(Set.of(new CreateParticipantDTO()));
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -246,6 +250,7 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
+        booking.setParticipants(Set.of(new CreateParticipantDTO()));
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -275,6 +280,7 @@ class BookingControllerTest {
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseId);
         booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
+        booking.setParticipants(Set.of(new CreateParticipantDTO()));
 
         var mockCase = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCase);
@@ -311,6 +317,7 @@ class BookingControllerTest {
         var booking = new CreateBookingDTO();
         booking.setId(bookingId);
         booking.setCaseId(caseId);
+        booking.setParticipants(Set.of(new CreateParticipantDTO()));
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -341,6 +348,7 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
+        booking.setParticipants(Set.of(new CreateParticipantDTO()));
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -452,6 +460,7 @@ class BookingControllerTest {
         booking.setScheduledFor(
             Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
         );
+        booking.setParticipants(Set.of(new CreateParticipantDTO()));
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
         when(bookingService.upsert(booking)).thenThrow(new UnknownServerException("Test exception"));
@@ -472,6 +481,65 @@ class BookingControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                            .value("Invalid UUID string: 12345678"));
+    }
+
+    @DisplayName("Should fail to create a booking without any participants")
+    @Test
+    void createBookingWithoutParticipants() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new CreateBookingDTO();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
+
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(bookingService.upsert(booking)).thenReturn(UpsertResult.UPDATED);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"participants\":\"at least 1 participant is required\"}");
+    }
+
+    @DisplayName("Should fail to create a booking empty participants list")
+    @Test
+    void createBookingWithZeroParticipants() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new CreateBookingDTO();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+        booking.setScheduledFor(
+            Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant().truncatedTo(ChronoUnit.SECONDS))
+        );
+        booking.setParticipants(emptySet());
+
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(bookingService.upsert(booking)).thenReturn(UpsertResult.UPDATED);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"participants\":\"size must be between 1 and 2147483647\"}");
     }
 
     private String getPath(UUID bookingId) {
