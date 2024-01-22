@@ -65,6 +65,12 @@ public class RecordingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "caseReference",
+        description = "The case reference to search by",
+        schema = @Schema(implementation = String.class),
+        example = "CASE12345"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -86,6 +92,7 @@ public class RecordingController extends PreApiController {
         var resultPage = recordingService.findAll(
             params.getCaptureSessionId(),
             params.getParentRecordingId(),
+            params.getCaseReference(),
             pageable
         );
 

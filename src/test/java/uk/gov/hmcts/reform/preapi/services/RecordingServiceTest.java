@@ -114,10 +114,10 @@ class RecordingServiceTest {
     @Test
     void findAllRecordingsSuccess() {
         when(
-            recordingRepository.searchAllBy(any(), any(), any())
+            recordingRepository.searchAllBy(any(), any(), any(), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
 
-        var modelList = recordingService.findAll(null, null, null).get().toList();
+        var modelList = recordingService.findAll(null, null, null, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -258,12 +258,12 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
 
-        when(recordingRepository.searchAllBy(null, null, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(null, null, null, null)).thenReturn(Page.empty());
 
-        var models = recordingService.findAll(null, null, null).get().toList();
+        var models = recordingService.findAll(null, null, null, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(null, null, null);
+            .searchAllBy(null, null, null, null);
 
         assertThat(models.size()).isEqualTo(0);
     }

@@ -36,11 +36,16 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
             CAST(:parentRecordingId as uuid) IS NULL OR
             r.parentRecording.id = :parentRecordingId
         )
+        AND (
+            :caseReference IS NULL OR
+            r.captureSession.booking.caseId.reference ILIKE %:caseReference%
+        )
         """
     )
     Page<Recording> searchAllBy(
         @Param("captureSessionId") UUID captureSessionId,
         @Param("parentRecordingId") UUID parentRecordingId,
+        @Param("caseReference") String caseReference,
         Pageable pageable
     );
 

@@ -84,7 +84,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
+        when(recordingService.findAll(any(), any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
                             .with(csrf())
