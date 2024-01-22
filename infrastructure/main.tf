@@ -1,3 +1,6 @@
+provider "azurerm" {
+  features {}
+
 locals {
   app_name         = "pre-api"
   env_to_deploy    = var.env != "prod" ? 1 : 0
