@@ -1,17 +1,78 @@
 # pre-api
 
-# Spring Boot application template
+# Pre-Recorded Evidence API
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api)
 
 ## Purpose
 
-The purpose of this template is to speed up the creation of new Spring applications within HMCTS
-and help keep the same standards across multiple teams. If you need to create a new app, you can
-simply use this one as a starting point and build on top of it.
+This code repository contains the source code for the Pre-Recorded Evidence API.
+
+The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
+
+This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
+```mermaid
+    C4Context
+      title System Context diagram for Pre-Recorded Evidence
+
+      Person(judicialUser, "Judicial User", "")
+      Person(professionalUser, "Professional User", "")
+      Person(adminUser, "Admin User", "")
+
+      Enterprise_Boundary(a1, "Power Platform Azure Tenant") {
+
+        System_Boundary(PowerPlatform, "Power Platform") {
+            System(Portal, "Portal", "")
+            System(PowerFlows, "Power Flows", "")
+            System(PowerApps, "Power Apps Forms", "")
+            SystemDb(Dataverse, "Dataverse", "")
+        }
+      }
+
+      Enterprise_Boundary(a0, "CFT Azure Tenant") {
+
+        System(function, "pre-functions", "Function apps to control Azure Media Services")
+
+        System_Boundary(api, "API") {
+            System(api, "pre-api")
+            SystemDb(db, "API db")
+        }
+
+        System_Boundary(media, "Media") {
+            System(ams, "Azure Media Services")
+            SystemDb(blob, "Azure Blob Storage")
+        }
+
+      }
+
+      BiRel(judicialUser, Portal, "")
+      BiRel(adminUser, Portal, "")
+      BiRel(adminUser, PowerApps, "Via MS Teams")
+      BiRel(professionalUser, Portal, "")
+      BiRel(PowerApps, PowerFlows, "")
+      BiRel(Portal, Dataverse, "")
+      Rel(Portal, function, "")
+      BiRel(PowerFlows, Dataverse, "")
+      Rel(PowerApps, api, "")
+      Rel(PowerFlows, api, "")
+      Rel(PowerFlows, function, "")
+      Rel(api, db, "")
+      Rel(ams, blob, "")
+      Rel(function, ams, "")
+      UpdateElementStyle(api,  $bgColor="green", $borderColor="black")
+      UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
+```
+
+## Related Repositories
+ * [PRE Power Platform Frontend](https://github.com/hmcts/pre-power-platform)
+ * [PRE Shared Infrastructure](https://github.com/hmcts/pre-shared-infrastructure)
+ * [PRE Function Apps](https://github.com/hmcts/pre-functions)
+ * [PRE Portal](https://github.com/hmcts/pre-portal)
 
 ## What's inside
 
 The template is a working application with a minimal setup. It contains:
- * application skeleton
+ * application code
  * setup script to prepare project
  * common plugins and libraries
  * docker setup
@@ -158,6 +219,9 @@ docker image rm <image-id>
 ```
 
 There is no need to remove postgres and java or similar core images.
+
+## How to generate a Power Platform Custom Connector
+Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 
 ## License
 
