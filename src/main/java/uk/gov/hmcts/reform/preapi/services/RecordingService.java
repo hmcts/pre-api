@@ -42,9 +42,14 @@ public class RecordingService {
     }
 
     @Transactional
-    public Page<RecordingDTO> findAll(UUID captureSessionId, UUID parentRecordingId, Pageable pageable) {
+    public Page<RecordingDTO> findAll(
+        UUID captureSessionId,
+        UUID parentRecordingId,
+        UUID participantId,
+        Pageable pageable
+    ) {
         return recordingRepository
-            .searchAllBy(captureSessionId, parentRecordingId, pageable)
+            .searchAllBy(captureSessionId, parentRecordingId, participantId, pageable)
             .map(RecordingDTO::new);
     }
 

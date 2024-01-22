@@ -8,4 +8,5 @@ import java.util.UUID;
 public class SearchRecordings {
     private UUID captureSessionId;
     private UUID parentRecordingId;
+    private UUID participantId;
 }
