@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers.params;
 
 import lombok.Data;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.util.Date;
 import java.util.UUID;
@@ -9,5 +10,6 @@ import java.util.UUID;
 public class SearchBookings {
     private UUID caseId;
     private String caseReference;
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;
 }
