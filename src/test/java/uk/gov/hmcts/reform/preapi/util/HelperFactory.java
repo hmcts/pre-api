@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.util;
 
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -201,5 +202,17 @@ public class HelperFactory {
         share.setBooking(booking);
         share.setDeletedAt(deletedAt);
         return share;
+    }
+
+    public static CreateParticipantDTO createParticipantDTO(
+        String firstName,
+        String lastName,
+        ParticipantType participantType
+    ) {
+        var participant = new CreateParticipantDTO();
+        participant.setFirstName(firstName);
+        participant.setLastName(lastName);
+        participant.setParticipantType(participantType);
+        return participant;
     }
 }

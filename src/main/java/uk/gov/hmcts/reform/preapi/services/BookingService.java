@@ -40,7 +40,6 @@ public class BookingService {
     private final UserRepository userRepository;
     private final ShareBookingRepository shareBookingRepository;
     private final CaseRepository caseRepository;
-
     private final CaptureSessionService captureSessionService;
 
     @Autowired

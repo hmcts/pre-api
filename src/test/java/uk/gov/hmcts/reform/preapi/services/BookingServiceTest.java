@@ -107,8 +107,6 @@ class BookingServiceTest {
     @DisplayName("Search By Case Ref")
     @Test
     void searchByCaseRefSuccess() {
-
-
         var courtEntity = new Court();
         courtEntity.setId(UUID.randomUUID());
         var caseEntity1 = new Case();
@@ -152,17 +150,17 @@ class BookingServiceTest {
     void getBookingSuccess() {
 
         var bookingId = UUID.randomUUID();
-        var bookingEntity = new uk.gov.hmcts.reform.preapi.entities.Booking();
+        var bookingEntity = new Booking();
         bookingEntity.setId(bookingId);
-        var caseEntity = new uk.gov.hmcts.reform.preapi.entities.Case();
+        var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        var courtEntity = new uk.gov.hmcts.reform.preapi.entities.Court();
+        var courtEntity = new Court();
         caseEntity.setCourt(courtEntity);
         bookingEntity.setCaseId(caseEntity);
         var bookingModel = new BookingDTO(bookingEntity);
 
-        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(java.util.Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, null, null,null))
+        when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
+        when(recordingRepository.searchAllBy(null, null, null, null, null, null, null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }
