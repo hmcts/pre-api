@@ -48,7 +48,11 @@ public class CaseDTO {
         this.court = new CourtDTO(caseEntity.getCourt());
         this.reference = caseEntity.getReference();
         this.participants = Stream.ofNullable(caseEntity.getParticipants())
-            .flatMap(participants -> participants.stream().map(ParticipantDTO::new))
+            .flatMap(participants ->
+                         participants
+                             .stream()
+                             .filter(participant -> participant.getDeletedAt() == null)
+                             .map(ParticipantDTO::new))
             .collect(Collectors.toSet());
         this.test = caseEntity.isTest();
         this.deletedAt = caseEntity.getDeletedAt();

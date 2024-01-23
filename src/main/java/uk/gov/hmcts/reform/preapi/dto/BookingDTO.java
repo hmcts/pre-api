@@ -52,7 +52,11 @@ public class BookingDTO {
         this.caseDTO = new CaseDTO(bookingEntity.getCaseId());
         this.scheduledFor = bookingEntity.getScheduledFor();
         this.participants = Stream.ofNullable(bookingEntity.getParticipants())
-            .flatMap(participants -> participants.stream().map(ParticipantDTO::new))
+            .flatMap(participants ->
+                         participants
+                             .stream()
+                             .filter(participant -> participant.getDeletedAt() == null)
+                             .map(ParticipantDTO::new))
             .collect(Collectors.toSet());
         this.captureSessions = Stream.ofNullable(bookingEntity.getCaptureSessions())
             .flatMap(captureSessions -> captureSessions.stream().map(CaptureSessionDTO::new))
