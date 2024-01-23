@@ -67,6 +67,12 @@ public class RecordingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "participantId",
+        description = "The participant to search by",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
         name = "caseReference",
         description = "The case reference to search by",
         schema = @Schema(implementation = String.class),
@@ -100,6 +106,7 @@ public class RecordingController extends PreApiController {
         var resultPage = recordingService.findAll(
             params.getCaptureSessionId(),
             params.getParentRecordingId(),
+            params.getParticipantId(),
             params.getCaseReference(),
             params.getScheduledFor() != null
                 ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))

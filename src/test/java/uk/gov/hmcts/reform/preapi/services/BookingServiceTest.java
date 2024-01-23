@@ -126,7 +126,7 @@ class BookingServiceTest {
         var bookingModel1 = new BookingDTO(bookingEntity1);
         var bookingModel2 = new BookingDTO(bookingEntity2);
 
-        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null, null))
+        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null,null, null))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
                 {
                     add(bookingEntity1);
@@ -135,7 +135,7 @@ class BookingServiceTest {
             }));
         assertThat(
             bookingService
-                .searchBy(null, "MyRef", Optional.empty(), null)
+                .searchBy(null, "MyRef", Optional.empty(), null,null)
                 .getContent()).isEqualTo(new ArrayList<>() {
                     {
                         add(bookingModel1);
@@ -160,7 +160,7 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, null, null, null, null, null))
+        when(recordingRepository.searchAllBy(null, null, null, null, null, null, null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }

@@ -90,7 +90,8 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
+        when(recordingService.findAll(any(), any(), any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
                             .with(csrf())
@@ -109,7 +110,8 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
+        when(recordingService.findAll(any(), any(), any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
                             .param("scheduledFor", "2024-01-01")
@@ -122,7 +124,14 @@ class RecordingControllerTest {
             .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
 
         verify(recordingService, times(1))
-            .findAll(isNull(), isNull(), isNull(), eq(Optional.of(Timestamp.valueOf("2024-01-01 00:00:00"))), any());
+            .findAll(
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                eq(Optional.of(Timestamp.valueOf("2024-01-01 00:00:00"))),
+                any()
+            );
     }
 
     @DisplayName("Should create a recording with 201 response code")

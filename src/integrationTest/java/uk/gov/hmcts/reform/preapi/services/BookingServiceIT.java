@@ -86,18 +86,27 @@ class BookingServiceIT {
         assertEquals(1, findByCaseResult2.toList().size(), "Should find 1 booking");
         assertEquals(booking2.getId(), findByCaseResult2.toList().getFirst().getId(), "Should find booking 2");
 
-        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", Optional.empty(), null);
+        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", Optional.empty(), null, null);
         assertEquals(2, findByCaseReferenceResult.getContent().size(), "Should find 2 bookings");
         assertEquals(booking1.getId(), findByCaseReferenceResult.getContent().get(0).getId(), "Should find booking 1");
         assertEquals(booking2.getId(), findByCaseReferenceResult.getContent().get(1).getId(), "Should find booking 2");
 
-        var findByScheduledforResult = bookingService.searchBy(
+        var findByScheduledForResult = bookingService.searchBy(
             null,
             null,
             Optional.of(Timestamp.from(Instant.parse("2024-06-28T00:00:00.000Z"))),
+            null,
             null
         );
-        assertEquals(1, findByScheduledforResult.getContent().size(), "Should find 1 bookings");
+        assertEquals(1, findByScheduledForResult.getContent().size(), "Should find 1 bookings");
+        assertEquals(
+            booking1.getId(),
+            findByCaseReferenceResult.getContent().getFirst().getId(),
+            "Should find booking 1"
+        );
+
+        var findByParticipantResult = bookingService.searchBy(null, null,Optional.empty(), participant1.getId(), null);
+        assertEquals(1, findByParticipantResult.getContent().size());
         assertEquals(
             booking1.getId(),
             findByCaseReferenceResult.getContent().getFirst().getId(),
