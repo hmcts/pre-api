@@ -1857,6 +1857,17 @@ paths:
           name: parentRecordingId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The case reference to search by
+          in: query
+          name: caseReference
+          type: string
+          x-example: CASE12345
+        - description: The Date the recording's booking was scheduled for
+          format: date
+          in: query
+          name: scheduledFor
+          type: string
+          x-example: '2024-04-27'
         - description: The page number of search result to return
           format: int32
           in: query

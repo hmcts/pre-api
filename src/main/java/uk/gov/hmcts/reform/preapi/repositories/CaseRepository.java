@@ -15,13 +15,10 @@ import java.util.UUID;
 public interface CaseRepository extends SoftDeleteRepository<Case, UUID> {
     @Query(
         """
-        SELECT c FROM Case c WHERE
-        (
-            CAST(:reference as text) IS NULL OR
-            LOWER(CAST(c.reference as text)) LIKE CONCAT('%', LOWER(CAST(:reference as text)), '%')
-        ) AND
-        (CAST(:courtId as java.util.UUID) IS NULL OR c.court.id = :courtId) AND
-        c.deletedAt IS NULL
+        SELECT c FROM Case c
+        WHERE (:reference IS NULL OR c.reference ILIKE %:reference%)
+        AND (CAST(:courtId as uuid) IS NULL OR c.court.id = :courtId)
+        AND c.deletedAt IS NULL
         """
     )
     Page<Case> searchCasesBy(
