@@ -63,7 +63,11 @@ public class ShareBookingService {
 
         var share = shareBookingRepository
             .findById(shareId)
-            .orElseThrow(() -> new NotFoundException("Share Booking: " + shareId));
+            .orElseThrow(() -> new NotFoundException("ShareBooking: " + shareId));
+
+        if (share.isDeleted()) {
+            throw new NotFoundException("ShareBooking: " + shareId);
+        }
 
         if (!share.getBooking().getId().equals(bookingId)) {
             throw new NotFoundException("Found ShareBooking: " + shareId + ". Booking does not match: " + bookingId);
