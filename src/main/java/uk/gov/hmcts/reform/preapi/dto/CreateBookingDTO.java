@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.FutureDateConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 
 import java.sql.Timestamp;
@@ -34,6 +35,7 @@ public class CreateBookingDTO {
     private Timestamp scheduledFor;
 
     @Schema(description = "CreateBookingParticipants")
+    @ParticipantTypeConstraint
     private Set<CreateParticipantDTO> participants;
 
     // room?
