@@ -148,6 +148,13 @@ public class BookingController extends PreApiController {
         return getUpsertResponse(shareBookingService.shareBookingById(shareBookingDTO), shareBookingDTO.getId());
     }
 
+    @DeleteMapping("/{bookingId}/share/{shareId}")
+    @Operation(operationId = "deleteShareBookingById")
+    public ResponseEntity<Void> deleteShareBookingById(@PathVariable UUID bookingId, @PathVariable UUID shareId) {
+        shareBookingService.deleteShareBookingById(bookingId, shareId);
+        return noContent().build();
+    }
+
     private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {
         if (!bookingId.equals(createBookingDTO.getId())) {
             throw new PathPayloadMismatchException("bookingId", "bookingDTO.id");

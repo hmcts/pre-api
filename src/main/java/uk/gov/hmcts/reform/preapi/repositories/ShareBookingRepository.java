@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ShareBookingRepository extends JpaRepository<ShareBooking, UUID> {
+public interface ShareBookingRepository extends SoftDeleteRepository<ShareBooking, UUID> {
     List<ShareBooking> findAllByDeletedAtIsNotNull();
 
 
