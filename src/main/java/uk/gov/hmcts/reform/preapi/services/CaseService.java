@@ -88,6 +88,10 @@ public class CaseService {
             newCase.setReference(createCaseDTO.getReference());
         }
         newCase.setTest(createCaseDTO.isTest());
+        if (!isUpdate) {
+            newCase.setCreatedAt(Timestamp.from(Instant.now()));
+        }
+        caseRepository.saveAndFlush(newCase);
 
         Set<Participant> oldParticipants = (newCase.getParticipants() == null || newCase.getParticipants().isEmpty())
             ? new HashSet<>()
