@@ -120,9 +120,9 @@ def main():
     migrate_manager_data(case_manager, destination_db_cursor) 
     migrate_manager_data(booking_manager, destination_db_cursor)
     migrate_manager_data(participant_manager, destination_db_cursor)
-    migrate_manager_data(booking_participant_manager, destination_db_cursor)
     migrate_manager_data(capture_session_manager, destination_db_cursor)
     migrate_manager_data(recording_manager, destination_db_cursor)
+    migrate_manager_data(booking_participant_manager, destination_db_cursor)
     migrate_manager_data(share_recordings_manager, destination_db_cursor)
     migrate_manager_data(audit_log_manager, destination_db_cursor)
 
