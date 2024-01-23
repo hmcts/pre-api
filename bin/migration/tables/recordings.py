@@ -52,7 +52,7 @@ class RecordingManager:
 
             if not check_existing_record(destination_cursor,'recordings', 'id', id):
                 version = recording[12] 
-                url = recording[20] if recording[20] is not None else 'Unknown URL'
+                url = recording[20] 
                 filename = recording[14]
                 created_at = parse_to_timestamp(recording[22])
                 modified_at = parse_to_timestamp(recording[24])
@@ -101,7 +101,7 @@ class RecordingManager:
 
             if not check_existing_record(destination_cursor,'recordings', 'id', id,):
                 version = recording[12] 
-                url = recording[20] if recording[20] is not None else 'Unknown URL'
+                url = recording[20] 
                 filename = recording[14]
                 created_at = parse_to_timestamp(recording[22])
                 recording_status = recording[11]
