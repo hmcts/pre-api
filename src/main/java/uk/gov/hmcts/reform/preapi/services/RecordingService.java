@@ -48,6 +48,7 @@ public class RecordingService {
     public Page<RecordingDTO> findAll(
         UUID captureSessionId,
         UUID parentRecordingId,
+        UUID participantId,
         String caseReference,
         Optional<Timestamp> scheduledFor,
         Pageable pageable
@@ -61,6 +62,7 @@ public class RecordingService {
             .searchAllBy(
                 captureSessionId,
                 parentRecordingId,
+                participantId,
                 caseReference,
                 scheduledFor.orElse(null),
                 until,

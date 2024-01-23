@@ -38,6 +38,12 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
             r.parentRecording.id = :parentRecordingId
         )
         AND (
+            CAST(:participantId as uuid) IS NULL OR EXISTS (
+                SELECT 1 FROM r.captureSession.booking.participants p
+                WHERE p.id = :participantId
+            )
+        )
+        AND (
             :caseReference IS NULL OR
             r.captureSession.booking.caseId.reference ILIKE %:caseReference%
         )
@@ -51,6 +57,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     Page<Recording> searchAllBy(
         @Param("captureSessionId") UUID captureSessionId,
         @Param("parentRecordingId") UUID parentRecordingId,
+        @Param("participantId") UUID participantId,
         @Param("caseReference") String caseReference,
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
