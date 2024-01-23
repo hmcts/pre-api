@@ -17,6 +17,10 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -84,26 +88,41 @@ public class CaseService {
             newCase.setReference(createCaseDTO.getReference());
         }
         newCase.setTest(createCaseDTO.isTest());
+
+        Set<Participant> oldParticipants = (newCase.getParticipants() == null || newCase.getParticipants().isEmpty())
+            ? new HashSet<>()
+            : new HashSet<>(Set.copyOf(newCase.getParticipants()));
+
+        var newParticipants = Stream
+            .ofNullable(createCaseDTO.getParticipants())
+            .flatMap(participants -> participants.stream().map(model -> {
+                var entity = participantRepository.findById(model.getId()).orElse(new Participant());
+
+                if (entity.getDeletedAt() != null) {
+                    throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
+                }
+
+                entity.setId(model.getId());
+                entity.setFirstName(model.getFirstName());
+                entity.setLastName(model.getLastName());
+                entity.setParticipantType(model.getParticipantType());
+                entity.setCaseId(newCase);
+                participantRepository.save(entity);
+                return entity;
+            }))
+            .collect(Collectors.toSet());
+
+        var ids = newParticipants.stream().map(Participant::getId).toList();
+        oldParticipants
+            .stream()
+            .filter(p -> !ids.contains(p.getId()))
+            .forEach(p -> {
+                p.setCaseId(newCase);
+                p.setDeletedAt(Timestamp.from(Instant.now()));
+                participantRepository.save(p);
+            });
+
         caseRepository.save(newCase);
-
-        newCase.setParticipants(
-            Stream.ofNullable(createCaseDTO.getParticipants())
-                .flatMap(participants -> participants.stream().map(model -> {
-                    var entity = participantRepository.findById(model.getId()).orElse(new Participant());
-
-                    if (entity.getDeletedAt() != null) {
-                        throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
-                    }
-
-                    entity.setId(model.getId());
-                    entity.setFirstName(model.getFirstName());
-                    entity.setLastName(model.getLastName());
-                    entity.setParticipantType(model.getParticipantType());
-                    entity.setCaseId(newCase);
-                    participantRepository.save(entity);
-                    return entity;
-                }))
-                .collect(Collectors.toSet()));
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
