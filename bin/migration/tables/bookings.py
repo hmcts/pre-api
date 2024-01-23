@@ -42,6 +42,10 @@ class BookingManager:
             booking_id = str(uuid.uuid4())
             scheduled_for = parse_to_timestamp(recording[10])
 
+            if scheduled_for is None:
+                self.failed_imports.add(('bookings', booking_id, f'Scheduled for date is NULL for case id: {case_id}'))
+                continue
+
             recording_status = recording[11]
             deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
             created_at = parse_to_timestamp(recording[22])

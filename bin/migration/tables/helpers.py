@@ -5,6 +5,7 @@ import uuid
 
 # Parses timestamp string to date format
 def parse_to_timestamp(input_text):
+    failed_imports = set()
     if input_text:
         try:
             parsed_datetime = None
@@ -22,9 +23,6 @@ def parse_to_timestamp(input_text):
             for date_format in formats_to_try:
                 try:
                     parsed_datetime = datetime.strptime(input_text, date_format)
-                    # if parsed_datetime.time() == datetime.min.time():
-                    #     parsed_datetime = parsed_datetime.replace(hour=12, minute=0, second=0)
-
                     break 
                 except ValueError:
                     pass
@@ -33,10 +31,12 @@ def parse_to_timestamp(input_text):
                 uk_timezone = pytz.timezone('Europe/London')
                 parsed_datetime = uk_timezone.localize(parsed_datetime)
                 return parsed_datetime
-        except (ValueError, TypeError):
-            pass
+            
+        except (ValueError, TypeError) as e:
+            failed_imports.add(('date/time', input_text, e))
+            log_failed_imports(failed_imports)
     # if input is invalid or empty, returning the current time in UK timezone
-    return datetime.now(tz=pytz.timezone('Europe/London'))
+    # return datetime.now(tz=pytz.timezone('Europe/London'))
 
 # Checks if
 def check_existing_record(db_connection, table_name, field, record):
@@ -48,7 +48,6 @@ def check_existing_record(db_connection, table_name, field, record):
 # audit entry into database
 def audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry"):
     created_at = created_at or datetime.now()
-    # modified_at = modified_at or datetime.now()
 
     failed_imports = set()
 
@@ -64,9 +63,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         "audit_details": f"Created {table_name}_record for: {record}",
         "created_by": created_by,
         "created_at": created_at,
-        # "updated_at": modified_at 
     }
-
 
     try:
         db_connection.execute(
@@ -78,7 +75,6 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
             """,
             audit_entry
         )
-
         db_connection.connection.commit()
         
     except Exception as e:

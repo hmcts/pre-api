@@ -39,7 +39,7 @@ class CourtManager:
                     break 
                 
                 if court_info is None:
-                    court_info = ('CROWN', 'Unknown', 'Unknown')
+                    court_info = ('CROWN', '', '')
 
             court_type, location_code, _ = court_info
             
