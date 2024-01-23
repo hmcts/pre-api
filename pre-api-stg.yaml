@@ -1485,6 +1485,13 @@ paths:
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1504,6 +1511,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1518,6 +1532,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1538,6 +1559,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1560,6 +1588,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1598,6 +1633,13 @@ paths:
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1617,6 +1659,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1631,6 +1680,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1651,6 +1707,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1700,6 +1763,13 @@ paths:
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1719,6 +1789,13 @@ paths:
           name: courtId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1739,6 +1816,13 @@ paths:
           name: courtId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1783,6 +1867,13 @@ paths:
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1802,6 +1893,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1816,6 +1914,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1836,6 +1941,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1892,6 +2004,13 @@ paths:
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1911,6 +2030,13 @@ paths:
           name: recordingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1925,6 +2051,13 @@ paths:
           name: recordingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1945,6 +2078,13 @@ paths:
           name: recordingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1959,7 +2099,14 @@ paths:
   /reports/capture-sessions-concurrent:
     get:
       operationId: reportConcurrentCaptureSessions
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1974,7 +2121,14 @@ paths:
   /reports/completed-capture-sessions:
     get:
       operationId: reportCompletedCaptureSessions
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1990,7 +2144,14 @@ paths:
   /reports/edits:
     get:
       operationId: reportEdits
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2017,6 +2178,13 @@ paths:
           name: source
           required: false
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2032,7 +2200,14 @@ paths:
   /reports/recordings-per-case:
     get:
       operationId: reportRecordingsPerCase
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2048,7 +2223,14 @@ paths:
   /reports/schedules:
     get:
       operationId: reportSchedules
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2064,7 +2246,14 @@ paths:
   /reports/share-bookings-removed:
     get:
       operationId: reportShareBookingRemoved
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2104,6 +2293,13 @@ paths:
           name: sharedWithEmail
           type: string
           x-example: example@example.com
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2119,7 +2315,14 @@ paths:
   /roles:
     get:
       operationId: getRoles
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2177,6 +2380,13 @@ paths:
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2198,6 +2408,13 @@ paths:
           name: userId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -2212,6 +2429,13 @@ paths:
           name: userId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2232,6 +2456,13 @@ paths:
           name: userId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
