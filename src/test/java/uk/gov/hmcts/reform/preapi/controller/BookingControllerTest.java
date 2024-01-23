@@ -195,6 +195,12 @@ class BookingControllerTest {
         var booking = new BookingDTO();
         booking.setId(bookingId);
         booking.setCaseDTO(caseDTO);
+        var shareBooking = new ShareBookingDTO();
+        shareBooking.setBookingId(bookingId);
+        shareBooking.setId(UUID.randomUUID());
+        shareBooking.setSharedByUserId(UUID.randomUUID());
+        shareBooking.setSharedWithUserId(UUID.randomUUID());
+        booking.setShares(Set.of(shareBooking));
 
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
         when(bookingService.findById(bookingId)).thenReturn(booking);

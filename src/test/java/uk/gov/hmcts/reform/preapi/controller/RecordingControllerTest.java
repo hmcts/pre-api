@@ -20,13 +20,19 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -84,7 +90,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
+        when(recordingService.findAll(any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
                             .with(csrf())
@@ -94,6 +100,29 @@ class RecordingControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
+    }
+
+    @DisplayName("Should get a list of recordings with 200 response code when searching by scheduled for date")
+    @Test
+    void testGetRecordingIdScheduledForSuccess() throws Exception {
+        UUID recordingId = UUID.randomUUID();
+        var mockRecordingDTO = new RecordingDTO();
+        mockRecordingDTO.setId(recordingId);
+        var recordingDTOList = List.of(mockRecordingDTO);
+        when(recordingService.findAll(any(), any(), any(), any(), any())).thenReturn(new PageImpl<>(recordingDTOList));
+
+        mockMvc.perform(get("/recordings")
+                            .param("scheduledFor", "2024-01-01")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE)
+            )
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
+
+        verify(recordingService, times(1))
+            .findAll(isNull(), isNull(), isNull(), eq(Optional.of(Timestamp.valueOf("2024-01-01 00:00:00"))), any());
     }
 
     @DisplayName("Should create a recording with 201 response code")
