@@ -10,6 +10,7 @@ import java.util.UUID;
 public class SearchRecordings {
     private UUID captureSessionId;
     private UUID parentRecordingId;
+    private UUID participantId;
     private String caseReference;
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;

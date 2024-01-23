@@ -12,4 +12,5 @@ public class SearchBookings {
     private String caseReference;
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;
+    private UUID participantId;
 }
