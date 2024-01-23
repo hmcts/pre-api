@@ -60,11 +60,6 @@ definitions:
       scheduledFor:
         format: date-time
         type: string
-      shares:
-        items:
-          $ref: '#/definitions/ShareBooking'
-        type: array
-        uniqueItems: true
     type: object
   BookingDTO:
     description: BookingDTO
@@ -103,12 +98,6 @@ definitions:
         description: BookingScheduledFor
         format: date-time
         type: string
-      shares:
-        description: BookingShares
-        items:
-          $ref: '#/definitions/ShareBookingDTO'
-        type: array
-        uniqueItems: true
     type: object
   CaptureSession:
     properties:
@@ -686,12 +675,6 @@ definitions:
         description: BookingScheduledFor
         format: date-time
         type: string
-      shares:
-        description: BookingShares
-        items:
-          $ref: '#/definitions/ShareBookingDTO'
-        type: array
-        uniqueItems: true
     type: object
   EntityModelCaseDTO:
     properties:
@@ -1294,24 +1277,6 @@ definitions:
         format: date-time
         type: string
     type: object
-  ShareBooking:
-    properties:
-      booking:
-        $ref: '#/definitions/Booking'
-      createdAt:
-        format: date-time
-        type: string
-      deletedAt:
-        format: date-time
-        type: string
-      id:
-        format: uuid
-        type: string
-      sharedBy:
-        $ref: '#/definitions/User'
-      sharedWith:
-        $ref: '#/definitions/User'
-    type: object
   ShareBookingDTO:
     properties:
       booking_id:
@@ -1467,6 +1432,12 @@ paths:
           name: scheduledFor
           type: string
           x-example: '2024-04-27'
+        - description: The Participant Id to search for
+          format: uuid
+          in: query
+          name: participantId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
           format: int32
           in: query
@@ -1857,17 +1828,12 @@ paths:
           name: parentRecordingId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
-        - description: The case reference to search by
+        - description: The participant to search by
+          format: uuid
           in: query
-          name: caseReference
+          name: participantId
           type: string
-          x-example: CASE12345
-        - description: The Date the recording's booking was scheduled for
-          format: date
-          in: query
-          name: scheduledFor
-          type: string
-          x-example: '2024-04-27'
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
           format: int32
           in: query
