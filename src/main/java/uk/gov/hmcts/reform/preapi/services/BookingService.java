@@ -16,8 +16,6 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
-import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
@@ -36,16 +34,19 @@ public class BookingService {
     private final ParticipantRepository participantRepository;
     private final CaseRepository caseRepository;
     private final CaptureSessionService captureSessionService;
+    private final ShareBookingService shareBookingService;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
-                          CaptureSessionService captureSessionService) {
+                          CaptureSessionService captureSessionService,
+                          ShareBookingService shareBookingService) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
+        this.shareBookingService = shareBookingService;
     }
 
     public BookingDTO findById(UUID id) {
@@ -140,7 +141,9 @@ public class BookingService {
         if (entity.isEmpty()) {
             throw new NotFoundException("Booking: " + id);
         }
-        captureSessionService.deleteCascade(entity.get());
+        var booking = entity.get();
+        captureSessionService.deleteCascade(booking);
+        shareBookingService.deleteCascade(booking);
         bookingRepository.deleteById(id);
     }
 
@@ -148,7 +151,10 @@ public class BookingService {
     public void deleteCascade(Case caseEntity) {
         bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(caseEntity)
-            .forEach(captureSessionService::deleteCascade);
+            .forEach((booking) -> {
+                captureSessionService.deleteCascade(booking);
+                shareBookingService.deleteCascade(booking);
+            });
         bookingRepository.deleteAllByCaseId(caseEntity);
     }
 }

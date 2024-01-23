@@ -1,10 +1,11 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
-
-import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 
 import java.util.List;
@@ -42,4 +43,15 @@ public interface ShareBookingRepository extends SoftDeleteRepository<ShareBookin
         @Param("sharedWithId") UUID sharedWithId,
         @Param("sharedWithEmail") String sharedWithEmail
     );
+
+    @Query("""
+        update ShareBooking e
+        set e.deletedAt=CURRENT_TIMESTAMP
+        where e.booking=:booking
+        and e.deletedAt is null
+        """
+    )
+    @Modifying
+    @Transactional
+    void deleteAllByBooking(Booking booking);
 }

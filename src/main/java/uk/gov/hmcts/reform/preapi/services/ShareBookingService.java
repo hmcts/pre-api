@@ -71,4 +71,9 @@ public class ShareBookingService {
 
         shareBookingRepository.deleteById(shareId);
     }
+
+    @Transactional
+    public void deleteCascade(Booking booking) {
+        shareBookingRepository.deleteAllByBooking(booking);
+    }
 }
