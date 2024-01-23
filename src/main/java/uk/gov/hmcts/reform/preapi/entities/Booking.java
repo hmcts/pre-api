@@ -44,6 +44,10 @@ public class Booking extends CreatedModifiedAtEntity {
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Set<CaptureSession> captureSessions;
 
+    @OneToMany
+    @JoinColumn(name = "booking_id", referencedColumnName = "id")
+    private Set<ShareBooking> shares;
+
     @Transient
     private boolean deleted;
 
