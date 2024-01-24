@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -135,5 +136,36 @@ public class CaptureSessionServiceTest {
         var modelList = captureSessionService.searchBy(null, null, null, null, Optional.of(from), null).getContent();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(captureSession.getId());
+    }
+
+    @DisplayName("Should delete a capture session by id")
+    @Test
+    void deleteByIdSuccess() {
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+
+        captureSessionService.deleteById(captureSession.getId());
+
+        verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
+        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(captureSessionRepository, times(1)).deleteById(captureSession.getId());
+    }
+
+    @DisplayName("Should delete a capture session by id when capture session not found")
+    @Test
+    void deleteByIdNotFound() {
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.deleteById(captureSession.getId())
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSession.getId());
+
+        verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
+        verify(recordingService, never()).deleteCascade(any());
+        verify(captureSessionRepository, never()).deleteById(any());
     }
 }

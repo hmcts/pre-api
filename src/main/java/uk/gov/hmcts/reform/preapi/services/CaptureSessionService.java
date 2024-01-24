@@ -66,6 +66,16 @@ public class CaptureSessionService {
     }
 
     @Transactional
+    public void deleteById(UUID id) {
+        var entity = captureSessionRepository.findByIdAndDeletedAtIsNull(id);
+        if (entity.isEmpty()) {
+            throw new NotFoundException("CaptureSession: " + id);
+        }
+        recordingService.deleteCascade(entity.get());
+        captureSessionRepository.deleteById(id);
+    }
+
+    @Transactional
     public void deleteCascade(Booking booking) {
         captureSessionRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
