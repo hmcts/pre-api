@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 
 
 class RecordingManager:
@@ -52,12 +52,11 @@ class RecordingManager:
 
             if not check_existing_record(destination_cursor,'recordings', 'id', id):
                 version = recording[12] 
-                url = recording[20] 
+                url = recording[20] if recording[20] is not None else None
                 filename = recording[14]
                 created_at = parse_to_timestamp(recording[22])
-                modified_at = parse_to_timestamp(recording[24])
-                created_by = recording[21]
-                recording_status = recording[11]
+                created_by = get_user_id(destination_cursor,recording[21])
+                recording_status = recording[11] if recording[11] is not None else None
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
 
                 try:
@@ -75,7 +74,7 @@ class RecordingManager:
                         record_id=id,
                         record=capture_session_id,
                         created_at=created_at,
-                        created_by=created_by,
+                        created_by=created_by if created_by is not None else None
                     )
 
                 except Exception as e:  
@@ -83,11 +82,14 @@ class RecordingManager:
 
         # inserting remaining records
         for recording in non_duplicate_parent_id_records:
-            id = recording[0]
+            recording_id = recording[0]
             parent_recording_id = recording[9]
-        
-            destination_cursor.execute("SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s",(parent_recording_id,)) 
-            result = destination_cursor.fetchone()
+
+            try:
+                destination_cursor.execute("SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s",(parent_recording_id,)) 
+                result = destination_cursor.fetchone()
+            except Exception as e:
+                self.failed_imports.add(('recordings', id, e))
 
             if result is None:
                 self.failed_imports.add(('recordings', id, f'No capture_session id found for parent recording id {parent_recording_id}'))
@@ -95,19 +97,22 @@ class RecordingManager:
 
             capture_session_id = result[0]
 
-            if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
-                self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
-                continue
+            try:
+                if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
+                    self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
+                    continue
+            except Exception as e:
+                self.failed_imports.add(('recordings', id, e))
 
-            if not check_existing_record(destination_cursor,'recordings', 'id', id,):
                 version = recording[12] 
-                url = recording[20] 
+                url = recording[20] if recording[20] is not None else None
                 filename = recording[14]
                 created_at = parse_to_timestamp(recording[22])
-                recording_status = recording[11]
+                recording_status = recording[11] if recording[11] is not None else None
+                created_by = get_user_id(destination_cursor,recording[21])
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
-        #         duration =  ? - this info is in the asset files on AMS 
-        #         edit_instruction = ?
+                # duration =  ? - this info is in the asset files on AMS 
+                # edit_instruction = ?
             
                 try:
                     destination_cursor.execute(
@@ -115,19 +120,20 @@ class RecordingManager:
                         INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
-                        (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at),  
+                        (recording_id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at),  
                     )
 
                     audit_entry_creation(
                         destination_cursor,
                         table_name="recordings",
-                        record_id=id,
+                        record_id=recording_id,
                         record=capture_session_id,
                         created_at=created_at,
-                        created_by=created_by,
+                        created_by=created_by if created_by is not None else None,
                     )
+
                 except Exception as e:  
-                    self.failed_imports.add(('recordings', id, e))
+                    self.failed_imports.add(('recordings', recording_id, e))
                     
         log_failed_imports(self.failed_imports)
          

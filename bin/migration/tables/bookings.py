@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 import uuid
 
 
@@ -27,7 +27,7 @@ class BookingManager:
                 deleted_at TIMESTAMPTZ,
                 created_at TIMESTAMPTZ,
                 modified_at TIMESTAMPTZ,
-                created_by VARCHAR(50),
+                created_by UUID,
                 started_by_user_id UUID,
                 ingest_address VARCHAR(255),
                 live_output_url VARCHAR(255),
@@ -50,7 +50,7 @@ class BookingManager:
             deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
             created_at = parse_to_timestamp(recording[22])
             modified_at = parse_to_timestamp(recording[24]) if recording[24] is not None else created_at
-            created_by = recording[21]
+            created_by =  get_user_id(destination_cursor,recording[21])
 
             # Check if the case has been migrated into the cases table 
             if case_id not in existing_case_ids:
@@ -63,10 +63,13 @@ class BookingManager:
                     destination_cursor.execute(
                         """
                         INSERT INTO public.temp_recordings 
-                            (case_id, recording_id, booking_id,scheduled_for, deleted_at, created_at, modified_at, created_by)
+                            (case_id, recording_id, booking_id,scheduled_for, deleted_at, created_at, created_by,modified_at )
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
-                        (case_id, recording_id, booking_id,scheduled_for,deleted_at, created_at, modified_at if modified_at is not None else None,created_by),
+                        (   case_id, recording_id, booking_id,scheduled_for,deleted_at, created_at, 
+                            created_by if created_by is not None else None,
+                            modified_at if modified_at is not None else None
+                        ),
                     )
                 except Exception as e:
                     self.failed_imports.add(('temp_recordings', recording_id, f'Failed to insert into temp_recordings: {e}'))
@@ -103,8 +106,7 @@ class BookingManager:
                         record_id=id,
                         record=case_id,
                         created_at=created_at,
-                        created_by=created_by,
-                        # modified_at = modified_at
+                        created_by=created_by if created_by is not None else None,
                     )
                 except Exception as e:  
                     self.failed_imports.add(('bookings', id,e))

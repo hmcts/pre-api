@@ -1,3 +1,4 @@
+
 Drop schema if exists public cascade;
 
 CREATE SCHEMA public;
@@ -5,8 +6,8 @@ SET search_path TO public;
 
 -------------------------------------- Create types
 CREATE TYPE public.COURT_TYPE AS ENUM (
-    'CROWN', 
-    'MAGISTRATE', 
+    'CROWN',
+    'MAGISTRATE',
     'FAMILY'
 );
 
@@ -16,38 +17,38 @@ CREATE TYPE public.PARTICIPANT_TYPE AS ENUM (
 );
 
 CREATE TYPE public.RECORDING_STATUS AS ENUM (
-    'STANDBY', 
-    'INITIALISATION', 
-    'RECORDING', 
-    'FINISHED', 
-    'PROCESSING', 
-    'AVAILABLE', 
+    'STANDBY',
+    'INITIALISATION',
+    'RECORDING',
+    'FINISHED',
+    'PROCESSING',
+    'AVAILABLE',
     'FUTURE'
 );
 
 CREATE TYPE public.RECORDING_ORIGIN AS ENUM (
-    'PRE', 
+    'PRE',
     'VODAFONE'
 );
 
 CREATE TYPE public.AUDIT_LOG_SOURCE AS ENUM (
-    'APPLICATION', 
-    'PORTAL', 
-    'ADMIN', 
+    'APPLICATION',
+    'PORTAL',
+    'ADMIN',
     'AUTO'
 );
 
 CREATE TYPE public.AUDIT_LOG_TYPE AS ENUM (
-    'CREATE', 
-    'UPDATE', 
-    'DELETE', 
+    'CREATE',
+    'UPDATE',
+    'DELETE',
     'ACTION'
 );
 
 CREATE TYPE public.ACCESS_STATUS AS ENUM (
-    'INVITATION_SENT', 
-    'REGISTERED', 
-    'ACTIVE', 
+    'INVITATION_SENT',
+    'REGISTERED',
+    'ACTIVE',
     'INACTIVE'
 );
 
@@ -71,21 +72,21 @@ CREATE TABLE public.rooms (
 );
 
 CREATE TABLE public.court_region (
-  id SERIAL PRIMARY KEY,
-  court_id UUID REFERENCES courts(id) NOT NULL,
-  region_id UUID REFERENCES regions(id) NOT NULL
+    id SERIAL PRIMARY KEY,
+    court_id UUID REFERENCES courts(id) NOT NULL,
+    region_id UUID REFERENCES regions(id) NOT NULL
 );
 
 CREATE TABLE public.courtrooms (
-  id SERIAL PRIMARY KEY,
-  court_id UUID REFERENCES courts(id) NOT NULL,
-  room_id UUID REFERENCES rooms(id) NOT NULL
+    id SERIAL PRIMARY KEY,
+    court_id UUID REFERENCES courts(id) NOT NULL,
+    room_id UUID REFERENCES rooms(id) NOT NULL
 );
 
 CREATE TABLE public.cases (
     id UUID PRIMARY KEY,
     court_id UUID REFERENCES courts(id) NOT NULL ,
-    reference VARCHAR(25) NOT NULL, 
+    reference VARCHAR(25) NOT NULL,
     test BOOLEAN DEFAULT FALSE,
     deleted_at TIMESTAMPTZ DEFAULT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -115,9 +116,9 @@ CREATE TABLE public.bookings (
 
 
 CREATE TABLE public.booking_participant (
-  id SERIAL PRIMARY KEY,
-  participant_id UUID REFERENCES participants(id) NOT NULL,
-  booking_id UUID REFERENCES bookings(id) NOT NULL
+    id SERIAL PRIMARY KEY,
+    participant_id UUID REFERENCES participants(id) NOT NULL,
+    booking_id UUID REFERENCES bookings(id) NOT NULL
 );
 
 CREATE TABLE public.users (
@@ -138,16 +139,15 @@ CREATE TABLE public.roles (
     description TEXT
 );
 
-
 CREATE TABLE public.permissions (
     id UUID PRIMARY KEY,
     name VARCHAR(45) NOT NULL
 );
 
 CREATE TABLE public.role_permission (
-  id SERIAL PRIMARY KEY,
-  role_id UUID REFERENCES roles(id),
-  permission_id UUID REFERENCES permissions(id)
+    id SERIAL PRIMARY KEY,
+    role_id UUID REFERENCES roles(id),
+    permission_id UUID REFERENCES permissions(id)
 );
 
 
@@ -164,7 +164,6 @@ CREATE TABLE public.app_access (
 );
 
 
-
 CREATE TABLE public.capture_sessions (
     id UUID PRIMARY KEY,
     booking_id UUID REFERENCES bookings(id) NOT NULL,
@@ -179,12 +178,13 @@ CREATE TABLE public.capture_sessions (
     deleted_at TIMESTAMPTZ DEFAULT NULL
 );
 
+
 CREATE TABLE public.recordings (
     id UUID PRIMARY KEY,
     capture_session_id UUID REFERENCES capture_sessions(id) NOT NULL,
     parent_recording_id UUID,
     version INT NOT NULL,
-    url VARCHAR(255) NOT NULL,
+    url VARCHAR(255),
     filename VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     duration INTERVAL,
@@ -193,9 +193,9 @@ CREATE TABLE public.recordings (
 );
 
 
-CREATE TABLE public.share_recordings (
+CREATE TABLE public.share_bookings (
     id UUID PRIMARY KEY,
-    capture_session_id UUID REFERENCES capture_sessions(id) NOT NULL,
+    booking_id UUID REFERENCES bookingS(id) NOT NULL,
     shared_with_user_id UUID REFERENCES users(id) NOT NULL,
     shared_by_user_id UUID REFERENCES users(id) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -225,10 +225,22 @@ CREATE TABLE public.audits (
     activity VARCHAR(100),
     functional_area VARCHAR(100),
     audit_details TEXT,
-    created_by VARCHAR(50),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), 
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at TIMESTAMPTZ DEFAULT NULL
+    created_by VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE public.recordings ADD FOREIGN KEY (parent_recording_id) REFERENCES recordings(id);
+
+ALTER TABLE public.audits ALTER COLUMN created_by TYPE UUID USING created_by::uuid;
+
+CREATE TABLE public.invites (
+    id UUID PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    organisation VARCHAR(250) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    code VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    modified_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 
 class UserManager:
     def __init__(self, source_cursor):
@@ -24,6 +24,7 @@ class UserManager:
                 created_at = parse_to_timestamp(user[15])
                 modified_at = parse_to_timestamp(user[17])
                 created_by = user[14]
+                created_by = get_user_id(destination_cursor,user[14]) 
 
                 batch_users_data.append((
                     id, first_name, last_name, email, organisation, phone, created_at, modified_at, created_by
@@ -47,8 +48,7 @@ class UserManager:
                         record_id=user[0],
                         record=f"{user[1]} {user[2]}",  
                         created_at=user[6],
-                        created_by=user[8],
-                        # modified_at=user[7]
+                        created_by= created_by if created_by is not None else None
                     )
         except Exception as e:  
             self.failed_imports.add(('users', id, e))

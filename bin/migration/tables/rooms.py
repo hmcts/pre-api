@@ -1,5 +1,4 @@
-from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp, log_failed_imports
-from datetime import datetime
+from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp, log_failed_imports, get_user_id
 import uuid
 
 class RoomManager:
@@ -16,25 +15,25 @@ class RoomManager:
 
         for source_room in source_data:
             room = source_room[0]
-
+            
             if not check_existing_record(destination_cursor, 'rooms', 'room', room):
                 id = str(uuid.uuid4())  
+                created_by = source_room[1]
 
-                batch_rooms_data.append((id, room))
+                batch_rooms_data.append((id, room, created_by))
 
         try:
             if batch_rooms_data:   
                 destination_cursor.executemany(
                     "INSERT INTO public.rooms (id, room) VALUES (%s, %s)",
-                    batch_rooms_data
+                    [entry[:-1] for entry in batch_rooms_data],
                 )
 
                 destination_cursor.connection.commit()
 
                 for room in batch_rooms_data:
-                    created_at = parse_to_timestamp(source_room[2])
-                    created_by = source_room[1]
-                    # modified_at = parse_to_timestamp(source_room[4])
+                    created_at = parse_to_timestamp(room[2])
+                    created_by = get_user_id(destination_cursor, room[2]) 
 
                     audit_entry_creation(
                         destination_cursor,
@@ -42,8 +41,7 @@ class RoomManager:
                         record_id=room[0],
                         record=room[1],
                         created_at=created_at,
-                        created_by=created_by,
-                        # modified_at=modified_at
+                        created_by= created_by if created_by is not None else None
                     )
 
         except Exception as e:

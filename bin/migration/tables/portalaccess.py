@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 from datetime import datetime
 
 class PortalAccessManager:
@@ -39,8 +39,7 @@ class PortalAccessManager:
                 login_disabled = str(user[2]).lower() == 'false'
                 email_confirmed = str(user[4]).lower() == 'true'
                 status_active = str(user[1]).lower() == 'active'
-                invited = str(user[3]).lower() == 'true' if user[3] is not None else status_active # alot of users active but invited is set to NULL 
-                 # invited = str(user[3]).lower() == 'true' 
+                invited = True
                 status_inactive = str(user[1]).lower() == 'inactive'
 
                 login_enabled_and_invited = login_enabled and invited 
@@ -62,7 +61,8 @@ class PortalAccessManager:
                 # last_access = datetime.now() # this value is obtained from DV
                 # invitation_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
                 # registered_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
-                created_by = user[6]
+                created_by = get_user_id(destination_cursor, user[6]) 
+
                 created_at = parse_to_timestamp(user[5])
                 modified_at = created_at
 
@@ -76,7 +76,7 @@ class PortalAccessManager:
                     record_id=id,
                     record=user_id,
                     created_at=created_at,
-                    created_by=created_by,
+                    created_by=created_by if created_by is not None else None
                 )
 
         try: 
@@ -92,19 +92,15 @@ class PortalAccessManager:
 
                 destination_cursor.connection.commit()
 
-                # for entry in batch_portal_user_data:
-                    # print('portal_access 1')
-                    # audit_entry_creation(
-                    #     destination_cursor,
-                    #     table_name='portal_access',
-                    #     record_id=entry[0],
-                    #     record=entry[1],
-                    #     created_at=entry[7],
-                    #     created_by=entry[9],
-                    # )
-                    # print('portal_access 2')
-
-
+                for entry in batch_portal_user_data:
+                    audit_entry_creation(
+                        destination_cursor,
+                        table_name='portal_access',
+                        record_id=entry[0],
+                        record=entry[1],
+                        created_at=entry[7],
+                        created_by= entry[9]
+                    )
         except Exception as e:
             self.failed_imports.add(('portal_access', user_id, e))
  

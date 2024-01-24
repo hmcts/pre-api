@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, audit_entry_creation, log_failed_imports, parse_to_timestamp
+from .helpers import check_existing_record, audit_entry_creation, log_failed_imports, parse_to_timestamp, get_user_id
 import uuid
 
 class CaptureSessionManager:
@@ -51,6 +51,11 @@ class CaptureSessionManager:
             capture_session_id = str(uuid.uuid4())
             booking_id = next((temp_rec[2] for temp_rec in temp_recording_data if temp_rec[1] == recording_id), None)
             parent_recording_id = recording[9]
+
+            if parent_recording_id is None:
+                self.failed_imports.add(('temp_recordings', recording_id, f'parent_recording_id blank for recording id: {recording_id}'))
+                continue
+
             ingest_address = recording[8] 
             live_output_url = recording[20]
             started_by = recording[21]

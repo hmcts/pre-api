@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 
 class CaseManager:
     def __init__(self, source_cursor):
@@ -47,7 +47,7 @@ class CaseManager:
 
                 test = False  
                 created_at = parse_to_timestamp(case[5])
-                created_by = case[4]
+                created_by = get_user_id(destination_cursor,case[4])
                 modified_at = parse_to_timestamp(case[7]) if case[7] is not None else created_at
                 deleted_at = self.get_case_deleted_date(id, modified_at) if case[3] == "Deleted" else None
 
@@ -60,7 +60,7 @@ class CaseManager:
                     record_id=id,
                     record=reference,
                     created_at=created_at,
-                    created_by=created_by,
+                    created_by=created_by if created_by is not None else None
                 )
             
         try: 

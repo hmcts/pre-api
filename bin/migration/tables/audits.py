@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, log_failed_imports
+from .helpers import check_existing_record, parse_to_timestamp, log_failed_imports, get_user_id
 import uuid
 
 class AuditLogManager:
@@ -24,24 +24,22 @@ class AuditLogManager:
                 category =audit_log[20]
                 activity = audit_log[2]
                 functional_area = audit_log[17] 
-                # audit_details = audit_log[5]
                 audit_details = f"{audit_log[5]}, {audit_log[18]}, {audit_log[19]}"
                 created_at = parse_to_timestamp(audit_log[12])
-                # updated_at = parse_to_timestamp(audit_log[13])
 
                 if audit_log[11]:
-                    created_by = audit_log[11]
+                    created_by_id = get_user_id(destination_cursor,audit_log[11])
                 elif audit_log[10]:
-                    created_by = audit_log[10]
-                else:
-                    created_by = 'data_entry'
+                    created_by_id = get_user_id(destination_cursor,audit_log[10])
+                
+                created_by = created_by_id if created_by_id is not None else None
                 
                 batch_audit_data.append((
-                        id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_by,created_at))
+                        id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_at, created_by))
         try:
             if batch_audit_data:
                 destination_cursor.executemany(
-                    """INSERT INTO public.audits (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details,created_by, created_at) 
+                    """INSERT INTO public.audits (id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_at, created_by) 
                     VALUES (%s, %s, %s,%s, %s, %s,%s,%s, %s,%s, %s)""",
                     batch_audit_data
                 )

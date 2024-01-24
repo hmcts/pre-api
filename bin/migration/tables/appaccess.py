@@ -1,5 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
-from datetime import datetime
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 
 class AppAccessManager:
     def __init__(self, source_cursor):
@@ -40,7 +39,7 @@ class AppAccessManager:
             active = True if user[3].lower() == "active" else False
             created_at = parse_to_timestamp(user[4])
             modified_at = created_at
-            created_by = user[5]
+            created_by = get_user_id(destination_cursor,user[5])
      
             if not check_existing_record(destination_cursor,'users', 'id', user_id):
                 self.failed_imports.add(('app_access',user_id, f"User id not in users table: {user_id}")) 
@@ -69,7 +68,7 @@ class AppAccessManager:
                     record_id=id,
                     record=user_id,
                     created_at=created_at,
-                    created_by=created_by,
+                    created_by=created_by if created_by is not None else None,
                 )
 
         try: 

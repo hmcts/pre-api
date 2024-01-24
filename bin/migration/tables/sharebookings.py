@@ -1,11 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
-# --CREATE TABLE public.share_bookings (
-# --    id UUID PRIMARY KEY,
-# --    booking_id UUID REFERENCES bookings(id) NOT NULL,
-# --    shared_with_user_id UUID REFERENCES users(id) NOT NULL,
-# --    shared_by_user_id UUID REFERENCES users(id) NOT NULL,
-# --    created_at TIMESTAMPTZ DEFAULT NOW(),
-# --    deleted_at TIMESTAMPTZ DEFAULT NULL
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 
 class ShareBookingsManager:
     def __init__(self, source_cursor):
@@ -20,9 +13,6 @@ class ShareBookingsManager:
         booking_id = next((booking[0] for booking in bookings_data if booking[1] == recording_id), None)
         return booking_id
     
-    def get_user(self, users_data,  user_email):
-        user_id = next((user[0] for user in users_data if user[3] == user_email), None)
-        return user_id
 
     def migrate_data(self, destination_cursor, source_data):
         batch_share_bookings_data = []
@@ -45,8 +35,8 @@ class ShareBookingsManager:
 
             shared_with_user_id = video_permission[4]
 
-            created_by = video_permission[18]
-            shared_by_user_id = self.get_user(users_data, created_by)
+            created_by = get_user_id(destination_cursor,video_permission[18])
+            shared_by_user_id = created_by
 
             created_at = parse_to_timestamp(video_permission[19])
             deleted_at = parse_to_timestamp(video_permission[21]) if video_permission[15] != "True" else None
@@ -84,7 +74,7 @@ class ShareBookingsManager:
                     record_id=entry[0],
                     record=entry[1],
                     created_at=entry[4],
-                    created_by=entry[3],
+                    created_by=entry[3] if entry[3] is not None else None,
                 )
 
         except Exception as e:

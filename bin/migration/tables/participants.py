@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
 
 class ParticipantManager:
     def __init__(self, source_cursor):
@@ -52,7 +52,7 @@ class ParticipantManager:
                 
                 created_at = parse_to_timestamp(participant[9])
                 modified_at = parse_to_timestamp(participant[11])
-                created_by = participant[8]
+                created_by = get_user_id(destination_cursor,participant[8])
 
                 batch_participant_data.append((id, case_id, participant_type, first_name, last_name, created_at, modified_at, created_by))
                 
@@ -77,9 +77,7 @@ class ParticipantManager:
                         record_id=entry[0],
                         record=entry[1],
                         created_at=entry[5],
-                        created_by=entry[7],
-                        # modified_at=entry[6]
-                    
+                        created_by=entry[7] if entry[7] is not None else None                    
                     )
 
         except Exception as e:

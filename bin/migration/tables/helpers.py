@@ -9,7 +9,6 @@ def parse_to_timestamp(input_text):
     if input_text:
         try:
             parsed_datetime = None
-            # try parsing with different formats
             formats_to_try = [
                 "%d/%m/%Y", 
                 "%d/%m/%Y %H:%M", 
@@ -35,17 +34,16 @@ def parse_to_timestamp(input_text):
         except (ValueError, TypeError) as e:
             failed_imports.add(('date/time', input_text, e))
             log_failed_imports(failed_imports)
-    # if input is invalid or empty, returning the current time in UK timezone
-    # return datetime.now(tz=pytz.timezone('Europe/London'))
 
-# Checks if
+
+# Checks if record is already imported
 def check_existing_record(db_connection, table_name, field, record):
     query = f"SELECT EXISTS (SELECT 1 FROM public.{table_name} WHERE {field} = %s)"
     db_connection.execute(query, (record,))
     return db_connection.fetchone()[0]
 
 
-# audit entry into database
+# Audit entry into database
 def audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry"):
     created_at = created_at or datetime.now()
 
@@ -81,7 +79,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         failed_imports.add(('audit table', table_name, e))
         log_failed_imports(failed_imports)
 
-# logs failed imports to file
+# Logs failed imports to file
 def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
     with open(filename, 'a') as file:
         for entry in failed_imports:
@@ -96,7 +94,22 @@ def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
             file.write(f"Table: {table_name}, ID: {failed_id}, Details: {details}\n")
 
 
-# clear the migration file - run before the migration script is run
+# Clear the migration file - run before the migration script is run
 def clear_migrations_file(filename='failed_imports_log.txt'):
     with open(filename, 'w') as file:
         file.write("") 
+
+# Get the user_id associated with an email from the users table for the audits record.
+def get_user_id(db_connection, email):
+    db_connection.execute("""
+            SELECT id
+            FROM public.users
+            WHERE email = %s 
+            """, (email,))
+    result =  db_connection.fetchone()
+
+    if result is not None:
+        user_id = result[0]
+        return user_id
+    else:
+        return None
