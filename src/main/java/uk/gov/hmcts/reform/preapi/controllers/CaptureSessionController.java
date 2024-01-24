@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
@@ -94,7 +93,7 @@ public class CaptureSessionController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true)PagedResourcesAssembler<CaptureSessionDTO> assembler
     ) {
-        final Page<CaptureSessionDTO> resultPage = captureSessionService.searchBy(
+        var resultPage = captureSessionService.searchBy(
             params.getCaseReference(),
             params.getBookingId(),
             params.getOrigin(),
