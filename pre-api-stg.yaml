@@ -1371,6 +1371,8 @@ definitions:
       createdAt:
         format: date-time
         type: string
+      deleted:
+        type: boolean
       deletedAt:
         format: date-time
         type: string
@@ -1674,6 +1676,32 @@ paths:
         '200':
           description: OK
       summary: Share a Booking
+      tags:
+        - booking-controller
+  '/bookings/{bookingId}/share/{shareId}':
+    delete:
+      operationId: deleteShareBookingById
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - format: uuid
+          in: path
+          name: shareId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
       tags:
         - booking-controller
   /capture-sessions:
