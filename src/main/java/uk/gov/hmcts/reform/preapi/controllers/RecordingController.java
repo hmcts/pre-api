@@ -88,7 +88,7 @@ public class RecordingController extends PreApiController {
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
-        example = "1"
+        example = "0"
     )
     @Parameter(
         name = "size",
