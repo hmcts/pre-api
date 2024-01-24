@@ -34,7 +34,6 @@ public class OpenAPIConfiguration {
     public GroupedOpenApi publicApi(OperationCustomizer customGlobalHeaders) {
         return GroupedOpenApi.builder()
             .group("pre-api")
-            .pathsToMatch("**/controllers/**")
             .addOperationCustomizer(customGlobalHeaders)
             .build();
     }

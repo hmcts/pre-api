@@ -2,13 +2,18 @@ package uk.gov.hmcts.reform.preapi.repositories;
 
 
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,4 +39,31 @@ public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSe
     @Modifying
     @Transactional
     void deleteAllByBooking(Booking booking);
+
+
+    @Query(
+        """
+        SELECT c FROM CaptureSession c
+        WHERE c.deletedAt IS NULL
+        AND (:caseReference IS NULL OR c.booking.caseId.reference ILIKE %:caseReference%)
+        AND (CAST(:bookingId as uuid) IS NULL OR c.booking.id = :bookingId)
+        AND (CAST(:origin as text) IS NULL OR c.origin = :origin)
+        AND (CAST(:recordingStatus as text) IS NULL OR c.status = :recordingStatus)
+
+        AND (
+            CAST(:scheduledForFrom as Timestamp) IS NULL OR
+            CAST(:scheduledForUntil as Timestamp) IS NULL OR
+            c.booking.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
+        )
+        """
+    )
+    Page<CaptureSession> searchCaptureSessionsBy(
+        @Param("caseReference") String caseReference,
+        @Param("bookingId") UUID bookingId,
+        @Param("origin") RecordingOrigin origin,
+        @Param("recordingStatus") RecordingStatus recordingStatus,
+        @Param("scheduledForFrom") Timestamp scheduledForFrom,
+        @Param("scheduledForUntil") Timestamp scheduledForUntil,
+        Pageable pageable
+    );
 }
