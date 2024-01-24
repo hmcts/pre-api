@@ -34,6 +34,6 @@ public class CaptureSessionController {
     @Operation(operationId = "deleteCaptureSessionById", summary = "Delete Capture Session by Id")
     public ResponseEntity<Void> deleteCaptureSessionById(@PathVariable UUID captureSessionId) {
         captureSessionService.deleteById(captureSessionId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

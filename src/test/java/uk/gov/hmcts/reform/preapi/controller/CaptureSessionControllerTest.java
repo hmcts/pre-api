@@ -17,6 +17,8 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,6 +33,8 @@ public class CaptureSessionControllerTest {
     @MockBean
     private CaptureSessionService captureSessionService;
     private static final String TEST_URL = "http://localhost";
+
+    private static final String CAPTURE_SESSION_ID_PATH = "/capture-sessions/{id}";
 
     @DisplayName("Should get capture session by id with 200 response code")
     @Test
@@ -55,5 +59,26 @@ public class CaptureSessionControllerTest {
         mockMvc.perform(get(TEST_URL + "/capture-sessions/" + id))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: CaptureSession: " + id));
+    }
+
+    @DisplayName("Should delete capture session with 200 response code")
+    @Test
+    void deleteCaptureSessionByIdSuccess() throws Exception {
+        var id = UUID.randomUUID();
+
+        mockMvc.perform(delete(CAPTURE_SESSION_ID_PATH, id)
+                            .with(csrf()))
+            .andExpect(status().isOk());
+    }
+
+    @DisplayName("Should delete capture session with 404 response code when not found")
+    @Test
+    void deleteCaptureSessionByIdNotFound() throws Exception {
+        var id = UUID.randomUUID();
+        doThrow(new NotFoundException("CaptureSession: " + id)).when(captureSessionService).deleteById(id);
+
+        mockMvc.perform(delete(CAPTURE_SESSION_ID_PATH, id)
+                            .with(csrf()))
+            .andExpect(status().isNotFound());
     }
 }
