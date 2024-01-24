@@ -8,8 +8,8 @@ class AppAccessManager:
     def get_data(self):
         query = """ SELECT 
                         u.userid,
-                        MAX(CASE WHEN gl.grouptype = 'Security' THEN ga.groupid END) AS role_id,
-                        MAX(CASE WHEN gl.grouptype = 'Location' THEN ga.groupid END) AS court_id,
+                        MAX(CASE WHEN gl.grouptype = 'Security' THEN ga.groupid ELSE NULL END) AS role_id,
+                        MAX(CASE WHEN gl.grouptype = 'Location' THEN ga.groupid ELSE NULL END) AS court_id,
                         MAX(u.status) as active,
                         MAX(ga.assigned) AS created,
                         MAX(ga.assignedby) AS createdby,
@@ -17,8 +17,8 @@ class AppAccessManager:
                     FROM public.users u
                     JOIN public.groupassignments ga ON u.userid = ga.userid
                     JOIN public.grouplist gl ON ga.groupid = gl.groupid
-                    WHERE gl.groupname != 'Level 3'
-                    GROUP BY u.userid 
+                    WHERE gl.groupname != 'Level 3' AND (gl.grouptype = 'Security' OR gl.grouptype = 'Location')
+                    GROUP BY u.userid ;
                 """
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
@@ -35,6 +35,10 @@ class AppAccessManager:
             id=user[6]
             user_id = user[0]
             role_id = user[1]
+            
+            if role_id is None:
+                continue
+
             court_id = user[2]
             active = True if user[3].lower() == "active" else False
             created_at = parse_to_timestamp(user[4])

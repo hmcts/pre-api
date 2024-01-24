@@ -19,7 +19,7 @@ class PortalAccessManager:
                     FROM public.users u
                     JOIN public.groupassignments ga ON u.userid = ga.userid
                     JOIN public.grouplist gl ON ga.groupid = gl.groupid
-                    WHERE gl.groupname = 'Level 3'
+                    WHERE gl.groupname = 'Level 3' OR gl.groupname = 'Super User'
                     GROUP BY u.userid """
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
@@ -46,17 +46,18 @@ class PortalAccessManager:
                 email_confirmed_and_status_inactive = email_confirmed and status_inactive
                 email_confirmed_and_status_active = email_confirmed and status_active
                 login_disabled_and_status_inactive = login_disabled and status_inactive 
-                
-                if login_enabled_and_invited and email_confirmed_and_status_inactive: 
+
+                if status_inactive or login_disabled_and_status_inactive:
+                    status = "INACTIVE"
+                elif login_enabled_and_invited and email_confirmed_and_status_inactive: 
                     status = 'REGISTERED'
                 elif login_enabled_and_invited and email_confirmed_and_status_active: 
                     status = 'ACTIVE'
                 elif login_enabled_and_invited: 
                     status = "INVITATION_SENT"
-                elif login_disabled_and_status_inactive: 
-                    status = 'INACTIVE'
                 else:
                     self.failed_imports.add(('portal_access', user_id, "Missing status details"))
+                    continue
 
                 # last_access = datetime.now() # this value is obtained from DV
                 # invitation_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
