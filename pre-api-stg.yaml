@@ -1746,6 +1746,27 @@ paths:
       tags:
         - capture-session-controller
   '/capture-sessions/{captureSessionId}':
+    delete:
+      operationId: deleteCaptureSessionById
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Delete Capture Session by Id
+      tags:
+        - capture-session-controller
     get:
       operationId: getCaptureSessionById
       parameters:

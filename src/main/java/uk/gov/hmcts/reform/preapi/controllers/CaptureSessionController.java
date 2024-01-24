@@ -10,6 +10,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -108,5 +109,12 @@ public class CaptureSessionController {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
         }
         return ok(assembler.toModel(resultPage));
+    }
+
+    @DeleteMapping("/{captureSessionId}")
+    @Operation(operationId = "deleteCaptureSessionById", summary = "Delete Capture Session by Id")
+    public ResponseEntity<Void> deleteCaptureSessionById(@PathVariable UUID captureSessionId) {
+        captureSessionService.deleteById(captureSessionId);
+        return ResponseEntity.ok().build();
     }
 }
