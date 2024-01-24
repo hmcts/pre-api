@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -18,12 +19,15 @@ import java.util.UUID;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateCaptureSessionDTO {
     @Schema(description = "CreateCaptureSessionId")
+    @NotNull(message = "id is required")
     private UUID id;
 
     @Schema(description = "CreateCaptureSessionBookingId")
+    @NotNull(message = "booking_id is required")
     private UUID bookingId;
 
     @Schema(description = "CreateCaptureSessionOrigin")
+    @NotNull(message = "origin is required")
     private RecordingOrigin origin;
 
     @Schema(description = "CreateCaptureSessionIngestAddress")
@@ -45,6 +49,7 @@ public class CreateCaptureSessionDTO {
     private UUID finishedByUserId;
 
     @Schema(description = "CreateCaptureSessionStatus")
+    @NotNull(message = "status is required")
     private RecordingStatus status;
 
     public CreateCaptureSessionDTO(CaptureSession captureSession) {
