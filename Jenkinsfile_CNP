@@ -7,7 +7,7 @@ def product = "pre"
 def component = "api"
 
 withPipeline(type, product, component) {
-  syncBranchesWithMaster(['perftest', 'ithc', 'demo'])
+  syncBranchesWithMaster(['perftest', 'demo'])
   enableSlackNotifications('#pre-builds')
   enableDbMigration('pre')
 }
