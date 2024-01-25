@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -60,4 +61,11 @@ public class CaptureSession extends BaseEntity {
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
+
+    @Transient
+    private boolean deleted;
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }
