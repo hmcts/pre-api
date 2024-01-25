@@ -36,7 +36,7 @@ public class Recording extends BaseEntity {
     @Column(name = "version", nullable = false)
     private int version;
 
-    @Column(name = "url", nullable = false)
+    @Column(name = "url")
     private String url;
 
     @Column(name = "filename", nullable = false)
