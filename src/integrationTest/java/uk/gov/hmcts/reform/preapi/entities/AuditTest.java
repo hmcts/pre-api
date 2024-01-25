@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
-import java.sql.Timestamp;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
