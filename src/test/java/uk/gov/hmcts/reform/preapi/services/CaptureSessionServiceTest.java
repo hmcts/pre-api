@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -28,6 +29,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -51,9 +54,7 @@ public class CaptureSessionServiceTest {
     private CaptureSessionService captureSessionService;
 
     private static CaptureSession captureSession;
-
     private static Booking booking;
-
     private static User user;
 
     @BeforeAll
@@ -120,6 +121,63 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
         verify(recordingService, times(1)).deleteCascade(captureSession);
         verify(captureSessionRepository, times(1)).deleteAllByBooking(booking);
+    }
+
+    @DisplayName("Find a list of capture sessions and return a list of models")
+    @Test
+    void searchCaptureSessionsSuccess() {
+        when(captureSessionRepository.searchCaptureSessionsBy(any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(captureSession)));
+
+        var modelList = captureSessionService.searchBy(null, null, null, null, Optional.empty(), null).getContent();
+        assertThat(modelList.size()).isEqualTo(1);
+        assertThat(modelList.getFirst().getId()).isEqualTo(captureSession.getId());
+    }
+
+    @DisplayName("Find a list of capture sessions filtered by scheduledFor and return a list of models")
+    @Test
+    void searchCaptureSessionsScheduledForSuccess() {
+        var from = Timestamp.valueOf("2023-01-01 00:00:00");
+        var until = Timestamp.valueOf("2023-01-01 23:59:59");
+
+        when(captureSessionRepository
+                 .searchCaptureSessionsBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull())
+        ).thenReturn(new PageImpl<>(List.of(captureSession)));
+
+        var modelList = captureSessionService.searchBy(null, null, null, null, Optional.of(from), null).getContent();
+        assertThat(modelList.size()).isEqualTo(1);
+        assertThat(modelList.getFirst().getId()).isEqualTo(captureSession.getId());
+    }
+
+    @DisplayName("Should delete a capture session by id")
+    @Test
+    void deleteByIdSuccess() {
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+
+        captureSessionService.deleteById(captureSession.getId());
+
+        verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
+        verify(recordingService, times(1)).deleteCascade(captureSession);
+        verify(captureSessionRepository, times(1)).deleteById(captureSession.getId());
+    }
+
+    @DisplayName("Should delete a capture session by id when capture session not found")
+    @Test
+    void deleteByIdNotFound() {
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.deleteById(captureSession.getId())
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSession.getId());
+
+        verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
+        verify(recordingService, never()).deleteCascade(any());
+        verify(captureSessionRepository, never()).deleteById(any());
     }
 
     @DisplayName("Create a capture session")

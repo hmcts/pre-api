@@ -22,7 +22,7 @@ public class OpenAPIConfiguration {
     public OpenAPI openAPI() {
         return new OpenAPI()
             .info(new Info().title("PRE API")
-                      .description("PRE API")
+                      .description("PRE API - Used for managing courts, bookings, recordings and permissions.")
                       .version("v0.0.1")
                       .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")))
             .externalDocs(new ExternalDocumentation()
@@ -34,7 +34,6 @@ public class OpenAPIConfiguration {
     public GroupedOpenApi publicApi(OperationCustomizer customGlobalHeaders) {
         return GroupedOpenApi.builder()
             .group("pre-api")
-            .pathsToMatch("**/controllers/**")
             .addOperationCustomizer(customGlobalHeaders)
             .build();
     }

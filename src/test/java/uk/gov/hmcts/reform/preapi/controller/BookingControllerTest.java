@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -58,6 +59,9 @@ class BookingControllerTest {
 
     @MockBean
     private BookingService bookingService;
+
+    @MockBean
+    private ShareBookingService shareBookingService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -401,7 +405,7 @@ class BookingControllerTest {
         shareBooking.setSharedByUserId(sharedByUserId);
         shareBooking.setBookingId(bookingId);
 
-        when(bookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
+        when(shareBookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
                                                  .with(csrf())
