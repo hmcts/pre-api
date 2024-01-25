@@ -44,6 +44,9 @@ public class CaptureSessionController extends PreApiController {
         if (!captureSessionId.equals(createCaptureSessionDTO.getId())) {
             throw new PathPayloadMismatchException("id", "createCaptureSessionDTO.id");
         }
-        return getUpsertResponse(captureSessionService.upsert(createCaptureSessionDTO), createCaptureSessionDTO.getId());
+        return getUpsertResponse(
+            captureSessionService.upsert(createCaptureSessionDTO),
+            createCaptureSessionDTO.getId()
+        );
     }
 }
