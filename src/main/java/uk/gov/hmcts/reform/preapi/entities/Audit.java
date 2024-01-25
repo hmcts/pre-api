@@ -53,14 +53,8 @@ public class Audit extends BaseEntity {
     @Column(name = "created_by")
     private UUID createdBy;
 
-    @Column(name = "deleted_at")
-    private Timestamp deletedAt;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Timestamp updatedAt;
 }
 
