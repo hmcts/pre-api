@@ -12,7 +12,6 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
-import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -22,21 +21,11 @@ import java.util.UUID;
 @Entity
 @Table(name = "audits")
 public class Audit extends BaseEntity {
-    @Column(name = "table_name", length = 25)
-    private String tableName;
-
-    @Column(name = "table_record_id")
-    private UUID tableRecordId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "source", nullable = false, columnDefinition = "audit_log_source")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private AuditLogSource source;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, columnDefinition = "audit_log_type")
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private AuditLogType type;
 
     @Column(name = "category", length = 100)
     private String category;

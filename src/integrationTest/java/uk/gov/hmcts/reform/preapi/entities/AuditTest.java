@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
-import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
 import java.util.UUID;
 
