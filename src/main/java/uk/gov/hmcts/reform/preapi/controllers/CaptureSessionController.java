@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -14,12 +15,17 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchCaptureSessions;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
@@ -27,11 +33,9 @@ import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.springframework.http.ResponseEntity.ok;
-
 @RestController
 @RequestMapping("/capture-sessions")
-public class CaptureSessionController {
+public class CaptureSessionController extends PreApiController {
 
     private final CaptureSessionService captureSessionService;
 
@@ -108,7 +112,7 @@ public class CaptureSessionController {
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
         }
-        return ok(assembler.toModel(resultPage));
+        return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
     @DeleteMapping("/{captureSessionId}")
@@ -116,5 +120,20 @@ public class CaptureSessionController {
     public ResponseEntity<Void> deleteCaptureSessionById(@PathVariable UUID captureSessionId) {
         captureSessionService.deleteById(captureSessionId);
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{captureSessionId}")
+    @Operation(operationId = "upsertCaptureSession", summary = "Create or Update a Capture Session")
+    public ResponseEntity<Void> upsertCaptureSession(
+        @PathVariable UUID captureSessionId,
+        @Valid @RequestBody CreateCaptureSessionDTO createCaptureSessionDTO
+    ) {
+        if (!captureSessionId.equals(createCaptureSessionDTO.getId())) {
+            throw new PathPayloadMismatchException("id", "createCaptureSessionDTO.id");
+        }
+        return getUpsertResponse(
+            captureSessionService.upsert(createCaptureSessionDTO),
+            createCaptureSessionDTO.getId()
+        );
     }
 }

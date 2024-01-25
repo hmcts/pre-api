@@ -114,6 +114,8 @@ definitions:
     properties:
       booking:
         $ref: '#/definitions/Booking'
+      deleted:
+        type: boolean
       deletedAt:
         format: date-time
         type: string
@@ -204,6 +206,11 @@ definitions:
           - AVAILABLE
           - FUTURE
         type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
     type: object
   Case:
     properties:
@@ -434,6 +441,62 @@ definitions:
       - case_id
       - id
       - scheduled_for
+    type: object
+  CreateCaptureSessionDTO:
+    description: CreateCaptureSessionDTO
+    properties:
+      booking_id:
+        description: CreateCaptureSessionBookingId
+        format: uuid
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
+        type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
     type: object
   CreateCaseDTO:
     description: CreateCaseDTO
@@ -748,6 +811,11 @@ definitions:
           - AVAILABLE
           - FUTURE
         type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
     type: object
   EntityModelCaseDTO:
     properties:
@@ -1821,6 +1889,34 @@ paths:
           schema:
             $ref: '#/definitions/CaptureSessionDTO'
       summary: Get a Capture Session by Id
+      tags:
+        - capture-session-controller
+    put:
+      consumes:
+        - application/json
+      operationId: upsertCaptureSession
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCaptureSessionDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Capture Session
       tags:
         - capture-session-controller
   /cases:
