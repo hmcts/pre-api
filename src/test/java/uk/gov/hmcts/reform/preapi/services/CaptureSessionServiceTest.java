@@ -7,13 +7,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -38,6 +43,12 @@ public class CaptureSessionServiceTest {
 
     @MockBean
     private CaptureSessionRepository captureSessionRepository;
+
+    @MockBean
+    private BookingRepository bookingRepository;
+
+    @MockBean
+    private UserRepository userRepository;
 
     @Autowired
     private CaptureSessionService captureSessionService;
@@ -167,5 +178,196 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
         verify(recordingService, never()).deleteCascade(any());
         verify(captureSessionRepository, never()).deleteById(any());
+    }
+
+    @DisplayName("Create a capture session")
+    @Test
+    void createCaptureSessionSuccess() {
+        var model = new CreateCaptureSessionDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(booking.getId());
+        model.setOrigin(RecordingOrigin.PRE);
+        model.setIngestAddress("example ingest address");
+        model.setLiveOutputUrl("url");
+        model.setStartedAt(Timestamp.from(Instant.now()));
+        model.setStartedByUserId(user.getId());
+        model.setFinishedAt(Timestamp.from(Instant.now()));
+        model.setFinishedByUserId(user.getId());
+        model.setStatus(RecordingStatus.AVAILABLE);
+
+        when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
+        when(userRepository.findByIdAndDeletedAtIsNull(user.getId())).thenReturn(Optional.of(user));
+
+        assertThat(captureSessionService.upsert(model)).isEqualTo(UpsertResult.CREATED);
+
+        verify(captureSessionRepository, times(1)).findById(model.getId());
+        verify(bookingRepository, times(1)).findByIdAndDeletedAtIsNull(booking.getId());
+        verify(userRepository, times(2)).findByIdAndDeletedAtIsNull(user.getId());
+        verify(captureSessionRepository, times(1)).save(any(CaptureSession.class));
+    }
+
+    @DisplayName("Update a capture session")
+    @Test
+    void updateCaptureSessionSuccess() {
+        var model = new CreateCaptureSessionDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(booking.getId());
+        model.setOrigin(RecordingOrigin.PRE);
+        model.setIngestAddress("example ingest address");
+        model.setLiveOutputUrl("url");
+        model.setStartedAt(Timestamp.from(Instant.now()));
+        model.setStartedByUserId(user.getId());
+        model.setFinishedAt(Timestamp.from(Instant.now()));
+        model.setFinishedByUserId(user.getId());
+        model.setStatus(RecordingStatus.AVAILABLE);
+
+        var entity = new CaptureSession();
+
+        when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.of(entity));
+        when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
+        when(userRepository.findByIdAndDeletedAtIsNull(user.getId())).thenReturn(Optional.of(user));
+
+        assertThat(captureSessionService.upsert(model)).isEqualTo(UpsertResult.UPDATED);
+
+        verify(captureSessionRepository, times(1)).findById(model.getId());
+        verify(bookingRepository, times(1)).findByIdAndDeletedAtIsNull(booking.getId());
+        verify(userRepository, times(2)).findByIdAndDeletedAtIsNull(user.getId());
+        verify(captureSessionRepository, times(1)).save(any(CaptureSession.class));
+    }
+
+    @DisplayName("Update a capture session when capture session has been deleted")
+    @Test
+    void updateCaptureSessionDeletedBadRequest() {
+        var model = new CreateCaptureSessionDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(booking.getId());
+        model.setOrigin(RecordingOrigin.PRE);
+        model.setIngestAddress("example ingest address");
+        model.setLiveOutputUrl("url");
+        model.setStartedAt(Timestamp.from(Instant.now()));
+        model.setStartedByUserId(user.getId());
+        model.setFinishedAt(Timestamp.from(Instant.now()));
+        model.setFinishedByUserId(user.getId());
+        model.setStatus(RecordingStatus.AVAILABLE);
+
+        var entity = new CaptureSession();
+        entity.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.of(entity));
+
+        var message = assertThrows(
+            ResourceInDeletedStateException.class,
+            () -> captureSessionService.upsert(model)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Resource CaptureSessionDTO("
+                           + model.getId()
+                           + ") is in a deleted state and cannot be updated"
+            );
+
+        verify(captureSessionRepository, times(1)).findById(model.getId());
+        verify(captureSessionRepository, never()).save(any(CaptureSession.class));
+    }
+
+    @DisplayName("Create/update a capture session when booking not found")
+    @Test
+    void createCaptureSessionBookingNotFound() {
+        var model = new CreateCaptureSessionDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(UUID.randomUUID());
+        model.setOrigin(RecordingOrigin.PRE);
+        model.setIngestAddress("example ingest address");
+        model.setLiveOutputUrl("url");
+        model.setStartedAt(Timestamp.from(Instant.now()));
+        model.setStartedByUserId(user.getId());
+        model.setFinishedAt(Timestamp.from(Instant.now()));
+        model.setFinishedByUserId(user.getId());
+        model.setStatus(RecordingStatus.AVAILABLE);
+
+        when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.findByIdAndDeletedAtIsNull(model.getId())).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.upsert(model)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Not found: Booking: " + model.getBookingId());
+
+        verify(captureSessionRepository, times(1)).findById(model.getId());
+        verify(bookingRepository, times(1)).findByIdAndDeletedAtIsNull(model.getBookingId());
+        verify(captureSessionRepository, never()).save(any(CaptureSession.class));
+    }
+
+    @DisplayName("Create a capture session when started by user is not found")
+    @Test
+    void createCaptureSessionStartedByNotFound() {
+        var model = new CreateCaptureSessionDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(booking.getId());
+        model.setOrigin(RecordingOrigin.PRE);
+        model.setIngestAddress("example ingest address");
+        model.setLiveOutputUrl("url");
+        model.setStartedAt(Timestamp.from(Instant.now()));
+        model.setStartedByUserId(UUID.randomUUID());
+        model.setFinishedAt(Timestamp.from(Instant.now()));
+        model.setFinishedByUserId(user.getId());
+        model.setStatus(RecordingStatus.AVAILABLE);
+
+        when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
+        when(userRepository.findByIdAndDeletedAtIsNull(model.getStartedByUserId())).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndDeletedAtIsNull(user.getId())).thenReturn(Optional.of(user));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.upsert(model)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Not found: User: " + model.getStartedByUserId());
+
+        verify(captureSessionRepository, times(1)).findById(model.getId());
+        verify(bookingRepository, times(1)).findByIdAndDeletedAtIsNull(booking.getId());
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getStartedByUserId());
+        verify(captureSessionRepository, never()).save(any(CaptureSession.class));
+    }
+
+    @DisplayName("Create a capture session when started by user is not found")
+    @Test
+    void createCaptureSessionFinishedByNotFound() {
+        var model = new CreateCaptureSessionDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(booking.getId());
+        model.setOrigin(RecordingOrigin.PRE);
+        model.setIngestAddress("example ingest address");
+        model.setLiveOutputUrl("url");
+        model.setStartedAt(Timestamp.from(Instant.now()));
+        model.setStartedByUserId(user.getId());
+        model.setFinishedAt(Timestamp.from(Instant.now()));
+        model.setFinishedByUserId(UUID.randomUUID());
+        model.setStatus(RecordingStatus.AVAILABLE);
+
+        when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
+        when(userRepository.findByIdAndDeletedAtIsNull(model.getFinishedByUserId())).thenReturn(Optional.empty());
+        when(userRepository.findByIdAndDeletedAtIsNull(user.getId())).thenReturn(Optional.of(user));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.upsert(model)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo("Not found: User: " + model.getFinishedByUserId());
+
+        verify(captureSessionRepository, times(1)).findById(model.getId());
+        verify(bookingRepository, times(1)).findByIdAndDeletedAtIsNull(booking.getId());
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getFinishedByUserId());
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(user.getId());
+        verify(captureSessionRepository, never()).save(any(CaptureSession.class));
     }
 }
