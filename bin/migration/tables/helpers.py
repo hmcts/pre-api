@@ -55,7 +55,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         "category": "data_migration",
         "activity": f"{table_name}_record_creation",
         "functional_area": "data_processing",
-        "audit_details": f'\{"table_name": "{table_name}", "table_record_id": "{record_id}", "description": "Created {table_name}_record for: {record}"\}',
+        "audit_details": f'\{"description": "Created {table_name}_record for: {record}"\}',
         "created_by": created_by,
         "created_at": created_at,
     }
@@ -64,9 +64,9 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         db_connection.execute(
             """
             INSERT INTO public.audits
-                (id, source, category, activity, functional_area, audit_details, created_by, created_at)
+                (id, table_name, table_record_id, source, category, activity, functional_area, audit_details, created_by, created_at)
             VALUES
-                (%(id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s)
+                (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s)
             """,
             audit_entry
         )

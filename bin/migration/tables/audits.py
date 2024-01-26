@@ -38,8 +38,8 @@ class AuditLogManager:
         try:
             if batch_audit_data:
                 destination_cursor.executemany(
-                    """INSERT INTO public.audits (id, source, category, activity, functional_area, audit_details, created_at, created_by)
-                    VALUES (%s, %s, %s,%s,%s, %s,%s, %s)""",
+                    """INSERT INTO public.audits (id, table_name, table_record_id, source, category, activity, functional_area, audit_details, created_at, created_by)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                     batch_audit_data
                 )
                 destination_cursor.connection.commit()
