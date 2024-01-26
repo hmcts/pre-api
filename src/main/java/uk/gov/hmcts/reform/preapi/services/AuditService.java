@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
 import java.util.UUID;
@@ -20,6 +21,11 @@ public class AuditService {
     }
 
     public UpsertResult upsert(CreateAuditDTO createAuditDTO, UUID createdBy) {
+
+        if (auditRepository.existsById(createAuditDTO.getId())) {
+            throw new ImmutableDataException(createAuditDTO.getId().toString());
+        }
+
         var audit = new Audit();
         audit.setId(createAuditDTO.getId());
         audit.setAuditDetails(createAuditDTO.getAuditDetails());

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
@@ -19,6 +19,7 @@ import java.util.UUID;
 public class CreateAuditDTO {
 
     @Schema(description = "AuditId")
+    @NotNull
     private UUID id;
 
     @Schema(description = "AuditTableName")
@@ -28,20 +29,24 @@ public class CreateAuditDTO {
     private UUID tableRecordId;
 
     @Schema(description = "AuditLogSource")
+    @NotNull
     private AuditLogSource source;
 
-    @Schema(description = "AuditCategory")
+    @Schema(
+        description = "AuditCategory",
+        examples = {"User", "Password", "Login", "2FA Code", "Recording", "Livestream"}
+    )
     private String category;
 
-    @Schema(description = "AuditActivity")
+    @Schema(description = "AuditActivity", examples = {"Create", "Update", "Delete", "Check", "Play", "Locked"})
     private String activity;
 
-    @Schema(description = "AuditFunctionalArea")
+    @Schema(description = "AuditFunctionalArea", examples = {"Registration", "Login", "Video Player", "API", "Admin"})
     private String functionalArea;
 
     @Schema(description = "AuditDetailsJSONString")
     @JsonRawValue
-    private String auditDetails;
+    private Object auditDetails;
 
     public CreateAuditDTO(Audit auditEntity) {
         this.id = auditEntity.getId();

@@ -14,11 +14,12 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
     List<Audit> findBySourceAndFunctionalAreaAndActivity(AuditLogSource source, String functionalArea, String activity);
 
     @Query(
-        """
+        value = """
         SELECT a FROM Audit a
         WHERE a.activity != 'Recording Playback ended'
-        AND a.auditDetails ILIKE '%playback%'
-        """
+        AND jsonb_extract_path_text(a.auditDetails, 'description') ILIKE '%playback%'
+        """,
+        nativeQuery = true
     )
     List<Audit> findAllAccessAttempts();
 }

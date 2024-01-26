@@ -22,7 +22,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "audit")
+@Table(name = "audits")
 @Immutable
 public class Audit extends BaseEntity {
 
@@ -48,7 +48,7 @@ public class Audit extends BaseEntity {
 
     @Type(JsonType.class)
     @Column(name = "audit_details", columnDefinition = "jsonb")
-    private String auditDetails;
+    private Object auditDetails;
 
     @Column(name = "created_by")
     private UUID createdBy;

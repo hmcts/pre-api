@@ -132,4 +132,18 @@ public class GlobalControllerExceptionHandler {
                                     responseHeaders,
                                     HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(ImmutableDataException.class)
+    ResponseEntity<String> onImmutableDataException(final ImmutableDataException e)
+        throws JsonProcessingException {
+
+        var error = new HashMap<String, String>();
+        HttpHeaders responseHeaders = new HttpHeaders();
+        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
+        error.put(MESSAGE, e.getMessage());
+
+        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
+                                    responseHeaders,
+                                    HttpStatus.BAD_REQUEST);
+    }
 }
