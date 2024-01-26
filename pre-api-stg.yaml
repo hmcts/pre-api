@@ -416,6 +416,44 @@ definitions:
         type: array
         uniqueItems: true
     type: object
+  CreateAuditDTO:
+    description: AuditDTO
+    properties:
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        description: AuditDetailsJSONString
+        type: object
+      category:
+        description: AuditCategory
+        type: string
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - id
+      - source
+    type: object
   CreateBookingDTO:
     description: CreateBookingDTO
     properties:
@@ -1589,6 +1627,40 @@ info:
   title: PRE API
   version: v0.0.1
 paths:
+  '/audit/{id}':
+    put:
+      consumes:
+        - application/json
+      operationId: putAudit
+      parameters:
+        - format: uuid
+          in: header
+          name: X-User-Id
+          required: true
+          type: string
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateAuditDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create an Audit Entry
+      tags:
+        - audit-controller
   /bookings:
     get:
       operationId: searchBookings
