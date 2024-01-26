@@ -25,7 +25,7 @@ from tables.helpers import clear_migrations_file
 
 
 # get passwords from env variables
-source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
+demo_db_password = os.environ.get('DEMO_DB_PASSWORD')
 destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
 test_db_password = os.environ.get('TEST_DB_PASSWORD')
 staging_db_password = os.environ.get('STAGING_DB_PASSWORD')
@@ -55,7 +55,7 @@ staging_db_password = os.environ.get('STAGING_DB_PASSWORD')
 source_db = DatabaseManager(
     database="pre-pdb-demo",
     user="psqladmin",
-    password=source_db_password,
+    password=demo_db_password,
     host="pre-db-demo.postgres.database.azure.com",
     port="5432",
 )

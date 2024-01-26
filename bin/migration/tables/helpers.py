@@ -44,8 +44,9 @@ def check_existing_record(db_connection, table_name, field, record):
 
 
 # Audit entry into database
-def audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry"):
-    created_at = created_at or datetime.now()
+def audit_entry_creation(db_connection, table_name, record_id, record, created_at = None,created_by = None ):
+    created_at = created_at if created_at is not None else datetime.now()
+    created_by = created_by if created_by is not None else None
 
     failed_imports = set()
 

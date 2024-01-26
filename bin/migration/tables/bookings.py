@@ -8,7 +8,9 @@ class BookingManager:
         self.failed_imports = set()
 
     def get_data(self):
-        self.source_cursor.execute("SELECT * FROM public.recordings WHERE recordingversion = '1'")
+        self.source_cursor.execute("""  SELECT *
+                                        FROM public.recordings
+                                        WHERE parentrecuid = recordinguid and recordingversion = '1'""")
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
@@ -47,8 +49,14 @@ class BookingManager:
                 continue
 
             recording_status = recording[11]
-            deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
             created_at = parse_to_timestamp(recording[22])
+            deleted_at = None
+            if recording_status == 'Deleted':
+                if recording[24]:
+                    deleted_at = parse_to_timestamp(recording[24])
+                else:
+                    deleted_at = created_at
+
             modified_at = parse_to_timestamp(recording[24]) if recording[24] is not None else created_at
             created_by =  get_user_id(destination_cursor,recording[21])
 
