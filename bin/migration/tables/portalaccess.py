@@ -1,5 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
-from datetime import datetime
+import uuid
 
 class PortalAccessManager:
     def __init__(self, source_cursor):
@@ -7,20 +7,19 @@ class PortalAccessManager:
         self.failed_imports = set()
 
     def get_data(self):
-        query = """ SELECT 
+        query = """ SELECT
                         u.userid,
                         MAX(u.status) as active,
                         MAX(u.loginenabled) as loginenabled,
                         MAX(u.invited) as invited,
                         MAX(u.emailconfirmed) as emailconfirmed,
                         MAX(ga.assigned) AS created,
-                        MAX(ga.assignedby) AS createdby,
-                        MAX(ga.gaid) AS portal_access_id
+                        MAX(ga.assignedby) AS createdby
                     FROM public.users u
                     JOIN public.groupassignments ga ON u.userid = ga.userid
                     JOIN public.grouplist gl ON ga.groupid = gl.groupid
-                    WHERE gl.groupname = 'Level 3' OR gl.groupname = 'Super User'
-                    GROUP BY u.userid """
+                    WHERE gl.groupname = 'Level 3' OR gl.groupname = 'Super User' OR u.invited ILIKE 'true'
+                    GROUP BY u.userid"""
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
 
@@ -31,7 +30,7 @@ class PortalAccessManager:
             user_id = user[0]
 
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
-                id=user[7]
+                id = str(uuid.uuid4())
                 password = 'password' # temporary field - to be removed once B2C implemented
                 status = 'INVITATION_SENT'
 
@@ -41,6 +40,7 @@ class PortalAccessManager:
                 status_active = str(user[1]).lower() == 'active'
                 invited = True
                 status_inactive = str(user[1]).lower() == 'inactive'
+
 
                 login_enabled_and_invited = login_enabled and invited 
                 email_confirmed_and_status_inactive = email_confirmed and status_inactive
@@ -56,8 +56,7 @@ class PortalAccessManager:
                 elif login_enabled_and_invited: 
                     status = "INVITATION_SENT"
                 else:
-                    self.failed_imports.add(('portal_access', user_id, "Missing status details"))
-                    continue
+                    status = "INVITATION_SENT"
 
                 # last_access = datetime.now() # this value is obtained from DV
                 # invitation_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
@@ -99,8 +98,8 @@ class PortalAccessManager:
                         table_name='portal_access',
                         record_id=entry[0],
                         record=entry[1],
-                        created_at=entry[7],
-                        created_by= entry[9]
+                        created_at=entry[4],
+                        created_by= entry[6]
                     )
         except Exception as e:
             self.failed_imports.add(('portal_access', user_id, e))
