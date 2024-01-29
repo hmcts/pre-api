@@ -9,3 +9,5 @@ CREATE TYPE public.RECORDING_STATUS AS ENUM (
     'FAILURE',
     'NO RECORDING'
 );
+
+ALTER TABLE public.capture_sessions ADD COLUMN status RECORDING_STATUS;
