@@ -41,8 +41,10 @@ public class UserDetailService {
             return Optional.empty();
         }
 
-        return appAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(id)
-            .map(user -> new UserDetails(user, AuthorityUtils.NO_AUTHORITIES));
+        var access = appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(id);
+
+        return access.isEmpty()
+            ? Optional.empty()
+            : Optional.of(new UserDetails(access, AuthorityUtils.NO_AUTHORITIES));
     }
 }
