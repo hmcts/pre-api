@@ -43,7 +43,11 @@ public class FunctionalTestBase {
         return doGetRequest(path, null, isAuthenticated);
     }
 
-    protected Response doGetRequest(final String path, final Map<String, String> additionalHeaders, final boolean isAuthenticated) {
+    protected Response doGetRequest(
+        final String path,
+        final Map<String, String> additionalHeaders,
+        final boolean isAuthenticated
+    ) {
         Logger.getAnonymousLogger().info("GET " + path);
         return given()
             .relaxedHTTPSValidation()
