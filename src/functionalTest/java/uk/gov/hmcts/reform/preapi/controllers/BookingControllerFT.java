@@ -9,10 +9,12 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -103,5 +105,38 @@ class BookingControllerFT extends FunctionalTestBase {
     void deletingNonExistentBookingShouldReturn404() {
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "00000000-0000-0000-0000-000000000000", true);
         assertThat(deleteResponse.statusCode()).isEqualTo(404);
+    }
+
+    @DisplayName("Unauthorised use of endpoints should return 401")
+    @Test
+    void unauthorisedRequestsReturn401() throws JsonProcessingException {
+        var getBookingsResponse = doGetRequest("/bookings", false);
+        assertThat(getBookingsResponse.statusCode()).isEqualTo(401);
+
+        var getBookingsByIdResponse = doGetRequest(BOOKINGS_ENDPOINT + UUID.randomUUID(), false);
+        assertThat(getBookingsByIdResponse.statusCode()).isEqualTo(401);
+
+        var putBookingResponse = doPutRequest(
+            BOOKINGS_ENDPOINT + UUID.randomUUID(),
+            OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
+            false
+        );
+        assertThat(putBookingResponse.statusCode()).isEqualTo(401);
+
+        var deleteBookingResponse = doDeleteRequest(BOOKINGS_ENDPOINT + UUID.randomUUID(), false);
+        assertThat(deleteBookingResponse.statusCode()).isEqualTo(401);
+
+        var putShareBookingResponse = doPutRequest(
+            BOOKINGS_ENDPOINT + UUID.randomUUID() + "/share",
+            OBJECT_MAPPER.writeValueAsString(new ShareBookingDTO()),
+            false
+        );
+        assertThat(putShareBookingResponse.statusCode()).isEqualTo(401);
+
+        var deleteShareBookingResponse = doDeleteRequest(
+            BOOKINGS_ENDPOINT + UUID.randomUUID() + "/share",
+            false
+        );
+        assertThat(deleteShareBookingResponse.statusCode()).isEqualTo(401);
     }
 }

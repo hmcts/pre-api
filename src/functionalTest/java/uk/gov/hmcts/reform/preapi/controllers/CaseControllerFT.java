@@ -2,8 +2,11 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restassured.response.Response;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -54,6 +57,30 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(getResponse.statusCode()).isEqualTo(200);
         var caseResponse = OBJECT_MAPPER.readValue(getResponse.body().asString(), CaseDTO.class);
         assertThat(caseResponse.getParticipants().size()).isEqualTo(2);
+    }
+
+    @DisplayName("Unauthorised use of endpoints should return 401")
+    @Test
+    void unauthorisedRequestsReturn401() throws JsonProcessingException {
+        var getCaseByIdResponse = doGetRequest(CASES_ENDPOINT + UUID.randomUUID(), false);
+        assertResponse401(getCaseByIdResponse);
+
+        var getCasesResponse = doGetRequest("/cases", false);
+        assertResponse401(getCasesResponse);
+
+        var putCaseResponse = doPutRequest(
+            CASES_ENDPOINT + UUID.randomUUID(),
+            OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
+            false
+        );
+        assertResponse401(putCaseResponse);
+
+        var deleteCaseResponse = doDeleteRequest(CASES_ENDPOINT + UUID.randomUUID(), false);
+        assertResponse401(deleteCaseResponse);
+    }
+
+    private void assertResponse401(Response response) {
+        assertThat(response.statusCode()).isEqualTo(401);
     }
 
     private String generateRandomCaseReference() {
