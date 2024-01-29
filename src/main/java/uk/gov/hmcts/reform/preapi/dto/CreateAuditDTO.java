@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
 import com.fasterxml.jackson.annotation.JsonRawValue;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -46,7 +47,7 @@ public class CreateAuditDTO {
 
     @Schema(description = "AuditDetailsJSONString")
     @JsonRawValue
-    private Object auditDetails;
+    private JsonNode auditDetails;
 
     public CreateAuditDTO(Audit auditEntity) {
         this.id = auditEntity.getId();

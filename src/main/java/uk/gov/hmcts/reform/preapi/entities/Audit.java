@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -48,7 +49,7 @@ public class Audit extends BaseEntity {
 
     @Type(JsonType.class)
     @Column(name = "audit_details", columnDefinition = "jsonb")
-    private Object auditDetails;
+    private JsonNode auditDetails;
 
     @Column(name = "created_by")
     private UUID createdBy;

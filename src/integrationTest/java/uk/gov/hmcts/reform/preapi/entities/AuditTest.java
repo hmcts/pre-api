@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
@@ -8,20 +10,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 
-import java.util.HashMap;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
+@SuppressWarnings("PMD - JUnit5TestShouldBePackagePrivate")
 class AuditTest {
 
     @Autowired
     private EntityManager entityManager;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     @Test
     @Transactional
-    public void testSaveAndRetrieveAudit() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
+    public void testSaveAndRetrieveAudit() throws JsonProcessingException {
         Audit audit = new Audit();
         audit.setTableName("TestTable");
         audit.setTableRecordId(UUID.randomUUID());
@@ -29,11 +33,8 @@ class AuditTest {
         audit.setCategory("TestCategory");
         audit.setActivity("TestActivity");
         audit.setFunctionalArea("TestFunctionalArea");
-        audit.setAuditDetails(new HashMap<>() {
-            {
-                put("test", "test");
-            }
-        });
+
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setCreatedBy(UUID.randomUUID());
         entityManager.persist(audit);
         entityManager.flush();

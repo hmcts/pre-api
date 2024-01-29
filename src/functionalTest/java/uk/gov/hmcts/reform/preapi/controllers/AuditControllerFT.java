@@ -24,7 +24,7 @@ public class AuditControllerFT  extends FunctionalTestBase {
     void updateAuditFailure() throws JsonProcessingException {
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
-        audit.setAuditDetails('{' + "\"test\":\"test\"" + '}');
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setSource(AuditLogSource.AUTO);
 
         var success = doPutRequest(AUDIT_ENDPOINT + audit.getId(), new HashMap<>() {

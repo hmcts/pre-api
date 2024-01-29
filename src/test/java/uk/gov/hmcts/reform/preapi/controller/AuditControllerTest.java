@@ -46,11 +46,13 @@ class AuditControllerTest {
 
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
-        audit.setAuditDetails('{' + "\"test\":\"test\"" + '}');
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setSource(AuditLogSource.AUTO);
 
         var xUserId = UUID.randomUUID();
         when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
+
+        System.out.println(OBJECT_MAPPER.writeValueAsString(audit));
 
         MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
@@ -70,7 +72,7 @@ class AuditControllerTest {
 
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
-        audit.setAuditDetails('{' + "\"test\":\"test\"" + '}');
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setSource(AuditLogSource.AUTO);
 
         var xUserId = UUID.randomUUID();
@@ -93,7 +95,7 @@ class AuditControllerTest {
 
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
-        audit.setAuditDetails('{' + "\"test\":\"test\"" + '}');
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setSource(AuditLogSource.AUTO);
 
         var xUserId = UUID.randomUUID();
