@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.security.UserDetailService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.sql.Timestamp;
@@ -44,6 +45,9 @@ public class ReportControllerTest {
 
     @MockBean
     private ReportService reportService;
+
+    @MockBean
+    private UserDetailService userDetailService;
 
     @DisplayName("Should get a report containing a list of concurrent capture sessions")
     @Test

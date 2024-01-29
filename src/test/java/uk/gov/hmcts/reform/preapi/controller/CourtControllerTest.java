@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.security.UserDetailService;
 import uk.gov.hmcts.reform.preapi.services.CourtService;
 
 import java.util.List;
@@ -44,6 +45,9 @@ public class CourtControllerTest {
 
     @MockBean
     private CourtService courtService;
+
+    @MockBean
+    private UserDetailService userDetailService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
