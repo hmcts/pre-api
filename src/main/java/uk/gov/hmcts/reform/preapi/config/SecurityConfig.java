@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -18,12 +19,15 @@ public class SecurityConfig {
 
     private final UserDetailService userDetailService;
 
-    public static final String[] NOT_AUTHORIZED_URIS = new String[] {
+    public static String[] NOT_AUTHORIZED_URIS = new String[] {
+        "/testing-support/**",
         "/swagger-ui/**",
         "/v3/api-docs/**",
-        "/v3/api-docs",
-        "testing-support/**"
+        "/v3/api-docs"
     };
+
+    @Value("${spring.profiles.active:null}")
+    private String activeProfile;
 
     @Autowired
     public SecurityConfig(UserDetailService userDetailService) {
@@ -32,7 +36,11 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable)
+        if ("test".equals(activeProfile)) {
+            http.csrf(AbstractHttpConfigurer::disable);
+        }
+
+        http
             .authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
                                        authorizationManagerRequestMatcherRegistry
                                            .requestMatchers(NOT_AUTHORIZED_URIS).permitAll()

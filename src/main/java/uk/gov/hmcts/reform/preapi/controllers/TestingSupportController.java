@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(path = "/testing-support")
+@RequestMapping("/testing-support")
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
@@ -246,7 +246,7 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "create-authenticated-user",  produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/create-authenticated-user",  produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> createAuthenticatedUser() {
         var appAccess = createAppAccess();
 

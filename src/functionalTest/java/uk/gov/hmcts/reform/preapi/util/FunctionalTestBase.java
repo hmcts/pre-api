@@ -32,7 +32,7 @@ public class FunctionalTestBase {
     void setUp() {
         RestAssured.baseURI = testUrl;
         if (authenticatedUserId == null) {
-            authenticatedUserId = doPostRequest("testing-support/create-authenticated-user", false)
+            authenticatedUserId = doPostRequest("/testing-support/create-authenticated-user", false)
                 .body()
                 .jsonPath()
                 .getUUID("userId");
