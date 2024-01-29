@@ -34,7 +34,7 @@ class AuditLogManager:
                 created_by = created_by_id if created_by_id is not None else None
 
                 batch_audit_data.append((
-                        id, table_name, table_record_id, source, type, category, activity, functional_area, audit_details, created_at, created_by))
+                        id, table_name, table_record_id, source, category, activity, functional_area, audit_details, created_at, created_by))
         try:
             if batch_audit_data:
                 destination_cursor.executemany(
