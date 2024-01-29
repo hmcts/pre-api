@@ -18,6 +18,9 @@ import java.util.Arrays;
 
 @Component
 public class XUserIdFilter extends GenericFilterBean {
+
+    private static final String X_USER_ID_HEADER = "X-User-Id";
+
     private final UserDetailService userDetailService;
 
     public XUserIdFilter(UserDetailService userDetailService) {
@@ -35,7 +38,8 @@ public class XUserIdFilter extends GenericFilterBean {
         }
 
         try {
-            Authentication authentication = userDetailService.loadAppUserById(request);
+            var id = request.getHeader(X_USER_ID_HEADER);
+            Authentication authentication = userDetailService.loadAppUserById(id);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception e) {
             writeErrorResponse(e, (HttpServletResponse) servletResponse);

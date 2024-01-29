@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.security;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -13,7 +12,6 @@ import java.util.UUID;
 @Service
 public class UserDetailService {
 
-    private static final String X_USER_ID_HEADER = "X-User-Id";
     private final AppAccessRepository appAccessRepository;
 
     @Autowired
@@ -21,8 +19,7 @@ public class UserDetailService {
         this.appAccessRepository = appAccessRepository;
     }
 
-    public UserDetails loadAppUserById(HttpServletRequest request) {
-        var id = request.getHeader(X_USER_ID_HEADER);
+    public UserDetails loadAppUserById(String id) {
         return validateUser(id)
             .orElseThrow(() -> new BadCredentialsException("Unauthorised user: " + id));
     }
