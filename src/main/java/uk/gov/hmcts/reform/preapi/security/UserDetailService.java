@@ -35,8 +35,6 @@ public class UserDetailService {
         UUID id;
         try {
             id = UUID.fromString(userId);
-            // TODO REMOVE
-            System.out.println(X_USER_ID_HEADER + " : " + id);
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }

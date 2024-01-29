@@ -30,26 +30,17 @@ public class XUserIdFilter extends GenericFilterBean {
         var request = (HttpServletRequest) servletRequest;
 
         if (!applyAuth(request.getRequestURI())) {
-            // TODO REMOVE
-            System.out.println("IGNORE AUTH");
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
 
-        System.out.println("ATTEMPTING AUTH");
-
         try {
             Authentication authentication = userDetailService.loadAppUserById(request);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            // TODO REMOVE
-            System.out.println("AUTHENTICATION SUCCESS");
         } catch (Exception e) {
-            // TODO REMOVE
-            System.out.println("AUTHENTICATION FAILED");
             writeErrorResponse(e, (HttpServletResponse) servletResponse);
             return;
         }
-
         filterChain.doFilter(servletRequest, servletResponse);
     }
 
