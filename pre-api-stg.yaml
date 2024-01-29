@@ -423,8 +423,7 @@ definitions:
         description: AuditActivity
         type: string
       audit_details:
-        description: AuditDetailsJSONString
-        type: object
+        $ref: '#/definitions/JsonNode'
       category:
         description: AuditCategory
         type: string
@@ -1075,6 +1074,9 @@ definitions:
       phone:
         description: InvitePhone
         type: string
+    type: object
+  JsonNode:
+    description: AuditDetailsJSONString
     type: object
   Link:
     properties:
