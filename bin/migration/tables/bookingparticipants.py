@@ -20,11 +20,10 @@ class BookingParticipantManager:
             witnesses_list = recording[2].split(',') if recording[2] else []
 
             destination_cursor.execute("""
-                SELECT r.id, cs.booking_id
-                FROM recordings r
-                LEFT JOIN capture_sessions cs ON r.capture_session_id = cs.id
-                WHERE r.id = %s 
-                """, (recording_id,))
+                SELECT recording_id, booking_id
+                FROM public.temp_recordings
+                WHERE recording_id = %s 
+            """, (recording_id,))
             result = destination_cursor.fetchone()
 
             if result is not None and len(result) > 0:
