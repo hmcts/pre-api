@@ -12,19 +12,24 @@ class CaptureSessionManager:
     
     def map_recording_status(self, status):
         status_lower = status.lower()
+        result = None
 
-        if status_lower in ["assets created - waiting for event to start", "deleted", "error - failed to start", "no recording available", "no stream detected", "no recording"]:
+        # https://tools.hmcts.net/confluence/pages/viewpage.action?spaceKey=S28&title=NRO+-+Application+Statuses
+        if status_lower in ["no stream detected", "ready to record", "ready to stream","checking stream..."]:
             result = "STANDBY"
-        elif status_lower in ["initiating request...","ready to record"]:
+        elif status_lower == "initiating request...":
             result =  "INITIALISATION"
-        elif status_lower == "recording":
+        elif status_lower in ["recording","stream ok"]:
             result =  "RECORDING"
-        elif status_lower in ["edit requested","ready to stream", "mp4 ready for viewing", "stream ok"]:
-            result =  "AVAILABLE"
-        elif status_lower == "checking stream...":
+        elif status_lower == "mp4 ready for viewing":
+            result =  "RECORDING AVAILABLE"
+        elif status_lower == "Finished Recording - Processing...":
             result =  "PROCESSING"
-        else:
-            result = "STANDBY" 
+        elif status_lower == "error - failed to start":
+            result = "FAILURE"
+        elif status_lower == "no recording available":
+            result = "NO RECORDING" 
+        
         return result
 
     def get_recording_date(self, recording_id, activity):
@@ -124,7 +129,8 @@ class CaptureSessionManager:
                         record=booking_id,
                         created_at=created_at,
                     )
-                except Exception as e:  
+                except Exception as e:
+                    destination_cursor.connection.rollback()  
                     self.failed_imports.add(('capture_sessions', id,e))
                 
         log_failed_imports(self.failed_imports)
