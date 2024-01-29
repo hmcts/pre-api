@@ -20,7 +20,9 @@ public class SecurityConfig {
 
     public static final String[] NOT_AUTHORIZED_URIS = new String[] {
         "/swagger-ui/**",
-        "/v3/api-docs/**"
+        "/v3/api-docs/**",
+        "/v3/api-docs",
+        "testing-support/**"
     };
 
     @Autowired

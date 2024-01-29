@@ -27,36 +27,36 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     void shouldDeleteRecordingsForBooking() {
 
-        var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking").body().jsonPath();
+        var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking", false).body().jsonPath();
 
         var bookingId = testIds.get("bookingId");
         var recordingId = testIds.get("recordingId");
 
-        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + bookingId);
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + bookingId, true);
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookingResponse.body().jsonPath().getString("id")).isEqualTo(bookingId);
 
-        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + recordingId);
+        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + recordingId, true);
         assertThat(recordingResponse.statusCode()).isEqualTo(200);
         assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recordingId);
         assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + bookingId);
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + bookingId, true);
         assertThat(deleteResponse.statusCode()).isEqualTo(204);
 
-        var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + recordingId);
+        var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + recordingId, true);
         assertThat(recordingResponse2.statusCode()).isEqualTo(404);
     }
 
     @Test
     @DisplayName("Scenario: The schedule date should not be amended to the past date")
     void recordingScheduleDateShouldNotBeAmendedToThePast() throws JsonProcessingException {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking")
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + bookingId);
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + bookingId, true);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
 
@@ -70,7 +70,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(rooms.orElseGet(RoomDTO::new).getName()).isEqualTo("Foo Room");
 
         // validate the court referenced does exist
-        var courtResponse = doGetRequest("/courts/" + booking.getCaseDTO().getCourt().getId());
+        var courtResponse = doGetRequest("/courts/" + booking.getCaseDTO().getCourt().getId(), true);
         assertThat(courtResponse.statusCode()).isEqualTo(200);
         assertThat(courtResponse.body().jsonPath().getString("name"))
             .isEqualTo(booking.getCaseDTO().getCourt().getName());
@@ -89,7 +89,11 @@ class BookingControllerFT extends FunctionalTestBase {
         // set scheduledFor to yesterday
         createBooking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusDays(1).toInstant()));
 
-        var putResponse = doPutRequest(BOOKINGS_ENDPOINT + bookingId, OBJECT_MAPPER.writeValueAsString(createBooking));
+        var putResponse = doPutRequest(
+            BOOKINGS_ENDPOINT + bookingId,
+            OBJECT_MAPPER.writeValueAsString(createBooking),
+            true
+        );
 
         assertThat(putResponse.statusCode()).isEqualTo(400);
     }
@@ -97,7 +101,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Deleting a non-existent booking should return 404")
     void deletingNonExistentBookingShouldReturn404() {
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "00000000-0000-0000-0000-000000000000");
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "00000000-0000-0000-0000-000000000000", true);
         assertThat(deleteResponse.statusCode()).isEqualTo(404);
     }
 }

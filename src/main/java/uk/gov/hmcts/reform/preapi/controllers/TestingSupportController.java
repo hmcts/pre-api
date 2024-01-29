@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -15,12 +16,14 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
+import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -28,6 +31,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
@@ -53,6 +57,8 @@ class TestingSupportController {
     private final RegionRepository regionRepository;
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final AppAccessRepository appAccessRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -63,7 +69,9 @@ class TestingSupportController {
                              final RecordingRepository recordingRepository,
                              final RegionRepository regionRepository,
                              final RoomRepository roomRepository,
-                             final UserRepository userRepository) {
+                             final UserRepository userRepository,
+                             RoleRepository roleRepository,
+                             AppAccessRepository appAccessRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -73,6 +81,8 @@ class TestingSupportController {
         this.regionRepository = regionRepository;
         this.roomRepository = roomRepository;
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.appAccessRepository = appAccessRepository;
     }
 
     @PostMapping(path = "/create-court", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -236,6 +246,19 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping(value = "create-authenticated-user",  produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createAuthenticatedUser() {
+        var appAccess = createAppAccess();
+
+        var response = new HashMap<String, String>() {
+            {
+                put("userId", appAccess.getUser().getId().toString());
+            }
+        };
+        return ResponseEntity.ok(response);
+    }
+
+
     private Court createTestCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());
@@ -245,5 +268,38 @@ class TestingSupportController {
         courtRepository.save(court);
 
         return court;
+    }
+
+    private AppAccess createAppAccess() {
+        var access = new AppAccess();
+        access.setUser(createUser());
+        access.setCourt(createTestCourt());
+        access.setRole(createRole());
+        access.setActive(true);
+        appAccessRepository.save(access);
+
+        return access;
+    }
+
+    private User createUser() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail(user.getId() + "@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Example");
+        user.setPhone("0987654321");
+        user.setOrganisation("ExampleOrg");
+        userRepository.save(user);
+
+        return user;
+    }
+
+    private Role createRole() {
+        var role = new Role();
+        role.setId(UUID.randomUUID());
+        role.setName("ROLE_USER");
+        roleRepository.save(role);
+
+        return role;
     }
 }

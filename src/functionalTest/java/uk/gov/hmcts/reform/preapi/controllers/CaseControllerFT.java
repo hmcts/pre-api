@@ -22,7 +22,7 @@ class CaseControllerFT extends FunctionalTestBase {
     @Test
     void shouldCreateACaseWithParticipants() throws JsonProcessingException {
 
-        var testIds = doPostRequest("/testing-support/create-court").body().jsonPath();
+        var testIds = doPostRequest("/testing-support/create-court", false).body().jsonPath();
 
         var courtId = java.util.UUID.fromString(testIds.get("courtId"));
 
@@ -46,11 +46,11 @@ class CaseControllerFT extends FunctionalTestBase {
         ));
 
         var putResponse = doPutRequest(CASES_ENDPOINT + createCase.getId(),
-                                       OBJECT_MAPPER.writeValueAsString(createCase));
+                                       OBJECT_MAPPER.writeValueAsString(createCase), true);
 
         assertThat(putResponse.statusCode()).isEqualTo(201);
 
-        var getResponse = doGetRequest(CASES_ENDPOINT + createCase.getId());
+        var getResponse = doGetRequest(CASES_ENDPOINT + createCase.getId(), true);
         assertThat(getResponse.statusCode()).isEqualTo(200);
         var caseResponse = OBJECT_MAPPER.readValue(getResponse.body().asString(), CaseDTO.class);
         assertThat(caseResponse.getParticipants().size()).isEqualTo(2);
