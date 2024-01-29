@@ -43,11 +43,10 @@ class AuditLogManager:
                     VALUES (%s, %s, %s,%s, %s, %s,%s,%s, %s,%s, %s)""",
                     batch_audit_data
                 )
-                destination_cursor.connection.commit() 
-            else:
-                print("No data to insert.")   
+                destination_cursor.connection.commit()  
             
         except Exception as e:
+            destination_cursor.connection.rollback() 
             self.failed_imports.add(('audits', id, e))
           
         log_failed_imports(self.failed_imports) 

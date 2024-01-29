@@ -10,6 +10,11 @@ class CaptureSessionManager:
         self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings WHERE recordingversion = '1' and recordingstatus != 'No Recording'")
         return self.source_cursor.fetchall()
     
+    def check_record_in_temp_table(self, destination_cursor, recording_id):
+        destination_cursor.execute("SELECT EXISTS (SELECT 1 FROM public.temp_recordings WHERE capture_session_id IS NULL AND recording_id=%s)", (recording_id,))
+        result = destination_cursor.fetchone()
+        return result[0] if result else False
+    
     def map_recording_status(self, status):
         status_lower = status.lower()
         result = None
@@ -42,7 +47,6 @@ class CaptureSessionManager:
         self.source_cursor.execute(query, (activity, recording_id))
         result = self.source_cursor.fetchone()
         return parse_to_timestamp(result[0]) if result else None
-
         
     def migrate_data(self, destination_cursor, source_data):
         destination_cursor.execute("SELECT * FROM public.temp_recordings")
@@ -53,7 +57,6 @@ class CaptureSessionManager:
 
         for recording in source_data:
             recording_id = recording[0]
-            capture_session_id = str(uuid.uuid4())
             booking_id = next((temp_rec[2] for temp_rec in temp_recording_data if temp_rec[1] == recording_id), None)
             parent_recording_id = recording[9]
 
@@ -67,22 +70,24 @@ class CaptureSessionManager:
             started_by_user_id = next((user[0] for user in user_data if user[3] == started_by), None)
             deleted_at = parse_to_timestamp(recording[24]) if str(recording[11]).lower() == 'deleted' else None
             status = self.map_recording_status(recording[11])
-    
-            try: 
-                destination_cursor.execute(
-                    """
-                    UPDATE public.temp_recordings
-                    SET capture_session_id = %s, parent_recording_id = %s, deleted_at=%s, 
-                        started_by_user_id=%s, ingest_address=%s, live_output_url=%s, status=%s
-                    WHERE recording_id = %s 
-                    """,
-                    (capture_session_id, parent_recording_id, deleted_at, started_by_user_id,  ingest_address, live_output_url, status, recording_id),
-                )
-                destination_cursor.connection.commit()
-                   
-            except Exception as e:
-                self.failed_imports.add(('temp_recordings', recording_id, f'Failed to insert into temp_recordings: {e}'))
-                continue
+
+            if self.check_record_in_temp_table(destination_cursor, recording_id):
+                capture_session_id = str(uuid.uuid4())
+                try: 
+                    destination_cursor.execute(
+                        """
+                        UPDATE public.temp_recordings
+                        SET capture_session_id = %s, parent_recording_id = %s, deleted_at=%s, 
+                            started_by_user_id=%s, ingest_address=%s, live_output_url=%s, status=%s
+                        WHERE recording_id = %s 
+                        """,
+                        (capture_session_id, parent_recording_id, deleted_at, started_by_user_id,  ingest_address, live_output_url, status, recording_id),
+                    )
+                    destination_cursor.connection.commit()
+                    
+                except Exception as e:
+                    self.failed_imports.add(('temp_recordings', recording_id, f'Failed to insert into temp_recordings: {e}'))
+                    continue
 
         # inserting only version 1 into capture sessions as this would be the parent recording
         destination_cursor.execute("SELECT * FROM public.temp_recordings WHERE recording_id = parent_recording_id")

@@ -24,9 +24,6 @@ class ShareBookingsManager:
                                         WHERE r.id is not null""")
         bookings_data = destination_cursor.fetchall()
 
-        destination_cursor.execute("SELECT * FROM public.users")
-        users_data = destination_cursor.fetchall()
-
         for video_permission in source_data:
             id = video_permission[0]
             recording_id = video_permission[1]
@@ -78,6 +75,7 @@ class ShareBookingsManager:
                 )
 
         except Exception as e:
+            destination_cursor.connection.rollback()    
             self.failed_imports.add(('share_bookings', id, e))
 
         log_failed_imports(self.failed_imports)
