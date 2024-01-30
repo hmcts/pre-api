@@ -7,7 +7,7 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import lombok.Getter;
 import lombok.Setter;
-import uk.gov.hmcts.reform.preapi.listeners.AuditListener;
+import uk.gov.hmcts.reform.preapi.entities.listeners.AuditListener;
 
 import java.util.UUID;
 

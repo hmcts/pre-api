@@ -21,73 +21,43 @@ public class GlobalControllerExceptionHandler {
     private static final String APPLICATION_JSON = "application/json";
 
     @ExceptionHandler(NotFoundException.class)
-    ResponseEntity<String> notFoundExceptionHandler(final NotFoundException ex) throws JsonProcessingException {
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.NOT_FOUND);
+    ResponseEntity<String> notFoundExceptionHandler(final NotFoundException e) throws JsonProcessingException {
+
+        return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ConflictException.class)
-    ResponseEntity<String> conflictExceptionHandler(final ConflictException ex) throws JsonProcessingException {
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.CONFLICT);
+    ResponseEntity<String> conflictExceptionHandler(final ConflictException e) throws JsonProcessingException {
+
+        return getResponseEntity(e.getMessage(), HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(PathPayloadMismatchException.class)
-    ResponseEntity<String> pathPayloadMismatchExceptionHandler(final PathPayloadMismatchException ex)
+    ResponseEntity<String> pathPayloadMismatchExceptionHandler(final PathPayloadMismatchException e)
         throws JsonProcessingException {
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.BAD_REQUEST);
+
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(UnknownServerException.class)
-    ResponseEntity<String> unknownServerExceptionHandler(final UnknownServerException ex)
+    ResponseEntity<String> unknownServerExceptionHandler(final UnknownServerException e)
         throws JsonProcessingException {
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.INTERNAL_SERVER_ERROR);
+
+        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(ResourceInDeletedStateException.class)
-    ResponseEntity<String> resourceInDeletedStateException(final ResourceInDeletedStateException ex)
+    ResponseEntity<String> resourceInDeletedStateException(final ResourceInDeletedStateException e)
         throws JsonProcessingException {
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.BAD_REQUEST);
+
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(RequestedPageOutOfRangeException.class)
-    ResponseEntity<String> requestedPageOutOfRangeException(final RequestedPageOutOfRangeException ex)
+    ResponseEntity<String> requestedPageOutOfRangeException(final RequestedPageOutOfRangeException e)
         throws JsonProcessingException {
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, ex.getMessage());
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.BAD_REQUEST);
+
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -100,6 +70,7 @@ public class GlobalControllerExceptionHandler {
         for (var fieldError : e.getBindingResult().getFieldErrors()) {
             error.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
+
         return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
                                     responseHeaders,
                                     HttpStatus.BAD_REQUEST);
@@ -109,41 +80,39 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> onMethodArgumentTypeMismatchException(final MethodArgumentTypeMismatchException e)
         throws JsonProcessingException {
 
-        var error = new HashMap<String, String>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, e.getCause().getMessage());
-
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.BAD_REQUEST);
+        return getResponseEntity(e.getCause().getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<String> onHttpMessageNotReadableException(final HttpMessageNotReadableException e)
         throws JsonProcessingException {
 
-        var error = new HashMap<String, String>();
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, e.getMessage());
-
-        return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
-                                    responseHeaders,
-                                    HttpStatus.BAD_REQUEST);
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(ImmutableDataException.class)
     ResponseEntity<String> onImmutableDataException(final ImmutableDataException e)
         throws JsonProcessingException {
 
-        var error = new HashMap<String, String>();
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UnauditableTableException.class)
+    ResponseEntity<String> onUnauditableTableException(final UnauditableTableException e)
+        throws JsonProcessingException {
+
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
+        throws JsonProcessingException {
+
+        HashMap<String, String> error = new HashMap<>();
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        error.put(MESSAGE, e.getMessage());
-
+        error.put(MESSAGE, message);
         return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),
                                     responseHeaders,
-                                    HttpStatus.BAD_REQUEST);
+                                    status);
     }
 }

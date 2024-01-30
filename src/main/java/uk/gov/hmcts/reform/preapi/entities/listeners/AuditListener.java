@@ -1,12 +1,9 @@
-package uk.gov.hmcts.reform.preapi.listeners;
+package uk.gov.hmcts.reform.preapi.entities.listeners;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import jakarta.persistence.metamodel.EntityType;
-import jakarta.persistence.metamodel.Metamodel;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -15,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.exception.UnauditableTableException;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
 import java.util.UUID;
@@ -30,10 +28,6 @@ public class AuditListener {
     @Lazy
     @Autowired
     private HttpServletRequest request;
-
-    @Lazy
-    @Autowired
-    private EntityManager entityManager;
 
     @PrePersist
     public void postPersist(BaseEntity entity) {
@@ -59,7 +53,7 @@ public class AuditListener {
         audit.setActivity(action.toString());
         audit.setCategory(entity.getClass().getSimpleName());
         audit.setFunctionalArea("API");
-        audit.setTableName(getTableName(entityManager, entity.getClass()));
+        audit.setTableName(getTableName(entity));
         audit.setTableRecordId(entity.getId());
         audit.setSource(AuditLogSource.AUTO);
         var xUserId = request.getHeader("X-User-Id");
@@ -70,15 +64,12 @@ public class AuditListener {
         auditRepository.save(audit);
     }
 
-    private static <T> String getTableName(EntityManager em, Class<T> entityClass) {
-
-        Metamodel meta = em.getMetamodel();
-        EntityType<T> entityType = meta.entity(entityClass);
-
+    private static String getTableName(BaseEntity entity) {
+        var entityClass = entity.getClass();
         Table t = entityClass.getAnnotation(Table.class);
-
-        return (t == null)
-            ? entityType.getName().toUpperCase()
-            : t.name();
+        if (t == null) {
+            throw new UnauditableTableException(entityClass.toString());
+        }
+        return t.name();
     }
 }
