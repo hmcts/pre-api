@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
-import java.sql.Timestamp;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -33,7 +32,6 @@ class AuditTest {
         audit.setFunctionalArea("TestFunctionalArea");
         audit.setAuditDetails("TestAuditDetails");
         audit.setCreatedBy(UUID.randomUUID());
-        audit.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
         entityManager.persist(audit);
         entityManager.flush();
 
@@ -50,7 +48,5 @@ class AuditTest {
         assertEquals(audit.getAuditDetails(), retrievedAudit.getAuditDetails(), "Audit details should match");
         assertEquals(audit.getCreatedBy(), retrievedAudit.getCreatedBy(), "Created by should match");
         assertEquals(audit.getCreatedAt(), retrievedAudit.getCreatedAt(), "Created at should match");
-        assertEquals(audit.getUpdatedAt(), retrievedAudit.getUpdatedAt(), "Updated at should match");
-        assertEquals(audit.getDeletedAt(), retrievedAudit.getDeletedAt(), "Deleted at should match");
     }
 }
