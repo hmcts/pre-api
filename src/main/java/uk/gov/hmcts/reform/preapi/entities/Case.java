@@ -13,7 +13,10 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Getter
 @Setter
@@ -43,5 +46,23 @@ public class Case extends CreatedModifiedAtEntity {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        return new HashMap<>() {
+            {
+                put("court", court.getName());
+                put("reference", reference);
+                put("participants", Stream.ofNullable(getParticipants())
+                    .flatMap(participants ->
+                                 participants
+                                     .stream()
+                                     .filter(participant -> participant.getDeletedAt() == null)
+                                     .map(Participant::getDetailsForAudit))
+                    .collect(Collectors.toSet()));
+                put("test", test);
+            }
+        };
     }
 }

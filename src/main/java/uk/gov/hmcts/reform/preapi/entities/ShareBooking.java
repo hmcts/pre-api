@@ -14,6 +14,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 
 @Getter
 @Setter
@@ -45,5 +46,17 @@ public class ShareBooking extends BaseEntity {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        return new HashMap<>() {
+            {
+                put("booking_id", booking.getId());
+                put("shared_with_user", sharedWith.getEmail());
+                put("shared_by_user", sharedBy.getEmail());
+                put("deleted", isDeleted());
+            }
+        };
     }
 }

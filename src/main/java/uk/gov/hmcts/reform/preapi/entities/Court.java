@@ -15,7 +15,10 @@ import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
+import java.util.HashMap;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 @Getter
@@ -49,4 +52,21 @@ public class Court extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "room_id", referencedColumnName = "id")
     )
     private Set<Room> rooms;
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        return new HashMap<>() {
+            {
+                put("name", name);
+                put("courtType", courtType);
+                put("locationCode", locationCode);
+                put("regions", Stream.ofNullable(getRegions())
+                    .flatMap(regions -> regions.stream().map(Region::getName))
+                    .collect(Collectors.toSet()));
+                put("rooms", Stream.ofNullable(getRooms())
+                    .flatMap(regions -> regions.stream().map(Room::getName))
+                    .collect(Collectors.toSet()));
+            }
+        };
+    }
 }

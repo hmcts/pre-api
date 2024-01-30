@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.HashMap;
 
 @Getter
 @Setter
@@ -38,4 +39,17 @@ public class AppAccess extends CreatedModifiedAtEntity {
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        return new HashMap<>() {
+            {
+                put("user", user.getEmail());
+                put("court", court.getName());
+                put("role", role.getName());
+                put("active", active);
+                put("deleted", deletedAt != null);
+            }
+        };
+    }
 }

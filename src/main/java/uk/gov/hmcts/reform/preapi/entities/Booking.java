@@ -15,6 +15,7 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.Set;
 
 @Getter
@@ -53,5 +54,16 @@ public class Booking extends CreatedModifiedAtEntity {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        return new HashMap<>() {
+            {
+                put("caseId", caseId.getId());
+                put("scheduledFor", scheduledFor);
+                put("deleted", isDeleted());
+            }
+        };
     }
 }

@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.HashMap;
 
 @Getter
 @Setter
@@ -67,4 +68,19 @@ public class Recording extends BaseEntity {
         return deletedAt != null;
     }
 
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        return new HashMap<>() {
+            {
+                put("parentRecordingId", parentRecording != null ? parentRecording.getId() : null);
+                put("version", version);
+                put("filename", filename);
+                if (duration != null) {
+                    put("duration", duration.toString());
+                }
+                put("editInstruction", editInstruction);
+                put("deleted", isDeleted());
+            }
+        };
+    }
 }

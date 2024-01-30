@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
+import java.util.HashMap;
+
 @Getter
 @Setter
 @Entity
@@ -30,4 +32,14 @@ public class Invite extends CreatedModifiedAtEntity {
 
     @Column(name = "code", nullable = false)
     private String code;
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        return new HashMap<>() {
+            {
+                put("email", email);
+                put("organisation", organisation);
+            }
+        };
+    }
 }
