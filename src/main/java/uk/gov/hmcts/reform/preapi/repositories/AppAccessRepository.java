@@ -20,7 +20,7 @@ public interface AppAccessRepository extends SoftDeleteRepository<AppAccess, UUI
 
     List<AppAccess> findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(String email);
 
-    List<AppAccess> findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID userId);
+    List<AppAccess> findAllByIdAndDeletedAtNullAndUser_DeletedAtNull(UUID userId);
 
     @Query(
         """

@@ -35,7 +35,7 @@ public class FunctionalTestBase {
             authenticatedUserId = doPostRequest("/testing-support/create-authenticated-user", false)
                 .body()
                 .jsonPath()
-                .getUUID("userId");
+                .getUUID("accessId");
         }
     }
 

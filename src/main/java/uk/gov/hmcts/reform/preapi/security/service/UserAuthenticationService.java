@@ -25,19 +25,19 @@ public class UserAuthenticationService {
             .orElseThrow(() -> new BadCredentialsException("Unauthorised user: " + id));
     }
 
-    private Optional<UserAuthentication> validateUser(String userId) {
-        if (userId == null || userId.isEmpty()) {
+    private Optional<UserAuthentication> validateUser(String accessId) {
+        if (accessId == null || accessId.isEmpty()) {
             return Optional.empty();
         }
 
         UUID id;
         try {
-            id = UUID.fromString(userId);
+            id = UUID.fromString(accessId);
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
 
-        var access = appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(id);
+        var access = appAccessRepository.findAllByIdAndDeletedAtNullAndUser_DeletedAtNull(id);
 
         return access.isEmpty()
             ? Optional.empty()

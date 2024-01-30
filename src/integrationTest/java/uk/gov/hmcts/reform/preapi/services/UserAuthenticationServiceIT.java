@@ -60,7 +60,7 @@ public class UserAuthenticationServiceIT {
     @Transactional
     @Test
     public void loadAppUserByIdSuccess() {
-        var userWithValidId = userAuthenticationService.loadAppUserById(access.getUser().getId().toString());
+        var userWithValidId = userAuthenticationService.loadAppUserById(access.getId().toString());
         assertEquals(userWithValidId.getUserId(), access.getUser().getId());
         assertEquals(userWithValidId.getAppAccess(), List.of(access));
     }

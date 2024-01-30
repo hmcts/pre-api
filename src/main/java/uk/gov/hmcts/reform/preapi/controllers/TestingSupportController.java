@@ -252,7 +252,7 @@ class TestingSupportController {
 
         var response = new HashMap<String, String>() {
             {
-                put("userId", appAccess.getUser().getId().toString());
+                put("accessId", appAccess.getId().toString());
             }
         };
         return ResponseEntity.ok(response);
