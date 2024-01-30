@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 public class XUserIdFilterTest {
 
     @MockBean
-    private UserDetailService userDetailService;
+    private UserAuthenticationService userAuthenticationService;
 
     @Autowired
     private XUserIdFilter filter;
@@ -36,12 +36,12 @@ public class XUserIdFilterTest {
     @Test
     void doFilterValidUserIdSuccess() throws Exception {
         var request = mock(MockHttpServletRequest.class);
-        var auth = mock(UserDetails.class);
+        var auth = mock(UserAuthentication.class);
         var id = UUID.randomUUID();
 
         when(request.getRequestURI()).thenReturn("/example-uri");
         when(request.getHeader("X-User-Id")).thenReturn(id.toString());
-        when(userDetailService.loadAppUserById(id.toString())).thenReturn(auth);
+        when(userAuthenticationService.loadAppUserById(id.toString())).thenReturn(auth);
 
         var response = mock(MockHttpServletResponse.class);
         var filterChain = mock(MockFilterChain.class);
@@ -49,7 +49,7 @@ public class XUserIdFilterTest {
         filter.doFilter(request, response, filterChain);
 
         verify(request, times(1)).getHeader("X-User-Id");
-        verify(userDetailService, times(1)).loadAppUserById(id.toString());
+        verify(userAuthenticationService, times(1)).loadAppUserById(id.toString());
         verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, times(1)).doFilter(request, response);
     }
@@ -68,7 +68,7 @@ public class XUserIdFilterTest {
 
         verify(request, times(1)).getRequestURI();
         verify(request, never()).getHeader("X-User-Id");
-        verify(userDetailService, never()).loadAppUserById(any());
+        verify(userAuthenticationService, never()).loadAppUserById(any());
         verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, times(1)).doFilter(request, response);
     }
@@ -85,14 +85,14 @@ public class XUserIdFilterTest {
         when(request.getHeader("X-User-Id")).thenReturn(id.toString());
         doThrow(
             new BadCredentialsException("Unauthorised user: " + id)
-        ).when(userDetailService).loadAppUserById(id.toString());
+        ).when(userAuthenticationService).loadAppUserById(id.toString());
 
         var filterChain = mock(MockFilterChain.class);
 
         filter.doFilter(request, response, filterChain);
 
         verify(request, times(1)).getHeader("X-User-Id");
-        verify(userDetailService, times(1)).loadAppUserById(id.toString());
+        verify(userAuthenticationService, times(1)).loadAppUserById(id.toString());
         verify(response, times(1)).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(response).setContentType(MediaType.APPLICATION_JSON_VALUE);
         verify(writer).print("{\"message\": \"Unauthorised user: " + id + "\"}");

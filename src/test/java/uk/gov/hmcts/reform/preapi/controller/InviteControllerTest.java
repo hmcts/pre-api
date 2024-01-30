@@ -18,7 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.security.UserDetailService;
+import uk.gov.hmcts.reform.preapi.security.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.InviteService;
 
 import java.util.List;
@@ -50,7 +50,7 @@ class InviteControllerTest {
     private InviteService inviteService;
 
     @MockBean
-    private UserDetailService userDetailService;
+    private UserAuthenticationService userAuthenticationService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";

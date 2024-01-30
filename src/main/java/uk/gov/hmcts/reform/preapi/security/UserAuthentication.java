@@ -10,12 +10,12 @@ import java.util.List;
 import java.util.UUID;
 
 @Getter
-public class UserDetails extends AbstractAuthenticationToken {
+public class UserAuthentication extends AbstractAuthenticationToken {
     private final UUID userId;
     private final String email;
     private final List<AppAccess> appAccess;
 
-    public UserDetails(List<AppAccess> access, Collection<? extends GrantedAuthority> authorities) {
+    public UserAuthentication(List<AppAccess> access, Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         userId = access.getFirst().getUser().getId();
         email = access.getFirst().getUser().getEmail();

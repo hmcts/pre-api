@@ -21,10 +21,10 @@ public class XUserIdFilter extends GenericFilterBean {
 
     private static final String X_USER_ID_HEADER = "X-User-Id";
 
-    private final UserDetailService userDetailService;
+    private final UserAuthenticationService userAuthenticationService;
 
-    public XUserIdFilter(UserDetailService userDetailService) {
-        this.userDetailService = userDetailService;
+    public XUserIdFilter(UserAuthenticationService userAuthenticationService) {
+        this.userAuthenticationService = userAuthenticationService;
     }
 
     @Override
@@ -39,7 +39,7 @@ public class XUserIdFilter extends GenericFilterBean {
 
         try {
             var id = request.getHeader(X_USER_ID_HEADER);
-            Authentication authentication = userDetailService.loadAppUserById(id);
+            Authentication authentication = userAuthenticationService.loadAppUserById(id);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception e) {
             writeErrorResponse(e, (HttpServletResponse) servletResponse);

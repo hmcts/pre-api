@@ -10,21 +10,21 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-public class UserDetailService {
+public class UserAuthenticationService {
 
     private final AppAccessRepository appAccessRepository;
 
     @Autowired
-    public UserDetailService(AppAccessRepository appAccessRepository) {
+    public UserAuthenticationService(AppAccessRepository appAccessRepository) {
         this.appAccessRepository = appAccessRepository;
     }
 
-    public UserDetails loadAppUserById(String id) {
+    public UserAuthentication loadAppUserById(String id) {
         return validateUser(id)
             .orElseThrow(() -> new BadCredentialsException("Unauthorised user: " + id));
     }
 
-    private Optional<UserDetails> validateUser(String userId) {
+    private Optional<UserAuthentication> validateUser(String userId) {
         if (userId == null || userId.isEmpty()) {
             return Optional.empty();
         }
@@ -40,6 +40,6 @@ public class UserDetailService {
 
         return access.isEmpty()
             ? Optional.empty()
-            : Optional.of(new UserDetails(access, AuthorityUtils.NO_AUTHORITIES));
+            : Optional.of(new UserAuthentication(access, AuthorityUtils.NO_AUTHORITIES));
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
-import uk.gov.hmcts.reform.preapi.security.UserDetailService;
+import uk.gov.hmcts.reform.preapi.security.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.util.List;
@@ -21,13 +21,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 
 @SpringBootTest(classes = Application.class)
-public class UserDetailsServiceIT {
+public class UserAuthenticationServiceIT {
 
     @Autowired
     private EntityManager entityManager;
 
     @Autowired
-    private UserDetailService userDetailService;
+    private UserAuthenticationService userAuthenticationService;
 
     private AppAccess access;
 
@@ -60,7 +60,7 @@ public class UserDetailsServiceIT {
     @Transactional
     @Test
     public void loadAppUserByIdSuccess() {
-        var userWithValidId = userDetailService.loadAppUserById(access.getUser().getId().toString());
+        var userWithValidId = userAuthenticationService.loadAppUserById(access.getUser().getId().toString());
         assertEquals(userWithValidId.getUserId(), access.getUser().getId());
         assertEquals(userWithValidId.getAppAccess(), List.of(access));
     }
@@ -71,7 +71,7 @@ public class UserDetailsServiceIT {
         var id = UUID.randomUUID();
         var message = assertThrows(
             BadCredentialsException.class,
-            () ->  userDetailService.loadAppUserById(id.toString())
+            () ->  userAuthenticationService.loadAppUserById(id.toString())
         ).getMessage();
 
         assertEquals(message, "Unauthorised user: " + id);
@@ -82,7 +82,7 @@ public class UserDetailsServiceIT {
     public void loadAppUserByIdNull() {
         var message = assertThrows(
             BadCredentialsException.class,
-            () ->  userDetailService.loadAppUserById(null)
+            () ->  userAuthenticationService.loadAppUserById(null)
         ).getMessage();
 
         assertEquals(message, "Unauthorised user: null");
@@ -95,7 +95,7 @@ public class UserDetailsServiceIT {
         var id = "1234567890";
         var message = assertThrows(
             BadCredentialsException.class,
-            () ->  userDetailService.loadAppUserById(id)
+            () ->  userAuthenticationService.loadAppUserById(id)
         ).getMessage();
 
         assertEquals(message, "Unauthorised user: " + id);
@@ -107,7 +107,7 @@ public class UserDetailsServiceIT {
         var id = "";
         var message = assertThrows(
             BadCredentialsException.class,
-            () ->  userDetailService.loadAppUserById(id)
+            () ->  userAuthenticationService.loadAppUserById(id)
         ).getMessage();
 
         assertEquals(message, "Unauthorised user: " + id);
