@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchInvites;
@@ -127,5 +128,16 @@ public class InviteController extends PreApiController {
     public ResponseEntity<Void> deleteInvite(@PathVariable UUID id) {
         inviteService.deleteById(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/redeemInvite")
+    public ResponseEntity<Void> redeemInvite(@RequestParam String email, @RequestParam String inviteCode) {
+        var newUser = inviteService.redeemInvite(email, inviteCode);
+
+        if (newUser != null) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

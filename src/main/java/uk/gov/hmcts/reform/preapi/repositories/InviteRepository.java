@@ -32,4 +32,6 @@ public interface InviteRepository extends JpaRepository<Invite, UUID> {
     boolean existsByEmail(String email);
 
     boolean existsByCode(String code);
+
+    boolean existsByCodeAndEmail(String code, String email);
 }

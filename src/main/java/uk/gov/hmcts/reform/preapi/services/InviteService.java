@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
 import uk.gov.hmcts.reform.preapi.entities.Invite;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -19,10 +20,12 @@ import java.util.UUID;
 public class InviteService {
 
     private final InviteRepository inviteRepository;
+    private final UserService userService;
 
     @Autowired
-    public InviteService(InviteRepository inviteRepository) {
+    public InviteService(InviteRepository inviteRepository, UserService userService) {
         this.inviteRepository = inviteRepository;
+        this.userService = userService;
     }
 
     @Transactional
@@ -73,6 +76,23 @@ public class InviteService {
         inviteRepository.save(newInvite);
 
         return UpsertResult.CREATED;
+    }
+
+    public UpsertResult redeemInvite(String email, String inviteCode) {
+        if (inviteRepository.existsByCodeAndEmail(inviteCode, email)) {
+            var createUserDTO = new CreateUserDTO();
+            createUserDTO.setFirstName("test");
+            createUserDTO.setLastName("test");
+            createUserDTO.setEmail(email);
+            createUserDTO.setOrganisation("test");
+            createUserDTO.setPhoneNumber("1234567890");
+
+            userService.upsert(createUserDTO);
+
+            return UpsertResult.CREATED;
+        } else {
+            throw new NotFoundException("InviteDTO: " + email + " " + inviteCode);
+        }
     }
 
     @Transactional
