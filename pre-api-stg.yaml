@@ -46,6 +46,10 @@ definitions:
       deletedAt:
         format: date-time
         type: string
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       id:
         format: uuid
         type: string
@@ -119,6 +123,10 @@ definitions:
       deletedAt:
         format: date-time
         type: string
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       finishedAt:
         format: date-time
         type: string
@@ -224,6 +232,10 @@ definitions:
       deletedAt:
         format: date-time
         type: string
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       id:
         format: uuid
         type: string
@@ -365,6 +377,10 @@ definitions:
           - MAGISTRATE
           - FAMILY
         type: string
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       id:
         format: uuid
         type: string
@@ -1229,6 +1245,10 @@ definitions:
       deletedAt:
         format: date-time
         type: string
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       firstName:
         type: string
       id:
@@ -1391,6 +1411,10 @@ definitions:
           $ref: '#/definitions/Court'
         type: array
         uniqueItems: true
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       id:
         format: uuid
         type: string
@@ -1431,6 +1455,10 @@ definitions:
           $ref: '#/definitions/Court'
         type: array
         uniqueItems: true
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       id:
         format: uuid
         type: string
@@ -1487,6 +1515,10 @@ definitions:
       deletedAt:
         format: date-time
         type: string
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       id:
         format: uuid
         type: string
@@ -1556,6 +1588,10 @@ definitions:
       deletedAt:
         format: date-time
         type: string
+      detailsForAudit:
+        additionalProperties:
+          type: object
+        type: object
       email:
         type: string
       firstName:
