@@ -29,47 +29,6 @@ definitions:
         description: AccessRemovedReportUserFullName
         type: string
     type: object
-  Booking:
-    properties:
-      captureSessions:
-        items:
-          $ref: '#/definitions/CaptureSession'
-        type: array
-        uniqueItems: true
-      caseId:
-        $ref: '#/definitions/Case'
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      id:
-        format: uuid
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      participants:
-        items:
-          $ref: '#/definitions/Participant'
-        type: array
-        uniqueItems: true
-      scheduledFor:
-        format: date-time
-        type: string
-      shares:
-        items:
-          $ref: '#/definitions/ShareBooking'
-        type: array
-        uniqueItems: true
-    type: object
   BookingDTO:
     description: BookingDTO
     properties:
@@ -113,52 +72,6 @@ definitions:
           $ref: '#/definitions/ShareBookingDTO'
         type: array
         uniqueItems: true
-    type: object
-  CaptureSession:
-    properties:
-      booking:
-        $ref: '#/definitions/Booking'
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      finishedAt:
-        format: date-time
-        type: string
-      finishedByUser:
-        $ref: '#/definitions/User'
-      id:
-        format: uuid
-        type: string
-      ingestAddress:
-        type: string
-      liveOutputUrl:
-        type: string
-      origin:
-        enum:
-          - PRE
-          - VODAFONE
-        type: string
-      startedAt:
-        format: date-time
-        type: string
-      startedByUser:
-        $ref: '#/definitions/User'
-      status:
-        enum:
-          - STANDBY
-          - INITIALIZATION
-          - RECORDING
-          - FINISHED
-          - PROCESSING
-          - AVAILABLE
-          - FUTURE
-        type: string
     type: object
   CaptureSessionDTO:
     description: CaptureSessionDTO
@@ -219,38 +132,6 @@ definitions:
       - id
       - origin
       - status
-    type: object
-  Case:
-    properties:
-      court:
-        $ref: '#/definitions/Court'
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      id:
-        format: uuid
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      participants:
-        items:
-          $ref: '#/definitions/Participant'
-        type: array
-        uniqueItems: true
-      reference:
-        type: string
-      test:
-        type: boolean
     type: object
   CaseDTO:
     description: CaseDTO
@@ -339,8 +220,6 @@ definitions:
   ConcurrentCaptureSessionReportDTO:
     description: ConcurrentCaptureSessionReportDTO
     properties:
-      captureSessionValues:
-        $ref: '#/definitions/CaptureSession'
       case_reference:
         description: CaptureSessionCaseReference
         type: string
@@ -368,36 +247,6 @@ definitions:
         description: CaptureSessionStartTime
         format: date-time
         type: string
-    type: object
-  Court:
-    properties:
-      courtType:
-        enum:
-          - CROWN
-          - MAGISTRATE
-          - FAMILY
-        type: string
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      id:
-        format: uuid
-        type: string
-      locationCode:
-        type: string
-      name:
-        type: string
-      regions:
-        items:
-          $ref: '#/definitions/Region'
-        type: array
-        uniqueItems: true
-      rooms:
-        items:
-          $ref: '#/definitions/Room'
-        type: array
-        uniqueItems: true
     type: object
   CourtDTO:
     description: CourtDTO
@@ -1230,41 +1079,6 @@ definitions:
       page:
         $ref: '#/definitions/PageMetadata'
     type: object
-  Participant:
-    properties:
-      bookings:
-        items:
-          $ref: '#/definitions/Booking'
-        type: array
-        uniqueItems: true
-      caseId:
-        $ref: '#/definitions/Case'
-      createdAt:
-        format: date-time
-        type: string
-      deletedAt:
-        format: date-time
-        type: string
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      firstName:
-        type: string
-      id:
-        format: uuid
-        type: string
-      lastName:
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      participantType:
-        enum:
-          - WITNESS
-          - DEFENDANT
-        type: string
-    type: object
   ParticipantDTO:
     description: ParticipantDTO
     properties:
@@ -1404,23 +1218,6 @@ definitions:
         type: array
         uniqueItems: true
     type: object
-  Region:
-    properties:
-      courts:
-        items:
-          $ref: '#/definitions/Court'
-        type: array
-        uniqueItems: true
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      id:
-        format: uuid
-        type: string
-      name:
-        type: string
-    type: object
   RegionDTO:
     description: RegionDTO
     properties:
@@ -1447,23 +1244,6 @@ definitions:
           $ref: '#/definitions/PermissionDTO'
         type: array
         uniqueItems: true
-    type: object
-  Room:
-    properties:
-      courts:
-        items:
-          $ref: '#/definitions/Court'
-        type: array
-        uniqueItems: true
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      id:
-        format: uuid
-        type: string
-      name:
-        type: string
     type: object
   RoomDTO:
     description: RoomDTO
@@ -1502,30 +1282,6 @@ definitions:
         description: ScheduleReportStartedAt
         format: date-time
         type: string
-    type: object
-  ShareBooking:
-    properties:
-      booking:
-        $ref: '#/definitions/Booking'
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      id:
-        format: uuid
-        type: string
-      sharedBy:
-        $ref: '#/definitions/User'
-      sharedWith:
-        $ref: '#/definitions/User'
     type: object
   ShareBookingDTO:
     properties:
@@ -1576,39 +1332,6 @@ definitions:
       shared_at:
         description: SharedReportSharedAt
         format: date-time
-        type: string
-    type: object
-  User:
-    properties:
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      detailsForAudit:
-        additionalProperties:
-          type: object
-        type: object
-      email:
-        type: string
-      firstName:
-        type: string
-      fullName:
-        type: string
-      id:
-        format: uuid
-        type: string
-      lastName:
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      organisation:
-        type: string
-      phone:
         type: string
     type: object
   UserDTO:
