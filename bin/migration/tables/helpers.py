@@ -2,7 +2,6 @@ from datetime import datetime
 import pytz
 import uuid
 
-
 # Parses timestamp string to date format
 def parse_to_timestamp(input_text):
     failed_imports = set()
@@ -35,13 +34,11 @@ def parse_to_timestamp(input_text):
             failed_imports.add(('date/time', input_text, e))
             log_failed_imports(failed_imports)
 
-
 # Checks if record is already imported
 def check_existing_record(db_connection, table_name, field, record):
     query = f"SELECT EXISTS (SELECT 1 FROM public.{table_name} WHERE {field} = %s)"
     db_connection.execute(query, (record,))
     return db_connection.fetchone()[0]
-
 
 # Audit entry into database
 def audit_entry_creation(db_connection, table_name, record_id, record, created_at = None,created_by = None ):
@@ -93,7 +90,6 @@ def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
                 raise ValueError("Each entry in failed_imports should have 2 or 3 elements")
             
             file.write(f"Table: {table_name}, ID: {failed_id}, Details: {details}\n")
-
 
 # Clear the migration file - run before the migration script is run
 def clear_migrations_file(filename='failed_imports_log.txt'):

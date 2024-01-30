@@ -22,6 +22,7 @@ from tables.sharebookings import ShareBookingsManager
 from tables.audits import AuditLogManager
 
 from tables.helpers import clear_migrations_file
+from summary import RecordCounter
 
 
 # get passwords from env variables
@@ -62,11 +63,19 @@ source_db = DatabaseManager(
 
 
 # dummy database on dev server
+# destination_db = DatabaseManager(
+#     database="dev-pre-copy",
+#     user="psqladmin",
+#     password=destination_db_password,
+#     host="pre-db-dev.postgres.database.azure.com",
+#     port="5432",
+# )
+
 destination_db = DatabaseManager(
-    database="dev-pre-copy",
-    user="psqladmin",
-    password=destination_db_password,
-    host="pre-db-dev.postgres.database.azure.com",
+    database="db",
+    user="db",
+    password="",
+    host="localhost",
     port="5432",
 )
 
@@ -89,7 +98,14 @@ recording_manager = RecordingManager(source_db.connection.cursor())
 share_bookings_manager = ShareBookingsManager(source_db.connection.cursor())
 audit_log_manager = AuditLogManager(source_db.connection.cursor())
 
+total_migration_time = 0 
+
+def clear_total_migration_time():
+    global total_migration_time
+    total_migration_time = 0
+
 def migrate_manager_data(manager, destination_cursor):
+    global total_migration_time 
     start_time = time.time()
     print(f"Migrating data for {manager.__class__.__name__}...")
 
@@ -101,6 +117,7 @@ def migrate_manager_data(manager, destination_cursor):
 
     end_time = time.time()
     time_taken = end_time - start_time
+    total_migration_time += time_taken
     print(f"Data migration for {manager.__class__.__name__} complete in : {time_taken:.2f} seconds.\n")
 
 def main():
@@ -126,6 +143,11 @@ def main():
     migrate_manager_data(share_bookings_manager, destination_db_cursor)
     migrate_manager_data(audit_log_manager, destination_db_cursor)
 
+    counter = RecordCounter(source_db.connection, destination_db.connection)
+    counter.print_summary() # prints a table summary 
+    counter.log_records_count(total_migration_time) # logs a record every time the script is run 
+
+    clear_total_migration_time()
     source_db.close_connection()
     destination_db.close_connection()
 
