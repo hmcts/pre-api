@@ -64,16 +64,6 @@ class ShareBookingsManager:
                 )
             destination_cursor.connection.commit()
 
-            for entry in batch_share_bookings_data:
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name="share_bookings",
-                    record_id=entry[0],
-                    record=entry[1],
-                    created_at=entry[4],
-                    created_by=entry[3] if entry[3] is not None else None,
-                )
-
         except Exception as e:
             destination_cursor.connection.rollback()    
             self.failed_imports.add(('share_bookings', id, e))

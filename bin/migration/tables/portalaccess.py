@@ -70,15 +70,6 @@ class PortalAccessManager:
                     id, user_id, password, status, created_at, modified_at, created_by
                 ))
 
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name='portal_access',
-                    record_id=id,
-                    record=user_id,
-                    created_at=created_at,
-                    created_by=created_by if created_by is not None else None
-                )
-
         try: 
             if batch_portal_user_data:
                 destination_cursor.executemany(
