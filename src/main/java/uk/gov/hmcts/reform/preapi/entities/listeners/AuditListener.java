@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.exception.UnauditableTableException;
+import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
 import java.util.UUID;
@@ -24,6 +25,10 @@ public class AuditListener {
     @Lazy
     @Autowired
     private AuditRepository auditRepository;
+
+    @Lazy
+    @Autowired
+    private AppAccessRepository appAccessRepository;
 
     @Lazy
     @Autowired
@@ -56,9 +61,9 @@ public class AuditListener {
         audit.setTableName(getTableName(entity));
         audit.setTableRecordId(entity.getId());
         audit.setSource(AuditLogSource.AUTO);
-        var xUserId = request.getHeader("X-User-Id");
-        if (xUserId != null) {
-            audit.setCreatedBy(UUID.fromString(xUserId));
+        var userId = getUserIdFromRequestHeader();
+        if (userId != null) {
+            audit.setCreatedBy(userId);
         }
 
         auditRepository.save(audit);
@@ -71,5 +76,14 @@ public class AuditListener {
             throw new UnauditableTableException(entityClass.toString());
         }
         return t.name();
+    }
+
+    private UUID getUserIdFromRequestHeader() {
+        try {
+            var xUserId = request.getHeader("X-User-Id");
+            return UUID.fromString(xUserId);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

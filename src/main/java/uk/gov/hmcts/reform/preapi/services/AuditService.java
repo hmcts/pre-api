@@ -6,6 +6,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
+import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
 import java.util.List;
@@ -15,17 +16,23 @@ import java.util.UUID;
 public class AuditService {
 
     private final AuditRepository auditRepository;
+    private final AppAccessRepository appAccessRepository;
 
     @Autowired
-    public AuditService(AuditRepository auditRepository) {
+    public AuditService(AuditRepository auditRepository,
+                        AppAccessRepository appAccessRepository) {
         this.auditRepository = auditRepository;
+        this.appAccessRepository = appAccessRepository;
     }
 
     public UpsertResult upsert(CreateAuditDTO createAuditDTO, UUID createdBy) {
-
         if (auditRepository.existsById(createAuditDTO.getId())) {
             throw new ImmutableDataException(createAuditDTO.getId().toString());
         }
+
+        var createdById = appAccessRepository.findById(createdBy)
+            .map(access -> access.getUser().getId())
+            .orElse(null);
 
         var audit = new Audit();
         audit.setId(createAuditDTO.getId());
@@ -36,7 +43,7 @@ public class AuditService {
         audit.setTableName(createAuditDTO.getTableName());
         audit.setTableRecordId(createAuditDTO.getTableRecordId());
         audit.setSource(createAuditDTO.getSource());
-        audit.setCreatedBy(createdBy);
+        audit.setCreatedBy(createdById);
 
         auditRepository.save(audit);
 
