@@ -183,11 +183,16 @@ def coverageExclusionList = [
   '**uk/gov/hmcts/reform/preapi/controllers/TestingSupportController*'
 ]
 
+def duplicateCodeExclusionList = [
+  '**uk/gov/hmcts/reform/preapi/entities/**'
+]
+
 sonarqube {
   properties {
     property "sonar.projectName", "Reform :: pre-api"
     property "sonar.projectKey", "uk.gov.hmcts.reform:pre-api"
     property "sonar.exclusions", coverageExclusionList.join(", ")
+    property "sonar.cpd.exclusions", duplicateCodeExclusionList.join(", ")
   }
 }
 
