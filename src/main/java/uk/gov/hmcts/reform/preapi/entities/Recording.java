@@ -70,17 +70,15 @@ public class Recording extends BaseEntity {
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
-        return new HashMap<>() {
-            {
-                put("parentRecordingId", parentRecording != null ? parentRecording.getId() : null);
-                put("version", version);
-                put("filename", filename);
-                if (duration != null) {
-                    put("duration", duration.toString());
-                }
-                put("editInstruction", editInstruction);
-                put("deleted", isDeleted());
-            }
-        };
+        var details = new HashMap<String, Object>();
+        details.put("parentRecordingId", parentRecording != null ? parentRecording.getId() : null);
+        details.put("version", version);
+        details.put("filename", filename);
+        if (duration != null) {
+            details.put("duration", duration.toString());
+        }
+        details.put("editInstruction", editInstruction);
+        details.put("deleted", isDeleted());
+        return details;
     }
 }

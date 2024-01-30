@@ -72,21 +72,19 @@ public class CaptureSession extends BaseEntity {
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
-        return new HashMap<>() {
-            {
-                put("bookingId", booking.getId());
-                put("origin", origin);
-                put("startedAt", startedAt);
-                if (startedByUser != null) {
-                    put("startedByUser", startedByUser.getEmail());
-                }
-                put("finishedAt", finishedAt);
-                if (finishedByUser != null) {
-                    put("finishedByUser", finishedByUser.getEmail());
-                }
-                put("status", status);
-                put("deleted", isDeleted());
-            }
-        };
+        var details = new HashMap<String, Object>();
+        details.put("bookingId", booking.getId());
+        details.put("origin", origin);
+        details.put("startedAt", startedAt);
+        if (startedByUser != null) {
+            details.put("startedByUser", startedByUser.getEmail());
+        }
+        details.put("finishedAt", finishedAt);
+        if (finishedByUser != null) {
+            details.put("finishedByUser", finishedByUser.getEmail());
+        }
+        details.put("status", status);
+        details.put("deleted", isDeleted());
+        return details;
     }
 }

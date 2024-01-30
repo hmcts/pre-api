@@ -48,14 +48,12 @@ public class Participant extends CreatedModifiedAtEntity {
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
-        return new HashMap<>() {
-            {
-                put("caseId", caseId.getId());
-                put("firstName", firstName);
-                put("lastName", lastName);
-                put("participantType", participantType);
-                put("deleted", deletedAt != null);
-            }
-        };
+        var details = new HashMap<String, Object>();
+        details.put("caseId", caseId.getId());
+        details.put("firstName", firstName);
+        details.put("lastName", lastName);
+        details.put("participantType", participantType);
+        details.put("deleted", deletedAt != null);
+        return details;
     }
 }

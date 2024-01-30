@@ -50,14 +50,12 @@ public class PortalAccess extends CreatedModifiedAtEntity {
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
-        return new HashMap<>() {
-            {
-                put("user", user.getEmail());
-                put("status", status);
-                put("invitation_datetime", invitationDateTime);
-                put("registered_datetime", registeredDateTime);
-                put("deleted", deletedAt != null);
-            }
-        };
+        var details = new HashMap<String, Object>();
+        details.put("user", user.getEmail());
+        details.put("status", status);
+        details.put("invitation_datetime", invitationDateTime);
+        details.put("registered_datetime", registeredDateTime);
+        details.put("deleted", deletedAt != null);
+        return details;
     }
 }

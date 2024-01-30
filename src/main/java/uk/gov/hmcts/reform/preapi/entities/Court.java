@@ -55,18 +55,16 @@ public class Court extends BaseEntity {
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
-        return new HashMap<>() {
-            {
-                put("name", name);
-                put("courtType", courtType);
-                put("locationCode", locationCode);
-                put("regions", Stream.ofNullable(getRegions())
+        var details = new HashMap<String, Object>();
+        details.put("name", name);
+        details.put("courtType", courtType);
+        details.put("locationCode", locationCode);
+        details.put("regions", Stream.ofNullable(getRegions())
                     .flatMap(regions -> regions.stream().map(Region::getName))
                     .collect(Collectors.toSet()));
-                put("rooms", Stream.ofNullable(getRooms())
+        details.put("rooms", Stream.ofNullable(getRooms())
                     .flatMap(regions -> regions.stream().map(Room::getName))
                     .collect(Collectors.toSet()));
-            }
-        };
+        return details;
     }
 }

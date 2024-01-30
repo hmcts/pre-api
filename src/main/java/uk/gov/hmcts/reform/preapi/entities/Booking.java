@@ -58,12 +58,10 @@ public class Booking extends CreatedModifiedAtEntity {
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
-        return new HashMap<>() {
-            {
-                put("caseId", caseId.getId());
-                put("scheduledFor", scheduledFor);
-                put("deleted", isDeleted());
-            }
-        };
+        var details = new HashMap<String, Object>();
+        details.put("caseId", caseId.getId());
+        details.put("scheduledFor", scheduledFor);
+        details.put("deleted", isDeleted());
+        return details;
     }
 }

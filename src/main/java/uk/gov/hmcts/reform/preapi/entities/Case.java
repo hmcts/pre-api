@@ -50,19 +50,17 @@ public class Case extends CreatedModifiedAtEntity {
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
-        return new HashMap<>() {
-            {
-                put("court", court.getName());
-                put("reference", reference);
-                put("participants", Stream.ofNullable(getParticipants())
+        var details = new HashMap<String, Object>();
+        details.put("court", court.getName());
+        details.put("reference", reference);
+        details.put("participants", Stream.ofNullable(getParticipants())
                     .flatMap(participants ->
                                  participants
                                      .stream()
                                      .filter(participant -> participant.getDeletedAt() == null)
                                      .map(Participant::getDetailsForAudit))
                     .collect(Collectors.toSet()));
-                put("test", test);
-            }
-        };
+        details.put("test", test);
+        return details;
     }
 }
