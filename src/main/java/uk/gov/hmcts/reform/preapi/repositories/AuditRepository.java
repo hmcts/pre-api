@@ -22,4 +22,6 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
         nativeQuery = true
     )
     List<Audit> findAllAccessAttempts();
+
+    List<Audit> findByTableRecordId(UUID tableRecordId);
 }

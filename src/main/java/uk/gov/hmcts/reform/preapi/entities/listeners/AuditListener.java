@@ -30,17 +30,17 @@ public class AuditListener {
     private HttpServletRequest request;
 
     @PrePersist
-    public void postPersist(BaseEntity entity) {
+    public void prePersist(BaseEntity entity) {
         audit(entity, AuditAction.CREATE);
     }
 
     @PreUpdate
-    public void postUpdate(BaseEntity entity) {
+    public void preUpdate(BaseEntity entity) {
         audit(entity, AuditAction.UPDATE);
     }
 
     @PreRemove
-    public void postRemove(BaseEntity entity) {
+    public void preRemove(BaseEntity entity) {
         audit(entity, AuditAction.DELETE);
     }
 

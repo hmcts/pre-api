@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,5 +41,9 @@ public class AuditService {
         auditRepository.save(audit);
 
         return UpsertResult.CREATED;
+    }
+
+    public List<Audit> getAuditsByTableRecordId(UUID tableRecordId) {
+        return auditRepository.findByTableRecordId(tableRecordId);
     }
 }
