@@ -1,8 +1,7 @@
 package uk.gov.hmcts.reform.preapi.enums;
 
-public enum AuditLogType {
+public enum AuditAction {
     CREATE,
     UPDATE,
-    DELETE,
-    ACTION
+    DELETE
 }
