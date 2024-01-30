@@ -28,8 +28,10 @@ class RecordingManager:
 
         duplicate_parent_id_records = [recording for recording in source_data if recording[0] in duplicate_parent_ids]
         non_duplicate_parent_id_records = [recording for recording in source_data if recording[0] not in duplicate_parent_ids]
-
+        
+        batch_non_parent_recording = []
         for recording in duplicate_parent_id_records:
+            
             id = recording[0]
             parent_recording_id = recording[9]
 
@@ -59,29 +61,33 @@ class RecordingManager:
                 recording_status = recording[11] if recording[11] is not None else None
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
 
-                try:
-                    destination_cursor.execute(
-                        """
-                        INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at),  
-                    )
+                batch_non_parent_recording.append((id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
+                
+        if batch_non_parent_recording:
+            try:
+                destination_cursor.executemany(
+                    """
+                    INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    batch_non_parent_recording,  
+                )
 
-                    audit_entry_creation(
-                        destination_cursor,
-                        table_name="recordings",
-                        record_id=id,
-                        record=capture_session_id,
-                        created_at=created_at,
-                        created_by=created_by if created_by is not None else None
-                    )
+                audit_entry_creation(
+                    destination_cursor,
+                    table_name="recordings",
+                    record_id=id,
+                    record=capture_session_id,
+                    created_at=created_at,
+                    created_by=created_by if created_by is not None else None
+                )
 
-                except Exception as e:
-                    destination_cursor.connection.rollback()    
-                    self.failed_imports.add(('recordings', id, e))
+            except Exception as e:
+                destination_cursor.connection.rollback()    
+                self.failed_imports.add(('recordings', id, e))
 
         # inserting remaining records
+        batch_parent_recording = []
         for recording in non_duplicate_parent_id_records:
             recording_id = recording[0]
             parent_recording_id = recording[9]
@@ -89,6 +95,7 @@ class RecordingManager:
             try:
                 destination_cursor.execute("SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s",(parent_recording_id,)) 
                 result = destination_cursor.fetchone()
+                
             except Exception as e:
                 self.failed_imports.add(('recordings', id, e))
 
@@ -97,14 +104,12 @@ class RecordingManager:
                 continue
 
             capture_session_id = result[0]
-
-            
             
             if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
                 self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
                 continue
 
-            if not check_existing_record(destination_cursor,'recordings', 'id', id):
+            if not check_existing_record(destination_cursor,'recordings', 'id', recording_id):
                 version = recording[12] 
                 url = recording[20] if recording[20] is not None else None
                 filename = recording[14]
@@ -114,27 +119,30 @@ class RecordingManager:
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
                 # duration =  ? - this info is in the asset files on AMS 
                 # edit_instruction = ?
-                try:
-                    destination_cursor.execute(
-                        """
-                        INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (recording_id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at),  
-                    )
+                batch_parent_recording.append((recording_id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
+                
+        if batch_parent_recording:
+            try:
+                destination_cursor.executemany(
+                    """
+                    INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    batch_parent_recording,  
+                )
 
-                    audit_entry_creation(
-                        destination_cursor,
-                        table_name="recordings",
-                        record_id=recording_id,
-                        record=capture_session_id,
-                        created_at=created_at,
-                        created_by=created_by if created_by is not None else None,
-                    )
+                audit_entry_creation(
+                    destination_cursor,
+                    table_name="recordings",
+                    record_id=recording_id,
+                    record=capture_session_id,
+                    created_at=created_at,
+                    created_by=created_by if created_by is not None else None,
+                )
 
-                except Exception as e:
-                    destination_cursor.connection.rollback()    
-                    self.failed_imports.add(('recordings', recording_id, e))
+            except Exception as e:
+                destination_cursor.connection.rollback()    
+                self.failed_imports.add(('recordings', recording_id, e))
                     
         log_failed_imports(self.failed_imports)
          
