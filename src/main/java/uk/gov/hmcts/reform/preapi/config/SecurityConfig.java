@@ -23,7 +23,10 @@ public class SecurityConfig {
         "/testing-support/**",
         "/swagger-ui/**",
         "/v3/api-docs/**",
-        "/v3/api-docs"
+        "/v3/api-docs",
+        "/health",
+        "/info",
+        "/prometheus"
     };
 
     @Value("${spring.profiles.active:null}")
