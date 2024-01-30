@@ -24,12 +24,16 @@ public class RoleDTO {
     @Schema(description = "RoleName")
     private String name;
 
+    @Schema(description = "RoleDescription")
+    private String description;
+
     @Schema(description = "RolePermissions")
     private Set<PermissionDTO> permissions;
 
     public RoleDTO(Role role) {
         id = role.getId();
         name = role.getName();
+        description = role.getDescription();
         permissions = Stream.ofNullable(role.getPermissions())
             .flatMap(permissions -> permissions.stream().map(PermissionDTO::new))
             .collect(Collectors.toSet());

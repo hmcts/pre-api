@@ -23,3 +23,4 @@ bin/main/application.yaml
 
 applicationinsights-agent-*.jar
 *.log
+bin/migration/failed_imports_log.txt

@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -8,11 +10,12 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
-import uk.gov.hmcts.reform.preapi.enums.AuditLogType;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -21,7 +24,9 @@ import java.util.UUID;
 @Setter
 @Entity
 @Table(name = "audits")
+@Immutable
 public class Audit extends BaseEntity {
+
     @Column(name = "table_name", length = 25)
     private String tableName;
 
@@ -33,11 +38,6 @@ public class Audit extends BaseEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private AuditLogSource source;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, columnDefinition = "audit_log_type")
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private AuditLogType type;
-
     @Column(name = "category", length = 100)
     private String category;
 
@@ -47,20 +47,15 @@ public class Audit extends BaseEntity {
     @Column(name = "functional_area", length = 100)
     private String functionalArea;
 
-    @Column(name = "audit_details")
-    private String auditDetails;
+    @Type(JsonType.class)
+    @Column(name = "audit_details", columnDefinition = "jsonb")
+    private JsonNode auditDetails;
 
     @Column(name = "created_by")
     private UUID createdBy;
 
-    @Column(name = "deleted_at")
-    private Timestamp deletedAt;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Timestamp updatedAt;
 }
 

@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.util;
 
+import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -20,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Set;
+import java.util.UUID;
 import javax.annotation.Nullable;
 
 public class HelperFactory {
@@ -201,5 +204,30 @@ public class HelperFactory {
         share.setBooking(booking);
         share.setDeletedAt(deletedAt);
         return share;
+    }
+
+    public static CreateParticipantDTO createParticipantDTO(
+        String firstName,
+        String lastName,
+        ParticipantType participantType
+    ) {
+        var participant = new CreateParticipantDTO();
+        participant.setFirstName(firstName);
+        participant.setLastName(lastName);
+        participant.setParticipantType(participantType);
+        return participant;
+    }
+
+    public static CreateCourtDTO createCreateCourtDTO(
+        CourtType courtType,
+        String name,
+        String locationCode
+    ) {
+        var court = new CreateCourtDTO();
+        court.setId(UUID.randomUUID());
+        court.setCourtType(courtType);
+        court.setName(name);
+        court.setLocationCode(locationCode);
+        return court;
     }
 }

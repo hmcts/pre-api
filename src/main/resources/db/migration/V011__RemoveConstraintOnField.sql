@@ -1,0 +1,1 @@
+ALTER TABLE public.recordings ALTER COLUMN url DROP NOT NULL;

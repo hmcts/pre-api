@@ -33,6 +33,9 @@ public class BookingDTO {
     @Schema(description = "CaptureSessions")
     private Set<CaptureSessionDTO> captureSessions;
 
+    @Schema(description = "BookingShares")
+    private Set<ShareBookingDTO> shares;
+
     @Schema(description = "BookingDeletedAt")
     private Timestamp deletedAt;
 
@@ -49,10 +52,17 @@ public class BookingDTO {
         this.caseDTO = new CaseDTO(bookingEntity.getCaseId());
         this.scheduledFor = bookingEntity.getScheduledFor();
         this.participants = Stream.ofNullable(bookingEntity.getParticipants())
-            .flatMap(participants -> participants.stream().map(ParticipantDTO::new))
+            .flatMap(participants ->
+                         participants
+                             .stream()
+                             .filter(participant -> participant.getDeletedAt() == null)
+                             .map(ParticipantDTO::new))
             .collect(Collectors.toSet());
         this.captureSessions = Stream.ofNullable(bookingEntity.getCaptureSessions())
             .flatMap(captureSessions -> captureSessions.stream().map(CaptureSessionDTO::new))
+            .collect(Collectors.toSet());
+        this.shares = Stream.ofNullable(bookingEntity.getShares())
+            .flatMap(shares -> shares.stream().map(ShareBookingDTO::new))
             .collect(Collectors.toSet());
         this.deletedAt = bookingEntity.getDeletedAt();
         this.createdAt = bookingEntity.getCreatedAt();

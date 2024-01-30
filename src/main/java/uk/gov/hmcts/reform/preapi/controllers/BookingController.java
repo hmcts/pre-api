@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchBookings;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
+import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.sql.Timestamp;
 import java.util.Optional;
@@ -36,17 +38,21 @@ import static org.springframework.http.ResponseEntity.noContent;
 import static org.springframework.http.ResponseEntity.ok;
 
 @RestController
+@RequestMapping("/bookings")
 public class BookingController extends PreApiController {
 
     private final BookingService bookingService;
 
+    private final ShareBookingService shareBookingService;
+
     @Autowired
-    public BookingController(final BookingService bookingService) {
+    public BookingController(final BookingService bookingService, final ShareBookingService shareBookingService) {
         super();
         this.bookingService = bookingService;
+        this.shareBookingService = shareBookingService;
     }
 
-    @GetMapping("/bookings")
+    @GetMapping
     @Operation(
         operationId = "searchBookings",
         summary = "Search All Bookings using Case Id, Case Ref, or Scheduled For")
@@ -69,10 +75,16 @@ public class BookingController extends PreApiController {
         example = "2024-04-27"
     )
     @Parameter(
+        name = "participantId",
+        description = "The Participant Id to search for",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
-        example = "1"
+        example = "0"
     )
     @Parameter(
         name = "size",
@@ -91,6 +103,7 @@ public class BookingController extends PreApiController {
             params.getScheduledFor() != null
                 ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
                 : Optional.empty(),
+            params.getParticipantId(),
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
@@ -99,14 +112,14 @@ public class BookingController extends PreApiController {
         return ok(assembler.toModel(resultPage));
     }
 
-    @GetMapping("/bookings/{bookingId}")
+    @GetMapping("/{bookingId}")
     @Operation(operationId = "getBookingById", summary = "Get a Booking by Id")
     public ResponseEntity<BookingDTO> get(@PathVariable UUID bookingId) {
 
         return ok(bookingService.findById(bookingId));
     }
 
-    @PutMapping("/bookings/{bookingId}")
+    @PutMapping("/{bookingId}")
     @Operation(operationId = "putBooking", summary = "Create or Update a Booking")
     public ResponseEntity<Void> upsert(@PathVariable UUID bookingId,
                                        @Valid @RequestBody CreateBookingDTO createBookingDTO) {
@@ -114,14 +127,14 @@ public class BookingController extends PreApiController {
         return getUpsertResponse(bookingService.upsert(createBookingDTO), createBookingDTO.getId());
     }
 
-    @DeleteMapping("/bookings/{bookingId}")
+    @DeleteMapping("/{bookingId}")
     @Operation(operationId = "deleteBooking", summary = "Delete a Booking")
     public ResponseEntity<Void> delete(@PathVariable UUID bookingId) {
         bookingService.markAsDeleted(bookingId);
         return noContent().build();
     }
 
-    @PutMapping("/bookings/{bookingId}/share")
+    @PutMapping("/{bookingId}/share")
     @Operation(operationId = "shareBookingById", summary = "Share a Booking")
     public ResponseEntity<Void> shareBookingById(
         @PathVariable UUID bookingId,
@@ -132,7 +145,14 @@ public class BookingController extends PreApiController {
             throw new PathPayloadMismatchException("bookingId", "shareBookingDTO.bookingId");
         }
 
-        return getUpsertResponse(bookingService.shareBookingById(shareBookingDTO), shareBookingDTO.getId());
+        return getUpsertResponse(shareBookingService.shareBookingById(shareBookingDTO), shareBookingDTO.getId());
+    }
+
+    @DeleteMapping("/{bookingId}/share/{shareId}")
+    @Operation(operationId = "deleteShareBookingById")
+    public ResponseEntity<Void> deleteShareBookingById(@PathVariable UUID bookingId, @PathVariable UUID shareId) {
+        shareBookingService.deleteShareBookingById(bookingId, shareId);
+        return noContent().build();
     }
 
     private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {

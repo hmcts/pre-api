@@ -60,6 +60,11 @@ definitions:
       scheduledFor:
         format: date-time
         type: string
+      shares:
+        items:
+          $ref: '#/definitions/ShareBooking'
+        type: array
+        uniqueItems: true
     type: object
   BookingDTO:
     description: BookingDTO
@@ -98,11 +103,19 @@ definitions:
         description: BookingScheduledFor
         format: date-time
         type: string
+      shares:
+        description: BookingShares
+        items:
+          $ref: '#/definitions/ShareBookingDTO'
+        type: array
+        uniqueItems: true
     type: object
   CaptureSession:
     properties:
       booking:
         $ref: '#/definitions/Booking'
+      deleted:
+        type: boolean
       deletedAt:
         format: date-time
         type: string
@@ -193,6 +206,11 @@ definitions:
           - AVAILABLE
           - FUTURE
         type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
     type: object
   Case:
     properties:
@@ -398,6 +416,43 @@ definitions:
         type: array
         uniqueItems: true
     type: object
+  CreateAuditDTO:
+    description: AuditDTO
+    properties:
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - id
+      - source
+    type: object
   CreateBookingDTO:
     description: CreateBookingDTO
     properties:
@@ -423,6 +478,62 @@ definitions:
       - case_id
       - id
       - scheduled_for
+    type: object
+  CreateCaptureSessionDTO:
+    description: CreateCaptureSessionDTO
+    properties:
+      booking_id:
+        description: CreateCaptureSessionBookingId
+        format: uuid
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
+        type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
     type: object
   CreateCaseDTO:
     description: CreateCaseDTO
@@ -675,6 +786,73 @@ definitions:
         description: BookingScheduledFor
         format: date-time
         type: string
+      shares:
+        description: BookingShares
+        items:
+          $ref: '#/definitions/ShareBookingDTO'
+        type: array
+        uniqueItems: true
+    type: object
+  EntityModelCaptureSessionDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      booking_id:
+        description: CreateCaptureSessionBookingId
+        format: uuid
+        type: string
+      deleted_at:
+        description: CaptureSessionDeletedAt
+        format: date-time
+        type: string
+      finished_at:
+        description: CreateCaptureSessionFinishedAt
+        format: date-time
+        type: string
+      finished_by_user_id:
+        description: CreateCaptureSessionFinishedByUserId
+        format: uuid
+        type: string
+      id:
+        description: CreateCaptureSessionId
+        format: uuid
+        type: string
+      ingest_address:
+        description: CreateCaptureSessionIngestAddress
+        type: string
+      live_output_url:
+        description: CreateCaptureSessionLiveOutputURL
+        type: string
+      origin:
+        description: CreateCaptureSessionOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
+      started_at:
+        description: CreateCaptureSessionStartedAt
+        format: date-time
+        type: string
+      started_by_user_id:
+        description: CreateCaptureSessionStartedByUserId
+        format: uuid
+        type: string
+      status:
+        description: CreateCaptureSessionStatus
+        enum:
+          - STANDBY
+          - INITIALIZATION
+          - RECORDING
+          - FINISHED
+          - PROCESSING
+          - AVAILABLE
+          - FUTURE
+        type: string
+    required:
+      - booking_id
+      - id
+      - origin
+      - status
     type: object
   EntityModelCaseDTO:
     properties:
@@ -897,6 +1075,9 @@ definitions:
         description: InvitePhone
         type: string
     type: object
+  JsonNode:
+    description: AuditDetailsJSONString
+    type: object
   Link:
     properties:
       deprecation:
@@ -942,6 +1123,20 @@ definitions:
           bookingDTOList:
             items:
               $ref: '#/definitions/EntityModelBookingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCaptureSessionDTO:
+    properties:
+      _embedded:
+        properties:
+          captureSessionDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCaptureSessionDTO'
             type: array
         type: object
       _links:
@@ -1212,6 +1407,9 @@ definitions:
   RoleDTO:
     description: RoleDTO
     properties:
+      description:
+        description: RoleDescription
+        type: string
       id:
         description: RoleId
         format: uuid
@@ -1276,6 +1474,26 @@ definitions:
         description: ScheduleReportStartedAt
         format: date-time
         type: string
+    type: object
+  ShareBooking:
+    properties:
+      booking:
+        $ref: '#/definitions/Booking'
+      createdAt:
+        format: date-time
+        type: string
+      deleted:
+        type: boolean
+      deletedAt:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      sharedBy:
+        $ref: '#/definitions/User'
+      sharedWith:
+        $ref: '#/definitions/User'
     type: object
   ShareBookingDTO:
     properties:
@@ -1404,13 +1622,47 @@ externalDocs:
   url: 'https://github.com/hmcts/pre-api'
 host: 'sds-api-mgmt.staging.platform.hmcts.net'
 info:
-  description: PRE API
+  description: 'PRE API - Used for managing courts, bookings, recordings and permissions.'
   license:
     name: MIT
     url: 'https://opensource.org/licenses/MIT'
   title: PRE API
   version: v0.0.1
 paths:
+  '/audit/{id}':
+    put:
+      consumes:
+        - application/json
+      operationId: putAudit
+      parameters:
+        - format: uuid
+          in: header
+          name: X-User-Id
+          required: true
+          type: string
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateAuditDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create an Audit Entry
+      tags:
+        - audit-controller
   /bookings:
     get:
       operationId: searchBookings
@@ -1432,18 +1684,31 @@ paths:
           name: scheduledFor
           type: string
           x-example: '2024-04-27'
+        - description: The Participant Id to search for
+          format: uuid
+          in: query
+          name: participantId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
           format: int32
           in: query
           name: page
           type: integer
-          x-example: 1
+          x-example: 0
         - description: The number of search results to return per page
           format: int32
           in: query
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1463,6 +1728,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1477,6 +1749,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1497,6 +1776,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1519,6 +1805,13 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1530,6 +1823,176 @@ paths:
       summary: Share a Booking
       tags:
         - booking-controller
+  '/bookings/{bookingId}/share/{shareId}':
+    delete:
+      operationId: deleteShareBookingById
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - format: uuid
+          in: path
+          name: shareId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      tags:
+        - booking-controller
+  /capture-sessions:
+    get:
+      operationId: searchCaptureSessions
+      parameters:
+        - description: The case reference to search for
+          in: query
+          name: caseReference
+          type: string
+          x-example: 1234567890123456
+        - description: The booking id to search for
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The origin of the capture session to search for
+          enum:
+            - PRE
+            - VODAFONE
+          in: query
+          name: origin
+          type: string
+        - description: The recording status to search for
+          enum:
+            - STANDBY
+            - INITIALIZATION
+            - RECORDING
+            - FINISHED
+            - PROCESSING
+            - AVAILABLE
+            - FUTURE
+          in: query
+          name: recordingStatus
+          type: string
+        - description: The Date the Booking was scheduled for
+          format: date
+          in: query
+          name: scheduledFor
+          type: string
+          x-example: '2024-04-27'
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelCaptureSessionDTO'
+      summary: Search All Capture Sessions
+      tags:
+        - capture-session-controller
+  '/capture-sessions/{captureSessionId}':
+    delete:
+      operationId: deleteCaptureSessionById
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Delete Capture Session by Id
+      tags:
+        - capture-session-controller
+    get:
+      operationId: getCaptureSessionById
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Get a Capture Session by Id
+      tags:
+        - capture-session-controller
+    put:
+      consumes:
+        - application/json
+      operationId: upsertCaptureSession
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/CreateCaptureSessionDTO'
+      responses:
+        '200':
+          description: OK
+      summary: Create or Update a Capture Session
+      tags:
+        - capture-session-controller
   /cases:
     get:
       operationId: getCases
@@ -1550,13 +2013,20 @@ paths:
           in: query
           name: page
           type: integer
-          x-example: 1
+          x-example: 0
         - description: The number of search results to return per page
           format: int32
           in: query
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1576,6 +2046,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1590,6 +2067,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1610,6 +2094,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1652,13 +2143,20 @@ paths:
           in: query
           name: page
           type: integer
-          x-example: 1
+          x-example: 0
         - description: The number of search results to return per page
           format: int32
           in: query
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1678,6 +2176,13 @@ paths:
           name: courtId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1698,6 +2203,13 @@ paths:
           name: courtId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1735,13 +2247,20 @@ paths:
           in: query
           name: page
           type: integer
-          x-example: 1
+          x-example: 0
         - description: The number of search results to return per page
           format: int32
           in: query
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1761,6 +2280,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1775,6 +2301,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1795,6 +2328,13 @@ paths:
           name: id
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1822,18 +2362,42 @@ paths:
           name: parentRecordingId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The participant to search by
+          format: uuid
+          in: query
+          name: participantId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The case reference to search by
+          in: query
+          name: caseReference
+          type: string
+          x-example: CASE12345
+        - description: The Date the recording's booking was scheduled for
+          format: date
+          in: query
+          name: scheduledFor
+          type: string
+          x-example: '2024-04-27'
         - description: The page number of search result to return
           format: int32
           in: query
           name: page
           type: integer
-          x-example: 1
+          x-example: 0
         - description: The number of search results to return per page
           format: int32
           in: query
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1853,6 +2417,13 @@ paths:
           name: recordingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -1867,6 +2438,13 @@ paths:
           name: recordingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1887,6 +2465,13 @@ paths:
           name: recordingId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true
@@ -1901,7 +2486,14 @@ paths:
   /reports/capture-sessions-concurrent:
     get:
       operationId: reportConcurrentCaptureSessions
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1916,7 +2508,14 @@ paths:
   /reports/completed-capture-sessions:
     get:
       operationId: reportCompletedCaptureSessions
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1932,7 +2531,14 @@ paths:
   /reports/edits:
     get:
       operationId: reportEdits
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1959,6 +2565,13 @@ paths:
           name: source
           required: false
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1974,7 +2587,14 @@ paths:
   /reports/recordings-per-case:
     get:
       operationId: reportRecordingsPerCase
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -1990,7 +2610,14 @@ paths:
   /reports/schedules:
     get:
       operationId: reportSchedules
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2006,7 +2633,14 @@ paths:
   /reports/share-bookings-removed:
     get:
       operationId: reportShareBookingRemoved
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2046,6 +2680,13 @@ paths:
           name: sharedWithEmail
           type: string
           x-example: example@example.com
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2061,7 +2702,14 @@ paths:
   /roles:
     get:
       operationId: getRoles
-      parameters: []
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2112,13 +2760,20 @@ paths:
           in: query
           name: page
           type: integer
-          x-example: 1
+          x-example: 0
         - description: The number of search results to return per page
           format: int32
           in: query
           name: size
           type: integer
           x-example: 10
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2140,6 +2795,13 @@ paths:
           name: userId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       responses:
         '200':
           description: OK
@@ -2154,6 +2816,13 @@ paths:
           name: userId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
       produces:
         - application/octet-stream
       responses:
@@ -2174,6 +2843,13 @@ paths:
           name: userId
           required: true
           type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - in: body
           name: body
           required: true

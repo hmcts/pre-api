@@ -31,12 +31,12 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
         WHERE
             (
                 (
-                    CAST(:reference as text) IS NULL OR
-                    LOWER(CAST(b.caseId.reference as text)) LIKE CONCAT('%', LOWER(CAST(:reference as text)), '%')
+                    :reference IS NULL OR
+                    b.caseId.reference ILIKE %:reference%
                 )
                 AND
                 (
-                    CAST(:caseId as org.hibernate.type.UUIDCharType) IS NULL OR
+                    CAST(:caseId as uuid) IS NULL OR
                     b.caseId.id = :caseId
                 )
                 AND
@@ -44,6 +44,12 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
                     CAST(:scheduledForFrom as Timestamp) IS NULL OR
                     CAST(:scheduledForUntil as Timestamp) IS NULL OR
                     b.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
+                )
+                AND (
+                    CAST(:participantId as uuid) IS NULL OR EXISTS (
+                        SELECT 1 FROM b.participants p
+                        WHERE p.id = :participantId
+                    )
                 )
             )
             AND b.deletedAt IS NULL
@@ -55,6 +61,7 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
         @Param("reference") String reference,
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
+        @Param("participantId") UUID participantId,
         Pageable pageable
     );
 
