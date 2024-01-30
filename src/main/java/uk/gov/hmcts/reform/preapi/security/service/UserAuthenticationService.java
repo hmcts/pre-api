@@ -1,10 +1,11 @@
-package uk.gov.hmcts.reform.preapi.security;
+package uk.gov.hmcts.reform.preapi.security.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.Optional;
 import java.util.UUID;

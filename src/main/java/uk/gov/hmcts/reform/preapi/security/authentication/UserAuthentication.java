@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.security;
+package uk.gov.hmcts.reform.preapi.security.authentication;
 
 import lombok.Getter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -20,8 +20,6 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         userId = access.getFirst().getUser().getId();
         email = access.getFirst().getUser().getEmail();
         appAccess = access;
-
-
     }
 
     @Override

@@ -11,6 +11,9 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.security.filter.XUserIdFilter;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
 import java.io.PrintWriter;
 import java.util.UUID;

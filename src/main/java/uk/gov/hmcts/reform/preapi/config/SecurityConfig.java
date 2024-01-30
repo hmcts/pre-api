@@ -10,14 +10,14 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import uk.gov.hmcts.reform.preapi.security.UserDetailService;
-import uk.gov.hmcts.reform.preapi.security.XUserIdFilter;
+import uk.gov.hmcts.reform.preapi.security.filter.XUserIdFilter;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final UserDetailService userDetailService;
+    private final UserAuthenticationService userAuthenticationService;
 
     public static String[] NOT_AUTHORIZED_URIS = new String[] {
         "/testing-support/**",
@@ -34,8 +34,8 @@ public class SecurityConfig {
     private String testingEndpointActive;
 
     @Autowired
-    public SecurityConfig(UserDetailService userDetailService) {
-        this.userDetailService = userDetailService;
+    public SecurityConfig(UserAuthenticationService userAuthenticationService) {
+        this.userAuthenticationService = userAuthenticationService;
     }
 
     @Bean
@@ -55,7 +55,7 @@ public class SecurityConfig {
             .sessionManagement(httpSecuritySessionManagementConfigurer ->
                                    httpSecuritySessionManagementConfigurer
                                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .addFilterBefore(new XUserIdFilter(userDetailService), UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(new XUserIdFilter(userAuthenticationService), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

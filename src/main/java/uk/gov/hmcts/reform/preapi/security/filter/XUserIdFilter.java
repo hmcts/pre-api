@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.security;
+package uk.gov.hmcts.reform.preapi.security.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
 import uk.gov.hmcts.reform.preapi.config.SecurityConfig;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
 import java.io.IOException;
 import java.util.Arrays;
