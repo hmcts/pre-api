@@ -30,8 +30,8 @@ public class SecurityConfig {
         "/prometheus"
     };
 
-    @Value("${spring.profiles.active:null}")
-    private String activeProfile;
+    @Value("${testing-support-endpoints.enabled:false}")
+    private String testingEndpointActive;
 
     @Autowired
     public SecurityConfig(UserDetailService userDetailService) {
@@ -40,7 +40,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        if ("test".equals(activeProfile)) {
+        if ("true".equals(testingEndpointActive)) {
             http.csrf(AbstractHttpConfigurer::disable);
         }
 
