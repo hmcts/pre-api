@@ -18,7 +18,7 @@ class PortalAccessManager:
                     FROM public.users u
                     JOIN public.groupassignments ga ON u.userid = ga.userid
                     JOIN public.grouplist gl ON ga.groupid = gl.groupid
-                    WHERE gl.groupname = 'Level 3' OR gl.groupname = 'Super User' OR u.invited ILIKE 'true'
+                    WHERE gl.groupname = 'Level 3' OR u.invited ILIKE 'true'
                     GROUP BY u.userid"""
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
