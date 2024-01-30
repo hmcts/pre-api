@@ -1367,6 +1367,9 @@ definitions:
   RoleDTO:
     description: RoleDTO
     properties:
+      description:
+        description: RoleDescription
+        type: string
       id:
         description: RoleId
         format: uuid
