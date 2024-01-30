@@ -20,12 +20,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
+import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -38,6 +40,15 @@ public class UserController extends PreApiController {
     public UserController(UserService userService) {
         super();
         this.userService = userService;
+    }
+
+    @GetMapping("/by-email/{email}")
+    @Operation(
+        operationId = "getUserAccessByEmail",
+        summary = "Get a User's App Access by Email"
+    )
+    public ResponseEntity<List<AppAccessDTO>> getUserAccessById(@PathVariable String email) {
+        return ResponseEntity.ok(userService.findByEmail(email));
     }
 
     @GetMapping("/{userId}")

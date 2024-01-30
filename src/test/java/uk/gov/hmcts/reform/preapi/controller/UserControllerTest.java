@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
+import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -299,5 +300,32 @@ public class UserControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                            .value("Invalid UUID string: 12345678"));
+    }
+
+    @DisplayName("Should get user's app access details by email with 200 response code")
+    @Test
+    void getUserByEmailSuccess() throws Exception {
+        var userEmail = "example@example.com";
+        var mock = new AppAccessDTO();
+        mock.setId(UUID.randomUUID());
+
+        when(userService.findByEmail(userEmail)).thenReturn(List.of(mock));
+
+        mockMvc.perform(get("/users/by-email/" + userEmail))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].id").value(mock.getId().toString()));
+    }
+
+    @DisplayName("Should return 404 when user's app access details by email that does not have any app access")
+    @Test
+    void getUserByEmailNotFound() throws Exception {
+        var userEmail = "example@example.com";
+
+        doThrow(new NotFoundException("User: " + userEmail)).when(userService).findByEmail(userEmail);
+
+        mockMvc.perform(get("/users/by-email/" + userEmail))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Not found: User: " + userEmail));
     }
 }

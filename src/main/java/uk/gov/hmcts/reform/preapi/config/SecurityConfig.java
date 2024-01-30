@@ -27,7 +27,8 @@ public class SecurityConfig {
         "/health/**",
         "/health",
         "/info",
-        "/prometheus"
+        "/prometheus",
+        "/users/by-email/**"
     };
 
     @Value("${testing-support-endpoints.enabled:false}")
