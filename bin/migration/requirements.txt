@@ -7,7 +7,7 @@ psycopg2==2.9.9
 py==1.11.0
 pyparsing==3.1.1
 pytest==7.4.4
-pytz==2023.3.post1
+pytz==2023.4
 tomli==1.2.3
 typing_extensions==4.9.0
 zipp==3.6.0
