@@ -191,8 +191,8 @@ class BookingControllerTest {
         var shareBooking = new ShareBookingDTO();
         shareBooking.setBookingId(bookingId);
         shareBooking.setId(UUID.randomUUID());
-        shareBooking.setSharedByUserId(UUID.randomUUID());
-        shareBooking.setSharedWithUserId(UUID.randomUUID());
+        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
         booking.setShares(Set.of(shareBooking));
 
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
@@ -396,13 +396,11 @@ class BookingControllerTest {
     void testShareBookingCreated() throws Exception {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
-        final UUID sharedWithUserId = UUID.randomUUID();
-        final UUID sharedByUserId = UUID.randomUUID();
 
         var shareBooking = new ShareBookingDTO();
         shareBooking.setId(shareBookingId);
-        shareBooking.setSharedWithUserId(sharedWithUserId);
-        shareBooking.setSharedByUserId(sharedByUserId);
+        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
         shareBooking.setBookingId(bookingId);
 
         when(shareBookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
@@ -428,14 +426,12 @@ class BookingControllerTest {
     void testShareBookingIdMismatch() throws Exception {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
-        final UUID sharedWithUserId = UUID.randomUUID();
-        final UUID sharedByUserId = UUID.randomUUID();
 
         var shareBooking = new ShareBookingDTO();
         shareBooking.setId(shareBookingId);
         shareBooking.setBookingId(UUID.randomUUID());
-        shareBooking.setSharedWithUserId(sharedWithUserId);
-        shareBooking.setSharedByUserId(sharedByUserId);
+        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
                                                  .with(csrf())

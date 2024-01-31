@@ -29,6 +29,32 @@ definitions:
         description: AccessRemovedReportUserFullName
         type: string
     type: object
+  BaseUserDTO:
+    description: BaseUserDTO
+    properties:
+      active:
+        description: active
+        type: boolean
+      email:
+        description: UserEmail
+        type: string
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+    type: object
   BookingDTO:
     description: BookingDTO
     properties:
@@ -1291,12 +1317,10 @@ definitions:
       id:
         format: uuid
         type: string
-      shared_by_user_id:
-        format: uuid
-        type: string
-      shared_with_user_id:
-        format: uuid
-        type: string
+      shared_by_user:
+        $ref: '#/definitions/BaseUserDTO'
+      shared_with_user:
+        $ref: '#/definitions/BaseUserDTO'
     type: object
   SharedReportDTO:
     description: SharedReportDTO
