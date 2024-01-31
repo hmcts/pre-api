@@ -46,7 +46,7 @@ class ShareBookingDTOTest {
 
         assertThat(model.getId()).isEqualTo(shareBookingEntity.getId());
         assertThat(model.getBookingId()).isEqualTo(shareBookingEntity.getBooking().getId());
-        assertThat(model.getSharedByUserId()).isEqualTo(shareBookingEntity.getSharedBy().getId());
-        assertThat(model.getSharedWithUserId()).isEqualTo(shareBookingEntity.getSharedWith().getId());
+        assertThat(model.getSharedByUser().getId()).isEqualTo(shareBookingEntity.getSharedBy().getId());
+        assertThat(model.getSharedWithUser().getId()).isEqualTo(shareBookingEntity.getSharedWith().getId());
     }
 }

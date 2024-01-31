@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.util;
 
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -23,6 +24,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nullable;
 
 public class HelperFactory {
@@ -229,5 +231,35 @@ public class HelperFactory {
         court.setName(name);
         court.setLocationCode(locationCode);
         return court;
+    }
+
+    public static BaseUserDTO easyCreateBaseUserDTO() {
+        var firstName = "Test" + ThreadLocalRandom.current().nextInt(0, 999999);
+        return createBaseUserDTO(
+            firstName,
+            "User" + ThreadLocalRandom.current().nextInt(0, 999999),
+            firstName + "@user.com",
+            "12345678",
+            "Test Organisation",
+            true);
+    }
+
+    public static BaseUserDTO createBaseUserDTO(
+        String firstName,
+        String lastName,
+        String email,
+        String phoneNumber,
+        String organisation,
+        Boolean active
+    ) {
+        var user = new BaseUserDTO();
+        user.setId(UUID.randomUUID());
+        user.setFirstName(firstName);
+        user.setLastName(lastName);
+        user.setEmail(email);
+        user.setPhoneNumber(phoneNumber);
+        user.setOrganisation(organisation);
+        user.setActive(active);
+        return user;
     }
 }
