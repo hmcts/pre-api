@@ -1,10 +1,11 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
 
 
 class RecordingManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("""  SELECT *
@@ -144,7 +145,7 @@ class RecordingManager:
                 destination_cursor.connection.rollback()    
                 self.failed_imports.add(('recordings', recording_id, e))
                     
-        log_failed_imports(self.failed_imports)
+        self.logger.log_failed_imports(self.failed_imports)
          
 
 

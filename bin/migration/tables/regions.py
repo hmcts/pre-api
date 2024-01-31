@@ -1,9 +1,10 @@
-from .helpers import check_existing_record, audit_entry_creation, log_failed_imports
+from .helpers import check_existing_record, audit_entry_creation
 import uuid
 
 class RegionManager:
-    def __init__(self):
+    def __init__(self, logger):
         self.failed_imports = set()
+        self.logger = logger
 
     def migrate_data(self,destination_cursor):
         batch_region_data = []
@@ -45,6 +46,6 @@ class RegionManager:
         except Exception as e:
             self.failed_imports.add(('regions', batch_region_data[0], e))
  
-        log_failed_imports(self.failed_imports)
+        self.logger.log_failed_imports(self.failed_imports)
             
 

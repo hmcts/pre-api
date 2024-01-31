@@ -1,10 +1,11 @@
-from .helpers import check_existing_record, audit_entry_creation, log_failed_imports, parse_to_timestamp, get_user_id
+from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp
 import uuid
 
 class CaptureSessionManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings WHERE recordingversion = '1' and recordingstatus != 'No Recording'")
@@ -138,4 +139,4 @@ class CaptureSessionManager:
                     destination_cursor.connection.rollback()  
                     self.failed_imports.add(('capture_sessions', id,e))
                 
-        log_failed_imports(self.failed_imports)
+        self.logger.log_failed_imports(self.failed_imports)
