@@ -50,7 +50,7 @@ class CreateRecordingDTOTest {
             user,
             new Timestamp(System.currentTimeMillis()),
             user,
-            RecordingStatus.FINISHED,
+            RecordingStatus.FAILURE,
             new Timestamp(System.currentTimeMillis())
         );
         entityManager.persist(captureSession);

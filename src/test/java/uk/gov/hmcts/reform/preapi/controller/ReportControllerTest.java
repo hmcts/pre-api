@@ -286,7 +286,7 @@ public class ReportControllerTest {
         reportItem.setCaseReference("ABC123");
         reportItem.setCountDefendants(1);
         reportItem.setCountWitnesses(5);
-        reportItem.setRecordingStatus(RecordingStatus.AVAILABLE);
+        reportItem.setRecordingStatus(RecordingStatus.RECORDING_AVAILABLE);
         reportItem.setCourt("Example Court");
         reportItem.setRegions(Set.of());
 

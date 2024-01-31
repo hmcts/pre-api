@@ -2,10 +2,10 @@ package uk.gov.hmcts.reform.preapi.enums;
 
 public enum RecordingStatus {
     STANDBY,
-    INITIALIZATION,
+    INITIALISATION,
     RECORDING,
-    FINISHED,
+    RECORDING_AVAILABLE,
     PROCESSING,
-    AVAILABLE,
-    FUTURE
+    FAILURE,
+    NO_RECORDING
 }

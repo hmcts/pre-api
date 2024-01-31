@@ -206,7 +206,7 @@ class TestingSupportController {
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(RecordingOrigin.PRE);
-        captureSession.setStatus(RecordingStatus.AVAILABLE);
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         captureSession.setStartedAt(booking.getScheduledFor());
         captureSession.setFinishedAt(Timestamp.from(scheduledFor.plusMinutes(30).toInstant()));
         captureSession.setStartedByUser(startUser);
