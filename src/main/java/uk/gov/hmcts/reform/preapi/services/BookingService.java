@@ -63,6 +63,7 @@ public class BookingService {
 
     public Page<BookingDTO> searchBy(@Nullable UUID caseId,
                                      @Nullable String caseReference,
+                                     @Nullable UUID courtId,
                                      Optional<Timestamp> scheduledFor,
                                      @Nullable UUID participantId,
                                      Pageable pageable) {
@@ -76,6 +77,7 @@ public class BookingService {
             .searchBookingsBy(
                 caseId,
                 caseReference,
+                courtId,
                 scheduledFor.orElse(null),
                 until, // 11:59:59 PM
                 participantId,
