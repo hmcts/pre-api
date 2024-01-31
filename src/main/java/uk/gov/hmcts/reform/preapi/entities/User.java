@@ -9,6 +9,7 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 
 @Getter
 @Setter
@@ -46,5 +47,14 @@ public class User extends CreatedModifiedAtEntity {
 
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        var details = new HashMap<String, Object>();
+        details.put("email", email);
+        details.put("organisation", organisation);
+        details.put("deleted", isDeleted());
+        return details;
     }
 }
