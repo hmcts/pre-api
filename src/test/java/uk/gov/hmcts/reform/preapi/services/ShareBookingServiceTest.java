@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -49,8 +50,8 @@ public class ShareBookingServiceTest {
         var shareBookingDTO = new ShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
-        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
 
         var bookingEntity = new Booking();
         var sharedByUser = new User();
@@ -60,10 +61,10 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUserId())
+            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
         ).thenReturn(Optional.of(sharedByUser));
         when(
-            userRepository.findById(shareBookingDTO.getSharedWithUserId())
+            userRepository.findById(shareBookingDTO.getSharedWithUser().getId())
         ).thenReturn(Optional.of(sharedWithUser));
 
         assertThat(shareBookingService.shareBookingById(shareBookingDTO)).isEqualTo(UpsertResult.CREATED);
@@ -75,8 +76,8 @@ public class ShareBookingServiceTest {
         var shareBookingDTO = new ShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
-        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
 
         when(
             bookingRepository.findById(shareBookingDTO.getBookingId())
@@ -95,8 +96,8 @@ public class ShareBookingServiceTest {
         var shareBookingDTO = new ShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
-        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
 
         var bookingEntity = new Booking();
 
@@ -104,14 +105,14 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUserId())
+            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
         ).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
             .isThrownBy(() -> {
                 shareBookingService.shareBookingById(shareBookingDTO);
             })
-            .withMessage("Not found: Shared by User: " + shareBookingDTO.getSharedByUserId());
+            .withMessage("Not found: Shared by User: " + shareBookingDTO.getSharedByUser());
     }
 
     @DisplayName("Share a booking by its id when shared with user doesn't exist")
@@ -120,8 +121,8 @@ public class ShareBookingServiceTest {
         var shareBookingDTO = new ShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
-        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
 
         var bookingEntity = new Booking();
         var sharedByUser = new User();
@@ -130,17 +131,17 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUserId())
+            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
         ).thenReturn(Optional.of(sharedByUser));
         when(
-            userRepository.findById(shareBookingDTO.getSharedWithUserId())
+            userRepository.findById(shareBookingDTO.getSharedWithUser().getId())
         ).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
             .isThrownBy(() -> {
                 shareBookingService.shareBookingById(shareBookingDTO);
             })
-            .withMessage("Not found: Shared with User: " + shareBookingDTO.getSharedWithUserId());
+            .withMessage("Not found: Shared with User: " + shareBookingDTO.getSharedWithUser());
     }
 
     @DisplayName("Share a booking by its id when share booking already exists")
@@ -149,8 +150,8 @@ public class ShareBookingServiceTest {
         var shareBookingDTO = new ShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUserId(UUID.randomUUID());
-        shareBookingDTO.setSharedWithUserId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
 
         var bookingEntity = new Booking();
         var sharedByUser = new User();
@@ -160,10 +161,10 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUserId())
+            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
         ).thenReturn(Optional.of(sharedByUser));
         when(
-            userRepository.findById(shareBookingDTO.getSharedWithUserId())
+            userRepository.findById(shareBookingDTO.getSharedWithUser().getId())
         ).thenReturn(Optional.of(sharedWithUser));
         when(
             shareBookingRepository.existsById(shareBookingDTO.getId())
