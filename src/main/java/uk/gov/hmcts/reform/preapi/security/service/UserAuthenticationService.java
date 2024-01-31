@@ -2,11 +2,16 @@ package uk.gov.hmcts.reform.preapi.security.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +44,15 @@ public class UserAuthenticationService {
 
         return appAccessRepository
             .findByIdAndDeletedAtNullAndUser_DeletedAtNull(id)
-            .map(a -> new UserAuthentication(a, AuthorityUtils.NO_AUTHORITIES));
+            .map(a -> new UserAuthentication(a, getAuthorities(a)));
+    }
+
+    private List<GrantedAuthority> getAuthorities(AppAccess access) {
+        try {
+            var role = access.getRole().getName().toUpperCase(Locale.ROOT).replace(' ', '_');
+            return List.of(new SimpleGrantedAuthority("ROLE_" + role));
+        } catch (Exception ignored) {
+            return AuthorityUtils.NO_AUTHORITIES;
+        }
     }
 }

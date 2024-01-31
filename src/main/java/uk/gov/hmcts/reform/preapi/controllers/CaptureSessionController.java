@@ -11,6 +11,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -46,10 +47,10 @@ public class CaptureSessionController extends PreApiController {
 
     @GetMapping("/{captureSessionId}")
     @Operation(operationId = "getCaptureSessionById", summary = "Get a Capture Session by Id")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaptureSessionDTO> getCaptureSessionById(@PathVariable UUID captureSessionId) {
         return ResponseEntity.ok(captureSessionService.findById(captureSessionId));
     }
-
 
     @GetMapping
     @Operation(operationId = "searchCaptureSessions", summary = "Search All Capture Sessions")
@@ -93,6 +94,7 @@ public class CaptureSessionController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<CaptureSessionDTO>>> searchCaptureSessions(
         @Parameter(hidden = true) @ModelAttribute SearchCaptureSessions params,
         @Parameter(hidden = true) Pageable pageable,
@@ -117,6 +119,7 @@ public class CaptureSessionController extends PreApiController {
 
     @DeleteMapping("/{captureSessionId}")
     @Operation(operationId = "deleteCaptureSessionById", summary = "Delete Capture Session by Id")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteCaptureSessionById(@PathVariable UUID captureSessionId) {
         captureSessionService.deleteById(captureSessionId);
         return ResponseEntity.ok().build();
@@ -124,6 +127,7 @@ public class CaptureSessionController extends PreApiController {
 
     @PutMapping("/{captureSessionId}")
     @Operation(operationId = "upsertCaptureSession", summary = "Create or Update a Capture Session")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertCaptureSession(
         @PathVariable UUID captureSessionId,
         @Valid @RequestBody CreateCaptureSessionDTO createCaptureSessionDTO
