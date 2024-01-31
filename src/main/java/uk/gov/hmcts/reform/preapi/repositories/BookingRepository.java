@@ -41,6 +41,11 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
                 )
                 AND
                 (
+                    CAST(:courtId as uuid) IS NULL OR
+                    b.caseId.court.id = :courtId
+                )
+                AND
+                (
                     CAST(:scheduledForFrom as Timestamp) IS NULL OR
                     CAST(:scheduledForUntil as Timestamp) IS NULL OR
                     b.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
@@ -59,6 +64,7 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
     Page<Booking> searchBookingsBy(
         @Param("caseId") UUID caseId,
         @Param("reference") String reference,
+        @Param("courtId") UUID courtId,
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
         @Param("participantId") UUID participantId,
