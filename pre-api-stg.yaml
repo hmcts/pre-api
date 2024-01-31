@@ -144,12 +144,12 @@ definitions:
       status:
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISATION
           - RECORDING
-          - FINISHED
+          - RECORDING_AVAILABLE
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - FAILURE
+          - NO_RECORDING
         type: string
     type: object
   CaptureSessionDTO:
@@ -199,12 +199,12 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISATION
           - RECORDING
-          - FINISHED
+          - RECORDING_AVAILABLE
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - FAILURE
+          - NO_RECORDING
         type: string
     required:
       - booking_id
@@ -302,12 +302,12 @@ definitions:
         description: CompletedCaptureSessionReportRecordingStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISATION
           - RECORDING
-          - FINISHED
+          - RECORDING_AVAILABLE
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - FAILURE
+          - NO_RECORDING
         type: string
       regions:
         description: CompletedCaptureSessionReportRegions
@@ -522,12 +522,12 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISATION
           - RECORDING
-          - FINISHED
+          - RECORDING_AVAILABLE
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - FAILURE
+          - NO_RECORDING
         type: string
     required:
       - booking_id
@@ -841,12 +841,12 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISATION
           - RECORDING
-          - FINISHED
+          - RECORDING_AVAILABLE
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - FAILURE
+          - NO_RECORDING
         type: string
     required:
       - booking_id
@@ -1874,12 +1874,12 @@ paths:
         - description: The recording status to search for
           enum:
             - STANDBY
-            - INITIALIZATION
+            - INITIALISATION
             - RECORDING
-            - FINISHED
+            - RECORDING_AVAILABLE
             - PROCESSING
-            - AVAILABLE
-            - FUTURE
+            - FAILURE
+            - NO_RECORDING
           in: query
           name: recordingStatus
           type: string
