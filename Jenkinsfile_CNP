@@ -9,5 +9,5 @@ def component = "api"
 withPipeline(type, product, component) {
   syncBranchesWithMaster(['perftest', 'demo'])
   enableSlackNotifications('#pre-builds')
-  enableDbMigration('pre')
+  enableDbMigration('pre-hmctskv')
 }
