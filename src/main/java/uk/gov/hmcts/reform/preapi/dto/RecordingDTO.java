@@ -11,6 +11,9 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -28,6 +31,12 @@ public class RecordingDTO extends BaseRecordingDTO {
     @Schema(description = "RecordingCreatedAt")
     Timestamp createdAt;
 
+    @Schema(description = "RecordingCaseReference")
+    String caseReference;
+
+    @Schema(description = "RecordingParticipants")
+    private Set<ParticipantDTO> participants;
+
     public RecordingDTO(Recording recording) {
         id = recording.getId();
         captureSession = new CaptureSessionDTO(recording.getCaptureSession());
@@ -41,5 +50,13 @@ public class RecordingDTO extends BaseRecordingDTO {
         editInstructions = recording.getEditInstruction();
         deletedAt = recording.getDeletedAt();
         createdAt = recording.getCreatedAt();
+        caseReference = recording.getCaptureSession().getBooking().getCaseId().getReference();
+        participants = Stream.ofNullable(recording.getCaptureSession().getBooking().getParticipants())
+            .flatMap(participants ->
+                         participants
+                             .stream()
+                             .filter(participant -> participant.getDeletedAt() == null)
+                             .map(ParticipantDTO::new))
+            .collect(Collectors.toSet());
     }
 }

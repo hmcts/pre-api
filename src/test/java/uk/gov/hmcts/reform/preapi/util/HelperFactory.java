@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.util;
 
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
@@ -261,5 +262,14 @@ public class HelperFactory {
         user.setOrganisation(organisation);
         user.setActive(active);
         return user;
+    }
+
+    public static CaseDTO createCaseDTO(
+        String reference
+    ) {
+        var testCase = new CaseDTO();
+        testCase.setId(UUID.randomUUID());
+        testCase.setReference(reference);
+        return testCase;
     }
 }
