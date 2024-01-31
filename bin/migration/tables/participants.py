@@ -45,8 +45,10 @@ class ParticipantManager:
                     self.failed_imports.add(('contacts', id, f'Invalid participant type: {p_type}'))
                     continue
                 
-                first_name = participant[6]
-                last_name = participant[7]
+                
+                first_name = participant[6].strip() if participant[6] is not None else None 
+                last_name = participant[7].strip() if participant[7] is not None else None
+
                 if first_name is None or last_name is None:
                     self.failed_imports.add(('contacts', id, 'Participant is missing either first name or last name'))
                     continue

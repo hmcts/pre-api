@@ -22,7 +22,12 @@ class RecordCounter:
             'users': 'users',
             'app_access':'app_access',
             'capture_sessions':'capture_sessions',
-            'invites':'invites'
+            'invites':'invites',
+            'booking_participant': 'booking_participant',
+            'court_region':'court_region',
+            'courtrooms':'courtrooms',
+            'role_permission':'role_permission',
+            'share_bookings':'share_bookings'
         }
 
     def fetch_source_data(self, query):
@@ -86,11 +91,14 @@ class RecordCounter:
         #participants 
         table_counts['contacts'] = self.fetch_source_data("SELECT COUNT(*) FROM public.contacts")
         # capture_sessions 
-        table_counts['capture_sessions'] = self.fetch_source_data("SELECT COUNT (DISTINCT parentrecuid) FROM public.recordings WHERE recordingversion = '1' and recordingstatus != 'No Recording'")        
+        table_counts['capture_sessions'] = self.fetch_source_data("SELECT COUNT(*) FROM public.recordings WHERE parentrecuid = recordinguid and recordingstatus != 'No Recording'")        
         # recordings 
         table_counts['recordings'] = self.fetch_source_data("SELECT COUNT(*) FROM public.recordings WHERE (recordingavailable IS NULL OR recordingavailable NOT ILIKE 'false' AND recordingavailable NOT ILIKE 'no')")        
         # audits 
         table_counts['audits'] = self.fetch_source_data("SELECT COUNT(*) FROM public.audits")
+
+        # share_booking
+        table_counts['share_bookings'] = self.fetch_source_data("SELECT COUNT(*) FROM public.videopermissions")
 
         return table_counts
        

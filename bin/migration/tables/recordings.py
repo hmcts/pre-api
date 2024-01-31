@@ -114,6 +114,7 @@ class RecordingManager:
                 version = recording[12] 
                 url = recording[20] if recording[20] is not None else None
                 filename = recording[14]
+                
                 created_at = parse_to_timestamp(recording[22])
                 recording_status = recording[11] if recording[11] is not None else None
                 created_by = get_user_id(destination_cursor,recording[21])

@@ -8,7 +8,7 @@ class CaptureSessionManager:
         self.logger = logger
 
     def get_data(self):
-        self.source_cursor.execute("SELECT DISTINCT ON (parentrecuid) * FROM public.recordings WHERE recordingversion = '1' and recordingstatus != 'No Recording'")
+        self.source_cursor.execute("SELECT * FROM public.recordings WHERE parentrecuid = recordinguid and recordingstatus != 'No Recording'")
         return self.source_cursor.fetchall()
 
     def check_record_in_temp_table(self, destination_cursor, recording_id):

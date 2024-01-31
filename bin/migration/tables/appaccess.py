@@ -35,6 +35,7 @@ class AppAccessManager:
             role_id = user[1]
             
             if role_id is None:
+                self.failed_imports.add(('app_access',id, f"No role id for this user: {user_id} in group assignments table")) 
                 continue
 
             court_id = user[2]
@@ -59,8 +60,7 @@ class AppAccessManager:
                 self.failed_imports.add(('app_access',id, f"Court: {court_id} not found in courts table for user_id: {user_id}")) 
                 continue
             
-            if not check_existing_record(destination_cursor,'app_access',"user_id",user_id ):          
-                
+            if not check_existing_record(destination_cursor,'app_access','user_id',user_id ):          
                 # last_access = 
                 batch_app_users_data.append((
                     id, user_id, court_id, role_id, active, created_at, modified_at,created_by,
