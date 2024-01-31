@@ -6,20 +6,20 @@ import org.springframework.security.core.GrantedAuthority;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.UUID;
 
 @Getter
 public class UserAuthentication extends AbstractAuthenticationToken {
     private final UUID userId;
     private final String email;
-    private final List<AppAccess> appAccess;
+    private final AppAccess appAccess;
 
-    public UserAuthentication(List<AppAccess> access, Collection<? extends GrantedAuthority> authorities) {
+    public UserAuthentication(AppAccess access, Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
-        userId = access.getFirst().getUser().getId();
-        email = access.getFirst().getUser().getEmail();
+        userId = access.getUser().getId();
+        email = access.getUser().getEmail();
         appAccess = access;
+        setAuthenticated(true);
     }
 
     @Override

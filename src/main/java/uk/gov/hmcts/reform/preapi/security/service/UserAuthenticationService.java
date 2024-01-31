@@ -37,10 +37,8 @@ public class UserAuthenticationService {
             return Optional.empty();
         }
 
-        var access = appAccessRepository.findAllByIdAndDeletedAtNullAndUser_DeletedAtNull(id);
-
-        return access.isEmpty()
-            ? Optional.empty()
-            : Optional.of(new UserAuthentication(access, AuthorityUtils.NO_AUTHORITIES));
+        return appAccessRepository
+            .findByIdAndDeletedAtNullAndUser_DeletedAtNull(id)
+            .map(a -> new UserAuthentication(a, AuthorityUtils.NO_AUTHORITIES));
     }
 }

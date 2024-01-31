@@ -13,7 +13,6 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
-import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -62,7 +61,7 @@ public class UserAuthenticationServiceIT {
     public void loadAppUserByIdSuccess() {
         var userWithValidId = userAuthenticationService.loadAppUserById(access.getId().toString());
         assertEquals(userWithValidId.getUserId(), access.getUser().getId());
-        assertEquals(userWithValidId.getAppAccess(), List.of(access));
+        assertEquals(userWithValidId.getAppAccess(), access);
     }
 
     @Transactional
