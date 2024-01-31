@@ -73,7 +73,7 @@ public class CaptureSessionServiceTest {
         captureSession.setStartedByUser(user);
         captureSession.setFinishedAt(Timestamp.from(Instant.now()));
         captureSession.setFinishedByUser(user);
-        captureSession.setStatus(RecordingStatus.AVAILABLE);
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
     }
 
     @DisplayName("Find a capture session and return a model")
@@ -193,7 +193,7 @@ public class CaptureSessionServiceTest {
         model.setStartedByUserId(user.getId());
         model.setFinishedAt(Timestamp.from(Instant.now()));
         model.setFinishedByUserId(user.getId());
-        model.setStatus(RecordingStatus.AVAILABLE);
+        model.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
         when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
@@ -220,7 +220,7 @@ public class CaptureSessionServiceTest {
         model.setStartedByUserId(user.getId());
         model.setFinishedAt(Timestamp.from(Instant.now()));
         model.setFinishedByUserId(user.getId());
-        model.setStatus(RecordingStatus.AVAILABLE);
+        model.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var entity = new CaptureSession();
 
@@ -249,7 +249,7 @@ public class CaptureSessionServiceTest {
         model.setStartedByUserId(user.getId());
         model.setFinishedAt(Timestamp.from(Instant.now()));
         model.setFinishedByUserId(user.getId());
-        model.setStatus(RecordingStatus.AVAILABLE);
+        model.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var entity = new CaptureSession();
         entity.setDeletedAt(Timestamp.from(Instant.now()));
@@ -284,7 +284,7 @@ public class CaptureSessionServiceTest {
         model.setStartedByUserId(user.getId());
         model.setFinishedAt(Timestamp.from(Instant.now()));
         model.setFinishedByUserId(user.getId());
-        model.setStatus(RecordingStatus.AVAILABLE);
+        model.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
         when(bookingRepository.findByIdAndDeletedAtIsNull(model.getId())).thenReturn(Optional.empty());
@@ -315,7 +315,7 @@ public class CaptureSessionServiceTest {
         model.setStartedByUserId(UUID.randomUUID());
         model.setFinishedAt(Timestamp.from(Instant.now()));
         model.setFinishedByUserId(user.getId());
-        model.setStatus(RecordingStatus.AVAILABLE);
+        model.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
         when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
@@ -349,7 +349,7 @@ public class CaptureSessionServiceTest {
         model.setStartedByUserId(user.getId());
         model.setFinishedAt(Timestamp.from(Instant.now()));
         model.setFinishedByUserId(UUID.randomUUID());
-        model.setStatus(RecordingStatus.AVAILABLE);
+        model.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
         when(bookingRepository.findByIdAndDeletedAtIsNull(booking.getId())).thenReturn(Optional.of(booking));
