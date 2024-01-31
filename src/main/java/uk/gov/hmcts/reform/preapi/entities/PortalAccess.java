@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 
 @Getter
 @Setter
@@ -46,4 +47,15 @@ public class PortalAccess extends CreatedModifiedAtEntity {
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        var details = new HashMap<String, Object>();
+        details.put("user", user.getEmail());
+        details.put("status", status);
+        details.put("invitation_datetime", invitationDateTime);
+        details.put("registered_datetime", registeredDateTime);
+        details.put("deleted", deletedAt != null);
+        return details;
+    }
 }
