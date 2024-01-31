@@ -23,7 +23,7 @@ class AuditLogManager:
                 category =audit_log[20]
                 activity = audit_log[2]
                 functional_area = audit_log[17]
-                audit_details = f'\{"description": "{audit_log[5]}, {audit_log[18]}, {audit_log[19]}"\}'
+                audit_details = f'{{"description": "{audit_log[5]}, {audit_log[18]}, {audit_log[19]}"}}'
                 created_at = parse_to_timestamp(audit_log[12])
 
                 if audit_log[11]:

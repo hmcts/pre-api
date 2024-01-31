@@ -53,7 +53,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         "category": "data_migration",
         "activity": f"{table_name}_record_creation",
         "functional_area": "data_processing",
-        "audit_details": f'\{"description": "Created {table_name}_record for: {record}"\}',
+        "audit_details": f'{{"description": "Created {table_name}_record for: {record}"}}',
         "created_by": created_by,
         "created_at": created_at,
     }
