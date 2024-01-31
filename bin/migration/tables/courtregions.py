@@ -1,10 +1,11 @@
-from .helpers import check_existing_record, log_failed_imports
+from .helpers import check_existing_record
 import re
 
 
 class CourtRegionManager:
-    def __init__(self):
+    def __init__(self, logger):
         self.failed_imports = set()
+        self.logger = logger
 
     def migrate_data(self,destination_cursor):
         batch_court_region_data = []
@@ -65,5 +66,5 @@ class CourtRegionManager:
         except Exception as e:  
             self.failed_imports.add(('court_region', None, e))
                     
-        log_failed_imports(self.failed_imports)            
+        self.logger.log_failed_imports(self.failed_imports)            
             

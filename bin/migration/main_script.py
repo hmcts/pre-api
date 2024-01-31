@@ -23,6 +23,7 @@ from tables.audits import AuditLogManager
 
 from tables.helpers import clear_migrations_file
 from summary import RecordCounter
+from logger import FailedImportsLogger
 
 
 # get passwords from env variables
@@ -44,22 +45,22 @@ staging_db_password = os.environ.get('STAGING_DB_PASSWORD')
  
 
 # test db
-# source_db = DatabaseManager(
-#     database="pre-pdb-test",
-#     user="psqladmin",
-#     password=test_db_password,
-#     host="pre-db-test.postgres.database.azure.com",
-#     port="5432",
-# )
-
-# demo database
 source_db = DatabaseManager(
-    database="pre-pdb-demo",
+    database="pre-pdb-test",
     user="psqladmin",
-    password=demo_db_password,
-    host="pre-db-demo.postgres.database.azure.com",
+    password=test_db_password,
+    host="pre-db-test.postgres.database.azure.com",
     port="5432",
 )
+
+# demo database
+# source_db = DatabaseManager(
+#     database="pre-pdb-demo",
+#     user="psqladmin",
+#     password=demo_db_password,
+#     host="pre-db-demo.postgres.database.azure.com",
+#     port="5432",
+# )
 
 
 # dummy database on dev server
@@ -78,25 +79,28 @@ destination_db = DatabaseManager(
     host="localhost",
     port="5432",
 )
+logger = FailedImportsLogger()
+logger.load_existing_entries('failed_imports_log.txt')
+
 
 # managers for different tables
-room_manager = RoomManager(source_db.connection.cursor())
-user_manager = UserManager(source_db.connection.cursor())
-role_manager = RoleManager(source_db.connection.cursor())
-court_manager = CourtManager(source_db.connection.cursor())
-courtroom_manager = CourtRoomManager()
-region_manager = RegionManager()
-court_region_manager = CourtRegionManager()
-portal_access_manager = PortalAccessManager(source_db.connection.cursor())
-app_access_manager = AppAccessManager(source_db.connection.cursor())
-case_manager = CaseManager(source_db.connection.cursor())
-booking_manager = BookingManager(source_db.connection.cursor())
-participant_manager = ParticipantManager(source_db.connection.cursor())
-booking_participant_manager = BookingParticipantManager(source_db.connection.cursor())
-capture_session_manager = CaptureSessionManager(source_db.connection.cursor())
-recording_manager = RecordingManager(source_db.connection.cursor())
-share_bookings_manager = ShareBookingsManager(source_db.connection.cursor())
-audit_log_manager = AuditLogManager(source_db.connection.cursor())
+room_manager = RoomManager(source_db.connection.cursor(), logger)
+user_manager = UserManager(source_db.connection.cursor(), logger)
+role_manager = RoleManager(source_db.connection.cursor(), logger)
+court_manager = CourtManager(source_db.connection.cursor(), logger)
+courtroom_manager = CourtRoomManager(logger)
+region_manager = RegionManager(logger)
+court_region_manager = CourtRegionManager(logger)
+portal_access_manager = PortalAccessManager(source_db.connection.cursor(), logger)
+app_access_manager = AppAccessManager(source_db.connection.cursor(), logger)
+case_manager = CaseManager(source_db.connection.cursor(), logger)
+booking_manager = BookingManager(source_db.connection.cursor(), logger)
+participant_manager = ParticipantManager(source_db.connection.cursor(), logger)
+booking_participant_manager = BookingParticipantManager(source_db.connection.cursor(), logger)
+capture_session_manager = CaptureSessionManager(source_db.connection.cursor(), logger)
+recording_manager = RecordingManager(source_db.connection.cursor(), logger)
+share_bookings_manager = ShareBookingsManager(source_db.connection.cursor(), logger)
+audit_log_manager = AuditLogManager(source_db.connection.cursor(), logger)
 
 total_migration_time = 0 
 

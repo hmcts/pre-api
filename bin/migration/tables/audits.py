@@ -1,10 +1,12 @@
-from .helpers import check_existing_record, parse_to_timestamp, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, get_user_id 
 import uuid
+import json
 
 class AuditLogManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("SELECT * from public.audits")
@@ -23,7 +25,10 @@ class AuditLogManager:
                 category =audit_log[20]
                 activity = audit_log[2]
                 functional_area = audit_log[17]
-                audit_details = f'{{"description": "{audit_log[5]}, {audit_log[18]}, {audit_log[19]}"}}'
+
+                audit_details_dict = {"description": [audit_log[5],audit_log[18],audit_log[19]]}
+                audit_details_json = json.dumps(audit_details_dict)
+                audit_details = audit_details_json
                 created_at = parse_to_timestamp(audit_log[12])
 
                 if audit_log[11]:
@@ -48,5 +53,5 @@ class AuditLogManager:
             destination_cursor.connection.rollback() 
             self.failed_imports.add(('audits', id, e))
 
-        log_failed_imports(self.failed_imports)
+        self.logger.log_failed_imports(self.failed_imports)
 

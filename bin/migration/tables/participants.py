@@ -1,9 +1,10 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
 
 class ParticipantManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("SELECT * FROM public.contacts")
@@ -46,9 +47,10 @@ class ParticipantManager:
                 
                 first_name = participant[6]
                 last_name = participant[7]
-                if (first_name is None) or (last_name is None):
-                    self.failed_imports.add(('contacts', id, 'no participant names'))
+                if first_name is None or last_name is None:
+                    self.failed_imports.add(('contacts', id, 'Participant is missing either first name or last name'))
                     continue
+
                 
                 created_at = parse_to_timestamp(participant[9])
                 modified_at = parse_to_timestamp(participant[11])
@@ -83,6 +85,5 @@ class ParticipantManager:
         except Exception as e:
             self.failed_imports.add(('contacts', id, e))
         
-        
-        log_failed_imports(self.failed_imports) 
+        self.logger.log_failed_imports(self.failed_imports)
       

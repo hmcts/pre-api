@@ -1,9 +1,10 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id 
 
 class AppAccessManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         query = """ SELECT 
@@ -89,5 +90,5 @@ class AppAccessManager:
         except Exception as e:  
             self.failed_imports.add(('app_access',id, e)) 
 
-        log_failed_imports(self.failed_imports)    
+        self.logger.log_failed_imports(self.failed_imports) 
                 
