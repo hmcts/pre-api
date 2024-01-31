@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities.listeners;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
@@ -44,6 +45,8 @@ public class AuditListener {
         audit(entity, AuditAction.DELETE);
     }
 
+    ObjectMapper mapper = new ObjectMapper();
+
     private void audit(BaseEntity entity, AuditAction action) {
         if (entity.getClass() == Audit.class) {
             return;
@@ -56,6 +59,8 @@ public class AuditListener {
         audit.setTableName(getTableName(entity));
         audit.setTableRecordId(entity.getId());
         audit.setSource(AuditLogSource.AUTO);
+
+        audit.setAuditDetails(mapper.valueToTree(entity.getDetailsForAudit()));
         var xUserId = request.getHeader("X-User-Id");
         if (xUserId != null) {
             audit.setCreatedBy(UUID.fromString(xUserId));

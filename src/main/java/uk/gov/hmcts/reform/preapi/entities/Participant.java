@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.Set;
 
 @Getter
@@ -44,4 +45,15 @@ public class Participant extends CreatedModifiedAtEntity {
 
     @ManyToMany(mappedBy = "participants")
     private Set<Booking> bookings;
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        var details = new HashMap<String, Object>();
+        details.put("caseId", caseId.getId());
+        details.put("firstName", firstName);
+        details.put("lastName", lastName);
+        details.put("participantType", participantType);
+        details.put("deleted", deletedAt != null);
+        return details;
+    }
 }

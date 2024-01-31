@@ -48,7 +48,7 @@ class AuditTest {
         assertEquals(audit.getCategory(), retrievedAudit.getCategory(), "Category should match");
         assertEquals(audit.getActivity(), retrievedAudit.getActivity(), "Activity should match");
         assertEquals(audit.getFunctionalArea(), retrievedAudit.getFunctionalArea(), "Functional area should match");
-        assertEquals(audit.getAuditDetails(), retrievedAudit.getAuditDetails(), "Audit details should match");
+        assertEquals(audit.getDetailsForAudit(), retrievedAudit.getDetailsForAudit(), "Audit details should match");
         assertEquals(audit.getCreatedBy(), retrievedAudit.getCreatedBy(), "Created by should match");
         assertEquals(audit.getCreatedAt(), retrievedAudit.getCreatedAt(), "Created at should match");
     }

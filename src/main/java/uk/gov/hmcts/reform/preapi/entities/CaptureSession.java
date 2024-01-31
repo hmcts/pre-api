@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 
 @Getter
 @Setter
@@ -67,5 +68,23 @@ public class CaptureSession extends BaseEntity {
 
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        var details = new HashMap<String, Object>();
+        details.put("bookingId", booking.getId());
+        details.put("origin", origin);
+        details.put("startedAt", startedAt);
+        if (startedByUser != null) {
+            details.put("startedByUser", startedByUser.getEmail());
+        }
+        details.put("finishedAt", finishedAt);
+        if (finishedByUser != null) {
+            details.put("finishedByUser", finishedByUser.getEmail());
+        }
+        details.put("status", status);
+        details.put("deleted", isDeleted());
+        return details;
     }
 }
