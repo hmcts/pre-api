@@ -87,7 +87,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any()))
+        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
         MvcResult response = mockMvc.perform(get("/bookings?caseReference=MyRef")
@@ -116,7 +116,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any()))
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -146,7 +146,7 @@ class BookingControllerTest {
         var booking2 = new BookingDTO();
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
-        when(bookingService.searchBy(any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -168,7 +168,7 @@ class BookingControllerTest {
         var caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any())).thenReturn(Page.empty());
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any())).thenReturn(Page.empty());
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
@@ -195,8 +195,8 @@ class BookingControllerTest {
         var shareBooking = new ShareBookingDTO();
         shareBooking.setBookingId(bookingId);
         shareBooking.setId(UUID.randomUUID());
-        shareBooking.setSharedByUserId(UUID.randomUUID());
-        shareBooking.setSharedWithUserId(UUID.randomUUID());
+        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
         booking.setShares(Set.of(shareBooking));
 
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
@@ -400,13 +400,11 @@ class BookingControllerTest {
     void testShareBookingCreated() throws Exception {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
-        final UUID sharedWithUserId = UUID.randomUUID();
-        final UUID sharedByUserId = UUID.randomUUID();
 
         var shareBooking = new ShareBookingDTO();
         shareBooking.setId(shareBookingId);
-        shareBooking.setSharedWithUserId(sharedWithUserId);
-        shareBooking.setSharedByUserId(sharedByUserId);
+        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
         shareBooking.setBookingId(bookingId);
 
         when(shareBookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
@@ -432,14 +430,12 @@ class BookingControllerTest {
     void testShareBookingIdMismatch() throws Exception {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
-        final UUID sharedWithUserId = UUID.randomUUID();
-        final UUID sharedByUserId = UUID.randomUUID();
 
         var shareBooking = new ShareBookingDTO();
         shareBooking.setId(shareBookingId);
         shareBooking.setBookingId(UUID.randomUUID());
-        shareBooking.setSharedWithUserId(sharedWithUserId);
-        shareBooking.setSharedByUserId(sharedByUserId);
+        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
                                                  .with(csrf())

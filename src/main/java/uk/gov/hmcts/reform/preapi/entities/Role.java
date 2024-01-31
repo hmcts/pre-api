@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
+import java.util.HashMap;
 import java.util.Set;
 
 @Getter
@@ -24,4 +25,12 @@ public class Role extends BaseEntity {
 
     @ManyToMany(mappedBy = "roles")
     private Set<Permission> permissions;
+
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        var details = new HashMap<String, Object>();
+        details.put("name", getName());
+        details.put("permissions", getPermissions());
+        return details;
+    }
 }

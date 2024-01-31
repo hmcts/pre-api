@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
+import java.util.HashMap;
 import java.util.Set;
 
 @Getter
@@ -26,4 +27,11 @@ public class Permission extends BaseEntity {
         inverseJoinColumns = @JoinColumn(name = "role_id"))
     private Set<Role> roles;
 
+    @Override
+    public HashMap<String, Object> getDetailsForAudit() {
+        var details = new HashMap<String, Object>();
+        details.put("name", getName());
+        details.put("roles", getRoles());
+        return details;
+    }
 }
