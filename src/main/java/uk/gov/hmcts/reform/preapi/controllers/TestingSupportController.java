@@ -297,7 +297,7 @@ class TestingSupportController {
     private Role createRole() {
         var role = new Role();
         role.setId(UUID.randomUUID());
-        role.setName("ROLE_USER");
+        role.setName("Super User");
         roleRepository.save(role);
 
         return role;
