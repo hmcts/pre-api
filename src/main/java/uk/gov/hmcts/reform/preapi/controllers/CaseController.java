@@ -11,6 +11,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -43,6 +44,7 @@ public class CaseController extends PreApiController {
 
     @GetMapping("/{id}")
     @Operation(operationId = "getCaseById", summary = "Get a case by id")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaseDTO> getCaseById(@PathVariable(name = "id") UUID caseId) {
         return ResponseEntity.ok(caseService.findById(caseId));
     }
@@ -73,6 +75,7 @@ public class CaseController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<CaseDTO>>> getCases(
         @Parameter(hidden = true) @ModelAttribute SearchCases params,
         @Parameter(hidden = true) Pageable pageable,
@@ -89,6 +92,7 @@ public class CaseController extends PreApiController {
 
     @PutMapping("/{id}")
     @Operation(operationId = "putCase", summary = "Create or Update a Case")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertCase(@PathVariable UUID id, @Valid @RequestBody CreateCaseDTO createCaseDTO) {
         if (!id.equals(createCaseDTO.getId())) {
             throw new PathPayloadMismatchException("id", "createCaseDTO.id");
@@ -98,6 +102,7 @@ public class CaseController extends PreApiController {
 
     @DeleteMapping("/{id}")
     @Operation(operationId = "deleteCase", summary = "Mark a Case as deleted")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteCase(@PathVariable UUID id) {
         caseService.deleteById(id);
         return ResponseEntity.ok().build();

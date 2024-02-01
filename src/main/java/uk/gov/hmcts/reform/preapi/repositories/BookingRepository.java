@@ -58,6 +58,10 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
                 )
             )
             AND b.deletedAt IS NULL
+            AND (
+                :authorisedBookings IS NULL OR
+                b.id IN :authorisedBookings
+            )
         ORDER BY b.scheduledFor ASC
         """
     )
@@ -68,6 +72,7 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
         @Param("participantId") UUID participantId,
+        @Param("authorisedBookings") List<UUID> authorisedBookings,
         Pageable pageable
     );
 

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -21,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,6 +53,19 @@ public class UserService {
         return appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
             .map(UserDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
+    }
+
+    @Transactional
+    public List<AppAccessDTO> findByEmail(String email) {
+        var access = appAccessRepository.findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(email)
+            .stream()
+            .map(AppAccessDTO::new)
+            .toList();
+
+        if (access.isEmpty()) {
+            throw new NotFoundException("User: " + email);
+        }
+        return access;
     }
 
     @Transactional

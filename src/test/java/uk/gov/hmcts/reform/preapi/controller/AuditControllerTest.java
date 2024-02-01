@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.AuditService;
 
 import java.util.UUID;
@@ -37,6 +38,9 @@ class AuditControllerTest {
 
     @MockBean
     private AuditService auditService;
+
+    @MockBean
+    private UserAuthenticationService userAuthenticationService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

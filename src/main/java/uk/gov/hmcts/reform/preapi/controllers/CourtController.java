@@ -13,6 +13,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,6 +45,7 @@ public class CourtController extends PreApiController {
 
     @GetMapping("/{courtId}")
     @Operation(operationId = "getCourtById", summary = "Get a Court by Id")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CourtDTO> getCourtById(@PathVariable UUID courtId) {
         return ResponseEntity.ok(courtService.findById(courtId));
     }
@@ -87,6 +89,7 @@ public class CourtController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<CourtDTO>>> getCourts(
         @Parameter(hidden = true) @ModelAttribute() SearchCourts params,
         @Parameter(hidden = true) Pageable pageable,
@@ -109,6 +112,7 @@ public class CourtController extends PreApiController {
 
     @PutMapping("/{courtId}")
     @Operation(operationId = "putCourt", summary = "Create or Update a Court")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsert(@PathVariable UUID courtId,  @Valid @RequestBody CreateCourtDTO createCourtDTO) {
         if (!courtId.equals(createCourtDTO.getId())) {
             throw new PathPayloadMismatchException("courtId", "createCourtDTO.id");
