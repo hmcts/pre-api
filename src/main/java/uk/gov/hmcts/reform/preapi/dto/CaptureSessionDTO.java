@@ -20,8 +20,12 @@ public class CaptureSessionDTO extends CreateCaptureSessionDTO {
     @Schema(description = "CaptureSessionDeletedAt")
     private Timestamp deletedAt;
 
+    @Schema(description = "RecordingParticipants")
+    private String courtName;
+
     public CaptureSessionDTO(CaptureSession captureSession) {
         super(captureSession);
-        this.deletedAt = captureSession.getDeletedAt();
+        deletedAt = captureSession.getDeletedAt();
+        courtName = captureSession.getBooking().getCaseId().getCourt().getName();
     }
 }

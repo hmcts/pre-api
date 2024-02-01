@@ -14,4 +14,5 @@ public class SearchRecordings {
     private String caseReference;
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;
+    private UUID courtId;
 }

@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -19,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -59,10 +61,20 @@ public class CaptureSessionServiceTest {
 
     @BeforeAll
     static void setUp() {
+        booking = HelperFactory.createBooking(
+            HelperFactory.createCase(
+                HelperFactory.createCourt(CourtType.CROWN, "Foo Court", null),
+                "12345678",
+                false,
+                null
+            ),
+            Timestamp.from(java.time.Instant.now().plus(java.time.Duration.ofDays(1))),
+            null
+        );
+
         user = new User();
         user.setId(UUID.randomUUID());
-        booking = new Booking();
-        booking.setId(UUID.randomUUID());
+        
         captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setOrigin(RecordingOrigin.PRE);
