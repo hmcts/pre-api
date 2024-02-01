@@ -209,7 +209,7 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasCaseAccess(authenticationUser, caseId));
     }
 
-    @DisplayName("Should grant access to booking creation when user has access to booking, case and participants specified dto")
+    @DisplayName("Should grant access to booking creation when user has access to all entities specified in dto")
     @Test
     void hasUpsertAccessBooking() {
         when(authenticationUser.isSuperUser()).thenReturn(true);
