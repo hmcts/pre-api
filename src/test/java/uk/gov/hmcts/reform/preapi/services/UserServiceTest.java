@@ -571,4 +571,36 @@ public class UserServiceTest {
         verify(userRepository, never()).save(any());
         verify(appAccessRepository, never()).save(any());
     }
+
+    @DisplayName("Get a user's access information by email")
+    @Test
+    void findUserAccessByEmailSuccess() {
+        when(appAccessRepository
+                 .findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getEmail())
+        ).thenReturn(List.of(appAccessEntity));
+
+        var models = userService.findByEmail(userEntity.getEmail());
+
+        assertThat(models.size()).isEqualTo(1);
+        assertThat(models.getFirst().getId()).isEqualTo(appAccessEntity.getId());
+        assertThat(models.getFirst().getUser().getId()).isEqualTo(userEntity.getId());
+        assertThat(models.getFirst().getCourt().getId()).isEqualTo(appAccessEntity.getCourt().getId());
+        assertThat(models.getFirst().getRole().getId()).isEqualTo(appAccessEntity.getRole().getId());
+    }
+
+    @DisplayName("Get a user's access information by email when no app access found")
+    @Test
+    void findUserAccessByEmailNotFound() {
+        when(appAccessRepository
+                 .findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getEmail())
+        ).thenReturn(List.of());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> userService.findByEmail(userEntity.getEmail())
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: User: " + userEntity.getEmail());
+
+    }
 }

@@ -8,7 +8,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
-import java.util.HashMap;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,18 +26,10 @@ public class AuditControllerFT  extends FunctionalTestBase {
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setSource(AuditLogSource.AUTO);
 
-        var success = doPutRequest(AUDIT_ENDPOINT + audit.getId(), new HashMap<>() {
-            {
-                put("X-User-Id", UUID.randomUUID().toString());
-            }
-        }, OBJECT_MAPPER.writeValueAsString(audit));
+        var success = doPutRequest(AUDIT_ENDPOINT + audit.getId(), OBJECT_MAPPER.writeValueAsString(audit), true);
         assertThat(success.statusCode()).isEqualTo(201);
 
-        var error = doPutRequest(AUDIT_ENDPOINT + audit.getId(), new HashMap<>() {
-            {
-                put("X-User-Id", UUID.randomUUID().toString());
-            }
-        }, OBJECT_MAPPER.writeValueAsString(audit));
+        var error = doPutRequest(AUDIT_ENDPOINT + audit.getId(), OBJECT_MAPPER.writeValueAsString(audit), true);
         assertThat(error.statusCode()).isEqualTo(400);
         assertThat(error.body().jsonPath().getString("message"))
             .isEqualTo("Data is immutable and cannot be changed. Id: " + audit.getId());

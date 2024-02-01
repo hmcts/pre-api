@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.RoleController;
 import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.RoleService;
 
 import java.util.List;
@@ -31,6 +32,9 @@ public class RoleControllerTest {
 
     @MockBean
     private RoleService roleService;
+
+    @MockBean
+    private UserAuthenticationService userAuthenticationService;
 
     @DisplayName("Should get a list of roles with 200 response code")
     @Test

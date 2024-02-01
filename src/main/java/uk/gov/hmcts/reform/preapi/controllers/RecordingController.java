@@ -11,6 +11,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -45,6 +46,7 @@ public class RecordingController extends PreApiController {
 
     @GetMapping("/{recordingId}")
     @Operation(operationId = "getRecordingById", summary = "Get a Recording by Id")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<RecordingDTO> getRecordingById(
         @PathVariable UUID recordingId
     ) {
@@ -102,6 +104,7 @@ public class RecordingController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<RecordingDTO>>> searchRecordings(
         @Parameter(hidden = true) @ModelAttribute SearchRecordings params,
         @Parameter(hidden = true) Pageable pageable,
@@ -131,6 +134,7 @@ public class RecordingController extends PreApiController {
 
     @PutMapping("/{recordingId}")
     @Operation(operationId = "putRecordings", summary = "Create or Update a Recording")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsert(
         @PathVariable UUID recordingId,
         @RequestBody CreateRecordingDTO createRecordingDTO
@@ -145,6 +149,7 @@ public class RecordingController extends PreApiController {
 
     @DeleteMapping("/{recordingId}")
     @Operation(operationId = "deleteRecording", summary = "Delete a Recording")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteRecordingById(
         @PathVariable UUID recordingId
     ) {

@@ -5,17 +5,22 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = Application.class)
 class BookingServiceIT {
@@ -28,7 +33,63 @@ class BookingServiceIT {
 
     @Transactional
     @Test
+    public void testSearchBookingsNotSuperUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isSuperUser()).thenReturn(false);
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
+        entityManager.persist(court);
+
+        var region = HelperFactory.createRegion("Foo Region", Set.of(court));
+        entityManager.persist(region);
+
+        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
+        entityManager.persist(room);
+
+        var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
+        entityManager.persist(caseEntity);
+
+        var participant1 = HelperFactory.createParticipant(caseEntity,
+                                                           ParticipantType.WITNESS,
+                                                           "John",
+                                                           "Smith",
+                                                           null);
+        var participant2 = HelperFactory.createParticipant(caseEntity,
+                                                           ParticipantType.DEFENDANT,
+                                                           "Jane",
+                                                           "Doe",
+                                                           null);
+        entityManager.persist(participant1);
+        entityManager.persist(participant2);
+
+
+        var booking1 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2024-06-28 12:00:00"),
+                                                   null,
+                                                   Set.of(participant1, participant2));
+        var booking2 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2024-06-29 12:00:00"),
+                                                   null,
+                                                   Set.of(participant1, participant2));
+        entityManager.persist(booking1);
+        entityManager.persist(booking2);
+
+        when(mockAuth.getSharedBookings()).thenReturn(List.of(booking1.getId()));
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var findAllSharedWithUser = bookingService.searchBy(null, null, null, Optional.empty(), null, null);
+        assertEquals(1, findAllSharedWithUser.toList().size(), "Should find 1 booking");
+        assertEquals(booking1.getId(), findAllSharedWithUser.toList().getFirst().getId(), "Should find booking 1");
+    }
+
+    @Transactional
+    @Test
     public void testSearchBookings() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isSuperUser()).thenReturn(true);
+
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
         var court = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
         entityManager.persist(court);
 

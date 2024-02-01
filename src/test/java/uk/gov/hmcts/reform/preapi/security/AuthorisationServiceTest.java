@@ -1,0 +1,224 @@
+package uk.gov.hmcts.reform.preapi.security;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@SpringBootTest(classes = AuthorisationService.class)
+public class AuthorisationServiceTest {
+
+    @MockBean
+    private BookingRepository bookingRepository;
+
+    @MockBean
+    private CaseRepository caseRepository;
+
+    @MockBean
+    private ParticipantRepository participantRepository;
+
+    @Autowired
+    private AuthorisationService authorisationService;
+    private UserAuthentication authenticationUser;
+
+    @BeforeEach
+    void setUp() {
+        authenticationUser = mock(UserAuthentication.class);
+    }
+
+    @DisplayName("Should grant access to booking when booking id is null")
+    @Test
+    void hasBookingAccessIdNull() {
+        assertTrue(authorisationService.hasBookingAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to booking when user is super user")
+    @Test
+    void hasBookingAccessSuperUser() {
+        when(authenticationUser.isSuperUser()).thenReturn(true);
+
+        assertTrue(authorisationService.hasBookingAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to booking when booking does not exist")
+    @Test
+    void hasBookingAccessBookingNotFound() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(bookingRepository.existsById(id)).thenReturn(false);
+
+        assertTrue(authorisationService.hasBookingAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should grant access to booking when booking is shared with the user")
+    @Test
+    void hasBookingAccessBookingShared() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(bookingRepository.existsById(id)).thenReturn(true);
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of(id));
+
+        assertTrue(authorisationService.hasBookingAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should not grant access to booking when booking not shared with the user")
+    @Test
+    void hasBookingAccessNotShared() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(bookingRepository.existsById(id)).thenReturn(true);
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of(UUID.randomUUID()));
+
+        assertFalse(authorisationService.hasBookingAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should grant access to court when courtId is null")
+    @Test
+    void hasCourtAccessIdNull() {
+        assertTrue(authorisationService.hasCourtAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to court when user is super user")
+    @Test
+    void hasCourtAccessSuperUser() {
+        when(authenticationUser.isSuperUser()).thenReturn(true);
+
+        assertTrue(authorisationService.hasCourtAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to court when courtId matches user's courtId")
+    @Test
+    void hasCourtAccessMatchingCourtId() {
+        UUID courtId = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(courtId);
+
+        assertTrue(authorisationService.hasCourtAccess(authenticationUser, courtId));
+    }
+
+    @DisplayName("Should not grant access to court when courtId does not match user's courtId")
+    @Test
+    void hasCourtAccessNotMatchingCourtId() {
+        UUID userCourtId = UUID.randomUUID();
+        UUID otherCourtId = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(userCourtId);
+
+        assertFalse(authorisationService.hasCourtAccess(authenticationUser, otherCourtId));
+    }
+
+    @DisplayName("Should grant access to participant when participantId is null")
+    @Test
+    void hasParticipantAccessIdNull() {
+        assertTrue(authorisationService.hasParticipantAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to participant when user is super user")
+    @Test
+    void hasParticipantAccessSuperUser() {
+        when(authenticationUser.isSuperUser()).thenReturn(true);
+
+        assertTrue(authorisationService.hasParticipantAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to participant when participant does not exist")
+    @Test
+    void hasParticipantAccessNotFound() {
+        UUID participantId = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(participantRepository.findById(participantId)).thenReturn(java.util.Optional.empty());
+
+        assertTrue(authorisationService.hasParticipantAccess(authenticationUser, participantId));
+    }
+
+    @DisplayName("Should grant access to case when caseId is null")
+    @Test
+    void hasCaseAccessIdNull() {
+        assertTrue(authorisationService.hasCaseAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to case when user is super user")
+    @Test
+    void hasCaseAccessSuperUser() {
+        when(authenticationUser.isSuperUser()).thenReturn(true);
+
+        assertTrue(authorisationService.hasCaseAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to case when case does not exist")
+    @Test
+    void hasCaseAccessNotFound() {
+        UUID caseId = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(caseRepository.findById(caseId)).thenReturn(Optional.empty());
+
+        assertTrue(authorisationService.hasCaseAccess(authenticationUser, caseId));
+    }
+
+    @DisplayName("Should grant access to case when user's courtId matches case's courtId")
+    @Test
+    void hasCaseAccessMatchingCourtId() {
+        UUID userCourtId = UUID.randomUUID();
+        var court = new Court();
+        court.setId(userCourtId);
+        final var caseEntity = new Case();
+        caseEntity.setCourt(court);
+        UUID caseId = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(userCourtId);
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
+
+        assertTrue(authorisationService.hasCaseAccess(authenticationUser, caseId));
+    }
+
+    @DisplayName("Should not grant access to case when user's courtId does not match case's courtId")
+    @Test
+    void hasCaseAccessNotMatchingCourtId() {
+        UUID otherCourtId = UUID.randomUUID();
+        var court = new Court();
+        court.setId(otherCourtId);
+        final var caseEntity = new Case();
+        caseEntity.setCourt(court);
+        UUID caseId = UUID.randomUUID();
+        UUID userCourtId = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(userCourtId);
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
+
+        assertFalse(authorisationService.hasCaseAccess(authenticationUser, caseId));
+    }
+
+    @DisplayName("Should grant access to booking creation when user has access to all entities specified in dto")
+    @Test
+    void hasUpsertAccessBooking() {
+        when(authenticationUser.isSuperUser()).thenReturn(true);
+
+        var dto = new CreateBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCaseId(UUID.randomUUID());
+        dto.setParticipants(Set.of());
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+}
