@@ -12,7 +12,6 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
