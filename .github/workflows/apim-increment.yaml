@@ -17,12 +17,12 @@ jobs:
         run: |
           current_revision=$(grep -i 'revision' infrastructure/main.tf | grep -oE '[0-9]+')
           new_revision=$((current_revision + 1))
-          awk -v new_revision="$new_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf
+          awk -v new_revision="$new_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
 
       - name: Commit APIm revision to branch
         run: |
           git config --global user.email "138598290+pre-devops@users.noreply.github.com "
           git config --global user.name "PRE DevOps"
-          got add infrastructure/main.tf
+          git add infrastructure/main.tf
           git commit -m "Increment APIm revision number"
           git push
