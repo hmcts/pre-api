@@ -52,6 +52,10 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
             CAST(:scheduledForUntil as Timestamp) IS NULL OR
             r.captureSession.booking.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
         )
+        AND (
+            CAST(:courtId as uuid) IS NULL OR
+            r.captureSession.booking.caseId.court.id = :courtId
+        )
         """
     )
     Page<Recording> searchAllBy(
@@ -61,6 +65,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
         @Param("caseReference") String caseReference,
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
+        @Param("courtId") UUID courtId,
         Pageable pageable
     );
 
