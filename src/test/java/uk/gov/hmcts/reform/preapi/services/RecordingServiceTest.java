@@ -14,11 +14,13 @@ import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -56,6 +58,12 @@ class RecordingServiceTest {
         recordingEntity.setId(UUID.randomUUID());
         Booking bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
+        bookingEntity.setCaseId(HelperFactory.createCase(
+            HelperFactory.createCourt(CourtType.CROWN, "Test Court", "TC"),
+            "Test Case",
+            false,
+            null)
+        );
 
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
