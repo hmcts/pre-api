@@ -876,6 +876,9 @@ definitions:
         $ref: '#/definitions/Links'
       capture_session:
         $ref: '#/definitions/CaptureSessionDTO'
+      case_reference:
+        description: RecordingCaseReference
+        type: string
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -902,6 +905,12 @@ definitions:
         description: RecordingParentRecordingId
         format: uuid
         type: string
+      participants:
+        description: RecordingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       url:
         description: RecordingURL
         type: string
@@ -1211,6 +1220,9 @@ definitions:
     properties:
       capture_session:
         $ref: '#/definitions/CaptureSessionDTO'
+      case_reference:
+        description: RecordingCaseReference
+        type: string
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -1237,6 +1249,12 @@ definitions:
         description: RecordingParentRecordingId
         format: uuid
         type: string
+      participants:
+        description: RecordingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       url:
         description: RecordingURL
         type: string
