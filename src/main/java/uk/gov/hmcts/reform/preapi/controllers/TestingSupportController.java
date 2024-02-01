@@ -246,9 +246,9 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/create-authenticated-user",  produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/create-authenticated-user/super-user",  produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> createAuthenticatedUser() {
-        var appAccess = createAppAccess();
+        var appAccess = createAppAccess("Super User");
 
         var response = new HashMap<String, String>() {
             {
@@ -257,7 +257,6 @@ class TestingSupportController {
         };
         return ResponseEntity.ok(response);
     }
-
 
     private Court createTestCourt() {
         var court = new Court();
@@ -270,11 +269,11 @@ class TestingSupportController {
         return court;
     }
 
-    private AppAccess createAppAccess() {
+    private AppAccess createAppAccess(String role) {
         var access = new AppAccess();
         access.setUser(createUser());
         access.setCourt(createTestCourt());
-        access.setRole(createRole());
+        access.setRole(createRole(role));
         access.setActive(true);
         appAccessRepository.save(access);
 
@@ -294,10 +293,10 @@ class TestingSupportController {
         return user;
     }
 
-    private Role createRole() {
+    private Role createRole(String r) {
         var role = new Role();
         role.setId(UUID.randomUUID());
-        role.setName("Super User");
+        role.setName(r);
         roleRepository.save(role);
 
         return role;

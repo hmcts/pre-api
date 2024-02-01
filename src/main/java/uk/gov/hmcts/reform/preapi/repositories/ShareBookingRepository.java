@@ -54,4 +54,16 @@ public interface ShareBookingRepository extends SoftDeleteRepository<ShareBookin
     @Modifying
     @Transactional
     void deleteAllByBooking(Booking booking);
+
+    @Query(
+        """
+        SELECT s FROM ShareBooking s
+        WHERE s.sharedWith.id = ?1
+        AND s.deletedAt IS NULL
+        AND s.booking.caseId.court.id = ?2
+        """
+    )
+    List<ShareBooking> findAllSharesForUserByCourt(UUID userId, UUID courtId);
+
+
 }
