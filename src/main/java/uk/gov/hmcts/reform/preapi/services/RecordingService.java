@@ -51,6 +51,7 @@ public class RecordingService {
         UUID participantId,
         String caseReference,
         Optional<Timestamp> scheduledFor,
+        UUID courtId,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -66,6 +67,7 @@ public class RecordingService {
                 caseReference,
                 scheduledFor.orElse(null),
                 until,
+                courtId,
                 pageable
             )
             .map(RecordingDTO::new);

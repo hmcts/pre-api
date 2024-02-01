@@ -90,7 +90,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any(), any()))
+        when(recordingService.findAll(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -110,7 +110,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any(), any()))
+        when(recordingService.findAll(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -130,6 +130,7 @@ class RecordingControllerTest {
                 isNull(),
                 isNull(),
                 eq(Optional.of(Timestamp.valueOf("2024-01-01 00:00:00"))),
+                isNull(),
                 any()
             );
     }

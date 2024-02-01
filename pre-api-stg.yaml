@@ -106,6 +106,9 @@ definitions:
         description: CreateCaptureSessionBookingId
         format: uuid
         type: string
+      court_name:
+        description: RecordingParticipants
+        type: string
       deleted_at:
         description: CaptureSessionDeletedAt
         format: date-time
@@ -691,6 +694,9 @@ definitions:
       booking_id:
         description: CreateCaptureSessionBookingId
         format: uuid
+        type: string
+      court_name:
+        description: RecordingParticipants
         type: string
       deleted_at:
         description: CaptureSessionDeletedAt
@@ -2186,6 +2192,12 @@ paths:
           name: scheduledFor
           type: string
           x-example: '2024-04-27'
+        - description: The court to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
           format: int32
           in: query
