@@ -27,6 +27,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @WebMvcTest(AuditController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -60,7 +61,7 @@ class AuditControllerTest {
 
         MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
-                                                 .header("X-User-Id", xUserId)
+                                                 .header(X_USER_ID_HEADER, xUserId)
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -84,7 +85,7 @@ class AuditControllerTest {
 
         mockMvc.perform(put(getPath(audit.getId()))
                             .with(csrf())
-                            .header("X-User-Id", xUserId)
+                            .header(X_USER_ID_HEADER, xUserId)
                             .content(OBJECT_MAPPER.writeValueAsString(audit))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -106,7 +107,7 @@ class AuditControllerTest {
 
         MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
                             .with(csrf())
-                            .header("X-User-Id", xUserId)
+                            .header(X_USER_ID_HEADER, xUserId)
                             .content(OBJECT_MAPPER.writeValueAsString(audit))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
