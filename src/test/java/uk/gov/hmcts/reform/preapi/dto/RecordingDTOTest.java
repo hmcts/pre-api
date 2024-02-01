@@ -56,7 +56,12 @@ public class RecordingDTOTest {
 
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
         assertThat(model.getParticipants().size()).isEqualTo(2);
-        assertThat(model.getParticipants().stream().toList().get(0).getFirstName()).isEqualTo("Jane");
-        assertThat(model.getParticipants().stream().toList().get(1).getFirstName()).isEqualTo("John");
+        var sortedList = model
+            .getParticipants()
+            .stream()
+            .sorted((c1, c2) -> c1.getFirstName().compareTo(c2.getFirstName()))
+            .toList();
+        assertThat(sortedList.get(0).getFirstName()).isEqualTo("Jane");
+        assertThat(sortedList.get(1).getFirstName()).isEqualTo("John");
     }
 }
