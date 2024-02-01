@@ -24,5 +24,5 @@ jobs:
           git config --global user.email "138598290+pre-devops@users.noreply.github.com "
           git config --global user.name "PRE DevOps"
           got add infrastructure/main.tf
-          git commit -m "Increment revision number"
+          git commit -m "Increment APIm revision number"
           git push
