@@ -43,11 +43,10 @@ public class AuditController {
             throw new PathPayloadMismatchException("id", "createAuditDTO.id");
         }
 
-        var userId = headers.getValuesAsList(X_USER_ID_HEADER).getFirst();
-        this.auditService.upsert(
-            createAuditDTO,
-            userId != null ? UUID.fromString(userId) : null
-        );
+        var userId = headers.getValuesAsList(X_USER_ID_HEADER).isEmpty()
+            ? null
+            : UUID.fromString(headers.getValuesAsList(X_USER_ID_HEADER).getFirst());
+        this.auditService.upsert(createAuditDTO, userId);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }

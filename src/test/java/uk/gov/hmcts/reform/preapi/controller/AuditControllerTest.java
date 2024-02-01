@@ -71,6 +71,31 @@ class AuditControllerTest {
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
 
+    @DisplayName("Should create an audit record with 201 response code without x-user-id header")
+    @Test
+    void createAuditEndpointWithoutXUserIdCreated() throws Exception {
+
+        var audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
+        audit.setSource(AuditLogSource.AUTO);
+
+        var xUserId = UUID.randomUUID();
+        when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
+
+        System.out.println(OBJECT_MAPPER.writeValueAsString(audit));
+
+        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(audit))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+    }
+
     @DisplayName("Should fail to update an audit record as they are immutable")
     @Test
     void updateAuditFailure() throws Exception {
