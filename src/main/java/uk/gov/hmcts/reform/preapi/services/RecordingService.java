@@ -64,7 +64,8 @@ public class RecordingService {
                 t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedBookings = auth.isSuperUser() ? null : auth.getSharedBookings();
+        var authorisedBookings = auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings();
+        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
 
         return recordingRepository
             .searchAllBy(
@@ -76,6 +77,7 @@ public class RecordingService {
                 until,
                 courtId,
                 authorisedBookings,
+                authorisedCourt,
                 pageable
             )
             .map(RecordingDTO::new);

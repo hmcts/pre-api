@@ -35,7 +35,7 @@ class BookingServiceIT {
     @Test
     public void testSearchBookingsNotSuperUser() {
         var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isSuperUser()).thenReturn(false);
+        when(mockAuth.isAdmin()).thenReturn(false);
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
         entityManager.persist(court);
@@ -86,7 +86,8 @@ class BookingServiceIT {
     @Test
     public void testSearchBookings() {
         var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isSuperUser()).thenReturn(true);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 

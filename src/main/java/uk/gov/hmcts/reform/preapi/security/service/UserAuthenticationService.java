@@ -8,26 +8,21 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
-import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class UserAuthenticationService {
 
     private final AppAccessRepository appAccessRepository;
-    private final ShareBookingRepository shareBookingRepository;
 
     @Autowired
-    public UserAuthenticationService(AppAccessRepository appAccessRepository,
-                                     ShareBookingRepository shareBookingRepository) {
+    public UserAuthenticationService(AppAccessRepository appAccessRepository) {
         this.appAccessRepository = appAccessRepository;
-        this.shareBookingRepository = shareBookingRepository;
     }
 
     public UserAuthentication loadAppUserById(String id) {
@@ -49,7 +44,7 @@ public class UserAuthenticationService {
 
         return appAccessRepository
             .findByIdAndDeletedAtNullAndUser_DeletedAtNull(id)
-            .map(a -> new UserAuthentication(a, getSharedBookings(a), getAuthorities(a)));
+            .map(a -> new UserAuthentication(a, getAuthorities(a)));
     }
 
     private List<GrantedAuthority> getAuthorities(AppAccess access) {
@@ -59,13 +54,5 @@ public class UserAuthenticationService {
         } catch (Exception ignored) {
             return AuthorityUtils.NO_AUTHORITIES;
         }
-    }
-
-    private List<UUID> getSharedBookings(AppAccess access) {
-        return shareBookingRepository
-            .findAllSharesForUserByCourt(access.getUser().getId(), access.getCourt().getId())
-            .stream()
-            .map(share -> share.getBooking().getId())
-            .collect(Collectors.toList());
     }
 }

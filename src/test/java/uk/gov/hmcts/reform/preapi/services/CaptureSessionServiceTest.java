@@ -141,10 +141,11 @@ public class CaptureSessionServiceTest {
     @DisplayName("Find a list of capture sessions and return a list of models")
     @Test
     void searchCaptureSessionsSuccess() {
-        when(captureSessionRepository.searchCaptureSessionsBy(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(captureSessionRepository.searchCaptureSessionsBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(captureSession)));
         var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isSuperUser()).thenReturn(true);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
@@ -159,7 +160,8 @@ public class CaptureSessionServiceTest {
         var from = Timestamp.valueOf("2023-01-01 00:00:00");
         var until = Timestamp.valueOf("2023-01-01 23:59:59");
         var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isSuperUser()).thenReturn(true);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
@@ -171,6 +173,7 @@ public class CaptureSessionServiceTest {
                      isNull(),
                      eq(from),
                      eq(until),
+                     isNull(),
                      isNull(),
                      isNull())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));

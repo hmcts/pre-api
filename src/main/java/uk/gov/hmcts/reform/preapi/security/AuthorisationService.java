@@ -35,24 +35,29 @@ public class AuthorisationService {
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
-        return authentication.getSharedBookings().stream().anyMatch(b -> b.equals(bookingId));
+        var booking = bookingRepository.findById(bookingId).get();
+
+        return (authentication.isAppUser()
+            && booking.getCaseId().getCourt().getId().equals(authentication.getCourtId()
+        ) || (authentication.isPortalUser()
+            && authentication.getSharedBookings().stream().anyMatch(b -> b.equals(bookingId))));
     }
 
     public boolean hasCourtAccess(UserAuthentication authentication, UUID courtId) {
         return courtId == null
-            || authentication.isSuperUser()
+            || authentication.isAdmin()
             || authentication.getCourtId().equals(courtId);
     }
 
     public boolean hasBookingAccess(UserAuthentication authentication, UUID bookingId) {
         return bookingId == null
-            || authentication.isSuperUser()
+            || authentication.isAdmin()
             || !bookingRepository.existsById(bookingId)
             || isBookingSharedWithUser(authentication, bookingId);
     }
 
     public boolean hasCaptureSessionAccess(UserAuthentication authentication, UUID captureSessionId) {
-        if (captureSessionId == null || authentication.isSuperUser()) {
+        if (captureSessionId == null || authentication.isAdmin()) {
             return true;
         }
         var entity = captureSessionRepository.findById(captureSessionId).orElse(null);
@@ -60,7 +65,7 @@ public class AuthorisationService {
     }
 
     public boolean hasRecordingAccess(UserAuthentication authentication, UUID recordingId) {
-        if (recordingId == null || authentication.isSuperUser()) {
+        if (recordingId == null || authentication.isAdmin()) {
             return true;
         }
         var entity = recordingRepository.findById(recordingId).orElse(null);
@@ -68,7 +73,7 @@ public class AuthorisationService {
     }
 
     public boolean hasParticipantAccess(UserAuthentication authentication, UUID participantId) {
-        if (participantId == null || authentication.isSuperUser()) {
+        if (participantId == null || authentication.isAdmin()) {
             return true;
         }
 
@@ -77,7 +82,7 @@ public class AuthorisationService {
     }
 
     public boolean hasCaseAccess(UserAuthentication authentication, UUID caseId) {
-        if (caseId == null || authentication.isSuperUser()) {
+        if (caseId == null || authentication.isAdmin()) {
             return true;
         }
         var caseEntity = caseRepository.findById(caseId).orElse(null);
