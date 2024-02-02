@@ -141,8 +141,9 @@ public class CaptureSessionServiceTest {
     @DisplayName("Find a list of capture sessions and return a list of models")
     @Test
     void searchCaptureSessionsSuccess() {
-        when(captureSessionRepository.searchCaptureSessionsBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
-            .thenReturn(new PageImpl<>(List.of(captureSession)));
+        when(captureSessionRepository.searchCaptureSessionsBy(
+            any(), any(), any(), any(), any(), any(), any(), any(), any())
+        ).thenReturn(new PageImpl<>(List.of(captureSession)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
