@@ -35,10 +35,10 @@ public class AuthorisationService {
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
-        var booking = bookingRepository.findById(bookingId).get();
+        var booking = bookingRepository.findById(bookingId);
 
-        return (authentication.isAppUser()
-            && booking.getCaseId().getCourt().getId().equals(authentication.getCourtId()
+        return booking.isPresent() && (authentication.isAppUser()
+            && booking.get().getCaseId().getCourt().getId().equals(authentication.getCourtId()
         ) || (authentication.isPortalUser()
             && authentication.getSharedBookings().stream().anyMatch(b -> b.equals(bookingId))));
     }
