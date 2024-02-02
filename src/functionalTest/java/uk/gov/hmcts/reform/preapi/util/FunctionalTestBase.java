@@ -15,13 +15,12 @@ import java.util.logging.Logger;
 
 import static io.restassured.RestAssured.given;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @SpringBootTest(classes = {Application.class}, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
-
-    protected static final String X_USER_ID_HEADER = "X-User-Id";
 
     protected static UUID authenticatedUserId;
 

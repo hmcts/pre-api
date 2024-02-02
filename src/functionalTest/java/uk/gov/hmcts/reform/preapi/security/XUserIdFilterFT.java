@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 public class XUserIdFilterFT extends FunctionalTestBase {
 
@@ -30,17 +31,17 @@ public class XUserIdFilterFT extends FunctionalTestBase {
         assertThat(doGetRequest(ENDPOINT, false).getStatusCode()).isEqualTo(401);
 
         var headersIdEmpty = Map.of(
-            "X-User-Id", ""
+            X_USER_ID_HEADER, ""
         );
         assertThat(doGetRequest(ENDPOINT, headersIdEmpty, false).getStatusCode()).isEqualTo(401);
 
         var headersIdNotUserId = Map.of(
-            "X-User-Id", UUID.randomUUID().toString()
+            X_USER_ID_HEADER, UUID.randomUUID().toString()
         );
         assertThat(doGetRequest(ENDPOINT, headersIdNotUserId, false).getStatusCode()).isEqualTo(401);
 
         var headersIdNotUuid = Map.of(
-            "X-User-Id", "1234567890"
+            X_USER_ID_HEADER, "1234567890"
         );
         assertThat(doGetRequest(ENDPOINT, headersIdNotUuid, false).getStatusCode()).isEqualTo(401);
 

@@ -19,6 +19,8 @@ import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
 import java.util.UUID;
 
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
+
 
 @Component
 public class AuditListener {
@@ -85,7 +87,7 @@ public class AuditListener {
 
     private UUID getUserIdFromRequestHeader() {
         try {
-            var xUserId = request.getHeader("X-User-Id");
+            var xUserId = request.getHeader(X_USER_ID_HEADER);
             return UUID.fromString(xUserId);
         } catch (Exception e) {
             return null;
