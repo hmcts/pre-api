@@ -111,7 +111,7 @@ public class InviteController extends PreApiController {
 
     @PutMapping("/{id}")
     @Operation(operationId = "putInvite", summary = "Create or Update an Invite")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertInvite(@PathVariable UUID id,
                                              @Valid @RequestBody CreateInviteDTO createInviteDTO) {
         if (createInviteDTO.getId() == null || !id.toString().equals(createInviteDTO.getId().toString())) {
@@ -123,7 +123,7 @@ public class InviteController extends PreApiController {
 
     @DeleteMapping("/{id}")
     @Operation(operationId = "deleteInvite", summary = "Revoke an invite")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteInvite(@PathVariable UUID id) {
         inviteService.deleteById(id);
         return ResponseEntity.ok().build();

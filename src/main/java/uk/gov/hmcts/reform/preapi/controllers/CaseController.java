@@ -92,7 +92,7 @@ public class CaseController extends PreApiController {
 
     @PutMapping("/{id}")
     @Operation(operationId = "putCase", summary = "Create or Update a Case")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertCase(@PathVariable UUID id, @Valid @RequestBody CreateCaseDTO createCaseDTO) {
         if (!id.equals(createCaseDTO.getId())) {
             throw new PathPayloadMismatchException("id", "createCaseDTO.id");
@@ -102,7 +102,7 @@ public class CaseController extends PreApiController {
 
     @DeleteMapping("/{id}")
     @Operation(operationId = "deleteCase", summary = "Mark a Case as deleted")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteCase(@PathVariable UUID id) {
         caseService.deleteById(id);
         return ResponseEntity.ok().build();
