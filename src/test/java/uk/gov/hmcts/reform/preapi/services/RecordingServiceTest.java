@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -20,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -33,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -124,8 +127,11 @@ class RecordingServiceTest {
     @Test
     void findAllRecordingsSuccess() {
         when(
-            recordingRepository.searchAllBy(any(), any(), any(), any(), any(), any(), any(), any())
+            recordingRepository.searchAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isSuperUser()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var modelList = recordingService.findAll(null, null, null, null, Optional.empty(), null, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
@@ -140,8 +146,11 @@ class RecordingServiceTest {
         var until = Timestamp.valueOf("2023-01-01 23:59:59");
 
         when(
-            recordingRepository.searchAllBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull(), isNull())
+            recordingRepository.searchAllBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull(), isNull(), isNull())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isSuperUser()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var modelList = recordingService.findAll(null, null, null, null, Optional.of(from), null, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
@@ -284,12 +293,15 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
 
-        when(recordingRepository.searchAllBy(null, null, null, null,null, null, null, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(null, null, null,null, null,null, null, null, null)).thenReturn(Page.empty());
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isSuperUser()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var models = recordingService.findAll(null, null, null, null, Optional.empty(), null, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(null, null, null, null, null, null,null, null);
+            .searchAllBy(null, null, null, null, null,null, null,null, null);
 
         assertThat(models.size()).isEqualTo(0);
     }

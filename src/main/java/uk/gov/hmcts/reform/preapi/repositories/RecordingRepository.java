@@ -29,6 +29,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
         """
         SELECT r FROM Recording r
         WHERE r.deletedAt IS NULL
+        AND (:authorisedBookings IS NULL OR r.captureSession.booking.id IN :authorisedBookings)
         AND (
             CAST(:captureSessionId as uuid) IS NULL OR
             r.captureSession.id = :captureSessionId
@@ -66,6 +67,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
         @Param("courtId") UUID courtId,
+        @Param("authorisedBookings") List<UUID> authorisedBookings,
         Pageable pageable
     );
 

@@ -11,10 +11,12 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.List;
@@ -41,6 +43,9 @@ public class AuthorisationServiceTest {
 
     @MockBean
     private CaptureSessionRepository captureSessionRepository;
+
+    @MockBean
+    private RecordingRepository recordingRepository;
 
     @Autowired
     private AuthorisationService authorisationService;
@@ -288,4 +293,68 @@ public class AuthorisationServiceTest {
 
         assertFalse(authorisationService.hasCaptureSessionAccess(authenticationUser, captureSessionId));
     }
+
+    @DisplayName("Should grant access to recording when recording id is null")
+    @Test
+    void hasRecordingAccessIdNull() {
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to recording when user is super user")
+    @Test
+    void hasRecordingAccessSuperUser() {
+        when(authenticationUser.isSuperUser()).thenReturn(true);
+
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to recording when recording does not exist")
+    @Test
+    void hasRecordingAccessRecordingNotFound() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(recordingRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should grant access to recording when capture session access is granted")
+    @Test
+    void hasRecordingAccessCaptureSessionAccessGranted() {
+        var recordingId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSession();
+        recording.setCaptureSession(captureSession);
+
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
+    @DisplayName("Should not grant access to recording when capture session access is not granted")
+    @Test
+    void hasRecordingAccessCaptureSessionAccessNotGranted() {
+        var recordingId = UUID.randomUUID();
+        var captureSessionId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSession();
+        captureSession.setId(captureSessionId);
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        captureSession.setBooking(booking);
+        recording.setCaptureSession(captureSession);
+
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of());
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+        when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(bookingId)).thenReturn(true);
+
+        assertFalse(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
 }

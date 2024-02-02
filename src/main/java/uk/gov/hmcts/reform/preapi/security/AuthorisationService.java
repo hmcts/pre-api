@@ -4,10 +4,12 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.UUID;
@@ -18,15 +20,18 @@ public class AuthorisationService {
     private final CaseRepository caseRepository;
     private final ParticipantRepository participantRepository;
     private final CaptureSessionRepository captureSessionRepository;
+    private final RecordingRepository recordingRepository;
 
     public AuthorisationService(BookingRepository bookingRepository,
                                 CaseRepository caseRepository,
                                 ParticipantRepository participantRepository,
-                                CaptureSessionRepository captureSessionRepository) {
+                                CaptureSessionRepository captureSessionRepository,
+                                RecordingRepository recordingRepository) {
         this.bookingRepository = bookingRepository;
         this.caseRepository = caseRepository;
         this.participantRepository = participantRepository;
         this.captureSessionRepository = captureSessionRepository;
+        this.recordingRepository = recordingRepository;
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
@@ -52,6 +57,14 @@ public class AuthorisationService {
         }
         var entity = captureSessionRepository.findById(captureSessionId).orElse(null);
         return entity == null || hasBookingAccess(authentication, entity.getBooking().getId());
+    }
+
+    public boolean hasRecordingAccess(UserAuthentication authentication, UUID recordingId) {
+        if (recordingId == null || authentication.isSuperUser()) {
+            return true;
+        }
+        var entity = recordingRepository.findById(recordingId).orElse(null);
+        return entity == null || hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
     }
 
     public boolean hasParticipantAccess(UserAuthentication authentication, UUID participantId) {
@@ -85,5 +98,11 @@ public class AuthorisationService {
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateCaptureSessionDTO dto) {
         return hasCaptureSessionAccess(authentication, dto.getId())
             && hasBookingAccess(authentication, dto.getBookingId());
+    }
+
+    public boolean hasUpsertAccess(UserAuthentication authentication, CreateRecordingDTO dto) {
+        return hasCaptureSessionAccess(authentication, dto.getParentRecordingId())
+            && hasCaptureSessionAccess(authentication, dto.getCaptureSessionId())
+            && hasRecordingAccess(authentication, dto.getParentRecordingId());
     }
 }
