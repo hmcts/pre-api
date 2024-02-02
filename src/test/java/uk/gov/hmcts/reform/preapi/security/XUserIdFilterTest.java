@@ -25,6 +25,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @SpringBootTest(classes = XUserIdFilter.class)
 public class XUserIdFilterTest {
@@ -43,7 +44,7 @@ public class XUserIdFilterTest {
         var id = UUID.randomUUID();
 
         when(request.getRequestURI()).thenReturn("/example-uri");
-        when(request.getHeader("X-User-Id")).thenReturn(id.toString());
+        when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
         when(userAuthenticationService.loadAppUserById(id.toString())).thenReturn(auth);
 
         var response = mock(MockHttpServletResponse.class);
@@ -51,7 +52,7 @@ public class XUserIdFilterTest {
 
         filter.doFilter(request, response, filterChain);
 
-        verify(request, times(1)).getHeader("X-User-Id");
+        verify(request, times(1)).getHeader(X_USER_ID_HEADER);
         verify(userAuthenticationService, times(1)).loadAppUserById(id.toString());
         verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, times(1)).doFilter(request, response);
@@ -70,7 +71,7 @@ public class XUserIdFilterTest {
         filter.doFilter(request, response, filterChain);
 
         verify(request, times(1)).getRequestURI();
-        verify(request, never()).getHeader("X-User-Id");
+        verify(request, never()).getHeader(X_USER_ID_HEADER);
         verify(userAuthenticationService, never()).loadAppUserById(any());
         verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(filterChain, times(1)).doFilter(request, response);
@@ -85,7 +86,7 @@ public class XUserIdFilterTest {
         var writer = mock(PrintWriter.class);
         when(response.getWriter()).thenReturn(writer);
         when(request.getRequestURI()).thenReturn("/example-uri");
-        when(request.getHeader("X-User-Id")).thenReturn(id.toString());
+        when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
         doThrow(
             new BadCredentialsException("Unauthorised user: " + id)
         ).when(userAuthenticationService).loadAppUserById(id.toString());
@@ -94,7 +95,7 @@ public class XUserIdFilterTest {
 
         filter.doFilter(request, response, filterChain);
 
-        verify(request, times(1)).getHeader("X-User-Id");
+        verify(request, times(1)).getHeader(X_USER_ID_HEADER);
         verify(userAuthenticationService, times(1)).loadAppUserById(id.toString());
         verify(response, times(1)).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         verify(response).setContentType(MediaType.APPLICATION_JSON_VALUE);

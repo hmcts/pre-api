@@ -31,7 +31,8 @@ public class SecurityConfig {
         "/info",
         "/prometheus",
         "/users/by-email/**",
-        "/reports/**"
+        "/reports/**",
+        "/audit/**"
     };
 
     @Value("${testing-support-endpoints.enabled:false}")
