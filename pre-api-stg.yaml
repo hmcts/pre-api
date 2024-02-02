@@ -1464,11 +1464,6 @@ paths:
       operationId: putAudit
       parameters:
         - format: uuid
-          in: header
-          name: X-User-Id
-          required: true
-          type: string
-        - format: uuid
           in: path
           name: id
           required: true

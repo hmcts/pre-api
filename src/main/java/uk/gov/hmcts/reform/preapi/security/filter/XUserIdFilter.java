@@ -17,10 +17,10 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import java.io.IOException;
 import java.util.Arrays;
 
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
+
 @Component
 public class XUserIdFilter extends GenericFilterBean {
-
-    private static final String X_USER_ID_HEADER = "X-User-Id";
 
     private final UserAuthenticationService userAuthenticationService;
 

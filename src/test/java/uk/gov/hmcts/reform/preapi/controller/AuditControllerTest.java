@@ -27,6 +27,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @WebMvcTest(AuditController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -60,7 +61,32 @@ class AuditControllerTest {
 
         MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
                                                  .with(csrf())
-                                                 .header("X-User-Id", xUserId)
+                                                 .header(X_USER_ID_HEADER, xUserId)
+                                                 .content(OBJECT_MAPPER.writeValueAsString(audit))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+    }
+
+    @DisplayName("Should create an audit record with 201 response code without x-user-id header")
+    @Test
+    void createAuditEndpointWithoutXUserIdCreated() throws Exception {
+
+        var audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
+        audit.setSource(AuditLogSource.AUTO);
+
+        var xUserId = UUID.randomUUID();
+        when(auditService.upsert(audit, xUserId)).thenReturn(UpsertResult.CREATED);
+
+        System.out.println(OBJECT_MAPPER.writeValueAsString(audit));
+
+        MvcResult response = mockMvc.perform(put(getPath(audit.getId()))
+                                                 .with(csrf())
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -84,7 +110,7 @@ class AuditControllerTest {
 
         mockMvc.perform(put(getPath(audit.getId()))
                             .with(csrf())
-                            .header("X-User-Id", xUserId)
+                            .header(X_USER_ID_HEADER, xUserId)
                             .content(OBJECT_MAPPER.writeValueAsString(audit))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -106,7 +132,7 @@ class AuditControllerTest {
 
         MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
                             .with(csrf())
-                            .header("X-User-Id", xUserId)
+                            .header(X_USER_ID_HEADER, xUserId)
                             .content(OBJECT_MAPPER.writeValueAsString(audit))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))

@@ -18,6 +18,8 @@ import org.springframework.web.method.HandlerMethod;
 @Configuration
 public class OpenAPIConfiguration {
 
+    public static final String X_USER_ID_HEADER = "X-User-Id";
+
     @Bean
     public OpenAPI openAPI() {
         return new OpenAPI()
@@ -44,7 +46,7 @@ public class OpenAPIConfiguration {
             Parameter serviceAuthorizationHeader = new Parameter()
                 .in(ParameterIn.HEADER.toString())
                 .schema(new UUIDSchema())
-                .name("X-User-Id")
+                .name(X_USER_ID_HEADER)
                 .description("The User Id of the User making the request")
                 .example("123e4567-e89b-12d3-a456-426614174000")
                 .required(false); // set to true once Power Platform is updated.
