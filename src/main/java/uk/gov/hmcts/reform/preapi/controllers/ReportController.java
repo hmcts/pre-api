@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,7 +35,6 @@ public class ReportController {
 
     @GetMapping("/capture-sessions-concurrent")
     @Operation(operationId = "reportConcurrentCaptureSessions")
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<ConcurrentCaptureSessionReportDTO>> reportConcurrentCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCaptureSessions());
     }
@@ -46,14 +44,12 @@ public class ReportController {
         operationId = "reportRecordingsPerCase",
         summary = "Get the number of completed capture sessions for each case"
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<RecordingsPerCaseReportDTO>> reportRecordingsPerCase() {
         return ResponseEntity.ok(reportService.reportRecordingsPerCase());
     }
 
     @GetMapping("/edits")
     @Operation(operationId = "reportEdits", summary = "Get a report on recordings edits")
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<EditReportDTO>> reportEdits() {
         return ResponseEntity.ok(reportService.reportEdits());
     }
@@ -84,7 +80,6 @@ public class ReportController {
         schema = @Schema(implementation = String.class),
         example = "example@example.com"
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<SharedReportDTO>> reportBookingsShared(
         @Parameter(hidden = true) SearchSharedReport params
     ) {
@@ -101,7 +96,6 @@ public class ReportController {
         operationId = "reportSchedules",
         summary = "Get a list of completed capture sessions with booking details"
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<ScheduleReportDTO>> reportSchedules() {
         return ResponseEntity.ok(reportService.reportScheduled());
     }
@@ -117,7 +111,6 @@ public class ReportController {
         description = "The source of the playback. Only accepts PORTAL, APPLICATION or null",
         schema = @Schema(implementation = AuditLogSource.class)
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<PlaybackReportDTO>> reportPlayback(
         @RequestParam(required = false) AuditLogSource source
     ) {
@@ -129,7 +122,6 @@ public class ReportController {
         operationId = "reportCompletedCaptureSessions",
         summary = "Get a report on capture sessions with available recordings"
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<CompletedCaptureSessionReportDTO>> reportCompletedCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCompletedCaptureSessions());
     }
@@ -139,7 +131,6 @@ public class ReportController {
         operationId = "reportShareBookingRemoved",
         summary = "Get report on booking share removal"
     )
-    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<List<AccessRemovedReportDTO>> reportShareBookingRemoved() {
         return ResponseEntity.ok(reportService.reportAccessRemoved());
     }

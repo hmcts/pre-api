@@ -55,5 +55,4 @@ jobs:
           git config --global user.name 'PRE DevOps'
           git config --global user.email '138598290+pre-devops@users.noreply.github.com'
           git add pre-api-stg.yaml
-          git add infrastructure/main.tf
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update Swagger v2 Spec"; git push)
+          git diff --quiet && git diff --staged --quiet || (git add infrastructure/main.tf; git commit -m "Update Swagger v2 Spec and bump APIm revision"; git push)
