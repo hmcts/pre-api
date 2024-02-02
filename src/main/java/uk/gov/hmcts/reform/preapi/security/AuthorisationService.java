@@ -106,8 +106,7 @@ public class AuthorisationService {
     }
 
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateRecordingDTO dto) {
-        return hasCaptureSessionAccess(authentication, dto.getParentRecordingId())
-            && hasCaptureSessionAccess(authentication, dto.getCaptureSessionId())
+        return hasCaptureSessionAccess(authentication, dto.getCaptureSessionId())
             && hasRecordingAccess(authentication, dto.getParentRecordingId());
     }
 }

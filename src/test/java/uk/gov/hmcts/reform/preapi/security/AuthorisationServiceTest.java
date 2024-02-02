@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -390,6 +392,93 @@ public class AuthorisationServiceTest {
         when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         assertFalse(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
+    @DisplayName("Should grant upsert access when capture session access and booking access are granted")
+    @Test
+    void hasUpsertAccessCaptureSessionDTO() {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(null);
+        dto.setBookingId(null);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+
+    @DisplayName("Should grant upsert access when capture session access and recording access are granted")
+    @Test
+    void hasUpsertAccessRecordingDTO() {
+        var dto = new CreateRecordingDTO();
+        dto.setParentRecordingId(UUID.randomUUID());
+        dto.setCaptureSessionId(UUID.randomUUID());
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when capture session access is not granted")
+    @Test
+    void hasUpsertAccessRecordingDTOAccessNotGranted() {
+        var dto = new CreateRecordingDTO();
+        dto.setParentRecordingId(null);
+        dto.setCaptureSessionId(UUID.randomUUID());
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+
+        var captureSession = new CaptureSession();
+        captureSession.setId(dto.getCaptureSessionId());
+        captureSession.setBooking(booking);
+
+        when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(booking.getId())).thenReturn(true);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(authenticationUser.isAppUser()).thenReturn(true);
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when recording access is not granted")
+    @Test
+    void hasUpsertAccessCaptureSessionDTORecordingAccessNotGranted() {
+        var dto = new CreateRecordingDTO();
+        dto.setParentRecordingId(UUID.randomUUID());
+        dto.setCaptureSessionId(UUID.randomUUID());
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+
+        var parentRecording = new Recording();
+        parentRecording.setId(dto.getParentRecordingId());
+        parentRecording.setCaptureSession(captureSession);
+
+
+        when(captureSessionRepository.findById(dto.getCaptureSessionId())).thenReturn(Optional.empty());
+        when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(dto.getParentRecordingId())).thenReturn(Optional.of(parentRecording));
+        when(bookingRepository.existsById(booking.getId())).thenReturn(true);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(authenticationUser.isAppUser()).thenReturn(true);
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
 }
