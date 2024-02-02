@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -35,9 +34,6 @@ public class SecurityConfig {
         "/audit/**"
     };
 
-    @Value("${testing-support-endpoints.enabled:false}")
-    private String testingEndpointActive;
-
     @Autowired
     public SecurityConfig(UserAuthenticationService userAuthenticationService) {
         this.userAuthenticationService = userAuthenticationService;
@@ -45,11 +41,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        if ("true".equals(testingEndpointActive)) {
-            http.csrf(AbstractHttpConfigurer::disable);
-        }
-
         http
+            .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authorizationManagerRequestMatcherRegistry ->
                                        authorizationManagerRequestMatcherRegistry
                                            .requestMatchers(NOT_AUTHORIZED_URIS).permitAll()
