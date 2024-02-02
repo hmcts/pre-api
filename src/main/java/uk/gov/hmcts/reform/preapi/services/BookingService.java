@@ -147,6 +147,7 @@ public class BookingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void markAsDeleted(UUID id) {
         var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
         if (entity.isEmpty()) {
