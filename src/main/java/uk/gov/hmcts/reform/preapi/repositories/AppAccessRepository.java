@@ -1,13 +1,8 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
-import uk.gov.hmcts.reform.preapi.enums.AccessType;
 
 import java.util.List;
 import java.util.Optional;

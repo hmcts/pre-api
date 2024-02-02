@@ -20,18 +20,15 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
     @Query(
         """
         SELECT u FROM User u
-        LEFT JOIN a FROM AppAccess a
-        LEFT JOIN p FROM PortalAccess p
-        WHERE a.deletedAt IS NULL
-        AND a.user.deletedAt IS NULL
-        AND (:firstName IS NULL OR a.user.firstName ILIKE %:firstName%)
-        AND (:lastName IS NULL OR a.user.lastName ILIKE %:lastName%)
-        AND (:email IS NULL OR a.user.email ILIKE %:email%)
-        AND (:organisation IS NULL OR a.user.organisation ILIKE %:organisation%)
-        AND (CAST(:courtId as uuid) IS NULL OR a.court.id = :courtId)
-        AND (CAST(:roleId as uuid) IS NULL OR a.role.id = :roleId)
-        HAVING (:isPortalUser = false OR (:isPortalUser = true AND COUNT(p) > 0))
-        HAVING (:isAppUser = false OR (:isAppUser = true AND COUNT(a) > 0))
+        WHERE u.deletedAt IS NULL
+        AND (:firstName IS NULL OR u.firstName ILIKE %:firstName%)
+        AND (:lastName IS NULL OR u.lastName ILIKE %:lastName%)
+        AND (:email IS NULL OR u.email ILIKE %:email%)
+        AND (:organisation IS NULL OR u.organisation ILIKE %:organisation%)
+        AND (CAST(:courtId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.court.id = :courtId))
+        AND (CAST(:roleId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.role.id = :roleId))
+        AND (:isPortalUser = false OR EXISTS (SELECT 1 FROM u.portalAccess pa WHERE pa.user = u))
+        AND (:isAppUser = false OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.user = u))
         """
     )
     Page<User> searchAllBy(

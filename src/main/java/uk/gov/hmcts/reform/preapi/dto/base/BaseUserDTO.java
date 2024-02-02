@@ -7,9 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
-import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.PortalAccessDTO;
-import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.util.Set;
@@ -58,14 +56,14 @@ public class BaseUserDTO {
         this.organisation = user.getOrganisation();
         this.active = user.getDeletedAt() != null;
         this.appAccess = Stream.ofNullable(user.getAppAccess())
-            .flatMap(access -> access.stream()
-                .filter(a -> a.getDeletedAt() == null)
-                .map(AppAccessDTO::new))
-            .collect(Collectors.toSet());
+                               .flatMap(access -> access.stream()
+                                                        .filter(a -> a.getDeletedAt() == null)
+                                                        .map(AppAccessDTO::new))
+                               .collect(Collectors.toSet());
         this.portalAccess = Stream.ofNullable(user.getPortalAccess())
-            .flatMap(access -> access.stream()
-                .filter(a -> a.getDeletedAt() == null)
-                .map(PortalAccessDTO::new))
-            .collect(Collectors.toSet());
+                                  .flatMap(access -> access.stream()
+                                                           .filter(a -> a.getDeletedAt() == null)
+                                                           .map(PortalAccessDTO::new))
+                                  .collect(Collectors.toSet());
     }
 }

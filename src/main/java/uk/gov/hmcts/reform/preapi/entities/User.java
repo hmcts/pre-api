@@ -2,9 +2,7 @@ package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
@@ -41,11 +39,11 @@ public class User extends CreatedModifiedAtEntity {
     private Timestamp deletedAt;
 
     @OneToMany
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
     private Set<AppAccess> appAccess;
 
     @OneToMany
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
     private Set<PortalAccess> portalAccess;
 
     @Transient

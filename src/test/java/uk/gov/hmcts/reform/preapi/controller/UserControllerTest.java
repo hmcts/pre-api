@@ -100,8 +100,8 @@ public class UserControllerTest {
 
         mockMvc.perform(get("/users"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.userDTOList").isNotEmpty())
-            .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
+            .andExpect(jsonPath("$._embedded.baseUserDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.baseUserDTOList[0].id").value(userId.toString()));
     }
 
     @DisplayName("Should return a 404 when searching by a court that doesn't exist")
