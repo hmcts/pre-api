@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -20,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -33,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -74,7 +77,7 @@ public class CaptureSessionServiceTest {
 
         user = new User();
         user.setId(UUID.randomUUID());
-        
+
         captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setOrigin(RecordingOrigin.PRE);
@@ -138,8 +141,12 @@ public class CaptureSessionServiceTest {
     @DisplayName("Find a list of capture sessions and return a list of models")
     @Test
     void searchCaptureSessionsSuccess() {
-        when(captureSessionRepository.searchCaptureSessionsBy(any(), any(), any(), any(), any(), any(), any()))
+        when(captureSessionRepository.searchCaptureSessionsBy(any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(captureSession)));
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isSuperUser()).thenReturn(true);
+
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var modelList = captureSessionService.searchBy(null, null, null, null, Optional.empty(), null).getContent();
         assertThat(modelList.size()).isEqualTo(1);
@@ -151,9 +158,21 @@ public class CaptureSessionServiceTest {
     void searchCaptureSessionsScheduledForSuccess() {
         var from = Timestamp.valueOf("2023-01-01 00:00:00");
         var until = Timestamp.valueOf("2023-01-01 23:59:59");
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isSuperUser()).thenReturn(true);
+
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         when(captureSessionRepository
-                 .searchCaptureSessionsBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull())
+                 .searchCaptureSessionsBy(
+                     isNull(),
+                     isNull(),
+                     isNull(),
+                     isNull(),
+                     eq(from),
+                     eq(until),
+                     isNull(),
+                     isNull())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
 
         var modelList = captureSessionService.searchBy(null, null, null, null, Optional.of(from), null).getContent();

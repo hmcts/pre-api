@@ -7,9 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -35,6 +38,9 @@ public class AuthorisationServiceTest {
 
     @MockBean
     private ParticipantRepository participantRepository;
+
+    @MockBean
+    private CaptureSessionRepository captureSessionRepository;
 
     @Autowired
     private AuthorisationService authorisationService;
@@ -220,5 +226,66 @@ public class AuthorisationServiceTest {
         dto.setParticipants(Set.of());
 
         assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should grant access to capture session when capture session id is null")
+    @Test
+    void hasCaptureSessionAccessIdNull() {
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to capture session when user is super user")
+    @Test
+    void hasCaptureSessionAccessSuperUser() {
+        when(authenticationUser.isSuperUser()).thenReturn(true);
+
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to capture session when capture session does not exist")
+    @Test
+    void hasCaptureSessionAccessSessionNotFound() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(captureSessionRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should grant access to capture session when booking access is granted")
+    @Test
+    void hasCaptureSessionAccessBookingAccessGranted() {
+        var captureSessionId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var captureSession = new CaptureSession();
+        captureSession.setId(captureSessionId);
+        var booking = new Booking();
+        booking.setId(bookingId);
+        captureSession.setBooking(booking);
+
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(bookingId)).thenReturn(false);
+
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, captureSessionId));
+    }
+
+    @DisplayName("Should not grant access to capture session when booking access is not granted")
+    @Test
+    void hasCaptureSessionAccessBookingAccessNotGranted() {
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSession();
+        captureSession.setId(captureSessionId);
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        captureSession.setBooking(booking);
+
+        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of());
+        when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(bookingId)).thenReturn(true);
+
+        assertFalse(authorisationService.hasCaptureSessionAccess(authenticationUser, captureSessionId));
     }
 }
