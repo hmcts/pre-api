@@ -134,7 +134,7 @@ public class RecordingController extends PreApiController {
 
     @PutMapping("/{recordingId}")
     @Operation(operationId = "putRecordings", summary = "Create or Update a Recording")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsert(
         @PathVariable UUID recordingId,
         @RequestBody CreateRecordingDTO createRecordingDTO
@@ -149,7 +149,7 @@ public class RecordingController extends PreApiController {
 
     @DeleteMapping("/{recordingId}")
     @Operation(operationId = "deleteRecording", summary = "Delete a Recording")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteRecordingById(
         @PathVariable UUID recordingId
     ) {

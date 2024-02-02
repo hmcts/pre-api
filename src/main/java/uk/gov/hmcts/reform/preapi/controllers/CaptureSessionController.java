@@ -119,7 +119,7 @@ public class CaptureSessionController extends PreApiController {
 
     @DeleteMapping("/{captureSessionId}")
     @Operation(operationId = "deleteCaptureSessionById", summary = "Delete Capture Session by Id")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteCaptureSessionById(@PathVariable UUID captureSessionId) {
         captureSessionService.deleteById(captureSessionId);
         return ResponseEntity.ok().build();
@@ -127,7 +127,7 @@ public class CaptureSessionController extends PreApiController {
 
     @PutMapping("/{captureSessionId}")
     @Operation(operationId = "upsertCaptureSession", summary = "Create or Update a Capture Session")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertCaptureSession(
         @PathVariable UUID captureSessionId,
         @Valid @RequestBody CreateCaptureSessionDTO createCaptureSessionDTO

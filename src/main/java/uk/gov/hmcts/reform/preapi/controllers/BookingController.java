@@ -130,7 +130,7 @@ public class BookingController extends PreApiController {
 
     @PutMapping("/{bookingId}")
     @Operation(operationId = "putBooking", summary = "Create or Update a Booking")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsert(@PathVariable UUID bookingId,
                                        @Valid @RequestBody CreateBookingDTO createBookingDTO) {
         this.validateRequestWithBody(bookingId, createBookingDTO);
@@ -139,7 +139,7 @@ public class BookingController extends PreApiController {
 
     @DeleteMapping("/{bookingId}")
     @Operation(operationId = "deleteBooking", summary = "Delete a Booking")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> delete(@PathVariable UUID bookingId) {
         bookingService.markAsDeleted(bookingId);
         return noContent().build();
@@ -147,7 +147,7 @@ public class BookingController extends PreApiController {
 
     @PutMapping("/{bookingId}/share")
     @Operation(operationId = "shareBookingById", summary = "Share a Booking")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> shareBookingById(
         @PathVariable UUID bookingId,
         @RequestBody ShareBookingDTO shareBookingDTO
@@ -162,7 +162,7 @@ public class BookingController extends PreApiController {
 
     @DeleteMapping("/{bookingId}/share/{shareId}")
     @Operation(operationId = "deleteShareBookingById")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteShareBookingById(@PathVariable UUID bookingId, @PathVariable UUID shareId) {
         shareBookingService.deleteShareBookingById(bookingId, shareId);
         return noContent().build();

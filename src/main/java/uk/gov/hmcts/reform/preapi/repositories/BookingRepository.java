@@ -62,6 +62,9 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
                 :authorisedBookings IS NULL OR
                 b.id IN :authorisedBookings
             )
+            AND (CAST(:authCourtId as uuid) IS NULL OR
+                b.caseId.court.id = :authCourtId
+            )
         ORDER BY b.scheduledFor ASC
         """
     )
@@ -73,6 +76,7 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
         @Param("participantId") UUID participantId,
         @Param("authorisedBookings") List<UUID> authorisedBookings,
+        @Param("authCourtId") UUID authCourtId,
         Pageable pageable
     );
 
