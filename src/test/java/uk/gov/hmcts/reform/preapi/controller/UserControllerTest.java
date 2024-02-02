@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.controllers.UserController;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -91,10 +92,10 @@ public class UserControllerTest {
     @Test
     void getUsersSuccess() throws Exception {
         UUID userId = UUID.randomUUID();
-        UserDTO mockCourt = new UserDTO();
+        BaseUserDTO mockCourt = new BaseUserDTO();
         mockCourt.setId(userId);
-        Page<UserDTO> userList = new PageImpl<>(List.of(mockCourt));
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
+        Page<BaseUserDTO> userList = new PageImpl<>(List.of(mockCourt));
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
             .thenReturn(userList);
 
         mockMvc.perform(get("/users"))
@@ -109,7 +110,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -123,7 +124,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any());
+            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))

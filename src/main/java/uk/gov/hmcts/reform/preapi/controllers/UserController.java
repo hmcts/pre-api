@@ -24,6 +24,8 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -98,6 +100,11 @@ public class UserController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "accessType",
+        description = "Get Users by their access type",
+        schema = @Schema(implementation = AccessType.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -110,10 +117,10 @@ public class UserController extends PreApiController {
         example = "10"
     )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> getUsers(
+    public ResponseEntity<PagedModel<EntityModel<BaseUserDTO>>> getUsers(
         @Parameter(hidden = true) @ModelAttribute SearchUsers params,
         @Parameter(hidden = true) Pageable pageable,
-        @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
+        @Parameter(hidden = true) PagedResourcesAssembler<BaseUserDTO> assembler
     ) {
         var resultPage = userService.findAllBy(
             params.getFirstName(),
@@ -122,6 +129,7 @@ public class UserController extends PreApiController {
             params.getOrganisation(),
             params.getCourtId(),
             params.getRoleId(),
+            params.getAccessType(),
             pageable
         );
 
