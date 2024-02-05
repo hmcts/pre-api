@@ -182,7 +182,7 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISING
           - RECORDING
           - FINISHED
           - PROCESSING
@@ -257,7 +257,7 @@ definitions:
         description: CompletedCaptureSessionReportRecordingStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISING
           - RECORDING
           - FINISHED
           - PROCESSING
@@ -449,7 +449,7 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISING
           - RECORDING
           - FINISHED
           - PROCESSING
@@ -822,7 +822,7 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALIZATION
+          - INITIALISING
           - RECORDING
           - FINISHED
           - PROCESSING
@@ -1761,7 +1761,7 @@ paths:
         - description: The recording status to search for
           enum:
             - STANDBY
-            - INITIALIZATION
+            - INITIALISING
             - RECORDING
             - FINISHED
             - PROCESSING
