@@ -8,11 +8,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -28,6 +31,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -481,4 +485,136 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @DisplayName("Should grant upsert access for all participants when each participant has upsert access")
+    @Test
+    void hasUpsertAccessForAllParticipants() {
+        var participant1 = new CreateParticipantDTO();
+        participant1.setId(UUID.randomUUID());
+        var participant2 = new CreateParticipantDTO();
+        participant2.setId(UUID.randomUUID());
+        var participant3 = new CreateParticipantDTO();
+        participant3.setId(UUID.randomUUID());
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        var participants = Set.of(
+            participant1,
+            participant2,
+            participant3
+        );
+
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, participants));
+    }
+
+    @DisplayName("Should not grant upsert access for any participant when at least one participant lacks upsert access")
+    @Test
+    void hasUpsertAccessForAnyParticipantAccessNotGranted() {
+        var participant1 = new CreateParticipantDTO();
+        participant1.setId(UUID.randomUUID());
+        var participant2 = new CreateParticipantDTO();
+        participant2.setId(UUID.randomUUID());
+        var participant3 = new CreateParticipantDTO();
+        participant3.setId(UUID.randomUUID());
+
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+
+        var court2 = new Court();
+        court2.setId(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+
+        var aCase2 = new Case();
+        aCase2.setId(UUID.randomUUID());
+        aCase2.setCourt(court2);
+
+        var entity = new Participant();
+        entity.setCaseId(aCase);
+
+        var entity2 = new Participant();
+        entity2.setCaseId(aCase2);
+
+        when(participantRepository.findById(participant1.getId())).thenReturn(Optional.of(entity));
+        when(participantRepository.findById(participant2.getId())).thenReturn(Optional.of(entity2));
+        when(caseRepository.findById(aCase.getId())).thenReturn(Optional.of(aCase));
+        when(caseRepository.findById(aCase2.getId())).thenReturn(Optional.of(aCase2));
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(court.getId());
+
+        var participants = Set.of(
+            participant1,
+            participant2,
+            participant3
+        );
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, participants));
+    }
+
+    @DisplayName("Should grant upsert access for an empty set of participants")
+    @Test
+    void hasUpsertAccessEmptyParticipantSet() {
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, Set.of()));
+    }
+
+    @DisplayName("Should grant upsert access when case access, court access, and participant access are all granted")
+    @Test
+    void hasUpsertAccessAllAccessGranted() {
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when case access is not granted")
+    @Test
+    void hasUpsertAccessCaseAccessNotGranted() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+
+        var dto = new CreateCaseDTO();
+        dto.setId(aCase.getId());
+        dto.setCourtId(court.getId());
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+        when(caseRepository.findById(dto.getId())).thenReturn(Optional.of(aCase));
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when court access is not granted")
+    @Test
+    void hasUpsertAccessCourtAccessNotGranted() {
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+
+        when(caseRepository.findById(dto.getId())).thenReturn(Optional.empty());
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
 }

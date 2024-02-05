@@ -44,7 +44,7 @@ public class CaseController extends PreApiController {
 
     @GetMapping("/{id}")
     @Operation(operationId = "getCaseById", summary = "Get a case by id")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaseDTO> getCaseById(@PathVariable(name = "id") UUID caseId) {
         return ResponseEntity.ok(caseService.findById(caseId));
     }
@@ -75,7 +75,7 @@ public class CaseController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<CaseDTO>>> getCases(
         @Parameter(hidden = true) @ModelAttribute SearchCases params,
         @Parameter(hidden = true) Pageable pageable,
