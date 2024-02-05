@@ -9,10 +9,12 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -70,13 +72,14 @@ public class UserService {
 
     @Transactional
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
-    public Page<UserDTO> findAllBy(
+    public Page<BaseUserDTO> findAllBy(
         String firstName,
         String lastName,
         String email,
         String organisation,
         UUID court,
         UUID role,
+        AccessType accessType,
         Pageable pageable
     ) {
         if (court != null && !courtRepository.existsById(court)) {
@@ -87,8 +90,16 @@ public class UserService {
             throw new NotFoundException("Role: " + role);
         }
 
-        return appAccessRepository.searchAllBy(firstName, lastName, email, organisation, court, role, pageable)
-            .map(UserDTO::new);
+        return userRepository.searchAllBy(firstName,
+                                   lastName,
+                                   email,
+                                   organisation,
+                                   court,
+                                   role,
+                                   accessType == AccessType.PORTAL,
+                                   accessType == AccessType.APP,
+                                   pageable
+        ).map(BaseUserDTO::new);
     }
 
     @Transactional
