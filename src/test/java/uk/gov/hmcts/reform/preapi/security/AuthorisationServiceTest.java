@@ -582,6 +582,7 @@ public class AuthorisationServiceTest {
 
         var aCase = new Case();
         aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
 
         var dto = new CreateCaseDTO();
         dto.setId(aCase.getId());
