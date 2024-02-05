@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.validators.FutureDateConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.NotPastDateConstraint;
 import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 
@@ -30,8 +30,8 @@ public class CreateBookingDTO {
     private UUID caseId;
 
     @Schema(description = "CreateBookingScheduledFor")
-    @NotNull(message = "scheduled_for is required and must be in the future")
-    @FutureDateConstraint(message = "scheduled_for is required and must be in the future")
+    @NotNull(message = "scheduled_for is required and must not be before today")
+    @NotPastDateConstraint(message = "scheduled_for is required and must not be before today")
     private Timestamp scheduledFor;
 
     @Schema(description = "CreateBookingParticipants")
