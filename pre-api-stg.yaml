@@ -1252,16 +1252,16 @@ definitions:
         description: PortalAccessId
         format: uuid
         type: string
-      invitation_date_time:
-        description: PortalAccessInvitationDateTime
+      invited_at:
+        description: PortalAccessInvitedAt
         format: date-time
         type: string
       last_access:
         description: PortalAccessLastAccess
         format: date-time
         type: string
-      registered_date_time:
-        description: PortalAccessRegisteredDateTime
+      registered_at:
+        description: PortalAccessRegisteredAt
         format: date-time
         type: string
       status:

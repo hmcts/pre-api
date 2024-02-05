@@ -25,11 +25,11 @@ public class PortalAccessDTO {
     @Schema(description = "PortalAccessStatus")
     private AccessStatus status;
 
-    @Schema(description = "PortalAccessInvitationDateTime")
-    private Timestamp invitationDateTime;
+    @Schema(description = "PortalAccessInvitedAt")
+    private Timestamp invitedAt;
 
-    @Schema(description = "PortalAccessRegisteredDateTime")
-    private Timestamp registeredDateTime;
+    @Schema(description = "PortalAccessRegisteredAt")
+    private Timestamp registeredAt;
 
     @Schema(description = "PortalAccessDeletedAt")
     private Timestamp deletedAt;
@@ -38,8 +38,8 @@ public class PortalAccessDTO {
         id = access.getId();
         lastAccess = access.getLastAccess();
         status = access.getStatus();
-        invitationDateTime = access.getInvitationDateTime();
-        registeredDateTime = access.getRegisteredDateTime();
+        invitedAt = access.getInvitedAt();
+        registeredAt = access.getRegisteredAt();
         deletedAt = access.getDeletedAt();
     }
 }
