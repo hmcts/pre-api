@@ -11,7 +11,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SuppressWarnings("PMD.LawOfDemeter")
-class ShareBookingDTOTest {
+class CreateShareBookingDTOTest {
 
     private static ShareBooking shareBookingEntity;
 

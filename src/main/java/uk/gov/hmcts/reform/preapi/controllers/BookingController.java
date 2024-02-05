@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchBookings;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -150,14 +151,15 @@ public class BookingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> shareBookingById(
         @PathVariable UUID bookingId,
-        @RequestBody ShareBookingDTO shareBookingDTO
+        @RequestBody CreateShareBookingDTO createShareBookingDTO
     ) {
         // TODO Ensure user has access to share the recording
-        if (!bookingId.equals(shareBookingDTO.getBookingId())) {
+        if (!bookingId.equals(createShareBookingDTO.getBookingId())) {
             throw new PathPayloadMismatchException("bookingId", "shareBookingDTO.bookingId");
         }
 
-        return getUpsertResponse(shareBookingService.shareBookingById(shareBookingDTO), shareBookingDTO.getId());
+        return getUpsertResponse(shareBookingService
+                                     .shareBookingById(createShareBookingDTO), createShareBookingDTO.getId());
     }
 
     @DeleteMapping("/{bookingId}/share/{shareId}")
@@ -167,6 +169,24 @@ public class BookingController extends PreApiController {
         shareBookingService.deleteShareBookingById(bookingId, shareId);
         return noContent().build();
     }
+
+    @GetMapping("/{bookingId}/share")
+    @Operation(operationId = "getSharedBookingLogs")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
+    public HttpEntity<PagedModel<EntityModel<ShareBookingDTO>>> getSharedBookingLogs(
+        @PathVariable UUID bookingId,
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<ShareBookingDTO> assembler
+    ) {
+
+        var resultPage = shareBookingService.getShareLogsForBooking(bookingId, pageable);
+
+        if (pageable.getPageNumber() > resultPage.getTotalPages()) {
+            throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
+        }
+        return ok(assembler.toModel(resultPage));
+    }
+
 
     private void validateRequestWithBody(UUID bookingId, CreateBookingDTO createBookingDTO) {
         if (!bookingId.equals(createBookingDTO.getId())) {
