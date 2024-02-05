@@ -10,11 +10,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Constraint(validatedBy = FutureDateValidator.class)
+@Constraint(validatedBy = NotPastDateValidator.class)
 @Target({ ElementType.METHOD, ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
-public @interface FutureDateConstraint {
-    String message() default "Date must be in the future";
+public @interface NotPastDateConstraint {
+    String message() default "Date must not be in the past";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }
