@@ -143,7 +143,7 @@ public class UserController extends PreApiController {
 
     @PutMapping("/{userId}")
     @Operation(operationId = "putUser", summary = "Create or Update a User")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody CreateUserDTO createUserDTO) {
         if (!userId.equals(createUserDTO.getId())) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.userId");
@@ -154,7 +154,7 @@ public class UserController extends PreApiController {
 
     @DeleteMapping("/{userId}")
     @Operation(operationId = "deleteUser", summary = "Delete a User")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteUserById(@PathVariable UUID userId) {
         userService.deleteById(userId);
         return ResponseEntity.ok().build();

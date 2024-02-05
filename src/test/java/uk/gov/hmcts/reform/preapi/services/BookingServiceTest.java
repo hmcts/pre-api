@@ -123,11 +123,12 @@ class BookingServiceTest {
         var bookingModel2 = new BookingDTO(bookingEntity2);
 
         var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isSuperUser()).thenReturn(true);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null, null,null, null, null))
+        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null, null,null, null, null, null))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
                 {
                     add(bookingEntity1);
@@ -161,7 +162,7 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, null, null, null, null, null, null, null))
+        when(recordingRepository.searchAllBy(null, null, null, null, null, null, null,null, null, null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }

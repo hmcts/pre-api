@@ -7,11 +7,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.List;
@@ -36,6 +43,12 @@ public class AuthorisationServiceTest {
     @MockBean
     private ParticipantRepository participantRepository;
 
+    @MockBean
+    private CaptureSessionRepository captureSessionRepository;
+
+    @MockBean
+    private RecordingRepository recordingRepository;
+
     @Autowired
     private AuthorisationService authorisationService;
     private UserAuthentication authenticationUser;
@@ -54,7 +67,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant access to booking when user is super user")
     @Test
     void hasBookingAccessSuperUser() {
-        when(authenticationUser.isSuperUser()).thenReturn(true);
+        when(authenticationUser.isAdmin()).thenReturn(true);
 
         assertTrue(authorisationService.hasBookingAccess(authenticationUser, UUID.randomUUID()));
     }
@@ -63,29 +76,60 @@ public class AuthorisationServiceTest {
     @Test
     void hasBookingAccessBookingNotFound() {
         var id = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.isAdmin()).thenReturn(false);
         when(bookingRepository.existsById(id)).thenReturn(false);
 
         assertTrue(authorisationService.hasBookingAccess(authenticationUser, id));
     }
 
-    @DisplayName("Should grant access to booking when booking is shared with the user")
+    @DisplayName("Should grant access to booking when booking is shared with the user (when user is portal user)")
     @Test
     void hasBookingAccessBookingShared() {
+        var booking = new Booking();
         var id = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        booking.setId(id);
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
         when(bookingRepository.existsById(id)).thenReturn(true);
+        when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
         when(authenticationUser.getSharedBookings()).thenReturn(List.of(id));
 
         assertTrue(authorisationService.hasBookingAccess(authenticationUser, id));
     }
 
-    @DisplayName("Should not grant access to booking when booking not shared with the user")
+    @DisplayName("Should grant access to booking when booking is shared with the user (when user is app user)")
+    @Test
+    void hasBookingAccessBookingAppUser() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        var booking = new Booking();
+        var id = UUID.randomUUID();
+        booking.setId(id);
+        booking.setCaseId(aCase);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+        when(authenticationUser.isAppUser()).thenReturn(true);
+        when(authenticationUser.getCourtId()).thenReturn(court.getId());
+        when(bookingRepository.existsById(id)).thenReturn(true);
+        when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
+
+        assertTrue(authorisationService.hasBookingAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should not grant access to booking when booking not shared with the user (when user is portal user)")
     @Test
     void hasBookingAccessNotShared() {
+        var booking = new Booking();
         var id = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        booking.setId(id);
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
         when(bookingRepository.existsById(id)).thenReturn(true);
+        when(bookingRepository.findById(id)).thenReturn(Optional.of(booking));
         when(authenticationUser.getSharedBookings()).thenReturn(List.of(UUID.randomUUID()));
 
         assertFalse(authorisationService.hasBookingAccess(authenticationUser, id));
@@ -100,7 +144,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant access to court when user is super user")
     @Test
     void hasCourtAccessSuperUser() {
-        when(authenticationUser.isSuperUser()).thenReturn(true);
+        when(authenticationUser.isAdmin()).thenReturn(true);
 
         assertTrue(authorisationService.hasCourtAccess(authenticationUser, UUID.randomUUID()));
     }
@@ -109,7 +153,7 @@ public class AuthorisationServiceTest {
     @Test
     void hasCourtAccessMatchingCourtId() {
         UUID courtId = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.getCourtId()).thenReturn(courtId);
 
         assertTrue(authorisationService.hasCourtAccess(authenticationUser, courtId));
@@ -120,7 +164,7 @@ public class AuthorisationServiceTest {
     void hasCourtAccessNotMatchingCourtId() {
         UUID userCourtId = UUID.randomUUID();
         UUID otherCourtId = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.getCourtId()).thenReturn(userCourtId);
 
         assertFalse(authorisationService.hasCourtAccess(authenticationUser, otherCourtId));
@@ -135,7 +179,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant access to participant when user is super user")
     @Test
     void hasParticipantAccessSuperUser() {
-        when(authenticationUser.isSuperUser()).thenReturn(true);
+        when(authenticationUser.isAdmin()).thenReturn(true);
 
         assertTrue(authorisationService.hasParticipantAccess(authenticationUser, UUID.randomUUID()));
     }
@@ -144,7 +188,7 @@ public class AuthorisationServiceTest {
     @Test
     void hasParticipantAccessNotFound() {
         UUID participantId = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.isAdmin()).thenReturn(false);
         when(participantRepository.findById(participantId)).thenReturn(java.util.Optional.empty());
 
         assertTrue(authorisationService.hasParticipantAccess(authenticationUser, participantId));
@@ -159,7 +203,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant access to case when user is super user")
     @Test
     void hasCaseAccessSuperUser() {
-        when(authenticationUser.isSuperUser()).thenReturn(true);
+        when(authenticationUser.isAdmin()).thenReturn(true);
 
         assertTrue(authorisationService.hasCaseAccess(authenticationUser, UUID.randomUUID()));
     }
@@ -168,7 +212,7 @@ public class AuthorisationServiceTest {
     @Test
     void hasCaseAccessNotFound() {
         UUID caseId = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.isAdmin()).thenReturn(false);
         when(caseRepository.findById(caseId)).thenReturn(Optional.empty());
 
         assertTrue(authorisationService.hasCaseAccess(authenticationUser, caseId));
@@ -183,7 +227,7 @@ public class AuthorisationServiceTest {
         final var caseEntity = new Case();
         caseEntity.setCourt(court);
         UUID caseId = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.getCourtId()).thenReturn(userCourtId);
 
         when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
@@ -201,7 +245,7 @@ public class AuthorisationServiceTest {
         caseEntity.setCourt(court);
         UUID caseId = UUID.randomUUID();
         UUID userCourtId = UUID.randomUUID();
-        when(authenticationUser.isSuperUser()).thenReturn(false);
+        when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.getCourtId()).thenReturn(userCourtId);
 
         when(caseRepository.findById(caseId)).thenReturn(Optional.of(caseEntity));
@@ -212,7 +256,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant access to booking creation when user has access to all entities specified in dto")
     @Test
     void hasUpsertAccessBooking() {
-        when(authenticationUser.isSuperUser()).thenReturn(true);
+        when(authenticationUser.isAdmin()).thenReturn(true);
 
         var dto = new CreateBookingDTO();
         dto.setId(UUID.randomUUID());
@@ -221,4 +265,220 @@ public class AuthorisationServiceTest {
 
         assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
+
+    @DisplayName("Should grant access to capture session when capture session id is null")
+    @Test
+    void hasCaptureSessionAccessIdNull() {
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to capture session when user is super user")
+    @Test
+    void hasCaptureSessionAccessSuperUser() {
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to capture session when capture session does not exist")
+    @Test
+    void hasCaptureSessionAccessSessionNotFound() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(captureSessionRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should grant access to capture session when booking access is granted")
+    @Test
+    void hasCaptureSessionAccessBookingAccessGranted() {
+        var captureSessionId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var captureSession = new CaptureSession();
+        captureSession.setId(captureSessionId);
+        var booking = new Booking();
+        booking.setId(bookingId);
+        captureSession.setBooking(booking);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(bookingId)).thenReturn(false);
+
+        assertTrue(authorisationService.hasCaptureSessionAccess(authenticationUser, captureSessionId));
+    }
+
+    @DisplayName("Should not grant access to capture session when booking access is not granted")
+    @Test
+    void hasCaptureSessionAccessBookingAccessNotGranted() {
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSession();
+        captureSession.setId(captureSessionId);
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        captureSession.setBooking(booking);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of());
+        when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(bookingId)).thenReturn(true);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertFalse(authorisationService.hasCaptureSessionAccess(authenticationUser, captureSessionId));
+    }
+
+    @DisplayName("Should grant access to recording when recording id is null")
+    @Test
+    void hasRecordingAccessIdNull() {
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, null));
+    }
+
+    @DisplayName("Should grant access to recording when user is super user")
+    @Test
+    void hasRecordingAccessSuperUser() {
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, UUID.randomUUID()));
+    }
+
+    @DisplayName("Should grant access to recording when recording does not exist")
+    @Test
+    void hasRecordingAccessRecordingNotFound() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(recordingRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, id));
+    }
+
+    @DisplayName("Should grant access to recording when capture session access is granted")
+    @Test
+    void hasRecordingAccessCaptureSessionAccessGranted() {
+        var recordingId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSession();
+        recording.setCaptureSession(captureSession);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+
+        assertTrue(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
+    @DisplayName("Should not grant access to recording when capture session access is not granted")
+    @Test
+    void hasRecordingAccessCaptureSessionAccessNotGranted() {
+        var recordingId = UUID.randomUUID();
+        var captureSessionId = UUID.randomUUID();
+        var recording = new Recording();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSession();
+        captureSession.setId(captureSessionId);
+        var bookingId = UUID.randomUUID();
+        var booking = new Booking();
+        booking.setId(bookingId);
+        captureSession.setBooking(booking);
+        recording.setCaptureSession(captureSession);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of());
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.of(recording));
+        when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(bookingId)).thenReturn(true);
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertFalse(authorisationService.hasRecordingAccess(authenticationUser, recordingId));
+    }
+
+    @DisplayName("Should grant upsert access when capture session access and booking access are granted")
+    @Test
+    void hasUpsertAccessCaptureSessionDTO() {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(null);
+        dto.setBookingId(null);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+
+    @DisplayName("Should grant upsert access when capture session access and recording access are granted")
+    @Test
+    void hasUpsertAccessRecordingDTO() {
+        var dto = new CreateRecordingDTO();
+        dto.setParentRecordingId(UUID.randomUUID());
+        dto.setCaptureSessionId(UUID.randomUUID());
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when capture session access is not granted")
+    @Test
+    void hasUpsertAccessRecordingDTOAccessNotGranted() {
+        var dto = new CreateRecordingDTO();
+        dto.setParentRecordingId(null);
+        dto.setCaptureSessionId(UUID.randomUUID());
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+
+        var captureSession = new CaptureSession();
+        captureSession.setId(dto.getCaptureSessionId());
+        captureSession.setBooking(booking);
+
+        when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
+        when(bookingRepository.existsById(booking.getId())).thenReturn(true);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(authenticationUser.isAppUser()).thenReturn(true);
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when recording access is not granted")
+    @Test
+    void hasUpsertAccessCaptureSessionDTORecordingAccessNotGranted() {
+        var dto = new CreateRecordingDTO();
+        dto.setParentRecordingId(UUID.randomUUID());
+        dto.setCaptureSessionId(UUID.randomUUID());
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+
+        var parentRecording = new Recording();
+        parentRecording.setId(dto.getParentRecordingId());
+        parentRecording.setCaptureSession(captureSession);
+
+
+        when(captureSessionRepository.findById(dto.getCaptureSessionId())).thenReturn(Optional.empty());
+        when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(dto.getParentRecordingId())).thenReturn(Optional.of(parentRecording));
+        when(bookingRepository.existsById(booking.getId())).thenReturn(true);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+        when(authenticationUser.isAppUser()).thenReturn(true);
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
 }

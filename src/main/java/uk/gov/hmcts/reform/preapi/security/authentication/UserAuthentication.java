@@ -15,12 +15,13 @@ public class UserAuthentication extends AbstractAuthenticationToken {
     private final String email;
     private final AppAccess appAccess;
     private final UUID courtId;
-    private final boolean superUser;
+    private final boolean admin;
+    private final boolean portalUser;
+    private final boolean appUser;
     private final List<UUID> sharedBookings;
 
     public UserAuthentication(
         AppAccess access,
-        List<UUID> sharedBookings,
         Collection<? extends GrantedAuthority> authorities
     ) {
         super(authorities);
@@ -28,10 +29,16 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         email = access.getUser().getEmail();
         appAccess = access;
         courtId = access.getCourt().getId();
-        this.sharedBookings = sharedBookings;
-        superUser = authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_USER"));
+        this.sharedBookings = List.of();
+        appUser = true;
+        portalUser = false;
+        admin = authorities.stream().anyMatch(a ->
+                                                  a.getAuthority().equals("ROLE_SUPER_USER")
+                                                      || a.getAuthority().equals("ROLE_LEVEL_1"));
         setAuthenticated(true);
     }
+
+    // TODO constructor for portal access request
 
     @Override
     public Object getCredentials() {

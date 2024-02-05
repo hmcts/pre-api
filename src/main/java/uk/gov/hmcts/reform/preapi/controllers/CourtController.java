@@ -112,7 +112,7 @@ public class CourtController extends PreApiController {
 
     @PutMapping("/{courtId}")
     @Operation(operationId = "putCourt", summary = "Create or Update a Court")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasRole('ROLE_SUPER_USER')")
     public ResponseEntity<Void> upsert(@PathVariable UUID courtId,  @Valid @RequestBody CreateCourtDTO createCourtDTO) {
         if (!courtId.equals(createCourtDTO.getId())) {
             throw new PathPayloadMismatchException("courtId", "createCourtDTO.id");
