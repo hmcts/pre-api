@@ -79,6 +79,7 @@ destination_db = DatabaseManager(
     host="localhost",
     port="5432",
 )
+
 logger = FailedImportsLogger()
 logger.load_existing_entries('failed_imports_log.txt')
 

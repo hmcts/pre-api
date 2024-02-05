@@ -23,7 +23,8 @@ class CourtRegionManager:
             {"name": "Kingston upon Thames Crown Court", "region": "London"},
             # {"name": "Kingston-upon-Thames Crown Court", "region": "London"},
             {"name": "Leeds Youth Court", "region": "Yorkshire and The Humber"},
-            {"name": "Default Court", "region": "London"}
+            {"name": "Default Court", "region": "London"},
+            {"name": "Test","region": "Test"}
         ]
         court_regions_dict = {court["name"]: court["region"] for court in court_regions}
 
