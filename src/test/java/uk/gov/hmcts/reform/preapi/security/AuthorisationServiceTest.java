@@ -11,6 +11,8 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -617,4 +619,80 @@ public class AuthorisationServiceTest {
 
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
+
+    @DisplayName("Should grant upsert access when the user is the one sharing the booking and has booking access")
+    @Test
+    void hasUpsertAccessUserIsSharingAndHasBookingAccess() {
+        var dto = new ShareBookingDTO();
+        var userId = UUID.randomUUID();
+        var sharedBy = new UserDTO();
+        sharedBy.setId(userId);
+
+        dto.setSharedByUser(sharedBy);
+        dto.setBookingId(UUID.randomUUID());
+
+        when(authenticationUser.getUserId()).thenReturn(userId);
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(bookingRepository.existsById(dto.getBookingId())).thenReturn(false);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when the authenticated user is not the one sharing the booking")
+    @Test
+    void hasUpsertAccessUserIsNotSharing() {
+        var dto = new ShareBookingDTO();
+        var sharedBy = new UserDTO();
+        sharedBy.setId(UUID.randomUUID());
+
+        dto.setSharedByUser(sharedBy);
+        dto.setBookingId(UUID.randomUUID());
+
+        when(authenticationUser.getUserId()).thenReturn(UUID.randomUUID());
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should grant upsert access when the authenticated user is an admin")
+    @Test
+    void hasUpsertAccessUserIsAdmin() {
+        var dto = new ShareBookingDTO();
+        var userId = UUID.randomUUID();
+        var sharedBy = new UserDTO();
+        sharedBy.setId(userId);
+
+        dto.setSharedByUser(sharedBy);
+        dto.setBookingId(UUID.randomUUID());
+
+        when(authenticationUser.getUserId()).thenReturn(userId);
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when the user is not admin and does not have booking access")
+    @Test
+    void hasUpsertAccessUserIsNotAdminAndNoBookingAccess() {
+        var dto = new ShareBookingDTO();
+        var userId = UUID.randomUUID();
+        var sharedBy = new UserDTO();
+        sharedBy.setId(userId);
+
+        dto.setSharedByUser(sharedBy);
+        dto.setBookingId(UUID.randomUUID());
+
+        var booking = new Booking();
+        booking.setId(dto.getBookingId());
+
+        when(authenticationUser.getUserId()).thenReturn(userId);
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isAppUser()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(true);
+        when(authenticationUser.getSharedBookings()).thenReturn(List.of(UUID.randomUUID()));
+        when(bookingRepository.existsById(booking.getId())).thenReturn(true);
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
 }
