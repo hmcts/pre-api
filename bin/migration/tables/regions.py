@@ -20,7 +20,8 @@ class RegionManager:
             'East of England',
             'South West (England)',
             'Wales',
-            'Test'
+            'Test',
+            'Default'
         ]
 
         for region in region_data:
