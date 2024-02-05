@@ -613,6 +613,19 @@ definitions:
         format: int32
         type: integer
     type: object
+  CreateShareBookingDTO:
+    properties:
+      booking_id:
+        format: uuid
+        type: string
+      id:
+        format: uuid
+        type: string
+      shared_by_user:
+        $ref: '#/definitions/BaseUserDTO'
+      shared_with_user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
   CreateUserDTO:
     description: CreateUserDTO
     properties:
@@ -988,6 +1001,27 @@ definitions:
         format: int32
         type: integer
     type: object
+  EntityModelShareBookingDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      booking_id:
+        format: uuid
+        type: string
+      created_at:
+        format: date-time
+        type: string
+      deleted_at:
+        format: date-time
+        type: string
+      id:
+        format: uuid
+        type: string
+      shared_by_user:
+        $ref: '#/definitions/BaseUserDTO'
+      shared_with_user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
   InviteDTO:
     description: InviteDTO
     properties:
@@ -1154,6 +1188,20 @@ definitions:
           recordingDTOList:
             items:
               $ref: '#/definitions/EntityModelRecordingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelShareBookingDTO:
+    properties:
+      _embedded:
+        properties:
+          shareBookingDTOList:
+            items:
+              $ref: '#/definitions/EntityModelShareBookingDTO'
             type: array
         type: object
       _links:
@@ -1407,9 +1455,16 @@ definitions:
         type: string
     type: object
   ShareBookingDTO:
+    description: BookingShares
     properties:
       booking_id:
         format: uuid
+        type: string
+      created_at:
+        format: date-time
+        type: string
+      deleted_at:
+        format: date-time
         type: string
       id:
         format: uuid
@@ -1682,6 +1737,30 @@ paths:
       tags:
         - booking-controller
   '/bookings/{bookingId}/share':
+    get:
+      operationId: getSharedBookingLogs
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelShareBookingDTO'
+      tags:
+        - booking-controller
     put:
       consumes:
         - application/json
@@ -1703,7 +1782,7 @@ paths:
           name: body
           required: true
           schema:
-            $ref: '#/definitions/ShareBookingDTO'
+            $ref: '#/definitions/CreateShareBookingDTO'
       responses:
         '200':
           description: OK
