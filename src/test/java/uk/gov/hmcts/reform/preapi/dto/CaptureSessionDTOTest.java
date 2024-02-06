@@ -28,7 +28,7 @@ class CaptureSessionDTOTest {
         captureSession.setDeletedAt(null);
         captureSession.setLiveOutputUrl("liveOutputUrl");
         captureSession.setStartedAt(Timestamp.from(java.time.Instant.now()));
-        captureSession.setStatus(RecordingStatus.AVAILABLE);
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var booking = HelperFactory.createBooking(
             HelperFactory.createCase(
