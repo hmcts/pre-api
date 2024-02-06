@@ -168,7 +168,7 @@ public class CaptureSessionControllerTest {
     void getAllCaptureSessionsFilterStatusSuccess() throws Exception {
         var mock = new CaptureSessionDTO();
         mock.setId(UUID.randomUUID());
-        var searchParam = RecordingStatus.AVAILABLE;
+        var searchParam = RecordingStatus.RECORDING_AVAILABLE;
 
         when(captureSessionService.searchBy(any(), any(), any(), eq(searchParam), any(), any()))
             .thenReturn(new PageImpl<>(List.of(mock)));
@@ -239,7 +239,7 @@ public class CaptureSessionControllerTest {
         dto.setId(id);
         dto.setBookingId(UUID.randomUUID());
         dto.setOrigin(RecordingOrigin.PRE);
-        dto.setStatus(RecordingStatus.AVAILABLE);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionService.upsert(dto)).thenReturn(UpsertResult.CREATED);
 
@@ -264,7 +264,7 @@ public class CaptureSessionControllerTest {
         dto.setId(id);
         dto.setBookingId(UUID.randomUUID());
         dto.setOrigin(RecordingOrigin.PRE);
-        dto.setStatus(RecordingStatus.AVAILABLE);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionService.upsert(dto)).thenReturn(UpsertResult.UPDATED);
 
@@ -287,7 +287,7 @@ public class CaptureSessionControllerTest {
         var dto =  new CreateCaptureSessionDTO();
         dto.setBookingId(UUID.randomUUID());
         dto.setOrigin(RecordingOrigin.PRE);
-        dto.setStatus(RecordingStatus.AVAILABLE);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var response = mockMvc.perform(put(CAPTURE_SESSION_ID_PATH, UUID.randomUUID())
                                                  .with(csrf())
@@ -307,7 +307,7 @@ public class CaptureSessionControllerTest {
         var dto =  new CreateCaptureSessionDTO();
         dto.setId(id);
         dto.setOrigin(RecordingOrigin.PRE);
-        dto.setStatus(RecordingStatus.AVAILABLE);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var response = mockMvc.perform(put(CAPTURE_SESSION_ID_PATH, id)
                                                  .with(csrf())
@@ -327,7 +327,7 @@ public class CaptureSessionControllerTest {
         var dto =  new CreateCaptureSessionDTO();
         dto.setId(id);
         dto.setBookingId(UUID.randomUUID());
-        dto.setStatus(RecordingStatus.AVAILABLE);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var response = mockMvc.perform(put(CAPTURE_SESSION_ID_PATH, id)
                                            .with(csrf())
@@ -367,7 +367,7 @@ public class CaptureSessionControllerTest {
         dto.setId(UUID.randomUUID());
         dto.setBookingId(UUID.randomUUID());
         dto.setOrigin(RecordingOrigin.PRE);
-        dto.setStatus(RecordingStatus.AVAILABLE);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var response = mockMvc.perform(put(CAPTURE_SESSION_ID_PATH, UUID.randomUUID())
                                            .with(csrf())

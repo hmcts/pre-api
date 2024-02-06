@@ -16,7 +16,7 @@ class CaptureSessionManager:
         if status_lower in ["assets created - waiting for event to start", "deleted", "error - failed to start", "no recording available", "no stream detected", "no recording"]:
             result = "STANDBY"
         elif status_lower in ["initiating request...","ready to record"]:
-            result =  "INITIALISATION"
+            result =  "INITIALISING"
         elif status_lower == "recording":
             result =  "RECORDING"
         elif status_lower in ["edit requested","ready to stream", "mp4 ready for viewing", "stream ok"]:

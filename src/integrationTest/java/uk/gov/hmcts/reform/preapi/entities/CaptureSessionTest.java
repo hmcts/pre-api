@@ -50,7 +50,7 @@ class CaptureSessionTest {
             user,
             new Timestamp(System.currentTimeMillis()),
             user,
-            RecordingStatus.FINISHED,
+            RecordingStatus.RECORDING_AVAILABLE,
             new Timestamp(System.currentTimeMillis())
         );
         entityManager.persist(captureSession);
