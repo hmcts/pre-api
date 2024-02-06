@@ -17,9 +17,11 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -40,6 +42,7 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -460,7 +463,7 @@ class BookingControllerTest {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
 
-        var shareBooking = new ShareBookingDTO();
+        var shareBooking = new CreateShareBookingDTO();
         shareBooking.setId(shareBookingId);
         shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
         shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
@@ -490,7 +493,7 @@ class BookingControllerTest {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
 
-        var shareBooking = new ShareBookingDTO();
+        var shareBooking = new CreateShareBookingDTO();
         shareBooking.setId(shareBookingId);
         shareBooking.setBookingId(UUID.randomUUID());
         shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
@@ -659,6 +662,44 @@ class BookingControllerTest {
             .isEqualTo(
                 "{\"participants\":\"Participants must consist of at least 1 defendant and 1 witness\"}"
             );
+    }
+
+    @DisplayName("Should get log of all shares for a booking return a page with code 200")
+    @Test
+    void getShareLogsSuccess() throws Exception {
+        var model = new ShareBookingDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(UUID.randomUUID());
+
+        when(shareBookingService.getShareLogsForBooking(eq(model.getBookingId()), any()))
+            .thenReturn(new PageImpl<>(List.of(model)));
+
+        mockMvc.perform(get("/bookings/" + model.getBookingId() + "/share")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$._embedded.shareBookingDTOList[0].id").value(model.getId().toString()))
+            .andExpect(jsonPath("$._embedded.shareBookingDTOList[0].booking_id")
+                           .value(model.getBookingId().toString()));
+    }
+
+    @DisplayName("Should return 404 error when booking not found")
+    @Test
+    void getShareLogsNotFound() throws Exception {
+        var model = new CreateShareBookingDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(UUID.randomUUID());
+
+        doThrow(new NotFoundException("Booking: " + model.getBookingId()))
+            .when(shareBookingService)
+            .getShareLogsForBooking(eq(model.getBookingId()), any());
+
+        mockMvc.perform(get("/bookings/" + model.getBookingId() + "/share")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Booking: " + model.getBookingId()));
+
     }
 
     private String getPath(UUID bookingId) {
