@@ -10,6 +10,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -23,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -36,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -115,7 +118,12 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return a list of models")
     @Test
     void findAllSuccess() {
-        when(caseRepository.searchCasesBy(null, null, null)).thenReturn(new PageImpl<>(allCaseEntities));
+        when(caseRepository.searchCasesBy(null, null, null,null)).thenReturn(new PageImpl<>(allCaseEntities));
+
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
 
         Page<CaseDTO> models = caseService.searchBy(null, null, null);
         assertThat(models.getTotalElements()).isEqualTo(1);
@@ -126,7 +134,11 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return list of models where reference is in list")
     @Test
     void findAllReferenceParamSuccess() {
-        when(caseRepository.searchCasesBy("234", null, null)).thenReturn(new PageImpl<>(allCaseEntities));
+        when(caseRepository.searchCasesBy("234", null, null, null)).thenReturn(new PageImpl<>(allCaseEntities));
+
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         Page<CaseDTO> models = caseService.searchBy("234", null, null);
         assertThat(models.getTotalElements()).isEqualTo(1);
@@ -137,7 +149,11 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return list of models where reference is not the in list")
     @Test
     void findAllReferenceParamNotFoundSuccess() {
-        when(caseRepository.searchCasesBy("abc", null, null)).thenReturn(Page.empty());
+        when(caseRepository.searchCasesBy("abc", null, null,null)).thenReturn(Page.empty());
+
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var models = caseService.searchBy("abc", null, null);
         assertThat(models.getTotalElements()).isEqualTo(0);
@@ -146,8 +162,12 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return list of models where case with court is in list")
     @Test
     void findAllCourtIdParamSuccess() {
-        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), null))
+        when(caseRepository.searchCasesBy(null, caseEntity.getCourt().getId(), null, null))
             .thenReturn(new PageImpl<>(allCaseEntities));
+
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         Page<CaseDTO> models = caseService.searchBy(null, caseEntity.getCourt().getId(), null);
         assertThat(models.getTotalElements()).isEqualTo(1);
@@ -158,8 +178,12 @@ class CaseServiceTest {
     @DisplayName("Find all cases and return list of models where case with court is in list")
     @Test
     void findAllCourtIdParamNotFoundSuccess() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
         UUID uuid = UUID.randomUUID();
-        when(caseRepository.searchCasesBy(null, uuid, null)).thenReturn(Page.empty());
+        when(caseRepository.searchCasesBy(null, uuid, null,null)).thenReturn(Page.empty());
 
         Page<CaseDTO> models = caseService.searchBy(null, uuid, null);
         assertThat(models.getTotalElements()).isEqualTo(0);

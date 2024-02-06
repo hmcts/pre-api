@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -33,6 +34,7 @@ public class ShareBookingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #shareBookingDTO)")
     public UpsertResult shareBookingById(ShareBookingDTO shareBookingDTO) {
         if (shareBookingRepository.existsById(shareBookingDTO.getId())) {
             throw new ConflictException("Share booking already exists");
@@ -56,6 +58,7 @@ public class ShareBookingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #bookingId)")
     public void deleteShareBookingById(UUID bookingId, UUID shareId) {
         if (!bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
