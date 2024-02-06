@@ -11,7 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -623,7 +623,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant upsert access when the user is the one sharing the booking and has booking access")
     @Test
     void hasUpsertAccessUserIsSharingAndHasBookingAccess() {
-        var dto = new ShareBookingDTO();
+        var dto = new CreateShareBookingDTO();
         var userId = UUID.randomUUID();
         var sharedBy = new UserDTO();
         sharedBy.setId(userId);
@@ -641,7 +641,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should not grant upsert access when the authenticated user is not the one sharing the booking")
     @Test
     void hasUpsertAccessUserIsNotSharing() {
-        var dto = new ShareBookingDTO();
+        var dto = new CreateShareBookingDTO();
         var sharedBy = new UserDTO();
         sharedBy.setId(UUID.randomUUID());
 
@@ -656,7 +656,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should grant upsert access when the authenticated user is an admin")
     @Test
     void hasUpsertAccessUserIsAdmin() {
-        var dto = new ShareBookingDTO();
+        var dto = new CreateShareBookingDTO();
         var userId = UUID.randomUUID();
         var sharedBy = new UserDTO();
         sharedBy.setId(userId);
@@ -673,7 +673,7 @@ public class AuthorisationServiceTest {
     @DisplayName("Should not grant upsert access when the user is not admin and does not have booking access")
     @Test
     void hasUpsertAccessUserIsNotAdminAndNoBookingAccess() {
-        var dto = new ShareBookingDTO();
+        var dto = new CreateShareBookingDTO();
         var userId = UUID.randomUUID();
         var sharedBy = new UserDTO();
         sharedBy.setId(userId);

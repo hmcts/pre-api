@@ -5,7 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import org.springframework.data.domain.PageImpl;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -18,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,7 +49,7 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id")
     @Test
     void shareBookingSuccess() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
         shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
@@ -73,7 +75,7 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when booking doesn't exist")
     @Test
     void shareBookingFailureBookingDoesntExist() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
         shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
@@ -93,7 +95,7 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when shared by user doesn't exist")
     @Test
     void shareBookingFailureSharedByUserDoesntExist() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
         shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
@@ -118,7 +120,7 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when shared with user doesn't exist")
     @Test
     void shareBookingFailureSharedWithUserDoesntExist() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
         shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
@@ -147,7 +149,7 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when share booking already exists")
     @Test
     void shareBookingFailureShareBookingAlreadyExists() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
         shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
@@ -306,5 +308,54 @@ public class ShareBookingServiceTest {
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(searchBookingId);
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
+    }
+
+    @DisplayName("Should get all share logs for a booking")
+    @Test
+    void getShareLogsForBooking() {
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+
+        var shareBooking = new ShareBooking();
+        shareBooking.setId(UUID.randomUUID());
+        shareBooking.setBooking(booking);
+        shareBooking.setSharedWith(user);
+        shareBooking.setSharedBy(user);
+
+        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId())).thenReturn(true);
+        when(shareBookingRepository.findAllByBooking_Id(booking.getId(), null))
+            .thenReturn(new PageImpl<>(List.of(shareBooking)));
+
+        var models = shareBookingService.getShareLogsForBooking(booking.getId(), null);
+
+        assertThat(models.getContent().size()).isEqualTo(1);
+        assertThat(models.getContent().getFirst().getBookingId()).isEqualTo(booking.getId());
+        assertThat(models.getContent().getFirst().getBookingId()).isEqualTo(booking.getId());
+        assertThat(models.getContent().getFirst().getBookingId()).isEqualTo(booking.getId());
+        assertThat(models.getContent().getFirst().getSharedWithUser().getId()).isEqualTo(user.getId());
+        assertThat(models.getContent().getFirst().getSharedByUser().getId()).isEqualTo(user.getId());
+    }
+
+    @DisplayName("Should throw not found error when booking is not found")
+    @Test
+    void getShareLogsForBookingNotFound() {
+        var bookingId = UUID.randomUUID();
+
+        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingId)).thenReturn(false);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> shareBookingService.getShareLogsForBooking(bookingId, null)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Booking: " + bookingId);
+
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(bookingId);
     }
 }

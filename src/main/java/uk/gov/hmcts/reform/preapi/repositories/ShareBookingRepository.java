@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -65,5 +67,5 @@ public interface ShareBookingRepository extends SoftDeleteRepository<ShareBookin
     )
     List<ShareBooking> findAllSharesForUserByCourt(UUID userId, UUID courtId);
 
-
+    Page<ShareBooking> findAllByBooking_Id(UUID bookingId, Pageable pageable);
 }
