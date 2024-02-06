@@ -26,7 +26,7 @@ module "pre_product" {
   approval_required     = false
   name                  = local.app_name
   published             = true
-  subscription_required = false
+  subscription_required = true
 }
 
 module "pre_api" {
@@ -43,7 +43,7 @@ module "pre_api" {
   swagger_url           = "https://raw.githubusercontent.com/hmcts/cnp-api-docs/master/docs/specs/pre-api.json"
   content_format        = "openapi+json-link"
   protocols             = ["http", "https"]
-  subscription_required = false
+  subscription_required = true
 }
 
 module "apim_subscription_smoketest" {
