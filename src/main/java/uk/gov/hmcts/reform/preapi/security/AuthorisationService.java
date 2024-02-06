@@ -6,7 +6,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -118,7 +118,7 @@ public class AuthorisationService {
             && hasRecordingAccess(authentication, dto.getParentRecordingId());
     }
 
-    public boolean hasUpsertAccess(UserAuthentication authentication, ShareBookingDTO dto) {
+    public boolean hasUpsertAccess(UserAuthentication authentication, CreateShareBookingDTO dto) {
         return authentication.getUserId().equals(dto.getSharedByUser().getId())
             && (authentication.isAdmin() || hasBookingAccess(authentication, dto.getBookingId()));
     }
