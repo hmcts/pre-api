@@ -184,10 +184,10 @@ definitions:
           - STANDBY
           - INITIALISING
           - RECORDING
-          - FINISHED
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
         type: string
     required:
       - booking_id
@@ -259,10 +259,10 @@ definitions:
           - STANDBY
           - INITIALISING
           - RECORDING
-          - FINISHED
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
         type: string
       regions:
         description: CompletedCaptureSessionReportRegions
@@ -451,10 +451,10 @@ definitions:
           - STANDBY
           - INITIALISING
           - RECORDING
-          - FINISHED
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
         type: string
     required:
       - booking_id
@@ -824,10 +824,10 @@ definitions:
           - STANDBY
           - INITIALISING
           - RECORDING
-          - FINISHED
           - PROCESSING
-          - AVAILABLE
-          - FUTURE
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
         type: string
     required:
       - booking_id
@@ -1763,10 +1763,10 @@ paths:
             - STANDBY
             - INITIALISING
             - RECORDING
-            - FINISHED
             - PROCESSING
-            - AVAILABLE
-            - FUTURE
+            - RECORDING_AVAILABLE
+            - FAILURE
+            - NO_RECORDING
           in: query
           name: recordingStatus
           type: string
