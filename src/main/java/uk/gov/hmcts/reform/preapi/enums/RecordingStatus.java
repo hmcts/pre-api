@@ -4,8 +4,8 @@ public enum RecordingStatus {
     STANDBY,
     INITIALISING,
     RECORDING,
-    FINISHED,
     PROCESSING,
-    AVAILABLE,
-    FUTURE
+    RECORDING_AVAILABLE,
+    FAILURE,
+    NO_RECORDING
 }

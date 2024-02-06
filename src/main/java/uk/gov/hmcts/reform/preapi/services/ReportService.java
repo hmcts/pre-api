@@ -72,7 +72,10 @@ public class ReportService {
             .stream()
             .map(c -> new RecordingsPerCaseReportDTO(
                 c,
-                captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(c.getId(), RecordingStatus.AVAILABLE)
+                captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
+                    c.getId(),
+                    RecordingStatus.RECORDING_AVAILABLE
+                )
             ))
             .sorted((case1, case2) -> Integer.compare(case2.getCount(), case1.getCount()))
             .collect(Collectors.toList());
@@ -106,7 +109,7 @@ public class ReportService {
     @Transactional
     public List<ScheduleReportDTO> reportScheduled() {
         return captureSessionRepository
-            .findAllByStatus(RecordingStatus.AVAILABLE)
+            .findAllByStatus(RecordingStatus.RECORDING_AVAILABLE)
             .stream()
             .map(ScheduleReportDTO::new)
             .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
