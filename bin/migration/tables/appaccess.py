@@ -35,7 +35,6 @@ class AppAccessManager:
             role_id = user[1]
             
             if role_id is None:
-                self.failed_imports.add(('app_access',id, f"No role id for this user: {user_id} in group assignments table")) 
                 continue
 
             court_id = user[2]
