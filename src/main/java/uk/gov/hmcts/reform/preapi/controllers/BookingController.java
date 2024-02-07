@@ -13,6 +13,7 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -29,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
@@ -153,9 +155,13 @@ public class BookingController extends PreApiController {
         @PathVariable UUID bookingId,
         @RequestBody CreateShareBookingDTO createShareBookingDTO
     ) {
-        // TODO Ensure user has access to share the recording
         if (!bookingId.equals(createShareBookingDTO.getBookingId())) {
             throw new PathPayloadMismatchException("bookingId", "shareBookingDTO.bookingId");
+        }
+
+        if (createShareBookingDTO.getSharedByUser() == null) {
+            createShareBookingDTO.setSharedByUser(((UserAuthentication) SecurityContextHolder
+                .getContext().getAuthentication()).getUserId());
         }
 
         return getUpsertResponse(shareBookingService

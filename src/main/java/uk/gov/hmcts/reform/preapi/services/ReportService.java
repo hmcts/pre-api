@@ -166,14 +166,19 @@ public class ReportService {
     }
 
     private PlaybackReportDTO toPlaybackReport(Audit audit) {
+        System.out.println("HERE: " + audit.getId());
         return new PlaybackReportDTO(
             audit,
-            userRepository
+            audit.getCreatedBy() != null
+                ? userRepository
                 .findById(audit.getCreatedBy())
-                .orElse(null),
-            recordingRepository
+                .orElse(null)
+                : null,
+            audit.getTableRecordId() != null
+                ? recordingRepository
                 .findById(audit.getTableRecordId())
                 .orElse(null)
+                : null
         );
     }
 }

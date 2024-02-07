@@ -622,9 +622,11 @@ definitions:
         format: uuid
         type: string
       shared_by_user:
-        $ref: '#/definitions/BaseUserDTO'
+        format: uuid
+        type: string
       shared_with_user:
-        $ref: '#/definitions/BaseUserDTO'
+        format: uuid
+        type: string
     type: object
   CreateUserDTO:
     description: CreateUserDTO
