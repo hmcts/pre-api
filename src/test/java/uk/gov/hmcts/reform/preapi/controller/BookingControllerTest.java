@@ -10,6 +10,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
@@ -24,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
@@ -43,6 +45,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -465,8 +470,8 @@ class BookingControllerTest {
 
         var shareBooking = new CreateShareBookingDTO();
         shareBooking.setId(shareBookingId);
-        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
-        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedWithUser(UUID.randomUUID());
+        shareBooking.setSharedByUser(UUID.randomUUID());
         shareBooking.setBookingId(bookingId);
 
         when(shareBookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
@@ -496,8 +501,8 @@ class BookingControllerTest {
         var shareBooking = new CreateShareBookingDTO();
         shareBooking.setId(shareBookingId);
         shareBooking.setBookingId(UUID.randomUUID());
-        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
-        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedWithUser(UUID.randomUUID());
+        shareBooking.setSharedByUser(UUID.randomUUID());
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
                                                  .with(csrf())
@@ -510,6 +515,43 @@ class BookingControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Path bookingId does not match payload "
                            + "property shareBookingDTO.bookingId\"}");
+    }
+
+    @DisplayName("Should create a share booking with 200 response code when shared by is null but the user logged in")
+    @Test
+    void shareBookingSharedByNullSuccess() throws Exception {
+        var shareBookingId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+
+        var shareBooking = new CreateShareBookingDTO();
+        shareBooking.setId(shareBookingId);
+        shareBooking.setBookingId(bookingId);
+        shareBooking.setSharedWithUser(UUID.randomUUID());
+        shareBooking.setSharedByUser(null);
+
+        when(shareBookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
+
+        var userId = UUID.randomUUID();
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(userId);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(shareBooking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId)
+                                                                             + "/share"
+        );
+
+        verify(mockAuth, times(1)).getUserId();
     }
 
     @DisplayName("Should fail to create a booking with 500 response code")

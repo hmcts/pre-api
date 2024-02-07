@@ -45,9 +45,9 @@ public class ShareBookingService {
 
         final var booking = bookingRepository.findById(createShareBookingDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + createShareBookingDTO.getBookingId()));
-        final var sharedByUser = userRepository.findById(createShareBookingDTO.getSharedByUser().getId())
+        final var sharedByUser = userRepository.findById(createShareBookingDTO.getSharedByUser())
             .orElseThrow(() -> new NotFoundException("Shared by User: " + createShareBookingDTO.getSharedByUser()));
-        final var sharedWithUser = userRepository.findById(createShareBookingDTO.getSharedWithUser().getId())
+        final var sharedWithUser = userRepository.findById(createShareBookingDTO.getSharedWithUser())
             .orElseThrow(() -> new NotFoundException("Shared with User: " + createShareBookingDTO.getSharedWithUser()));
 
         var shareBookingEntity = new ShareBooking();
