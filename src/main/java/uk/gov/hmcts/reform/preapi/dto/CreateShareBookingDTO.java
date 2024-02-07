@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 
 import java.util.UUID;
 
@@ -14,6 +13,6 @@ import java.util.UUID;
 public class CreateShareBookingDTO {
     private UUID id;
     private UUID bookingId;
-    private BaseUserDTO sharedWithUser;
-    private BaseUserDTO sharedByUser;
+    private UUID sharedWithUser;
+    private UUID sharedByUser;
 }
