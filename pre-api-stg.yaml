@@ -2869,6 +2869,13 @@ paths:
         - user-controller
 schemes:
   - https
+security:
+  - Ocp-Apim-Subscription-Key: []
+securityDefinitions:
+  Ocp-Apim-Subscription-Key:
+    in: header
+    name: Ocp-Apim-Subscription-Key
+    type: apiKey
 swagger: '2.0'
 x-components: {}
 
