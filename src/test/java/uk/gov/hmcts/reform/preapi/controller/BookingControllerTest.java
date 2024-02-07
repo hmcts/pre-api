@@ -10,6 +10,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.BookingController;
@@ -17,17 +18,22 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -38,6 +44,10 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -63,6 +73,9 @@ class BookingControllerTest {
     @MockBean
     private ShareBookingService shareBookingService;
 
+    @MockBean
+    private UserAuthenticationService userAuthenticationService;
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String TEST_URL = "http://localhost";
@@ -83,7 +96,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any()))
+        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
         MvcResult response = mockMvc.perform(get("/bookings?caseReference=MyRef")
@@ -112,7 +125,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any()))
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -142,7 +155,7 @@ class BookingControllerTest {
         var booking2 = new BookingDTO();
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
-        when(bookingService.searchBy(any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -164,7 +177,7 @@ class BookingControllerTest {
         var caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any())).thenReturn(Page.empty());
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any())).thenReturn(Page.empty());
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
@@ -191,8 +204,8 @@ class BookingControllerTest {
         var shareBooking = new ShareBookingDTO();
         shareBooking.setBookingId(bookingId);
         shareBooking.setId(UUID.randomUUID());
-        shareBooking.setSharedByUserId(UUID.randomUUID());
-        shareBooking.setSharedWithUserId(UUID.randomUUID());
+        shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
         booking.setShares(Set.of(shareBooking));
 
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
@@ -311,7 +324,7 @@ class BookingControllerTest {
 
     @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is not supplied")
     @Test
-    void createBookingEndpoint400ScheduledForInThePast() throws Exception {
+    void createBookingEndpoint400ScheduledForMissing() throws Exception {
 
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
@@ -324,17 +337,75 @@ class BookingControllerTest {
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+                                    .andExpect(status().is4xxClientError())
+                                    .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is before today")
+    @Test
+    void createBookingEndpoint400ScheduledForInThePast() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new CreateBookingDTO();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+        booking.setParticipants(getCreateParticipantDTOs());
+        booking.setScheduledFor(
+            Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS).minusMillis(1))
+        );
+
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(booking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+                                    .andExpect(status().is4xxClientError())
+                                    .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is not supplied")
+    @Test
+    void createBookingEndpointScheduledForInThePastButToday() throws Exception {
+
+        var caseId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+        var booking = new CreateBookingDTO();
+        booking.setId(bookingId);
+        booking.setCaseId(caseId);
+        booking.setParticipants(getCreateParticipantDTOs());
+        booking.setScheduledFor(
+            Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))
+        );
+        booking.setParticipants(getCreateParticipantDTOs());
+
+        CaseDTO mockCaseDTO = new CaseDTO();
+        when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
+        when(bookingService.upsert(booking)).thenReturn(UpsertResult.CREATED);
+
+        mockMvc.perform(put(getPath(bookingId))
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(booking))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"scheduledFor\":\"scheduled_for is required and must be in the future\"}"
-            );
+               .andExpect(status().isCreated());
     }
 
     @DisplayName("Should fail to update a booking with 400 response code as its already deleted")
@@ -396,13 +467,11 @@ class BookingControllerTest {
     void testShareBookingCreated() throws Exception {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
-        final UUID sharedWithUserId = UUID.randomUUID();
-        final UUID sharedByUserId = UUID.randomUUID();
 
-        var shareBooking = new ShareBookingDTO();
+        var shareBooking = new CreateShareBookingDTO();
         shareBooking.setId(shareBookingId);
-        shareBooking.setSharedWithUserId(sharedWithUserId);
-        shareBooking.setSharedByUserId(sharedByUserId);
+        shareBooking.setSharedWithUser(UUID.randomUUID());
+        shareBooking.setSharedByUser(UUID.randomUUID());
         shareBooking.setBookingId(bookingId);
 
         when(shareBookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
@@ -428,14 +497,12 @@ class BookingControllerTest {
     void testShareBookingIdMismatch() throws Exception {
         final UUID shareBookingId = UUID.randomUUID();
         final UUID bookingId = UUID.randomUUID();
-        final UUID sharedWithUserId = UUID.randomUUID();
-        final UUID sharedByUserId = UUID.randomUUID();
 
-        var shareBooking = new ShareBookingDTO();
+        var shareBooking = new CreateShareBookingDTO();
         shareBooking.setId(shareBookingId);
         shareBooking.setBookingId(UUID.randomUUID());
-        shareBooking.setSharedWithUserId(sharedWithUserId);
-        shareBooking.setSharedByUserId(sharedByUserId);
+        shareBooking.setSharedWithUser(UUID.randomUUID());
+        shareBooking.setSharedByUser(UUID.randomUUID());
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
                                                  .with(csrf())
@@ -448,6 +515,43 @@ class BookingControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Path bookingId does not match payload "
                            + "property shareBookingDTO.bookingId\"}");
+    }
+
+    @DisplayName("Should create a share booking with 200 response code when shared by is null but the user logged in")
+    @Test
+    void shareBookingSharedByNullSuccess() throws Exception {
+        var shareBookingId = UUID.randomUUID();
+        var bookingId = UUID.randomUUID();
+
+        var shareBooking = new CreateShareBookingDTO();
+        shareBooking.setId(shareBookingId);
+        shareBooking.setBookingId(bookingId);
+        shareBooking.setSharedWithUser(UUID.randomUUID());
+        shareBooking.setSharedByUser(null);
+
+        when(shareBookingService.shareBookingById(any())).thenReturn(UpsertResult.CREATED);
+
+        var userId = UUID.randomUUID();
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(userId);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        MvcResult response = mockMvc.perform(put(getPath(bookingId) + "/share")
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(shareBooking))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(bookingId)
+                                                                             + "/share"
+        );
+
+        verify(mockAuth, times(1)).getUserId();
     }
 
     @DisplayName("Should fail to create a booking with 500 response code")
@@ -600,6 +704,44 @@ class BookingControllerTest {
             .isEqualTo(
                 "{\"participants\":\"Participants must consist of at least 1 defendant and 1 witness\"}"
             );
+    }
+
+    @DisplayName("Should get log of all shares for a booking return a page with code 200")
+    @Test
+    void getShareLogsSuccess() throws Exception {
+        var model = new ShareBookingDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(UUID.randomUUID());
+
+        when(shareBookingService.getShareLogsForBooking(eq(model.getBookingId()), any()))
+            .thenReturn(new PageImpl<>(List.of(model)));
+
+        mockMvc.perform(get("/bookings/" + model.getBookingId() + "/share")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$._embedded.shareBookingDTOList[0].id").value(model.getId().toString()))
+            .andExpect(jsonPath("$._embedded.shareBookingDTOList[0].booking_id")
+                           .value(model.getBookingId().toString()));
+    }
+
+    @DisplayName("Should return 404 error when booking not found")
+    @Test
+    void getShareLogsNotFound() throws Exception {
+        var model = new CreateShareBookingDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(UUID.randomUUID());
+
+        doThrow(new NotFoundException("Booking: " + model.getBookingId()))
+            .when(shareBookingService)
+            .getShareLogsForBooking(eq(model.getBookingId()), any());
+
+        mockMvc.perform(get("/bookings/" + model.getBookingId() + "/share")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Booking: " + model.getBookingId()));
+
     }
 
     private String getPath(UUID bookingId) {

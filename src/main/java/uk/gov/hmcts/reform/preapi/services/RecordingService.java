@@ -5,6 +5,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
@@ -15,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
@@ -35,6 +38,7 @@ public class RecordingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public RecordingDTO findById(UUID recordingId) {
         return recordingRepository
             .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
@@ -51,12 +55,17 @@ public class RecordingService {
         UUID participantId,
         String caseReference,
         Optional<Timestamp> scheduledFor,
+        UUID courtId,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
                 t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+
+        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        var authorisedBookings = auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings();
+        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
 
         return recordingRepository
             .searchAllBy(
@@ -66,12 +75,16 @@ public class RecordingService {
                 caseReference,
                 scheduledFor.orElse(null),
                 until,
+                courtId,
+                authorisedBookings,
+                authorisedCourt,
                 pageable
             )
             .map(RecordingDTO::new);
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createRecordingDTO)")
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateRecordingDTO createRecordingDTO) {
         var recording = recordingRepository.findById(createRecordingDTO.getId());
@@ -113,6 +126,7 @@ public class RecordingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #recordingId)")
     public void deleteById(UUID recordingId) {
         var recording = recordingRepository
             .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(

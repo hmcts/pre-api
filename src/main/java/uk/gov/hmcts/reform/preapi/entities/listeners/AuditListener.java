@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities.listeners;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
@@ -13,9 +14,12 @@ import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.exception.UnauditableTableException;
+import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
 import java.util.UUID;
+
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 
 @Component
@@ -24,6 +28,10 @@ public class AuditListener {
     @Lazy
     @Autowired
     private AuditRepository auditRepository;
+
+    @Lazy
+    @Autowired
+    private AppAccessRepository appAccessRepository;
 
     @Lazy
     @Autowired
@@ -44,6 +52,8 @@ public class AuditListener {
         audit(entity, AuditAction.DELETE);
     }
 
+    ObjectMapper mapper = new ObjectMapper();
+
     private void audit(BaseEntity entity, AuditAction action) {
         if (entity.getClass() == Audit.class) {
             return;
@@ -56,9 +66,11 @@ public class AuditListener {
         audit.setTableName(getTableName(entity));
         audit.setTableRecordId(entity.getId());
         audit.setSource(AuditLogSource.AUTO);
-        var xUserId = request.getHeader("X-User-Id");
-        if (xUserId != null) {
-            audit.setCreatedBy(UUID.fromString(xUserId));
+
+        audit.setAuditDetails(mapper.valueToTree(entity.getDetailsForAudit()));
+        var userId = getUserIdFromRequestHeader();
+        if (userId != null) {
+            audit.setCreatedBy(userId);
         }
 
         auditRepository.save(audit);
@@ -71,5 +83,14 @@ public class AuditListener {
             throw new UnauditableTableException(entityClass.toString());
         }
         return t.name();
+    }
+
+    private UUID getUserIdFromRequestHeader() {
+        try {
+            var xUserId = request.getHeader(X_USER_ID_HEADER);
+            return UUID.fromString(xUserId);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

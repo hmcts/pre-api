@@ -2,7 +2,11 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
@@ -33,20 +37,21 @@ public class ShareBookingService {
     }
 
     @Transactional
-    public UpsertResult shareBookingById(ShareBookingDTO shareBookingDTO) {
-        if (shareBookingRepository.existsById(shareBookingDTO.getId())) {
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createShareBookingDTO)")
+    public UpsertResult shareBookingById(CreateShareBookingDTO createShareBookingDTO) {
+        if (shareBookingRepository.existsById(createShareBookingDTO.getId())) {
             throw new ConflictException("Share booking already exists");
         }
 
-        final var booking = bookingRepository.findById(shareBookingDTO.getBookingId())
-            .orElseThrow(() -> new NotFoundException("Booking: " + shareBookingDTO.getBookingId()));
-        final var sharedByUser = userRepository.findById(shareBookingDTO.getSharedByUserId())
-            .orElseThrow(() -> new NotFoundException("Shared by User: " + shareBookingDTO.getSharedByUserId()));
-        final var sharedWithUser = userRepository.findById(shareBookingDTO.getSharedWithUserId())
-            .orElseThrow(() -> new NotFoundException("Shared with User: " + shareBookingDTO.getSharedWithUserId()));
+        final var booking = bookingRepository.findById(createShareBookingDTO.getBookingId())
+            .orElseThrow(() -> new NotFoundException("Booking: " + createShareBookingDTO.getBookingId()));
+        final var sharedByUser = userRepository.findById(createShareBookingDTO.getSharedByUser())
+            .orElseThrow(() -> new NotFoundException("Shared by User: " + createShareBookingDTO.getSharedByUser()));
+        final var sharedWithUser = userRepository.findById(createShareBookingDTO.getSharedWithUser())
+            .orElseThrow(() -> new NotFoundException("Shared with User: " + createShareBookingDTO.getSharedWithUser()));
 
         var shareBookingEntity = new ShareBooking();
-        shareBookingEntity.setId(shareBookingDTO.getId());
+        shareBookingEntity.setId(createShareBookingDTO.getId());
         shareBookingEntity.setBooking(booking);
         shareBookingEntity.setSharedBy(sharedByUser);
         shareBookingEntity.setSharedWith(sharedWithUser);
@@ -56,6 +61,7 @@ public class ShareBookingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #bookingId)")
     public void deleteShareBookingById(UUID bookingId, UUID shareId) {
         if (!bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
@@ -79,5 +85,17 @@ public class ShareBookingService {
     @Transactional
     public void deleteCascade(Booking booking) {
         shareBookingRepository.deleteAllByBooking(booking);
+    }
+
+    @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #bookingId)")
+    public Page<ShareBookingDTO> getShareLogsForBooking(UUID bookingId, Pageable pageable) {
+        if (!bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingId)) {
+            throw new NotFoundException("Booking: " + bookingId);
+        }
+
+        return shareBookingRepository
+            .findAllByBooking_Id(bookingId, pageable)
+            .map(ShareBookingDTO::new);
     }
 }

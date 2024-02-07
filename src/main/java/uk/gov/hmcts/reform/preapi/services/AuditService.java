@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 
 import java.util.List;
 import java.util.UUID;
+import javax.annotation.Nullable;
 
 @Service
 public class AuditService {
@@ -21,8 +22,7 @@ public class AuditService {
         this.auditRepository = auditRepository;
     }
 
-    public UpsertResult upsert(CreateAuditDTO createAuditDTO, UUID createdBy) {
-
+    public UpsertResult upsert(CreateAuditDTO createAuditDTO, @Nullable UUID createdBy) {
         if (auditRepository.existsById(createAuditDTO.getId())) {
             throw new ImmutableDataException(createAuditDTO.getId().toString());
         }

@@ -42,27 +42,26 @@ class PortalAccessManager:
                 invited = True
                 status_inactive = str(user[1]).lower() == 'inactive'
 
-
-                login_enabled_and_invited = login_enabled and invited 
+                login_enabled_and_invited = login_enabled and invited
                 email_confirmed_and_status_inactive = email_confirmed and status_inactive
                 email_confirmed_and_status_active = email_confirmed and status_active
-                login_disabled_and_status_inactive = login_disabled and status_inactive 
+                login_disabled_and_status_inactive = login_disabled and status_inactive
 
                 if status_inactive or login_disabled_and_status_inactive:
                     status = "INACTIVE"
-                elif login_enabled_and_invited and email_confirmed_and_status_inactive: 
+                elif login_enabled_and_invited and email_confirmed_and_status_inactive:
                     status = 'REGISTERED'
-                elif login_enabled_and_invited and email_confirmed_and_status_active: 
+                elif login_enabled_and_invited and email_confirmed_and_status_active:
                     status = 'ACTIVE'
-                elif login_enabled_and_invited: 
+                elif login_enabled_and_invited:
                     status = "INVITATION_SENT"
                 else:
                     status = "INVITATION_SENT"
 
                 # last_access = datetime.now() # this value is obtained from DV
-                # invitation_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
-                # registered_datetime = parse_to_timestamp(user[5]) # this value is obtained from DV
-                created_by = get_user_id(destination_cursor, user[6]) 
+                # invited_at = parse_to_timestamp(user[5]) # this value is obtained from DV
+                # registered_at = parse_to_timestamp(user[5]) # this value is obtained from DV
+                created_by = get_user_id(destination_cursor, user[6])
 
                 created_at = parse_to_timestamp(user[5])
                 modified_at = created_at
@@ -97,5 +96,3 @@ class PortalAccessManager:
             self.failed_imports.add(('portal_access', user_id, e))
  
         self.logger.log_failed_imports(self.failed_imports)
-            
-

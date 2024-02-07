@@ -19,17 +19,17 @@ public interface CaseRepository extends SoftDeleteRepository<Case, UUID> {
         WHERE (:reference IS NULL OR c.reference ILIKE %:reference%)
         AND (CAST(:courtId as uuid) IS NULL OR c.court.id = :courtId)
         AND c.deletedAt IS NULL
+        AND (CAST(:authCourtId as uuid) IS NULL OR c.court.id = :authCourtId)
         """
     )
     Page<Case> searchCasesBy(
         @Param("reference") String reference,
         @Param("courtId") UUID courtId,
+        @Param("authCourtId") UUID authCourtId,
         Pageable pageable
     );
 
     Optional<Case> findByIdAndDeletedAtIsNull(UUID id);
-
-    boolean existsByIdAndDeletedAtIsNull(UUID id);
 
     List<Case> findAllByReference(String caseReference);
 }

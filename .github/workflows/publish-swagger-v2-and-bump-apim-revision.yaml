@@ -44,9 +44,20 @@ jobs:
         run: |
           sed -E "s/(host\: .+)/host\: 'sds-api-mgmt.staging.platform.hmcts.net'/g" pre-api.yaml > pre-api-stg.yaml
 
-      - name: Commit Swagger v2 spec to branch
+      - name: Increment APIm revision
         run: |
-          git config --global user.name 'Swagger V2 bot'
-          git config --global user.email 'jasonpaige@users.noreply.github.com'
+          if git diff --quiet -- src/main/java/uk/gov/hmcts/reform/preapi/; then
+          echo "No changes to the API. Skipping revision increment."
+          else
+            current_revision=$(grep -i 'revision' infrastructure/main.tf | grep -oE '[0-9]+')
+            new_revision=$((current_revision + 1))
+            awk -v new_revision="$new_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
+            echo "Incremented APIm revision to $new_revision."
+          fi
+
+      - name: Bump APIm revision and commit Swagger v2 spec to branch
+        run: |
+          git config --global user.name 'PRE DevOps'
+          git config --global user.email '138598290+pre-devops@users.noreply.github.com'
           git add pre-api-stg.yaml
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update Swagger v2 Spec"; git push)
+          git diff --quiet && git diff --staged --quiet || (git add infrastructure/main.tf; git commit -m "Update Swagger v2 Spec and bump APIm revision"; git push)

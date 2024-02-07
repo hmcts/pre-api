@@ -9,16 +9,20 @@ import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static io.restassured.RestAssured.given;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @SpringBootTest(classes = {Application.class}, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
+
+    protected static UUID authenticatedUserId;
 
     @Value("${TEST_URL:http://localhost:4550}")
     private String testUrl;
@@ -26,71 +30,101 @@ public class FunctionalTestBase {
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = testUrl;
+        if (authenticatedUserId == null) {
+            authenticatedUserId = doPostRequest("/testing-support/create-authenticated-user/super-user", false)
+                .body()
+                .jsonPath()
+                .getUUID("accessId");
+        }
     }
 
-    protected Response doGetRequest(final String path) {
-        return doGetRequest(path, null);
+    protected Response doGetRequest(final String path, final boolean isAuthenticated) {
+        return doGetRequest(path, null, isAuthenticated);
     }
 
-    protected Response doGetRequest(final String path, final Map<String, String> additionalHeaders) {
+    protected Response doGetRequest(
+        final String path,
+        final Map<String, String> additionalHeaders,
+        final boolean isAuthenticated
+    ) {
         Logger.getAnonymousLogger().info("GET " + path);
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders))
+            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
             .when()
             .get(path)
             .thenReturn();
     }
 
-    protected Response doPutRequest(final String path, final String body) {
-        return doPutRequest(path, null, body);
+    protected Response doPutRequest(final String path, final String body, final boolean isAuthenticated) {
+        return doPutRequest(path, null, body, isAuthenticated);
     }
 
-    protected Response doPutRequest(final String path, final Map<String, String> additionalHeaders, final String body) {
+    protected Response doPutRequest(
+        final String path,
+        final Map<String, String> additionalHeaders,
+        final String body,
+        final boolean isAuthenticated
+    ) {
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders))
+            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
             .body(body)
             .when()
             .put(path)
             .thenReturn();
     }
 
-    protected Response doPostRequest(final String path) {
-        return doPostRequest(path, null, "");
+    protected Response doPostRequest(final String path, final boolean isAuthenticated) {
+        return doPostRequest(path, null, "", isAuthenticated);
     }
 
-    protected Response doPostRequest(final String path, final String body) {
-        return doPostRequest(path, null, body);
+    protected Response doPostRequest(final String path, final String body, final boolean isAuthenticated) {
+        return doPostRequest(path, null, body, isAuthenticated);
     }
 
     protected Response doPostRequest(final String path,
                                      final Map<String, String> additionalHeaders,
-                                     final String body) {
+                                     final String body,
+                                     final boolean isAuthenticated) {
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders))
+            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
             .body(body)
             .when()
             .post(path)
             .thenReturn();
     }
 
-    protected Response doDeleteRequest(final String path) {
-        return doDeleteRequest(path, null);
+    protected Response doDeleteRequest(final String path, final boolean isAuthenticated) {
+        return doDeleteRequest(path, null, isAuthenticated);
     }
 
-    protected Response doDeleteRequest(final String path, final Map<String, String> additionalHeaders) {
+    protected Response doDeleteRequest(
+        final String path,
+        final Map<String, String> additionalHeaders,
+        final boolean isAuthenticated
+    ) {
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders))
+            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
             .when()
             .delete(path)
             .thenReturn();
     }
 
-    private static Map<String, String> getRequestHeaders(final Map<String, String> additionalHeaders) {
-        final Map<String, String> headers = new ConcurrentHashMap<>(Map.of(CONTENT_TYPE, CONTENT_TYPE_VALUE));
+    private static Map<String, String> getRequestHeaders(
+        final Map<String, String> additionalHeaders,
+        final boolean isAuthenticated
+    ) {
+        final Map<String, String> headers = new ConcurrentHashMap<>(
+            Map.of(CONTENT_TYPE, CONTENT_TYPE_VALUE)
+        );
+
+        if (isAuthenticated) {
+            headers.put(X_USER_ID_HEADER, authenticatedUserId.toString());
+        }
+
         if (!CollectionUtils.isEmpty(additionalHeaders)) {
             headers.putAll(additionalHeaders);
         }

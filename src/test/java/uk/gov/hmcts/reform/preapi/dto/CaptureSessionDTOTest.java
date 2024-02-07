@@ -3,8 +3,10 @@ package uk.gov.hmcts.reform.preapi.dto;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -28,8 +30,16 @@ class CaptureSessionDTOTest {
         captureSession.setStartedAt(Timestamp.from(java.time.Instant.now()));
         captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
-        var booking = new uk.gov.hmcts.reform.preapi.entities.Booking();
-        booking.setId(UUID.randomUUID());
+        var booking = HelperFactory.createBooking(
+            HelperFactory.createCase(
+                HelperFactory.createCourt(CourtType.CROWN, "Foo Court", null),
+                "12345678",
+                false,
+                null
+            ),
+            Timestamp.from(java.time.Instant.now().plus(java.time.Duration.ofDays(1))),
+            null
+        );
         captureSession.setBooking(booking);
 
         var user = new uk.gov.hmcts.reform.preapi.entities.User();

@@ -4,6 +4,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -16,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
@@ -49,6 +52,7 @@ public class BookingService {
         this.shareBookingService = shareBookingService;
     }
 
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public BookingDTO findById(UUID id) {
 
         return bookingRepository.findByIdAndDeletedAtIsNull(id)
@@ -63,6 +67,7 @@ public class BookingService {
 
     public Page<BookingDTO> searchBy(@Nullable UUID caseId,
                                      @Nullable String caseReference,
+                                     @Nullable UUID courtId,
                                      Optional<Timestamp> scheduledFor,
                                      @Nullable UUID participantId,
                                      Pageable pageable) {
@@ -72,13 +77,20 @@ public class BookingService {
             : scheduledFor.map(
                 t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
 
+        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        var authorisedBookings = auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings();
+        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+
         return bookingRepository
             .searchBookingsBy(
                 caseId,
                 caseReference,
+                courtId,
                 scheduledFor.orElse(null),
                 until, // 11:59:59 PM
                 participantId,
+                authorisedBookings,
+                authorisedCourt,
                 pageable
             )
             .map(BookingDTO::new);
@@ -86,6 +98,7 @@ public class BookingService {
 
     @SuppressWarnings("PMD.CyclomaticComplexity")
     @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createBookingDTO)")
     public UpsertResult upsert(CreateBookingDTO createBookingDTO) {
 
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
@@ -136,6 +149,7 @@ public class BookingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void markAsDeleted(UUID id) {
         var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
         if (entity.isEmpty()) {

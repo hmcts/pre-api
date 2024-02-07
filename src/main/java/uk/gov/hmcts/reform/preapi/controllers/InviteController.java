@@ -12,6 +12,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -80,6 +81,7 @@ public class InviteController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<InviteDTO>>> getInvites(
         @Parameter(hidden = true) @ModelAttribute() SearchInvites params,
         @Parameter(hidden = true) Pageable pageable,
@@ -102,12 +104,14 @@ public class InviteController extends PreApiController {
 
     @GetMapping("/{id}")
     @Operation(operationId = "getInviteById", summary = "Get an invite by id")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<InviteDTO> getInviteById(@PathVariable(name = "id") UUID inviteId) {
         return ResponseEntity.ok(inviteService.findById(inviteId));
     }
 
     @PutMapping("/{id}")
     @Operation(operationId = "putInvite", summary = "Create or Update an Invite")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertInvite(@PathVariable UUID id,
                                              @Valid @RequestBody CreateInviteDTO createInviteDTO) {
         if (createInviteDTO.getId() == null || !id.toString().equals(createInviteDTO.getId().toString())) {
@@ -119,6 +123,7 @@ public class InviteController extends PreApiController {
 
     @DeleteMapping("/{id}")
     @Operation(operationId = "deleteInvite", summary = "Revoke an invite")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteInvite(@PathVariable UUID id) {
         inviteService.deleteById(id);
         return ResponseEntity.ok().build();

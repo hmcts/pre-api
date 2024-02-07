@@ -4,6 +4,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -17,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
@@ -43,6 +46,7 @@ public class CaptureSessionService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
     public CaptureSessionDTO findById(UUID id) {
         return captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
@@ -64,6 +68,10 @@ public class CaptureSessionService {
             : scheduledFor.map(
                 t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
 
+        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        var authorisedBookings = auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings();
+        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+
         return captureSessionRepository
             .searchCaptureSessionsBy(
                 caseReference,
@@ -72,12 +80,15 @@ public class CaptureSessionService {
                 recordingStatus,
                 scheduledFor.orElse(null),
                 until,
+                authorisedBookings,
+                authorisedCourt,
                 pageable
             )
             .map(CaptureSessionDTO::new);
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
     public void deleteById(UUID id) {
         var entity = captureSessionRepository.findByIdAndDeletedAtIsNull(id);
         if (entity.isEmpty()) {
@@ -96,6 +107,7 @@ public class CaptureSessionService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createCaptureSessionDTO)")
     public UpsertResult upsert(CreateCaptureSessionDTO createCaptureSessionDTO) {
         var foundCaptureSession = captureSessionRepository.findById(createCaptureSessionDTO.getId());
 

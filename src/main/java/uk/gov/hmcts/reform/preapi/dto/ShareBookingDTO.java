@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 
+import java.sql.Timestamp;
 import java.util.UUID;
 
 @Data
@@ -14,13 +16,17 @@ import java.util.UUID;
 public class ShareBookingDTO {
     private UUID id;
     private UUID bookingId;
-    private UUID sharedWithUserId;
-    private UUID sharedByUserId;
+    private BaseUserDTO sharedWithUser;
+    private BaseUserDTO sharedByUser;
+    private Timestamp createdAt;
+    private Timestamp deletedAt;
 
     public ShareBookingDTO(ShareBooking shareBookingEntity) {
-        this.id = shareBookingEntity.getId();
-        this.bookingId = shareBookingEntity.getBooking().getId();
-        this.sharedWithUserId = shareBookingEntity.getSharedWith().getId();
-        this.sharedByUserId = shareBookingEntity.getSharedBy().getId();
+        id = shareBookingEntity.getId();
+        bookingId = shareBookingEntity.getBooking().getId();
+        sharedWithUser = new BaseUserDTO(shareBookingEntity.getSharedWith());
+        sharedByUser = new BaseUserDTO(shareBookingEntity.getSharedBy());
+        createdAt = shareBookingEntity.getCreatedAt();
+        deletedAt = shareBookingEntity.getDeletedAt();
     }
 }

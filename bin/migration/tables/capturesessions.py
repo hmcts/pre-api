@@ -23,9 +23,9 @@ class CaptureSessionManager:
         # https://tools.hmcts.net/confluence/pages/viewpage.action?spaceKey=S28&title=NRO+-+Application+Statuses
         if status_lower in ["no stream detected", "ready to record", "ready to stream","checking stream..."]:
             result = "STANDBY"
-        elif status_lower == "initiating request...":
-            result =  "INITIALISATION"
-        elif status_lower in ["recording","stream ok"]:
+        elif status_lower in ["initiating request...","ready to record"]:
+            result =  "INITIALISING"
+        elif status_lower == "recording":
             result =  "RECORDING"
         elif status_lower == "mp4 ready for viewing":
             result =  "RECORDING_AVAILABLE"

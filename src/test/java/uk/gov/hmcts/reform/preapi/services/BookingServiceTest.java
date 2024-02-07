@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -21,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -35,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -119,7 +122,13 @@ class BookingServiceTest {
         var bookingModel1 = new BookingDTO(bookingEntity1);
         var bookingModel2 = new BookingDTO(bookingEntity2);
 
-        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null,null, null))
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
+
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null, null,null, null, null, null))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
                 {
                     add(bookingEntity1);
@@ -128,7 +137,7 @@ class BookingServiceTest {
             }));
         assertThat(
             bookingService
-                .searchBy(null, "MyRef", Optional.empty(), null,null)
+                .searchBy(null, "MyRef", null, Optional.empty(), null,null)
                 .getContent()).isEqualTo(new ArrayList<>() {
                     {
                         add(bookingModel1);
@@ -153,7 +162,7 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, null, null, null, null, null, null))
+        when(recordingRepository.searchAllBy(null, null, null, null, null, null, null,null, null, null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }

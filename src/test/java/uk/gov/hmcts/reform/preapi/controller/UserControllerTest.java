@@ -14,11 +14,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
+import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.List;
@@ -48,6 +51,9 @@ public class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private UserAuthenticationService userAuthenticationService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
@@ -86,16 +92,16 @@ public class UserControllerTest {
     @Test
     void getUsersSuccess() throws Exception {
         UUID userId = UUID.randomUUID();
-        UserDTO mockCourt = new UserDTO();
+        BaseUserDTO mockCourt = new BaseUserDTO();
         mockCourt.setId(userId);
-        Page<UserDTO> userList = new PageImpl<>(List.of(mockCourt));
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
+        Page<BaseUserDTO> userList = new PageImpl<>(List.of(mockCourt));
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
             .thenReturn(userList);
 
         mockMvc.perform(get("/users"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.userDTOList").isNotEmpty())
-            .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
+            .andExpect(jsonPath("$._embedded.baseUserDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.baseUserDTOList[0].id").value(userId.toString()));
     }
 
     @DisplayName("Should return a 404 when searching by a court that doesn't exist")
@@ -104,7 +110,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -118,7 +124,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any());
+            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -295,5 +301,32 @@ public class UserControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                            .value("Invalid UUID string: 12345678"));
+    }
+
+    @DisplayName("Should get user's app access details by email with 200 response code")
+    @Test
+    void getUserByEmailSuccess() throws Exception {
+        var userEmail = "example@example.com";
+        var mock = new AppAccessDTO();
+        mock.setId(UUID.randomUUID());
+
+        when(userService.findByEmail(userEmail)).thenReturn(List.of(mock));
+
+        mockMvc.perform(get("/users/by-email/" + userEmail))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].id").value(mock.getId().toString()));
+    }
+
+    @DisplayName("Should return 404 when user's app access details by email that does not have any app access")
+    @Test
+    void getUserByEmailNotFound() throws Exception {
+        var userEmail = "example@example.com";
+
+        doThrow(new NotFoundException("User: " + userEmail)).when(userService).findByEmail(userEmail);
+
+        mockMvc.perform(get("/users/by-email/" + userEmail))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Not found: User: " + userEmail));
     }
 }

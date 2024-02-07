@@ -10,6 +10,7 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -20,12 +21,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
+import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -40,8 +45,18 @@ public class UserController extends PreApiController {
         this.userService = userService;
     }
 
+    @GetMapping("/by-email/{email}")
+    @Operation(
+        operationId = "getUserAccessByEmail",
+        summary = "Get a User's App Access by Email"
+    )
+    public ResponseEntity<List<AppAccessDTO>> getUserAccessById(@PathVariable String email) {
+        return ResponseEntity.ok(userService.findByEmail(email));
+    }
+
     @GetMapping("/{userId}")
     @Operation(operationId = "getUserById", summary = "Get a User by Id")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<UserDTO> getUserById(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.findById(userId));
     }
@@ -85,6 +100,11 @@ public class UserController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "accessType",
+        description = "Get Users by their access type",
+        schema = @Schema(implementation = AccessType.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -96,10 +116,11 @@ public class UserController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
-    public ResponseEntity<PagedModel<EntityModel<UserDTO>>> getUsers(
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<PagedModel<EntityModel<BaseUserDTO>>> getUsers(
         @Parameter(hidden = true) @ModelAttribute SearchUsers params,
         @Parameter(hidden = true) Pageable pageable,
-        @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
+        @Parameter(hidden = true) PagedResourcesAssembler<BaseUserDTO> assembler
     ) {
         var resultPage = userService.findAllBy(
             params.getFirstName(),
@@ -108,6 +129,7 @@ public class UserController extends PreApiController {
             params.getOrganisation(),
             params.getCourtId(),
             params.getRoleId(),
+            params.getAccessType(),
             pageable
         );
 
@@ -121,6 +143,7 @@ public class UserController extends PreApiController {
 
     @PutMapping("/{userId}")
     @Operation(operationId = "putUser", summary = "Create or Update a User")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody CreateUserDTO createUserDTO) {
         if (!userId.equals(createUserDTO.getId())) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.userId");
@@ -131,6 +154,7 @@ public class UserController extends PreApiController {
 
     @DeleteMapping("/{userId}")
     @Operation(operationId = "deleteUser", summary = "Delete a User")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteUserById(@PathVariable UUID userId) {
         userService.deleteById(userId);
         return ResponseEntity.ok().build();

@@ -29,40 +29,62 @@ definitions:
         description: AccessRemovedReportUserFullName
         type: string
     type: object
-  Booking:
+  AppAccessDTO:
+    description: AppAccessDTO
     properties:
-      captureSessions:
-        items:
-          $ref: '#/definitions/CaptureSession'
-        type: array
-        uniqueItems: true
-      caseId:
-        $ref: '#/definitions/Case'
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
+      active:
+        description: AppAccessActive
         type: boolean
-      deletedAt:
-        format: date-time
-        type: string
+      court:
+        $ref: '#/definitions/CourtDTO'
       id:
+        description: AppAccessId
         format: uuid
         type: string
-      modifiedAt:
+      last_access:
+        description: AppAccessLastAccess
         format: date-time
         type: string
-      participants:
+      role:
+        $ref: '#/definitions/RoleDTO'
+      user:
+        $ref: '#/definitions/UserDTO'
+    type: object
+  BaseUserDTO:
+    description: BaseUserDTO
+    properties:
+      active:
+        description: active
+        type: boolean
+      app_access:
+        description: UserAppAccess
         items:
-          $ref: '#/definitions/Participant'
+          $ref: '#/definitions/AppAccessDTO'
         type: array
         uniqueItems: true
-      scheduledFor:
-        format: date-time
+      email:
+        description: UserEmail
         type: string
-      shares:
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      portal_access:
+        description: UserPortalAccess
         items:
-          $ref: '#/definitions/ShareBooking'
+          $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
     type: object
@@ -110,54 +132,15 @@ definitions:
         type: array
         uniqueItems: true
     type: object
-  CaptureSession:
-    properties:
-      booking:
-        $ref: '#/definitions/Booking'
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      finishedAt:
-        format: date-time
-        type: string
-      finishedByUser:
-        $ref: '#/definitions/User'
-      id:
-        format: uuid
-        type: string
-      ingestAddress:
-        type: string
-      liveOutputUrl:
-        type: string
-      origin:
-        enum:
-          - PRE
-          - VODAFONE
-        type: string
-      startedAt:
-        format: date-time
-        type: string
-      startedByUser:
-        $ref: '#/definitions/User'
-      status:
-        enum:
-          - STANDBY
-          - INITIALISATION
-          - RECORDING
-          - RECORDING_AVAILABLE
-          - PROCESSING
-          - FAILURE
-          - NO_RECORDING
-        type: string
-    type: object
   CaptureSessionDTO:
     description: CaptureSessionDTO
     properties:
       booking_id:
         description: CreateCaptureSessionBookingId
         format: uuid
+        type: string
+      court_name:
+        description: RecordingParticipants
         type: string
       deleted_at:
         description: CaptureSessionDeletedAt
@@ -199,10 +182,10 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALISATION
+          - INITIALISING
           - RECORDING
-          - RECORDING_AVAILABLE
           - PROCESSING
+          - RECORDING_AVAILABLE
           - FAILURE
           - NO_RECORDING
         type: string
@@ -211,34 +194,6 @@ definitions:
       - id
       - origin
       - status
-    type: object
-  Case:
-    properties:
-      court:
-        $ref: '#/definitions/Court'
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      id:
-        format: uuid
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      participants:
-        items:
-          $ref: '#/definitions/Participant'
-        type: array
-        uniqueItems: true
-      reference:
-        type: string
-      test:
-        type: boolean
     type: object
   CaseDTO:
     description: CaseDTO
@@ -302,10 +257,10 @@ definitions:
         description: CompletedCaptureSessionReportRecordingStatus
         enum:
           - STANDBY
-          - INITIALISATION
+          - INITIALISING
           - RECORDING
-          - RECORDING_AVAILABLE
           - PROCESSING
+          - RECORDING_AVAILABLE
           - FAILURE
           - NO_RECORDING
         type: string
@@ -327,8 +282,6 @@ definitions:
   ConcurrentCaptureSessionReportDTO:
     description: ConcurrentCaptureSessionReportDTO
     properties:
-      captureSessionValues:
-        $ref: '#/definitions/CaptureSession'
       case_reference:
         description: CaptureSessionCaseReference
         type: string
@@ -356,32 +309,6 @@ definitions:
         description: CaptureSessionStartTime
         format: date-time
         type: string
-    type: object
-  Court:
-    properties:
-      courtType:
-        enum:
-          - CROWN
-          - MAGISTRATE
-          - FAMILY
-        type: string
-      id:
-        format: uuid
-        type: string
-      locationCode:
-        type: string
-      name:
-        type: string
-      regions:
-        items:
-          $ref: '#/definitions/Region'
-        type: array
-        uniqueItems: true
-      rooms:
-        items:
-          $ref: '#/definitions/Room'
-        type: array
-        uniqueItems: true
     type: object
   CourtDTO:
     description: CourtDTO
@@ -522,10 +449,10 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALISATION
+          - INITIALISING
           - RECORDING
-          - RECORDING_AVAILABLE
           - PROCESSING
+          - RECORDING_AVAILABLE
           - FAILURE
           - NO_RECORDING
         type: string
@@ -686,12 +613,33 @@ definitions:
         format: int32
         type: integer
     type: object
+  CreateShareBookingDTO:
+    properties:
+      booking_id:
+        format: uuid
+        type: string
+      id:
+        format: uuid
+        type: string
+      shared_by_user:
+        format: uuid
+        type: string
+      shared_with_user:
+        format: uuid
+        type: string
+    type: object
   CreateUserDTO:
     description: CreateUserDTO
     properties:
       active:
         description: active
         type: boolean
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/AppAccessDTO'
+        type: array
+        uniqueItems: true
       court_id:
         description: UserCourtId
         format: uuid
@@ -715,6 +663,12 @@ definitions:
       phone_number:
         description: UserPhoneNumber
         type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
       role_id:
         description: UserRoleId
         format: uuid
@@ -747,6 +701,45 @@ definitions:
         description: EditReportRecordingVersion
         format: int32
         type: integer
+    type: object
+  EntityModelBaseUserDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      active:
+        description: active
+        type: boolean
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/AppAccessDTO'
+        type: array
+        uniqueItems: true
+      email:
+        description: UserEmail
+        type: string
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
     type: object
   EntityModelBookingDTO:
     properties:
@@ -801,6 +794,9 @@ definitions:
         description: CreateCaptureSessionBookingId
         format: uuid
         type: string
+      court_name:
+        description: RecordingParticipants
+        type: string
       deleted_at:
         description: CaptureSessionDeletedAt
         format: date-time
@@ -841,10 +837,10 @@ definitions:
         description: CreateCaptureSessionStatus
         enum:
           - STANDBY
-          - INITIALISATION
+          - INITIALISING
           - RECORDING
-          - RECORDING_AVAILABLE
           - PROCESSING
+          - RECORDING_AVAILABLE
           - FAILURE
           - NO_RECORDING
         type: string
@@ -964,6 +960,9 @@ definitions:
         $ref: '#/definitions/Links'
       capture_session:
         $ref: '#/definitions/CaptureSessionDTO'
+      case_reference:
+        description: RecordingCaseReference
+        type: string
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -990,6 +989,12 @@ definitions:
         description: RecordingParentRecordingId
         format: uuid
         type: string
+      participants:
+        description: RecordingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       url:
         description: RecordingURL
         type: string
@@ -998,48 +1003,26 @@ definitions:
         format: int32
         type: integer
     type: object
-  EntityModelUserDTO:
+  EntityModelShareBookingDTO:
     properties:
       _links:
         $ref: '#/definitions/Links'
-      active:
-        description: active
-        type: boolean
-      court:
-        $ref: '#/definitions/CourtDTO'
+      booking_id:
+        format: uuid
+        type: string
       created_at:
-        description: UserCreatedAt
         format: date-time
         type: string
       deleted_at:
-        description: UserDeletedAt
         format: date-time
-        type: string
-      email:
-        description: UserEmail
-        type: string
-      first_name:
-        description: UserFirstName
         type: string
       id:
-        description: UserId
         format: uuid
         type: string
-      last_name:
-        description: UserLastName
-        type: string
-      modified_at:
-        description: UserModifiedAt
-        format: date-time
-        type: string
-      organisation:
-        description: UserOrganisation
-        type: string
-      phone_number:
-        description: UserPhoneNumber
-        type: string
-      role:
-        $ref: '#/definitions/RoleDTO'
+      shared_by_user:
+        $ref: '#/definitions/BaseUserDTO'
+      shared_with_user:
+        $ref: '#/definitions/BaseUserDTO'
     type: object
   InviteDTO:
     description: InviteDTO
@@ -1115,6 +1098,20 @@ definitions:
       totalPages:
         format: int64
         type: integer
+    type: object
+  PagedModelEntityModelBaseUserDTO:
+    properties:
+      _embedded:
+        properties:
+          baseUserDTOList:
+            items:
+              $ref: '#/definitions/EntityModelBaseUserDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
     type: object
   PagedModelEntityModelBookingDTO:
     properties:
@@ -1200,50 +1197,19 @@ definitions:
       page:
         $ref: '#/definitions/PageMetadata'
     type: object
-  PagedModelEntityModelUserDTO:
+  PagedModelEntityModelShareBookingDTO:
     properties:
       _embedded:
         properties:
-          userDTOList:
+          shareBookingDTOList:
             items:
-              $ref: '#/definitions/EntityModelUserDTO'
+              $ref: '#/definitions/EntityModelShareBookingDTO'
             type: array
         type: object
       _links:
         $ref: '#/definitions/Links'
       page:
         $ref: '#/definitions/PageMetadata'
-    type: object
-  Participant:
-    properties:
-      bookings:
-        items:
-          $ref: '#/definitions/Booking'
-        type: array
-        uniqueItems: true
-      caseId:
-        $ref: '#/definitions/Case'
-      createdAt:
-        format: date-time
-        type: string
-      deletedAt:
-        format: date-time
-        type: string
-      firstName:
-        type: string
-      id:
-        format: uuid
-        type: string
-      lastName:
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      participantType:
-        enum:
-          - WITNESS
-          - DEFENDANT
-        type: string
     type: object
   ParticipantDTO:
     description: ParticipantDTO
@@ -1325,11 +1291,46 @@ definitions:
         description: PlaybackReportUserFullName
         type: string
     type: object
+  PortalAccessDTO:
+    description: PortalAccessDTO
+    properties:
+      deleted_at:
+        description: PortalAccessDeletedAt
+        format: date-time
+        type: string
+      id:
+        description: PortalAccessId
+        format: uuid
+        type: string
+      invited_at:
+        description: PortalAccessInvitedAt
+        format: date-time
+        type: string
+      last_access:
+        description: PortalAccessLastAccess
+        format: date-time
+        type: string
+      registered_at:
+        description: PortalAccessRegisteredAt
+        format: date-time
+        type: string
+      status:
+        description: PortalAccessStatus
+        enum:
+          - INVITATION_SENT
+          - REGISTERED
+          - ACTIVE
+          - INACTIVE
+        type: string
+    type: object
   RecordingDTO:
     description: RecordingDTO
     properties:
       capture_session:
         $ref: '#/definitions/CaptureSessionDTO'
+      case_reference:
+        description: RecordingCaseReference
+        type: string
       created_at:
         description: RecordingCreatedAt
         format: date-time
@@ -1356,6 +1357,12 @@ definitions:
         description: RecordingParentRecordingId
         format: uuid
         type: string
+      participants:
+        description: RecordingParticipants
+        items:
+          $ref: '#/definitions/ParticipantDTO'
+        type: array
+        uniqueItems: true
       url:
         description: RecordingURL
         type: string
@@ -1384,19 +1391,6 @@ definitions:
         type: array
         uniqueItems: true
     type: object
-  Region:
-    properties:
-      courts:
-        items:
-          $ref: '#/definitions/Court'
-        type: array
-        uniqueItems: true
-      id:
-        format: uuid
-        type: string
-      name:
-        type: string
-    type: object
   RegionDTO:
     description: RegionDTO
     properties:
@@ -1423,19 +1417,6 @@ definitions:
           $ref: '#/definitions/PermissionDTO'
         type: array
         uniqueItems: true
-    type: object
-  Room:
-    properties:
-      courts:
-        items:
-          $ref: '#/definitions/Court'
-        type: array
-        uniqueItems: true
-      id:
-        format: uuid
-        type: string
-      name:
-        type: string
     type: object
   RoomDTO:
     description: RoomDTO
@@ -1475,40 +1456,25 @@ definitions:
         format: date-time
         type: string
     type: object
-  ShareBooking:
-    properties:
-      booking:
-        $ref: '#/definitions/Booking'
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      id:
-        format: uuid
-        type: string
-      sharedBy:
-        $ref: '#/definitions/User'
-      sharedWith:
-        $ref: '#/definitions/User'
-    type: object
   ShareBookingDTO:
+    description: BookingShares
     properties:
       booking_id:
         format: uuid
         type: string
+      created_at:
+        format: date-time
+        type: string
+      deleted_at:
+        format: date-time
+        type: string
       id:
         format: uuid
         type: string
-      shared_by_user_id:
-        format: uuid
-        type: string
-      shared_with_user_id:
-        format: uuid
-        type: string
+      shared_by_user:
+        $ref: '#/definitions/BaseUserDTO'
+      shared_with_user:
+        $ref: '#/definitions/BaseUserDTO'
     type: object
   SharedReportDTO:
     description: SharedReportDTO
@@ -1544,35 +1510,6 @@ definitions:
       shared_at:
         description: SharedReportSharedAt
         format: date-time
-        type: string
-    type: object
-  User:
-    properties:
-      createdAt:
-        format: date-time
-        type: string
-      deleted:
-        type: boolean
-      deletedAt:
-        format: date-time
-        type: string
-      email:
-        type: string
-      firstName:
-        type: string
-      fullName:
-        type: string
-      id:
-        format: uuid
-        type: string
-      lastName:
-        type: string
-      modifiedAt:
-        format: date-time
-        type: string
-      organisation:
-        type: string
-      phone:
         type: string
     type: object
   UserDTO:
@@ -1614,6 +1551,12 @@ definitions:
       phone_number:
         description: UserPhoneNumber
         type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
       role:
         $ref: '#/definitions/RoleDTO'
     type: object
@@ -1635,11 +1578,6 @@ paths:
         - application/json
       operationId: putAudit
       parameters:
-        - format: uuid
-          in: header
-          name: X-User-Id
-          required: true
-          type: string
         - format: uuid
           in: path
           name: id
@@ -1688,6 +1626,12 @@ paths:
           format: uuid
           in: query
           name: participantId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The Court Id to search for
+          format: uuid
+          in: query
+          name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
@@ -1795,6 +1739,30 @@ paths:
       tags:
         - booking-controller
   '/bookings/{bookingId}/share':
+    get:
+      operationId: getSharedBookingLogs
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelShareBookingDTO'
+      tags:
+        - booking-controller
     put:
       consumes:
         - application/json
@@ -1816,7 +1784,7 @@ paths:
           name: body
           required: true
           schema:
-            $ref: '#/definitions/ShareBookingDTO'
+            $ref: '#/definitions/CreateShareBookingDTO'
       responses:
         '200':
           description: OK
@@ -1874,10 +1842,10 @@ paths:
         - description: The recording status to search for
           enum:
             - STANDBY
-            - INITIALISATION
+            - INITIALISING
             - RECORDING
-            - RECORDING_AVAILABLE
             - PROCESSING
+            - RECORDING_AVAILABLE
             - FAILURE
             - NO_RECORDING
           in: query
@@ -2379,6 +2347,12 @@ paths:
           name: scheduledFor
           type: string
           x-example: '2024-04-27'
+        - description: The court to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2755,6 +2729,13 @@ paths:
           name: roleId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Get Users by their access type
+          enum:
+            - PORTAL
+            - APP
+          in: query
+          name: accessType
+          type: string
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2780,10 +2761,37 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/PagedModelEntityModelUserDTO'
+            $ref: '#/definitions/PagedModelEntityModelBaseUserDTO'
       summary: >-
         Search for Users by first name, last name, email, organisation, court or
         role
+      tags:
+        - user-controller
+  '/users/by-email/{email}':
+    get:
+      operationId: getUserAccessByEmail
+      parameters:
+        - in: path
+          name: email
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AppAccessDTO'
+            type: array
+      summary: Get a User's App Access by Email
       tags:
         - user-controller
   '/users/{userId}':

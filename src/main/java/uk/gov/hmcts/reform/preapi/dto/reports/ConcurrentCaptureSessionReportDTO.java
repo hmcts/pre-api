@@ -45,15 +45,15 @@ public class ConcurrentCaptureSessionReportDTO {
     private Set<RegionDTO> region;
 
     public ConcurrentCaptureSessionReportDTO(Recording entity) {
-        setCaptureSessionValues(entity.getCaptureSession());
+        initCaptureSessionValues(entity.getCaptureSession());
         duration = entity.getDuration();
     }
 
     public ConcurrentCaptureSessionReportDTO(CaptureSession entity) {
-        setCaptureSessionValues(entity);
+        initCaptureSessionValues(entity);
     }
 
-    private void setCaptureSessionValues(CaptureSession entity) {
+    private void initCaptureSessionValues(CaptureSession entity) {
         id = entity.getId();
         startTime = entity.getStartedAt();
         endTime = entity.getFinishedAt();

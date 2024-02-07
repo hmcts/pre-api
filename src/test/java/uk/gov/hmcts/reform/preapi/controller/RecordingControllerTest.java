@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.sql.Timestamp;
@@ -52,6 +53,9 @@ class RecordingControllerTest {
 
     @MockBean
     private RecordingService recordingService;
+
+    @MockBean
+    private UserAuthenticationService userAuthenticationService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
@@ -90,7 +94,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any(), any()))
+        when(recordingService.findAll(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -110,7 +114,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any(), any()))
+        when(recordingService.findAll(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -130,6 +134,7 @@ class RecordingControllerTest {
                 isNull(),
                 isNull(),
                 eq(Optional.of(Timestamp.valueOf("2024-01-01 00:00:00"))),
+                isNull(),
                 any()
             );
     }
