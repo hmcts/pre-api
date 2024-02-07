@@ -1,26 +1,26 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
-from datetime import datetime
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
+import uuid
 
 class PortalAccessManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         query = """ SELECT
                         u.userid,
-                        MAX(u.status) as active,
-                        MAX(u.loginenabled) as loginenabled,
-                        MAX(u.invited) as invited,
-                        MAX(u.emailconfirmed) as emailconfirmed,
+                        u.status as active,
+                        u.loginenabled as loginenabled,
+                        u.invited as invited,
+                        u.emailconfirmed as emailconfirmed,
                         MAX(ga.assigned) AS created,
-                        MAX(ga.assignedby) AS createdby,
-                        MAX(ga.gaid) AS portal_access_id
+                        MAX(ga.assignedby) AS createdby
                     FROM public.users u
                     JOIN public.groupassignments ga ON u.userid = ga.userid
                     JOIN public.grouplist gl ON ga.groupid = gl.groupid
-                    WHERE gl.groupname = 'Level 3' OR gl.groupname = 'Super User'
-                    GROUP BY u.userid """
+                    WHERE gl.groupname = 'Level 3' OR u.invited ILIKE 'true'
+                    GROUP BY u.userid"""
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
 
@@ -31,7 +31,7 @@ class PortalAccessManager:
             user_id = user[0]
 
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
-                id=user[7]
+                id = str(uuid.uuid4())
                 password = 'password' # temporary field - to be removed once B2C implemented
                 status = 'INVITATION_SENT'
 
@@ -56,8 +56,7 @@ class PortalAccessManager:
                 elif login_enabled_and_invited:
                     status = "INVITATION_SENT"
                 else:
-                    self.failed_imports.add(('portal_access', user_id, "Missing status details"))
-                    continue
+                    status = "INVITATION_SENT"
 
                 # last_access = datetime.now() # this value is obtained from DV
                 # invited_at = parse_to_timestamp(user[5]) # this value is obtained from DV
@@ -71,16 +70,7 @@ class PortalAccessManager:
                     id, user_id, password, status, created_at, modified_at, created_by
                 ))
 
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name='portal_access',
-                    record_id=id,
-                    record=user_id,
-                    created_at=created_at,
-                    created_by=created_by if created_by is not None else None
-                )
-
-        try:
+        try: 
             if batch_portal_user_data:
                 destination_cursor.executemany(
                     """
@@ -99,12 +89,10 @@ class PortalAccessManager:
                         table_name='portal_access',
                         record_id=entry[0],
                         record=entry[1],
-                        created_at=entry[7],
-                        created_by= entry[9]
+                        created_at=entry[4],
+                        created_by= entry[6]
                     )
         except Exception as e:
             self.failed_imports.add(('portal_access', user_id, e))
-
-        log_failed_imports(self.failed_imports)
-
-
+ 
+        self.logger.log_failed_imports(self.failed_imports)

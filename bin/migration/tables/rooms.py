@@ -1,10 +1,11 @@
-from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp, log_failed_imports, get_user_id
+from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp, get_user_id
 import uuid
 
 class RoomManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("SELECT * from public.rooms")
@@ -47,4 +48,4 @@ class RoomManager:
         except Exception as e:
             self.failed_imports.add(('rooms', id, e))
 
-        log_failed_imports(self.failed_imports)  
+        self.logger.log_failed_imports(self.failed_imports)  

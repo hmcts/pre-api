@@ -1,10 +1,11 @@
-from .helpers import check_existing_record, log_failed_imports
+from .helpers import check_existing_record
 import re
 
 
 class CourtRegionManager:
-    def __init__(self):
+    def __init__(self, logger):
         self.failed_imports = set()
+        self.logger = logger
 
     def migrate_data(self,destination_cursor):
         batch_court_region_data = []
@@ -16,13 +17,18 @@ class CourtRegionManager:
             {"name": "Mold Crown Court", "region": "Wales"},
             {"name": "Reading Crown Court", "region": "South East (England)"},
             {"name": "Leeds Crown Court", "region": "Yorkshire and The Humber"},
+            {"name": "Leeds", "region": "Yorkshire and The Humber"},
             {"name": "Durham Crown Court", "region": "North East (England)"},
             {"name": "Liverpool Crown Court", "region": "North West (England)"},
             {"name": "Nottingham Crown Court", "region": "East Midlands (England)"},
             {"name": "Kingston upon Thames Crown Court", "region": "London"},
             # {"name": "Kingston-upon-Thames Crown Court", "region": "London"},
             {"name": "Leeds Youth Court", "region": "Yorkshire and The Humber"},
-            {"name": "Default Court", "region": "London"}
+            {"name": "Leeds Youth", "region": "Yorkshire and The Humber"},
+            {"name": "Default Court", "region": "Default"},
+            {"name": "Test","region": "Test"},
+            {"name": "new","region": "Test"},
+            {"name": "102 Petty France","region": "Test"}
         ]
         court_regions_dict = {court["name"]: court["region"] for court in court_regions}
 
@@ -65,5 +71,5 @@ class CourtRegionManager:
         except Exception as e:  
             self.failed_imports.add(('court_region', None, e))
                     
-        log_failed_imports(self.failed_imports)            
+        self.logger.log_failed_imports(self.failed_imports)            
             
