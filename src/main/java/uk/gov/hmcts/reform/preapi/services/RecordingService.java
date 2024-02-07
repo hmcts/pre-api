@@ -93,18 +93,13 @@ public class RecordingService {
             throw new ResourceInDeletedStateException("RecordingDTO", createRecordingDTO.getId().toString());
         }
 
-        var isUpdate = recording.isPresent();
-
-        var captureSession = captureSessionRepository.findByIdAndDeletedAtIsNull(
-            createRecordingDTO.getCaptureSessionId()
-        );
-
-        if ((!isUpdate || createRecordingDTO.getCaptureSessionId() != null) && captureSession.isEmpty()) {
-            throw new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId());
-        }
+        var captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
+            .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
 
         var recordingEntity = recording.orElse(new Recording());
         recordingEntity.setId(createRecordingDTO.getId());
+        recordingEntity.setCaptureSession(captureSession);
         if (createRecordingDTO.getParentRecordingId() != null) {
             var parentRecording = recordingRepository.findById(createRecordingDTO.getParentRecordingId());
             if (parentRecording.isEmpty()) {
@@ -122,6 +117,7 @@ public class RecordingService {
 
         recordingRepository.save(recordingEntity);
 
+        var isUpdate = recording.isPresent();
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
