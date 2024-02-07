@@ -27,58 +27,32 @@ from logger import FailedImportsLogger
 
 
 # get passwords from env variables
-demo_db_password = os.environ.get('DEMO_DB_PASSWORD')
-destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
-test_db_password = os.environ.get('TEST_DB_PASSWORD')
-staging_db_password = os.environ.get('STAGING_DB_PASSWORD')
+source_db_name = os.environ.get('SOURCE_DB_NAME')
+source_db_user = os.environ.get('SOURCE_DB_USER')
+source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
+source_db_host = os.environ.get('SOURCE_DB_HOST')
 
-
-# database connections
-# staging db
-# source_db = DatabaseManager(
-#      database="pre-pdb-stg",
-#     user="psqladmin",
-#     password=staging_db_password,
-#     host="pre-db-stg.postgres.database.azure.com",
-#     port="5432",
-# )
- 
-
-# test db
 source_db = DatabaseManager(
-    database="pre-pdb-test",
-    user="psqladmin",
-    password=test_db_password,
-    host="pre-db-test.postgres.database.azure.com",
+    database=source_db_name,
+    user=source_db_user,
+    password=source_db_password,
+    host=source_db_host,
     port="5432",
 )
 
-# demo database
-# source_db = DatabaseManager(
-#     database="pre-pdb-demo",
-#     user="psqladmin",
-#     password=demo_db_password,
-#     host="pre-db-demo.postgres.database.azure.com",
-#     port="5432",
-# )
-
-
-# dummy database on dev server
-# destination_db = DatabaseManager(
-#     database="dev-pre-copy",
-#     user="psqladmin",
-#     password=destination_db_password,
-#     host="pre-db-dev.postgres.database.azure.com",
-#     port="5432",
-# )
+destination_db_name = os.environ.get('DESTINATION_DB_NAME')
+destination_db_user = os.environ.get('DESTINATION_DB_USER')
+destination_db_password = os.environ.get('DESTINATION_DB_PASSWORD')
+destination_db_host = os.environ.get('DESTINATION_DB_HOST')
 
 destination_db = DatabaseManager(
-    database="db",
-    user="db",
-    password="",
-    host="localhost",
+    database=destination_db_name,
+    user=destination_db_user,
+    password=destination_db_password,
+    host=destination_db_host,
     port="5432",
 )
+
 
 logger = FailedImportsLogger()
 logger.load_existing_entries('failed_imports_log.txt')

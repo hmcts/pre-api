@@ -74,10 +74,9 @@ class RecordCounter:
                                     u.userid,
                                     COUNT(CASE WHEN gl.grouptype = 'Security' AND ga.groupid IS NOT NULL THEN 1 ELSE NULL END) AS role_id_count,
                                     MAX(CASE WHEN gl.grouptype = 'Location' THEN ga.groupid ELSE NULL END) AS court_id,
-                                    MAX(u.status) AS active,
+                                    u.status AS active,
                                     MAX(ga.assigned) AS created,
-                                    MAX(ga.assignedby) AS createdby,
-                                    MAX(ga.gaid) AS app_access_id
+                                    MAX(ga.assignedby) AS createdby
                                 FROM public.users u
                                 JOIN public.groupassignments ga ON u.userid = ga.userid
                                 JOIN public.grouplist gl ON ga.groupid = gl.groupid
