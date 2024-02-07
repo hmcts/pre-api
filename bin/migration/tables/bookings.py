@@ -1,14 +1,17 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
 import uuid
 
 
 class BookingManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
-        self.source_cursor.execute("SELECT * FROM public.recordings WHERE recordingversion = '1'")
+        self.source_cursor.execute("""  SELECT *
+                                        FROM public.recordings
+                                        WHERE parentrecuid = recordinguid and recordingversion = '1'""")
         return self.source_cursor.fetchall()
 
     def migrate_data(self, destination_cursor, source_data):
@@ -47,8 +50,14 @@ class BookingManager:
                 continue
 
             recording_status = recording[11]
-            deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
             created_at = parse_to_timestamp(recording[22])
+            deleted_at = None
+            if recording_status == 'Deleted':
+                if recording[24]:
+                    deleted_at = parse_to_timestamp(recording[24])
+                else:
+                    deleted_at = created_at
+
             modified_at = parse_to_timestamp(recording[24]) if recording[24] is not None else created_at
             created_by =  get_user_id(destination_cursor,recording[21])
 
@@ -111,6 +120,6 @@ class BookingManager:
                 except Exception as e:  
                     self.failed_imports.add(('bookings', id,e))
                     
-        log_failed_imports(self.failed_imports)
+        self.logger.log_failed_imports(self.failed_imports)
     
    
