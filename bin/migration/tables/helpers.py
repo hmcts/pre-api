@@ -33,8 +33,9 @@ def parse_to_timestamp(input_text):
                 return parsed_datetime
 
         except (ValueError, TypeError) as e:
-            failed_imports.add(('date/time', input_text, e))
-            log_failed_imports(failed_imports)
+            pass
+            # failed_imports.add(('date/time', input_text, e))
+            # log_failed_imports(failed_imports)
 
 # Checks if record is already imported
 def check_existing_record(db_connection, table_name, field, record):

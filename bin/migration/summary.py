@@ -47,18 +47,18 @@ class RecordCounter:
         # Roles
         table_counts['roles'] = self.fetch_source_data("SELECT COUNT(grouptype) FROM public.grouplist WHERE grouptype = 'Security'")
         # Courts
-        table_counts['courts'] = self.fetch_source_data("SELECT COUNT(grouptype) FROM public.grouplist WHERE grouptype = 'Location'")
+        table_counts['courts'] = self.fetch_source_data("SELECT COUNT(grouptype) FROM public.grouplist WHERE grouptype = 'Location'") + 1 # this adds 1 for the default court
         #Regions
-        table_counts['regions'] = 10
+        table_counts['regions'] = 12
         # Portal Access
         table_counts['portal_access'] = self.fetch_source_data("""
                             SELECT COUNT(*) AS count_result FROM (
-                                SELECT
+	                            SELECT
                                     u.userid,
-                                    MAX(u.status) AS active,
-                                    MAX(u.loginenabled) AS loginenabled,
-                                    MAX(u.invited) AS invited,
-                                    MAX(u.emailconfirmed) AS emailconfirmed,
+                                    u.status as active,
+                                    u.loginenabled as loginenabled,
+                                    u.invited as invited,
+                                    u.emailconfirmed as emailconfirmed,
                                     MAX(ga.assigned) AS created,
                                     MAX(ga.assignedby) AS createdby
                                 FROM public.users u
@@ -72,9 +72,9 @@ class RecordCounter:
                             SELECT COUNT(*) AS count_result FROM (
                                 SELECT 
                                     u.userid,
-                                    MAX(CASE WHEN gl.grouptype = 'Security' THEN ga.groupid ELSE NULL END) AS role_id,
+                                    COUNT(CASE WHEN gl.grouptype = 'Security' AND ga.groupid IS NOT NULL THEN 1 ELSE NULL END) AS role_id_count,
                                     MAX(CASE WHEN gl.grouptype = 'Location' THEN ga.groupid ELSE NULL END) AS court_id,
-                                    MAX(u.status) as active,
+                                    MAX(u.status) AS active,
                                     MAX(ga.assigned) AS created,
                                     MAX(ga.assignedby) AS createdby,
                                     MAX(ga.gaid) AS app_access_id
@@ -82,8 +82,9 @@ class RecordCounter:
                                 JOIN public.groupassignments ga ON u.userid = ga.userid
                                 JOIN public.grouplist gl ON ga.groupid = gl.groupid
                                 WHERE gl.groupname != 'Level 3' AND (gl.grouptype = 'Security' OR gl.grouptype = 'Location')
-                                GROUP BY u.userid
-                            ) AS count """)
+                                GROUP BY u.userid 
+                                HAVING COUNT(CASE WHEN gl.grouptype = 'Security' AND ga.groupid IS NOT NULL THEN 1 ELSE NULL END) > 0
+                                ) AS count""")
         # cases
         table_counts['cases'] = self.fetch_source_data("SELECT COUNT(*) FROM public.cases")
         #bookings 
@@ -91,9 +92,9 @@ class RecordCounter:
         #participants 
         table_counts['contacts'] = self.fetch_source_data("SELECT COUNT(*) FROM public.contacts")
         # capture_sessions 
-        table_counts['capture_sessions'] = self.fetch_source_data("SELECT COUNT(*) FROM public.recordings WHERE parentrecuid = recordinguid and recordingstatus != 'No Recording'")        
+        table_counts['capture_sessions'] = self.fetch_source_data("SELECT COUNT(*) FROM public.recordings WHERE parentrecuid = recordinguid AND recordingstatus != 'No Recording' AND NOT (recordingstatus = 'Deleted' AND ingestaddress IS NULL)")        
         # recordings 
-        table_counts['recordings'] = self.fetch_source_data("SELECT COUNT(*) FROM public.recordings WHERE (recordingavailable IS NULL OR recordingavailable NOT ILIKE 'false' AND recordingavailable NOT ILIKE 'no')")        
+        table_counts['recordings'] = self.fetch_source_data("SELECT COUNT(*) FROM public.recordings WHERE recordingstatus !='No Recording' AND (recordingavailable IS NULL OR recordingavailable LIKE 'true')")        
         # audits 
         table_counts['audits'] = self.fetch_source_data("SELECT COUNT(*) FROM public.audits")
 

@@ -10,10 +10,10 @@ class PortalAccessManager:
     def get_data(self):
         query = """ SELECT
                         u.userid,
-                        MAX(u.status) as active,
-                        MAX(u.loginenabled) as loginenabled,
-                        MAX(u.invited) as invited,
-                        MAX(u.emailconfirmed) as emailconfirmed,
+                        u.status as active,
+                        u.loginenabled as loginenabled,
+                        u.invited as invited,
+                        u.emailconfirmed as emailconfirmed,
                         MAX(ga.assigned) AS created,
                         MAX(ga.assignedby) AS createdby
                     FROM public.users u
