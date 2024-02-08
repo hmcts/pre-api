@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, parse_to_timestamp, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, get_user_id, audit_entry_creation
 
 class ShareBookingsManager:
     def __init__(self, source_cursor, logger):
@@ -77,6 +77,15 @@ class ShareBookingsManager:
 
             if not check_existing_record(destination_cursor, 'share_bookings','id',id):
                 batch_share_bookings_data.append((id, booking_id, shared_with_user_id, shared_by_user_id,created_at, deleted_at))
+
+                audit_entry_creation(
+                        destination_cursor,
+                        table_name="share_bookings",
+                        record_id=id,
+                        record=booking_id,
+                        created_at=created_at,
+                        created_by=created_by                    
+                    )
             
         try:
             if batch_share_bookings_data:
