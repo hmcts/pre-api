@@ -165,6 +165,11 @@ public class UserService {
         if (user.isPresent() && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createInviteDTO.getUserId().toString());
         }
+        else if (user.isPresent() && portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
+            .isPresent()) {
+            return UpsertResult.UPDATED;
+        }
 
         var userEntity = user.orElse(new User());
 

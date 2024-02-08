@@ -12,9 +12,6 @@ import java.util.UUID;
 @Schema(description = "CreateInviteDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateInviteDTO {
-    @Schema (description = "InviteId")
-    protected UUID id;
-
     @Schema (description = "InviteUserId")
     protected UUID userId;
 
