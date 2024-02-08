@@ -188,14 +188,14 @@ public class ShareBookingServiceTest {
         share.setId(UUID.randomUUID());
         share.setBooking(booking);
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.of(share));
 
         shareBookingService.deleteShareBookingById(booking.getId(), share.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, times(1)).deleteById(share.getId());
     }
@@ -209,7 +209,7 @@ public class ShareBookingServiceTest {
         share.setId(UUID.randomUUID());
         share.setBooking(booking);
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(false);
 
         var message = assertThrows(
@@ -219,7 +219,7 @@ public class ShareBookingServiceTest {
 
         assertThat(message).isEqualTo("Not found: Booking: " + booking.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
     }
 
@@ -232,7 +232,7 @@ public class ShareBookingServiceTest {
         share.setId(UUID.randomUUID());
         share.setBooking(booking);
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.empty());
@@ -245,7 +245,7 @@ public class ShareBookingServiceTest {
         assertThat(message)
             .isEqualTo("Not found: ShareBooking: " + share.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
     }
@@ -260,7 +260,7 @@ public class ShareBookingServiceTest {
         share.setBooking(booking);
         share.setDeletedAt(Timestamp.from(Instant.now()));
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.of(share));
@@ -273,7 +273,7 @@ public class ShareBookingServiceTest {
         assertThat(message)
             .isEqualTo("Not found: ShareBooking: " + share.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
     }
@@ -288,7 +288,7 @@ public class ShareBookingServiceTest {
         share.setBooking(booking);
         var searchBookingId = UUID.randomUUID();
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(searchBookingId))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(searchBookingId))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.of(share));
@@ -305,7 +305,7 @@ public class ShareBookingServiceTest {
                            + searchBookingId
             );
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(searchBookingId);
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(searchBookingId);
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
     }
@@ -328,7 +328,7 @@ public class ShareBookingServiceTest {
         shareBooking.setSharedWith(user);
         shareBooking.setSharedBy(user);
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId())).thenReturn(true);
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId())).thenReturn(true);
         when(shareBookingRepository.findAllByBooking_Id(booking.getId(), null))
             .thenReturn(new PageImpl<>(List.of(shareBooking)));
 
@@ -347,7 +347,7 @@ public class ShareBookingServiceTest {
     void getShareLogsForBookingNotFound() {
         var bookingId = UUID.randomUUID();
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingId)).thenReturn(false);
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)).thenReturn(false);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -356,6 +356,6 @@ public class ShareBookingServiceTest {
 
         assertThat(message).isEqualTo("Not found: Booking: " + bookingId);
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(bookingId);
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingId);
     }
 }
