@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.entities.Invite;
-
 import java.util.UUID;
 
 @Data
@@ -16,6 +14,9 @@ import java.util.UUID;
 public class CreateInviteDTO {
     @Schema (description = "InviteId")
     protected UUID id;
+
+    @Schema (description = "InviteUserId")
+    protected UUID userId;
 
     @Schema(description = "InviteFirstName")
     protected String firstName;
@@ -34,15 +35,5 @@ public class CreateInviteDTO {
 
     @Schema(description = "InviteCode")
     protected String code;
-
-    public CreateInviteDTO(Invite invite) {
-        this.id = invite.getId();
-        this.firstName = invite.getFirstName();
-        this.lastName = invite.getLastName();
-        this.email = invite.getEmail();
-        this.organisation = invite.getOrganisation();
-        this.phone = invite.getPhone();
-        this.code = invite.getCode();
-    }
 }
 

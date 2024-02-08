@@ -107,7 +107,7 @@ public class InviteController extends PreApiController {
     @Operation(operationId = "getInviteById", summary = "Get an invite by id")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<InviteDTO> getInviteById(@PathVariable(name = "id") UUID inviteId) {
-        return ResponseEntity.ok(inviteService.findById(inviteId));
+        return ResponseEntity.ok(inviteService.findByUserId(inviteId));
     }
 
     @PutMapping("/{id}")
@@ -126,18 +126,12 @@ public class InviteController extends PreApiController {
     @Operation(operationId = "deleteInvite", summary = "Revoke an invite")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteInvite(@PathVariable UUID id) {
-        inviteService.deleteById(id);
+        inviteService.deleteByUserId(id);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/redeemInvite")
     public ResponseEntity<Void> redeemInvite(@RequestParam String email, @RequestParam String inviteCode) {
-        var newUser = inviteService.redeemInvite(email, inviteCode);
-
-        if (newUser != null) {
-            return ResponseEntity.ok().build();
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        return getUpsertResponse(inviteService.redeemInvite(email, inviteCode), null);
     }
 }

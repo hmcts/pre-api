@@ -1,33 +1,54 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
+
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.entities.Invite;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 
 import java.sql.Timestamp;
+import java.util.UUID;
 
 @Data
-@EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-@AllArgsConstructor
 @Schema(description = "InviteDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class InviteDTO extends CreateInviteDTO {
-    @Schema(description = "InviteCreatedAt")
-    private Timestamp createdAt;
+public class InviteDTO {
+    @Schema(description = "UserId")
+    protected UUID id;
 
-    @Schema(description = "InvitedModifiedAt")
-    private Timestamp modifiedAt;
+    @Schema(description = "UserFirstName")
+    protected String firstName;
 
-    public InviteDTO(Invite invite) {
-        super(invite);
-        this.createdAt = invite.getCreatedAt();
-        this.modifiedAt = invite.getModifiedAt();
+    @Schema(description = "UserLastName")
+    protected String lastName;
+
+    @Schema(description = "UserEmail")
+    protected String email;
+
+    @Schema(description = "UserPhoneNumber")
+    protected String phoneNumber;
+
+    @Schema(description = "UserOrganisation")
+    protected String organisation;
+
+    @Schema(description = "UserInvitedAt")
+    protected Timestamp createdAt;
+
+    @Schema(description = "UserInviteCode")
+    protected String code;
+
+    public InviteDTO(PortalAccess portalAccess) {
+        var user = portalAccess.getUser();
+        id = user.getId();
+        firstName = user.getFirstName();
+        lastName = user.getLastName();
+        email = user.getEmail();
+        phoneNumber = user.getPhone();
+        organisation = user.getOrganisation();
+        createdAt = portalAccess.getInvitedAt();
+        code = portalAccess.getCode();
     }
 }
-
