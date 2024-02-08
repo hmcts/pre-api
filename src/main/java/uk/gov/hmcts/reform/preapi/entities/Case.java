@@ -51,9 +51,9 @@ public class Case extends CreatedModifiedAtEntity {
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
-        details.put("court", court.getName());
-        details.put("reference", reference);
-        details.put("participants", Stream.ofNullable(getParticipants())
+        details.put("courtName", court.getName());
+        details.put("caseReference", reference);
+        details.put("caseParticipants", Stream.ofNullable(getParticipants())
                     .flatMap(participants ->
                                  participants
                                      .stream()

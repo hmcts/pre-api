@@ -36,8 +36,8 @@ public class Invite extends CreatedModifiedAtEntity {
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
-        details.put("email", email);
-        details.put("organisation", organisation);
+        details.put("inviteEmail", email);
+        details.put("inviteOrganisation", organisation);
         return details;
     }
 }
