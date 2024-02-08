@@ -11,7 +11,11 @@ import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
-import uk.gov.hmcts.reform.preapi.entities.*;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.Role;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -164,8 +168,7 @@ public class UserService {
         var user = userRepository.findById(createInviteDTO.getUserId());
         if (user.isPresent() && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createInviteDTO.getUserId().toString());
-        }
-        else if (user.isPresent() && portalAccessRepository
+        } else if (user.isPresent() && portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
             .isPresent()) {
             return UpsertResult.UPDATED;

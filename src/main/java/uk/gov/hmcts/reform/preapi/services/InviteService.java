@@ -11,7 +11,6 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.UUID;
 
@@ -28,7 +27,8 @@ public class InviteService {
 
     @Transactional
     public InviteDTO findByUserId(UUID userId) {
-        return portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
+        return portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
             .map(InviteDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
@@ -51,7 +51,8 @@ public class InviteService {
     }
 
     public UpsertResult redeemInvite(String email, String inviteCode) {
-        var portalAccess = portalAccessRepository.findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(email, inviteCode)
+        var portalAccess = portalAccessRepository
+            .findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(email, inviteCode)
             .orElseThrow(() -> new NotFoundException("Invite: " + email + " " + inviteCode));
         portalAccess.setStatus(AccessStatus.ACTIVE);
         portalAccessRepository.save(portalAccess);

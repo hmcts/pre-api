@@ -16,8 +16,11 @@ import java.util.UUID;
 @SuppressWarnings("PMD.MethodNamingConventions")
 public interface PortalAccessRepository extends SoftDeleteRepository<PortalAccess, UUID> {
     Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID id);
+
     Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(UUID id, AccessStatus status);
+
     Optional<PortalAccess> findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(String email, String code);
+
     @Query(
         """
         SELECT pa FROM PortalAccess pa
