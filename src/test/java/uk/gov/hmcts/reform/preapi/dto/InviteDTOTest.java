@@ -12,33 +12,40 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SuppressWarnings("PMD.LawOfDemeter")
 class InviteDTOTest {
 
-    private static uk.gov.hmcts.reform.preapi.entities.Invite inviteEntity;
+    private static uk.gov.hmcts.reform.preapi.entities.PortalAccess portalAccess;
+    private static uk.gov.hmcts.reform.preapi.entities.User user;
 
     @BeforeAll
     static void setUp() {
-        inviteEntity = new uk.gov.hmcts.reform.preapi.entities.Invite();
-        inviteEntity.setId(UUID.randomUUID());
-        inviteEntity.setFirstName("Firstname");
-        inviteEntity.setLastName("Lastname");
-        inviteEntity.setEmail("example@example.com");
-        inviteEntity.setOrganisation("Organisation");
-        inviteEntity.setPhone("0123456789");
-        inviteEntity.setCode("ABCDE");
-        inviteEntity.setCreatedAt(Timestamp.from(java.time.Instant.now()));
-        inviteEntity.setModifiedAt(Timestamp.from(java.time.Instant.now()));
+        user = new uk.gov.hmcts.reform.preapi.entities.User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setEmail("example@example.com");
+        user.setPhone("1234567890");
+        user.setOrganisation("Org");
+
+        portalAccess = new uk.gov.hmcts.reform.preapi.entities.PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setInvitedAt(Timestamp.from(java.time.Instant.now()));
+        portalAccess.setUser(user);
+        portalAccess.setCode("ABCDE");
+        portalAccess.setCreatedAt(Timestamp.from(java.time.Instant.now()));
+        portalAccess.setModifiedAt(Timestamp.from(java.time.Instant.now()));
     }
 
-    @DisplayName("Should create a invite from entity")
+    @DisplayName("Should create a invite from portalAccess entity")
     @Test
     void createInviteFromEntity() {
-        var model = new InviteDTO(inviteEntity);
+        var model = new InviteDTO(portalAccess);
 
-        assertThat(model.getId()).isEqualTo(inviteEntity.getId());
-        assertThat(model.getFirstName()).isEqualTo(inviteEntity.getFirstName());
-        assertThat(model.getLastName()).isEqualTo(inviteEntity.getLastName());
-        assertThat(model.getEmail()).isEqualTo(inviteEntity.getEmail());
-        assertThat(model.getOrganisation()).isEqualTo(inviteEntity.getOrganisation());
-        assertThat(model.getPhone()).isEqualTo(inviteEntity.getPhone());
-        assertThat(model.getCode()).isEqualTo(inviteEntity.getCode());
+        assertThat(model.getUserId()).isEqualTo(user.getId());
+        assertThat(model.getFirstName()).isEqualTo(user.getFirstName());
+        assertThat(model.getLastName()).isEqualTo(user.getLastName());
+        assertThat(model.getEmail()).isEqualTo(user.getEmail());
+        assertThat(model.getPhoneNumber()).isEqualTo(user.getPhone());
+        assertThat(model.getOrganisation()).isEqualTo(user.getOrganisation());
+        assertThat(model.getCode()).isEqualTo(portalAccess.getCode());
+        assertThat(model.getInvitedAt()).isEqualTo(portalAccess.getInvitedAt());
     }
 }

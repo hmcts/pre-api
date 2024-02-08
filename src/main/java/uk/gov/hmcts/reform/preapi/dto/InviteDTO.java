@@ -17,7 +17,7 @@ import java.util.UUID;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class InviteDTO {
     @Schema(description = "UserId")
-    protected UUID id;
+    protected UUID userId;
 
     @Schema(description = "UserFirstName")
     protected String firstName;
@@ -35,20 +35,20 @@ public class InviteDTO {
     protected String organisation;
 
     @Schema(description = "UserInvitedAt")
-    protected Timestamp createdAt;
+    protected Timestamp invitedAt;
 
     @Schema(description = "UserInviteCode")
     protected String code;
 
     public InviteDTO(PortalAccess portalAccess) {
         var user = portalAccess.getUser();
-        id = user.getId();
+        userId = user.getId();
         firstName = user.getFirstName();
         lastName = user.getLastName();
         email = user.getEmail();
         phoneNumber = user.getPhone();
         organisation = user.getOrganisation();
-        createdAt = portalAccess.getInvitedAt();
+        invitedAt = portalAccess.getInvitedAt();
         code = portalAccess.getCode();
     }
 }

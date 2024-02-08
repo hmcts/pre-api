@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -191,6 +192,7 @@ public class UserService {
         portalAccessEntity.setUser(userEntity);
         portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
         portalAccessEntity.setCode(createInviteDTO.getCode());
+        portalAccessEntity.setInvitedAt(Timestamp.from(java.time.Instant.now()));
         portalAccessRepository.save(portalAccessEntity);
 
         return UpsertResult.CREATED;

@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 
+import java.sql.Timestamp;
 import java.util.UUID;
 
 @Service
@@ -55,6 +56,7 @@ public class InviteService {
             .findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(email, inviteCode)
             .orElseThrow(() -> new NotFoundException("Invite: " + email + " " + inviteCode));
         portalAccess.setStatus(AccessStatus.ACTIVE);
+        portalAccess.setRegisteredAt(Timestamp.from(java.time.Instant.now()));
         portalAccessRepository.save(portalAccess);
         return UpsertResult.UPDATED;
     }
