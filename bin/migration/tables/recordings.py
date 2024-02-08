@@ -68,16 +68,6 @@ class RecordingManager:
 
                 batch_non_parent_recording.append((id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
                 
-        if batch_non_parent_recording:
-            try:
-                destination_cursor.executemany(
-                    """
-                    INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    batch_non_parent_recording,  
-                )
-
                 audit_entry_creation(
                     destination_cursor,
                     table_name="recordings",
@@ -87,6 +77,16 @@ class RecordingManager:
                     created_by=created_by if created_by is not None else None
                 )
 
+        if batch_non_parent_recording:
+            try:
+                destination_cursor.executemany(
+                    """
+                    INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    batch_non_parent_recording,  
+                )
+                
             except Exception as e:
                 destination_cursor.connection.rollback()    
                 self.failed_imports.add(('recordings', id, e))
@@ -159,6 +159,15 @@ class RecordingManager:
                 # edit_instruction = ?
               
                 batch_parent_recording.append((recording_id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
+                
+                audit_entry_creation(
+                    destination_cursor,
+                    table_name="recordings",
+                    record_id=recording_id,
+                    record=capture_session_id,
+                    created_at=created_at,
+                    created_by=created_by if created_by is not None else None,
+                )
 
         if batch_parent_recording:
             try:
@@ -170,15 +179,7 @@ class RecordingManager:
                     batch_parent_recording,  
                 )
 
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name="recordings",
-                    record_id=recording_id,
-                    record=capture_session_id,
-                    created_at=created_at,
-                    created_by=created_by if created_by is not None else None,
-                )
-
+                
             except Exception as e:
                 self.failed_imports.add(('recordings', recording_id, e))
                 destination_cursor.connection.rollback()    
