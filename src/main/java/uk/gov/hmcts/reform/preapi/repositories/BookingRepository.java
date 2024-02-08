@@ -20,6 +20,8 @@ import java.util.UUID;
 public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
     boolean existsByIdAndDeletedAtIsNotNull(UUID id);
 
+    boolean existsByIdAndDeletedAtIsNull(UUID id);
+
     Optional<Booking> findByIdAndDeletedAtIsNull(UUID id);
 
     Page<Booking> findByCaseId_IdAndDeletedAtIsNull(UUID caseId, Pageable pageable);
