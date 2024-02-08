@@ -52,9 +52,9 @@ public class ShareBooking extends BaseEntity {
     public HashMap<String, Object> getDetailsForAudit() {
 
         var details = new HashMap<String, Object>();
-        details.put("booking_id", booking.getId());
-        details.put("shared_with_user", sharedWith.getEmail());
-        details.put("shared_by_user", sharedBy.getEmail());
+        details.put("bookingId", booking.getId());
+        details.put("sharedWithUser", sharedWith.getEmail());
+        details.put("sharedByUser", sharedBy.getEmail());
         details.put("deleted", isDeleted());
         return details;
     }

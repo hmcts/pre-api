@@ -63,8 +63,8 @@ public class User extends CreatedModifiedAtEntity {
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
-        details.put("email", email);
-        details.put("organisation", organisation);
+        details.put("userEmail", email);
+        details.put("userOrganisation", organisation);
         details.put("deleted", isDeleted());
         return details;
     }
