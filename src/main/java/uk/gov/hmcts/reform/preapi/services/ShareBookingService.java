@@ -63,7 +63,7 @@ public class ShareBookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #bookingId)")
     public void deleteShareBookingById(UUID bookingId, UUID shareId) {
-        if (!bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingId)) {
+        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
         }
 
@@ -90,7 +90,7 @@ public class ShareBookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #bookingId)")
     public Page<ShareBookingDTO> getShareLogsForBooking(UUID bookingId, Pageable pageable) {
-        if (!bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingId)) {
+        if (!bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)) {
             throw new NotFoundException("Booking: " + bookingId);
         }
 
