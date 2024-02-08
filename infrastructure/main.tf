@@ -36,7 +36,7 @@ module "pre_api" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API"
-  revision              = "31"
+  revision              = "32"
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
@@ -87,6 +87,28 @@ resource "azurerm_key_vault_secret" "apim_subscription_powerplatform_secondary_k
   count        = local.env_to_deploy
   name         = "apim-sub-powerplatform-secondary-key"
   value        = module.apim_subscription_powerplatform[0].subscription_secondary_key
+  key_vault_id = data.azurerm_key_vault.keyvault.id
+}
+
+module "apim_subscription_portal" {
+  count            = local.env_to_deploy
+  sub_display_name = "PRE Portal subscription"
+  source           = "git@github.com:hmcts/cnp-module-api-mgmt-subscription?ref=master"
+  api_mgmt_name    = "sds-api-mgmt-${var.env}"
+  api_mgmt_rg      = "ss-${var.env}-network-rg"
+  state            = "active"
+  allow_tracing    = var.env == "stg" || var.env == "demo" ? true : false
+}
+resource "azurerm_key_vault_secret" "apim_subscription_portal_primary_key" {
+  count        = local.env_to_deploy
+  name         = "apim-sub-portal-primary-key"
+  value        = module.apim_subscription_portal[0].subscription_primary_key
+  key_vault_id = data.azurerm_key_vault.keyvault.id
+}
+resource "azurerm_key_vault_secret" "apim_subscription_portal_secondary_key" {
+  count        = local.env_to_deploy
+  name         = "apim-sub-portal-secondary-key"
+  value        = module.apim_subscription_portal[0].subscription_secondary_key
   key_vault_id = data.azurerm_key_vault.keyvault.id
 }
 
