@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
-import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
@@ -128,7 +128,7 @@ class BookingControllerFT extends FunctionalTestBase {
 
         var putShareBookingResponse = doPutRequest(
             BOOKINGS_ENDPOINT + UUID.randomUUID() + "/share",
-            OBJECT_MAPPER.writeValueAsString(new ShareBookingDTO()),
+            OBJECT_MAPPER.writeValueAsString(new CreateShareBookingDTO()),
             false
         );
         assertThat(putShareBookingResponse.statusCode()).isEqualTo(401);

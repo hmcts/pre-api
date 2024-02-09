@@ -4,6 +4,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -16,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -48,6 +51,7 @@ public class CaseService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
     public CaseDTO findById(UUID id) {
         return caseRepository
             .findByIdAndDeletedAtIsNull(id)
@@ -57,12 +61,21 @@ public class CaseService {
 
     @Transactional
     public Page<CaseDTO> searchBy(String reference, UUID courtId, Pageable pageable) {
+        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+
         return caseRepository
-            .searchCasesBy(reference, courtId, pageable)
+            .searchCasesBy(
+                reference,
+                courtId,
+                authorisedCourt,
+                pageable
+            )
             .map(CaseDTO::new);
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createCaseDTO)")
     public UpsertResult upsert(CreateCaseDTO createCaseDTO) {
         var foundCase = caseRepository.findById(createCaseDTO.getId());
 
@@ -132,6 +145,7 @@ public class CaseService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
     public void deleteById(UUID id) {
         var entity  = caseRepository.findByIdAndDeletedAtIsNull(id);
         if (entity.isEmpty()) {

@@ -3,8 +3,10 @@ package uk.gov.hmcts.reform.preapi.security;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -12,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -82,7 +85,7 @@ public class AuthorisationService {
     }
 
     public boolean hasCaseAccess(UserAuthentication authentication, UUID caseId) {
-        if (caseId == null || authentication.isAdmin()) {
+        if (caseId == null || authentication.isAdmin() || authentication.isPortalUser()) {
             return true;
         }
         var caseEntity = caseRepository.findById(caseId).orElse(null);
@@ -93,12 +96,17 @@ public class AuthorisationService {
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateBookingDTO dto) {
         return hasBookingAccess(authentication, dto.getId())
             && hasCaseAccess(authentication, dto.getCaseId())
-            && dto.getParticipants().stream().allMatch(p -> hasUpsertAccess(authentication, p));
+            && hasUpsertAccess(authentication, dto.getParticipants());
     }
 
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateParticipantDTO dto) {
         return hasParticipantAccess(authentication, dto.getId());
     }
+
+    public boolean hasUpsertAccess(UserAuthentication authentication, Set<CreateParticipantDTO> participants) {
+        return participants.stream().allMatch(p -> hasUpsertAccess(authentication, p));
+    }
+
 
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateCaptureSessionDTO dto) {
         return hasCaptureSessionAccess(authentication, dto.getId())
@@ -108,5 +116,16 @@ public class AuthorisationService {
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateRecordingDTO dto) {
         return hasCaptureSessionAccess(authentication, dto.getCaptureSessionId())
             && hasRecordingAccess(authentication, dto.getParentRecordingId());
+    }
+
+    public boolean hasUpsertAccess(UserAuthentication authentication, CreateShareBookingDTO dto) {
+        return authentication.getUserId().equals(dto.getSharedByUser())
+            && (authentication.isAdmin() || hasBookingAccess(authentication, dto.getBookingId()));
+    }
+
+    public boolean hasUpsertAccess(UserAuthentication authentication, CreateCaseDTO dto) {
+        return hasCaseAccess(authentication, dto.getId())
+            && hasCourtAccess(authentication, dto.getCourtId())
+            && hasUpsertAccess(authentication, dto.getParticipants());
     }
 }

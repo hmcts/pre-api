@@ -1,9 +1,10 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, get_user_id
 
 class ShareBookingsManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("SELECT * FROM public.videopermissions")
@@ -23,9 +24,6 @@ class ShareBookingsManager:
                                         LEFT JOIN recordings r ON r.capture_session_id = cs.id
                                         WHERE r.id is not null""")
         bookings_data = destination_cursor.fetchall()
-
-        destination_cursor.execute("SELECT * FROM public.users")
-        users_data = destination_cursor.fetchall()
 
         for video_permission in source_data:
             id = video_permission[0]
@@ -67,19 +65,10 @@ class ShareBookingsManager:
                 )
             destination_cursor.connection.commit()
 
-            for entry in batch_share_bookings_data:
-                audit_entry_creation(
-                    destination_cursor,
-                    table_name="share_bookings",
-                    record_id=entry[0],
-                    record=entry[1],
-                    created_at=entry[4],
-                    created_by=entry[3] if entry[3] is not None else None,
-                )
-
         except Exception as e:
+            destination_cursor.connection.rollback()    
             self.failed_imports.add(('share_bookings', id, e))
 
-        log_failed_imports(self.failed_imports)
+        self.logger.log_failed_imports(self.failed_imports)
         
 

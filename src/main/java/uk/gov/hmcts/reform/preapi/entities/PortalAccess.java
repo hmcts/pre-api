@@ -39,11 +39,11 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "status", nullable = false)
     private AccessStatus status = AccessStatus.INVITATION_SENT;
 
-    @Column(name = "invitation_datetime")
-    private Timestamp invitationDateTime;
+    @Column(name = "invited_at")
+    private Timestamp invitedAt;
 
-    @Column(name = "registered_datetime")
-    private Timestamp registeredDateTime;
+    @Column(name = "registered_at")
+    private Timestamp registeredAt;
 
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
@@ -51,10 +51,10 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
-        details.put("user", user.getEmail());
-        details.put("status", status);
-        details.put("invitation_datetime", invitationDateTime);
-        details.put("registered_datetime", registeredDateTime);
+        details.put("portalAccessUserEmail", user.getEmail());
+        details.put("portalAccessStatus", status);
+        details.put("portalAccessInvitedAt", invitedAt);
+        details.put("portalAccessRegisteredAt", registeredAt);
         details.put("deleted", deletedAt != null);
         return details;
     }

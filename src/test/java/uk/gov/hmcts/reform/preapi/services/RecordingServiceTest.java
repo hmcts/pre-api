@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -45,6 +46,7 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings({ "PMD.LawOfDemeter", "checkstyle:LineLength"})
 class RecordingServiceTest {
     private static Recording recordingEntity;
+    private static CaptureSession captureSession;
 
     @MockBean
     private RecordingRepository recordingRepository;
@@ -68,10 +70,10 @@ class RecordingServiceTest {
             null)
         );
 
-        var captureSession = new CaptureSession();
+        captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(bookingEntity);
-        var user = new uk.gov.hmcts.reform.preapi.entities.User();
+        var user = new User();
         user.setId(UUID.randomUUID());
         captureSession.setFinishedByUser(user);
         captureSession.setStartedByUser(user);
@@ -87,6 +89,7 @@ class RecordingServiceTest {
     void reset() {
         recordingEntity.setDeletedAt(null);
         recordingEntity.setParentRecording(null);
+        recordingEntity.setCaptureSession(captureSession);
     }
 
     @DisplayName("Find a recording by it's id and return a model")
@@ -189,10 +192,12 @@ class RecordingServiceTest {
     void updateRecordingSuccess() {
         var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(recordingEntity.getId());
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
         recordingModel.setVersion(2);
         when(
             recordingRepository.findById(recordingModel.getId())
         ).thenReturn(Optional.of(recordingEntity));
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(recordingModel.getCaptureSessionId())).thenReturn(Optional.of(new CaptureSession()));
 
         when(recordingRepository.save(recordingEntity)).thenReturn(recordingEntity);
 

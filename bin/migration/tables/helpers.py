@@ -1,7 +1,8 @@
 from datetime import datetime
 import pytz
 import uuid
-
+import json
+from logger import FailedImportsLogger
 
 # Parses timestamp string to date format
 def parse_to_timestamp(input_text):
@@ -32,9 +33,9 @@ def parse_to_timestamp(input_text):
                 return parsed_datetime
 
         except (ValueError, TypeError) as e:
-            failed_imports.add(('date/time', input_text, e))
-            log_failed_imports(failed_imports)
-
+            pass
+            # failed_imports.add(('date/time', input_text, e))
+            # log_failed_imports(failed_imports)
 
 # Checks if record is already imported
 def check_existing_record(db_connection, table_name, field, record):
@@ -42,20 +43,26 @@ def check_existing_record(db_connection, table_name, field, record):
     db_connection.execute(query, (record,))
     return db_connection.fetchone()[0]
 
-
 # Audit entry into database
-def audit_entry_creation(db_connection, table_name, record_id, record, created_at=None, created_by="Data Entry"):
-    created_at = created_at or datetime.now()
+def audit_entry_creation(db_connection, table_name, record_id, record, created_at = None,created_by = None, logger = None ):
+    logger = FailedImportsLogger()
+    created_at = created_at if created_at is not None else datetime.now()
+    created_by = created_by if created_by is not None else None
 
     failed_imports = set()
 
+    audit_details_dict = {"description": f"Created {table_name}_record for: {record}"},
+    audit_details_json = json.dumps(audit_details_dict)
+
     audit_entry = {
         "id": str(uuid.uuid4()),
+        "table_name": table_name,
+        "table_record_id": record_id,
         "source": "AUTO",
         "category": "data_migration",
         "activity": f"{table_name}_record_creation",
         "functional_area": "data_processing",
-        "audit_details": f'\{"description": "Created {table_name}_record for: {record}"\}',
+        "audit_details" : audit_details_json,
         "created_by": created_by,
         "created_at": created_at,
     }
@@ -66,7 +73,7 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
             INSERT INTO public.audits
                 (id, table_name, table_record_id, source, category, activity, functional_area, audit_details, created_by, created_at)
             VALUES
-                (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(type)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s)
+                (%(id)s, %(table_name)s, %(table_record_id)s, %(source)s, %(category)s, %(activity)s, %(functional_area)s, %(audit_details)s, %(created_by)s, %(created_at)s)
             """,
             audit_entry
         )
@@ -74,21 +81,8 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
 
     except Exception as e:
         failed_imports.add(('audit table', table_name, e))
-        log_failed_imports(failed_imports)
+        logger.log_failed_imports(failed_imports)
 
-# Logs failed imports to file
-def log_failed_imports(failed_imports, filename='failed_imports_log.txt'):
-    with open(filename, 'a') as file:
-        for entry in failed_imports:
-            if len(entry) == 2:
-                table_name, failed_id = entry
-                details = 'Import failed'
-            elif len(entry) == 3:
-                table_name, failed_id, details = entry
-            else:
-                raise ValueError("Each entry in failed_imports should have 2 or 3 elements")
-
-            file.write(f"Table: {table_name}, ID: {failed_id}, Details: {details}\n")
 
 
 # Clear the migration file - run before the migration script is run

@@ -74,16 +74,16 @@ public class CaptureSession extends BaseEntity {
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
         details.put("bookingId", booking.getId());
-        details.put("origin", origin);
-        details.put("startedAt", startedAt);
+        details.put("captureSessionOrigin", origin);
+        details.put("captureSessionStartedAt", startedAt);
         if (startedByUser != null) {
-            details.put("startedByUser", startedByUser.getEmail());
+            details.put("captureSessionStartedByUser", startedByUser.getEmail());
         }
-        details.put("finishedAt", finishedAt);
+        details.put("captureSessionFinishedAt", finishedAt);
         if (finishedByUser != null) {
-            details.put("finishedByUser", finishedByUser.getEmail());
+            details.put("captureSessionFinishedByUser", finishedByUser.getEmail());
         }
-        details.put("status", status);
+        details.put("captureSessionStatus", status);
         details.put("deleted", isDeleted());
         return details;
     }
