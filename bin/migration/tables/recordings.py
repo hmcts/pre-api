@@ -8,11 +8,22 @@ class RecordingManager:
         self.logger = logger
 
     def get_data(self):
-        self.source_cursor.execute("""SELECT * 
-                                    FROM public.recordings 
-                                   WHERE recordingstatus !='No Recording' AND (recordingavailable IS NULL OR 
-	                            recordingavailable LIKE 'true')""")
+        self.source_cursor.execute("""  SELECT * 
+                                        FROM public.recordings 
+                                        WHERE recordingstatus !='No Recording' AND (recordingavailable IS NULL OR 
+	                                        recordingavailable LIKE 'true')""")
         return self.source_cursor.fetchall()
+    
+    def get_recording_date_and_user(self, recording_id, activity):
+        query = """
+            SELECT createdon, createdby
+            FROM public.audits
+            WHERE activity = %s
+            AND recordinguid = %s
+        """
+        self.source_cursor.execute(query, (activity, recording_id))
+        result = self.source_cursor.fetchone()
+        return (parse_to_timestamp(result[0]), result[1]) if result else (None, None)
 
     def migrate_data(self, destination_cursor, source_data):
         #  first inserting the recordings with multiple recordings versions - this is to satisfy the parent_recording_id FK constraint
@@ -30,8 +41,7 @@ class RecordingManager:
         non_duplicate_parent_id_records = [recording for recording in source_data if recording[0] not in duplicate_parent_ids]
         
         batch_non_parent_recording = []
-        for recording in duplicate_parent_id_records:
-            
+        for recording in duplicate_parent_id_records:            
             id = recording[0]
             parent_recording_id = recording[9]
 
@@ -45,27 +55,28 @@ class RecordingManager:
             if result is None: 
                 self.failed_imports.add(('recordings', id, f'No capture_session id found for parent recording id {parent_recording_id}'))
                 continue
-
+            
             capture_session_id = result[0]
 
             if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
                 self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
                 continue
-
+            
             if not check_existing_record(destination_cursor,'recordings', 'id', id):
                 version = recording[12] 
                 url = recording[20] if recording[20] is not None else None
                 filename = recording[14]
-                created_at = parse_to_timestamp(recording[22])
+
+                created_at_datetime, user_email = self.get_recording_date_and_user(recording_id, "Start")
+                created_by = get_user_id(destination_cursor,user_email)
+                created_at = created_at_datetime if created_at_datetime else parse_to_timestamp(recording[22])
 
                 if created_at is None:
-                    self.failed_imports.add(('recordings', id, f'ERROR11'))
-                    continue
+                    self.failed_imports.add(('recordings', id, f'No details found for when recording started'))
 
-                created_by = get_user_id(destination_cursor,recording[21])
                 recording_status = recording[11] if recording[11] is not None else None
-                deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
-
+                deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'DELETED' else None
+           
                 batch_non_parent_recording.append((id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
                 
                 audit_entry_creation(
@@ -92,15 +103,9 @@ class RecordingManager:
                 self.failed_imports.add(('recordings', id, e))
 
         # inserting remaining records
-        batch_parent_recording = []
         for recording in non_duplicate_parent_id_records:
             recording_id = recording[0]
             parent_recording_id = recording[9]
-            
-
-            if recording_id is None or parent_recording_id is None:
-                self.failed_imports.add(('recordings', id, 'ERROR10'))
-                continue
 
             if parent_recording_id not in (rec[0] for rec in source_data):
                 self.failed_imports.add(('recordings', recording_id, f'Parent recording id: {parent_recording_id} does not match a recording id'))
@@ -125,10 +130,10 @@ class RecordingManager:
                 try:
                     version = int(version)
                     if version is None:
-                        self.failed_imports.add(('recordings', id, f'ERROR1'))
+                        self.failed_imports.add(('recordings', id, f'Missing version number for recording'))
                         continue
-                except(TypeError, ValueError):
-                    self.failed_imports.add(('recordings', id, f'ERROR12'))
+                except(TypeError, ValueError) as e:
+                    self.failed_imports.add(('recordings', id, e))
                     continue
 
                 url = recording[20] if recording[20] is not None else None
@@ -136,7 +141,7 @@ class RecordingManager:
                 filename = recording[14]
 
                 if filename is None:
-                    self.failed_imports.add(('recordings', id, f'ERROR2'))
+                    self.failed_imports.add(('recordings', id, f'Missing filename for recording'))
                     continue
 
                 if url is not None and len(url) > 255:
@@ -147,19 +152,27 @@ class RecordingManager:
                     self.failed_imports.add(('recordings', id, f'ERROR: Filename exceeds maximum length (255)'))
                     continue
                 
-                created_at = parse_to_timestamp(recording[22])
+
+                created_at_datetime, user_email = self.get_recording_date_and_user(recording_id, "Start")
+                created_by = get_user_id(destination_cursor,user_email)
+                created_at = created_at_datetime if created_at_datetime else parse_to_timestamp(recording[22])
 
                 if created_at is None:
-                    self.failed_imports.add(('recordings', id, f'ERROR11'))
-                    continue
+                    self.failed_imports.add(('recordings', id, f'No details found for when recording started'))
+                
                 recording_status = recording[11] if recording[11] is not None else None
-                created_by = get_user_id(destination_cursor,recording[21])
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
                 # duration =  ? - this info is in the asset files on AMS 
                 # edit_instruction = ?
               
-                batch_parent_recording.append((recording_id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
-                
+                destination_cursor.execute(
+                    """
+                    INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (recording_id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
+                )
+
                 audit_entry_creation(
                     destination_cursor,
                     table_name="recordings",
@@ -168,21 +181,6 @@ class RecordingManager:
                     created_at=created_at,
                     created_by=created_by if created_by is not None else None,
                 )
-
-        if batch_parent_recording:
-            try:
-                destination_cursor.executemany(
-                    """
-                    INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                    """,
-                    batch_parent_recording,  
-                )
-
-                
-            except Exception as e:
-                self.failed_imports.add(('recordings', recording_id, e))
-                destination_cursor.connection.rollback()    
                     
         self.logger.log_failed_imports(self.failed_imports)
          
