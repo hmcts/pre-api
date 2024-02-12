@@ -113,7 +113,7 @@ def main():
     migrate_manager_data(court_region_manager, destination_db_cursor) 
     migrate_manager_data(portal_access_manager, destination_db_cursor)
     migrate_manager_data(app_access_manager, destination_db_cursor) 
-    migrate_manager_data(case_manager, destination_db_cursor) #here
+    migrate_manager_data(case_manager, destination_db_cursor) 
     migrate_manager_data(booking_manager, destination_db_cursor)
     migrate_manager_data(participant_manager, destination_db_cursor)
     migrate_manager_data(capture_session_manager, destination_db_cursor)
