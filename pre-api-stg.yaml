@@ -2336,6 +2336,10 @@ paths:
           name: participantId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The name of the participant to search by
+          in: query
+          name: participantName
+          type: string
         - description: The case reference to search by
           in: query
           name: caseReference
