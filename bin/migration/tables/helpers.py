@@ -2,7 +2,7 @@ from datetime import datetime
 import pytz
 import uuid
 import json
-from logger import FailedImportsLogger
+from migration_reports.failed_imports_logger import FailedImportsLogger
 
 # Parses timestamp string to date format
 def parse_to_timestamp(input_text):
@@ -83,13 +83,6 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         failed_imports.add(('audit table', table_name, e))
         logger.log_failed_imports(failed_imports)
 
-
-
-# Clear the migration file - run before the migration script is run
-def clear_migrations_file(filename='failed_imports_log.txt'):
-    with open(filename, 'w') as file:
-        file.write("")
-
 # Get the user_id associated with an email from the users table for the audits record.
 def get_user_id(db_connection, email):
     db_connection.execute("""
@@ -104,3 +97,6 @@ def get_user_id(db_connection, email):
         return user_id
     else:
         return None
+
+
+

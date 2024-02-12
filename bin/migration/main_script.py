@@ -21,9 +21,9 @@ from tables.recordings import RecordingManager
 from tables.sharebookings import ShareBookingsManager
 from tables.audits import AuditLogManager
 
-from tables.helpers import clear_migrations_file
-from summary import RecordCounter
-from logger import FailedImportsLogger
+# from tables.helpers import clear_migrations_file
+from migration_reports.migration_tracker import MigrationTracker
+from migration_reports.failed_imports_logger import FailedImportsLogger
 
 
 # get passwords from env variables
@@ -55,7 +55,7 @@ destination_db = DatabaseManager(
 
 
 logger = FailedImportsLogger()
-logger.load_existing_entries('failed_imports_log.txt')
+logger.load_existing_entries('migration_reports/failed_imports_log.txt')
 
 
 # managers for different tables
@@ -100,7 +100,7 @@ def migrate_manager_data(manager, destination_cursor):
     print(f"Data migration for {manager.__class__.__name__} complete in : {time_taken:.2f} seconds.\n")
 
 def main():
-    clear_migrations_file()
+    logger.clear_migrations_file('migration_reports/failed_imports_log.txt')
 
     destination_db_cursor = destination_db.connection.cursor()
 
@@ -113,7 +113,7 @@ def main():
     migrate_manager_data(court_region_manager, destination_db_cursor) 
     migrate_manager_data(portal_access_manager, destination_db_cursor)
     migrate_manager_data(app_access_manager, destination_db_cursor) 
-    migrate_manager_data(case_manager, destination_db_cursor) 
+    migrate_manager_data(case_manager, destination_db_cursor) #here
     migrate_manager_data(booking_manager, destination_db_cursor)
     migrate_manager_data(participant_manager, destination_db_cursor)
     migrate_manager_data(capture_session_manager, destination_db_cursor)
@@ -122,7 +122,7 @@ def main():
     migrate_manager_data(share_bookings_manager, destination_db_cursor)
     migrate_manager_data(audit_log_manager, destination_db_cursor)
 
-    counter = RecordCounter(source_db.connection, destination_db.connection)
+    counter = MigrationTracker(source_db.connection, destination_db.connection)
     counter.print_summary() # prints a table summary 
     counter.log_records_count(total_migration_time) # logs a record every time the script is run 
 
