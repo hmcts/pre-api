@@ -130,13 +130,13 @@ class RecordingServiceTest {
     @Test
     void findAllRecordingsSuccess() {
         when(
-            recordingRepository.searchAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            recordingRepository.searchAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(null, null, null, null, Optional.empty(), null, null).get().toList();
+        var modelList = recordingService.findAll(null, null, null, null, Optional.empty(), null, null, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -149,14 +149,14 @@ class RecordingServiceTest {
         var until = Timestamp.valueOf("2023-01-01 23:59:59");
 
         when(
-            recordingRepository.searchAllBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull(), isNull(), isNull(), isNull())
+            recordingRepository.searchAllBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull(), isNull(), isNull(), isNull(), isNull())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(null, null, null, null, Optional.of(from), null, null).get().toList();
+        var modelList = recordingService.findAll(null, null, null, null, Optional.of(from), null, null,null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -299,16 +299,16 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
 
-        when(recordingRepository.searchAllBy(null, null, null,null, null,null, null, null, null, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(null, null, null,null, null,null, null, null, null, null, null)).thenReturn(Page.empty());
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var models = recordingService.findAll(null, null, null, null, Optional.empty(), null, null).get().toList();
+        var models = recordingService.findAll(null, null, null, null, Optional.empty(), null, null,null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(null, null, null, null, null,null, null,null, null, null);
+            .searchAllBy(null, null, null, null, null,null, null,null, null,null, null);
 
         assertThat(models.size()).isEqualTo(0);
     }

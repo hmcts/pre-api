@@ -75,6 +75,11 @@ public class RecordingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "participantName",
+        description = "The name of the participant to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
         name = "caseReference",
         description = "The case reference to search by",
         schema = @Schema(implementation = String.class),
@@ -121,6 +126,7 @@ public class RecordingController extends PreApiController {
                 ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
                 : Optional.empty(),
             params.getCourtId(),
+            params.getParticipantName(),
             pageable
         );
 

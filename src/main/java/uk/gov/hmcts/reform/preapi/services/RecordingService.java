@@ -56,6 +56,7 @@ public class RecordingService {
         String caseReference,
         Optional<Timestamp> scheduledFor,
         UUID courtId,
+        String participantName,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -76,6 +77,7 @@ public class RecordingService {
                 scheduledFor.orElse(null),
                 until,
                 courtId,
+                participantName,
                 authorisedBookings,
                 authorisedCourt,
                 pageable

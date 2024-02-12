@@ -58,6 +58,12 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
             CAST(:courtId as uuid) IS NULL OR
             r.captureSession.booking.caseId.court.id = :courtId
         )
+        AND (
+            :participantName IS NULL OR EXISTS (
+                SELECT 1 FROM r.captureSession.booking.participants p
+                WHERE CONCAT(p.firstName, ' ', p.lastName) ILIKE %:participantName%
+            )
+        )
         """
     )
     Page<Recording> searchAllBy(
@@ -68,6 +74,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
         @Param("courtId") UUID courtId,
+        @Param("participantName") String participantName,
         @Param("authorisedBookings") List<UUID> authorisedBookings,
         @Param("authCourtId") UUID authCourtId,
         Pageable pageable
