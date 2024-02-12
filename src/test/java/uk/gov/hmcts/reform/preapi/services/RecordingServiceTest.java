@@ -28,6 +28,8 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -384,5 +386,44 @@ class RecordingServiceTest {
         recordingService.deleteCascade(recordingEntity.getCaptureSession());
 
         verify(recordingRepository, times(1)).deleteAllByCaptureSession(recordingEntity.getCaptureSession());
+    }
+
+    @DisplayName("Should set scheduled for from and until when scheduled for is set")
+    @Test
+    void searchRecordingsScheduledForFromUntilSet() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var params = new SearchRecordings();
+        var scheduledFor = new Date();
+        params.setScheduledFor(scheduledFor);
+        when(recordingRepository.searchAllBy(params, null)).thenReturn(Page.empty());
+
+        recordingService.findAll(params, null);
+
+        assertThat(params.getScheduledForFrom()).isNotNull();
+        assertThat(params.getScheduledForFrom().toInstant()).isEqualTo(scheduledFor.toInstant());
+
+        assertThat(params.getScheduledForUntil()).isNotNull();
+        assertThat(params.getScheduledForUntil().toInstant())
+            .isEqualTo(scheduledFor.toInstant().plus(86399, ChronoUnit.SECONDS));
+    }
+
+    @DisplayName("Should not set scheduled for from and until when scheduled for is not set")
+    @Test
+    void searchRecordingsScheduledForFromUntilNotSet() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var params = new SearchRecordings();
+        when(recordingRepository.searchAllBy(params, null)).thenReturn(Page.empty());
+
+        recordingService.findAll(params, null);
+
+        assertThat(params.getScheduledForFrom()).isNull();
+
+        assertThat(params.getScheduledForUntil()).isNull();
     }
 }
