@@ -24,8 +24,5 @@ bin/main/application.yaml
 
 applicationinsights-agent-*.jar
 *.log
-bin/migration/migration_reports/failed_imports_log.txt
-bin/migration/migration_reports/migration_summary_logs.txt
-bin/migration/__pycache__/
-bin/migration/tables/__pycache__/
-bin/migration/migration_reports/__pycache__
+bin/migration/*/*.txt
+bin/migration/**/__pycache__/
