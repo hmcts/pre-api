@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -35,7 +36,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -129,14 +129,15 @@ class RecordingServiceTest {
     @DisplayName("Find a list of recordings and return a list of models")
     @Test
     void findAllRecordingsSuccess() {
+        var params = new SearchRecordings();
         when(
-            recordingRepository.searchAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            recordingRepository.searchAllBy(eq(params), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(null, null, null, null, Optional.empty(), null, null, null).get().toList();
+        var modelList = recordingService.findAll(params, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -145,18 +146,19 @@ class RecordingServiceTest {
     @DisplayName("Find a list of recordings filtered by scheduledFor and return a list of models")
     @Test
     void findAllRecordingsScheduledForSuccess() {
-        var from = Timestamp.valueOf("2023-01-01 00:00:00");
-        var until = Timestamp.valueOf("2023-01-01 23:59:59");
+        var params = new SearchRecordings();
+        params.setScheduledForFrom(Timestamp.valueOf("2023-01-01 00:00:00"));
+        params.setScheduledForUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
 
         when(
-            recordingRepository.searchAllBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull(), isNull(), isNull(), isNull(), isNull())
+            recordingRepository.searchAllBy(params, null)
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(null, null, null, null, Optional.of(from), null, null,null).get().toList();
+        var modelList = recordingService.findAll(params, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -298,17 +300,17 @@ class RecordingServiceTest {
     void findAllRecordingsDeleted() {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
-
-        when(recordingRepository.searchAllBy(null, null, null,null, null,null, null, null, null, null, null)).thenReturn(Page.empty());
+        var params = new SearchRecordings();
+        when(recordingRepository.searchAllBy(params, null)).thenReturn(Page.empty());
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var models = recordingService.findAll(null, null, null, null, Optional.empty(), null, null,null).get().toList();
+        var models = recordingService.findAll(params, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(null, null, null, null, null,null, null,null, null,null, null);
+            .searchAllBy(params, null);
 
         assertThat(models.size()).isEqualTo(0);
     }

@@ -28,8 +28,6 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
-import java.sql.Timestamp;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -115,20 +113,7 @@ public class RecordingController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
-        // TODO Recordings returned need to be shared with the user
-
-        var resultPage = recordingService.findAll(
-            params.getCaptureSessionId(),
-            params.getParentRecordingId(),
-            params.getParticipantId(),
-            params.getCaseReference(),
-            params.getScheduledFor() != null
-                ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
-                : Optional.empty(),
-            params.getCourtId(),
-            params.getParticipantName(),
-            pageable
-        );
+        var resultPage = recordingService.findAll(params, pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
