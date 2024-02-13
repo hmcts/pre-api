@@ -217,7 +217,18 @@ public class UserServiceTest {
     @Test
     void findAllUsersLastNameFilterSuccess() {
         when(
-            userRepository.searchAllBy(null, userEntity.getLastName(), null, null, null, null, false, false, false, null)
+            userRepository.searchAllBy(
+                null,
+                userEntity.getLastName(),
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                false,
+                null
+            )
         ).thenReturn(new PageImpl<>(List.of(userEntity, portalUserEntity, appUserEntity)));
 
         var models = userService.findAllBy(null, userEntity.getLastName(), null, null, null, null, null, false, null);
@@ -257,12 +268,31 @@ public class UserServiceTest {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            userRepository.searchAllBy(null, null, null, userEntity.getOrganisation(), null, null, false, false,
-                                       false,
-                                       null)
+            userRepository.searchAllBy(
+                null,
+                null,
+                null,
+                userEntity.getOrganisation(),
+                null,
+                null,
+                false,
+                false,
+                false,
+                null
+            )
         ).thenReturn(new PageImpl<>(List.of(userEntity)));
 
-        var models = userService.findAllBy(null, null, null, userEntity.getOrganisation(), null, null, null, false, null);
+        var models = userService.findAllBy(
+            null,
+            null,
+            null,
+            userEntity.getOrganisation(),
+            null,
+            null,
+            null,
+            false,
+            null
+        );
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
