@@ -924,29 +924,29 @@ definitions:
       _links:
         $ref: '#/definitions/Links'
       code:
-        description: UserInviteCode
+        description: InviteCode
         type: string
       email:
-        description: UserEmail
+        description: InviteUserEmail
         type: string
       first_name:
-        description: UserFirstName
+        description: InviteUserFirstName
         type: string
       invited_at:
-        description: UserInvitedAt
+        description: InvitedAt
         format: date-time
         type: string
       last_name:
-        description: UserLastName
+        description: InviteUserLastName
         type: string
       organisation:
-        description: UserOrganisation
+        description: InviteUserOrganisation
         type: string
       phone_number:
-        description: UserPhoneNumber
+        description: InviteUserPhoneNumber
         type: string
       user_id:
-        description: UserId
+        description: InviteUserId
         format: uuid
         type: string
     type: object
@@ -1024,29 +1024,29 @@ definitions:
     description: InviteDTO
     properties:
       code:
-        description: UserInviteCode
+        description: InviteCode
         type: string
       email:
-        description: UserEmail
+        description: InviteUserEmail
         type: string
       first_name:
-        description: UserFirstName
+        description: InviteUserFirstName
         type: string
       invited_at:
-        description: UserInvitedAt
+        description: InvitedAt
         format: date-time
         type: string
       last_name:
-        description: UserLastName
+        description: InviteUserLastName
         type: string
       organisation:
-        description: UserOrganisation
+        description: InviteUserOrganisation
         type: string
       phone_number:
-        description: UserPhoneNumber
+        description: InviteUserPhoneNumber
         type: string
       user_id:
-        description: UserId
+        description: InviteUserId
         format: uuid
         type: string
     type: object
