@@ -2231,7 +2231,7 @@ paths:
       summary: 'Search for Invites by first name, last name, email or organisation'
       tags:
         - invite-controller
-  /invites/redeemInvite:
+  /invites/redeem:
     get:
       operationId: redeemInvite
       parameters:
