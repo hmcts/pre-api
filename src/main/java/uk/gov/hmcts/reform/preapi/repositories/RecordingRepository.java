@@ -61,9 +61,19 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
             r.captureSession.booking.caseId.court.id = :#{#searchParams.courtId}
         )
         AND (
-            :#{#searchParams.participantName} IS NULL OR EXISTS (
+            :#{#searchParams.witnessName} IS NULL OR EXISTS (
                 SELECT 1 FROM r.captureSession.booking.participants p
-                WHERE CONCAT(p.firstName, ' ', p.lastName) ILIKE %:#{#searchParams.participantName}%
+                WHERE CONCAT(p.firstName, ' ', p.lastName) ILIKE %:#{#searchParams.witnessName}%
+                AND p.participantType = 'WITNESS'
+                AND p.deletedAt IS NULL
+            )
+        )
+        AND (
+            :#{#searchParams.defendantName} IS NULL OR EXISTS (
+                SELECT 1 FROM r.captureSession.booking.participants p
+                WHERE CONCAT(p.firstName, ' ', p.lastName) ILIKE %:#{#searchParams.defendantName}%
+                AND p.participantType = 'DEFENDANT'
+                AND p.deletedAt IS NULL
             )
         )
         """
