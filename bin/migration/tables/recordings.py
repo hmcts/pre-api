@@ -1,6 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
 
-
 class RecordingManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
@@ -23,7 +22,7 @@ class RecordingManager:
         """
         self.source_cursor.execute(query, (activity, recording_id))
         result = self.source_cursor.fetchone()
-        return (parse_to_timestamp(result[0]), result[1]) if result else (None, None)
+        return (result[0], result[1]) if result else (None, None)
 
     def migrate_data(self, destination_cursor, source_data):
         #  first inserting the recordings with multiple recordings versions - this is to satisfy the parent_recording_id FK constraint
@@ -87,10 +86,12 @@ class RecordingManager:
                 filename = recording[14]
 
                 created_at_datetime, user_email = self.get_recording_date_and_user(
-                    recording_id, "Start")
-                created_by = get_user_id(destination_cursor, user_email)
-                created_at = created_at_datetime if created_at_datetime else parse_to_timestamp(
-                    recording[22])
+                    id, "Start")
+                
+                if created_at_datetime:
+                    created_at = parse_to_timestamp(created_at_datetime)
+                else:
+                    parse_to_timestamp(recording[22])
 
                 if created_at is None:
                     self.failed_imports.append({
@@ -100,6 +101,9 @@ class RecordingManager:
                         'details':  f'created_at is None for Recording ID: {id}'
                     })
                     continue
+
+                created_by = get_user_id(destination_cursor, user_email)
+
 
                 recording_status = recording[11] if recording[11] is not None else None
                 deleted_at = parse_to_timestamp(
@@ -234,10 +238,11 @@ class RecordingManager:
 
                 created_at_datetime, user_email = self.get_recording_date_and_user(
                     recording_id, "Start")
-                created_by = get_user_id(destination_cursor, user_email)
-                created_at = created_at_datetime if created_at_datetime else parse_to_timestamp(
-                    recording[22])
-
+                if created_at_datetime:
+                    created_at = parse_to_timestamp(created_at_datetime)
+                else:
+                    parse_to_timestamp(recording[22])
+                
                 if created_at is None:
                     self.failed_imports.append({
                         'table_name': 'recordings',
@@ -247,20 +252,22 @@ class RecordingManager:
                     })
                     continue
 
+                created_by = get_user_id(destination_cursor, user_email)
+
                 recording_status = recording[11] if recording[11] is not None else None
                 deleted_at = parse_to_timestamp(
                     recording[24]) if recording_status == 'Deleted' else None
                 # duration =  ? - this info is in the asset files on AMS
                 # edit_instruction = ?
 
-                try: 
+                try:
                     destination_cursor.execute(
                         """
                         INSERT INTO public.recordings (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (recording_id, capture_session_id, parent_recording_id,
-                        version, url, filename, created_at, deleted_at)
+                         version, url, filename, created_at, deleted_at)
                     )
 
                     audit_entry_creation(
