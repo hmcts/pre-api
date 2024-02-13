@@ -104,6 +104,8 @@ class RecordingControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
+
+        verify(recordingService, times(1)).findAll(any(), eq(false), any());
     }
 
     @DisplayName("Should get a list of recordings with 200 response code when searching by scheduled for date")

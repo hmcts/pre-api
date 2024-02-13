@@ -33,6 +33,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -111,6 +113,18 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$._embedded.baseUserDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.baseUserDTOList[0].id").value(userId.toString()));
+
+        verify(userService, times(1)).findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            eq(false),
+            any()
+        );
     }
 
     @DisplayName("Should return a 404 when searching by a court that doesn't exist")
