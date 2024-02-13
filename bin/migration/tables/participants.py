@@ -48,6 +48,11 @@ class ParticipantManager:
                 
                 first_name = participant[6].strip() if participant[6] is not None else None 
                 last_name = participant[7].strip() if participant[7] is not None else None
+                
+                active = True if participant[2] == '1' else False
+                deleted_at = None
+                if not active:
+                    deleted_at = parse_to_timestamp(participant[11]) if participant[11] else parse_to_timestamp(participant[9])
 
                 if first_name is None or last_name is None:
                     self.failed_imports.add(('contacts', id, 'Participant is missing either first name or last name'))
@@ -58,7 +63,7 @@ class ParticipantManager:
                 modified_at = parse_to_timestamp(participant[11])
                 created_by = get_user_id(destination_cursor,participant[8])
 
-                batch_participant_data.append((id, case_id, participant_type, first_name, last_name, created_at, modified_at, created_by))
+                batch_participant_data.append((id, case_id, participant_type, first_name, last_name, deleted_at,created_at, modified_at, created_by))
                 
         try:
             if batch_participant_data:
@@ -66,8 +71,8 @@ class ParticipantManager:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.participants 
-                        (id, case_id, participant_type, first_name, last_name, created_at, modified_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        (id, case_id, participant_type, first_name, last_name, deleted_at,created_at, modified_at)
+                    VALUES (%s, %s, %s, %s,%s, %s, %s, %s)
                     """,
                     [entry[:-1] for entry in batch_participant_data],
                 )
