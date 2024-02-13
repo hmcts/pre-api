@@ -150,6 +150,7 @@ class CaptureSessionManager:
                 capture_session_batch
             )
             destination_cursor.connection.commit()
+        
 
             audit_entry_creation(
                 destination_cursor,

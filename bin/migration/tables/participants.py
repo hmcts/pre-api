@@ -20,14 +20,13 @@ class ParticipantManager:
             p_type = participant[3]
             case_id = participant[4]
 
-            if case_id is None:
-                self.failed_imports.append({
-                        'table_name': 'contacts',
-                        'table_id': id,
-                        'case_id': case_id,
-                        'details': f'No Case ID associated with participant: {id}'
-                    })
-                continue
+            # if case_id is None:
+            #     self.failed_imports.append({
+            #             'table_name': 'contacts',
+            #             'table_id': id,
+            #             'details': f'No Case ID associated with participant: {id}'
+            #         })
+            #     continue
 
             if p_type is None:
                 self.failed_imports.append({
@@ -48,7 +47,6 @@ class ParticipantManager:
                 self.failed_imports.append({
                     'table_name': 'contacts',
                     'table_id': id,
-                    'case_id': case_id,
                     'details': f'Invalid Case ID: {case_id} associated with participant: {id}'
                 })
                 continue
