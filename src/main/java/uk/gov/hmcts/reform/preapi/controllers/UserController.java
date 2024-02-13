@@ -105,6 +105,11 @@ public class UserController extends PreApiController {
         schema = @Schema(implementation = AccessType.class)
     )
     @Parameter(
+        name = "includeDeleted",
+        description = "Include users marked as deleted",
+        schema = @Schema(implementation = Boolean.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
