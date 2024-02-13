@@ -130,7 +130,7 @@ public class InviteController extends PreApiController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/redeemInvite")
+    @GetMapping("/redeem")
     @Operation(operationId = "redeemInvite", summary = "Redeem an invite")
     @Parameter(
         name = "email",
