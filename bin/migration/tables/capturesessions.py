@@ -64,7 +64,7 @@ class CaptureSessionManager:
             if parent_recording_id is None:
                 self.failed_imports.append({
                         'table_name': 'capture_sessions',
-                        'table_id': recording_id,
+                        'table_id': None,
                         'recording_id': recording_id,
                         'details': f"Parent recording ID is blank for recording ID: {recording_id}"
                     })
@@ -80,15 +80,7 @@ class CaptureSessionManager:
             if self.check_record_in_temp_table(destination_cursor, recording_id):
                 capture_session_id = str(uuid.uuid4())
                 temp_recording_batch.append((capture_session_id, parent_recording_id, deleted_at, started_by_user_id,  ingest_address, live_output_url, status, recording_id))
-            else:
-                self.failed_imports.append({
-                    'table_name': 'capture_sessions',
-                    'table_id': recording_id,
-                    'recording_id': recording_id,
-                    'details': f"Recording: {recording_id} is not associated with a booking in the bookings table."
-                })
-                continue
-
+           
         if temp_recording_batch: 
             try:
                 destination_cursor.executemany(
@@ -103,7 +95,7 @@ class CaptureSessionManager:
                 destination_cursor.connection.commit()
 
             except Exception as e:
-                self.failed_imports.append({'table_name': 'capture_sessions','table_id': recording_id,'recording_id': recording_id,'details': str(e)})
+                self.failed_imports.append({'table_name': 'capture_sessions','table_id': capture_session_id,'recording_id': recording_id,'details': str(e)})
                
 
         # inserting only version 1 into capture sessions as this would be the parent recording
@@ -131,7 +123,7 @@ class CaptureSessionManager:
             if not check_existing_record(destination_cursor,'bookings', 'id', booking_id) or booking_id is None:
                 self.failed_imports.append({
                     'table_name': 'capture_sessions',
-                    'table_id': recording_id,
+                    'table_id': id,
                     'recording_id': recording_id,
                     'details': f"Booking ID: {booking_id} not recorded in bookings table"
                 })
@@ -161,6 +153,6 @@ class CaptureSessionManager:
 
         except Exception as e:
             destination_cursor.connection.rollback()
-            self.failed_imports.append({'table_name': 'capture_sessions','table_id': recording_id,'recording_id': recording_id,'details': str(e)})
+            self.failed_imports.append({'table_name': 'capture_sessions','table_id': id,'recording_id': recording_id,'details': str(e)})
                 
         self.logger.log_failed_imports(self.failed_imports)
