@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
@@ -351,5 +352,49 @@ public class UserControllerTest {
         mockMvc.perform(get("/users/by-email/" + userEmail))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: User: " + userEmail));
+    }
+
+    @DisplayName("Should set include deleted param to false if not set")
+    @Test
+    public void testGetCasesIncludeDeletedNotSet() throws Exception {
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/users")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(userService, times(1)).findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to false when set to false")
+    @Test
+    public void testGetCasesIncludeDeletedFalse() throws Exception {
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/users")
+                            .with(csrf())
+                            .param("includeDeleted", "false")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(userService, times(1)).findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to true when set to true")
+    @Test
+    public void testGetCasesIncludeDeletedTrue() throws Exception {
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/users")
+                            .with(csrf())
+                            .param("includeDeleted", "true")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(userService, times(1)).findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
     }
 }
