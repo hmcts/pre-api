@@ -4,7 +4,10 @@ provider "azurerm" {
 
 locals {
   app_name         = "pre-api"
-  env_to_deploy    = var.env != "prod" ? 1 : 0
+  // rather than removing this and the counts I've left it in so that we can disable an env easily in the future
+  // without deleting the resource as moving from a count to no count will delete and recreate the resource
+  // env_to_deploy = var.env != "prod" ? 1 : 0
+  env_to_deploy    = 1
   env_long_name    = var.env == "sbox" ? "sandbox" : var.env == "stg" ? "staging" : var.env
   apim_service_url = var.env == "prod" ? "https://pre-api.platform.hmcts.net" : "https://pre-api.${local.env_long_name}.platform.hmcts.net"
 }
