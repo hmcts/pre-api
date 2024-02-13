@@ -73,8 +73,13 @@ public class RecordingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
-        name = "participantName",
-        description = "The name of the participant to search by",
+        name = "witnessName",
+        description = "The name of a witness to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "defendantName",
+        description = "The name of a defendant to search by",
         schema = @Schema(implementation = String.class)
     )
     @Parameter(

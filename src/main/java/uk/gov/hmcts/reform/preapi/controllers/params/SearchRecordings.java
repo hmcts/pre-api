@@ -20,7 +20,8 @@ public class SearchRecordings {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;
     private UUID courtId;
-    private String participantName;
+    private String witnessName;
+    private String defendantName;
 
     @Nullable
     private Timestamp scheduledForFrom;
