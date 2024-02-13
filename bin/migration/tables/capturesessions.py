@@ -163,6 +163,10 @@ class CaptureSessionManager:
             finished_by_user_id = get_user_id(
                 destination_cursor, user_email_finished)
             finished_at = finished_at_datetime if finished_at_datetime else started_at
+            
+            # the deleted_at datetime to look at finished_at if exists else, the modifiedon field in source recordings.
+            if finished_at:
+                deleted_at = finished_at
 
             if not check_existing_record(destination_cursor, 'bookings', 'id', booking_id) or booking_id is None:
                 self.failed_imports.append({
