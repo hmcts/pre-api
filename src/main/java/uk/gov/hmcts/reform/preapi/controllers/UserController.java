@@ -130,6 +130,7 @@ public class UserController extends PreApiController {
             params.getCourtId(),
             params.getRoleId(),
             params.getAccessType(),
+            params.getIncludeDeleted() != null && params.getIncludeDeleted(),
             pageable
         );
 

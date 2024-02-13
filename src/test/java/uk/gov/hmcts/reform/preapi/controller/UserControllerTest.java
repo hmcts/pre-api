@@ -95,7 +95,7 @@ public class UserControllerTest {
         BaseUserDTO mockCourt = new BaseUserDTO();
         mockCourt.setId(userId);
         Page<BaseUserDTO> userList = new PageImpl<>(List.of(mockCourt));
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
+        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any()))
             .thenReturn(userList);
 
         mockMvc.perform(get("/users"))
@@ -110,7 +110,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -124,7 +124,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), any());
+            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
