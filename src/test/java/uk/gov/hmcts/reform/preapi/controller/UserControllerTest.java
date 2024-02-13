@@ -357,7 +357,18 @@ public class UserControllerTest {
     @DisplayName("Should set include deleted param to false if not set")
     @Test
     public void testGetCasesIncludeDeletedNotSet() throws Exception {
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+        when(userService.findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            anyBoolean(),
+            any()
+        ))
+            .thenReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/users")
                             .with(csrf())
@@ -365,13 +376,24 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        verify(userService, times(1)).findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+        verify(userService, times(1))
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
     }
 
     @DisplayName("Should set include deleted param to false when set to false")
     @Test
     public void testGetCasesIncludeDeletedFalse() throws Exception {
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+        when(userService.findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            anyBoolean(),
+            any()
+        )).thenReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/users")
                             .with(csrf())
@@ -380,13 +402,25 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        verify(userService, times(1)).findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+        verify(userService, times(1))
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
     }
 
     @DisplayName("Should set include deleted param to true when set to true")
     @Test
     public void testGetCasesIncludeDeletedTrue() throws Exception {
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+        when(userService.findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            anyBoolean(),
+            any()
+        ))
+            .thenReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/users")
                             .with(csrf())
@@ -395,6 +429,7 @@ public class UserControllerTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        verify(userService, times(1)).findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
+        verify(userService, times(1))
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
     }
 }
