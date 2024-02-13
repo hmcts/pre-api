@@ -133,13 +133,13 @@ class RecordingServiceTest {
     void findAllRecordingsSuccess() {
         var params = new SearchRecordings();
         when(
-            recordingRepository.searchAllBy(eq(params), any())
+            recordingRepository.searchAllBy(eq(params), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(params, null).get().toList();
+        var modelList = recordingService.findAll(params, false, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -153,14 +153,14 @@ class RecordingServiceTest {
         params.setScheduledForUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
 
         when(
-            recordingRepository.searchAllBy(params, null)
+            recordingRepository.searchAllBy(params, false, null)
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(params, null).get().toList();
+        var modelList = recordingService.findAll(params, false, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -303,16 +303,16 @@ class RecordingServiceTest {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var models = recordingService.findAll(params, null).get().toList();
+        var models = recordingService.findAll(params, false, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(params, null);
+            .searchAllBy(params, false, null);
 
         assertThat(models.size()).isEqualTo(0);
     }
@@ -398,9 +398,9 @@ class RecordingServiceTest {
         var params = new SearchRecordings();
         var scheduledFor = new Date();
         params.setScheduledFor(scheduledFor);
-        when(recordingRepository.searchAllBy(params, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
 
-        recordingService.findAll(params, null);
+        recordingService.findAll(params, false, null);
 
         assertThat(params.getScheduledForFrom()).isNotNull();
         assertThat(params.getScheduledForFrom().toInstant()).isEqualTo(scheduledFor.toInstant());
@@ -418,9 +418,9 @@ class RecordingServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var params = new SearchRecordings();
-        when(recordingRepository.searchAllBy(params, null)).thenReturn(Page.empty());
+        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
 
-        recordingService.findAll(params, null);
+        recordingService.findAll(params, false, null);
 
         assertThat(params.getScheduledForFrom()).isNull();
 

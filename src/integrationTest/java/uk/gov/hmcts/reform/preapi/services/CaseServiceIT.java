@@ -47,6 +47,7 @@ public class CaseServiceIT {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(false);
         when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.isPortalUser()).thenReturn(false);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 
