@@ -16,28 +16,28 @@ import java.util.UUID;
 @Schema(description = "InviteDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class InviteDTO {
-    @Schema(description = "UserId")
+    @Schema(description = "InviteUserId")
     protected UUID userId;
 
-    @Schema(description = "UserFirstName")
+    @Schema(description = "InviteUserFirstName")
     protected String firstName;
 
-    @Schema(description = "UserLastName")
+    @Schema(description = "InviteUserLastName")
     protected String lastName;
 
-    @Schema(description = "UserEmail")
+    @Schema(description = "InviteUserEmail")
     protected String email;
 
-    @Schema(description = "UserPhoneNumber")
+    @Schema(description = "InviteUserPhoneNumber")
     protected String phoneNumber;
 
-    @Schema(description = "UserOrganisation")
+    @Schema(description = "InviteUserOrganisation")
     protected String organisation;
 
-    @Schema(description = "UserInvitedAt")
+    @Schema(description = "InvitedAt")
     protected Timestamp invitedAt;
 
-    @Schema(description = "UserInviteCode")
+    @Schema(description = "InviteCode")
     protected String code;
 
     public InviteDTO(PortalAccess portalAccess) {
