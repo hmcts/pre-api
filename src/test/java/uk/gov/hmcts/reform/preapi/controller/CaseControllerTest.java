@@ -92,7 +92,7 @@ class CaseControllerTest {
         CaseDTO mockCaseDTO = new CaseDTO();
         mockCaseDTO.setId(UUID.randomUUID());
         Page<CaseDTO> caseDTOList = new PageImpl<>(List.of(mockCaseDTO));
-        when(caseService.searchBy(eq(caseReference), eq(courtId), any())).thenReturn(caseDTOList);
+        when(caseService.searchBy(eq(caseReference), eq(courtId), eq(false), any())).thenReturn(caseDTOList);
 
         mockMvc.perform(get("/cases")
                             .param("reference", caseReference)

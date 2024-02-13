@@ -6,6 +6,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -34,13 +36,92 @@ public class CaseServiceIT {
     @Autowired
     private CaseService caseService;
 
-    @Transactional
-    @Test
-    public void updateCaseParticipants() {
+    public static void mockAdminUser() {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
+    }
+
+    public static void mockNonAdminUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+    }
+
+    @Transactional
+    @Test
+    public void searchCasesAsAdmin() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var caseEntity2 = HelperFactory.createCase(court, "CASE54321", true, Timestamp.from(Instant.now()));
+        entityManager.persist(caseEntity2);
+
+        var participant1 = HelperFactory.createParticipant(caseEntity, ParticipantType.WITNESS, "Example", "1", null);
+        entityManager.persist(participant1);
+        var participant2 = HelperFactory.createParticipant(caseEntity, ParticipantType.DEFENDANT, "Example", "2", null);
+        entityManager.persist(participant2);
+        caseEntity.setParticipants(new HashSet<>(Set.of(participant1)));
+        caseEntity2.setParticipants(new HashSet<>(Set.of(participant2)));
+        entityManager.persist(caseEntity);
+        entityManager.persist(caseEntity2);
+
+        var cases = caseService.searchBy(null, null, false, Pageable.unpaged()).toList();
+        Assertions.assertEquals(cases.size(), 1);
+        Assertions.assertEquals(cases.getFirst().getId(), caseEntity.getId());
+
+        var cases2 = caseService.searchBy(null, null, true, Pageable.unpaged()).toList();
+        Assertions.assertEquals(cases2.size(), 2);
+        Assertions.assertTrue(cases2.stream().anyMatch(caseDTO -> caseDTO.getId().equals(caseEntity.getId())));
+        Assertions.assertTrue(cases2.stream().anyMatch(caseDTO -> caseDTO.getId().equals(caseEntity2.getId())));
+    }
+
+    @Transactional
+    @Test
+    public void searchCasesAsNonAdmin() {
+        mockNonAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var caseEntity2 = HelperFactory.createCase(court, "CASE54321", true, Timestamp.from(Instant.now()));
+        entityManager.persist(caseEntity2);
+
+        var participant1 = HelperFactory.createParticipant(caseEntity, ParticipantType.WITNESS, "Example", "1", null);
+        entityManager.persist(participant1);
+        var participant2 = HelperFactory.createParticipant(caseEntity, ParticipantType.DEFENDANT, "Example", "2", null);
+        entityManager.persist(participant2);
+        caseEntity.setParticipants(new HashSet<>(Set.of(participant1)));
+        caseEntity2.setParticipants(new HashSet<>(Set.of(participant2)));
+        entityManager.persist(caseEntity);
+        entityManager.persist(caseEntity2);
+
+        var cases = caseService.searchBy(null, null, false, Pageable.unpaged()).toList();
+        Assertions.assertEquals(cases.size(), 1);
+        Assertions.assertEquals(cases.getFirst().getId(), caseEntity.getId());
+
+        var message = Assertions.assertThrows(
+            AccessDeniedException.class,
+            () -> caseService.searchBy(null, null, true, Pageable.unpaged())
+        ).getMessage();
+
+        Assertions.assertEquals(message, "Access Denied");
+    }
+
+    @Transactional
+    @Test
+    public void updateCaseParticipants() {
+        mockAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
@@ -95,10 +176,7 @@ public class CaseServiceIT {
     @Transactional
     @Test
     public void testCascadeDelete() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(true);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+        mockAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
         entityManager.persist(court);
