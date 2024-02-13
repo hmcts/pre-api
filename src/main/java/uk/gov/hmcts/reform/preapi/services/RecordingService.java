@@ -68,7 +68,7 @@ public class RecordingService {
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         params.setAuthorisedBookings(
-            auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings()
+            auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
         params.setAuthorisedCourt(
             auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId()
