@@ -1,0 +1,1 @@
+ALTER TABLE public.audits ALTER COLUMN activity TYPE VARCHAR(255);
