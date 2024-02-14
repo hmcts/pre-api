@@ -594,7 +594,6 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
-        x-nullable: true
       filename:
         description: RecordingFilename
         type: string
@@ -985,7 +984,6 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
-        x-nullable: true
       filename:
         description: RecordingFilename
         type: string
@@ -1359,7 +1357,6 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
-        x-nullable: true
       filename:
         description: RecordingFilename
         type: string
