@@ -543,9 +543,9 @@ public class UserServiceTest {
         verify(appAccessRepository, times(1)).save(any());
     }
 
-    @DisplayName("Create/update a user is deleted")
+    @DisplayName("Create/update an app user is deleted")
     @Test
-    void updateUserDeletedBadRequest() {
+    void updateAppUserDeletedBadRequest() {
         userEntity.setDeletedAt(Timestamp.from(Instant.now()));
 
         var userModel = new CreateUserDTO();
@@ -565,6 +565,46 @@ public class UserServiceTest {
         verify(userRepository, never()).save(any());
         verify(appAccessRepository, never()).save(any());
 
+    }
+
+    @DisplayName("Create/update a portal user is deleted")
+    @Test
+    void updatePortalUserDeletedBadRequest() {
+        userEntity.setDeletedAt(Timestamp.from(Instant.now()));
+
+        var userModel = new CreateInviteDTO();
+        userModel.setUserId(userEntity.getId());
+
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.of(userEntity));
+
+        assertThrows(
+            ResourceInDeletedStateException.class,
+            () -> userService.upsert(userModel)
+        );
+
+        verify(userRepository, times(1)).findById(userEntity.getId());
+        verify(userRepository, never()).save(any());
+        verify(portalAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Create portal user that already exists")
+    @Test
+    void createPortalUserAlreadyExistsBadRequest() {
+        var userModel = new CreateInviteDTO();
+        userModel.setUserId(userEntity.getId());
+
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.of(userEntity));
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
+            .thenReturn(Optional.of(portalAccessEntity));
+
+        var result = userService.upsert(userModel);
+
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+
+        verify(userRepository, times(1)).findById(userEntity.getId());
+        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(userRepository, never()).save(any());
+        verify(portalAccessRepository, never()).save(any());
     }
 
     @DisplayName("Create a user and court doesn't exist")
