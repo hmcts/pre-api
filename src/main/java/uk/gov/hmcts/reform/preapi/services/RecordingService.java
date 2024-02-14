@@ -71,7 +71,7 @@ public class RecordingService {
             auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings()
         );
         params.setAuthorisedCourt(
-            auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId()
+            auth.isPortalUser() ? null : auth.getCourtId()
         );
 
         return recordingRepository

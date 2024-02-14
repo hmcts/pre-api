@@ -62,7 +62,7 @@ public class CaseService {
     @Transactional
     public Page<CaseDTO> searchBy(String reference, UUID courtId, Pageable pageable) {
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+        var authorisedCourt = auth.isPortalUser() ? null : auth.getCourtId();
 
         return caseRepository
             .searchCasesBy(
