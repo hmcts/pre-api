@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
@@ -44,6 +45,7 @@ public class Recording extends BaseEntity {
     private String filename;
 
     @CreationTimestamp
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 
@@ -58,6 +60,7 @@ public class Recording extends BaseEntity {
     @JdbcTypeCode(SqlTypes.JSON)
     private String editInstruction;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 

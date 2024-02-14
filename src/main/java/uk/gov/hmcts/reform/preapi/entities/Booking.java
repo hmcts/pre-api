@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Timestamp;
@@ -27,9 +28,11 @@ public class Booking extends CreatedModifiedAtEntity {
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "scheduled_for", nullable = false)
     private Timestamp scheduledFor;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 

@@ -8,6 +8,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Date;
@@ -37,6 +38,7 @@ public class AppAccess extends CreatedModifiedAtEntity {
     @Column(name = "active")
     private boolean active = true;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 

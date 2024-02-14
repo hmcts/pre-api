@@ -5,6 +5,7 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PreUpdate;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Timestamp;
@@ -14,9 +15,10 @@ import java.sql.Timestamp;
 @Setter
 public class CreatedModifiedAtEntity extends BaseEntity {
     @CreationTimestamp
-    @Column(name = "created_at", nullable = false)
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     private Timestamp createdAt;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "modified_at")
     private Timestamp modifiedAt;
 

@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Timestamp;
@@ -35,6 +36,7 @@ public class User extends CreatedModifiedAtEntity {
     @Column(name = "phone", length = 50)
     private String phone;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 

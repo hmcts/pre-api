@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Immutable;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -55,6 +56,7 @@ public class Audit extends BaseEntity {
     private UUID createdBy;
 
     @CreationTimestamp
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 }

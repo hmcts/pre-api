@@ -11,6 +11,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
@@ -32,6 +33,7 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     private String password;
 
     @Column(name = "last_access")
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     private Timestamp lastAccess;
 
     @Enumerated(EnumType.STRING)
@@ -39,12 +41,15 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "status", nullable = false)
     private AccessStatus status = AccessStatus.INVITATION_SENT;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "invited_at")
     private Timestamp invitedAt;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "registered_at")
     private Timestamp registeredAt;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 

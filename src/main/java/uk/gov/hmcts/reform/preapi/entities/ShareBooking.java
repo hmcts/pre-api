@@ -10,6 +10,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.CreationTimestamp;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
@@ -35,9 +36,11 @@ public class ShareBooking extends BaseEntity {
     private User sharedBy;
 
     @CreationTimestamp
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "created_at")
     private Timestamp createdAt;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 

@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
@@ -41,6 +42,7 @@ public class CaptureSession extends BaseEntity {
     @Column(name = "live_output_url", length = 100)
     private String liveOutputUrl;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "started_at")
     private Timestamp startedAt;
 
@@ -48,6 +50,7 @@ public class CaptureSession extends BaseEntity {
     @JoinColumn(name = "started_by_user_id", referencedColumnName = "id")
     private User startedByUser;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "finished_at")
     private Timestamp finishedAt;
 
@@ -60,6 +63,7 @@ public class CaptureSession extends BaseEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private RecordingStatus status;
 
+    @ColumnTransformer(write = "CAST(? AS TIMESTAMP(3))")
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
