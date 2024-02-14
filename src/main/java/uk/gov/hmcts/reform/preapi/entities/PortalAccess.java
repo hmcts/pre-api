@@ -59,7 +59,6 @@ public class PortalAccess extends CreatedModifiedAtEntity {
         details.put("portalAccessInvitedAt", invitedAt);
         details.put("portalAccessInviteCode", code);
         details.put("portalAccessRegisteredAt", registeredAt);
-        details.put("portalAccessInviteCode", code);
         details.put("deleted", deletedAt != null);
         return details;
     }
