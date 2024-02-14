@@ -4,6 +4,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -133,7 +134,7 @@ public class RecordingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsert(
         @PathVariable UUID recordingId,
-        @RequestBody CreateRecordingDTO createRecordingDTO
+        @Valid @RequestBody CreateRecordingDTO createRecordingDTO
     ) {
         // TODO Check user has access to booking and capture session (and recording if is update)
         if (!recordingId.equals(createRecordingDTO.getId())) {
