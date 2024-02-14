@@ -8,15 +8,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.InviteController;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
-import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.InviteService;
@@ -24,16 +20,14 @@ import uk.gov.hmcts.reform.preapi.services.InviteService;
 import java.util.List;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
- import static org.mockito.Mockito.doNothing;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
- import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,133 +49,89 @@ class InviteControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
 
-    private static final String INVITES_ID_PATH = "/invites/{id}";
-
-
-    @DisplayName("Should get invite by ID with 200 response code")
+    @DisplayName("Should get invite by user id with 200 response code")
     @Test
-    void testGetInviteByIdSuccess() throws Exception {
-        UUID inviteId = UUID.randomUUID();
-        InviteDTO mockInviteDTO = new InviteDTO();
-        mockInviteDTO.setId(inviteId);
-        when(inviteService.findById(inviteId)).thenReturn(mockInviteDTO);
+    void getInviteByUserIdSuccess() throws Exception {
+        var userId = UUID.randomUUID();
+        var mockInvite = new InviteDTO();
+        mockInvite.setUserId(userId);
 
-        mockMvc.perform(get(INVITES_ID_PATH, inviteId))
+        when(inviteService.findByUserId(userId)).thenReturn(mockInvite);
+
+
+        mockMvc.perform(get("/invites/" + userId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(inviteId.toString()));
+            .andExpect(jsonPath("$.user_id").value(userId.toString()));
     }
 
-    @DisplayName("Should return 404 when trying to get non-existing invite")
+    @DisplayName("Should return 404 when trying to get an invite for a non-existing user")
     @Test
-    void testGetNonExistingInviteById() throws Exception {
-        UUID inviteId = UUID.randomUUID();
-        doThrow(new NotFoundException("Invite: " + inviteId)).when(inviteService).findById(any());
+    void getInviteByUserIdNotFound() throws Exception {
+        var userId = UUID.randomUUID();
+        var mockInvite = new InviteDTO();
+        mockInvite.setUserId(userId);
 
-        mockMvc.perform(get(INVITES_ID_PATH, inviteId))
+        doThrow(new NotFoundException("Invite: " + userId)).when(inviteService).findByUserId(userId);
+
+        mockMvc.perform(get("/invites/" + userId))
             .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Not found: Invite: " + inviteId));
+            .andExpect(jsonPath("$.message").value("Not found: Invite: " + userId));
     }
 
-    @DisplayName("Should get list of invites with 200 response code")
+    @DisplayName("Should return a list of invites with 200 response code")
     @Test
-    void testGetInvites() throws Exception {
-        String firstName = "Firstname";
-        String lastName = "Lastname";
-        String email = "example@example.com";
-        String organisation = "Organisation";
-        InviteDTO mockInviteDTO = new InviteDTO();
-        mockInviteDTO.setId(UUID.randomUUID());
-        Page<InviteDTO> inviteDTOList = new PageImpl<>(List.of(mockInviteDTO));
-        when(inviteService.findAllBy(eq(firstName), eq(lastName), eq(email), eq(organisation), any()))
-            .thenReturn(inviteDTOList);
+    void getInvitesSuccess() throws Exception {
+        var userId = UUID.randomUUID();
+        var mockInvite = new InviteDTO();
+        mockInvite.setUserId(userId);
+        var inviteList = new PageImpl<>(List.of(mockInvite));
+        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), any()))
+            .thenReturn(inviteList);
 
-        mockMvc.perform(get("/invites")
-                            .param("firstName", firstName)
-                            .param("lastName", lastName)
-                            .param("email", email)
-                            .param("organisation", organisation)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
+        mockMvc.perform(get("/invites"))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$._embedded.inviteDTOList[0].id").exists());
-    }
-
-    // TODO Search params
-
-    @DisplayName("Should create invite with 201 response code")
-    @Test
-    void testCreateInvite() throws Exception {
-        UUID inviteId = UUID.randomUUID();
-        var inviteDTO = new CreateInviteDTO();
-        inviteDTO.setId(inviteId);
-        inviteDTO.setFirstName("Firstname");
-        inviteDTO.setLastName("Lastname");
-        inviteDTO.setEmail("example@example.com");
-        inviteDTO.setOrganisation("Organisation");
-        inviteDTO.setPhone("0123456789");
-        inviteDTO.setCode("ABCDE");
-
-        when(inviteService.upsert(inviteDTO)).thenReturn(UpsertResult.CREATED);
-
-        MvcResult response = mockMvc.perform(put(INVITES_ID_PATH, inviteId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(inviteDTO))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/invites/" + inviteId);
-    }
-
-    @DisplayName("Should update invite with 204 response code")
-    @Test
-    void testUpdateInvite() throws Exception {
-        UUID inviteId = UUID.randomUUID();
-        var inviteDTO = new CreateInviteDTO();
-        inviteDTO.setId(inviteId);
-
-        when(inviteService.upsert(inviteDTO)).thenReturn(UpsertResult.UPDATED);
-
-        MvcResult response = mockMvc.perform(put(INVITES_ID_PATH, inviteId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(inviteDTO))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNoContent())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/invites/" + inviteId);
-    }
-
-    @DisplayName("Should return 400 when creating invite with path and payload mismatch")
-    @Test
-    void testCreateInvitePathPayloadMismatch() throws Exception {
-        UUID inviteId = UUID.randomUUID();
-        InviteDTO newInviteRequestDTO = new InviteDTO();
-        newInviteRequestDTO.setId(UUID.randomUUID());
-
-        mockMvc.perform(put(INVITES_ID_PATH, inviteId)
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(newInviteRequestDTO))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message")
-                           .value("Path id does not match payload property createInviteDTO.id"));
+            .andExpect(jsonPath("$._embedded.inviteDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.inviteDTOList[0].user_id").value(userId.toString()));
     }
 
     @DisplayName("Should delete invite with 200 response code")
     @Test
-    void testDeleteInvite() throws Exception {
-        UUID inviteId = UUID.randomUUID();
-        doNothing().when(inviteService).deleteById(inviteId);
+    void deleteInviteByUserIdSuccess() throws Exception {
+        var userId = UUID.randomUUID();
+        doNothing().when(inviteService).deleteByUserId(userId);
 
-        mockMvc.perform(delete(INVITES_ID_PATH, inviteId)
-                            .with(csrf()))
+        mockMvc.perform(delete("/invites/" + userId)
+            .with(csrf()))
             .andExpect(status().isOk());
     }
+
+    @DisplayName("Should return 404 when deleting invite that doesn't exist")
+    @Test
+    void deleteInviteByUserIdNotFound() throws Exception {
+        var userId = UUID.randomUUID();
+        doThrow(new NotFoundException("Invite: " + userId))
+            .when(inviteService).deleteByUserId(userId);
+
+        mockMvc.perform(delete("/invites/" + userId)
+            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+            .value("Not found: Invite: " + userId));
+    }
+
+    @DisplayName("Should return 400 when user id is not a uuid")
+    @Test
+    void getInviteByUserIdBadRequest() throws Exception {
+        mockMvc.perform(get("/invites/12345678")
+            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+            .value("Invalid UUID string: 12345678"));
+    }
+
+    /* Write me tests for the InviteController, here are the routes:
+        - put /invites/{userId}: create an invites for a user using CreateInviteDTO
+        - get /redeem?email={email}&code={code}: redeem an invites by email and code, return 404 if not found
+    */
 }
