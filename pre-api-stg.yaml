@@ -594,6 +594,7 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
+        x-nullable: true
       filename:
         description: RecordingFilename
         type: string
@@ -611,7 +612,13 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - capture_session_id
+      - filename
+      - id
+      - version
     type: object
   CreateShareBookingDTO:
     properties:
@@ -978,6 +985,7 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
+        x-nullable: true
       filename:
         description: RecordingFilename
         type: string
@@ -1001,7 +1009,12 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - filename
+      - id
+      - version
     type: object
   EntityModelShareBookingDTO:
     properties:
@@ -1346,6 +1359,7 @@ definitions:
       edit_instructions:
         description: RecordingEditInstructions
         type: string
+        x-nullable: true
       filename:
         description: RecordingFilename
         type: string
@@ -1369,7 +1383,12 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - filename
+      - id
+      - version
     type: object
   RecordingsPerCaseReportDTO:
     description: RecordingsPerCaseReportDTO
