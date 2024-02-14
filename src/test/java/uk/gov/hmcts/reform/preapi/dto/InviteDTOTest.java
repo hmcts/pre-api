@@ -43,8 +43,6 @@ class InviteDTOTest {
         assertThat(model.getFirstName()).isEqualTo(user.getFirstName());
         assertThat(model.getLastName()).isEqualTo(user.getLastName());
         assertThat(model.getEmail()).isEqualTo(user.getEmail());
-        assertThat(model.getPhoneNumber()).isEqualTo(user.getPhone());
-        assertThat(model.getOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(model.getCode()).isEqualTo(portalAccess.getCode());
         assertThat(model.getInvitedAt()).isEqualTo(portalAccess.getInvitedAt());
     }

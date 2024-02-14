@@ -28,12 +28,6 @@ public class InviteDTO {
     @Schema(description = "InviteUserEmail")
     protected String email;
 
-    @Schema(description = "InviteUserPhoneNumber")
-    protected String phoneNumber;
-
-    @Schema(description = "InviteUserOrganisation")
-    protected String organisation;
-
     @Schema(description = "InvitedAt")
     protected Timestamp invitedAt;
 
@@ -46,8 +40,6 @@ public class InviteDTO {
         firstName = user.getFirstName();
         lastName = user.getLastName();
         email = user.getEmail();
-        phoneNumber = user.getPhone();
-        organisation = user.getOrganisation();
         invitedAt = portalAccess.getInvitedAt();
         code = portalAccess.getCode();
     }
