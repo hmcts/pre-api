@@ -8,6 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -21,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -50,36 +50,32 @@ public class RecordingService {
 
     @Transactional
     public Page<RecordingDTO> findAll(
-        UUID captureSessionId,
-        UUID parentRecordingId,
-        UUID participantId,
-        String caseReference,
-        Optional<Timestamp> scheduledFor,
-        UUID courtId,
+        SearchRecordings params,
         Pageable pageable
     ) {
-        var until = scheduledFor.isEmpty()
-            ? null
-            : scheduledFor.map(
-                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+        params.setScheduledForFrom(params.getScheduledFor() != null
+                                       ? Timestamp.from(params.getScheduledFor().toInstant())
+                                       : null
+        );
+
+        params.setScheduledForUntil(params.getScheduledForFrom() != null
+                                        ? Timestamp.from(params
+                                                             .getScheduledForFrom()
+                                                             .toInstant()
+                                                             .plus(86399, ChronoUnit.SECONDS))
+                                        : null
+        );
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedBookings = auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+        params.setAuthorisedBookings(
+            auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings()
+        );
+        params.setAuthorisedCourt(
+            auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId()
+        );
 
         return recordingRepository
-            .searchAllBy(
-                captureSessionId,
-                parentRecordingId,
-                participantId,
-                caseReference,
-                scheduledFor.orElse(null),
-                until,
-                courtId,
-                authorisedBookings,
-                authorisedCourt,
-                pageable
-            )
+            .searchAllBy(params, pageable)
             .map(RecordingDTO::new);
     }
 
@@ -93,18 +89,13 @@ public class RecordingService {
             throw new ResourceInDeletedStateException("RecordingDTO", createRecordingDTO.getId().toString());
         }
 
-        var isUpdate = recording.isPresent();
-
-        var captureSession = captureSessionRepository.findByIdAndDeletedAtIsNull(
-            createRecordingDTO.getCaptureSessionId()
-        );
-
-        if ((!isUpdate || createRecordingDTO.getCaptureSessionId() != null) && captureSession.isEmpty()) {
-            throw new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId());
-        }
+        var captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
+            .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
 
         var recordingEntity = recording.orElse(new Recording());
         recordingEntity.setId(createRecordingDTO.getId());
+        recordingEntity.setCaptureSession(captureSession);
         if (createRecordingDTO.getParentRecordingId() != null) {
             var parentRecording = recordingRepository.findById(createRecordingDTO.getParentRecordingId());
             if (parentRecording.isEmpty()) {
@@ -122,6 +113,7 @@ public class RecordingService {
 
         recordingRepository.save(recordingEntity);
 
+        var isUpdate = recording.isPresent();
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 

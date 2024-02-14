@@ -206,13 +206,13 @@ public class ReportServiceTest {
         when(
             captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
                 anotherCase.getId(),
-                RecordingStatus.AVAILABLE
+                RecordingStatus.RECORDING_AVAILABLE
             )
         ).thenReturn(0);
         when(
             captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
                 caseEntity.getId(),
-                RecordingStatus.AVAILABLE
+                RecordingStatus.RECORDING_AVAILABLE
             )
         ).thenReturn(1);
 
@@ -322,7 +322,7 @@ public class ReportServiceTest {
         var userEntity = new User();
         userEntity.setId(UUID.randomUUID());
         userEntity.setEmail("example@example.com");
-        captureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+        captureSessionEntity.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         captureSessionEntity.setStartedByUser(userEntity);
 
         var otherBooking = new Booking();
@@ -335,10 +335,10 @@ public class ReportServiceTest {
         var otherCaptureSessionEntity = new CaptureSession();
         otherCaptureSessionEntity.setId(UUID.randomUUID());
         otherCaptureSessionEntity.setBooking(otherBooking);
-        otherCaptureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+        otherCaptureSessionEntity.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         otherCaptureSessionEntity.setStartedByUser(userEntity);
 
-        when(captureSessionRepository.findAllByStatus(RecordingStatus.AVAILABLE))
+        when(captureSessionRepository.findAllByStatus(RecordingStatus.RECORDING_AVAILABLE))
             .thenReturn(List.of(otherCaptureSessionEntity, captureSessionEntity));
 
         var report = reportService.reportScheduled();
@@ -504,7 +504,7 @@ public class ReportServiceTest {
     @DisplayName("Find a list of completed capture sessions")
     @Test
     void reportCompletedCaptureSessionsSuccess() {
-        captureSessionEntity.setStatus(RecordingStatus.AVAILABLE);
+        captureSessionEntity.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         final var witness = new Participant();
         witness.setId(UUID.randomUUID());

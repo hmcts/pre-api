@@ -1,9 +1,10 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
 
 class ParticipantManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("SELECT * FROM public.contacts")
@@ -44,17 +45,25 @@ class ParticipantManager:
                     self.failed_imports.add(('contacts', id, f'Invalid participant type: {p_type}'))
                     continue
                 
-                first_name = participant[6]
-                last_name = participant[7]
-                if (first_name is None) or (last_name is None):
-                    self.failed_imports.add(('contacts', id, 'no participant names'))
+                
+                first_name = participant[6].strip() if participant[6] is not None else None 
+                last_name = participant[7].strip() if participant[7] is not None else None
+                
+                active = True if participant[2] == '1' else False
+                deleted_at = None
+                if not active:
+                    deleted_at = parse_to_timestamp(participant[11]) if participant[11] else parse_to_timestamp(participant[9])
+
+                if first_name is None or last_name is None:
+                    self.failed_imports.add(('contacts', id, 'Participant is missing either first name or last name'))
                     continue
+
                 
                 created_at = parse_to_timestamp(participant[9])
                 modified_at = parse_to_timestamp(participant[11])
                 created_by = get_user_id(destination_cursor,participant[8])
 
-                batch_participant_data.append((id, case_id, participant_type, first_name, last_name, created_at, modified_at, created_by))
+                batch_participant_data.append((id, case_id, participant_type, first_name, last_name, deleted_at,created_at, modified_at, created_by))
                 
         try:
             if batch_participant_data:
@@ -62,8 +71,8 @@ class ParticipantManager:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.participants 
-                        (id, case_id, participant_type, first_name, last_name, created_at, modified_at)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        (id, case_id, participant_type, first_name, last_name, deleted_at,created_at, modified_at)
+                    VALUES (%s, %s, %s, %s,%s, %s, %s, %s)
                     """,
                     [entry[:-1] for entry in batch_participant_data],
                 )
@@ -83,6 +92,5 @@ class ParticipantManager:
         except Exception as e:
             self.failed_imports.add(('contacts', id, e))
         
-        
-        log_failed_imports(self.failed_imports) 
+        self.logger.log_failed_imports(self.failed_imports)
       

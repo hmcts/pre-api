@@ -1,11 +1,12 @@
 import uuid
-from .helpers import audit_entry_creation, check_existing_record, log_failed_imports
+from .helpers import audit_entry_creation, check_existing_record
 import re
 
 class CourtManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         self.source_cursor.execute("SELECT groupid, groupname from public.grouplist where grouptype = 'Location'")
@@ -85,4 +86,4 @@ class CourtManager:
         except Exception as e:
             self.failed_imports.add(('courts', default_court_id, e))
  
-        log_failed_imports(self.failed_imports)
+        self.logger.log_failed_imports(self.failed_imports)

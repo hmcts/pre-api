@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.entities;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -10,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -35,6 +38,14 @@ public class User extends CreatedModifiedAtEntity {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
+    @OneToMany
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
+    private Set<AppAccess> appAccess;
+
+    @OneToMany
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
+    private Set<PortalAccess> portalAccess;
+
     @Transient
     private boolean deleted;
 
@@ -52,8 +63,8 @@ public class User extends CreatedModifiedAtEntity {
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
-        details.put("email", email);
-        details.put("organisation", organisation);
+        details.put("userEmail", email);
+        details.put("userOrganisation", organisation);
         details.put("deleted", isDeleted());
         return details;
     }

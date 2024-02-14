@@ -5,19 +5,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import org.springframework.data.domain.PageImpl;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
-import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,11 +49,11 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id")
     @Test
     void shareBookingSuccess() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
-        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
         var bookingEntity = new Booking();
         var sharedByUser = new User();
@@ -61,10 +63,10 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
+            userRepository.findById(shareBookingDTO.getSharedByUser())
         ).thenReturn(Optional.of(sharedByUser));
         when(
-            userRepository.findById(shareBookingDTO.getSharedWithUser().getId())
+            userRepository.findById(shareBookingDTO.getSharedWithUser())
         ).thenReturn(Optional.of(sharedWithUser));
 
         assertThat(shareBookingService.shareBookingById(shareBookingDTO)).isEqualTo(UpsertResult.CREATED);
@@ -73,17 +75,17 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when booking doesn't exist")
     @Test
     void shareBookingFailureBookingDoesntExist() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
-        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
         when(
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
+        assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> {
                 shareBookingService.shareBookingById(shareBookingDTO);
             })
@@ -93,11 +95,11 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when shared by user doesn't exist")
     @Test
     void shareBookingFailureSharedByUserDoesntExist() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
-        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
         var bookingEntity = new Booking();
 
@@ -105,7 +107,7 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
+            userRepository.findById(shareBookingDTO.getSharedByUser())
         ).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
@@ -118,11 +120,11 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when shared with user doesn't exist")
     @Test
     void shareBookingFailureSharedWithUserDoesntExist() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
-        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
         var bookingEntity = new Booking();
         var sharedByUser = new User();
@@ -131,10 +133,10 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
+            userRepository.findById(shareBookingDTO.getSharedByUser())
         ).thenReturn(Optional.of(sharedByUser));
         when(
-            userRepository.findById(shareBookingDTO.getSharedWithUser().getId())
+            userRepository.findById(shareBookingDTO.getSharedWithUser())
         ).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
@@ -147,11 +149,11 @@ public class ShareBookingServiceTest {
     @DisplayName("Share a booking by its id when share booking already exists")
     @Test
     void shareBookingFailureShareBookingAlreadyExists() {
-        var shareBookingDTO = new ShareBookingDTO();
+        var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
-        shareBookingDTO.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
-        shareBookingDTO.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
         var bookingEntity = new Booking();
         var sharedByUser = new User();
@@ -161,16 +163,16 @@ public class ShareBookingServiceTest {
             bookingRepository.findById(shareBookingDTO.getBookingId())
         ).thenReturn(Optional.of(bookingEntity));
         when(
-            userRepository.findById(shareBookingDTO.getSharedByUser().getId())
+            userRepository.findById(shareBookingDTO.getSharedByUser())
         ).thenReturn(Optional.of(sharedByUser));
         when(
-            userRepository.findById(shareBookingDTO.getSharedWithUser().getId())
+            userRepository.findById(shareBookingDTO.getSharedWithUser())
         ).thenReturn(Optional.of(sharedWithUser));
         when(
             shareBookingRepository.existsById(shareBookingDTO.getId())
         ).thenReturn(true);
 
-        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.ConflictException.class)
+        assertThatExceptionOfType(ConflictException.class)
             .isThrownBy(() -> {
                 shareBookingService.shareBookingById(shareBookingDTO);
             })
@@ -186,14 +188,14 @@ public class ShareBookingServiceTest {
         share.setId(UUID.randomUUID());
         share.setBooking(booking);
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.of(share));
 
         shareBookingService.deleteShareBookingById(booking.getId(), share.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, times(1)).deleteById(share.getId());
     }
@@ -207,7 +209,7 @@ public class ShareBookingServiceTest {
         share.setId(UUID.randomUUID());
         share.setBooking(booking);
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(false);
 
         var message = assertThrows(
@@ -217,7 +219,7 @@ public class ShareBookingServiceTest {
 
         assertThat(message).isEqualTo("Not found: Booking: " + booking.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
     }
 
@@ -230,7 +232,7 @@ public class ShareBookingServiceTest {
         share.setId(UUID.randomUUID());
         share.setBooking(booking);
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.empty());
@@ -243,7 +245,7 @@ public class ShareBookingServiceTest {
         assertThat(message)
             .isEqualTo("Not found: ShareBooking: " + share.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
     }
@@ -258,7 +260,7 @@ public class ShareBookingServiceTest {
         share.setBooking(booking);
         share.setDeletedAt(Timestamp.from(Instant.now()));
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(booking.getId()))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId()))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.of(share));
@@ -271,7 +273,7 @@ public class ShareBookingServiceTest {
         assertThat(message)
             .isEqualTo("Not found: ShareBooking: " + share.getId());
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(booking.getId());
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
     }
@@ -286,7 +288,7 @@ public class ShareBookingServiceTest {
         share.setBooking(booking);
         var searchBookingId = UUID.randomUUID();
 
-        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(searchBookingId))
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(searchBookingId))
             .thenReturn(true);
         when(shareBookingRepository.findById(share.getId()))
             .thenReturn(Optional.of(share));
@@ -303,8 +305,57 @@ public class ShareBookingServiceTest {
                            + searchBookingId
             );
 
-        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(searchBookingId);
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(searchBookingId);
         verify(shareBookingRepository, times(1)).findById(share.getId());
         verify(shareBookingRepository, never()).deleteById(share.getId());
+    }
+
+    @DisplayName("Should get all share logs for a booking")
+    @Test
+    void getShareLogsForBooking() {
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+
+        var shareBooking = new ShareBooking();
+        shareBooking.setId(UUID.randomUUID());
+        shareBooking.setBooking(booking);
+        shareBooking.setSharedWith(user);
+        shareBooking.setSharedBy(user);
+
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId())).thenReturn(true);
+        when(shareBookingRepository.findAllByBooking_Id(booking.getId(), null))
+            .thenReturn(new PageImpl<>(List.of(shareBooking)));
+
+        var models = shareBookingService.getShareLogsForBooking(booking.getId(), null);
+
+        assertThat(models.getContent().size()).isEqualTo(1);
+        assertThat(models.getContent().getFirst().getBookingId()).isEqualTo(booking.getId());
+        assertThat(models.getContent().getFirst().getBookingId()).isEqualTo(booking.getId());
+        assertThat(models.getContent().getFirst().getBookingId()).isEqualTo(booking.getId());
+        assertThat(models.getContent().getFirst().getSharedWithUser().getId()).isEqualTo(user.getId());
+        assertThat(models.getContent().getFirst().getSharedByUser().getId()).isEqualTo(user.getId());
+    }
+
+    @DisplayName("Should throw not found error when booking is not found")
+    @Test
+    void getShareLogsForBookingNotFound() {
+        var bookingId = UUID.randomUUID();
+
+        when(bookingRepository.existsByIdAndDeletedAtIsNull(bookingId)).thenReturn(false);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> shareBookingService.getShareLogsForBooking(bookingId, null)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Booking: " + bookingId);
+
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingId);
     }
 }

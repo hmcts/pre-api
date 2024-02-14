@@ -13,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.RecordingController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -23,13 +24,10 @@ import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -94,7 +92,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any(), any(), any()))
+        when(recordingService.findAll(any(), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -114,7 +112,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any(), any(), any(), any(), any(), any()))
+        when(recordingService.findAll(any(), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -127,14 +125,12 @@ class RecordingControllerTest {
             .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
 
+        var params = new SearchRecordings();
+        params.setScheduledForFrom(Timestamp.valueOf("2024-01-01 00:00:00"));
+
         verify(recordingService, times(1))
             .findAll(
-                isNull(),
-                isNull(),
-                isNull(),
-                isNull(),
-                eq(Optional.of(Timestamp.valueOf("2024-01-01 00:00:00"))),
-                isNull(),
+                any(),
                 any()
             );
     }

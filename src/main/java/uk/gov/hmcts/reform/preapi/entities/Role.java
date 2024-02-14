@@ -29,8 +29,8 @@ public class Role extends BaseEntity {
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
-        details.put("name", getName());
-        details.put("permissions", getPermissions());
+        details.put("roleName", getName());
+        details.put("rolePermissions", getPermissions());
         return details;
     }
 }

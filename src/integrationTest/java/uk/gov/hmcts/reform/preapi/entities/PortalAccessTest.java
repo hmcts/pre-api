@@ -30,8 +30,8 @@ class PortalAccessTest {
         testPortalAccess.setPassword("TestPassword");
         testPortalAccess.setLastAccess(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setStatus(AccessStatus.REGISTERED);
-        testPortalAccess.setInvitationDateTime(new Timestamp(System.currentTimeMillis()));
-        testPortalAccess.setRegisteredDateTime(new Timestamp(System.currentTimeMillis()));
+        testPortalAccess.setInvitedAt(new Timestamp(System.currentTimeMillis()));
+        testPortalAccess.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setDeletedAt(new Timestamp(System.currentTimeMillis()));
 
         entityManager.persist(testPortalAccess);
@@ -49,13 +49,13 @@ class PortalAccessTest {
             "Last active should match"
         );
         assertEquals(
-            testPortalAccess.getInvitationDateTime(),
-            retrievedPortalAccess.getInvitationDateTime(),
+            testPortalAccess.getInvitedAt(),
+            retrievedPortalAccess.getInvitedAt(),
             "Invitation date time should match"
         );
         assertEquals(
-            testPortalAccess.getRegisteredDateTime(),
-            retrievedPortalAccess.getRegisteredDateTime(),
+            testPortalAccess.getRegisteredAt(),
+            retrievedPortalAccess.getRegisteredAt(),
             "Registered date time should match"
         );
         assertEquals(testPortalAccess.getDeletedAt(), retrievedPortalAccess.getDeletedAt(), "Deleted at should match");

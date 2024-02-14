@@ -31,7 +31,8 @@ public class SecurityConfig {
         "/prometheus",
         "/users/by-email/**",
         "/reports/**",
-        "/audit/**"
+        "/audit/**",
+        "/error"
     };
 
     @Autowired

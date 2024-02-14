@@ -1,9 +1,10 @@
-from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, log_failed_imports, get_user_id
+from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id 
 
 class AppAccessManager:
-    def __init__(self, source_cursor):
+    def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
         self.failed_imports = set()
+        self.logger = logger
 
     def get_data(self):
         query = """ SELECT 
@@ -25,9 +26,6 @@ class AppAccessManager:
     
 
     def migrate_data(self, destination_cursor, source_data):
-        destination_cursor.execute("SELECT id FROM public.courts WHERE name = 'Default Court'")
-        default_court_id = destination_cursor.fetchone()[0]
-
         batch_app_users_data = []
         id = None
 
@@ -46,22 +44,22 @@ class AppAccessManager:
             created_by = get_user_id(destination_cursor,user[5])
      
             if not check_existing_record(destination_cursor,'users', 'id', user_id):
-                self.failed_imports.add(('app_access',user_id, f"User id not in users table: {user_id}")) 
+                self.failed_imports.add(('app_access',id, f"User id not in users table: {user_id}")) 
                 continue
             
             if not check_existing_record(destination_cursor,'roles', 'id', role_id):
-                self.failed_imports.add(('app_access',user_id, f"Role: {role_id} not found in roles table for user_id: {user_id}")) 
+                self.failed_imports.add(('app_access',id, f"Role: {role_id} not found in roles table for user_id: {user_id}")) 
                 continue
 
             if court_id is None:
-                court_id = default_court_id
-            
-            if not check_existing_record(destination_cursor,'courts', 'id', court_id):
-                self.failed_imports.add(('app_access',user_id, f"Court: {court_id} not found in courts table for user_id: {user_id}")) 
+                self.failed_imports.add(('app_access',id, f"No court info for user_id: {user_id}")) 
                 continue
             
-            if not check_existing_record(destination_cursor,'app_access',"user_id",user_id ):          
-                
+            if not check_existing_record(destination_cursor,'courts', 'id', court_id):
+                self.failed_imports.add(('app_access',id, f"Court: {court_id} not found in courts table for user_id: {user_id}")) 
+                continue
+            
+            if not check_existing_record(destination_cursor,'app_access','user_id',user_id ):          
                 # last_access = 
                 batch_app_users_data.append((
                     id, user_id, court_id, role_id, active, created_at, modified_at,created_by,
@@ -89,7 +87,7 @@ class AppAccessManager:
 
                     
         except Exception as e:  
-            self.failed_imports.add(('app_access',user_id, e)) 
+            self.failed_imports.add(('app_access',id, e)) 
 
-        log_failed_imports(self.failed_imports)    
+        self.logger.log_failed_imports(self.failed_imports) 
                 
