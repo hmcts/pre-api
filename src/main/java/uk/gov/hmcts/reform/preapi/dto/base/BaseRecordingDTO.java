@@ -40,7 +40,7 @@ public abstract class BaseRecordingDTO {
     )
     protected Duration duration;
 
-    @Schema(description = "RecordingEditInstructions", nullable = true)
+    @Schema(description = "RecordingEditInstructions")
     @JsonConstraint
     protected String editInstructions;
 }
