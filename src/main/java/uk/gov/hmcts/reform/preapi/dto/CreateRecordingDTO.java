@@ -4,6 +4,7 @@ package uk.gov.hmcts.reform.preapi.dto;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -19,8 +20,8 @@ import java.util.UUID;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateRecordingDTO extends BaseRecordingDTO {
 
-
     @Schema(description = "RecordingCaptureSessionId")
+    @NotNull(message = "capture_session_id is required")
     protected UUID captureSessionId;
 
     public CreateRecordingDTO(Recording recording) {

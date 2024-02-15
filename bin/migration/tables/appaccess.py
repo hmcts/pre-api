@@ -90,8 +90,9 @@ class AppAccessManager:
                     created_by=created_by if created_by is not None else None,
                 )
 
-        try: 
-            if batch_app_users_data:
+       
+        if batch_app_users_data:
+            try:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.app_access
@@ -102,8 +103,9 @@ class AppAccessManager:
                 )
                 destination_cursor.connection.commit()
 
-        except Exception as e:
-            self.failed_imports.append({'table_name': 'app_access', 'table_id': id, 'details': str(e)})
+
+            except Exception as e:
+                self.failed_imports.append({'table_name': 'app_access', 'table_id': id, 'details': str(e)})
 
         self.logger.log_failed_imports(self.failed_imports) 
                 
