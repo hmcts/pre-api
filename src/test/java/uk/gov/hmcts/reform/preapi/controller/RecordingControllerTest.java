@@ -28,6 +28,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
@@ -92,7 +94,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any()))
+        when(recordingService.findAll(any(), eq(false), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -103,6 +105,8 @@ class RecordingControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$._embedded.recordingDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
+
+        verify(recordingService, times(1)).findAll(any(), eq(false), any());
     }
 
     @DisplayName("Should get a list of recordings with 200 response code when searching by scheduled for date")
@@ -112,7 +116,7 @@ class RecordingControllerTest {
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
         var recordingDTOList = List.of(mockRecordingDTO);
-        when(recordingService.findAll(any(), any()))
+        when(recordingService.findAll(any(), eq(false), any()))
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
@@ -131,6 +135,7 @@ class RecordingControllerTest {
         verify(recordingService, times(1))
             .findAll(
                 any(),
+                eq(false),
                 any()
             );
     }
@@ -141,6 +146,9 @@ class RecordingControllerTest {
         var recordingId = UUID.randomUUID();
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
+        recording.setFilename("example filename");
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
 
         when(recordingService.upsert(recording)).thenReturn(UpsertResult.CREATED);
 
@@ -164,6 +172,9 @@ class RecordingControllerTest {
         var recordingId = UUID.randomUUID();
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
+        recording.setFilename("example filename");
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
 
         when(recordingService.upsert(recording)).thenReturn(UpsertResult.UPDATED);
 
@@ -186,6 +197,9 @@ class RecordingControllerTest {
     void createRecordingIdMismatch() throws Exception {
         var recording = new CreateRecordingDTO();
         recording.setId(UUID.randomUUID());
+        recording.setFilename("example filename");
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
 
         MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
                                                  .with(csrf())
@@ -205,6 +219,9 @@ class RecordingControllerTest {
         var recordingId = UUID.randomUUID();
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
+        recording.setFilename("example filename");
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
 
         doThrow(new ResourceInDeletedStateException("RecordingDTO", recordingId.toString()))
             .when(recordingService).upsert(any());
@@ -231,6 +248,8 @@ class RecordingControllerTest {
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
         recording.setCaptureSessionId(captureSessionId);
+        recording.setFilename("example filename");
+        recording.setVersion(1);
 
         doThrow(new NotFoundException("Capture Session: " + captureSessionId))
             .when(recordingService)
@@ -256,6 +275,9 @@ class RecordingControllerTest {
         var recording = new CreateRecordingDTO();
         recording.setId(recordingId);
         recording.setParentRecordingId(parentRecordingId);
+        recording.setFilename("example filename");
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
 
         doThrow(new NotFoundException("Recording: " + parentRecordingId))
             .when(recordingService)
@@ -271,6 +293,134 @@ class RecordingControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Not found: Recording: " + parentRecordingId + "\"}");
+    }
+
+    @DisplayName("Should fail to create/update recording when id is null")
+    @Test
+    void createRecordingValidatorIdFailure() throws Exception {
+        var recording = new CreateRecordingDTO();
+        recording.setFilename("example filename");
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
+
+        MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"id\":\"id is required\"}");
+    }
+
+    @DisplayName("Should fail to create/update recording when capture session id is null")
+    @Test
+    void createRecordingValidatorCaptureSessionIdFailure() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new CreateRecordingDTO();
+        recording.setId(recordingId);
+        recording.setFilename("example filename");
+        recording.setVersion(1);
+
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"captureSessionId\":\"capture_session_id is required\"}");
+    }
+
+    @DisplayName("Should fail to create/update recording when version is null")
+    @Test
+    void createRecordingValidatorVersionFailure() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new CreateRecordingDTO();
+        recording.setId(recordingId);
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setFilename("example filename");
+
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"version\":\"version is required\"}");
+    }
+
+    @DisplayName("Should fail to create/update recording when version less that 1")
+    @Test
+    void createRecordingValidatorVersionFailure2() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new CreateRecordingDTO();
+        recording.setId(recordingId);
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setFilename("example filename");
+        recording.setVersion(0);
+
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"version\":\"must be greater than or equal to 1\"}");
+    }
+
+    @DisplayName("Should fail to create/update recording when filename is null")
+    @Test
+    void createRecordingValidatorFilenameFailure() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new CreateRecordingDTO();
+        recording.setId(recordingId);
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
+
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"filename\":\"filename is required\"}");
+    }
+
+    @DisplayName("Should fail to create/update recording when edit instructions is not valid json")
+    @Test
+    void createRecordingValidatorEditInstructionsFailure() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new CreateRecordingDTO();
+        recording.setId(recordingId);
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setFilename("example filename");
+        recording.setVersion(1);
+        recording.setEditInstructions("invalid json {}");
+
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"editInstructions\":\"invalid JSON format\"}");
     }
 
     @DisplayName("Should delete recording with 200 response code")
@@ -307,6 +457,50 @@ class RecordingControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                            .value("Invalid UUID string: 12345678"));
+    }
+
+    @DisplayName("Should set include deleted param to false if not set")
+    @Test
+    public void testGetCasesIncludeDeletedNotSet() throws Exception {
+        when(recordingService.findAll(any(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/recordings")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(recordingService, times(1)).findAll(any(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to false when set to false")
+    @Test
+    public void testGetCasesIncludeDeletedFalse() throws Exception {
+        when(recordingService.findAll(any(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/recordings")
+                            .with(csrf())
+                            .param("includeDeleted", "false")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(recordingService, times(1)).findAll(any(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to true when set to true")
+    @Test
+    public void testGetCasesIncludeDeletedTrue() throws Exception {
+        when(recordingService.findAll(any(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/recordings")
+                            .with(csrf())
+                            .param("includeDeleted", "true")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(recordingService, times(1)).findAll(any(), eq(true), any());
     }
 
     private static String getPath(UUID recordingId) {

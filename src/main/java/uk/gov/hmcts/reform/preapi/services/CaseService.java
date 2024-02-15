@@ -60,7 +60,8 @@ public class CaseService {
     }
 
     @Transactional
-    public Page<CaseDTO> searchBy(String reference, UUID courtId, Pageable pageable) {
+    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
+    public Page<CaseDTO> searchBy(String reference, UUID courtId, boolean includeDeleted, Pageable pageable) {
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedCourt = auth.isPortalUser() ? null : auth.getCourtId();
 
@@ -68,6 +69,7 @@ public class CaseService {
             .searchCasesBy(
                 reference,
                 courtId,
+                includeDeleted,
                 authorisedCourt,
                 pageable
             )

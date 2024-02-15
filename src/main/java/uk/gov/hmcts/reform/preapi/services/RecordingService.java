@@ -49,8 +49,10 @@ public class RecordingService {
     }
 
     @Transactional
+    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     public Page<RecordingDTO> findAll(
         SearchRecordings params,
+        boolean includeDeleted,
         Pageable pageable
     ) {
         params.setScheduledForFrom(params.getScheduledFor() != null
@@ -68,14 +70,14 @@ public class RecordingService {
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         params.setAuthorisedBookings(
-            auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings()
+            auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
         params.setAuthorisedCourt(
             auth.isPortalUser() ? null : auth.getCourtId()
         );
 
         return recordingRepository
-            .searchAllBy(params, pageable)
+            .searchAllBy(params, includeDeleted, pageable)
             .map(RecordingDTO::new);
     }
 

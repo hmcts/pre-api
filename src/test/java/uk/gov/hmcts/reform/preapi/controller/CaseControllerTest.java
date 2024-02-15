@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,9 +26,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -92,7 +95,7 @@ class CaseControllerTest {
         CaseDTO mockCaseDTO = new CaseDTO();
         mockCaseDTO.setId(UUID.randomUUID());
         Page<CaseDTO> caseDTOList = new PageImpl<>(List.of(mockCaseDTO));
-        when(caseService.searchBy(eq(caseReference), eq(courtId), any())).thenReturn(caseDTOList);
+        when(caseService.searchBy(eq(caseReference), eq(courtId), eq(false), any())).thenReturn(caseDTOList);
 
         mockMvc.perform(get("/cases")
                             .param("reference", caseReference)
@@ -101,9 +104,9 @@ class CaseControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$._embedded.caseDTOList[0].id").exists());
-    }
 
-    // TODO Search params
+        verify(caseService, times(1)).searchBy(eq(caseReference), eq(courtId), eq(false), any());
+    }
 
     @DisplayName("Should create case with 201 response code")
     @Test
@@ -276,5 +279,49 @@ class CaseControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                            .value("Invalid UUID string: 12345678"));
+    }
+
+    @DisplayName("Should set include deleted param to false if not set")
+    @Test
+    public void testGetCasesIncludeDeletedNotSet() throws Exception {
+        when(caseService.searchBy(isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/cases")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(caseService, times(1)).searchBy(isNull(), isNull(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to false when set to false")
+    @Test
+    public void testGetCasesIncludeDeletedFalse() throws Exception {
+        when(caseService.searchBy(isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/cases")
+                            .with(csrf())
+                            .param("includeDeleted", "false")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(caseService, times(1)).searchBy(isNull(), isNull(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to true when set to true")
+    @Test
+    public void testGetCasesIncludeDeletedTrue() throws Exception {
+        when(caseService.searchBy(isNull(), isNull(), anyBoolean(), any())).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/cases")
+                            .with(csrf())
+                            .param("includeDeleted", "true")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(caseService, times(1)).searchBy(isNull(), isNull(), eq(true), any());
     }
 }

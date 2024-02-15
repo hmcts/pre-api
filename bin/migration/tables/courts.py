@@ -5,7 +5,7 @@ import re
 class CourtManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -63,7 +63,7 @@ class CourtManager:
                         record=court[2]
                     )
         except Exception as e:
-            self.failed_imports.add(('courts', id, e ))
+            self.failed_imports.append({'table_name': 'courts','table_id': id,'details': str(e)})
 
         # Inserting an 'Unknown' court type for records missing this info
         default_court_id = str(uuid.uuid4())
@@ -84,6 +84,6 @@ class CourtManager:
                     record='Default Court'
                 ) 
         except Exception as e:
-            self.failed_imports.add(('courts', default_court_id, e))
+            self.failed_imports.append({'table_name': 'courts','table_id': default_court_id,'details': str(e)})
  
         self.logger.log_failed_imports(self.failed_imports)
