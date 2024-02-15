@@ -128,4 +128,8 @@ public class AuthorisationService {
             && hasCourtAccess(authentication, dto.getCourtId())
             && hasUpsertAccess(authentication, dto.getParticipants());
     }
+
+    public boolean canViewDeleted(UserAuthentication authentication) {
+        return authentication.isAdmin();
+    }
 }
