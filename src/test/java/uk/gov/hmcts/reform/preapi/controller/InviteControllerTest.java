@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.InviteController;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -31,7 +30,9 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -206,8 +207,7 @@ class InviteControllerTest {
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
-        assertThat(
-            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/invites/redeem" + "?email=" + email + "&inviteCode=" + inviteCode
-        );
+        assertThat(response.getResponse().getHeaderValue("Location"))
+            .isEqualTo(TEST_URL + "/invites/redeem" + "?email=" + email + "&inviteCode=" + inviteCode);
     }
 }

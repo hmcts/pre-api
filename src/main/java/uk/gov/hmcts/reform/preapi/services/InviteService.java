@@ -63,9 +63,11 @@ public class InviteService {
 
     @Transactional
     public void deleteByUserId(UUID userId) {
-        var portalAccess = portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+        var portalAccess = portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
-        portalAccess.setStatus(AccessStatus.INACTIVE);
-        portalAccessRepository.save(portalAccess);
+        var user = portalAccess.getUser();
+
+        userService.deleteById(user.getId());
     }
 }
