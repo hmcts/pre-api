@@ -4,7 +4,7 @@ import uuid
 class PortalAccessManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -93,6 +93,6 @@ class PortalAccessManager:
                         created_by= entry[6]
                     )
         except Exception as e:
-            self.failed_imports.add(('portal_access', user_id, e))
+            self.failed_imports.append({'table_name': 'portal_access','table_id': id,'details': str(e)})
  
         self.logger.log_failed_imports(self.failed_imports)
