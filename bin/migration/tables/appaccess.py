@@ -3,7 +3,7 @@ from .helpers import check_existing_record, parse_to_timestamp, audit_entry_crea
 class AppAccessManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -44,19 +44,36 @@ class AppAccessManager:
             created_by = get_user_id(destination_cursor,user[5])
      
             if not check_existing_record(destination_cursor,'users', 'id', user_id):
-                self.failed_imports.add(('app_access',id, f"User id not in users table: {user_id}")) 
+                self.failed_imports.append({
+                    'table_name': 'app_access',
+                    'table_id': id,
+                    'details': f"User ID: {user_id} not found in the users table."
+                })
                 continue
             
             if not check_existing_record(destination_cursor,'roles', 'id', role_id):
-                self.failed_imports.add(('app_access',id, f"Role: {role_id} not found in roles table for user_id: {user_id}")) 
+                self.failed_imports.append({
+                    'table_name': 'app_access',
+                    'table_id': id,
+                    'details':  f"Role ID: {role_id} not found in the roles table."
+                    
+                })
                 continue
 
             if court_id is None:
-                self.failed_imports.add(('app_access',id, f"No court info for user_id: {user_id}")) 
+                self.failed_imports.append({
+                    'table_name': 'app_access',
+                    'table_id': id,
+                    'details':  f"No court information found for User ID: {user_id}."
+                })
                 continue
             
             if not check_existing_record(destination_cursor,'courts', 'id', court_id):
-                self.failed_imports.add(('app_access',id, f"Court: {court_id} not found in courts table for user_id: {user_id}")) 
+                self.failed_imports.append({
+                    'table_name': 'app_access',
+                    'table_id': id,
+                    'details':   f"Court ID: {court_id} not found in the courts table."
+                }) 
                 continue
             
             if not check_existing_record(destination_cursor,'app_access','user_id',user_id ):          
@@ -85,9 +102,8 @@ class AppAccessManager:
                 )
                 destination_cursor.connection.commit()
 
-                    
-        except Exception as e:  
-            self.failed_imports.add(('app_access',id, e)) 
+        except Exception as e:
+            self.failed_imports.append({'table_name': 'app_access', 'table_id': id, 'details': str(e)})
 
         self.logger.log_failed_imports(self.failed_imports) 
                 

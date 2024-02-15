@@ -1,7 +1,7 @@
 class BookingParticipantManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
     
     def get_data(self):
@@ -47,9 +47,14 @@ class BookingParticipantManager:
                             destination_cursor.connection.commit()
                                         
                         except Exception as e:  
-                            self.failed_imports.add(('booking_participants', None, e))
+                            self.failed_imports.append({'table_name': 'booking_participant','table_id': None,'details': str(e)})
+                            
                     else:
-                        self.failed_imports.add(('booking_participants', participant_id, "Participant ID not found"))
-                
+                        self.failed_imports.append({
+                            'table_name': 'booking_participant',
+                            'table_id': participant_id,
+                            'details': f"Participant ID: {participant_id} not found in the participants table."
+                        })
+
         self.logger.log_failed_imports(self.failed_imports)
                 
