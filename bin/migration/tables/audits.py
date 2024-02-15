@@ -42,6 +42,7 @@ class AuditLogManager:
                 audit_details = audit_details_json
                 created_at = parse_to_timestamp(audit_log[12])
 
+                created_by_id = None
                 if audit_log[11]:
                     created_by_id = get_user_id(destination_cursor,audit_log[11])
                

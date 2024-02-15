@@ -63,8 +63,13 @@ class ShareBookingsManager:
             case_id, version = self.get_case_id_and_version(recording_id)
 
             if case_id is None:
-                self.failed_imports.add(
-                    ('share_bookings', id, f"No valid case id associated with recording id: {recording_id}, not in cases table"))
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'case_id': case_id,
+                    'recording_id': recording_id,
+                    'details':  f"No valid Case ID associated with recording in cases table."
+                })
                 continue
 
             if version == '1':
@@ -75,23 +80,35 @@ class ShareBookingsManager:
                     destination_cursor, recording_id)
 
             if booking_id is None:
-                self.failed_imports.add(
-                    ('share_bookings', id, f"No valid booking id associated with case id: {case_id} (recording id: {recording_id}) not in bookings table"))
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'recording_id': recording_id,
+                    'case_id': case_id,
+                    'details':  f"No valid Booking ID associated recording."
+                })
                 continue
 
             shared_with_user_id = video_permission[4]
             if not check_existing_record(destination_cursor, 'users', 'id', shared_with_user_id):
-                self.failed_imports.add(
-                    ('share_bookings', id, f"Invalid shared_with_user_id value: {shared_with_user_id} (recording id: {recording_id})"))
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'recording_id': recording_id,
+                    'case_id': case_id,
+                    'details':  f"Invalid shared_with_user_id value: {shared_with_user_id} in users table."
+                })
                 continue
-
-            created_by = get_user_id(destination_cursor, video_permission[18])
+            
+            email = video_permission[8]
+            created_by = get_user_id(destination_cursor, email)
             shared_by_user_id = created_by
 
             if not shared_by_user_id:
                 self.failed_imports.append({
                     'table_name': 'share_bookings',
                     'table_id': id,
+                    'case_id':case_id,
                     'recording_id': recording_id,
                     'details': f"shared_by_user email: {email} not found in users table."
                 })
@@ -102,8 +119,13 @@ class ShareBookingsManager:
 
             if not check_existing_record(destination_cursor, 'share_bookings', 'id', id):
                 if self.check_existing_shared_booking(destination_cursor, booking_id, shared_by_user_id, shared_with_user_id):
-                    self.failed_imports.add(
-                        ('share_bookings', id, f"Shared recording already migrated for booking_id: {booking_id}, shared_with: {shared_with_user_id}, shared_by: {shared_by_user_id}"))
+                    self.failed_imports.append({
+                        'table_name': 'share_bookings',
+                        'table_id': id,
+                        'case_id':case_id,
+                        'recording_id': recording_id,
+                        'details': f"Shared recording already migrated for booking_id: {booking_id}, shared_with: {shared_with_user_id}, shared_by: {shared_by_user_id}"
+                    })
                     continue
                 try:
                     destination_cursor.execute(
@@ -116,7 +138,13 @@ class ShareBookingsManager:
                     )
                 except Exception as e:
                     destination_cursor.connection.rollback()
-                    self.failed_imports.add(('share_bookings', id, e))
+                    self.failed_imports.append({
+                        'table_name': 'share_bookings',
+                        'table_id': id,
+                        'case_id':case_id,
+                        'recording_id': recording_id,
+                        'details': str(e)
+                    })
 
                 audit_entry_creation(
                     destination_cursor,

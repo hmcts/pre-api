@@ -111,7 +111,7 @@ class ParticipantManager:
                         record_id=entry[0],
                         record=entry[1],
                         created_at=entry[5],
-                        created_by=entry[7] if entry[7] is not None else None                    
+                        created_by=entry[8] if entry[8] is not None else None                    
                     )
 
         except Exception as e:
