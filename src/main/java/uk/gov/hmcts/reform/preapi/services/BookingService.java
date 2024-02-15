@@ -162,6 +162,17 @@ public class BookingService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
+    public void undelete(UUID id) {
+        var entity = bookingRepository.findById(id).orElseThrow(() -> new NotFoundException("Booking: " + id));
+        if (!entity.isDeleted()) {
+            return;
+        }
+        entity.setDeletedAt(null);
+        bookingRepository.save(entity);
+    }
+
+    @Transactional
     public void deleteCascade(Case caseEntity) {
         bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(caseEntity)

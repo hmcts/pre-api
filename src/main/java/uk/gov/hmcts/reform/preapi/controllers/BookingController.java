@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -191,6 +192,14 @@ public class BookingController extends PreApiController {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
         }
         return ok(assembler.toModel(resultPage));
+    }
+
+    @PostMapping("/{bookingId}/undelete")
+    @Operation(operationId = "undeleteBooking", summary = "Revert deletion of a booking")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<Void> undeleteBooking(@PathVariable UUID bookingId) {
+        bookingService.undelete(bookingId);
+        return noContent().build();
     }
 
 
