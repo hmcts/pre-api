@@ -37,7 +37,3 @@ class FailedImportsLogger:
                 if details is not None:
                     file.write(f"| {str(table_name).ljust(22)} | {str(table_id).ljust(36)} | {str(case_id).ljust(36)} | {str(recording_id).ljust(36)} | {str(details)} \n")
 
-                
-            # if (table_name, failed_id) not in self.existing_entries_cache:
-            #     self.existing_entries_cache.add((table_name.strip(), failed_id.strip())) 
-                # file.write(f"Table: {table_name}, ID: {failed_id}, Details: {details}\n")

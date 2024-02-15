@@ -22,6 +22,7 @@ public class SearchRecordings {
     private UUID courtId;
     private String witnessName;
     private String defendantName;
+    private Boolean includeDeleted;
 
     @Nullable
     private Timestamp scheduledForFrom;

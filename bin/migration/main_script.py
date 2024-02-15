@@ -21,7 +21,6 @@ from tables.recordings import RecordingManager
 from tables.sharebookings import ShareBookingsManager
 from tables.audits import AuditLogManager
 
-# from tables.helpers import clear_migrations_file
 from migration_reports.migration_tracker import MigrationTracker
 from migration_reports.failed_imports_logger import FailedImportsLogger
 
