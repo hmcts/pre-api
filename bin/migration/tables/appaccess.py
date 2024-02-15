@@ -38,7 +38,7 @@ class AppAccessManager:
                 continue
 
             court_id = user[2]
-            active = True if user[3] and user[3].lower() == "active" else False
+            active = user[3] and user[3].lower() == "active"
             created_at = parse_to_timestamp(user[4])
             modified_at = created_at
             created_by = get_user_id(destination_cursor,user[5])
