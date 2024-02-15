@@ -611,7 +611,13 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - capture_session_id
+      - filename
+      - id
+      - version
     type: object
   CreateShareBookingDTO:
     properties:
@@ -1001,7 +1007,12 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - filename
+      - id
+      - version
     type: object
   EntityModelShareBookingDTO:
     properties:
@@ -1369,7 +1380,12 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - filename
+      - id
+      - version
     type: object
   RecordingsPerCaseReportDTO:
     description: RecordingsPerCaseReportDTO
