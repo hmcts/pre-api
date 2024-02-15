@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -27,6 +28,8 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,7 +38,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -129,14 +131,15 @@ class RecordingServiceTest {
     @DisplayName("Find a list of recordings and return a list of models")
     @Test
     void findAllRecordingsSuccess() {
+        var params = new SearchRecordings();
         when(
-            recordingRepository.searchAllBy(any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
+            recordingRepository.searchAllBy(eq(params), eq(false), any())
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(null, null, null, null, Optional.empty(), null, null).get().toList();
+        var modelList = recordingService.findAll(params, false, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -145,18 +148,19 @@ class RecordingServiceTest {
     @DisplayName("Find a list of recordings filtered by scheduledFor and return a list of models")
     @Test
     void findAllRecordingsScheduledForSuccess() {
-        var from = Timestamp.valueOf("2023-01-01 00:00:00");
-        var until = Timestamp.valueOf("2023-01-01 23:59:59");
+        var params = new SearchRecordings();
+        params.setScheduledForFrom(Timestamp.valueOf("2023-01-01 00:00:00"));
+        params.setScheduledForUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
 
         when(
-            recordingRepository.searchAllBy(isNull(), isNull(), isNull(), isNull(), eq(from), eq(until), isNull(), isNull(), isNull(), isNull())
+            recordingRepository.searchAllBy(params, false, null)
         ).thenReturn(new PageImpl<>(List.of(recordingEntity)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = recordingService.findAll(null, null, null, null, Optional.of(from), null, null).get().toList();
+        var modelList = recordingService.findAll(params, false, null).get().toList();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(recordingEntity.getId());
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
@@ -298,17 +302,17 @@ class RecordingServiceTest {
     void findAllRecordingsDeleted() {
         recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
         recordingRepository.save(recordingEntity);
-
-        when(recordingRepository.searchAllBy(null, null, null,null, null,null, null, null, null, null)).thenReturn(Page.empty());
+        var params = new SearchRecordings();
+        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var models = recordingService.findAll(null, null, null, null, Optional.empty(), null, null).get().toList();
+        var models = recordingService.findAll(params, false, null).get().toList();
 
         verify(recordingRepository, times(1))
-            .searchAllBy(null, null, null, null, null,null, null,null, null, null);
+            .searchAllBy(params, false, null);
 
         assertThat(models.size()).isEqualTo(0);
     }
@@ -382,5 +386,44 @@ class RecordingServiceTest {
         recordingService.deleteCascade(recordingEntity.getCaptureSession());
 
         verify(recordingRepository, times(1)).deleteAllByCaptureSession(recordingEntity.getCaptureSession());
+    }
+
+    @DisplayName("Should set scheduled for from and until when scheduled for is set")
+    @Test
+    void searchRecordingsScheduledForFromUntilSet() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var params = new SearchRecordings();
+        var scheduledFor = new Date();
+        params.setScheduledFor(scheduledFor);
+        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+
+        recordingService.findAll(params, false, null);
+
+        assertThat(params.getScheduledForFrom()).isNotNull();
+        assertThat(params.getScheduledForFrom().toInstant()).isEqualTo(scheduledFor.toInstant());
+
+        assertThat(params.getScheduledForUntil()).isNotNull();
+        assertThat(params.getScheduledForUntil().toInstant())
+            .isEqualTo(scheduledFor.toInstant().plus(86399, ChronoUnit.SECONDS));
+    }
+
+    @DisplayName("Should not set scheduled for from and until when scheduled for is not set")
+    @Test
+    void searchRecordingsScheduledForFromUntilNotSet() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var params = new SearchRecordings();
+        when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
+
+        recordingService.findAll(params, false, null);
+
+        assertThat(params.getScheduledForFrom()).isNull();
+
+        assertThat(params.getScheduledForUntil()).isNull();
     }
 }

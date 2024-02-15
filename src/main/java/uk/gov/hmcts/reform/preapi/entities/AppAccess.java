@@ -43,9 +43,9 @@ public class AppAccess extends CreatedModifiedAtEntity {
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
-        details.put("user", user.getEmail());
-        details.put("court", court.getName());
-        details.put("role", role.getName());
+        details.put("userEmail", user.getEmail());
+        details.put("courtName", court.getName());
+        details.put("roleName", role.getName());
         details.put("active", active);
         details.put("deleted", deletedAt != null);
         return details;

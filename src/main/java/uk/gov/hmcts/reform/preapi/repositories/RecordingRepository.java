@@ -8,10 +8,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,48 +28,59 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     @Query(
         """
         SELECT r FROM Recording r
-        WHERE r.deletedAt IS NULL
-        AND (:authorisedBookings IS NULL OR r.captureSession.booking.id IN :authorisedBookings)
-        AND (CAST(:authCourtId as uuid) IS NULL OR r.captureSession.booking.caseId.court.id = :authCourtId)
+        WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
+        AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
+        AND (:#{#searchParams.authorisedCourt} IS NULL OR r.captureSession.booking.caseId.court.id = :#{#searchParams.authorisedCourt})
         AND (
-            CAST(:captureSessionId as uuid) IS NULL OR
-            r.captureSession.id = :captureSessionId
+            :#{#searchParams.captureSessionId} IS NULL OR
+            r.captureSession.id = :#{#searchParams.captureSessionId}
         )
         AND (
-            CAST(:parentRecordingId as uuid) IS NULL OR
-            r.parentRecording.id = :parentRecordingId
+            :#{#searchParams.parentRecordingId} IS NULL OR
+            r.parentRecording.id = :#{#searchParams.parentRecordingId}
         )
         AND (
-            CAST(:participantId as uuid) IS NULL OR EXISTS (
+            :#{#searchParams.participantId} IS NULL OR EXISTS (
                 SELECT 1 FROM r.captureSession.booking.participants p
-                WHERE p.id = :participantId
+                WHERE p.id = :#{#searchParams.participantId}
             )
         )
         AND (
-            :caseReference IS NULL OR
-            r.captureSession.booking.caseId.reference ILIKE %:caseReference%
+            :#{#searchParams.caseReference} IS NULL OR
+            r.captureSession.booking.caseId.reference ILIKE %:#{#searchParams.caseReference}%
         )
         AND (
-            CAST(:scheduledForFrom as Timestamp) IS NULL OR
-            CAST(:scheduledForUntil as Timestamp) IS NULL OR
-            r.captureSession.booking.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
+            NULLIF(COALESCE(:#{#searchParams.scheduledForFrom}, 'NULL'), 'NULL') IS NULL OR
+            NULLIF(COALESCE(:#{#searchParams.scheduledForUntil}, 'NULL'), 'NULL') IS NULL OR
+            r.captureSession.booking.scheduledFor
+            BETWEEN :#{#searchParams.scheduledForFrom}
+            AND :#{#searchParams.scheduledForUntil}
         )
         AND (
-            CAST(:courtId as uuid) IS NULL OR
-            r.captureSession.booking.caseId.court.id = :courtId
+            :#{#searchParams.courtId} IS NULL OR
+            r.captureSession.booking.caseId.court.id = :#{#searchParams.courtId}
+        )
+        AND (
+            :#{#searchParams.witnessName} IS NULL OR EXISTS (
+                SELECT 1 FROM r.captureSession.booking.participants p
+                WHERE CONCAT(p.firstName, ' ', p.lastName) ILIKE %:#{#searchParams.witnessName}%
+                AND p.participantType = 'WITNESS'
+                AND p.deletedAt IS NULL
+            )
+        )
+        AND (
+            :#{#searchParams.defendantName} IS NULL OR EXISTS (
+                SELECT 1 FROM r.captureSession.booking.participants p
+                WHERE CONCAT(p.firstName, ' ', p.lastName) ILIKE %:#{#searchParams.defendantName}%
+                AND p.participantType = 'DEFENDANT'
+                AND p.deletedAt IS NULL
+            )
         )
         """
     )
     Page<Recording> searchAllBy(
-        @Param("captureSessionId") UUID captureSessionId,
-        @Param("parentRecordingId") UUID parentRecordingId,
-        @Param("participantId") UUID participantId,
-        @Param("caseReference") String caseReference,
-        @Param("scheduledForFrom") Timestamp scheduledForFrom,
-        @Param("scheduledForUntil") Timestamp scheduledForUntil,
-        @Param("courtId") UUID courtId,
-        @Param("authorisedBookings") List<UUID> authorisedBookings,
-        @Param("authCourtId") UUID authCourtId,
+        @Param("searchParams") SearchRecordings searchParams,
+        @Param("includeDeleted") boolean includeDeleted,
         Pageable pageable
     );
 

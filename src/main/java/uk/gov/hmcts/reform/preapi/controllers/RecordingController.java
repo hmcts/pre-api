@@ -28,8 +28,6 @@ import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
-import java.sql.Timestamp;
-import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -50,7 +48,6 @@ public class RecordingController extends PreApiController {
     public ResponseEntity<RecordingDTO> getRecordingById(
         @PathVariable UUID recordingId
     ) {
-        // TODO Recordings returned need to be shared with the current user
         return ResponseEntity.ok(recordingService.findById(recordingId));
     }
 
@@ -75,6 +72,16 @@ public class RecordingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "witnessName",
+        description = "The name of a witness to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "defendantName",
+        description = "The name of a defendant to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
         name = "caseReference",
         description = "The case reference to search by",
         schema = @Schema(implementation = String.class),
@@ -91,6 +98,11 @@ public class RecordingController extends PreApiController {
         description = "The court to search by",
         schema = @Schema(implementation = UUID.class),
         example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
+        name = "includeDeleted",
+        description = "Include recordings marked as deleted",
+        schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
         name = "page",
@@ -110,17 +122,9 @@ public class RecordingController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
-        // TODO Recordings returned need to be shared with the user
-
         var resultPage = recordingService.findAll(
-            params.getCaptureSessionId(),
-            params.getParentRecordingId(),
-            params.getParticipantId(),
-            params.getCaseReference(),
-            params.getScheduledFor() != null
-                ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
-                : Optional.empty(),
-            params.getCourtId(),
+            params,
+            params.getIncludeDeleted() != null && params.getIncludeDeleted(),
             pageable
         );
 
@@ -139,7 +143,6 @@ public class RecordingController extends PreApiController {
         @PathVariable UUID recordingId,
         @RequestBody CreateRecordingDTO createRecordingDTO
     ) {
-        // TODO Check user has access to booking and capture session (and recording if is update)
         if (!recordingId.equals(createRecordingDTO.getId())) {
             throw new PathPayloadMismatchException("recordingId", "createRecordingDTO.id");
         }
@@ -153,7 +156,6 @@ public class RecordingController extends PreApiController {
     public ResponseEntity<Void> deleteRecordingById(
         @PathVariable UUID recordingId
     ) {
-        // TODO Ensure user has access to the recording
         recordingService.deleteById(recordingId);
         return ResponseEntity.ok().build();
     }

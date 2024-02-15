@@ -4,7 +4,7 @@ from .helpers import check_existing_record, parse_to_timestamp, get_user_id, aud
 class ShareBookingsManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -89,8 +89,12 @@ class ShareBookingsManager:
             shared_by_user_id = created_by
 
             if not shared_by_user_id:
-                self.failed_imports.add(
-                    ('share_bookings', id, f"No user found for shared_with_user email : {created_by} (recording id: {recording_id})"))
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'recording_id': recording_id,
+                    'details': f"shared_by_user email: {email} not found in users table."
+                })
                 continue
 
             created_at = parse_to_timestamp(video_permission[19])

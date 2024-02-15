@@ -1976,6 +1976,10 @@ paths:
           name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Include cases marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2336,6 +2340,14 @@ paths:
           name: participantId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The name of a witness to search by
+          in: query
+          name: witnessName
+          type: string
+        - description: The name of a defendant to search by
+          in: query
+          name: defendantName
+          type: string
         - description: The case reference to search by
           in: query
           name: caseReference
@@ -2353,6 +2365,10 @@ paths:
           name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Include recordings marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2736,6 +2752,10 @@ paths:
           in: query
           name: accessType
           type: string
+        - description: Include users marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
         - description: The page number of search result to return
           format: int32
           in: query

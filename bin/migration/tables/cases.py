@@ -3,7 +3,7 @@ from .helpers import check_existing_record, parse_to_timestamp, audit_entry_crea
 class CaseManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -24,7 +24,6 @@ class CaseManager:
             return modified_at_date
 
     def migrate_data(self, destination_cursor, source_data):
-
         destination_cursor.execute("SELECT id, name FROM public.courts")
         courts_data = destination_cursor.fetchall()
         court_name_to_id = {court[1]: court[0] for court in courts_data}  
@@ -38,7 +37,12 @@ class CaseManager:
             id = case[0]
 
             if reference is None:
-                self.failed_imports.add(('cases', id, 'Null value for reference'))
+                self.failed_imports.append({
+                    'table_name': 'cases',
+                    'table_id': id,
+                    'case_id': id,
+                    'details': 'Null value for case reference.'
+                })
                 continue
 
             if not check_existing_record(destination_cursor,'cases', 'id', id):
@@ -77,6 +81,6 @@ class CaseManager:
                 destination_cursor.connection.commit()
 
         except Exception as e:  
-            self.failed_imports.add(('cases', id,e))
+            self.failed_imports.append({'table_name': 'cases','table_id': id,'case_id': id, 'details': str(e)})
         
         self.logger.log_failed_imports(self.failed_imports)   

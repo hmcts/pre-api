@@ -3,6 +3,7 @@
 !gradle/wrapper/gradle-wrapper.jar
 *.class
 bin/main/application.yaml
+**/.terraform
 
 ### STS ###
 .apt_generated
@@ -23,4 +24,5 @@ bin/main/application.yaml
 
 applicationinsights-agent-*.jar
 *.log
-bin/migration/failed_imports_log.txt
+bin/migration/*/*.txt
+bin/migration/**/__pycache__/

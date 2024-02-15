@@ -5,6 +5,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
@@ -71,6 +72,7 @@ public class UserService {
     }
 
     @Transactional
+    @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public Page<BaseUserDTO> findAllBy(
         String firstName,
@@ -80,6 +82,7 @@ public class UserService {
         UUID court,
         UUID role,
         AccessType accessType,
+        boolean includeDeleted,
         Pageable pageable
     ) {
         if (court != null && !courtRepository.existsById(court)) {
@@ -98,6 +101,7 @@ public class UserService {
                                    role,
                                    accessType == AccessType.PORTAL,
                                    accessType == AccessType.APP,
+                                   includeDeleted,
                                    pageable
         ).map(BaseUserDTO::new);
     }

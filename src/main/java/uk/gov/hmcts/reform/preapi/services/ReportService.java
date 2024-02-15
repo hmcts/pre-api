@@ -166,7 +166,6 @@ public class ReportService {
     }
 
     private PlaybackReportDTO toPlaybackReport(Audit audit) {
-        System.out.println("HERE: " + audit.getId());
         return new PlaybackReportDTO(
             audit,
             audit.getCreatedBy() != null
