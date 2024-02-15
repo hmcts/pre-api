@@ -3,7 +3,7 @@ from .helpers import check_existing_record, parse_to_timestamp, audit_entry_crea
 class ParticipantManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -21,11 +21,21 @@ class ParticipantManager:
             case_id = participant[4]
 
             if case_id is None:
-                self.failed_imports.add(('contacts', id, 'No case id associated with this participant'))
+                self.failed_imports.append({
+                        'table_name': 'contacts',
+                        'table_id': id,
+                        'case_id': case_id,
+                        'details': f'No Case ID associated with participant: {id}'
+                    })
                 continue
 
             if p_type is None:
-                self.failed_imports.add(('contacts', id, 'No participant type detail'))
+                self.failed_imports.append({
+                        'table_name': 'contacts',
+                        'table_id': id,
+                        'case_id': case_id,
+                        'details': f'No participant type detail associated with participant: {id}'
+                    })
                 continue
             
             
@@ -35,14 +45,24 @@ class ParticipantManager:
             case_id_exists = destination_cursor.fetchone()
 
             if case_id_exists is None:
-                self.failed_imports.add(('contacts', id, f'Invalid case id {case_id} associated with this participant'))
+                self.failed_imports.append({
+                    'table_name': 'contacts',
+                    'table_id': id,
+                    'case_id': case_id,
+                    'details': f'Invalid Case ID: {case_id} associated with participant: {id}'
+                })
                 continue
         
             if not check_existing_record(destination_cursor,'participants','case_id', case_id):
                 participant_type = p_type.upper()
 
                 if participant_type not in ('WITNESS', 'DEFENDANT'):
-                    self.failed_imports.add(('contacts', id, f'Invalid participant type: {p_type}'))
+                    self.failed_imports.append({
+                        'table_name': 'contacts',
+                        'table_id': id,
+                        'case_id': case_id,
+                        'details': f'Invalid participant type: {p_type}.'
+                    })
                     continue
                 
                 
@@ -55,7 +75,12 @@ class ParticipantManager:
                     deleted_at = parse_to_timestamp(participant[11]) if participant[11] else parse_to_timestamp(participant[9])
 
                 if first_name is None or last_name is None:
-                    self.failed_imports.add(('contacts', id, 'Participant is missing either first name or last name'))
+                    self.failed_imports.append({
+                        'table_name': 'contacts',
+                        'table_id': id,
+                        'case_id': case_id,
+                        'details': f'Participant is missing first / last name - first name: {first_name} last name: {last_name}'
+                    })
                     continue
 
                 
@@ -90,7 +115,7 @@ class ParticipantManager:
                     )
 
         except Exception as e:
-            self.failed_imports.add(('contacts', id, e))
+            self.failed_imports.append({'table_name': 'contacts','table_id': id,'details': str(e)})
         
         self.logger.log_failed_imports(self.failed_imports)
       

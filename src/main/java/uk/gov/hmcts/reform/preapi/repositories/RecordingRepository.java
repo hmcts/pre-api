@@ -28,7 +28,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     @Query(
         """
         SELECT r FROM Recording r
-        WHERE r.deletedAt IS NULL
+        WHERE (:includeDeleted = TRUE OR r.deletedAt IS NULL)
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
         AND (:#{#searchParams.authorisedCourt} IS NULL OR r.captureSession.booking.caseId.court.id = :#{#searchParams.authorisedCourt})
         AND (
@@ -80,6 +80,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     )
     Page<Recording> searchAllBy(
         @Param("searchParams") SearchRecordings searchParams,
+        @Param("includeDeleted") boolean includeDeleted,
         Pageable pageable
     );
 

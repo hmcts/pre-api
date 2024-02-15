@@ -8,7 +8,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
@@ -21,9 +25,16 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
+
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = Application.class)
 public class UserServiceIT {
@@ -38,17 +49,22 @@ public class UserServiceIT {
     private static Role role;
 
     @Autowired
-    UserService userService;
+    private UserService userService;
+
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
+
     @Autowired
-    RoleRepository roleRepository;
+    private RoleRepository roleRepository;
+
     @Autowired
-    CourtRepository courtRepository;
+    private CourtRepository courtRepository;
+
     @Autowired
-    AppAccessRepository appAccessRepository;
+    private AppAccessRepository appAccessRepository;
+
     @Autowired
-    PortalAccessRepository portalAccessRepository;
+    private PortalAccessRepository portalAccessRepository;
 
     @BeforeEach
     void setUp() {
@@ -127,6 +143,65 @@ public class UserServiceIT {
         portalAccessRepository.deleteAll(Set.of(portalAccessEntity, portalAccessEntity2));
     }
 
+    public static void mockAdminUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+    }
+
+    public static void mockNonAdminUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+    }
+
+    @Transactional
+    @Test
+    public void searchUsersAsAdmin() {
+        mockAdminUser();
+        userEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        userRepository.saveAndFlush(userEntity);
+
+        var users = userService.findAllBy(null, null, null, null, null, null, null, false, Pageable.unpaged()).toList();
+
+        Assertions.assertEquals(users.size(), 2);
+        Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
+        Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(appUserEntity.getId())));
+        Assertions.assertFalse(users.stream().anyMatch(user -> user.getId().equals(userEntity.getId())));
+
+        var users2 = userService.findAllBy(null, null, null, null, null, null, null, true, Pageable.unpaged()).toList();
+
+        Assertions.assertEquals(users2.size(), 3);
+        Assertions.assertTrue(users2.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
+        Assertions.assertTrue(users2.stream().anyMatch(user -> user.getId().equals(appUserEntity.getId())));
+        Assertions.assertTrue(users2.stream().anyMatch(user -> user.getId().equals(userEntity.getId())));
+    }
+
+    @Transactional
+    @Test
+    public void searchUsersAsNonAdmin() {
+        mockNonAdminUser();
+        userEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        userRepository.saveAndFlush(userEntity);
+
+        var users = userService.findAllBy(null, null, null, null, null, null, null, false, Pageable.unpaged()).toList();
+
+        Assertions.assertEquals(users.size(), 2);
+        Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
+        Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(appUserEntity.getId())));
+        Assertions.assertFalse(users.stream().anyMatch(user -> user.getId().equals(userEntity.getId())));
+
+        var message = Assertions.assertThrows(
+            AccessDeniedException.class,
+            () -> userService.findAllBy(null, null, null, null, null, null, null, true, Pageable.unpaged()).toList()
+        ).getMessage();
+
+        Assertions.assertEquals(message, "Access Denied");
+
+    }
+
     @Transactional
     @Test
     public void testGetUserByAccessType() {
@@ -139,11 +214,11 @@ public class UserServiceIT {
             null,
             null,
             AccessType.APP,
-            PageRequest.of(0, 20)
+            false, PageRequest.of(0, 20)
         );
         Assertions.assertEquals(2, resultApp.getContent().size());
         var usersApp = resultApp.getContent().stream()
-                                .sorted((u1, u2) -> u1.getFirstName().compareTo(u2.getFirstName())).toList();
+                                .sorted(Comparator.comparing(BaseUserDTO::getFirstName)).toList();
         Assertions.assertEquals(appUserEntity.getId(), usersApp.get(0).getId());
         Assertions.assertEquals(userEntity.getId(), usersApp.get(1).getId());
 
@@ -155,18 +230,18 @@ public class UserServiceIT {
             null,
             null,
             AccessType.PORTAL,
-            PageRequest.of(0, 20)
+            false, PageRequest.of(0, 20)
         );
         Assertions.assertEquals(2, resultPortal.getContent().size());
         var usersPortal = resultPortal.getContent().stream()
-                                      .sorted((u1, u2) -> u1.getFirstName().compareTo(u2.getFirstName())).toList();
+                                      .sorted(Comparator.comparing(BaseUserDTO::getFirstName)).toList();
         Assertions.assertEquals(userEntity.getFirstName(), usersPortal.get(0).getFirstName());
         Assertions.assertEquals(portalUserEntity.getId(), usersPortal.get(1).getId());
 
-        var resultAll = userService.findAllBy(null, null, null, null, null, null, null, PageRequest.of(0, 20));
+        var resultAll = userService.findAllBy(null, null, null, null, null, null, null, false, PageRequest.of(0, 20));
         Assertions.assertEquals(3, resultAll.getContent().size());
         var usersAll = resultAll.getContent().stream()
-                                .sorted((u1, u2) -> u1.getFirstName().compareTo(u2.getFirstName())).toList();
+                                .sorted(Comparator.comparing(BaseUserDTO::getFirstName)).toList();
         Assertions.assertEquals(appUserEntity.getId(), usersAll.get(0).getId());
         Assertions.assertEquals(userEntity.getId(), usersAll.get(1).getId());
         Assertions.assertEquals(portalUserEntity.getId(), usersAll.get(2).getId());

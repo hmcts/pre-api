@@ -4,7 +4,7 @@ from .helpers import check_existing_record, parse_to_timestamp, audit_entry_crea
 class RecordingManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -36,20 +36,36 @@ class RecordingManager:
             parent_recording_id = recording[9]
 
             if parent_recording_id not in (rec[0] for rec in source_data):
-                self.failed_imports.add(('recordings', id, f'Parent recording id: {parent_recording_id} does not match a recording id'))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': id,
+                        'recording_id': id,
+                        'details': f'Parent recording ID: {parent_recording_id} does not match a Recording ID: {id}'
+                    })
                 continue
             
             destination_cursor.execute("SELECT capture_session_id FROM public.temp_recordings WHERE parent_recording_id = %s", (parent_recording_id,)) 
             result = destination_cursor.fetchone()
 
             if result is None: 
-                self.failed_imports.add(('recordings', id, f'No capture_session id found for parent recording id {parent_recording_id}'))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': id,
+                        'recording_id': id,
+                        'details': f'No Capture session ID found for Parent recording ID: {parent_recording_id}'
+                       
+                    })
                 continue
 
             capture_session_id = result[0]
 
             if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
-                self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': id,
+                        'recording_id': id,
+                        'details': f'Recording not captured in Capture sessions with capture_session_id: {capture_session_id}'
+                    })
                 continue
 
             if not check_existing_record(destination_cursor,'recordings', 'id', id):
@@ -59,7 +75,12 @@ class RecordingManager:
                 created_at = parse_to_timestamp(recording[22])
 
                 if created_at is None:
-                    self.failed_imports.add(('recordings', id, f'ERROR11'))
+                    self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': id,
+                        'recording_id': id,
+                        'details':  f'created_at is None for Recording ID: {id}'
+                    })
                     continue
 
                 created_by = get_user_id(destination_cursor,recording[21])
@@ -89,7 +110,12 @@ class RecordingManager:
 
             except Exception as e:
                 destination_cursor.connection.rollback()    
-                self.failed_imports.add(('recordings', id, e))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': id,
+                        'recording_id': id,
+                        'details': str(e)
+                    })
 
         # inserting remaining records
         batch_parent_recording = []
@@ -99,24 +125,44 @@ class RecordingManager:
             
 
             if recording_id is None or parent_recording_id is None:
-                self.failed_imports.add(('recordings', id, 'ERROR10'))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'Recording ID or Parent recording ID is None for Recording ID: {recording_id}'
+                    })
                 continue
 
             if parent_recording_id not in (rec[0] for rec in source_data):
-                self.failed_imports.add(('recordings', recording_id, f'Parent recording id: {parent_recording_id} does not match a recording id'))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'Parent recording ID: {parent_recording_id} does not match a Recording ID'
+                    })
                 continue
 
             destination_cursor.execute("SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s",(parent_recording_id,)) 
             result = destination_cursor.fetchone()
 
             if result is None:
-                self.failed_imports.add(('recordings', id, f'No capture_session id found for parent recording id {parent_recording_id}'))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'No capture_session id found for Parent recording ID: {parent_recording_id}'
+                    })
                 continue
 
             capture_session_id = result[0]
             
             if not check_existing_record(destination_cursor,'capture_sessions', 'id', capture_session_id):
-                self.failed_imports.add(('recordings', id, f'Recording not captured in capture sessions with capture_session_id {capture_session_id}'))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'Recording not captured in Capture sessions with capture_session_id: {capture_session_id}'
+                    })
                 continue
 
             if not check_existing_record(destination_cursor,'recordings', 'id', recording_id):
@@ -125,10 +171,15 @@ class RecordingManager:
                 try:
                     version = int(version)
                     if version is None:
-                        self.failed_imports.add(('recordings', id, f'ERROR1'))
+                        self.failed_imports.append({
+                            'table_name': 'recordings',
+                            'table_id': recording_id,
+                            'recording_id': recording_id,
+                            'details': f'Invalid recording version: {version} for recording'
+                        })
                         continue
-                except(TypeError, ValueError):
-                    self.failed_imports.add(('recordings', id, f'ERROR12'))
+                except Exception as e:
+                    self.failed_imports.append({'table_name': 'recordings','table_id': recording_id,'details': str(e)})
                     continue
 
                 url = recording[20] if recording[20] is not None else None
@@ -136,22 +187,43 @@ class RecordingManager:
                 filename = recording[14]
 
                 if filename is None:
-                    self.failed_imports.add(('recordings', id, f'ERROR2'))
+                    self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'Filename is missing for recording id {recording_id}'
+                    })
                     continue
 
                 if url is not None and len(url) > 255:
-                    self.failed_imports.add(('recordings', id, f'ERROR: URL exceeds maximum length (255)'))
+                    self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'Error: URL exceeds maximum length (255) for recording id {recording_id}'
+                    })
                     continue
 
                 if len(filename) > 255:
-                    self.failed_imports.add(('recordings', id, f'ERROR: Filename exceeds maximum length (255)'))
+                    self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'Error: Filename exceeds maximum length (255) for recording id {recording_id}'
+                    })
                     continue
                 
                 created_at = parse_to_timestamp(recording[22])
 
                 if created_at is None:
-                    self.failed_imports.add(('recordings', id, f'ERROR11'))
+                    self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': f'Created_at is missing for recording id {recording_id}'
+                    })
                     continue
+                
                 recording_status = recording[11] if recording[11] is not None else None
                 created_by = get_user_id(destination_cursor,recording[21])
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
@@ -180,7 +252,12 @@ class RecordingManager:
                 )
 
             except Exception as e:
-                self.failed_imports.add(('recordings', recording_id, e))
+                self.failed_imports.append({
+                        'table_name': 'recordings',
+                        'table_id': recording_id,
+                        'recording_id': recording_id,
+                        'details': str(e)
+                    })
                 destination_cursor.connection.rollback()    
                     
         self.logger.log_failed_imports(self.failed_imports)

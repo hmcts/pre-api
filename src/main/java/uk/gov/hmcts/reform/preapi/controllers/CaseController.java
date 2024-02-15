@@ -64,6 +64,11 @@ public class CaseController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "includeDeleted",
+        description = "Include cases marked as deleted",
+        schema = @Schema(implementation = Boolean.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -81,7 +86,12 @@ public class CaseController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<CaseDTO> assembler
     ) {
-        var resultPage = caseService.searchBy(params.getReference(), params.getCourtId(), pageable);
+        var resultPage = caseService.searchBy(
+            params.getReference(),
+            params.getCourtId(),
+            params.getIncludeDeleted() != null && params.getIncludeDeleted(),
+            pageable
+        );
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
