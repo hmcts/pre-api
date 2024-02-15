@@ -4,6 +4,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -141,7 +142,7 @@ public class RecordingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsert(
         @PathVariable UUID recordingId,
-        @RequestBody CreateRecordingDTO createRecordingDTO
+        @Valid @RequestBody CreateRecordingDTO createRecordingDTO
     ) {
         if (!recordingId.equals(createRecordingDTO.getId())) {
             throw new PathPayloadMismatchException("recordingId", "createRecordingDTO.id");
