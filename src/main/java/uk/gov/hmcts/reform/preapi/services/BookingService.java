@@ -78,7 +78,7 @@ public class BookingService {
                 t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedBookings = auth.isAdmin() && auth.isAppUser() ? null : auth.getSharedBookings();
+        var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
         var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
 
         return bookingRepository
