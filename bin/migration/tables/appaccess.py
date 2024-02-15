@@ -103,6 +103,7 @@ class AppAccessManager:
                 )
                 destination_cursor.connection.commit()
 
+
             except Exception as e:
                 self.failed_imports.append({'table_name': 'app_access', 'table_id': id, 'details': str(e)})
 
