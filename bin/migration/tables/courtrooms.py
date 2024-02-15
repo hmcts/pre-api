@@ -3,7 +3,7 @@ import re
 
 class CourtRoomManager:
     def __init__(self, logger):
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def migrate_data(self, destination_cursor):
@@ -64,7 +64,7 @@ class CourtRoomManager:
                 destination_cursor.connection.commit()
   
         except Exception as e:
-            self.failed_imports.add(('court_rooms', None, e))
+            self.failed_imports.append({'table_name': 'court_rooms','table_id': None,'details': str(e)})
         
         self.logger.log_failed_imports(self.failed_imports)
        
