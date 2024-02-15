@@ -5,7 +5,7 @@ import uuid
 class BookingManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -46,7 +46,13 @@ class BookingManager:
             scheduled_for = parse_to_timestamp(recording[10])
 
             if scheduled_for is None:
-                self.failed_imports.add(('bookings', booking_id, f'Scheduled for date is NULL for case id: {case_id}'))
+                self.failed_imports.append({
+                    'table_name': 'bookings',
+                    'table_id': booking_id,
+                    'case_id': case_id,
+                    'recording_id': recording_id,
+                    'details': f"Booking scheduled date is NULL for case ID: {case_id}"
+                })
                 continue
 
             recording_status = recording[11]
@@ -63,7 +69,13 @@ class BookingManager:
 
             # Check if the case has been migrated into the cases table 
             if case_id not in existing_case_ids:
-                self.failed_imports.add(('bookings', booking_id, f'Case ID {case_id} not found in cases data'))
+                self.failed_imports.append({
+                    'table_name': 'bookings',
+                    'table_id': booking_id,
+                    'case_id': case_id,
+                    'recording_id': recording_id,
+                    'details': f'Case ID: {case_id} not found in cases data.'
+                })
                 continue
             
             # Insert into temp table 
@@ -81,7 +93,13 @@ class BookingManager:
                         ),
                     )
                 except Exception as e:
-                    self.failed_imports.add(('temp_recordings', recording_id, f'Failed to insert into temp_recordings: {e}'))
+                    self.failed_imports.append({
+                        'table_name': 'bookings',
+                        'table_id': booking_id,
+                        'case_id': case_id,
+                        'recording_id': recording_id,
+                        'details': f'Failed to insert into temp_recordings: {e}'
+                    })
                     continue
 
         # Fetch temp data
@@ -118,7 +136,7 @@ class BookingManager:
                         created_by=created_by if created_by is not None else None,
                     )
                 except Exception as e:  
-                    self.failed_imports.add(('bookings', id,e))
+                    self.failed_imports.append({'table_name': 'bookings','table_id': id,'details': str(e)})
                     
         self.logger.log_failed_imports(self.failed_imports)
     

@@ -9,4 +9,5 @@ import java.util.UUID;
 public class SearchCases {
     private String reference;
     private UUID courtId;
+    private Boolean includeDeleted;
 }

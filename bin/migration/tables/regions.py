@@ -1,12 +1,13 @@
 from .helpers import check_existing_record, audit_entry_creation
 import uuid
 
+
 class RegionManager:
     def __init__(self, logger):
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
-    def migrate_data(self,destination_cursor):
+    def migrate_data(self, destination_cursor):
         batch_region_data = []
         # Regions data -  https://cjscommonplatform-my.sharepoint.com/:x:/r/personal/lawrie_baber-scovell2_hmcts_net/_layouts/15/Doc.aspx?sourcedoc=%7B07C83A7F-EF01-4C78-9B02-AEDD443D15A1%7D&file=Courts%20PRE%20NRO.xlsx&wdOrigin=TEAMS-WEB.undefined_ns.rwc&action=default&mobileredirect=true
         region_data = [
@@ -25,7 +26,7 @@ class RegionManager:
         ]
 
         for region in region_data:
-            if not check_existing_record(destination_cursor,'regions', 'name', region):
+            if not check_existing_record(destination_cursor, 'regions', 'name', region):
                 id = str(uuid.uuid4())
                 batch_region_data.append((id, region))
 
@@ -46,8 +47,6 @@ class RegionManager:
                         record=entry[1],
                     )
         except Exception as e:
-            self.failed_imports.add(('regions', batch_region_data[0], e))
- 
-        self.logger.log_failed_imports(self.failed_imports)
-            
+            self.failed_imports.append({'table_name': 'regions', 'table_id': batch_region_data[0], 'details': str(e)})
 
+        self.logger.log_failed_imports(self.failed_imports)

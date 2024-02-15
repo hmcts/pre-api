@@ -611,7 +611,13 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - capture_session_id
+      - filename
+      - id
+      - version
     type: object
   CreateShareBookingDTO:
     properties:
@@ -991,7 +997,12 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - filename
+      - id
+      - version
     type: object
   EntityModelShareBookingDTO:
     properties:
@@ -1349,7 +1360,12 @@ definitions:
       version:
         description: RecordingVersion
         format: int32
+        minimum: 1
         type: integer
+    required:
+      - filename
+      - id
+      - version
     type: object
   RecordingsPerCaseReportDTO:
     description: RecordingsPerCaseReportDTO
@@ -1956,6 +1972,10 @@ paths:
           name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Include cases marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2370,6 +2390,10 @@ paths:
           name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: Include recordings marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2753,6 +2777,10 @@ paths:
           in: query
           name: accessType
           type: string
+        - description: Include users marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
         - description: The page number of search result to return
           format: int32
           in: query

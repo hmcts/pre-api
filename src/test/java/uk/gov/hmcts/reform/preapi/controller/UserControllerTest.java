@@ -29,10 +29,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -95,13 +98,34 @@ public class UserControllerTest {
         BaseUserDTO mockCourt = new BaseUserDTO();
         mockCourt.setId(userId);
         Page<BaseUserDTO> userList = new PageImpl<>(List.of(mockCourt));
-        when(userService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any()))
-            .thenReturn(userList);
+        when(userService.findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            eq(false),
+            any()
+        )).thenReturn(userList);
 
         mockMvc.perform(get("/users"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$._embedded.baseUserDTOList").isNotEmpty())
             .andExpect(jsonPath("$._embedded.baseUserDTOList[0].id").value(userId.toString()));
+
+        verify(userService, times(1)).findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            eq(false),
+            any()
+        );
     }
 
     @DisplayName("Should return a 404 when searching by a court that doesn't exist")
@@ -110,7 +134,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -124,7 +148,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), any());
+            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -328,5 +352,84 @@ public class UserControllerTest {
         mockMvc.perform(get("/users/by-email/" + userEmail))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: User: " + userEmail));
+    }
+
+    @DisplayName("Should set include deleted param to false if not set")
+    @Test
+    public void testGetCasesIncludeDeletedNotSet() throws Exception {
+        when(userService.findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            anyBoolean(),
+            any()
+        ))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/users")
+                            .with(csrf())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(userService, times(1))
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to false when set to false")
+    @Test
+    public void testGetCasesIncludeDeletedFalse() throws Exception {
+        when(userService.findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            anyBoolean(),
+            any()
+        )).thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/users")
+                            .with(csrf())
+                            .param("includeDeleted", "false")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(userService, times(1))
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+    }
+
+    @DisplayName("Should set include deleted param to true when set to true")
+    @Test
+    public void testGetCasesIncludeDeletedTrue() throws Exception {
+        when(userService.findAllBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            anyBoolean(),
+            any()
+        ))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/users")
+                            .with(csrf())
+                            .param("includeDeleted", "true")
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        verify(userService, times(1))
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
     }
 }
