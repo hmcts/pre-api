@@ -48,7 +48,6 @@ public class RecordingController extends PreApiController {
     public ResponseEntity<RecordingDTO> getRecordingById(
         @PathVariable UUID recordingId
     ) {
-        // TODO Recordings returned need to be shared with the current user
         return ResponseEntity.ok(recordingService.findById(recordingId));
     }
 
@@ -101,6 +100,11 @@ public class RecordingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
+        name = "includeDeleted",
+        description = "Include recordings marked as deleted",
+        schema = @Schema(implementation = Boolean.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -118,7 +122,11 @@ public class RecordingController extends PreApiController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
-        var resultPage = recordingService.findAll(params, pageable);
+        var resultPage = recordingService.findAll(
+            params,
+            params.getIncludeDeleted() != null && params.getIncludeDeleted(),
+            pageable
+        );
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
@@ -135,7 +143,6 @@ public class RecordingController extends PreApiController {
         @PathVariable UUID recordingId,
         @RequestBody CreateRecordingDTO createRecordingDTO
     ) {
-        // TODO Check user has access to booking and capture session (and recording if is update)
         if (!recordingId.equals(createRecordingDTO.getId())) {
             throw new PathPayloadMismatchException("recordingId", "createRecordingDTO.id");
         }
@@ -149,7 +156,6 @@ public class RecordingController extends PreApiController {
     public ResponseEntity<Void> deleteRecordingById(
         @PathVariable UUID recordingId
     ) {
-        // TODO Ensure user has access to the recording
         recordingService.deleteById(recordingId);
         return ResponseEntity.ok().build();
     }

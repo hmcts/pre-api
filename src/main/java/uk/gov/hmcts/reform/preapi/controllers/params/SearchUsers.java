@@ -14,4 +14,5 @@ public class SearchUsers {
     private UUID courtId;
     private UUID roleId;
     private AccessType accessType;
+    private Boolean includeDeleted;
 }
