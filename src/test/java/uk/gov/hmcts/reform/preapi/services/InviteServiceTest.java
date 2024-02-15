@@ -158,55 +158,6 @@ public class InviteServiceTest {
         verify(userRepository, never()).deleteById(portalAccessEntity.getUser().getId());
     }
 
-    /*
-    @DisplayName("Create a portal invite")
-    @Test
-    void createPortalInviteSuccess() {
-        var userId = UUID.randomUUID();
-        var inviteModel = new CreateInviteDTO();
-        inviteModel.setUserId(userId);
-
-        when(userRepository.findById(userId)).thenReturn(Optional.empty());
-        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId))
-            .thenReturn(Optional.empty());
-
-        var result = inviteService.upsert(inviteModel);
-
-        assertThat(result).isEqualTo(UpsertResult.CREATED);
-
-        verify(userRepository, times(1)).findById(userId);
-        verify(portalAccessRepository, times(1))
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT);
-        verify(userRepository, times(1)).save(any());
-        verify(portalAccessRepository, times(1)).save(any());
-    }
-
-    @DisplayName("Redeem an invite")
-    @Test
-    void redeemInviteSuccess() {
-        var inviteModel = new CreateInviteDTO();
-        inviteModel.setUserId(portalUserEntity.getId());
-        inviteModel.setFirstName("Test Name");
-
-        when(userRepository.findById(inviteModel.getUserId())).thenReturn(Optional.of(portalUserEntity));
-        when(portalAccessRepository
-                 .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                     inviteModel.getUserId(), AccessStatus.INVITATION_SENT))
-            .thenReturn(Optional.of(portalAccessEntity));
-
-        var result = inviteService.upsert(inviteModel);
-
-        assertThat(result).isEqualTo(UpsertResult.UPDATED);
-
-        verify(userRepository, times(1)).findById(inviteModel.getUserId());
-        verify(portalAccessRepository, times(1))
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                inviteModel.getUserId(), AccessStatus.INVITATION_SENT);
-        verify(userRepository, times(1)).save(any());
-        verify(portalAccessRepository, times(1)).save(any());
-    }
-     */
-
     private void assertAllInvites(Page<InviteDTO> models) {
         var invites = models.get().toList();
 
