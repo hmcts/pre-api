@@ -65,13 +65,14 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
-    public Page<BookingDTO> searchBy(@Nullable UUID caseId,
-                                     @Nullable String caseReference,
-                                     @Nullable UUID courtId,
-                                     Optional<Timestamp> scheduledFor,
-                                     @Nullable UUID participantId,
-                                     Pageable pageable) {
-
+    public Page<BookingDTO> searchBy(
+        @Nullable UUID caseId,
+        @Nullable String caseReference,
+        @Nullable UUID courtId,
+        Optional<Timestamp> scheduledFor,
+        @Nullable UUID participantId,
+        Pageable pageable
+    ) {
         var until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
@@ -79,7 +80,7 @@ public class BookingService {
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+        var authorisedCourt = auth.isPortalUser() ? null : auth.getCourtId();
 
         return bookingRepository
             .searchBookingsBy(
