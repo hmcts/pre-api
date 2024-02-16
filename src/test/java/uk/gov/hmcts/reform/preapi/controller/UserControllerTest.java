@@ -255,7 +255,7 @@ public class UserControllerTest {
         user.setId(userId);
 
         doThrow(new ResourceInDeletedStateException("UserDTO", user.getId().toString()))
-            .when(userService).upsert(any());
+            .when(userService).upsert((CreateUserDTO) any());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -280,7 +280,7 @@ public class UserControllerTest {
         user.setId(userId);
         user.setCourtId(courtId);
 
-        doThrow(new NotFoundException("Court: " + courtId)).when(userService).upsert(any());
+        doThrow(new NotFoundException("Court: " + courtId)).when(userService).upsert((CreateUserDTO) any());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -303,7 +303,7 @@ public class UserControllerTest {
         user.setId(userId);
         user.setRoleId(roleId);
 
-        doThrow(new NotFoundException("Role: " + roleId)).when(userService).upsert(any());
+        doThrow(new NotFoundException("Role: " + roleId)).when(userService).upsert((CreateUserDTO) any());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
