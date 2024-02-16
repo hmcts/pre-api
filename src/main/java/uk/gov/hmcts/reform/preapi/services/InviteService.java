@@ -7,30 +7,31 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
-import uk.gov.hmcts.reform.preapi.entities.Invite;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
-import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.repositories.InviteRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 
+import java.sql.Timestamp;
 import java.util.UUID;
 
 @Service
 public class InviteService {
-
-    private final InviteRepository inviteRepository;
+    private final UserService userService;
+    private final PortalAccessRepository portalAccessRepository;
 
     @Autowired
-    public InviteService(InviteRepository inviteRepository) {
-        this.inviteRepository = inviteRepository;
+    public InviteService(UserService userService, PortalAccessRepository portalAccessRepository) {
+        this.userService = userService;
+        this.portalAccessRepository = portalAccessRepository;
     }
 
     @Transactional
-    public InviteDTO findById(UUID id) {
-        return inviteRepository
-            .findById(id)
+    public InviteDTO findByUserId(UUID userId) {
+        return portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
             .map(InviteDTO::new)
-            .orElseThrow(() -> new NotFoundException("Invite: " + id));
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
 
     @Transactional
@@ -41,45 +42,32 @@ public class InviteService {
         String organisation,
         Pageable pageable
     ) {
-        return inviteRepository
-            .searchBy(firstName, lastName, email, organisation, pageable)
+        return portalAccessRepository.findAllBy(firstName, lastName, email, organisation, pageable)
             .map(InviteDTO::new);
     }
 
     @Transactional
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
-        final var foundInvite = inviteRepository.findById(createInviteDTO.getId());
-        final var isUpdate = foundInvite.isPresent();
+        return userService.upsert(createInviteDTO);
+    }
 
-        if (isUpdate) {
-            throw new ConflictException("InviteDTO: " + createInviteDTO.getId());
-        } else {
-            if (inviteRepository.existsByEmail(createInviteDTO.getEmail())) {
-                throw new ConflictException("InviteDTO: " + createInviteDTO.getId());
-            }
-            if (inviteRepository.existsByCode(createInviteDTO.getCode())) {
-                throw new ConflictException("InviteDTO: " + createInviteDTO.getId());
-            }
-        }
-
-        var newInvite = foundInvite.orElse(new Invite());
-        newInvite.setId(createInviteDTO.getId());
-        newInvite.setFirstName(createInviteDTO.getFirstName());
-        newInvite.setLastName(createInviteDTO.getLastName());
-        newInvite.setEmail(createInviteDTO.getEmail());
-        newInvite.setOrganisation(createInviteDTO.getOrganisation());
-        newInvite.setPhone(createInviteDTO.getPhone());
-        newInvite.setCode(createInviteDTO.getCode());
-        inviteRepository.save(newInvite);
-
-        return UpsertResult.CREATED;
+    public UpsertResult redeemInvite(String email, String inviteCode) {
+        var portalAccess = portalAccessRepository
+            .findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(email, inviteCode)
+            .orElseThrow(() -> new NotFoundException("Invite: " + email + " " + inviteCode));
+        portalAccess.setStatus(AccessStatus.ACTIVE);
+        portalAccess.setRegisteredAt(Timestamp.from(java.time.Instant.now()));
+        portalAccessRepository.save(portalAccess);
+        return UpsertResult.UPDATED;
     }
 
     @Transactional
-    public void deleteById(UUID id) {
-        if (!inviteRepository.existsById(id)) {
-            throw new NotFoundException("InviteDTO: " + id);
-        }
-        inviteRepository.deleteById(id);
+    public void deleteByUserId(UUID userId) {
+        var portalAccess = portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+        var user = portalAccess.getUser();
+
+        userService.deleteById(user.getId());
     }
 }
