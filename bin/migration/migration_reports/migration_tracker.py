@@ -2,6 +2,7 @@ from datetime import datetime
 from migration_reports.sql_queries import source_table_queries
 from migration_reports.constants import table_mapping
 
+
 class MigrationTracker:
     def __init__(self, source_conn, destination_conn, file_path='migration_reports/failed_imports_log.txt', migration_summary_log='migration_reports/migration_summary_logs.txt'):
         self.source_conn = source_conn
@@ -21,12 +22,13 @@ class MigrationTracker:
         table_counts = {}
         for source_table, query in source_table_queries.items():
             table_counts[source_table] = self.fetch_source_data(query)
-
         return table_counts
        
     def count_records_in_destination_tables(self):
         cursor = self.destination_conn.cursor()
-        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name != 'temp_recordings'")
+        tables = []
+     
+        cursor.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")
         tables = cursor.fetchall()
 
         table_counts = {}
@@ -38,6 +40,7 @@ class MigrationTracker:
 
         cursor.close()
         return table_counts
+ 
 
     def count_failed_imports(self):
         table_counts = {}
@@ -54,7 +57,6 @@ class MigrationTracker:
         return table_counts
 
     def print_summary(self):
-        
         print(f"| {'Table Name'.ljust(20)} | {'Source DB Records'.ljust(18)} | {'Destination DB Records'.ljust(26)} | {'Failed Imports Logs'.ljust(19)}  ")
         print(f"| {'------------'.ljust(20)} | {'------------------'.ljust(18)} | {'------------------'.ljust(26)} | {'---------------'.ljust(19)}  ")
 
