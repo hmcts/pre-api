@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchInvites;
@@ -102,30 +103,48 @@ public class InviteController extends PreApiController {
         return ResponseEntity.ok(assembler.toModel(resultPage));
     }
 
-    @GetMapping("/{id}")
-    @Operation(operationId = "getInviteById", summary = "Get an invite by id")
+    @GetMapping("/{userId}")
+    @Operation(operationId = "getInviteById", summary = "Get an invite by user id")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<InviteDTO> getInviteById(@PathVariable(name = "id") UUID inviteId) {
-        return ResponseEntity.ok(inviteService.findById(inviteId));
+    public ResponseEntity<InviteDTO> getInviteByUserId(@PathVariable(name = "userId") UUID userId) {
+        return ResponseEntity.ok(inviteService.findByUserId(userId));
     }
 
-    @PutMapping("/{id}")
-    @Operation(operationId = "putInvite", summary = "Create or Update an Invite")
+    @PutMapping("/{userId}")
+    @Operation(operationId = "putInvite", summary = "Create a portal access user and invite them")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
-    public ResponseEntity<Void> upsertInvite(@PathVariable UUID id,
+    public ResponseEntity<Void> upsertInvite(@PathVariable UUID userId,
                                              @Valid @RequestBody CreateInviteDTO createInviteDTO) {
-        if (createInviteDTO.getId() == null || !id.toString().equals(createInviteDTO.getId().toString())) {
-            throw new PathPayloadMismatchException("id", "createInviteDTO.id");
+        if (createInviteDTO.getUserId() == null || !userId.toString().equals(createInviteDTO.getUserId().toString())) {
+            throw new PathPayloadMismatchException("userId", "createInviteDTO.userId");
         }
 
-        return getUpsertResponse(inviteService.upsert(createInviteDTO), createInviteDTO.getId());
+        return getUpsertResponse(inviteService.upsert(createInviteDTO), createInviteDTO.getUserId());
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(operationId = "deleteInvite", summary = "Revoke an invite")
+    @DeleteMapping("/{userId}")
+    @Operation(operationId = "deleteInvite", summary = "Delete the user with invitation sent status")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
-    public ResponseEntity<Void> deleteInvite(@PathVariable UUID id) {
-        inviteService.deleteById(id);
+    public ResponseEntity<Void> deleteInvite(@PathVariable UUID userId) {
+        inviteService.deleteByUserId(userId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/redeem")
+    @Operation(operationId = "redeemInvite", summary = "Redeem an invite")
+    @Parameter(
+        name = "email",
+        description = "The email of the user to redeem the invite for",
+        example = "example@example.com",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "inviteCode",
+        description = "The invite code to redeem",
+        example = "ABCDEF",
+        schema = @Schema(implementation = String.class)
+    )
+    public ResponseEntity<Void> redeemInvite(@RequestParam String email, @RequestParam String inviteCode) {
+        return getUpsertResponse(inviteService.redeemInvite(email, inviteCode), null);
     }
 }
