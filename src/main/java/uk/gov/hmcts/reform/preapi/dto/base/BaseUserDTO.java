@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 @Schema(description = "BaseUserDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class BaseUserDTO {
+    // Dummy change to test api version bump
     @Schema(description = "UserId")
     protected UUID id;
 
