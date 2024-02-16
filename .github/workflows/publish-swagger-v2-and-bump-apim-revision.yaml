@@ -47,12 +47,12 @@ jobs:
       - name: Increment APIm revision
         run: |
           if git diff master --quiet -- src/main/java/uk/gov/hmcts/reform/preapi/; then
-          echo "No changes to the API. Skipping revision increment."
-          else
             current_revision=$(grep -i 'revision' infrastructure/main.tf | grep -oE '[0-9]+')
             new_revision=$((current_revision + 1))
             awk -v new_revision="$new_revision" 'BEGIN{FS=OFS="\""} /revision/{$2=new_revision}1' infrastructure/main.tf > temp && mv temp infrastructure/main.tf
             echo "Incremented APIm revision to $new_revision."
+          else
+            echo "No changes to the API. Skipping revision increment."
           fi
 
       - name: Bump APIm revision and commit Swagger v2 spec to branch
