@@ -3,7 +3,7 @@ from .helpers import check_existing_record, parse_to_timestamp, audit_entry_crea
 class UserManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -52,7 +52,7 @@ class UserManager:
                         created_by= created_by if created_by is not None else None
                     )
         except Exception as e:  
-            self.failed_imports.add(('users', id, e))
+            self.failed_imports.append({'table_name': 'users','table_id': id,'details': str(e)})
 
         self.logger.log_failed_imports(self.failed_imports)    
 

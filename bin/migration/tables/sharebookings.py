@@ -3,7 +3,7 @@ from .helpers import check_existing_record, parse_to_timestamp, get_user_id
 class ShareBookingsManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -33,22 +33,47 @@ class ShareBookingsManager:
 
             shared_with_user_id = video_permission[4]
 
-            created_by = get_user_id(destination_cursor,video_permission[18])
-            shared_by_user_id = created_by
+            email = get_user_id(destination_cursor,video_permission[8])
+            shared_by_user_id = email
 
             created_at = parse_to_timestamp(video_permission[19])
             deleted_at = parse_to_timestamp(video_permission[21]) if video_permission[15] != "True" else None
 
+            if not recording_id:
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'recording_id': recording_id,
+                    'details':  f"No Recording ID found for Video permission record: {id}."
+                })
+                continue
+
+            
             if not booking_id:
-                self.failed_imports.add(('share_bookings', id, f"No booking id found for recordinguid: {recording_id}"))
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'recording_id': recording_id,
+                    'details':  f"No Booking ID found for Recording ID: {recording_id}"
+                })
                 continue
 
             if not check_existing_record(destination_cursor,'users','id',shared_with_user_id):
-                self.failed_imports.add(('share_bookings', id, f"Invalid shared_with_user_id value: {shared_with_user_id}"))
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'recording_id': recording_id,
+                    'details': f"shared_with_user_id value: {shared_with_user_id} not found in Users table."
+                })
                 continue
 
             if not shared_by_user_id:
-                self.failed_imports.add(('share_bookings', id, f"No user found for shared_with_user email : {created_by}"))
+                self.failed_imports.append({
+                    'table_name': 'share_bookings',
+                    'table_id': id,
+                    'recording_id': recording_id,
+                    'details': f"shared_by_user email: {email} not found in users table."
+                })
                 continue
 
             batch_share_bookings_data.append((id, booking_id, shared_with_user_id, shared_by_user_id,created_at, deleted_at))
@@ -67,7 +92,8 @@ class ShareBookingsManager:
 
         except Exception as e:
             destination_cursor.connection.rollback()    
-            self.failed_imports.add(('share_bookings', id, e))
+            self.failed_imports.append({'table_name': 'share_bookings','table_id': id,'details': str(e)})
+
 
         self.logger.log_failed_imports(self.failed_imports)
         
