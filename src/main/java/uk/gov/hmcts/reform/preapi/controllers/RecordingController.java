@@ -133,6 +133,8 @@ public class RecordingController extends PreApiController {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
         }
 
+        System.out.println("this is a test");
+
         return ResponseEntity.ok(assembler.toModel(resultPage));
 
     }
