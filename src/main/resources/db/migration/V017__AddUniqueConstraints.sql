@@ -1,0 +1,17 @@
+ALTER TABLE public.app_access ADD CONSTRAINT app_access_user_court_id_key UNIQUE (user_id, court_id);
+ALTER TABLE public.booking_participant ADD CONSTRAINT booking_participant_participant_booking_id_key UNIQUE (participant_id, booking_id);
+ALTER TABLE public.cases ADD CONSTRAINT cases_reference_key UNIQUE (reference);
+ALTER TABLE public.court_region ADD CONSTRAINT court_region_court_region_id_key UNIQUE (court_id, region_id);
+ALTER TABLE public.courtrooms ADD CONSTRAINT courtrooms_court_room_id_key UNIQUE (court_id, room_id);
+ALTER TABLE public.courts ADD CONSTRAINT courts_location_code_key UNIQUE (location_code);
+ALTER TABLE public.permissions ADD CONSTRAINT permissions_name_key UNIQUE (name);
+ALTER TABLE public.portal_access ADD CONSTRAINT portal_access_user_id_key UNIQUE (user_id);
+ALTER TABLE public.portal_access ADD CONSTRAINT portal_access_invite_code_key UNIQUE (invite_code);
+ALTER TABLE public.recordings ADD CONSTRAINT recordings_capture_session_id_version_key UNIQUE (capture_session_id, version);
+ALTER TABLE public.regions ADD CONSTRAINT regions_name_key UNIQUE (name);
+ALTER TABLE public.role_permission ADD CONSTRAINT role_permission_role_permission_id_key UNIQUE (role_id, permission_id);
+ALTER TABLE public.roles ADD CONSTRAINT roles_name_key UNIQUE (name);
+ALTER TABLE public.rooms ADD CONSTRAINT rooms_room_key UNIQUE (room);
+ALTER TABLE public.share_bookings ADD CONSTRAINT share_bookings_booking_shared_with_user_id_key UNIQUE (booking_id, shared_with_user_id);
+ALTER TABLE public.users ADD CONSTRAINT users_email_key UNIQUE (email);
+ALTER TABLE public.users ADD CONSTRAINT users_phone_key UNIQUE (phone);

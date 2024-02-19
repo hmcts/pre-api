@@ -80,7 +80,7 @@ public class RecordingServiceIT {
         var recording2 = HelperFactory.createRecording(
             captureSession,
             null,
-            1,
+            2,
             null,
             "filename",
             Timestamp.from(Instant.now())
@@ -131,7 +131,7 @@ public class RecordingServiceIT {
         var recording2 = HelperFactory.createRecording(
             captureSession,
             null,
-            1,
+            2,
             null,
             "filename",
             Timestamp.from(Instant.now())
