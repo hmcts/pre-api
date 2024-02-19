@@ -90,6 +90,8 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
 
     List<Recording> findAllByParentRecordingIsNull();
 
+    boolean existsByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
+
     @Query("""
         update #{#entityName} e
         set e.deletedAt=CURRENT_TIMESTAMP

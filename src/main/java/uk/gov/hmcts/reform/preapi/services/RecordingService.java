@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -137,6 +138,8 @@ public class RecordingService {
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteCascade(CaptureSession captureSession) {
-        recordingRepository.deleteAllByCaptureSession(captureSession);
+        if (recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)) {
+            throw new RecordingNotDeletedException();
+        }
     }
 }
