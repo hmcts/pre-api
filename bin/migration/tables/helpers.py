@@ -6,7 +6,6 @@ from migration_reports.failed_imports_logger import FailedImportsLogger
 
 # Parses timestamp string to date format
 def parse_to_timestamp(input_text):
-    failed_imports = set()
     if input_text:
         try:
             parsed_datetime = None
@@ -34,8 +33,6 @@ def parse_to_timestamp(input_text):
 
         except (ValueError, TypeError) as e:
             pass
-            # failed_imports.add(('date/time', input_text, e))
-            # log_failed_imports(failed_imports)
 
 # Checks if record is already imported
 def check_existing_record(db_connection, table_name, field, record):
@@ -48,8 +45,6 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
     logger = FailedImportsLogger()
     created_at = created_at if created_at is not None else datetime.now()
     created_by = created_by if created_by is not None else None
-
-    failed_imports = set()
 
     audit_details_dict = {"description": f"Created {table_name}_record for: {record}"},
     audit_details_json = json.dumps(audit_details_dict)
@@ -80,17 +75,19 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         db_connection.connection.commit()
 
     except Exception as e:
-        failed_imports.add(('audit table', table_name, e))
-        logger.log_failed_imports(failed_imports)
+        pass
 
 # Get the user_id associated with an email from the users table for the audits record.
 def get_user_id(db_connection, email):
+    if email is None:
+        return None
+
     db_connection.execute("""
             SELECT id
             FROM public.users
             WHERE email = %s
-            """, (email,))
-    result =  db_connection.fetchone()
+            """, (email.lower(),))
+    result = db_connection.fetchone()
 
     if result is not None:
         user_id = result[0]

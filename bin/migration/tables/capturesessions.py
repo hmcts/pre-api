@@ -1,4 +1,4 @@
-from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp
+from .helpers import check_existing_record, audit_entry_creation, parse_to_timestamp, get_user_id
 import uuid
 
 
@@ -52,16 +52,16 @@ class CaptureSessionManager:
 
         return result
 
-    def get_recording_date(self, recording_id, activity):
+    def get_recording_date_and_user(self, recording_id, activity):
         query = """
-            SELECT createdon
+            SELECT createdon, createdby
             FROM public.audits
             WHERE activity = %s
             AND recordinguid = %s
         """
         self.source_cursor.execute(query, (activity, recording_id))
         result = self.source_cursor.fetchone()
-        return parse_to_timestamp(result[0]) if result else None
+        return (parse_to_timestamp(result[0]), result[1]) if result else (None, None)
 
     def migrate_data(self, destination_cursor, source_data):
         temp_recording_data = []
@@ -83,7 +83,7 @@ class CaptureSessionManager:
             if parent_recording_id is None:
                 self.failed_imports.append({
                     'table_name': 'capture_sessions',
-                    'table_id': recording_id,
+                    'table_id': None,
                     'recording_id': recording_id,
                     'details': f"Parent recording ID is blank for recording ID: {recording_id}"
                 })
@@ -98,8 +98,7 @@ class CaptureSessionManager:
                 recording[11]).lower() == 'deleted' else None
             status = self.map_recording_status(recording[11])
 
-            result, booking_not_in_temp_table = self.check_record_in_temp_table(
-                destination_cursor, recording_id)
+            result, booking_not_in_temp_table = self.check_record_in_temp_table(destination_cursor, recording_id)
             if result:
                 capture_session_id = str(uuid.uuid4())
                 temp_recording_batch.append((capture_session_id, parent_recording_id, deleted_at,
@@ -107,7 +106,7 @@ class CaptureSessionManager:
             elif booking_not_in_temp_table:
                 self.failed_imports.append({
                     'table_name': 'capture_sessions',
-                    'table_id': recording_id,
+                    'table_id': None,
                     'recording_id': recording_id,
                     'details': f"Booking not in temporary recordings table for recording ID: {recording_id}"
                 })
@@ -150,15 +149,25 @@ class CaptureSessionManager:
             ingest_address = temp_recording[11]
             live_output_url = temp_recording[12]
             status = temp_recording[13]
-            started_at = self.get_recording_date(
-                recording_id, 'Start Recording Clicked') or created_at
-            finished_at = self.get_recording_date(
-                recording_id, 'Finish Recording') or created_at
+            
+            started_at_datetime, user_email_started = self.get_recording_date_and_user(recording_id, "Start")
+            started_by_user_id = get_user_id(destination_cursor, user_email_started)
+            started_at = started_at_datetime if started_at_datetime else created_at
+
+            finished_at_datetime, user_email_finished = self.get_recording_date_and_user(recording_id, "Stop")
+            finished_by_user_id = get_user_id(destination_cursor, user_email_finished)
+            finished_at = finished_at_datetime if finished_at_datetime else started_at
+
+            if deleted_at and finished_by_user_id is not None and finished_at:
+                deleted_at = finished_at
+
+            if not finished_by_user_id:
+                finished_at = None
 
             if not check_existing_record(destination_cursor, 'bookings', 'id', booking_id) or booking_id is None:
                 self.failed_imports.append({
                     'table_name': 'capture_sessions',
-                    'table_id': recording_id,
+                    'table_id': None,
                     'recording_id': recording_id,
                     'details': f"Booking ID: {booking_id} not recorded in bookings table"
                 })
