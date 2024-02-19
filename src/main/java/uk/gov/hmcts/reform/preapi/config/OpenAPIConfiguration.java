@@ -28,7 +28,7 @@ public class OpenAPIConfiguration {
     public OpenAPI openAPI() {
         return new OpenAPI()
             .info(new Info().title("PRE API")
-                            .description("PRE API - Used for managing courts, bookings, recordings and permissions etc.")
+                            .description("PRE API - Used for managing courts, bookings, recordings and permissions.")
                             .version("v0.0.1")
                             .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")))
             .addSecurityItem(new SecurityRequirement().addList(APIM_SUBSCRIPTION_KEY_HEADER))
