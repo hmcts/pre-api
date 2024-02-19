@@ -6,9 +6,4 @@ public class RecordingNotDeletedException extends RuntimeException {
     public RecordingNotDeletedException() {
         super("Cannot delete because and associated recording has not been deleted.");
     }
-
-    public RecordingNotDeletedException(Exception exception) {
-        super(exception);
-    }
-
 }
