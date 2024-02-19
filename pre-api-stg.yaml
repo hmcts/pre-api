@@ -1561,7 +1561,9 @@ externalDocs:
   url: 'https://github.com/hmcts/pre-api'
 host: 'sds-api-mgmt.staging.platform.hmcts.net'
 info:
-  description: 'PRE API - Used for managing courts, bookings, recordings and permissions.'
+  description: >-
+    PRE API - Used for managing courts, bookings, recordings and permissions
+    etc.
   license:
     name: MIT
     url: 'https://opensource.org/licenses/MIT'
