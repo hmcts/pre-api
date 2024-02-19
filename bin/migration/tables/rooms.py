@@ -4,7 +4,7 @@ import uuid
 class RoomManager:
     def __init__(self, source_cursor, logger):
         self.source_cursor = source_cursor
-        self.failed_imports = set()
+        self.failed_imports = []
         self.logger = logger
 
     def get_data(self):
@@ -24,6 +24,7 @@ class RoomManager:
                 batch_rooms_data.append((id, room, created_by))
 
         try:
+            id = None
             if batch_rooms_data:   
                 destination_cursor.executemany(
                     "INSERT INTO public.rooms (id, room) VALUES (%s, %s)",
@@ -33,6 +34,7 @@ class RoomManager:
                 destination_cursor.connection.commit()
 
                 for room in batch_rooms_data:
+                    id = room[0]
                     created_at = parse_to_timestamp(room[2])
                     created_by = get_user_id(destination_cursor, room[2]) 
 
@@ -46,6 +48,6 @@ class RoomManager:
                     )
 
         except Exception as e:
-            self.failed_imports.add(('rooms', id, e))
+            self.failed_imports.append({'table_name': 'rooms','table_id': id,'details': str(e)})
 
-        self.logger.log_failed_imports(self.failed_imports)  
+        self.logger.log_failed_imports(self.failed_imports)

@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,157 +10,161 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
-import uk.gov.hmcts.reform.preapi.entities.Invite;
-import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.repositories.InviteRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = InviteService.class)
-@SuppressWarnings({"PMD.LawOfDemeter", "PMD.TooManyMethods"})
-class InviteServiceTest {
-
-    private static Invite inviteEntity;
-
-    private static List<Invite> allInviteEntities = new ArrayList<>();
+public class InviteServiceTest {
+    private static User portalUserEntity;
+    private static User portalUserEntity2;
+    private static PortalAccess portalAccessEntity;
+    private static PortalAccess portalAccessEntity2;
 
     @MockBean
-    private InviteRepository inviteRepository;
+    private UserRepository userRepository;
+
+    @MockBean
+    private PortalAccessRepository portalAccessRepository;
+
+    @MockBean
+    private UserService userService;
 
     @Autowired
     private InviteService inviteService;
 
     @BeforeAll
     static void setUp() {
-        inviteEntity = new Invite();
-        inviteEntity.setId(UUID.randomUUID());
-        inviteEntity.setFirstName("Firstname");
-        inviteEntity.setLastName("Lastname");
-        inviteEntity.setEmail("example@example.com");
-        inviteEntity.setOrganisation("Organisation");
-        inviteEntity.setPhone("0123456789");
-        inviteEntity.setCode("ABCDE");
-        inviteEntity.setCreatedAt(Timestamp.from(Instant.now()));
-        inviteEntity.setModifiedAt(Timestamp.from(Instant.now()));
+        portalUserEntity = new User();
+        portalUserEntity.setId(UUID.randomUUID());
+        portalUserEntity.setFirstName("Portal");
+        portalUserEntity.setLastName("Person");
+        portalUserEntity.setEmail("portal@example.com");
+        portalUserEntity.setOrganisation("Portal Org");
 
-        allInviteEntities.add(inviteEntity);
+        portalUserEntity2 = new User();
+        portalUserEntity2.setId(UUID.randomUUID());
+        portalUserEntity2.setFirstName("Portal");
+        portalUserEntity2.setLastName("Person");
+        portalUserEntity2.setEmail("portal@example.com");
+        portalUserEntity2.setOrganisation("Portal Org");
+
+        portalAccessEntity = new PortalAccess();
+        portalAccessEntity.setId(UUID.randomUUID());
+        portalAccessEntity.setUser(portalUserEntity);
+        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
+        portalUserEntity.setPortalAccess(Set.of(portalAccessEntity));
+
+        portalAccessEntity2 = new PortalAccess();
+        portalAccessEntity2.setId(UUID.randomUUID());
+        portalAccessEntity2.setUser(portalUserEntity2);
+        portalAccessEntity2.setStatus(AccessStatus.ACTIVE);
+        portalUserEntity.setPortalAccess(Set.of(portalAccessEntity2));
     }
 
-    @DisplayName("Find a invite by it's id and return a model")
+    @BeforeEach
+    void reset() {
+        portalUserEntity.setDeletedAt(null);
+        portalAccessEntity.setDeletedAt(null);
+    }
+
+    @DisplayName("Find a invite by user id and return a model")
     @Test
-    void findInviteByIdSuccess() {
-        when(inviteRepository.findById(inviteEntity.getId())).thenReturn(Optional.ofNullable(inviteEntity));
+    void findInviteByUserIdSuccess() {
+        when(
+            portalAccessRepository
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
+                    portalUserEntity.getId(), AccessStatus.INVITATION_SENT)
+        ).thenReturn(Optional.of(portalAccessEntity));
 
-        var model = inviteService.findById(inviteEntity.getId());
-        assertThat(model.getId()).isEqualTo(inviteEntity.getId());
-        assertThat(model.getFirstName()).isEqualTo(inviteEntity.getFirstName());
-        assertThat(model.getLastName()).isEqualTo(inviteEntity.getLastName());
-        assertThat(model.getEmail()).isEqualTo(inviteEntity.getEmail());
-        assertThat(model.getOrganisation()).isEqualTo(inviteEntity.getOrganisation());
-        assertThat(model.getPhone()).isEqualTo(inviteEntity.getPhone());
-        assertThat(model.getCode()).isEqualTo(inviteEntity.getCode());
+        var model = inviteService.findByUserId(portalUserEntity.getId());
+        assertThat(model.getUserId()).isEqualTo(portalUserEntity.getId());
+        assertThat(model.getFirstName()).isEqualTo(portalUserEntity.getFirstName());
     }
 
-    @DisplayName("Find a invite by it's id which does not exist")
+    @DisplayName("Find an invite by user id which doesn't exist")
     @Test
     void findInviteByIdNotFound() {
-        var randomId = UUID.randomUUID();
-        when(inviteRepository.findById(randomId)).thenReturn(Optional.empty());
+        when(
+            portalAccessRepository
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
+                    UUID.randomUUID(), AccessStatus.INVITATION_SENT)
+        ).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> inviteService.findById(randomId));
+        assertThrows(
+            NotFoundException.class,
+            () -> inviteService.findByUserId(portalUserEntity.getId())
+        );
+
+        verify(portalAccessRepository, times(1))
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
+                portalUserEntity.getId(), AccessStatus.INVITATION_SENT);
     }
 
     @DisplayName("Find all invites and return a list of models")
     @Test
-    void findAllSuccess() {
-        when(inviteRepository.searchBy(null, null, null, null, null))
-            .thenReturn(new PageImpl<>(allInviteEntities));
+    void findAllInvitesSuccess() {
+        when(
+            portalAccessRepository.findAllBy(
+                null,
+                null,
+                null,
+                null,
+                null
+            )
+        ).thenReturn(new PageImpl<>(List.of(portalAccessEntity)));
 
-        Page<InviteDTO> models = inviteService.findAllBy(null, null, null, null,
-                                                         null);
+        var models = inviteService.findAllBy(null, null, null, null, null);
+        assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
-        assertThat(models.get().toList().getFirst().getId()).isEqualTo(inviteEntity.getId());
-        assertThat(models.get().toList().getFirst().getFirstName()).isEqualTo(inviteEntity.getFirstName());
-        assertThat(models.get().toList().getFirst().getLastName()).isEqualTo(inviteEntity.getLastName());
-        assertThat(models.get().toList().getFirst().getEmail()).isEqualTo(inviteEntity.getEmail());
-        assertThat(models.get().toList().getFirst().getOrganisation()).isEqualTo(inviteEntity.getOrganisation());
-        assertThat(models.get().toList().getFirst().getPhone()).isEqualTo(inviteEntity.getPhone());
-        assertThat(models.get().toList().getFirst().getCode()).isEqualTo(inviteEntity.getCode());
+
+        assertAllInvites(models);
     }
 
+    @DisplayName("Delete a invite when user id doesn't exist or user's portal access is not invitation sent")
     @Test
-    void createSuccess() {
-        Invite testingInvite = createTestingInvite();
-        var inviteDTOModel = new CreateInviteDTO(testingInvite);
-
-        when(inviteRepository.findById(testingInvite.getId())).thenReturn(Optional.empty());
-
-        inviteService.upsert(inviteDTOModel);
-
-        verify(inviteRepository, times(1)).findById(inviteDTOModel.getId());
-        verify(inviteRepository, times(1)).save(any(Invite.class));
-    }
-
-    @Test
-    void updateDenied() {
-        Invite testingInvite = createTestingInvite();
-        var inviteDTOModel = new CreateInviteDTO(testingInvite);
-
-        when(inviteRepository.findById(testingInvite.getId())).thenReturn(Optional.of(inviteEntity));
-
-        assertThrows(ConflictException.class, () -> inviteService.upsert(inviteDTOModel));
-
-        verify(inviteRepository, times(1)).findById(inviteDTOModel.getId());
-    }
-
-    Invite createTestingInvite() {
-        var testInvite = new Invite();
-        testInvite.setId(UUID.randomUUID());
-        testInvite.setFirstName("Firstname");
-        testInvite.setLastName("Lastname");
-        testInvite.setEmail("example@example.com");
-        testInvite.setOrganisation("Organisation");
-        testInvite.setPhone("0123456789");
-        testInvite.setCreatedAt(Timestamp.from(Instant.now()));
-        testInvite.setModifiedAt(Timestamp.from(Instant.now()));
-        return testInvite;
-    }
-
-
-    @Test
-    void deleteByIdSuccess() {
-        when(inviteRepository.existsById(inviteEntity.getId())).thenReturn(true);
-
-        inviteService.deleteById(inviteEntity.getId());
-
-        verify(inviteRepository, times(1)).existsById(inviteEntity.getId());
-        verify(inviteRepository, times(1)).deleteById(inviteEntity.getId());
-    }
-
-    @Test
-    void deleteByIdNotFound() {
+    void deleteInviteByIdNotFound() {
         UUID inviteId = UUID.randomUUID();
-        when(inviteRepository.existsById(inviteId)).thenReturn(false);
 
-        assertThrows(NotFoundException.class, () -> inviteService.deleteById(inviteId));
+        when(
+            portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
+                inviteId, AccessStatus.INVITATION_SENT)
+        ).thenReturn(Optional.empty());
 
-        verify(inviteRepository, times(1)).existsById(inviteId);
-        verify(inviteRepository, never()).deleteById(inviteId);
+        assertThrows(
+            NotFoundException.class,
+            () -> inviteService.deleteByUserId(inviteId)
+        );
+
+        verify(portalAccessRepository, times(1))
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(inviteId, AccessStatus.INVITATION_SENT);
+        verify(userService, never()).deleteById(portalAccessEntity.getUser().getId());
+        verify(userRepository, never()).deleteById(portalAccessEntity.getUser().getId());
+    }
+
+    private void assertAllInvites(Page<InviteDTO> models) {
+        var invites = models.get().toList();
+
+        for (var invite : invites) {
+            assertThat(invite.getUserId()).isNotNull();
+            assertThat(invite.getFirstName()).isNotNull();
+            assertThat(invite.getLastName()).isNotNull();
+        }
     }
 }
