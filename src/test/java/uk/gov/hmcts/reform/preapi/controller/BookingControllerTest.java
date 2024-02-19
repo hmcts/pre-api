@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -459,6 +460,20 @@ class BookingControllerTest {
                             .with(csrf())
                             .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent());
+
+    }
+
+    @DisplayName("Should return 400 when booking has associated recordings that have not been deleted")
+    @Test
+    void deleteBookingRecordingNotDeleted() throws Exception {
+        var bookingId = UUID.randomUUID();
+        doThrow(new RecordingNotDeletedException()).when(bookingService).markAsDeleted(bookingId);
+
+        mockMvc.perform(delete("/bookings/" + bookingId)
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Cannot delete because and associated recording has not been deleted."));
 
     }
 
