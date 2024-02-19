@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers.params;
 
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.util.Date;
 import java.util.UUID;
@@ -14,4 +15,5 @@ public class SearchBookings {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;
     private UUID participantId;
+    private RecordingStatus captureSessionStatus;
 }
