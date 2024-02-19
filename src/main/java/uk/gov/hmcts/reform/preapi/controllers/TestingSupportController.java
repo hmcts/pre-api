@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
@@ -158,19 +159,19 @@ class TestingSupportController {
         var court = createTestCourt();
 
         var region = new Region();
-        region.setName("Foo Region");
+        region.setName("Region " + RandomStringUtils.randomAlphabetic(5));
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
         var room = new Room();
-        room.setName("Foo Room");
+        room.setName("Room " + RandomStringUtils.randomAlphabetic(5));
         room.setCourts(Set.of(court));
         roomRepository.save(room);
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference("1234567890");
+        caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -199,14 +200,14 @@ class TestingSupportController {
         var finishUser = new User();
         finishUser.setId(UUID.randomUUID());
         finishUser.setEmail("finishuser@justice.local");
-        finishUser.setPhone("0123456789");
+        finishUser.setPhone(RandomStringUtils.randomNumeric(11));
         finishUser.setOrganisation("Gov Org");
         finishUser.setFirstName("Finish");
         finishUser.setLastName("User");
         var startUser = new User();
         startUser.setId(UUID.randomUUID());
         startUser.setEmail("startuser@justice.local");
-        startUser.setPhone("0123456789");
+        startUser.setPhone(RandomStringUtils.randomNumeric(11));
         startUser.setOrganisation("Gov Org");
         startUser.setFirstName("Start");
         startUser.setLastName("User");
@@ -263,7 +264,7 @@ class TestingSupportController {
         court.setId(UUID.randomUUID());
         court.setName("Foo Court");
         court.setCourtType(CourtType.CROWN);
-        court.setLocationCode("1234");
+        court.setLocationCode(UUID.randomUUID().toString().replace("-", "").substring(0, 20));
         courtRepository.save(court);
 
         return court;
