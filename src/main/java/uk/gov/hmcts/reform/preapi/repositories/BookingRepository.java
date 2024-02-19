@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -67,6 +68,13 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
             AND (CAST(:authCourtId as uuid) IS NULL OR
                 b.caseId.court.id = :authCourtId
             )
+            AND  (
+                CAST(:captureSessionStatus as text) IS NULL OR EXISTS (
+                    SELECT 1 FROM CaptureSession c
+                    WHERE c.booking.id = b.id
+                    AND c.status = :captureSessionStatus
+                )
+            )
         ORDER BY b.scheduledFor ASC
         """
     )
@@ -79,6 +87,7 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
         @Param("participantId") UUID participantId,
         @Param("authorisedBookings") List<UUID> authorisedBookings,
         @Param("authCourtId") UUID authCourtId,
+        @Param("captureSessionStatus") RecordingStatus captureSessionStatus,
         Pageable pageable
     );
 

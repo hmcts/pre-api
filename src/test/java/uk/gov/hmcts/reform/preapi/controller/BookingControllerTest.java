@@ -97,7 +97,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
         MvcResult response = mockMvc.perform(get("/bookings?caseReference=MyRef")
@@ -126,7 +126,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -156,7 +156,7 @@ class BookingControllerTest {
         var booking2 = new BookingDTO();
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
-        when(bookingService.searchBy(any(), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -178,7 +178,8 @@ class BookingControllerTest {
         var caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any())).thenReturn(Page.empty());
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Page.empty());
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
                                                  .with(csrf())
