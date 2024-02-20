@@ -101,7 +101,7 @@ class ShareBookingsManager:
                 })
                 continue
 
-            email = video_permission[8]
+            email = video_permission[18]
             created_by = get_user_id(destination_cursor, email)
             shared_by_user_id = created_by
 
