@@ -35,7 +35,7 @@ public class AppAccessDTO {
 
     public AppAccessDTO(AppAccess access) {
         id = access.getId();
-        user = new UserDTO(access);
+        user = new UserDTO(access.getUser());
         court = new CourtDTO(access.getCourt());
         role = new RoleDTO(access.getRole());
         lastAccess = access.getLastAccess();

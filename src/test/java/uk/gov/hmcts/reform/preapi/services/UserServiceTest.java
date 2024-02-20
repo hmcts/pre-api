@@ -140,21 +140,19 @@ public class UserServiceTest {
     @Test
     void findUserByIdSuccess() {
         when(
-            appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId())
-        ).thenReturn(Optional.of(appAccessEntity));
+            userRepository.findByIdAndDeletedAtIsNull(userEntity.getId())
+        ).thenReturn(Optional.of(userEntity));
 
         var model = userService.findById(userEntity.getId());
         assertThat(model.getId()).isEqualTo(userEntity.getId());
         assertThat(model.getFirstName()).isEqualTo(userEntity.getFirstName());
-        assertThat(model.getRole().getId()).isEqualTo(appAccessEntity.getRole().getId());
-        assertThat(model.getCourt().getId()).isEqualTo(appAccessEntity.getCourt().getId());
     }
 
     @DisplayName("Find a user by it's id which doesn't exist")
     @Test
     void findUserByIdNotFound() {
         when(
-            appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID.randomUUID())
+            userRepository.findByIdAndDeletedAtIsNull(UUID.randomUUID())
         ).thenReturn(Optional.empty());
 
         assertThrows(
@@ -162,8 +160,8 @@ public class UserServiceTest {
             () -> userService.findById(userEntity.getId())
         );
 
-        verify(appAccessRepository, times(1))
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(userRepository, times(1))
+            .findByIdAndDeletedAtIsNull(userEntity.getId());
     }
 
     @DisplayName("Find all users and return a list of models")

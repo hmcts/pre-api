@@ -1514,8 +1514,6 @@ definitions:
       active:
         description: active
         type: boolean
-      court:
-        $ref: '#/definitions/CourtDTO'
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -1553,8 +1551,6 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
-      role:
-        $ref: '#/definitions/RoleDTO'
     type: object
 externalDocs:
   description: README
@@ -2894,7 +2890,7 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/UserDTO'
+            $ref: '#/definitions/BaseUserDTO'
       summary: Get a User by Id
       tags:
         - user-controller
