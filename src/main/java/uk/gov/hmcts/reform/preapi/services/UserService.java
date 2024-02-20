@@ -56,9 +56,9 @@ public class UserService {
     }
 
     @Transactional
-    public UserDTO findById(UUID userId) {
-        return appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .map(UserDTO::new)
+    public BaseUserDTO findById(UUID userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
+            .map(BaseUserDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
 
