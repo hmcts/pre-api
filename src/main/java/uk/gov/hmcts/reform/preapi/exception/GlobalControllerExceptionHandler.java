@@ -104,6 +104,13 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(RecordingNotDeletedException.class)
+    ResponseEntity<String> onRecordingNotDeletedException(final RecordingNotDeletedException e)
+        throws JsonProcessingException {
+
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 

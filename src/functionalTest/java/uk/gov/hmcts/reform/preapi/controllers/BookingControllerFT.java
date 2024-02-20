@@ -27,7 +27,7 @@ class BookingControllerFT extends FunctionalTestBase {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Test
-    void shouldDeleteRecordingsForBooking() {
+    void shouldNotDeleteRecordingsForBooking() {
 
         var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking", false).body().jsonPath();
 
@@ -44,10 +44,12 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + bookingId, true);
-        assertThat(deleteResponse.statusCode()).isEqualTo(204);
+        assertThat(deleteResponse.statusCode()).isEqualTo(400);
+        assertThat(deleteResponse.getBody().jsonPath().getString("message"))
+            .isEqualTo("Cannot delete because and associated recording has not been deleted.");
 
         var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + recordingId, true);
-        assertThat(recordingResponse2.statusCode()).isEqualTo(404);
+        assertThat(recordingResponse2.statusCode()).isEqualTo(200);
     }
 
     @Test

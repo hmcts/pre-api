@@ -1,11 +1,12 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -82,7 +83,7 @@ public class ShareBookingService {
         shareBookingRepository.deleteById(shareId);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteCascade(Booking booking) {
         shareBookingRepository.deleteAllByBooking(booking);
     }
