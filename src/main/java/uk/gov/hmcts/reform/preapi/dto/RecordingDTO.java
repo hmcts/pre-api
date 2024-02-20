@@ -34,6 +34,9 @@ public class RecordingDTO extends BaseRecordingDTO {
     @Schema(description = "RecordingCaseReference")
     String caseReference;
 
+    @Schema(description = "RecordingIsTestCase")
+    Boolean isTestCase;
+
     @Schema(description = "RecordingParticipants")
     private Set<ParticipantDTO> participants;
 
@@ -51,6 +54,7 @@ public class RecordingDTO extends BaseRecordingDTO {
         deletedAt = recording.getDeletedAt();
         createdAt = recording.getCreatedAt();
         caseReference = recording.getCaptureSession().getBooking().getCaseId().getReference();
+        isTestCase = recording.getCaptureSession().getBooking().getCaseId().isTest();
         participants = Stream.ofNullable(recording.getCaptureSession().getBooking().getParticipants())
             .flatMap(participants ->
                          participants

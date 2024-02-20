@@ -981,6 +981,9 @@ definitions:
         description: RecordingId
         format: uuid
         type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
       parent_recording_id:
         description: RecordingParentRecordingId
         format: uuid
@@ -1344,6 +1347,9 @@ definitions:
         description: RecordingId
         format: uuid
         type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
       parent_recording_id:
         description: RecordingParentRecordingId
         format: uuid
