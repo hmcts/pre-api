@@ -99,8 +99,6 @@ def migrate_manager_data(manager, destination_cursor):
     print(f"Data migration for {manager.__class__.__name__} complete in : {time_taken:.2f} seconds.\n")
 
 def main():
-    logger.clear_migrations_file('migration_reports/failed_imports_log.txt')
-
     destination_db_cursor = destination_db.connection.cursor()
 
     migrate_manager_data(room_manager, destination_db_cursor)
