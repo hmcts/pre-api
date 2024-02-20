@@ -23,7 +23,6 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
-import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
@@ -57,7 +56,7 @@ public class UserController extends PreApiController {
     @GetMapping("/{userId}")
     @Operation(operationId = "getUserById", summary = "Get a User by Id")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable UUID userId) {
+    public ResponseEntity<BaseUserDTO> getUserById(@PathVariable UUID userId) {
         return ResponseEntity.ok(userService.findById(userId));
     }
 
