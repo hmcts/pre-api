@@ -75,7 +75,11 @@ def audit_entry_creation(db_connection, table_name, record_id, record, created_a
         db_connection.connection.commit()
 
     except Exception as e:
-        pass
+        logger.log_failed_imports([{
+            'table_name': 'audits',
+            'table_id': record_id,
+            'details': str(e)
+        }])
 
 # Get the user_id associated with an email from the users table for the audits record.
 def get_user_id(db_connection, email):
