@@ -9,6 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -77,7 +79,7 @@ class BookingServiceIT {
         when(mockAuth.getSharedBookings()).thenReturn(List.of(booking1.getId()));
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var findAllSharedWithUser = bookingService.searchBy(null, null, null, Optional.empty(), null, null);
+        var findAllSharedWithUser = bookingService.searchBy(null, null, null, Optional.empty(), null, null, null);
         assertEquals(1, findAllSharedWithUser.toList().size(), "Should find 1 booking");
         assertEquals(booking1.getId(), findAllSharedWithUser.toList().getFirst().getId(), "Should find booking 1");
     }
@@ -91,17 +93,19 @@ class BookingServiceIT {
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var court = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
-        entityManager.persist(court);
+        var court1 = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
+        var court2 = HelperFactory.createCourt(CourtType.CROWN, "Foo Court 2", "5678");
+        entityManager.persist(court1);
+        entityManager.persist(court2);
 
-        var region = HelperFactory.createRegion("Foo Region", Set.of(court));
+        var region = HelperFactory.createRegion("Foo Region", Set.of(court1, court2));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
+        var room = HelperFactory.createRoom("Foo Room", Set.of(court1, court2));
         entityManager.persist(room);
 
-        var caseEntity1 = HelperFactory.createCase(court, "1234_Alpha", false, null);
-        var caseEntity2 = HelperFactory.createCase(court, "1234_Beta", false, null);
+        var caseEntity1 = HelperFactory.createCase(court1, "1234_Alpha", false, null);
+        var caseEntity2 = HelperFactory.createCase(court2, "1234_Beta", false, null);
         entityManager.persist(caseEntity1);
         entityManager.persist(caseEntity2);
 
@@ -141,6 +145,20 @@ class BookingServiceIT {
         entityManager.persist(booking1);
         entityManager.persist(booking2);
 
+        var captureSession = HelperFactory.createCaptureSession(
+            booking1,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession);
+
         var findByCaseResult = bookingService.findAllByCaseId(caseEntity1.getId(), null);
         assertEquals(1, findByCaseResult.toList().size(), "Should find 1 booking");
         assertEquals(booking1.getId(), findByCaseResult.toList().getFirst().getId(), "Should find booking 1");
@@ -148,7 +166,7 @@ class BookingServiceIT {
         assertEquals(1, findByCaseResult2.toList().size(), "Should find 1 booking");
         assertEquals(booking2.getId(), findByCaseResult2.toList().getFirst().getId(), "Should find booking 2");
 
-        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", null, Optional.empty(), null, null);
+        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", null, Optional.empty(), null, null, null);
         assertEquals(2, findByCaseReferenceResult.getContent().size(), "Should find 2 bookings");
         assertEquals(booking1.getId(), findByCaseReferenceResult.getContent().get(0).getId(), "Should find booking 1");
         assertEquals(booking2.getId(), findByCaseReferenceResult.getContent().get(1).getId(), "Should find booking 2");
@@ -158,6 +176,7 @@ class BookingServiceIT {
             null,
             null,
             Optional.of(Timestamp.from(Instant.parse("2024-06-28T00:00:00.000Z"))),
+            null,
             null,
             null
         );
@@ -173,6 +192,7 @@ class BookingServiceIT {
                                                               null,
                                                               Optional.empty(),
                                                               participant1.getId(),
+                                                              null,
                                                               null);
         assertEquals(1, findByParticipantResult.getContent().size());
         assertEquals(
@@ -182,14 +202,32 @@ class BookingServiceIT {
         );
 
         var findByCourtIdResult = bookingService.searchBy(null,
-                                                          null,court.getId(),
+                                                          null,
+                                                          court1.getId(),
                                                           Optional.empty(),
                                                           null,
-                                                          null);
-        assertEquals(1, findByParticipantResult.getContent().size());
+                                                          null,
+                                                          null).toList();
+        assertEquals(1, findByCourtIdResult.size());
         assertEquals(
             booking1.getId(),
-            findByCaseReferenceResult.getContent().getFirst().getId(),
+            findByCourtIdResult.getFirst().getId(),
+            "Should find booking 1"
+        );
+
+        var findByCaptureSessionStatus = bookingService.searchBy(
+            null,
+            null,
+            null,
+            Optional.empty(),
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        ).toList();
+        assertEquals(findByCaptureSessionStatus.size(), 1);
+        assertEquals(
+            booking1.getId(),
+            findByCaptureSessionStatus.getFirst().getId(),
             "Should find booking 1"
         );
     }

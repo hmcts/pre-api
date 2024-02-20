@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
-import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
 
@@ -18,12 +18,6 @@ import java.sql.Timestamp;
 @Schema(description = "UserDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UserDTO extends BaseUserDTO {
-    @Schema(description = "UserCourt")
-    protected CourtDTO court;
-
-    @Schema(description = "UserRole")
-    protected RoleDTO role;
-
     @Schema(description = "UserCreatedAt")
     private Timestamp createdAt;
 
@@ -33,9 +27,8 @@ public class UserDTO extends BaseUserDTO {
     @Schema(description = "UserDeletedAt")
     protected Timestamp deletedAt;
 
-    public UserDTO(AppAccess access) {
+    public UserDTO(User user) {
         super();
-        var user = access.getUser();
         id = user.getId();
         firstName = user.getFirstName();
         lastName = user.getLastName();
@@ -44,8 +37,6 @@ public class UserDTO extends BaseUserDTO {
         organisation = user.getOrganisation();
         createdAt = user.getCreatedAt();
         modifiedAt = user.getModifiedAt();
-        court = new CourtDTO(access.getCourt());
-        role = new RoleDTO(access.getRole());
-        active = access.isActive();
+        deletedAt = user.getDeletedAt();
     }
 }

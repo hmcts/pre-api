@@ -981,6 +981,9 @@ definitions:
         description: RecordingId
         format: uuid
         type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
       parent_recording_id:
         description: RecordingParentRecordingId
         format: uuid
@@ -1344,6 +1347,9 @@ definitions:
         description: RecordingId
         format: uuid
         type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
       parent_recording_id:
         description: RecordingParentRecordingId
         format: uuid
@@ -1514,8 +1520,6 @@ definitions:
       active:
         description: active
         type: boolean
-      court:
-        $ref: '#/definitions/CourtDTO'
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -1553,8 +1557,6 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
-      role:
-        $ref: '#/definitions/RoleDTO'
     type: object
 externalDocs:
   description: README
@@ -1630,6 +1632,18 @@ paths:
           name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The status of the capture session to search by
+          enum:
+            - STANDBY
+            - INITIALISING
+            - RECORDING
+            - PROCESSING
+            - RECORDING_AVAILABLE
+            - FAILURE
+            - NO_RECORDING
+          in: query
+          name: captureSessionStatus
+          type: string
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2882,7 +2896,7 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/UserDTO'
+            $ref: '#/definitions/BaseUserDTO'
       summary: Get a User by Id
       tags:
         - user-controller
