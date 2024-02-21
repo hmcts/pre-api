@@ -746,7 +746,7 @@ class BookingControllerTest {
 
     }
 
-    @DisplayName("Should undelete a booking by id and return a 204 response")
+    @DisplayName("Should undelete a booking by id and return a 200 response")
     @Test
     void undeleteBookingSuccess() throws Exception {
         var bookingId = UUID.randomUUID();

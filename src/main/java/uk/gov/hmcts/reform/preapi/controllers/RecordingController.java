@@ -162,7 +162,7 @@ public class RecordingController extends PreApiController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/{recordingId}")
+    @PostMapping("/{recordingId}/undelete")
     @Operation(operationId = "undeleteRecording", summary = "Revert deletion of a recording")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public ResponseEntity<Void> undeleteRecording(@PathVariable UUID recordingId) {
