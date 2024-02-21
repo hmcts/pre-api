@@ -1827,6 +1827,28 @@ paths:
           description: OK
       tags:
         - booking-controller
+  '/bookings/{bookingId}/undelete':
+    post:
+      operationId: undeleteBooking
+      parameters:
+        - format: uuid
+          in: path
+          name: bookingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a booking
+      tags:
+        - booking-controller
   /capture-sessions:
     get:
       operationId: searchCaptureSessions
@@ -1971,6 +1993,28 @@ paths:
       summary: Create or Update a Capture Session
       tags:
         - capture-session-controller
+  '/capture-sessions/{captureSessionId}/undelete':
+    post:
+      operationId: undeleteCaptureSession
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a capture session
+      tags:
+        - capture-session-controller
   /cases:
     get:
       operationId: getCases
@@ -2092,6 +2136,28 @@ paths:
         '200':
           description: OK
       summary: Create or Update a Case
+      tags:
+        - case-controller
+  '/cases/{id}/undelete':
+    post:
+      operationId: undeleteCase
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a case
       tags:
         - case-controller
   /courts:
@@ -2512,6 +2578,28 @@ paths:
       summary: Create or Update a Recording
       tags:
         - recording-controller
+  '/recordings/{recordingId}/undelete':
+    post:
+      operationId: undeleteRecording
+      parameters:
+        - format: uuid
+          in: path
+          name: recordingId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of a recording
+      tags:
+        - recording-controller
   /reports/capture-sessions-concurrent:
     get:
       operationId: reportConcurrentCaptureSessions
@@ -2926,6 +3014,28 @@ paths:
         '200':
           description: OK
       summary: Create or Update a User
+      tags:
+        - user-controller
+  '/users/{userId}/undelete':
+    post:
+      operationId: undeleteUser
+      parameters:
+        - format: uuid
+          in: path
+          name: userId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Revert deletion of user
       tags:
         - user-controller
 schemes:
