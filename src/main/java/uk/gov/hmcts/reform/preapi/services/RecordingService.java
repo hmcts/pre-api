@@ -138,4 +138,15 @@ public class RecordingService {
     public void deleteCascade(CaptureSession captureSession) {
         recordingRepository.deleteAllByCaptureSession(captureSession);
     }
+
+    @Transactional
+    @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #id)")
+    public void undelete(UUID id) {
+        var entity = recordingRepository.findById(id).orElseThrow(() -> new NotFoundException("Recording: " + id));
+        if (!entity.isDeleted()) {
+            return;
+        }
+        entity.setDeletedAt(null);
+        recordingRepository.save(entity);
+    }
 }

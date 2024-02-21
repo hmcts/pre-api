@@ -762,7 +762,7 @@ class BookingControllerTest {
     void undeleteBookingNotFound() throws Exception {
         var bookingId = UUID.randomUUID();
         doThrow(
-            new NotFoundException("Not found: Booking: " + bookingId)
+            new NotFoundException("Booking: " + bookingId)
         ).when(bookingService).undelete(bookingId);
 
         mockMvc.perform(post("/bookings/" + bookingId + "/undelete")
