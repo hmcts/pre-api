@@ -199,7 +199,7 @@ public class BookingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public ResponseEntity<Void> undeleteBooking(@PathVariable UUID bookingId) {
         bookingService.undelete(bookingId);
-        return noContent().build();
+        return ok().build();
     }
 
 

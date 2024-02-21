@@ -167,6 +167,6 @@ public class RecordingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public ResponseEntity<Void> undeleteRecording(@PathVariable UUID recordingId) {
         recordingService.undelete(recordingId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 }

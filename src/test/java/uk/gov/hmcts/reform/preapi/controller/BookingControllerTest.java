@@ -754,7 +754,7 @@ class BookingControllerTest {
 
         mockMvc.perform(post("/bookings/" + bookingId + "/undelete")
                             .with(csrf()))
-            .andExpect(status().isNoContent());
+            .andExpect(status().isOk());
     }
 
     @DisplayName("Should undelete a booking by id and return a 404 response")
