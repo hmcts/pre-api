@@ -1,12 +1,12 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -63,7 +63,7 @@ public class CaseService {
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     public Page<CaseDTO> searchBy(String reference, UUID courtId, boolean includeDeleted, Pageable pageable) {
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+        var authorisedCourt = auth.isPortalUser() ? null : auth.getCourtId();
 
         return caseRepository
             .searchCasesBy(

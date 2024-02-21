@@ -546,10 +546,6 @@ definitions:
       first_name:
         description: InviteFirstName
         type: string
-      id:
-        description: InviteId
-        format: uuid
-        type: string
       last_name:
         description: InviteLastName
         type: string
@@ -558,6 +554,10 @@ definitions:
         type: string
       phone:
         description: InvitePhone
+        type: string
+      user_id:
+        description: InviteUserId
+        format: uuid
         type: string
     type: object
   CreateParticipantDTO:
@@ -932,32 +932,22 @@ definitions:
       code:
         description: InviteCode
         type: string
-      created_at:
-        description: InviteCreatedAt
-        format: date-time
-        type: string
       email:
-        description: InviteEmail
+        description: InviteUserEmail
         type: string
       first_name:
-        description: InviteFirstName
+        description: InviteUserFirstName
         type: string
-      id:
-        description: InviteId
-        format: uuid
-        type: string
-      last_name:
-        description: InviteLastName
-        type: string
-      modified_at:
-        description: InvitedModifiedAt
+      invited_at:
+        description: InvitedAt
         format: date-time
         type: string
-      organisation:
-        description: InviteOrganisation
+      last_name:
+        description: InviteUserLastName
         type: string
-      phone:
-        description: InvitePhone
+      user_id:
+        description: InviteUserId
+        format: uuid
         type: string
     type: object
   EntityModelRecordingDTO:
@@ -991,6 +981,9 @@ definitions:
         description: RecordingId
         format: uuid
         type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
       parent_recording_id:
         description: RecordingParentRecordingId
         format: uuid
@@ -1041,32 +1034,22 @@ definitions:
       code:
         description: InviteCode
         type: string
-      created_at:
-        description: InviteCreatedAt
-        format: date-time
-        type: string
       email:
-        description: InviteEmail
+        description: InviteUserEmail
         type: string
       first_name:
-        description: InviteFirstName
+        description: InviteUserFirstName
         type: string
-      id:
-        description: InviteId
-        format: uuid
-        type: string
-      last_name:
-        description: InviteLastName
-        type: string
-      modified_at:
-        description: InvitedModifiedAt
+      invited_at:
+        description: InvitedAt
         format: date-time
         type: string
-      organisation:
-        description: InviteOrganisation
+      last_name:
+        description: InviteUserLastName
         type: string
-      phone:
-        description: InvitePhone
+      user_id:
+        description: InviteUserId
+        format: uuid
         type: string
     type: object
   JsonNode:
@@ -1364,6 +1347,9 @@ definitions:
         description: RecordingId
         format: uuid
         type: string
+      is_test_case:
+        description: RecordingIsTestCase
+        type: boolean
       parent_recording_id:
         description: RecordingParentRecordingId
         format: uuid
@@ -1534,8 +1520,6 @@ definitions:
       active:
         description: active
         type: boolean
-      court:
-        $ref: '#/definitions/CourtDTO'
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -1573,8 +1557,6 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
-      role:
-        $ref: '#/definitions/RoleDTO'
     type: object
 externalDocs:
   description: README
@@ -1650,6 +1632,18 @@ paths:
           name: courtId
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The status of the capture session to search by
+          enum:
+            - STANDBY
+            - INITIALISING
+            - RECORDING
+            - PROCESSING
+            - RECORDING_AVAILABLE
+            - FAILURE
+            - NO_RECORDING
+          in: query
+          name: captureSessionStatus
+          type: string
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2259,13 +2253,42 @@ paths:
       summary: 'Search for Invites by first name, last name, email or organisation'
       tags:
         - invite-controller
-  '/invites/{id}':
+  /invites/redeem:
+    get:
+      operationId: redeemInvite
+      parameters:
+        - description: The email of the user to redeem the invite for
+          in: query
+          name: email
+          required: true
+          type: string
+          x-example: example@example.com
+        - description: The invite code to redeem
+          in: query
+          name: inviteCode
+          required: true
+          type: string
+          x-example: ABCDEF
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Redeem an invite
+      tags:
+        - invite-controller
+  '/invites/{userId}':
     delete:
       operationId: deleteInvite
       parameters:
         - format: uuid
           in: path
-          name: id
+          name: userId
           required: true
           type: string
         - description: The User Id of the User making the request
@@ -2278,7 +2301,7 @@ paths:
       responses:
         '200':
           description: OK
-      summary: Revoke an invite
+      summary: Delete the user with invitation sent status
       tags:
         - invite-controller
     get:
@@ -2286,7 +2309,7 @@ paths:
       parameters:
         - format: uuid
           in: path
-          name: id
+          name: userId
           required: true
           type: string
         - description: The User Id of the User making the request
@@ -2303,7 +2326,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/InviteDTO'
-      summary: Get an invite by id
+      summary: Get an invite by user id
       tags:
         - invite-controller
     put:
@@ -2313,7 +2336,7 @@ paths:
       parameters:
         - format: uuid
           in: path
-          name: id
+          name: userId
           required: true
           type: string
         - description: The User Id of the User making the request
@@ -2331,7 +2354,7 @@ paths:
       responses:
         '200':
           description: OK
-      summary: Create or Update an Invite
+      summary: Create a portal access user and invite them
       tags:
         - invite-controller
   /recordings:
@@ -2873,7 +2896,7 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/UserDTO'
+            $ref: '#/definitions/BaseUserDTO'
       summary: Get a User by Id
       tags:
         - user-controller

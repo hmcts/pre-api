@@ -1,13 +1,14 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
@@ -15,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -73,7 +75,7 @@ public class RecordingService {
             auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings()
         );
         params.setAuthorisedCourt(
-            auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId()
+            auth.isPortalUser() ? null : auth.getCourtId()
         );
 
         return recordingRepository
@@ -134,9 +136,11 @@ public class RecordingService {
         recordingRepository.deleteById(recordingId);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteCascade(CaptureSession captureSession) {
-        recordingRepository.deleteAllByCaptureSession(captureSession);
+        if (recordingRepository.existsByCaptureSessionAndDeletedAtIsNull(captureSession)) {
+            throw new RecordingNotDeletedException();
+        }
     }
 
     @Transactional

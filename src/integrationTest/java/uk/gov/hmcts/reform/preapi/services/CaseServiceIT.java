@@ -17,6 +17,8 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -37,6 +39,8 @@ public class CaseServiceIT {
 
     @Autowired
     private CaseService caseService;
+    @Autowired
+    private RecordingRepository recordingRepository;
 
     public static void mockAdminUser() {
         var mockAuth = mock(UserAuthentication.class);
@@ -206,6 +210,27 @@ public class CaseServiceIT {
 
         var recording = HelperFactory.createRecording(captureSession, null, 1, "url", "filename", null);
         entityManager.persist(recording);
+
+        var message = Assertions.assertThrows(
+            RecordingNotDeletedException.class,
+            () ->  caseService.deleteById(caseEntity.getId())
+        ).getMessage();
+
+        Assertions.assertEquals(message, "Cannot delete because and associated recording has not been deleted.");
+
+        entityManager.refresh(caseEntity);
+        entityManager.refresh(booking);
+        entityManager.refresh(captureSession);
+        entityManager.refresh(recording);
+
+        Assertions.assertNull(caseEntity.getDeletedAt());
+        Assertions.assertNull(booking.getDeletedAt());
+        Assertions.assertNull(captureSession.getDeletedAt());
+        Assertions.assertNull(recording.getDeletedAt());
+
+        recording.setDeletedAt(Timestamp.from(Instant.now()));
+        recordingRepository.saveAndFlush(recording);
+        entityManager.refresh(recording);
 
         caseService.deleteById(caseEntity.getId());
 

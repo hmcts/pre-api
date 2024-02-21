@@ -1,17 +1,19 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -65,13 +67,15 @@ public class BookingService {
             .map(BookingDTO::new);
     }
 
-    public Page<BookingDTO> searchBy(@Nullable UUID caseId,
-                                     @Nullable String caseReference,
-                                     @Nullable UUID courtId,
-                                     Optional<Timestamp> scheduledFor,
-                                     @Nullable UUID participantId,
-                                     Pageable pageable) {
-
+    public Page<BookingDTO> searchBy(
+        @Nullable UUID caseId,
+        @Nullable String caseReference,
+        @Nullable UUID courtId,
+        Optional<Timestamp> scheduledFor,
+        @Nullable UUID participantId,
+        @Nullable RecordingStatus captureSessionStatus,
+        Pageable pageable
+    ) {
         var until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
@@ -79,7 +83,7 @@ public class BookingService {
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isAdmin() || auth.isPortalUser() ? null : auth.getCourtId();
+        var authorisedCourt = auth.isPortalUser() ? null : auth.getCourtId();
 
         return bookingRepository
             .searchBookingsBy(
@@ -91,6 +95,7 @@ public class BookingService {
                 participantId,
                 authorisedBookings,
                 authorisedCourt,
+                captureSessionStatus,
                 pageable
             )
             .map(BookingDTO::new);
@@ -172,7 +177,7 @@ public class BookingService {
         bookingRepository.save(entity);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteCascade(Case caseEntity) {
         bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(caseEntity)

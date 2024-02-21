@@ -1,20 +1,22 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
-import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -25,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,9 +55,9 @@ public class UserService {
     }
 
     @Transactional
-    public UserDTO findById(UUID userId) {
-        return appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .map(UserDTO::new)
+    public BaseUserDTO findById(UUID userId) {
+        return userRepository.findByIdAndDeletedAtIsNull(userId)
+            .map(BaseUserDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
 
@@ -161,6 +164,41 @@ public class UserService {
         appAccessRepository.save(appAccessEntity);
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional
+    @SuppressWarnings("PMD.CyclomaticComplexity")
+    public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
+        var user = userRepository.findById(createInviteDTO.getUserId());
+        if (user.isPresent() && user.get().isDeleted()) {
+            throw new ResourceInDeletedStateException("UserDTO", createInviteDTO.getUserId().toString());
+        } else if (user.isPresent() && portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
+            .isPresent()) {
+            return UpsertResult.UPDATED;
+        }
+
+        var userEntity = user.orElse(new User());
+
+        userEntity.setId(createInviteDTO.getUserId());
+        userEntity.setFirstName(createInviteDTO.getFirstName());
+        userEntity.setLastName(createInviteDTO.getLastName());
+        userEntity.setEmail(createInviteDTO.getEmail());
+        userEntity.setOrganisation(createInviteDTO.getOrganisation());
+        userEntity.setPhone(createInviteDTO.getPhone());
+        userRepository.save(userEntity);
+
+        var portalAccessEntity = portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createInviteDTO.getUserId())
+            .orElse(new PortalAccess());
+
+        portalAccessEntity.setUser(userEntity);
+        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
+        portalAccessEntity.setCode(createInviteDTO.getCode());
+        portalAccessEntity.setInvitedAt(Timestamp.from(java.time.Instant.now()));
+        portalAccessRepository.save(portalAccessEntity);
+
+        return UpsertResult.CREATED;
     }
 
     @Transactional

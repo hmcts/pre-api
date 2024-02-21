@@ -42,13 +42,12 @@ class BookingManager:
         for recording in source_data:
             case_id = recording[1]
             recording_id = recording[0]
-            booking_id = str(uuid.uuid4())
             scheduled_for = parse_to_timestamp(recording[10])
 
             if scheduled_for is None:
                 self.failed_imports.append({
                     'table_name': 'bookings',
-                    'table_id': booking_id,
+                    'table_id': None,
                     'case_id': case_id,
                     'recording_id': recording_id,
                     'details': f"Booking scheduled date is NULL for case ID: {case_id}"
@@ -71,7 +70,7 @@ class BookingManager:
             if case_id not in existing_case_ids:
                 self.failed_imports.append({
                     'table_name': 'bookings',
-                    'table_id': booking_id,
+                    'table_id': None,
                     'case_id': case_id,
                     'recording_id': recording_id,
                     'details': f'Case ID: {case_id} not found in cases data.'
@@ -80,6 +79,7 @@ class BookingManager:
             
             # Insert into temp table 
             if not check_existing_record(destination_cursor,'temp_recordings', 'recording_id', recording_id):
+                booking_id = str(uuid.uuid4())
                 try:
                     destination_cursor.execute(
                         """
