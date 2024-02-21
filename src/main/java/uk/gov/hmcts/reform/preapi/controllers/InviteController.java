@@ -104,7 +104,7 @@ public class InviteController extends PreApiController {
     }
 
     @GetMapping("/{userId}")
-    @Operation(operationId = "getInviteById", summary = "Get an invite by user id")
+    @Operation(operationId = "getInviteByUserId", summary = "Get an invite by user id")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<InviteDTO> getInviteByUserId(@PathVariable(name = "userId") UUID userId) {
         return ResponseEntity.ok(inviteService.findByUserId(userId));
