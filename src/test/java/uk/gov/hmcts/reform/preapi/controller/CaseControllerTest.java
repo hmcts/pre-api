@@ -37,6 +37,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -323,5 +324,31 @@ class CaseControllerTest {
             .andReturn();
 
         verify(caseService, times(1)).searchBy(isNull(), isNull(), eq(true), any());
+    }
+
+    @DisplayName("Should undelete a case by id and return a 200 response")
+    @Test
+    void undeleteCaseSuccess() throws Exception {
+        var caseId = UUID.randomUUID();
+        doNothing().when(caseService).undelete(caseId);
+
+        mockMvc.perform(post("/cases/" + caseId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isOk());
+    }
+
+    @DisplayName("Should undelete a case by id and return a 404 response")
+    @Test
+    void undeleteCaseNotFound() throws Exception {
+        var caseId = UUID.randomUUID();
+        doThrow(
+            new NotFoundException("Case: " + caseId)
+        ).when(caseService).undelete(caseId);
+
+        mockMvc.perform(post("/cases/" + caseId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Case: " + caseId));
     }
 }

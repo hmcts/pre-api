@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -23,6 +24,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.mock;
@@ -202,7 +204,7 @@ public class CaseServiceIT {
         );
         entityManager.persist(captureSession);
 
-        var recording = HelperFactory.createRecording(captureSession, null, 1, "url", "filename",null);
+        var recording = HelperFactory.createRecording(captureSession, null, 1, "url", "filename", null);
         entityManager.persist(recording);
 
         caseService.deleteById(caseEntity.getId());
@@ -216,5 +218,35 @@ public class CaseServiceIT {
         Assertions.assertNotNull(booking.getDeletedAt());
         Assertions.assertNotNull(captureSession.getDeletedAt());
         Assertions.assertNotNull(recording.getDeletedAt());
+    }
+
+    @Transactional
+    @Test
+    public void undeleteCase() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, Timestamp.from(Instant.now()));
+        entityManager.persist(caseEntity);
+
+        caseService.undelete(caseEntity.getId());
+        entityManager.flush();
+        entityManager.refresh(caseEntity);
+        Assertions.assertNull(caseEntity.getDeletedAt());
+
+        caseService.undelete(caseEntity.getId());
+        entityManager.flush();
+        entityManager.refresh(caseEntity);
+        Assertions.assertNull(caseEntity.getDeletedAt());
+
+        var randomId = UUID.randomUUID();
+        var message = Assertions.assertThrows(
+            NotFoundException.class,
+            () -> caseService.undelete(randomId)
+        ).getMessage();
+        Assertions.assertEquals(message, "Not found: Case: " + randomId);
+
     }
 }
