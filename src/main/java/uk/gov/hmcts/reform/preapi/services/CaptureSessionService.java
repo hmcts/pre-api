@@ -66,7 +66,7 @@ public class CaptureSessionService {
         var until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
-                t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
+            t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
@@ -124,14 +124,14 @@ public class CaptureSessionService {
 
         var startedByUser = createCaptureSessionDTO.getStartedByUserId() != null
             ? userRepository
-                .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getStartedByUserId())
-                .orElseThrow(() -> new NotFoundException("User: " + createCaptureSessionDTO.getStartedByUserId()))
+            .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getStartedByUserId())
+            .orElseThrow(() -> new NotFoundException("User: " + createCaptureSessionDTO.getStartedByUserId()))
             : null;
 
         var finishedByUser = createCaptureSessionDTO.getFinishedByUserId() != null
             ? userRepository
-                .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getFinishedByUserId())
-                .orElseThrow(() -> new NotFoundException("User: " + createCaptureSessionDTO.getFinishedByUserId()))
+            .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getFinishedByUserId())
+            .orElseThrow(() -> new NotFoundException("User: " + createCaptureSessionDTO.getFinishedByUserId()))
             : null;
 
         captureSession.setId(createCaptureSessionDTO.getId());
@@ -150,5 +150,17 @@ public class CaptureSessionService {
         var isUpdate = foundCaptureSession.isPresent();
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional
+    @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
+    public void undelete(UUID id) {
+        var entity =
+            captureSessionRepository.findById(id).orElseThrow(() -> new NotFoundException("Capture Session: " + id));
+        if (!entity.isDeleted()) {
+            return;
+        }
+        entity.setDeletedAt(null);
+        captureSessionRepository.save(entity);
     }
 }
