@@ -179,4 +179,14 @@ public class UserService {
 
         userRepository.deleteById(userId);
     }
+
+    @Transactional
+    public void undelete(UUID id) {
+        var entity = userRepository.findById(id).orElseThrow(() -> new NotFoundException("User: " + id));
+        if (!entity.isDeleted()) {
+            return;
+        }
+        entity.setDeletedAt(null);
+        userRepository.save(entity);
+    }
 }

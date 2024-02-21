@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
@@ -811,5 +812,52 @@ public class UserServiceTest {
         assertThat(user3.getAppAccess().stream().toList().getFirst().getCourt().getId()).isEqualTo(appAccessEntity2
                                                                                                        .getCourt()
                                                                                                        .getId());
+    }
+
+    @DisplayName("Should undelete a user successfully when user is marked as deleted")
+    @Test
+    void undeleteSuccess() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        userService.undelete(user.getId());
+
+        verify(userRepository, times(1)).findById(user.getId());
+        verify(userRepository, times(1)).save(user);
+    }
+
+    @DisplayName("Should do nothing when user is not deleted")
+    @Test
+    void undeleteNotDeletedSuccess() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        userService.undelete(user.getId());
+
+        verify(userRepository, times(1)).findById(user.getId());
+        verify(userRepository,never()).save(user);
+    }
+
+    @DisplayName("Should throw not found exception when user cannot be found")
+    @Test
+    void undeleteNotFound() {
+        var userId = UUID.randomUUID();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> userService.undelete(userId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: User: " + userId);
+
+        verify(userRepository, times(1)).findById(userId);
+        verify(userRepository, never()).save(any());
     }
 }
