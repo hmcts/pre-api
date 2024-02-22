@@ -81,11 +81,6 @@ public class CaseService {
     public UpsertResult upsert(CreateCaseDTO createCaseDTO) {
         var foundCase = caseRepository.findById(createCaseDTO.getId());
 
-        // Get auth
-        // Get createCaseDTO
-
-
-
         if (foundCase.isPresent() && foundCase.get().isDeleted()) {
             throw new ResourceInDeletedStateException("CaseDTO", createCaseDTO.getId().toString());
         }
