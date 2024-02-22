@@ -73,7 +73,7 @@ public class BookingService {
         @Nullable UUID courtId,
         Optional<Timestamp> scheduledFor,
         @Nullable UUID participantId,
-        @Nullable RecordingStatus captureSessionStatus,
+        @Nullable Boolean hasRecordings,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -95,7 +95,7 @@ public class BookingService {
                 participantId,
                 authorisedBookings,
                 authorisedCourt,
-                captureSessionStatus,
+                hasRecordings,
                 pageable
             )
             .map(BookingDTO::new);
