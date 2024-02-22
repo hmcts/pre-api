@@ -405,4 +405,51 @@ public class CaptureSessionServiceTest {
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(user.getId());
         verify(captureSessionRepository, never()).save(any(CaptureSession.class));
     }
+
+    @DisplayName("Should undelete a capture session successfully when capture session is marked as deleted")
+    @Test
+    void undeleteSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
+
+        captureSessionService.undelete(captureSession.getId());
+
+        verify(captureSessionRepository, times(1)).findById(captureSession.getId());
+        verify(captureSessionRepository, times(1)).save(captureSession);
+    }
+
+    @DisplayName("Should do nothing when capture session is not deleted")
+    @Test
+    void undeleteNotDeletedSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+
+        when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
+
+        captureSessionService.undelete(captureSession.getId());
+
+        verify(captureSessionRepository, times(1)).findById(captureSession.getId());
+        verify(captureSessionRepository, never()).save(captureSession);
+    }
+
+    @DisplayName("Should throw not found exception when capture session cannot be found")
+    @Test
+    void undeleteNotFound() {
+        var captureSessionId = UUID.randomUUID();
+
+        when(captureSessionRepository.findById(captureSessionId)).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.undelete(captureSessionId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Capture Session: " + captureSessionId);
+
+        verify(captureSessionRepository, times(1)).findById(captureSessionId);
+        verify(captureSessionRepository, never()).save(any());
+    }
 }

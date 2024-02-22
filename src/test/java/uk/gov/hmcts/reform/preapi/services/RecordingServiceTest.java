@@ -445,4 +445,51 @@ class RecordingServiceTest {
 
         assertThat(params.getScheduledForUntil()).isNull();
     }
+
+    @DisplayName("Should undelete a recording successfully when recording is marked as deleted")
+    @Test
+    void undeleteSuccess() {
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
+
+        recordingService.undelete(recording.getId());
+
+        verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(recordingRepository, times(1)).save(recording);
+    }
+
+    @DisplayName("Should do nothing when recording is not deleted")
+    @Test
+    void undeleteNotDeletedSuccess() {
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+
+        when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
+
+        recordingService.undelete(recording.getId());
+
+        verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(recordingRepository,never()).save(recording);
+    }
+
+    @DisplayName("Should throw not found exception when recording cannot be found")
+    @Test
+    void undeleteNotFound() {
+        var recordingId = UUID.randomUUID();
+
+        when(recordingRepository.findById(recordingId)).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> recordingService.undelete(recordingId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Recording: " + recordingId);
+
+        verify(recordingRepository, times(1)).findById(recordingId);
+        verify(recordingRepository, never()).save(any());
+    }
 }

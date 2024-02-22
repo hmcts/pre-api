@@ -149,12 +149,22 @@ public class CaseService {
     @Transactional
     @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
     public void deleteById(UUID id) {
-        var entity  = caseRepository.findByIdAndDeletedAtIsNull(id);
+        var entity = caseRepository.findByIdAndDeletedAtIsNull(id);
         if (entity.isEmpty()) {
             throw new NotFoundException("CaseDTO: " + id);
         }
         bookingService.deleteCascade(entity.get());
         caseRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void undelete(UUID id) {
+        var entity = caseRepository.findById(id).orElseThrow(() -> new NotFoundException("Case: " + id));
+        if (!entity.isDeleted()) {
+            return;
+        }
+        entity.setDeletedAt(null);
+        caseRepository.save(entity);
     }
 
     private boolean isCaseReferenceValid(boolean isUpdate, String caseReference, UUID caseId) {

@@ -31,6 +31,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -38,6 +39,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -394,5 +396,31 @@ public class CaptureSessionControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Path id does not match payload property createCaptureSessionDTO.id\"}");
+    }
+
+    @DisplayName("Should undelete a capture session by id and return a 200 response")
+    @Test
+    void undeleteCaptureSessionSuccess() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        doNothing().when(captureSessionService).undelete(captureSessionId);
+
+        mockMvc.perform(post("/capture-sessions/" + captureSessionId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isOk());
+    }
+
+    @DisplayName("Should undelete a capture session by id and return a 404 response")
+    @Test
+    void undeleteCaptureSessionNotFound() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        doThrow(
+            new NotFoundException("Capture Session: " + captureSessionId)
+        ).when(captureSessionService).undelete(captureSessionId);
+
+        mockMvc.perform(post("/capture-sessions/" + captureSessionId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Capture Session: " + captureSessionId));
     }
 }

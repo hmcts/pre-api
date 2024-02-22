@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,7 +29,6 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -92,9 +92,9 @@ public class BookingController extends PreApiController {
         example = "123e4567-e89b-12d3-a456-426614174000"
     )
     @Parameter(
-        name = "captureSessionStatus",
-        description = "The status of the capture session to search by",
-        schema = @Schema(implementation = RecordingStatus.class)
+        name = "hasRecordings",
+        description = "If the booking has any recordings",
+        schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
         name = "page",
@@ -122,7 +122,7 @@ public class BookingController extends PreApiController {
                 ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
                 : Optional.empty(),
             params.getParticipantId(),
-            params.getCaptureSessionStatus(),
+            params.getHasRecordings(),
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
@@ -198,6 +198,14 @@ public class BookingController extends PreApiController {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
         }
         return ok(assembler.toModel(resultPage));
+    }
+
+    @PostMapping("/{bookingId}/undelete")
+    @Operation(operationId = "undeleteBooking", summary = "Revert deletion of a booking")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<Void> undeleteBooking(@PathVariable UUID bookingId) {
+        bookingService.undelete(bookingId);
+        return ok().build();
     }
 
 
