@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -139,5 +140,13 @@ public class CaptureSessionController extends PreApiController {
             captureSessionService.upsert(createCaptureSessionDTO),
             createCaptureSessionDTO.getId()
         );
+    }
+
+    @PostMapping("/{captureSessionId}/undelete")
+    @Operation(operationId = "undeleteCaptureSession", summary = "Revert deletion of a capture session")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<Void> undeleteCaptureSession(@PathVariable UUID captureSessionId) {
+        captureSessionService.undelete(captureSessionId);
+        return ResponseEntity.ok().build();
     }
 }

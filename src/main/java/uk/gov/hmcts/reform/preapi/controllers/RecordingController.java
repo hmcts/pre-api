@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -158,6 +159,14 @@ public class RecordingController extends PreApiController {
         @PathVariable UUID recordingId
     ) {
         recordingService.deleteById(recordingId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{recordingId}/undelete")
+    @Operation(operationId = "undeleteRecording", summary = "Revert deletion of a recording")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<Void> undeleteRecording(@PathVariable UUID recordingId) {
+        recordingService.undelete(recordingId);
         return ResponseEntity.ok().build();
     }
 }

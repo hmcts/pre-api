@@ -38,6 +38,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -502,6 +503,33 @@ class RecordingControllerTest {
 
         verify(recordingService, times(1)).findAll(any(), eq(true), any());
     }
+
+    @DisplayName("Should undelete a recording by id and return a 200 response")
+    @Test
+    void undeleteRecordingSuccess() throws Exception {
+        var recordingId = UUID.randomUUID();
+        doNothing().when(recordingService).undelete(recordingId);
+
+        mockMvc.perform(post("/recordings/" + recordingId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isOk());
+    }
+
+    @DisplayName("Should undelete a recording by id and return a 404 response")
+    @Test
+    void undeleteRecordingNotFound() throws Exception {
+        var recordingId = UUID.randomUUID();
+        doThrow(
+            new NotFoundException("Recording: " + recordingId)
+        ).when(recordingService).undelete(recordingId);
+
+        mockMvc.perform(post("/recordings/" + recordingId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Recording: " + recordingId));
+    }
+
 
     private static String getPath(UUID recordingId) {
         return "/recordings/" + recordingId;

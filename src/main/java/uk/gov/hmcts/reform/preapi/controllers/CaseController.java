@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -115,6 +116,14 @@ public class CaseController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> deleteCase(@PathVariable UUID id) {
         caseService.deleteById(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/undelete")
+    @Operation(operationId = "undeleteCase", summary = "Revert deletion of a case")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
+    public ResponseEntity<Void> undeleteCase(@PathVariable UUID id) {
+        caseService.undelete(id);
         return ResponseEntity.ok().build();
     }
 }
