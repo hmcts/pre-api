@@ -150,7 +150,7 @@ class BookingServiceIT {
         entityManager.persist(booking2);
 
         var captureSession = HelperFactory.createCaptureSession(
-            booking1,
+            booking2,
             RecordingOrigin.PRE,
             null,
             null,
@@ -162,6 +162,16 @@ class BookingServiceIT {
             null
         );
         entityManager.persist(captureSession);
+
+        var recording = HelperFactory.createRecording(
+            captureSession,
+            null,
+            1,
+            null,
+            "example",
+            null
+        );
+        entityManager.persist(recording);
 
         var findByCaseResult = bookingService.findAllByCaseId(caseEntity1.getId(), null);
         assertEquals(1, findByCaseResult.toList().size(), "Should find 1 booking");
@@ -219,21 +229,37 @@ class BookingServiceIT {
             "Should find booking 1"
         );
 
-        var findByCaptureSessionStatus = bookingService.searchBy(
+        var findByHasRecordingsFalse = bookingService.searchBy(
             null,
             null,
             null,
             Optional.empty(),
             null,
-            RecordingStatus.RECORDING_AVAILABLE,
+            false,
             null
         ).toList();
-        assertEquals(findByCaptureSessionStatus.size(), 1);
+        assertEquals(findByHasRecordingsFalse.size(), 1);
         assertEquals(
             booking1.getId(),
-            findByCaptureSessionStatus.getFirst().getId(),
+            findByHasRecordingsFalse.getFirst().getId(),
             "Should find booking 1"
         );
+        var findByHasRecordingsTrue = bookingService.searchBy(
+            null,
+            null,
+            null,
+            Optional.empty(),
+            null,
+            true,
+            null
+        ).toList();
+        assertEquals(findByHasRecordingsTrue.size(), 1);
+        assertEquals(
+            booking2.getId(),
+            findByHasRecordingsTrue.getFirst().getId(),
+            "Should find booking 2"
+        );
+
     }
 
     @Transactional
