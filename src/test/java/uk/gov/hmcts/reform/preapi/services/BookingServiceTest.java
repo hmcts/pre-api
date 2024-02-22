@@ -402,4 +402,51 @@ class BookingServiceTest {
         verify(captureSessionService, times(1)).deleteCascade(booking);
         verify(bookingRepository, times(1)).deleteAllByCaseId(caseEntity);
     }
+
+    @DisplayName("Should undelete a booking successfully when booking is marked as deleted")
+    @Test
+    void undeleteSuccess() {
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+
+        bookingService.undelete(booking.getId());
+
+        verify(bookingRepository, times(1)).findById(booking.getId());
+        verify(bookingRepository, times(1)).save(booking);
+    }
+
+    @DisplayName("Should do nothing when booking is not deleted")
+    @Test
+    void undeleteNotDeletedSuccess() {
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+
+        when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
+
+        bookingService.undelete(booking.getId());
+
+        verify(bookingRepository, times(1)).findById(booking.getId());
+        verify(bookingRepository,never()).save(booking);
+    }
+
+    @DisplayName("Should throw not found exception when booking cannot be found")
+    @Test
+    void undeleteNotFound() {
+        var bookingId = UUID.randomUUID();
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> bookingService.undelete(bookingId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Booking: " + bookingId);
+
+        verify(bookingRepository, times(1)).findById(bookingId);
+        verify(bookingRepository, never()).save(any());
+    }
 }

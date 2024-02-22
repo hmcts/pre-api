@@ -376,4 +376,51 @@ class CaseServiceTest {
         verify(bookingService, never()).deleteCascade(caseEntity);
         verify(caseRepository, never()).deleteById(caseId);
     }
+
+    @DisplayName("Should undelete a case successfully when case is marked as deleted")
+    @Test
+    void undeleteSuccess() {
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(caseRepository.findById(aCase.getId())).thenReturn(Optional.of(aCase));
+
+        caseService.undelete(aCase.getId());
+
+        verify(caseRepository, times(1)).findById(aCase.getId());
+        verify(caseRepository, times(1)).save(aCase);
+    }
+
+    @DisplayName("Should do nothing when case is not deleted")
+    @Test
+    void undeleteNotDeletedSuccess() {
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+
+        when(caseRepository.findById(aCase.getId())).thenReturn(Optional.of(aCase));
+
+        caseService.undelete(aCase.getId());
+
+        verify(caseRepository, times(1)).findById(aCase.getId());
+        verify(caseRepository, never()).save(aCase);
+    }
+
+    @DisplayName("Should throw not found exception when case cannot be found")
+    @Test
+    void undeleteNotFound() {
+        var caseId = UUID.randomUUID();
+
+        when(caseRepository.findById(caseId)).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> caseService.undelete(caseId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Case: " + caseId);
+
+        verify(caseRepository, times(1)).findById(caseId);
+        verify(caseRepository, never()).save(any());
+    }
 }

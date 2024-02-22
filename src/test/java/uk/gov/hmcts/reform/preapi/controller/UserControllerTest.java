@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -431,5 +432,31 @@ public class UserControllerTest {
 
         verify(userService, times(1))
             .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
+    }
+
+    @DisplayName("Should undelete a user by id and return a 200 response")
+    @Test
+    void undeleteRecordingSuccess() throws Exception {
+        var userId = UUID.randomUUID();
+        doNothing().when(userService).undelete(userId);
+
+        mockMvc.perform(post("/users/" + userId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isOk());
+    }
+
+    @DisplayName("Should undelete a user by id and return a 404 response")
+    @Test
+    void undeleteRecordingNotFound() throws Exception {
+        var userId = UUID.randomUUID();
+        doThrow(
+            new NotFoundException("User: " + userId)
+        ).when(userService).undelete(userId);
+
+        mockMvc.perform(post("/users/" + userId + "/undelete")
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: User: " + userId));
     }
 }
