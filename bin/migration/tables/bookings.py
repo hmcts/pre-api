@@ -43,17 +43,6 @@ class BookingManager:
             case_id = recording[1]
             recording_id = recording[0]
             scheduled_for = parse_to_timestamp(recording[10])
-
-            if scheduled_for is None:
-                self.failed_imports.append({
-                    'table_name': 'bookings',
-                    'table_id': None,
-                    'case_id': case_id,
-                    'recording_id': recording_id,
-                    'details': f"Booking scheduled date is NULL for case ID: {case_id}"
-                })
-                continue
-
             recording_status = recording[11]
             created_at = parse_to_timestamp(recording[22])
             deleted_at = None
@@ -109,10 +98,20 @@ class BookingManager:
         for booking in temp_recordings_data:
             id = booking[2]
             case_id = booking[4]
+            scheduled_for = booking[5]
 
             if not check_existing_record(destination_cursor,'bookings', 'id', id):   
                 try:
-                    scheduled_for = booking[5]
+                    if scheduled_for is None:
+                        self.failed_imports.append({
+                            'table_name': 'bookings',
+                            'table_id': id,
+                            'case_id': case_id,
+                            'recording_id': recording_id,
+                            'details': f"Booking scheduled date is NULL for case ID: {case_id}"
+                        })
+                        continue
+
                     created_at = booking[7]
                     modified_at = booking[8]
                     created_by = booking[9]
