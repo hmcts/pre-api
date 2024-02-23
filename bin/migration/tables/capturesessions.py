@@ -39,7 +39,7 @@ class CaptureSessionManager:
             result = "STANDBY"
         elif status_lower in ["initiating request...", "ready to record"]:
             result = "INITIALISING"
-        elif status_lower == "recording":
+        elif status_lower in ["recording", "stream ok"]:
             result = "RECORDING"
         elif status_lower == "mp4 ready for viewing":
             result = "RECORDING_AVAILABLE"
