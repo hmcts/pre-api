@@ -13,8 +13,6 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
-import java.util.UUID;
-
 @Service
 public class AppAccessService {
 
