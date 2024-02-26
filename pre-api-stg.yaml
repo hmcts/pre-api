@@ -48,20 +48,30 @@ definitions:
       role:
         $ref: '#/definitions/RoleDTO'
       user:
-        $ref: '#/definitions/UserDTO'
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
+  BaseAppAccessDTO:
+    description: BaseAppAccessDTO
+    properties:
+      active:
+        description: AppAccessActive
+        type: boolean
+      court:
+        $ref: '#/definitions/CourtDTO'
+      id:
+        description: AppAccessId
+        format: uuid
+        type: string
+      last_access:
+        description: AppAccessLastAccess
+        format: date-time
+        type: string
+      role:
+        $ref: '#/definitions/RoleDTO'
     type: object
   BaseUserDTO:
     description: BaseUserDTO
     properties:
-      active:
-        description: active
-        type: boolean
-      app_access:
-        description: UserAppAccess
-        items:
-          $ref: '#/definitions/AppAccessDTO'
-        type: array
-        uniqueItems: true
       email:
         description: UserEmail
         type: string
@@ -81,12 +91,6 @@ definitions:
       phone_number:
         description: UserPhoneNumber
         type: string
-      portal_access:
-        description: UserPortalAccess
-        items:
-          $ref: '#/definitions/PortalAccessDTO'
-        type: array
-        uniqueItems: true
     type: object
   BookingDTO:
     description: BookingDTO
@@ -638,14 +642,8 @@ definitions:
     description: CreateUserDTO
     properties:
       active:
-        description: active
+        description: UserActive
         type: boolean
-      app_access:
-        description: UserAppAccess
-        items:
-          $ref: '#/definitions/AppAccessDTO'
-        type: array
-        uniqueItems: true
       court_id:
         description: UserCourtId
         format: uuid
@@ -669,12 +667,6 @@ definitions:
       phone_number:
         description: UserPhoneNumber
         type: string
-      portal_access:
-        description: UserPortalAccess
-        items:
-          $ref: '#/definitions/PortalAccessDTO'
-        type: array
-        uniqueItems: true
       role_id:
         description: UserRoleId
         format: uuid
@@ -707,45 +699,6 @@ definitions:
         description: EditReportRecordingVersion
         format: int32
         type: integer
-    type: object
-  EntityModelBaseUserDTO:
-    properties:
-      _links:
-        $ref: '#/definitions/Links'
-      active:
-        description: active
-        type: boolean
-      app_access:
-        description: UserAppAccess
-        items:
-          $ref: '#/definitions/AppAccessDTO'
-        type: array
-        uniqueItems: true
-      email:
-        description: UserEmail
-        type: string
-      first_name:
-        description: UserFirstName
-        type: string
-      id:
-        description: UserId
-        format: uuid
-        type: string
-      last_name:
-        description: UserLastName
-        type: string
-      organisation:
-        description: UserOrganisation
-        type: string
-      phone_number:
-        description: UserPhoneNumber
-        type: string
-      portal_access:
-        description: UserPortalAccess
-        items:
-          $ref: '#/definitions/PortalAccessDTO'
-        type: array
-        uniqueItems: true
     type: object
   EntityModelBookingDTO:
     properties:
@@ -1028,6 +981,54 @@ definitions:
       shared_with_user:
         $ref: '#/definitions/BaseUserDTO'
     type: object
+  EntityModelUserDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+        uniqueItems: true
+      created_at:
+        description: UserCreatedAt
+        format: date-time
+        type: string
+      deleted_at:
+        description: UserDeletedAt
+        format: date-time
+        type: string
+      email:
+        description: UserEmail
+        type: string
+      first_name:
+        description: UserFirstName
+        type: string
+      id:
+        description: UserId
+        format: uuid
+        type: string
+      last_name:
+        description: UserLastName
+        type: string
+      modified_at:
+        description: UserModifiedAt
+        format: date-time
+        type: string
+      organisation:
+        description: UserOrganisation
+        type: string
+      phone_number:
+        description: UserPhoneNumber
+        type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
+    type: object
   InviteDTO:
     description: InviteDTO
     properties:
@@ -1092,20 +1093,6 @@ definitions:
       totalPages:
         format: int64
         type: integer
-    type: object
-  PagedModelEntityModelBaseUserDTO:
-    properties:
-      _embedded:
-        properties:
-          baseUserDTOList:
-            items:
-              $ref: '#/definitions/EntityModelBaseUserDTO'
-            type: array
-        type: object
-      _links:
-        $ref: '#/definitions/Links'
-      page:
-        $ref: '#/definitions/PageMetadata'
     type: object
   PagedModelEntityModelBookingDTO:
     properties:
@@ -1198,6 +1185,20 @@ definitions:
           shareBookingDTOList:
             items:
               $ref: '#/definitions/EntityModelShareBookingDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelUserDTO:
+    properties:
+      _embedded:
+        properties:
+          userDTOList:
+            items:
+              $ref: '#/definitions/EntityModelUserDTO'
             type: array
         type: object
       _links:
@@ -1517,9 +1518,12 @@ definitions:
   UserDTO:
     description: UserDTO
     properties:
-      active:
-        description: active
-        type: boolean
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+        uniqueItems: true
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -2900,7 +2904,7 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/PagedModelEntityModelBaseUserDTO'
+            $ref: '#/definitions/PagedModelEntityModelUserDTO'
       summary: >-
         Search for Users by first name, last name, email, organisation, court or
         role
@@ -2976,7 +2980,7 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/BaseUserDTO'
+            $ref: '#/definitions/UserDTO'
       summary: Get a User by Id
       tags:
         - user-controller
