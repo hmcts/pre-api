@@ -13,7 +13,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
-import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
@@ -844,7 +844,7 @@ public class UserServiceTest {
 
     }
 
-    private void assertAllUsers(Page<BaseUserDTO> models) {
+    private void assertAllUsers(Page<UserDTO> models) {
         var user1 = models.get().toList().getFirst();
         assertThat(user1.getId()).isEqualTo(userEntity.getId());
         assertThat(user1.getFirstName()).isEqualTo(userEntity.getFirstName());

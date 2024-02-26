@@ -4,41 +4,23 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
-
-import java.sql.Date;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "AppAccessDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AppAccessDTO {
-    @Schema(description = "AppAccessId")
-    private UUID id;
-
+public class AppAccessDTO extends BaseAppAccessDTO {
     @Schema(description = "AppAccessUser")
-    private UserDTO user;
-
-    @Schema(description = "AppAccessCourt")
-    private CourtDTO court;
-
-    @Schema(description = "AppAccessRole")
-    private RoleDTO role;
-
-    @Schema(description = "AppAccessLastAccess")
-    private Date lastAccess;
-
-    @Schema(description = "AppAccessActive")
-    private boolean active;
+    private BaseUserDTO user;
 
     public AppAccessDTO(AppAccess access) {
-        id = access.getId();
-        user = new UserDTO(access.getUser());
-        court = new CourtDTO(access.getCourt());
-        role = new RoleDTO(access.getRole());
-        lastAccess = access.getLastAccess();
-        active = access.isActive();
+        super(access);
+        user = new BaseUserDTO(access.getUser());
     }
 }
