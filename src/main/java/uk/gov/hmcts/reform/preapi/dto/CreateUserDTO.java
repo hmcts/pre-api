@@ -21,5 +21,8 @@ public class CreateUserDTO extends BaseUserDTO {
 
     @Schema(description = "UserRoleId")
     private UUID roleId;
+
+    @Schema(description = "UserActive")
+    private Boolean active;
 }
 

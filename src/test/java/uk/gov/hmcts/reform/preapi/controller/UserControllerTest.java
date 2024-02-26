@@ -95,10 +95,10 @@ public class UserControllerTest {
     @DisplayName("Should return a list of users with 200 response code")
     @Test
     void getUsersSuccess() throws Exception {
-        UUID userId = UUID.randomUUID();
-        BaseUserDTO mockCourt = new BaseUserDTO();
+        var userId = UUID.randomUUID();
+        var mockCourt = new UserDTO();
         mockCourt.setId(userId);
-        Page<BaseUserDTO> userList = new PageImpl<>(List.of(mockCourt));
+        var userList = new PageImpl<>(List.of(mockCourt));
         when(userService.findAllBy(
             isNull(),
             isNull(),
@@ -113,8 +113,8 @@ public class UserControllerTest {
 
         mockMvc.perform(get("/users"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.baseUserDTOList").isNotEmpty())
-            .andExpect(jsonPath("$._embedded.baseUserDTOList[0].id").value(userId.toString()));
+            .andExpect(jsonPath("$._embedded.userDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
 
         verify(userService, times(1)).findAllBy(
             isNull(),
