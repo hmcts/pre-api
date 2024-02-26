@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
-import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
@@ -55,9 +55,9 @@ public class UserService {
     }
 
     @Transactional
-    public BaseUserDTO findById(UUID userId) {
+    public UserDTO findById(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
-            .map(BaseUserDTO::new)
+            .map(UserDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
 
@@ -77,7 +77,7 @@ public class UserService {
     @Transactional
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
-    public Page<BaseUserDTO> findAllBy(
+    public Page<UserDTO> findAllBy(
         String firstName,
         String lastName,
         String email,
@@ -106,7 +106,7 @@ public class UserService {
                                    accessType == AccessType.APP,
                                    includeDeleted,
                                    pageable
-        ).map(BaseUserDTO::new);
+        ).map(UserDTO::new);
     }
 
     @Transactional

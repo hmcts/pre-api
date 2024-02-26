@@ -241,8 +241,8 @@ public class HelperFactory {
             "User" + ThreadLocalRandom.current().nextInt(0, 999999),
             firstName + "@user.com",
             "12345678",
-            "Test Organisation",
-            true);
+            "Test Organisation"
+        );
     }
 
     public static BaseUserDTO createBaseUserDTO(
@@ -250,8 +250,7 @@ public class HelperFactory {
         String lastName,
         String email,
         String phoneNumber,
-        String organisation,
-        Boolean active
+        String organisation
     ) {
         var user = new BaseUserDTO();
         user.setId(UUID.randomUUID());
@@ -260,7 +259,6 @@ public class HelperFactory {
         user.setEmail(email);
         user.setPhoneNumber(phoneNumber);
         user.setOrganisation(organisation);
-        user.setActive(active);
         return user;
     }
 

@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -17,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.controllers.UserController;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
-import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -95,10 +93,10 @@ public class UserControllerTest {
     @DisplayName("Should return a list of users with 200 response code")
     @Test
     void getUsersSuccess() throws Exception {
-        UUID userId = UUID.randomUUID();
-        BaseUserDTO mockCourt = new BaseUserDTO();
+        var userId = UUID.randomUUID();
+        var mockCourt = new UserDTO();
         mockCourt.setId(userId);
-        Page<BaseUserDTO> userList = new PageImpl<>(List.of(mockCourt));
+        var userList = new PageImpl<>(List.of(mockCourt));
         when(userService.findAllBy(
             isNull(),
             isNull(),
@@ -113,8 +111,8 @@ public class UserControllerTest {
 
         mockMvc.perform(get("/users"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.baseUserDTOList").isNotEmpty())
-            .andExpect(jsonPath("$._embedded.baseUserDTOList[0].id").value(userId.toString()));
+            .andExpect(jsonPath("$._embedded.userDTOList").isNotEmpty())
+            .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
 
         verify(userService, times(1)).findAllBy(
             isNull(),
