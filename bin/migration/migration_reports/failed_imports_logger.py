@@ -1,54 +1,46 @@
+
+from .logging_utils import configure_logging
+from .sql_queries import logger_queries
+
+
 class FailedImportsLogger:
-    def __init__(self):
-        self.existing_entries_cache = set()
+    def __init__(self, connection):
+        self.connection = connection
+        self.cursor = connection.cursor()
+        self.log = configure_logging()
 
-    def load_existing_entries(self, filename):
-        self.existing_entries_cache.clear()
+    def execute_query(self, query, values=None):
         try:
-            with open(filename, 'r') as file:
-                for line in file:
-                    failed_import = [item.strip()
-                                    for item in line.split('|') if item.strip()]
+            if values:
+                self.cursor.execute(query, values)
+            else:
+                self.cursor.execute(query)
+            self.connection.commit()
+        except Exception as e:
+            self.log.error(
+                f"Error executing query: {e}, Query: {query}, Values: {values}", exc_info=True)
+            self.connection.rollback()
 
-                    if len(failed_import) >= 3:
-                        table_name = failed_import[0].strip()
-                        table_id = failed_import[1].strip()
-                        case_id = failed_import[2].strip() if failed_import[2].strip() != None else 'N/A'
-                        recording_id = failed_import[3].strip() if failed_import[3].strip() != None else 'N/A'
-                        details = failed_import[4].strip()
+    def create_table(self, table_name):
+        self._clear_table(table_name)
+        self.execute_query(logger_queries['create_table_query'] % table_name)
 
-                        entry = (table_name,table_id, case_id, recording_id, details)
-                        self.existing_entries_cache.add(entry)
-        except FileNotFoundError:
-            pass
+    def _clear_table(self, table_name):
+        check_query = f"SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = %s)"
+        self.execute_query(check_query, (table_name,))
+        table_exists = self.cursor.fetchone()[0]
 
-    def is_duplicate_entry(self, entry):
-        return entry in self.existing_entries_cache
-    
-    
-    def log_failed_imports(self, failed_imports, filename='migration_reports/failed_imports_log.txt'):
-        self.existing_entries_cache.clear()
-        self.load_existing_entries(filename)
+        if table_exists:
+            delete_query = f"DELETE FROM {table_name}"
+            self.execute_query(delete_query)
 
-        with open(filename, 'a+') as file:
-            file.seek(0, 2)
-            if file.tell() == 0:
-                file.write(
-                    f"| {'Table Name'.ljust(22)} | {'ID'.ljust(36)} | {'Case ID'.ljust(36)} | {'Recording ID'.ljust(36)} | {'Details'.ljust(50)} \n")
-                file.write(f"| {'-------------'.ljust(22)} | {'------------------------------------'.ljust(36)} | {'------------------------------------'.ljust(10)} | {'------------------------------------'.ljust(36)} | {'--------------------------------------------------'} \n")
+    def log_failed_imports(self, failed_imports):
+        for failed_import in failed_imports:
+            table_name = failed_import.get('table_name')
+            table_id = failed_import.get('table_id')
+            case_id = failed_import.get('case_id')
+            recording_id = failed_import.get('recording_id')
+            details = failed_import.get('details', 'None')
 
-            for failed_import in failed_imports:
-                table_name = failed_import.get('table_name')
-                table_id = failed_import.get('table_id') or 'None'
-                case_id = failed_import.get('case_id', 'N/A') or 'None'
-                recording_id = failed_import.get(
-                    'recording_id', 'N/A') or 'None'
-                details = failed_import.get('details') or 'None'
-
-                if not self.is_duplicate_entry((table_name, table_id ,case_id, recording_id, details)):
-                    failed_migration_str = f"| {str(table_name).ljust(22)} | {str(table_id).ljust(36)} | {str(case_id).ljust(36)} | {str(recording_id).ljust(36)} | {str(details)} \n"
-                    file.write(failed_migration_str)
-                    existing_entry_str = (table_name, table_id, case_id, recording_id, details)
-                    self.existing_entries_cache.add(existing_entry_str)
-
-
+            values = (table_name, table_id, case_id, recording_id, details)
+            self.execute_query(logger_queries['insert_query'], values)
