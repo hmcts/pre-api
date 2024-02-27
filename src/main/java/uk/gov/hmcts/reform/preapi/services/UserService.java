@@ -193,7 +193,7 @@ public class UserService {
             .orElse(new PortalAccess());
 
         portalAccessEntity.setUser(userEntity);
-        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
+        portalAccessEntity.setStatus(AccessStatus.INACTIVE);
         portalAccessEntity.setCode(createInviteDTO.getCode());
         portalAccessEntity.setInvitedAt(Timestamp.from(java.time.Instant.now()));
         portalAccessRepository.save(portalAccessEntity);

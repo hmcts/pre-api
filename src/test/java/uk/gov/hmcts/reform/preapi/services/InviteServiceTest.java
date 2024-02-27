@@ -68,7 +68,7 @@ public class InviteServiceTest {
         portalAccessEntity = new PortalAccess();
         portalAccessEntity.setId(UUID.randomUUID());
         portalAccessEntity.setUser(portalUserEntity);
-        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
+        portalAccessEntity.setStatus(AccessStatus.INACTIVE);
         portalUserEntity.setPortalAccess(Set.of(portalAccessEntity));
 
         portalAccessEntity2 = new PortalAccess();
@@ -90,7 +90,7 @@ public class InviteServiceTest {
         when(
             portalAccessRepository
                 .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                    portalUserEntity.getId(), AccessStatus.INVITATION_SENT)
+                    portalUserEntity.getId(), AccessStatus.INACTIVE)
         ).thenReturn(Optional.of(portalAccessEntity));
 
         var model = inviteService.findByUserId(portalUserEntity.getId());
@@ -104,7 +104,7 @@ public class InviteServiceTest {
         when(
             portalAccessRepository
                 .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                    UUID.randomUUID(), AccessStatus.INVITATION_SENT)
+                    UUID.randomUUID(), AccessStatus.INACTIVE)
         ).thenReturn(Optional.empty());
 
         assertThrows(
@@ -114,7 +114,7 @@ public class InviteServiceTest {
 
         verify(portalAccessRepository, times(1))
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                portalUserEntity.getId(), AccessStatus.INVITATION_SENT);
+                portalUserEntity.getId(), AccessStatus.INACTIVE);
     }
 
     @DisplayName("Find all invites and return a list of models")
@@ -144,7 +144,7 @@ public class InviteServiceTest {
 
         when(
             portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                inviteId, AccessStatus.INVITATION_SENT)
+                inviteId, AccessStatus.INACTIVE)
         ).thenReturn(Optional.empty());
 
         assertThrows(
@@ -153,7 +153,7 @@ public class InviteServiceTest {
         );
 
         verify(portalAccessRepository, times(1))
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(inviteId, AccessStatus.INVITATION_SENT);
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(inviteId, AccessStatus.INACTIVE);
         verify(userService, never()).deleteById(portalAccessEntity.getUser().getId());
         verify(userRepository, never()).deleteById(portalAccessEntity.getUser().getId());
     }

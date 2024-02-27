@@ -29,7 +29,7 @@ class PortalAccessTest {
         testPortalAccess.setUser(user);
         testPortalAccess.setPassword("TestPassword");
         testPortalAccess.setLastAccess(new Timestamp(System.currentTimeMillis()));
-        testPortalAccess.setStatus(AccessStatus.REGISTERED);
+        testPortalAccess.setStatus(AccessStatus.ACTIVE);
         testPortalAccess.setInvitedAt(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setDeletedAt(new Timestamp(System.currentTimeMillis()));

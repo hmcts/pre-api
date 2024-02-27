@@ -29,7 +29,7 @@ public class InviteService {
     @Transactional
     public InviteDTO findByUserId(UUID userId) {
         return portalAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INACTIVE)
             .map(InviteDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
@@ -64,7 +64,7 @@ public class InviteService {
     @Transactional
     public void deleteByUserId(UUID userId) {
         var portalAccess = portalAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INACTIVE)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
         var user = portalAccess.getUser();
 

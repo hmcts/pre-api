@@ -37,13 +37,16 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false)
-    private AccessStatus status = AccessStatus.INVITATION_SENT;
+    private AccessStatus status = AccessStatus.INACTIVE;
 
     @Column(name = "invite_code", nullable = false, length = 45)
     private String code;
 
     @Column(name = "invited_at")
     private Timestamp invitedAt;
+
+    @Column(name = "terms_accepted_at")
+    private Timestamp termsAcceptedAt;
 
     @Column(name = "registered_at")
     private Timestamp registeredAt;
