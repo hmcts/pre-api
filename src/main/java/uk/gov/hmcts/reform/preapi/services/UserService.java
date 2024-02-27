@@ -231,5 +231,20 @@ public class UserService {
         }
         entity.setDeletedAt(null);
         userRepository.save(entity);
+
+        appAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(id)
+            .forEach(a -> {
+                a.setDeletedAt(null);
+                a.setActive(true);
+                appAccessRepository.save(a);
+            });
+
+        portalAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(id)
+            .forEach(p -> {
+                p.setDeletedAt(null);
+                portalAccessRepository.save(p);
+            });
     }
 }
