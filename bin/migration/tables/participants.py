@@ -44,6 +44,18 @@ class ParticipantManager:
                 })
                 continue
 
+            first_name = participant[6].strip() if participant[6] is not None else None
+            last_name = participant[7].strip() if participant[7] is not None else None
+
+            if first_name is None or last_name is None:
+                self.failed_imports.append({
+                    'table_name': 'participants',
+                    'table_id': id,
+                    'case_id': case_id,
+                    'details': f'Participant is missing first / last name - first name: {first_name} last name: {last_name}'
+                })
+                continue
+
             if not check_existing_record(destination_cursor, 'participants', 'case_id', case_id):
                 participant_type = p_type.upper()
                 if participant_type not in ('WITNESS', 'DEFENDANT'):
@@ -55,22 +67,10 @@ class ParticipantManager:
                     })
                     continue
 
-                first_name = participant[6].strip() if participant[6] is not None else None
-                last_name = participant[7].strip() if participant[7] is not None else None
-
                 active = True if participant[2] == '1' else False
                 deleted_at = None
                 if not active:
                     deleted_at = parse_to_timestamp(participant[11]) if participant[11] else parse_to_timestamp(participant[9])
-
-                if first_name is None or last_name is None:
-                    self.failed_imports.append({
-                        'table_name': 'contacts',
-                        'table_id': id,
-                        'case_id': case_id,
-                        'details': f'Participant is missing first / last name - first name: {first_name} last name: {last_name}'
-                    })
-                    continue
 
                 created_at = parse_to_timestamp(participant[9])
                 modified_at = parse_to_timestamp(participant[11])
