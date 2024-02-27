@@ -32,21 +32,17 @@ This script manages the migration of data from a source database to a destinatio
 ### MigrationTracker Class
 This is responsible for tracking and reporting on the progress of the data migration.
 ##### Methods:
-- **`__init__(self, source_conn, destination_conn, file_path, migration_summary_log)`:**  Initialises the MigrationTracker class with source and destination database connections, along with file path for logging failed imports and migration summary logs.
-- **`fetch_source_data(self)`:** Executes SQL queries on the source database to retrieve data.
-- **`count_records_in_source_tables(self)`:** Counts the number of records in each source table specified in the source_table_queries dictionary.
-- **`count_records_in_destination_tables(self)`:** Counts the number of records in each destination table by querying the destination database directly.
-- **`count_failed_imports(self)`:**  Counts the number of failed imports by parsing the failed imports log file.
+- **`__init__(self, source_conn, destination_conn)`:** Initialises the MigrationTracker class with source and destination database connections.
 - **`print_summary(self)`:** Prints a summary table showing the number of records in source tables, destination tables, and failed imports for each table.
-**`log_records_count(self, total_migration_time)`:** Logs the total count of records in the destination database, the count of failed imports, the date and time of the script execution, and the total migration time in the migration summary log file.
+- **`log_records_count(self, runtime)`:** Logs the total count of records in the destination database, the count of failed imports, and the total migration time.
+
 
 ### FailedImportsLogger Class
 This is responsible for logging failed imports during the data migration process. 
 ##### Methods:
-- **`__init__(self)`:**  Initialises the FailedImportsLogger object with an empty set to store existing failed import entries.
-- **`clear_migrations_file(filename='failed_imports_log.txt')`:** Clears the failed imports log before the migration to avoid duplicate entries
-- **`load_existing_entries(self, filename)`:** Reads the existing failed import entries from the failed_imports_log.txt and populates the existing_entries_cache set.
-- **`log_failed_imports`:** Logs new failed import entries to the failed_imports_log.txt, appending them to existing entries if any.
+- **`__init__(self, connection)`:** Initialises the FailedImportsLogger object with a database connection.
+- **`log_failed_imports(self, failed_imports)`:** Logs new failed import entries to the failed_imports table.
+- **`process_unmigrated_entries(self)`:** Processes unmigrated entries and marks migrated where appropriate.
 
 ### Helper Functions
 ##### Methods:
