@@ -43,4 +43,29 @@ source_table_queries = {
                         ) AS count"""
 }
 
+logger_queries = {
+    'create_table_query': """CREATE TABLE IF NOT EXISTS public.%s (
+                            id SERIAL PRIMARY KEY,
+                            table_name VARCHAR(255),
+                            table_id UUID,
+                            case_id UUID,
+                            recording_id UUID,
+                            details TEXT
+                        )""",
 
+    'insert_query': """ INSERT INTO public.failed_imports
+                    (table_name, table_id, case_id, recording_id, details)
+                    VALUES (%s, %s, %s, %s, %s)""",
+
+    'update_query': "UPDATE failed_imports SET date_migrated =%s WHERE table_name = %s AND id = %s",
+
+    'existing_record_query': """SELECT EXISTS (SELECT 1 FROM public.failed_imports 
+                            WHERE table_name = %s AND table_id = %s AND case_id = %s AND recording_id = %s)""",
+
+    'failed_migration_record_query': "SELECT * FROM public.failed_imports WHERE date_migrated IS NULL"
+}
+
+migration_tracker_queries = {
+    'count_audit_records_query' : "SELECT COUNT(*) FROM public.audits WHERE table_name != 'audits'",
+    'count_failed_migrations_query' : "SELECT COUNT(*) FROM public.failed_imports"
+}
