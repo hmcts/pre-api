@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -192,7 +193,11 @@ public class UserService {
 
         appAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(appAccess -> appAccessRepository.deleteById(appAccess.getId()));
+            .ifPresent(appAccess -> {
+                appAccess.setActive(false);
+                appAccess.setDeletedAt(Timestamp.from(Instant.now()));
+                appAccessRepository.save(appAccess);
+            });
 
         userRepository.deleteById(userId);
     }
@@ -205,5 +210,20 @@ public class UserService {
         }
         entity.setDeletedAt(null);
         userRepository.save(entity);
+
+        appAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(id)
+            .forEach(a -> {
+                a.setDeletedAt(null);
+                a.setActive(true);
+                appAccessRepository.save(a);
+            });
+
+        portalAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(id)
+            .forEach(p -> {
+                p.setDeletedAt(null);
+                portalAccessRepository.save(p);
+            });
     }
 }

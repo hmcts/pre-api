@@ -487,7 +487,7 @@ public class UserServiceTest {
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(portalAccessRepository, times(1)).deleteById(portalAccessEntity.getId());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessRepository, times(1)).deleteById(appAccessEntity.getId());
+        verify(appAccessRepository, times(1)).save(appAccessEntity);
         verify(userRepository, times(1)).deleteById(userEntity.getId());
     }
 
@@ -504,9 +504,9 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessRepository, never()).deleteById(portalAccessEntity.getId());
+        verify(portalAccessRepository, never()).save(any());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessRepository, never()).deleteById(appAccessEntity.getId());
+        verify(appAccessRepository, never()).save(any());
         verify(userRepository, times(1)).deleteById(userEntity.getId());
     }
 
@@ -523,9 +523,9 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userId);
         verify(portalAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessRepository, never()).deleteById(portalAccessEntity.getId());
+        verify(portalAccessRepository, never()).save(any());
         verify(appAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessRepository, never()).deleteById(appAccessEntity.getId());
+        verify(appAccessRepository, never()).save(any());
         verify(userRepository, never()).deleteById(userEntity.getId());
     }
 
@@ -692,12 +692,30 @@ public class UserServiceTest {
         user.setId(UUID.randomUUID());
         user.setDeletedAt(Timestamp.from(Instant.now()));
 
+        var appAccess = new AppAccess();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUser(user);
+        appAccess.setDeletedAt(Timestamp.from(Instant.now()));
+        appAccess.setActive(false);
+
+        var portalAccess = new PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setUser(user);
+        portalAccess.setDeletedAt(Timestamp.from(Instant.now()));
+
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(user.getId())).thenReturn(List.of(appAccess));
+        when(portalAccessRepository.findAllByUser_IdAndDeletedAtIsNotNull(user.getId()))
+            .thenReturn(List.of(portalAccess));
 
         userService.undelete(user.getId());
 
         verify(userRepository, times(1)).findById(user.getId());
         verify(userRepository, times(1)).save(user);
+        verify(appAccessRepository, times(1)).findAllByUser_IdAndDeletedAtIsNotNull(user.getId());
+        verify(appAccessRepository, times(1)).save(appAccess);
+        verify(portalAccessRepository, times(1)).findAllByUser_IdAndDeletedAtIsNotNull(user.getId());
+        verify(portalAccessRepository, times(1)).save(portalAccess);
     }
 
     @DisplayName("Should do nothing when user is not deleted")
@@ -711,7 +729,9 @@ public class UserServiceTest {
         userService.undelete(user.getId());
 
         verify(userRepository, times(1)).findById(user.getId());
-        verify(userRepository,never()).save(user);
+        verify(userRepository, never()).save(user);
+        verify(appAccessRepository, never()).save(any());
+        verify(portalAccessRepository, never()).save(any());
     }
 
     @DisplayName("Should throw not found exception when user cannot be found")
@@ -730,5 +750,7 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, never()).save(any());
+        verify(appAccessRepository, never()).save(any());
+        verify(portalAccessRepository, never()).save(any());
     }
 }
