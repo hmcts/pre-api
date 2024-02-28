@@ -76,7 +76,6 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
                 AND p.deletedAt IS NULL
             )
         )
-        ORDER BY
         """
     )
     Page<Recording> searchAllBy(
