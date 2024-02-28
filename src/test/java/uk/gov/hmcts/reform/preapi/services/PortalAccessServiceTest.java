@@ -1,7 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import javax.swing.text.html.Option;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
