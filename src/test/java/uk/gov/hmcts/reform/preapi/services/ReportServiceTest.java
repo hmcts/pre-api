@@ -136,17 +136,17 @@ public class ReportServiceTest {
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
         when(captureSessionRepository.findAll()).thenReturn(List.of(captureSessionEntity));
         when(recordingRepository
-                 .findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
+                 .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
                      captureSessionEntity,
                      1
                  )
-        ).thenReturn(Optional.empty());
+        ).thenReturn(List.of());
 
         var report = reportService.reportCaptureSessions();
 
         verify(captureSessionRepository, times(1)).findAll();
         verify(recordingRepository, times(1))
-            .findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
+            .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
 
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
@@ -169,17 +169,17 @@ public class ReportServiceTest {
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
         when(captureSessionRepository.findAll()).thenReturn(List.of(captureSessionEntity));
         when(recordingRepository
-                 .findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
+                 .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
                      captureSessionEntity,
                      1
                  )
-        ).thenReturn(Optional.of(recordingEntity));
+        ).thenReturn(List.of(recordingEntity));
 
         var report = reportService.reportCaptureSessions();
 
         verify(captureSessionRepository, times(1)).findAll();
         verify(recordingRepository, times(1))
-            .findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
+            .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
 
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
