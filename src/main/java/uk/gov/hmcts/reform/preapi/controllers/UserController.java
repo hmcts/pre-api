@@ -4,6 +4,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
@@ -149,9 +151,17 @@ public class UserController extends PreApiController {
     @PutMapping("/{userId}")
     @Operation(operationId = "putUser", summary = "Create or Update a User")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
-    public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody CreateUserDTO createUserDTO) {
+    public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody @Valid CreateUserDTO createUserDTO) {
         if (!userId.equals(createUserDTO.getId())) {
-            throw new PathPayloadMismatchException("userId", "createUserDTO.userId");
+            throw new PathPayloadMismatchException("userId", "createUserDTO.id");
+        }
+
+        if (createUserDTO.getAppAccess()
+            .stream()
+            .map(CreateAppAccessDTO::getUserId)
+            .anyMatch(id -> !id.equals(userId))
+        ) {
+            throw new PathPayloadMismatchException("userId", "createUserDTO.appAccess[].userId");
         }
 
         return getUpsertResponse(userService.upsert(createUserDTO), userId);

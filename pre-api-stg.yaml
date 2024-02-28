@@ -91,6 +91,11 @@ definitions:
       phone_number:
         description: UserPhoneNumber
         type: string
+    required:
+      - email
+      - first_name
+      - id
+      - last_name
     type: object
   BookingDTO:
     description: BookingDTO
@@ -346,6 +351,38 @@ definitions:
           $ref: '#/definitions/RoomDTO'
         type: array
         uniqueItems: true
+    type: object
+  CreateAppAccessDTO:
+    description: CreateAppAccessDTO
+    properties:
+      active:
+        description: AppAccessActive
+        type: boolean
+      court_id:
+        description: AppAccessCourtId
+        format: uuid
+        type: string
+      id:
+        description: AppAccessId
+        format: uuid
+        type: string
+      last_active:
+        description: AppAccessLastActive
+        format: date-time
+        type: string
+      role_id:
+        description: AppAccessRoleId
+        format: uuid
+        type: string
+      user_id:
+        description: AppAccessUserId
+        format: uuid
+        type: string
+    required:
+      - court_id
+      - id
+      - role_id
+      - user_id
     type: object
   CreateAuditDTO:
     description: AuditDTO
@@ -641,13 +678,12 @@ definitions:
   CreateUserDTO:
     description: CreateUserDTO
     properties:
-      active:
-        description: UserActive
-        type: boolean
-      court_id:
-        description: UserCourtId
-        format: uuid
-        type: string
+      app_access:
+        description: UserAppAccess
+        items:
+          $ref: '#/definitions/CreateAppAccessDTO'
+        type: array
+        uniqueItems: true
       email:
         description: UserEmail
         type: string
@@ -667,10 +703,12 @@ definitions:
       phone_number:
         description: UserPhoneNumber
         type: string
-      role_id:
-        description: UserRoleId
-        format: uuid
-        type: string
+    required:
+      - app_access
+      - email
+      - first_name
+      - id
+      - last_name
     type: object
   EditReportDTO:
     description: EditReportDTO
@@ -1028,6 +1066,11 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
+    required:
+      - email
+      - first_name
+      - id
+      - last_name
     type: object
   InviteDTO:
     description: InviteDTO
@@ -1561,6 +1604,11 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
+    required:
+      - email
+      - first_name
+      - id
+      - last_name
     type: object
 externalDocs:
   description: README
