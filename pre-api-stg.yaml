@@ -621,6 +621,38 @@ definitions:
           - DEFENDANT
         type: string
     type: object
+  CreatePortalAccessDTO:
+    description: CreatePortalAccessDTO
+    properties:
+      id:
+        description: PortalAccessId
+        format: uuid
+        type: string
+      invited_at:
+        description: PortalAccessInvitedAt
+        format: date-time
+        type: string
+      last_access:
+        description: PortalAccessLastAccess
+        format: date-time
+        type: string
+      registered_at:
+        description: PortalAccessRegisteredAt
+        format: date-time
+        type: string
+      status:
+        description: PortalAccessStatus
+        enum:
+          - INVITATION_SENT
+          - REGISTERED
+          - ACTIVE
+          - INACTIVE
+        type: string
+    required:
+      - id
+      - invited_at
+      - status
+    type: object
   CreateRecordingDTO:
     description: CreateRecordingDTO
     properties:
@@ -703,12 +735,19 @@ definitions:
       phone_number:
         description: UserPhoneNumber
         type: string
+      portal_access:
+        description: UserPortalAccess
+        items:
+          $ref: '#/definitions/CreatePortalAccessDTO'
+        type: array
+        uniqueItems: true
     required:
       - app_access
       - email
       - first_name
       - id
       - last_name
+      - portal_access
     type: object
   EditReportDTO:
     description: EditReportDTO
