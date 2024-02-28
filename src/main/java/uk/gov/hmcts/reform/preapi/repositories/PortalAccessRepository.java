@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,4 +39,6 @@ public interface PortalAccessRepository extends SoftDeleteRepository<PortalAcces
         @Param("organisation") String organisation,
         Pageable pageable
     );
+
+    List<PortalAccess> findAllByUser_IdAndDeletedAtIsNotNull(UUID id);
 }

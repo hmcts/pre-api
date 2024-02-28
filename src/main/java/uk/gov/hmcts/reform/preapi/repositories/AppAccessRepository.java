@@ -16,5 +16,7 @@ public interface AppAccessRepository extends SoftDeleteRepository<AppAccess, UUI
 
     List<AppAccess> findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(String email);
 
+    List<AppAccess> findAllByUser_IdAndDeletedAtIsNotNull(UUID id);
+
     Optional<AppAccess> findByIdAndDeletedAtNullAndUser_DeletedAtNull(UUID userId);
 }

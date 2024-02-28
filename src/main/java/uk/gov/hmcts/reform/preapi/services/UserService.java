@@ -8,13 +8,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
-import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
-import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
@@ -28,8 +27,8 @@ import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -41,17 +40,21 @@ public class UserService {
     private final UserRepository userRepository;
     private final PortalAccessRepository portalAccessRepository;
 
+    private final AppAccessService appAccessService;
+
     @Autowired
     public UserService(AppAccessRepository appAccessRepository,
                        CourtRepository courtRepository,
                        RoleRepository roleRepository,
                        UserRepository userRepository,
-                       PortalAccessRepository portalAccessRepository) {
+                       PortalAccessRepository portalAccessRepository,
+                       AppAccessService appAccessService) {
         this.appAccessRepository = appAccessRepository;
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.portalAccessRepository = portalAccessRepository;
+        this.appAccessService = appAccessService;
     }
 
     @Transactional
@@ -96,16 +99,17 @@ public class UserService {
             throw new NotFoundException("Role: " + role);
         }
 
-        return userRepository.searchAllBy(firstName,
-                                   lastName,
-                                   email,
-                                   organisation,
-                                   court,
-                                   role,
-                                   accessType == AccessType.PORTAL,
-                                   accessType == AccessType.APP,
-                                   includeDeleted,
-                                   pageable
+        return userRepository.searchAllBy(
+            firstName,
+            lastName,
+            email,
+            organisation,
+            court,
+            role,
+            accessType == AccessType.PORTAL,
+            accessType == AccessType.APP,
+            includeDeleted,
+            pageable
         ).map(UserDTO::new);
     }
 
@@ -117,51 +121,27 @@ public class UserService {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
 
-        var court =
-            createUserDTO.getCourtId() != null
-                ? courtRepository.findById(createUserDTO.getCourtId())
-                : Optional.empty();
+        var entity = user.orElse(new User());
+        entity.setId(createUserDTO.getId());
+        entity.setFirstName(createUserDTO.getFirstName());
+        entity.setLastName(createUserDTO.getLastName());
+        entity.setEmail(createUserDTO.getEmail());
+        entity.setPhone(createUserDTO.getPhoneNumber());
+        entity.setOrganisation(createUserDTO.getOrganisation());
+        userRepository.saveAndFlush(entity);
 
         var isUpdate = user.isPresent();
-
-        if (!isUpdate && court.isEmpty()
-            || createUserDTO.getCourtId() != null && court.isEmpty()
-        ) {
-            throw new NotFoundException("Court: " + createUserDTO.getCourtId());
+        if (isUpdate) {
+            entity
+                .getAppAccess()
+                .stream()
+                .map(AppAccess::getId)
+                .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
+                    .noneMatch(newAccessId -> newAccessId == id))
+                .forEach(appAccessRepository::deleteById);
         }
 
-        var role =
-            createUserDTO.getRoleId() != null
-                ? roleRepository.findById(createUserDTO.getRoleId())
-                : Optional.empty();
-
-        if (!isUpdate && role.isEmpty()
-            || createUserDTO.getRoleId() != null && role.isEmpty()
-        ) {
-            throw new NotFoundException("Role: " + createUserDTO.getRoleId());
-        }
-
-        var userEntity = user.orElse(new User());
-
-        userEntity.setId(createUserDTO.getId());
-        userEntity.setFirstName(createUserDTO.getFirstName());
-        userEntity.setLastName(createUserDTO.getLastName());
-        userEntity.setEmail(createUserDTO.getEmail());
-        userEntity.setOrganisation(createUserDTO.getOrganisation());
-        userEntity.setPhone(createUserDTO.getPhoneNumber());
-        userRepository.save(userEntity);
-
-        var appAccessEntity = appAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(createUserDTO.getId())
-            .orElse(new AppAccess());
-
-        appAccessEntity.setUser(userEntity);
-        court.ifPresent(o -> appAccessEntity.setCourt((Court) o));
-        role.ifPresent(o -> appAccessEntity.setRole((Role) o));
-        if (!isUpdate || createUserDTO.getActive() != null) {
-            appAccessEntity.setActive(createUserDTO.getActive() != null && createUserDTO.getActive());
-        }
-        appAccessRepository.save(appAccessEntity);
+        createUserDTO.getAppAccess().forEach(appAccessService::upsert);
 
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
@@ -213,7 +193,11 @@ public class UserService {
 
         appAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(appAccess -> appAccessRepository.deleteById(appAccess.getId()));
+            .ifPresent(appAccess -> {
+                appAccess.setActive(false);
+                appAccess.setDeletedAt(Timestamp.from(Instant.now()));
+                appAccessRepository.save(appAccess);
+            });
 
         userRepository.deleteById(userId);
     }
@@ -226,5 +210,20 @@ public class UserService {
         }
         entity.setDeletedAt(null);
         userRepository.save(entity);
+
+        appAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(id)
+            .forEach(a -> {
+                a.setDeletedAt(null);
+                a.setActive(true);
+                appAccessRepository.save(a);
+            });
+
+        portalAccessRepository
+            .findAllByUser_IdAndDeletedAtIsNotNull(id)
+            .forEach(p -> {
+                p.setDeletedAt(null);
+                portalAccessRepository.save(p);
+            });
     }
 }
