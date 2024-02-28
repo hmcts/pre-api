@@ -107,13 +107,11 @@ public class UserServiceIT {
         portalAccessEntity = new PortalAccess();
         portalAccessEntity.setId(UUID.randomUUID());
         portalAccessEntity.setUser(userEntity);
-        portalAccessEntity.setPassword("mahpassword");
         entityManager.persist(portalAccessEntity);
 
         portalAccessEntity2 = new PortalAccess();
         portalAccessEntity2.setId(UUID.randomUUID());
         portalAccessEntity2.setUser(portalUserEntity);
-        portalAccessEntity2.setPassword("mahpassword");
         entityManager.persist(portalAccessEntity2);
     }
 
