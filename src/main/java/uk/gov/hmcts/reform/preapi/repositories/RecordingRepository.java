@@ -23,7 +23,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
         UUID recordingId
     );
 
-    Optional<Recording> findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(CaptureSession captureSession, int version);
+    List<Recording> findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(CaptureSession captureSession, int version);
 
     @Query(
         """
@@ -76,6 +76,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
                 AND p.deletedAt IS NULL
             )
         )
+        ORDER BY
         """
     )
     Page<Recording> searchAllBy(
