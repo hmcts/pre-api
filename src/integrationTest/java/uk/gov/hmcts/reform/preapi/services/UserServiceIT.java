@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -20,17 +21,11 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
-import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
-import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.mock;
@@ -49,22 +44,10 @@ public class UserServiceIT {
     private static Role role;
 
     @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
     private UserService userService;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private CourtRepository courtRepository;
-
-    @Autowired
-    private AppAccessRepository appAccessRepository;
-
-    @Autowired
-    private PortalAccessRepository portalAccessRepository;
 
     @BeforeEach
     void setUp() {
@@ -74,6 +57,7 @@ public class UserServiceIT {
         userEntity.setLastName("Person");
         userEntity.setEmail("example@example.com");
         userEntity.setOrganisation("Example Org");
+        entityManager.persist(userEntity);
 
         portalUserEntity = new User();
         portalUserEntity.setId(UUID.randomUUID());
@@ -81,6 +65,7 @@ public class UserServiceIT {
         portalUserEntity.setLastName("Person");
         portalUserEntity.setEmail("portal@example.com");
         portalUserEntity.setOrganisation("Portal Org");
+        entityManager.persist(portalUserEntity);
 
         appUserEntity = new User();
         appUserEntity.setId(UUID.randomUUID());
@@ -88,14 +73,20 @@ public class UserServiceIT {
         appUserEntity.setLastName("Person");
         appUserEntity.setEmail("app@example.com");
         appUserEntity.setOrganisation("App Org");
+        entityManager.persist(appUserEntity);
 
         court = new Court();
         court.setId(UUID.randomUUID());
         court.setName("Mah Court");
         court.setCourtType(CourtType.CROWN);
+        entityManager.persist(court);
+
         role = new Role();
         role.setId(UUID.randomUUID());
         role.setName("Mah Role");
+        entityManager.persist(role);
+
+        entityManager.flush();
 
         appAccessEntity = new AppAccess();
         appAccessEntity.setId(UUID.randomUUID());
@@ -103,6 +94,7 @@ public class UserServiceIT {
         appAccessEntity.setCourt(court);
         appAccessEntity.setRole(role);
         appAccessEntity.setActive(true);
+        entityManager.persist(appAccessEntity);
 
         appAccessEntity2 = new AppAccess();
         appAccessEntity2.setId(UUID.randomUUID());
@@ -110,37 +102,25 @@ public class UserServiceIT {
         appAccessEntity2.setCourt(court);
         appAccessEntity2.setRole(role);
         appAccessEntity2.setActive(true);
+        entityManager.persist(appAccessEntity2);
 
         portalAccessEntity = new PortalAccess();
         portalAccessEntity.setId(UUID.randomUUID());
         portalAccessEntity.setUser(userEntity);
         portalAccessEntity.setPassword("mahpassword");
+        entityManager.persist(portalAccessEntity);
 
         portalAccessEntity2 = new PortalAccess();
         portalAccessEntity2.setId(UUID.randomUUID());
         portalAccessEntity2.setUser(portalUserEntity);
         portalAccessEntity2.setPassword("mahpassword");
-
-        roleRepository.save(role);
-        courtRepository.save(court);
-        userRepository.saveAll(Set.of(userEntity, portalUserEntity, appUserEntity));
-        appAccessRepository.saveAll(Set.of(appAccessEntity, appAccessEntity2));
-        portalAccessRepository.saveAll(Set.of(portalAccessEntity, portalAccessEntity2));
-
-        userEntity.setAppAccess(Set.of(appAccessEntity));
-        userEntity.setPortalAccess(Set.of(portalAccessEntity));
-        appUserEntity.setAppAccess(Set.of(appAccessEntity2));
-        portalUserEntity.setPortalAccess(Set.of(portalAccessEntity2));
-        userRepository.saveAll(Set.of(userEntity, portalUserEntity, appUserEntity));
+        entityManager.persist(portalAccessEntity2);
     }
 
     @AfterEach
     void tearDown() {
-        roleRepository.delete(role);
-        courtRepository.delete(court);
-        userRepository.deleteAll(Set.of(userEntity, portalUserEntity, appUserEntity));
-        appAccessRepository.deleteAll(Set.of(appAccessEntity, appAccessEntity2));
-        portalAccessRepository.deleteAll(Set.of(portalAccessEntity, portalAccessEntity2));
+        entityManager.clear();
+        entityManager.flush();
     }
 
     public static void mockAdminUser() {
@@ -162,7 +142,8 @@ public class UserServiceIT {
     public void searchUsersAsAdmin() {
         mockAdminUser();
         userEntity.setDeletedAt(Timestamp.from(Instant.now()));
-        userRepository.saveAndFlush(userEntity);
+        entityManager.persist(userEntity);
+        entityManager.flush();
 
         var users = userService.findAllBy(null, null, null, null, null, null, null, false, Pageable.unpaged()).toList();
 
@@ -184,7 +165,8 @@ public class UserServiceIT {
     public void searchUsersAsNonAdmin() {
         mockNonAdminUser();
         userEntity.setDeletedAt(Timestamp.from(Instant.now()));
-        userRepository.saveAndFlush(userEntity);
+        entityManager.persist(userEntity);
+        entityManager.flush();
 
         var users = userService.findAllBy(null, null, null, null, null, null, null, false, Pageable.unpaged()).toList();
 
@@ -205,7 +187,6 @@ public class UserServiceIT {
     @Transactional
     @Test
     public void testGetUserByAccessType() {
-
         var resultApp = userService.findAllBy(
             null,
             null,
@@ -245,5 +226,31 @@ public class UserServiceIT {
         Assertions.assertEquals(appUserEntity.getId(), usersAll.get(0).getId());
         Assertions.assertEquals(userEntity.getId(), usersAll.get(1).getId());
         Assertions.assertEquals(portalUserEntity.getId(), usersAll.get(2).getId());
+    }
+
+    @Transactional
+    @Test
+    public void deleteUndeleteUserSuccess() {
+        userService.deleteById(userEntity.getId());
+        entityManager.flush();
+        entityManager.refresh(userEntity);
+        entityManager.refresh(appAccessEntity);
+        entityManager.refresh(portalAccessEntity);
+
+        Assertions.assertNotNull(userEntity.getDeletedAt());
+        Assertions.assertNotNull(appAccessEntity.getDeletedAt());
+        Assertions.assertFalse(appAccessEntity.isActive());
+        Assertions.assertNotNull(portalAccessEntity.getDeletedAt());
+
+        userService.undelete(userEntity.getId());
+        entityManager.flush();
+        entityManager.refresh(userEntity);
+        entityManager.refresh(appAccessEntity);
+        entityManager.refresh(portalAccessEntity);
+
+        Assertions.assertNull(userEntity.getDeletedAt());
+        Assertions.assertNull(appAccessEntity.getDeletedAt());
+        Assertions.assertTrue(appAccessEntity.isActive());
+        Assertions.assertNull(portalAccessEntity.getDeletedAt());
     }
 }
