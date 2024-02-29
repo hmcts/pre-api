@@ -142,7 +142,7 @@ public class CaptureSessionServiceTest {
     @Test
     void searchCaptureSessionsSuccess() {
         when(captureSessionRepository.searchCaptureSessionsBy(
-            any(), any(), any(), any(), any(), any(), any(), any(), any())
+            any(), any(), any(), any(), any(), any(), any(), any(), any(), any())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
@@ -150,7 +150,7 @@ public class CaptureSessionServiceTest {
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var modelList = captureSessionService.searchBy(null, null, null, null, Optional.empty(), null).getContent();
+        var modelList = captureSessionService.searchBy(null, null, null, null, Optional.empty(), null,null).getContent();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(captureSession.getId());
     }
@@ -172,6 +172,7 @@ public class CaptureSessionServiceTest {
                      isNull(),
                      isNull(),
                      isNull(),
+                     isNull(),
                      eq(from),
                      eq(until),
                      isNull(),
@@ -179,7 +180,7 @@ public class CaptureSessionServiceTest {
                      isNull())
         ).thenReturn(new PageImpl<>(List.of(captureSession)));
 
-        var modelList = captureSessionService.searchBy(null, null, null, null, Optional.of(from), null).getContent();
+        var modelList = captureSessionService.searchBy(null, null, null, null, Optional.of(from), null, null).getContent();
         assertThat(modelList.size()).isEqualTo(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(captureSession.getId());
     }

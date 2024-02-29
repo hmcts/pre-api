@@ -94,7 +94,7 @@ public class CaptureSessionControllerTest {
         var mock = new CaptureSessionDTO();
         mock.setId(UUID.randomUUID());
 
-        when(captureSessionService.searchBy(any(), any(), any(), any(), any(), any()))
+        when(captureSessionService.searchBy(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(mock)));
 
         mockMvc.perform(get("/capture-sessions"))
@@ -103,7 +103,7 @@ public class CaptureSessionControllerTest {
             .andExpect(jsonPath("$._embedded.captureSessionDTOList[0].id").value(mock.getId().toString()));
 
         verify(captureSessionService, times(1))
-            .searchBy(isNull(), isNull(), isNull(), isNull(), eq(Optional.empty()), any());
+            .searchBy(isNull(), isNull(), isNull(), isNull(), eq(Optional.empty()), any(), any());
     }
 
     @DisplayName("Should get a list of capture sessions with 200 response code filtered by case reference")
@@ -113,7 +113,7 @@ public class CaptureSessionControllerTest {
         mock.setId(UUID.randomUUID());
         var searchParam = "TEST";
 
-        when(captureSessionService.searchBy(eq(searchParam), any(), any(), any(), any(), any()))
+        when(captureSessionService.searchBy(eq(searchParam), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(mock)));
 
         mockMvc.perform(get("/capture-sessions")
@@ -123,7 +123,7 @@ public class CaptureSessionControllerTest {
             .andExpect(jsonPath("$._embedded.captureSessionDTOList[0].id").value(mock.getId().toString()));
 
         verify(captureSessionService, times(1))
-            .searchBy(eq(searchParam), isNull(), isNull(), isNull(), eq(Optional.empty()), any());
+            .searchBy(eq(searchParam), isNull(), isNull(), isNull(), eq(Optional.empty()), any(), any());
     }
 
     @DisplayName("Should get a list of capture sessions with 200 response code filtered by booking id")
@@ -133,7 +133,7 @@ public class CaptureSessionControllerTest {
         mock.setId(UUID.randomUUID());
         var searchParam = UUID.randomUUID();
 
-        when(captureSessionService.searchBy(any(), eq(searchParam), any(), any(), any(), any()))
+        when(captureSessionService.searchBy(any(), eq(searchParam), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(mock)));
 
         mockMvc.perform(get("/capture-sessions")
@@ -143,7 +143,7 @@ public class CaptureSessionControllerTest {
             .andExpect(jsonPath("$._embedded.captureSessionDTOList[0].id").value(mock.getId().toString()));
 
         verify(captureSessionService, times(1))
-            .searchBy(isNull(), eq(searchParam), isNull(), isNull(), eq(Optional.empty()), any());
+            .searchBy(isNull(), eq(searchParam), isNull(), isNull(), eq(Optional.empty()), any(), any());
     }
 
     @DisplayName("Should get a list of capture sessions with 200 response code filtered by origin")
@@ -153,7 +153,7 @@ public class CaptureSessionControllerTest {
         mock.setId(UUID.randomUUID());
         var searchParam = RecordingOrigin.PRE;
 
-        when(captureSessionService.searchBy(any(), any(), eq(searchParam), any(), any(), any()))
+        when(captureSessionService.searchBy(any(), any(), eq(searchParam), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(mock)));
 
         mockMvc.perform(get("/capture-sessions")
@@ -163,7 +163,7 @@ public class CaptureSessionControllerTest {
             .andExpect(jsonPath("$._embedded.captureSessionDTOList[0].id").value(mock.getId().toString()));
 
         verify(captureSessionService, times(1))
-            .searchBy(isNull(), isNull(), eq(searchParam), isNull(), eq(Optional.empty()), any());
+            .searchBy(isNull(), isNull(), eq(searchParam), isNull(), eq(Optional.empty()), any(), any());
     }
 
     @DisplayName("Should get a list of capture sessions with 200 response code filtered by recording status")
@@ -173,7 +173,7 @@ public class CaptureSessionControllerTest {
         mock.setId(UUID.randomUUID());
         var searchParam = RecordingStatus.RECORDING_AVAILABLE;
 
-        when(captureSessionService.searchBy(any(), any(), any(), eq(searchParam), any(), any()))
+        when(captureSessionService.searchBy(any(), any(), any(), eq(searchParam), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(mock)));
 
         mockMvc.perform(get("/capture-sessions")
@@ -183,7 +183,7 @@ public class CaptureSessionControllerTest {
             .andExpect(jsonPath("$._embedded.captureSessionDTOList[0].id").value(mock.getId().toString()));
 
         verify(captureSessionService, times(1))
-            .searchBy(isNull(), isNull(), isNull(), eq(searchParam), eq(Optional.empty()), any());
+            .searchBy(isNull(), isNull(), isNull(), eq(searchParam), eq(Optional.empty()), any(), any());
     }
 
     @DisplayName("Should get a list of capture sessions with 200 response code filtered by scheduled for")
@@ -193,7 +193,7 @@ public class CaptureSessionControllerTest {
         mock.setId(UUID.randomUUID());
         var searchParam = "2023-01-01";
 
-        when(captureSessionService.searchBy(any(), any(), any(), any(), any(), any()))
+        when(captureSessionService.searchBy(any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(mock)));
 
         mockMvc.perform(get("/capture-sessions")
@@ -209,6 +209,7 @@ public class CaptureSessionControllerTest {
                 isNull(),
                 isNull(),
                 eq(Optional.of(Timestamp.valueOf("2023-01-01 00:00:00"))),
+                isNull(),
                 any()
             );
     }
