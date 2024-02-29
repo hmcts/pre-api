@@ -84,8 +84,7 @@ public class UserService {
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public Page<UserDTO> findAllBy(
-        String firstName,
-        String lastName,
+        String name,
         String email,
         String organisation,
         UUID court,
@@ -103,8 +102,7 @@ public class UserService {
         }
 
         return userRepository.searchAllBy(
-            firstName,
-            lastName,
+            name,
             email,
             organisation,
             court,
