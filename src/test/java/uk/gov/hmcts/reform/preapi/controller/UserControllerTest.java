@@ -15,14 +15,18 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -193,6 +197,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         when(userService.upsert(user)).thenReturn(UpsertResult.CREATED);
 
@@ -220,6 +225,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         when(userService.upsert(user)).thenReturn(UpsertResult.UPDATED);
 
@@ -247,6 +253,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + UUID.randomUUID())
                                                  .with(csrf())
@@ -270,6 +277,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         doThrow(new ResourceInDeletedStateException("UserDTO", user.getId().toString()))
             .when(userService).upsert((CreateUserDTO) any());
@@ -297,6 +305,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -321,6 +330,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -346,6 +356,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -370,6 +381,7 @@ public class UserControllerTest {
         user.setFirstName("Example");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -395,6 +407,7 @@ public class UserControllerTest {
         user.setLastName("");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -419,6 +432,7 @@ public class UserControllerTest {
         user.setFirstName("Example");
         user.setLastName("Person");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -444,6 +458,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -468,6 +483,7 @@ public class UserControllerTest {
         user.setFirstName("Example");
         user.setLastName("Person");
         user.setEmail("example@example.com");
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -497,6 +513,7 @@ public class UserControllerTest {
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -526,6 +543,7 @@ public class UserControllerTest {
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -555,6 +573,7 @@ public class UserControllerTest {
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -584,6 +603,7 @@ public class UserControllerTest {
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -609,6 +629,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example not email");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -621,6 +642,118 @@ public class UserControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo(
                 "{\"email\":\"must be a well-formed email address\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user portal access is null")
+    @Test
+    void upsertUserPortalAccessNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setAppAccess(Set.of());
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"portalAccess\":\"must not be null\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user portal access id is null")
+    @Test
+    void upsertUserPortalAccessIdNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setAppAccess(Set.of());
+        var access = new CreatePortalAccessDTO();
+        access.setStatus(AccessStatus.INACTIVE);
+        access.setInvitedAt(Timestamp.from(Instant.now()));
+        user.setPortalAccess(Set.of(access));
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"portalAccess[].id\":\"must not be null\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user portal access status is null")
+    @Test
+    void upsertUserPortalAccessStatusNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setAppAccess(Set.of());
+        var access = new CreatePortalAccessDTO();
+        access.setId(UUID.randomUUID());
+        access.setInvitedAt(Timestamp.from(Instant.now()));
+        user.setPortalAccess(Set.of(access));
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"portalAccess[].status\":\"must not be null\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user portal access invited at is null")
+    @Test
+    void upsertUserPortalAccessInvitedAtNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setAppAccess(Set.of());
+        var access = new CreatePortalAccessDTO();
+        access.setId(UUID.randomUUID());
+        access.setStatus(AccessStatus.INACTIVE);
+        user.setPortalAccess(Set.of(access));
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"portalAccess[].invitedAt\":\"must not be null\"}"
             );
     }
 
