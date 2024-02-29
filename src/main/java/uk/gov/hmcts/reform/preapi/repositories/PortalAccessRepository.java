@@ -22,6 +22,8 @@ public interface PortalAccessRepository extends SoftDeleteRepository<PortalAcces
 
     Optional<PortalAccess> findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(String email, String code);
 
+    Optional<PortalAccess> findByIdAndDeletedAtIsNull(UUID id);
+
     @Query(
         """
         SELECT pa FROM PortalAccess pa
