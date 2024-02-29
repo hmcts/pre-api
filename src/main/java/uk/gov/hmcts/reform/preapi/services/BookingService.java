@@ -82,7 +82,7 @@ public class BookingService {
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isPortalUser() ? null : auth.getCourtId();
+        var authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
 
         return bookingRepository
             .searchBookingsBy(
