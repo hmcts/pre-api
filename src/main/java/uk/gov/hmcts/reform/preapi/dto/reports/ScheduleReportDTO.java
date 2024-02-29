@@ -43,7 +43,9 @@ public class ScheduleReportDTO {
         scheduledFor = bookingEntity.getScheduledFor();
         bookingCreatedAt = bookingEntity.getCreatedAt();
         caseReference = caseEntity.getReference();
-        captureSessionUser = captureSession.getStartedByUser().getEmail();
+        if (captureSession.getStartedByUser() != null) {
+            captureSessionUser = captureSession.getStartedByUser().getEmail();
+        }
         court = caseEntity.getCourt().getName();
         regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
