@@ -21,9 +21,10 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         """
         SELECT u FROM User u
         WHERE (:includeDeleted = TRUE OR u.deletedAt IS NULL)
-        AND (:firstName IS NULL OR u.firstName ILIKE %:firstName%)
-        AND (:lastName IS NULL OR u.lastName ILIKE %:lastName%)
-        AND (:email IS NULL OR u.email ILIKE %:email%)
+        AND (
+            (:name IS NULL OR CONCAT(u.firstName, ' ', u.lastName) ILIKE %:name%)
+            OR (:email IS NULL OR u.email ILIKE %:email%)
+        )
         AND (:organisation IS NULL OR u.organisation ILIKE %:organisation%)
         AND (CAST(:courtId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.court.id = :courtId))
         AND (CAST(:roleId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.role.id = :roleId))
@@ -36,8 +37,7 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         """
     )
     Page<User> searchAllBy(
-        @Param("firstName") String firstName,
-        @Param("lastName") String lastName,
+        @Param("name") String name,
         @Param("email") String email,
         @Param("organisation") String organisation,
         @Param("courtId") UUID courtId,
