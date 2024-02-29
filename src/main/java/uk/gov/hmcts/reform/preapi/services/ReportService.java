@@ -57,12 +57,14 @@ public class ReportService {
         return captureSessionRepository
             .findAll()
             .stream()
-            .map(c ->
-                recordingRepository
-                    .findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(c, 1)
-                    .map(ConcurrentCaptureSessionReportDTO::new)
-                    .orElse(new ConcurrentCaptureSessionReportDTO(c))
-            ).collect(Collectors.toList());
+            .map(c -> {
+                var recordings = recordingRepository
+                    .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(c, 1);
+                return (recordings.isEmpty())
+                    ? new ConcurrentCaptureSessionReportDTO(c)
+                    : new ConcurrentCaptureSessionReportDTO(recordings.getFirst());
+            })
+            .collect(Collectors.toList());
     }
 
     @Transactional
