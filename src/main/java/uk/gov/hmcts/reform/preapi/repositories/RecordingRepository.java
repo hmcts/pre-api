@@ -23,7 +23,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
         UUID recordingId
     );
 
-    Optional<Recording> findByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(CaptureSession captureSession, int version);
+    List<Recording> findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(CaptureSession captureSession, int version);
 
     @Query(
         """
