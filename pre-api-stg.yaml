@@ -650,7 +650,6 @@ definitions:
         type: string
     required:
       - id
-      - invited_at
       - status
     type: object
   CreateRecordingDTO:

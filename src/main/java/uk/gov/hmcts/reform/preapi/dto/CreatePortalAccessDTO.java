@@ -28,7 +28,6 @@ public class CreatePortalAccessDTO {
     private AccessStatus status;
 
     @Schema(description = "PortalAccessInvitedAt")
-    @NotNull
     private Timestamp invitedAt;
 
     @Schema(description = "PortalAccessRegisteredAt")

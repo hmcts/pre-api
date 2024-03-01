@@ -726,35 +726,6 @@ public class UserControllerTest {
             );
     }
 
-    @DisplayName("Should fail to create/update a user with 400 when user portal access invited at is null")
-    @Test
-    void upsertUserPortalAccessInvitedAtNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        var access = new CreatePortalAccessDTO();
-        access.setId(UUID.randomUUID());
-        access.setStatus(AccessStatus.INACTIVE);
-        user.setPortalAccess(Set.of(access));
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"portalAccess[].invitedAt\":\"must not be null\"}"
-            );
-    }
-
     @DisplayName("Should return 400 when user id is not a uuid")
     @Test
     void testFindByIdBadRequest() throws Exception {
@@ -889,6 +860,7 @@ public class UserControllerTest {
 
         mockMvc.perform(post("/users/" + userId + "/undelete")
                             .with(csrf()))
+            .andExpect(status().isNotFound())
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: User: " + userId));
