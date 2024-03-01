@@ -15,14 +15,18 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -106,7 +110,6 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             isNull(),
-            isNull(),
             eq(false),
             any()
         )).thenReturn(userList);
@@ -117,7 +120,6 @@ public class UserControllerTest {
             .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
 
         verify(userService, times(1)).findAllBy(
-            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -135,7 +137,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -149,7 +151,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
+            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -193,6 +195,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         when(userService.upsert(user)).thenReturn(UpsertResult.CREATED);
 
@@ -220,6 +223,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         when(userService.upsert(user)).thenReturn(UpsertResult.UPDATED);
 
@@ -247,6 +251,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + UUID.randomUUID())
                                                  .with(csrf())
@@ -270,6 +275,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         doThrow(new ResourceInDeletedStateException("UserDTO", user.getId().toString()))
             .when(userService).upsert((CreateUserDTO) any());
@@ -297,6 +303,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -321,6 +328,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -346,6 +354,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -370,6 +379,7 @@ public class UserControllerTest {
         user.setFirstName("Example");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -395,6 +405,7 @@ public class UserControllerTest {
         user.setLastName("");
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -419,6 +430,7 @@ public class UserControllerTest {
         user.setFirstName("Example");
         user.setLastName("Person");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -444,6 +456,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -468,6 +481,7 @@ public class UserControllerTest {
         user.setFirstName("Example");
         user.setLastName("Person");
         user.setEmail("example@example.com");
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -497,6 +511,7 @@ public class UserControllerTest {
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -526,6 +541,7 @@ public class UserControllerTest {
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -555,6 +571,7 @@ public class UserControllerTest {
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -584,6 +601,7 @@ public class UserControllerTest {
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
         user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -609,6 +627,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example not email");
         user.setAppAccess(Set.of());
+        user.setPortalAccess(Set.of());
 
         MvcResult response = mockMvc.perform(put("/users/" + userId)
                                                  .with(csrf())
@@ -621,6 +640,89 @@ public class UserControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo(
                 "{\"email\":\"must be a well-formed email address\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user portal access is null")
+    @Test
+    void upsertUserPortalAccessNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setAppAccess(Set.of());
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"portalAccess\":\"must not be null\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user portal access id is null")
+    @Test
+    void upsertUserPortalAccessIdNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setAppAccess(Set.of());
+        var access = new CreatePortalAccessDTO();
+        access.setStatus(AccessStatus.INACTIVE);
+        access.setInvitedAt(Timestamp.from(Instant.now()));
+        user.setPortalAccess(Set.of(access));
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"portalAccess[].id\":\"must not be null\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when user portal access status is null")
+    @Test
+    void upsertUserPortalAccessStatusNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setAppAccess(Set.of());
+        var access = new CreatePortalAccessDTO();
+        access.setId(UUID.randomUUID());
+        access.setInvitedAt(Timestamp.from(Instant.now()));
+        user.setPortalAccess(Set.of(access));
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"portalAccess[].status\":\"must not be null\"}"
             );
     }
 
@@ -671,7 +773,6 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             isNull(),
-            isNull(),
             anyBoolean(),
             any()
         ))
@@ -684,14 +785,13 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
     }
 
     @DisplayName("Should set include deleted param to false when set to false")
     @Test
     public void testGetCasesIncludeDeletedFalse() throws Exception {
         when(userService.findAllBy(
-            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -710,14 +810,13 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
     }
 
     @DisplayName("Should set include deleted param to true when set to true")
     @Test
     public void testGetCasesIncludeDeletedTrue() throws Exception {
         when(userService.findAllBy(
-            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -737,7 +836,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
     }
 
     @DisplayName("Should undelete a user by id and return a 200 response")
@@ -761,6 +860,7 @@ public class UserControllerTest {
 
         mockMvc.perform(post("/users/" + userId + "/undelete")
                             .with(csrf()))
+            .andExpect(status().isNotFound())
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: User: " + userId));

@@ -107,13 +107,11 @@ public class UserServiceIT {
         portalAccessEntity = new PortalAccess();
         portalAccessEntity.setId(UUID.randomUUID());
         portalAccessEntity.setUser(userEntity);
-        portalAccessEntity.setPassword("mahpassword");
         entityManager.persist(portalAccessEntity);
 
         portalAccessEntity2 = new PortalAccess();
         portalAccessEntity2.setId(UUID.randomUUID());
         portalAccessEntity2.setUser(portalUserEntity);
-        portalAccessEntity2.setPassword("mahpassword");
         entityManager.persist(portalAccessEntity2);
     }
 
@@ -145,14 +143,14 @@ public class UserServiceIT {
         entityManager.persist(userEntity);
         entityManager.flush();
 
-        var users = userService.findAllBy(null, null, null, null, null, null, null, false, Pageable.unpaged()).toList();
+        var users = userService.findAllBy(null, null, null, null, null, null, false, Pageable.unpaged()).toList();
 
         Assertions.assertEquals(users.size(), 2);
         Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
         Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(appUserEntity.getId())));
         Assertions.assertFalse(users.stream().anyMatch(user -> user.getId().equals(userEntity.getId())));
 
-        var users2 = userService.findAllBy(null, null, null, null, null, null, null, true, Pageable.unpaged()).toList();
+        var users2 = userService.findAllBy(null, null, null, null, null, null, true, Pageable.unpaged()).toList();
 
         Assertions.assertEquals(users2.size(), 3);
         Assertions.assertTrue(users2.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
@@ -168,7 +166,7 @@ public class UserServiceIT {
         entityManager.persist(userEntity);
         entityManager.flush();
 
-        var users = userService.findAllBy(null, null, null, null, null, null, null, false, Pageable.unpaged()).toList();
+        var users = userService.findAllBy(null, null, null, null, null, null, false, Pageable.unpaged()).toList();
 
         Assertions.assertEquals(users.size(), 2);
         Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
@@ -177,7 +175,7 @@ public class UserServiceIT {
 
         var message = Assertions.assertThrows(
             AccessDeniedException.class,
-            () -> userService.findAllBy(null, null, null, null, null, null, null, true, Pageable.unpaged()).toList()
+            () -> userService.findAllBy(null, null, null, null, null, null, true, Pageable.unpaged()).toList()
         ).getMessage();
 
         Assertions.assertEquals(message, "Access Denied");
@@ -193,9 +191,9 @@ public class UserServiceIT {
             null,
             null,
             null,
-            null,
             AccessType.APP,
-            false, PageRequest.of(0, 20)
+            false,
+            PageRequest.of(0, 20)
         );
         Assertions.assertEquals(2, resultApp.getContent().size());
         var usersApp = resultApp.getContent().stream()
@@ -209,9 +207,9 @@ public class UserServiceIT {
             null,
             null,
             null,
-            null,
             AccessType.PORTAL,
-            false, PageRequest.of(0, 20)
+            false,
+            PageRequest.of(0, 20)
         );
         Assertions.assertEquals(2, resultPortal.getContent().size());
         var usersPortal = resultPortal.getContent().stream()
@@ -219,7 +217,7 @@ public class UserServiceIT {
         Assertions.assertEquals(userEntity.getFirstName(), usersPortal.get(0).getFirstName());
         Assertions.assertEquals(portalUserEntity.getId(), usersPortal.get(1).getId());
 
-        var resultAll = userService.findAllBy(null, null, null, null, null, null, null, false, PageRequest.of(0, 20));
+        var resultAll = userService.findAllBy(null, null, null, null, null, null, false, PageRequest.of(0, 20));
         Assertions.assertEquals(3, resultAll.getContent().size());
         var usersAll = resultAll.getContent().stream()
                                 .sorted(Comparator.comparing(BaseUserDTO::getFirstName)).toList();

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -39,8 +40,8 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PortalAccessRepository portalAccessRepository;
-
     private final AppAccessService appAccessService;
+    private final PortalAccessService portalAccessService;
 
     @Autowired
     public UserService(AppAccessRepository appAccessRepository,
@@ -48,16 +49,18 @@ public class UserService {
                        RoleRepository roleRepository,
                        UserRepository userRepository,
                        PortalAccessRepository portalAccessRepository,
-                       AppAccessService appAccessService) {
+                       AppAccessService appAccessService,
+                       PortalAccessService portalAccessService) {
         this.appAccessRepository = appAccessRepository;
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
         this.portalAccessRepository = portalAccessRepository;
         this.appAccessService = appAccessService;
+        this.portalAccessService = portalAccessService;
     }
 
-    @Transactional
+    @Transactional()
     public UserDTO findById(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
             .map(UserDTO::new)
@@ -81,8 +84,7 @@ public class UserService {
     @PreAuthorize("!#includeDeleted or @authorisationService.canViewDeleted(authentication)")
     @SuppressWarnings("PMD.UseObjectForClearerAPI")
     public Page<UserDTO> findAllBy(
-        String firstName,
-        String lastName,
+        String name,
         String email,
         String organisation,
         UUID court,
@@ -100,8 +102,7 @@ public class UserService {
         }
 
         return userRepository.searchAllBy(
-            firstName,
-            lastName,
+            name,
             email,
             organisation,
             court,
@@ -117,9 +118,17 @@ public class UserService {
     @SuppressWarnings("PMD.CyclomaticComplexity")
     public UpsertResult upsert(CreateUserDTO createUserDTO) {
         var user = userRepository.findById(createUserDTO.getId());
-        if (user.isPresent() && user.get().isDeleted()) {
+
+        var isUpdate = user.isPresent();
+        if (isUpdate && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
+
+        createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId).forEach(id -> {
+            if (!portalAccessRepository.existsById(id)) {
+                throw new NotFoundException("Portal Access: " + id);
+            }
+        });
 
         var entity = user.orElse(new User());
         entity.setId(createUserDTO.getId());
@@ -130,7 +139,6 @@ public class UserService {
         entity.setOrganisation(createUserDTO.getOrganisation());
         userRepository.saveAndFlush(entity);
 
-        var isUpdate = user.isPresent();
         if (isUpdate) {
             entity
                 .getAppAccess()
@@ -139,6 +147,16 @@ public class UserService {
                 .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId == id))
                 .forEach(appAccessRepository::deleteById);
+
+            entity
+                .getPortalAccess()
+                .stream()
+                .map(PortalAccess::getId)
+                .filter(id -> createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId)
+                    .noneMatch(newAccessId -> newAccessId == id))
+                .forEach(portalAccessRepository::deleteById);
+
+            createUserDTO.getPortalAccess().forEach(portalAccessService::update);
         }
 
         createUserDTO.getAppAccess().forEach(appAccessService::upsert);
