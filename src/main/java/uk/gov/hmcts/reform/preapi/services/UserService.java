@@ -145,7 +145,7 @@ public class UserService {
                 .stream()
                 .map(AppAccess::getId)
                 .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
-                    .noneMatch(newAccessId -> newAccessId == id))
+                    .noneMatch(newAccessId -> newAccessId.equals(id)))
                 .forEach(appAccessRepository::deleteById);
 
             entity
@@ -153,7 +153,7 @@ public class UserService {
                 .stream()
                 .map(PortalAccess::getId)
                 .filter(id -> createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId)
-                    .noneMatch(newAccessId -> newAccessId == id))
+                    .noneMatch(newAccessId -> newAccessId.equals(id)))
                 .forEach(portalAccessRepository::deleteById);
 
             createUserDTO.getPortalAccess().forEach(portalAccessService::update);
