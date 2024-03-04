@@ -62,6 +62,7 @@ public class CaptureSessionService {
         RecordingOrigin origin,
         RecordingStatus recordingStatus,
         Optional<Timestamp> scheduledFor,
+        UUID courtId,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -70,7 +71,7 @@ public class CaptureSessionService {
 
         var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
         var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isPortalUser() ? null : auth.getCourtId();
+        var authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
 
         return captureSessionRepository
             .searchCaptureSessionsBy(
@@ -78,6 +79,7 @@ public class CaptureSessionService {
                 bookingId,
                 origin,
                 recordingStatus,
+                courtId,
                 scheduledFor.orElse(null),
                 until,
                 authorisedBookings,

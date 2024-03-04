@@ -84,6 +84,12 @@ public class CaptureSessionController extends PreApiController {
         example = "2024-04-27"
     )
     @Parameter(
+        name = "courtId",
+        description = "The court id of the capture session to search by",
+        schema = @Schema(implementation = UUID.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -109,6 +115,7 @@ public class CaptureSessionController extends PreApiController {
             params.getScheduledFor() != null
                 ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
                 : Optional.empty(),
+            params.getCourtId(),
             pageable
         );
 

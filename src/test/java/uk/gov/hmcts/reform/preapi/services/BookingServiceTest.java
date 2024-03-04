@@ -324,6 +324,7 @@ class BookingServiceTest {
         caseEntity.setId(caseId);
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
+        bookingModel.setCaseId(caseId);
         bookingModel.setParticipants(Set.of());
         var participantModel = new CreateParticipantDTO();
         participantModel.setId(UUID.randomUUID());

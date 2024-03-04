@@ -16,4 +16,5 @@ public class SearchCaptureSessions {
     private RecordingStatus recordingStatus;
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;
+    private UUID courtId;
 }
