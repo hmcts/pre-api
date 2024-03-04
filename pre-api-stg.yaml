@@ -650,7 +650,6 @@ definitions:
         type: string
     required:
       - id
-      - invited_at
       - status
     type: object
   CreateRecordingDTO:
@@ -2955,13 +2954,9 @@ paths:
     get:
       operationId: getUsers
       parameters:
-        - description: The first name of the user to search by
+        - description: The name of the user to search by
           in: query
-          name: firstName
-          type: string
-        - description: The last name of the user to search by
-          in: query
-          name: lastName
+          name: name
           type: string
         - description: The email of the user to search by
           in: query

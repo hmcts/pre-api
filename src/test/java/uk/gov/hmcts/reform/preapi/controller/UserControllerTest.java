@@ -110,7 +110,6 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             isNull(),
-            isNull(),
             eq(false),
             any()
         )).thenReturn(userList);
@@ -121,7 +120,6 @@ public class UserControllerTest {
             .andExpect(jsonPath("$._embedded.userDTOList[0].id").value(userId.toString()));
 
         verify(userService, times(1)).findAllBy(
-            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -139,7 +137,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -153,7 +151,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
+            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -728,35 +726,6 @@ public class UserControllerTest {
             );
     }
 
-    @DisplayName("Should fail to create/update a user with 400 when user portal access invited at is null")
-    @Test
-    void upsertUserPortalAccessInvitedAtNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        var access = new CreatePortalAccessDTO();
-        access.setId(UUID.randomUUID());
-        access.setStatus(AccessStatus.INACTIVE);
-        user.setPortalAccess(Set.of(access));
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"portalAccess[].invitedAt\":\"must not be null\"}"
-            );
-    }
-
     @DisplayName("Should return 400 when user id is not a uuid")
     @Test
     void testFindByIdBadRequest() throws Exception {
@@ -804,7 +773,6 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             isNull(),
-            isNull(),
             anyBoolean(),
             any()
         ))
@@ -817,14 +785,13 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
     }
 
     @DisplayName("Should set include deleted param to false when set to false")
     @Test
     public void testGetCasesIncludeDeletedFalse() throws Exception {
         when(userService.findAllBy(
-            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -843,14 +810,13 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
     }
 
     @DisplayName("Should set include deleted param to true when set to true")
     @Test
     public void testGetCasesIncludeDeletedTrue() throws Exception {
         when(userService.findAllBy(
-            isNull(),
             isNull(),
             isNull(),
             isNull(),
@@ -870,7 +836,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
     }
 
     @DisplayName("Should undelete a user by id and return a 200 response")
@@ -894,6 +860,7 @@ public class UserControllerTest {
 
         mockMvc.perform(post("/users/" + userId + "/undelete")
                             .with(csrf()))
+            .andExpect(status().isNotFound())
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: User: " + userId));
