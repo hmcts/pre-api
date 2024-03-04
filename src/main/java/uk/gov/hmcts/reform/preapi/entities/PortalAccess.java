@@ -28,9 +28,6 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private User user;
 
-    @Column(name = "password", nullable = false, length = 45)
-    private String password;
-
     @Column(name = "last_access")
     private Timestamp lastAccess;
 
@@ -39,7 +36,7 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "status", nullable = false)
     private AccessStatus status = AccessStatus.INACTIVE;
 
-    @Column(name = "invite_code", nullable = false, length = 45)
+    @Column(name = "invite_code", length = 45)
     private String code;
 
     @Column(name = "invited_at")

@@ -23,5 +23,10 @@ public class CreateUserDTO extends BaseUserDTO {
     @NotNull
     @Valid
     private Set<CreateAppAccessDTO> appAccess;
+
+    @Schema(description = "UserPortalAccess")
+    @NotNull
+    @Valid
+    private Set<CreatePortalAccessDTO> portalAccess;
 }
 

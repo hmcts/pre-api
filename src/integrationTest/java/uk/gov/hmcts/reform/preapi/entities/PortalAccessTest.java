@@ -27,7 +27,6 @@ class PortalAccessTest {
 
         PortalAccess testPortalAccess = new PortalAccess();
         testPortalAccess.setUser(user);
-        testPortalAccess.setPassword("TestPassword");
         testPortalAccess.setLastAccess(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setStatus(AccessStatus.ACTIVE);
         testPortalAccess.setInvitedAt(new Timestamp(System.currentTimeMillis()));
@@ -41,7 +40,6 @@ class PortalAccessTest {
 
         assertEquals(testPortalAccess.getId(), retrievedPortalAccess.getId(), "Id should match");
         assertEquals(testPortalAccess.getUser(), retrievedPortalAccess.getUser(), "User should match");
-        assertEquals(testPortalAccess.getPassword(), retrievedPortalAccess.getPassword(), "Password should match");
         assertEquals(testPortalAccess.getStatus(), retrievedPortalAccess.getStatus(), "Status should match");
         assertEquals(
             testPortalAccess.getLastAccess(),

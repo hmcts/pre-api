@@ -7,8 +7,7 @@ import java.util.UUID;
 
 @Data
 public class SearchUsers {
-    private String firstName;
-    private String lastName;
+    private String name;
     private String email;
     private String organisation;
     private UUID courtId;

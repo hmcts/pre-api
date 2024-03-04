@@ -69,13 +69,8 @@ public class UserController extends PreApiController {
         summary = "Search for Users by first name, last name, email, organisation, court or role"
     )
     @Parameter(
-        name = "firstName",
-        description = "The first name of the user to search by",
-        schema = @Schema(implementation = String.class)
-    )
-    @Parameter(
-        name = "lastName",
-        description = "The last name of the user to search by",
+        name = "name",
+        description = "The name of the user to search by",
         schema = @Schema(implementation = String.class)
     )
     @Parameter(
@@ -130,8 +125,7 @@ public class UserController extends PreApiController {
         @Parameter(hidden = true) PagedResourcesAssembler<UserDTO> assembler
     ) {
         var resultPage = userService.findAllBy(
-            params.getFirstName(),
-            params.getLastName(),
+            params.getName(),
             params.getEmail(),
             params.getOrganisation(),
             params.getCourtId(),
