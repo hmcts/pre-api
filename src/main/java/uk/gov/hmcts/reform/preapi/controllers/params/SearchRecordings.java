@@ -30,4 +30,16 @@ public class SearchRecordings {
     private Timestamp scheduledForUntil;
     private List<UUID> authorisedBookings;
     private UUID authorisedCourt;
+
+    public String getCaseReference() {
+        return caseReference != null && !caseReference.isEmpty() ? caseReference : null;
+    }
+
+    public String getWitnessName() {
+        return witnessName != null && !witnessName.isEmpty() ? witnessName : null;
+    }
+
+    public String getDefendantName() {
+        return defendantName != null && !defendantName.isEmpty() ? defendantName : null;
+    }
 }
