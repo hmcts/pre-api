@@ -18,16 +18,21 @@ public class SearchRecordings {
     private UUID participantId;
     private String caseReference;
     @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private Date scheduledFor;
+    private Date startedAt;
     private UUID courtId;
     private String witnessName;
     private String defendantName;
     private Boolean includeDeleted;
+    private String id;
 
     @Nullable
-    private Timestamp scheduledForFrom;
+    private Timestamp startedAtFrom;
     @Nullable
-    private Timestamp scheduledForUntil;
+    private Timestamp startedAtUntil;
     private List<UUID> authorisedBookings;
     private UUID authorisedCourt;
+
+    public String getId() {
+        return id != null && id.isEmpty() ? id : null;
+    }
 }
