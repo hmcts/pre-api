@@ -33,6 +33,6 @@ public class SearchRecordings {
     private UUID authorisedCourt;
 
     public String getId() {
-        return id != null && id.isEmpty() ? id : null;
+        return id != null && !id.isEmpty() ? id : null;
     }
 }

@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 public class SearchRecordingsTest {
 
     @Test
-    public void testGetCaseReference() {
+    public void getId() {
         var searchRecordings = new SearchRecordings();
         searchRecordings.setId("abc");
         assertEquals("abc", searchRecordings.getId());
