@@ -5,7 +5,7 @@ import json
 import logging.config
 import os
 
-# Load logging config
+# Load logging config 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 logging_config_path = os.path.join(current_dir, '..', 'migration_reports', 'logging_config.json')
 with open(logging_config_path, 'r') as f:
@@ -15,7 +15,7 @@ logging.config.dictConfig(logging_config)
 logger = logging.getLogger(__name__)
 
 # Parses timestamp string to date format
-def parse_to_timestamp(input_text, to_utc:bool=False):
+def parse_to_timestamp(input_text):
     if input_text:
         try:
             parsed_datetime = None
@@ -39,8 +39,9 @@ def parse_to_timestamp(input_text, to_utc:bool=False):
                     logger.error(f"Error: {e}")
 
             if parsed_datetime:
-                return ((pytz.timezone("UTC") if to_utc else pytz.timezone('Europe/London'))
-                        .localize(parsed_datetime))
+                uk_timezone = pytz.timezone('Europe/London')
+                parsed_datetime = uk_timezone.localize(parsed_datetime)
+                return parsed_datetime
 
         except (ValueError, TypeError) as e:
             logger.error(f"Error: {e}")
