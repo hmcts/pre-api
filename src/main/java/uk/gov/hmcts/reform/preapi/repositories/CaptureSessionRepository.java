@@ -51,7 +51,7 @@ public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSe
         AND (CAST(:bookingId as uuid) IS NULL OR c.booking.id = :bookingId)
         AND (CAST(:origin as text) IS NULL OR c.origin = :origin)
         AND (CAST(:recordingStatus as text) IS NULL OR c.status = :recordingStatus)
-
+        AND (CAST(:courtId as uuid) IS NULL OR c.booking.caseId.court.id = :courtId)
         AND (
             CAST(:scheduledForFrom as Timestamp) IS NULL OR
             CAST(:scheduledForUntil as Timestamp) IS NULL OR
@@ -64,6 +64,7 @@ public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSe
         @Param("bookingId") UUID bookingId,
         @Param("origin") RecordingOrigin origin,
         @Param("recordingStatus") RecordingStatus recordingStatus,
+        @Param("courtId") UUID courtId,
         @Param("scheduledForFrom") Timestamp scheduledForFrom,
         @Param("scheduledForUntil") Timestamp scheduledForUntil,
         @Param("authorisedBookings") List<UUID> authorisedBookings,

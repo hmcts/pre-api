@@ -131,6 +131,27 @@ class CaseServiceTest {
         assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
     }
 
+    @DisplayName("Find all cases and return a list of models as non admin")
+    @Test
+    void findAllSuccessNonAdmin() {
+        var courtId = UUID.randomUUID();
+        when(caseRepository.searchCasesBy(null, null, false, courtId,null)).thenReturn(new PageImpl<>(allCaseEntities));
+
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isPortalUser()).thenReturn(false);
+        when(mockAuth.isAdmin()).thenReturn(false);
+        when(mockAuth.getCourtId()).thenReturn(courtId);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+
+        var models = caseService.searchBy(null, null, false, null);
+        assertThat(models.getTotalElements()).isEqualTo(1);
+        assertThat(models.get().toList().getFirst().getId()).isEqualTo(caseEntity.getId());
+        assertThat(models.get().toList().getFirst().getCourt().getId()).isEqualTo(caseEntity.getCourt().getId());
+
+        verify(caseRepository, times(1)).searchCasesBy(null, null, false, courtId, null);
+    }
+
     @DisplayName("Find all cases and return list of models where reference is in list")
     @Test
     void findAllReferenceParamSuccess() {

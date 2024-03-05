@@ -650,7 +650,6 @@ definitions:
         type: string
     required:
       - id
-      - invited_at
       - status
     type: object
   CreateRecordingDTO:
@@ -1972,6 +1971,12 @@ paths:
           name: scheduledFor
           type: string
           x-example: '2024-04-27'
+        - description: The court id of the capture session to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The page number of search result to return
           format: int32
           in: query
@@ -2949,13 +2954,9 @@ paths:
     get:
       operationId: getUsers
       parameters:
-        - description: The first name of the user to search by
+        - description: The name of the user to search by
           in: query
-          name: firstName
-          type: string
-        - description: The last name of the user to search by
-          in: query
-          name: lastName
+          name: name
           type: string
         - description: The email of the user to search by
           in: query
