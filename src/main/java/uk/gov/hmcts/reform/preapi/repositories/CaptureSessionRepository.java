@@ -55,7 +55,7 @@ public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSe
         AND (
             CAST(:scheduledForFrom as Timestamp) IS NULL OR
             CAST(:scheduledForUntil as Timestamp) IS NULL OR
-            c.booking.scheduledFor BETWEEN :scheduledForFrom AND :scheduledForUntil
+            CAST(c.booking.scheduledFor as Timestamp) BETWEEN :scheduledForFrom AND :scheduledForUntil
         )
         """
     )
