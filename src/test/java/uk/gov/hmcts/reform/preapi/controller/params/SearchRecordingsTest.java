@@ -46,4 +46,16 @@ public class SearchRecordingsTest {
         searchRecordings.setDefendantName(null);
         assertNull(searchRecordings.getDefendantName());
     }
+  
+    public void getId() {
+        var searchRecordings = new SearchRecordings();
+        searchRecordings.setId("abc");
+        assertEquals("abc", searchRecordings.getId());
+
+        searchRecordings.setId("");
+        assertNull(searchRecordings.getId());
+
+        searchRecordings.setId(null);
+        assertNull(searchRecordings.getId());
+    }
 }

@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
-
-
 @Data
 public class SearchRecordings {
     private UUID captureSessionId;
@@ -18,16 +16,17 @@ public class SearchRecordings {
     private UUID participantId;
     private String caseReference;
     @DateTimeFormat(pattern = "yyyy-MM-dd")
-    private Date scheduledFor;
+    private Date startedAt;
     private UUID courtId;
     private String witnessName;
     private String defendantName;
     private Boolean includeDeleted;
+    private String id;
 
     @Nullable
-    private Timestamp scheduledForFrom;
+    private Timestamp startedAtFrom;
     @Nullable
-    private Timestamp scheduledForUntil;
+    private Timestamp startedAtUntil;
     private List<UUID> authorisedBookings;
     private UUID authorisedCourt;
 
@@ -41,5 +40,9 @@ public class SearchRecordings {
 
     public String getDefendantName() {
         return defendantName != null && !defendantName.isEmpty() ? defendantName : null;
+    }
+  
+    public String getId() {
+        return id != null && !id.isEmpty() ? id : null;
     }
 }
