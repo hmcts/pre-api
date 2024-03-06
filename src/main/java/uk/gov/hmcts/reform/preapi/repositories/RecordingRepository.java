@@ -32,6 +32,10 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
         AND (:#{#searchParams.authorisedBookings} IS NULL OR r.captureSession.booking.id IN :#{#searchParams.authorisedBookings})
         AND (:#{#searchParams.authorisedCourt} IS NULL OR r.captureSession.booking.caseId.court.id = :#{#searchParams.authorisedCourt})
         AND (
+            :#{#searchParams.id} IS NULL OR
+            CAST(r.id AS text) ILIKE %:#{#searchParams.id}%
+        )
+        AND (
             :#{#searchParams.captureSessionId} IS NULL OR
             r.captureSession.id = :#{#searchParams.captureSessionId}
         )
@@ -50,11 +54,11 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
             r.captureSession.booking.caseId.reference ILIKE %:#{#searchParams.caseReference}%
         )
         AND (
-            NULLIF(COALESCE(:#{#searchParams.scheduledForFrom}, 'NULL'), 'NULL') IS NULL OR
-            NULLIF(COALESCE(:#{#searchParams.scheduledForUntil}, 'NULL'), 'NULL') IS NULL OR
-            r.captureSession.booking.scheduledFor
-            BETWEEN :#{#searchParams.scheduledForFrom}
-            AND :#{#searchParams.scheduledForUntil}
+            NULLIF(COALESCE(:#{#searchParams.startedAtFrom}, 'NULL'), 'NULL') IS NULL OR
+            NULLIF(COALESCE(:#{#searchParams.startedAtUntil}, 'NULL'), 'NULL') IS NULL OR
+            r.captureSession.startedAt
+            BETWEEN :#{#searchParams.startedAtFrom}
+            AND :#{#searchParams.startedAtUntil}
         )
         AND (
             :#{#searchParams.courtId} IS NULL OR
