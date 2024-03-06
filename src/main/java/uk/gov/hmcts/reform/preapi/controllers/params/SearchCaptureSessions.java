@@ -17,4 +17,8 @@ public class SearchCaptureSessions {
     @DateTimeFormat(pattern = "yyyy-MM-dd")
     private Date scheduledFor;
     private UUID courtId;
+
+    public String getCaseReference() {
+        return caseReference != null && !caseReference.isEmpty() ? caseReference : null;
+    }
 }
