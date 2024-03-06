@@ -57,14 +57,14 @@ public class RecordingService {
         boolean includeDeleted,
         Pageable pageable
     ) {
-        params.setScheduledForFrom(params.getScheduledFor() != null
-                                       ? Timestamp.from(params.getScheduledFor().toInstant())
+        params.setStartedAtFrom(params.getStartedAt() != null
+                                       ? Timestamp.from(params.getStartedAt().toInstant())
                                        : null
         );
 
-        params.setScheduledForUntil(params.getScheduledForFrom() != null
+        params.setStartedAtUntil(params.getStartedAtFrom() != null
                                         ? Timestamp.from(params
-                                                             .getScheduledForFrom()
+                                                             .getStartedAtFrom()
                                                              .toInstant()
                                                              .plus(86399, ChronoUnit.SECONDS))
                                         : null
