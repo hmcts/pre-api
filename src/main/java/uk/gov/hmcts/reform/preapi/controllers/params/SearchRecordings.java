@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 
-
-
 @Data
 public class SearchRecordings {
     private UUID captureSessionId;
@@ -32,6 +30,18 @@ public class SearchRecordings {
     private List<UUID> authorisedBookings;
     private UUID authorisedCourt;
 
+    public String getCaseReference() {
+        return caseReference != null && !caseReference.isEmpty() ? caseReference : null;
+    }
+
+    public String getWitnessName() {
+        return witnessName != null && !witnessName.isEmpty() ? witnessName : null;
+    }
+
+    public String getDefendantName() {
+        return defendantName != null && !defendantName.isEmpty() ? defendantName : null;
+    }
+  
     public String getId() {
         return id != null && !id.isEmpty() ? id : null;
     }
