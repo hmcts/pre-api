@@ -56,6 +56,12 @@ public class RecordingController extends PreApiController {
     @GetMapping
     @Operation(operationId = "getRecordings", summary = "Search all Recordings")
     @Parameter(
+        name = "id",
+        description = "Partial string of the recording id to search by",
+        schema = @Schema(implementation = String.class),
+        example = "123e4567-e89b-12d3-a456-426614174000"
+    )
+    @Parameter(
         name = "captureSessionId",
         description = "The capture session to search by",
         schema = @Schema(implementation = UUID.class),
@@ -90,8 +96,8 @@ public class RecordingController extends PreApiController {
         example = "CASE12345"
     )
     @Parameter(
-        name = "scheduledFor",
-        description = "The Date the recording's booking was scheduled for",
+        name = "startedAt",
+        description = "The Date the recording's capture session was started at",
         schema = @Schema(implementation = String.class, format = "date"),
         example = "2024-04-27"
     )
