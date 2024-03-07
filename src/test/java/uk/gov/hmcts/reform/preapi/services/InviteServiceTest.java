@@ -13,11 +13,12 @@ import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -68,13 +69,15 @@ public class InviteServiceTest {
         portalAccessEntity = new PortalAccess();
         portalAccessEntity.setId(UUID.randomUUID());
         portalAccessEntity.setUser(portalUserEntity);
-        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
+        portalAccessEntity.setInvitedAt(Timestamp.from(Instant.now()));
         portalUserEntity.setPortalAccess(Set.of(portalAccessEntity));
 
         portalAccessEntity2 = new PortalAccess();
         portalAccessEntity2.setId(UUID.randomUUID());
         portalAccessEntity2.setUser(portalUserEntity2);
-        portalAccessEntity2.setStatus(AccessStatus.ACTIVE);
+        portalAccessEntity2.setInvitedAt(Timestamp.from(Instant.now()));
+        portalAccessEntity2.setRegisteredAt(Timestamp.from(Instant.now()));
+        portalAccessEntity2.setTermsAcceptedAt(Timestamp.from(Instant.now()));
         portalUserEntity.setPortalAccess(Set.of(portalAccessEntity2));
     }
 
@@ -89,8 +92,8 @@ public class InviteServiceTest {
     void findInviteByUserIdSuccess() {
         when(
             portalAccessRepository
-                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                    portalUserEntity.getId(), AccessStatus.INVITATION_SENT)
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(
+                    portalUserEntity.getId())
         ).thenReturn(Optional.of(portalAccessEntity));
 
         var model = inviteService.findByUserId(portalUserEntity.getId());
@@ -103,8 +106,8 @@ public class InviteServiceTest {
     void findInviteByIdNotFound() {
         when(
             portalAccessRepository
-                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                    UUID.randomUUID(), AccessStatus.INVITATION_SENT)
+                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(
+                    UUID.randomUUID())
         ).thenReturn(Optional.empty());
 
         assertThrows(
@@ -113,8 +116,8 @@ public class InviteServiceTest {
         );
 
         verify(portalAccessRepository, times(1))
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                portalUserEntity.getId(), AccessStatus.INVITATION_SENT);
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(
+                portalUserEntity.getId());
     }
 
     @DisplayName("Find all invites and return a list of models")
@@ -143,8 +146,8 @@ public class InviteServiceTest {
         UUID inviteId = UUID.randomUUID();
 
         when(
-            portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(
-                inviteId, AccessStatus.INVITATION_SENT)
+            portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(
+                inviteId)
         ).thenReturn(Optional.empty());
 
         assertThrows(
@@ -153,7 +156,7 @@ public class InviteServiceTest {
         );
 
         verify(portalAccessRepository, times(1))
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(inviteId, AccessStatus.INVITATION_SENT);
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(inviteId);
         verify(userService, never()).deleteById(portalAccessEntity.getUser().getId());
         verify(userRepository, never()).deleteById(portalAccessEntity.getUser().getId());
     }

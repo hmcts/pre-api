@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -23,13 +23,22 @@ public class CreatePortalAccessDTO {
     @Schema(description = "PortalAccessLastAccess")
     private Timestamp lastAccess;
 
-    @Schema(description = "PortalAccessStatus")
-    @NotNull
-    private AccessStatus status;
-
     @Schema(description = "PortalAccessInvitedAt")
     private Timestamp invitedAt;
 
     @Schema(description = "PortalAccessRegisteredAt")
     private Timestamp registeredAt;
+
+    @Schema(description = "PortalAccessTermsAcceptedAt")
+    private Timestamp termsAcceptedAt;
+
+    @Schema(description = "PortalAccessLoggedIn")
+    private Timestamp loggedIn;
+
+    public CreatePortalAccessDTO(PortalAccess access) {
+        id = access.getId();
+        lastAccess = access.getLastAccess();
+        invitedAt = access.getInvitedAt();
+        registeredAt = access.getRegisteredAt();
+    }
 }
