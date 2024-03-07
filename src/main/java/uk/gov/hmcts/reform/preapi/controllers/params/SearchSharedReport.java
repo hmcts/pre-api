@@ -10,4 +10,9 @@ public class SearchSharedReport {
     private UUID bookingId;
     private UUID sharedWithId;
     private String sharedWithEmail;
+
+    public String getSharedWithEmail() {
+        return sharedWithEmail != null && !sharedWithEmail.isEmpty() ? sharedWithEmail : null;
+    }
+
 }
