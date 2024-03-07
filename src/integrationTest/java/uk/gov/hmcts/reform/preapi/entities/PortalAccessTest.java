@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -30,6 +31,8 @@ class PortalAccessTest {
         testPortalAccess.setInvitedAt(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+        testPortalAccess.setTermsAcceptedAt(Timestamp.from(Instant.now()));
+        testPortalAccess.setLoggedIn(Timestamp.from(Instant.now()));
 
         entityManager.persist(testPortalAccess);
         entityManager.flush();
@@ -59,6 +62,16 @@ class PortalAccessTest {
             testPortalAccess.getModifiedAt(),
             retrievedPortalAccess.getModifiedAt(),
             "Modified at should match"
+        );
+        assertEquals(
+            testPortalAccess.getTermsAcceptedAt(),
+            retrievedPortalAccess.getTermsAcceptedAt(),
+            "Terms accepted at date time should match"
+        );
+        assertEquals(
+            testPortalAccess.getLoggedIn(),
+            retrievedPortalAccess.getLoggedIn(),
+            "Logged in date time should match"
         );
     }
 }

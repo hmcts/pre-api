@@ -35,6 +35,12 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "registered_at")
     private Timestamp registeredAt;
 
+    @Column(name = "terms_accepted_at")
+    private Timestamp termsAcceptedAt;
+
+    @Column(name = "logged_in")
+    private Timestamp loggedIn;
+
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
@@ -45,6 +51,8 @@ public class PortalAccess extends CreatedModifiedAtEntity {
         details.put("portalAccessInvitedAt", invitedAt);
         details.put("portalAccessInviteCode", code);
         details.put("portalAccessRegisteredAt", registeredAt);
+        details.put("portalAccessTermsAcceptedAt", termsAcceptedAt);
+        details.put("portalAccessLoggedIn", loggedIn);
         details.put("deleted", deletedAt != null);
         return details;
     }

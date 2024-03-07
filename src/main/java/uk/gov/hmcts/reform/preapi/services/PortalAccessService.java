@@ -29,6 +29,8 @@ public class PortalAccessService {
         entity.setLastAccess(createDto.getLastAccess());
         entity.setInvitedAt(createDto.getInvitedAt());
         entity.setRegisteredAt(createDto.getRegisteredAt());
+        entity.setTermsAcceptedAt(createDto.getTermsAcceptedAt());
+        entity.setLoggedIn(createDto.getLoggedIn());
         portalAccessRepository.save(entity);
 
         return UpsertResult.UPDATED;

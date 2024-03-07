@@ -17,6 +17,8 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -67,11 +69,15 @@ public class InviteServiceTest {
         portalAccessEntity = new PortalAccess();
         portalAccessEntity.setId(UUID.randomUUID());
         portalAccessEntity.setUser(portalUserEntity);
+        portalAccessEntity.setInvitedAt(Timestamp.from(Instant.now()));
         portalUserEntity.setPortalAccess(Set.of(portalAccessEntity));
 
         portalAccessEntity2 = new PortalAccess();
         portalAccessEntity2.setId(UUID.randomUUID());
         portalAccessEntity2.setUser(portalUserEntity2);
+        portalAccessEntity2.setInvitedAt(Timestamp.from(Instant.now()));
+        portalAccessEntity2.setRegisteredAt(Timestamp.from(Instant.now()));
+        portalAccessEntity2.setTermsAcceptedAt(Timestamp.from(Instant.now()));
         portalUserEntity.setPortalAccess(Set.of(portalAccessEntity2));
     }
 
