@@ -15,4 +15,8 @@ public class SearchBookings {
     private Date scheduledFor;
     private UUID participantId;
     private Boolean hasRecordings;
+
+    public String getCaseReference() {
+        return caseReference != null && !caseReference.isEmpty() ? caseReference : null;
+    }
 }

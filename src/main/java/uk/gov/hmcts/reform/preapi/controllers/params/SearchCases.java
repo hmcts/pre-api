@@ -10,4 +10,8 @@ public class SearchCases {
     private String reference;
     private UUID courtId;
     private Boolean includeDeleted;
+
+    public String getReference() {
+        return reference != null && !reference.isEmpty() ? reference : null;
+    }
 }
