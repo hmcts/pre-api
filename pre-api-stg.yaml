@@ -636,21 +636,20 @@ definitions:
         description: PortalAccessLastAccess
         format: date-time
         type: string
+      logged_in:
+        description: PortalAccessLoggedIn
+        format: date-time
+        type: string
       registered_at:
         description: PortalAccessRegisteredAt
         format: date-time
         type: string
-      status:
-        description: PortalAccessStatus
-        enum:
-          - INVITATION_SENT
-          - REGISTERED
-          - ACTIVE
-          - INACTIVE
+      terms_accepted_at:
+        description: PortalAccessTermsAcceptedAt
+        format: date-time
         type: string
     required:
       - id
-      - status
     type: object
   CreateRecordingDTO:
     description: CreateRecordingDTO
@@ -1386,18 +1385,20 @@ definitions:
         description: PortalAccessLastAccess
         format: date-time
         type: string
+      logged_in:
+        description: PortalAccessLoggedIn
+        format: date-time
+        type: string
       registered_at:
         description: PortalAccessRegisteredAt
         format: date-time
         type: string
-      status:
-        description: PortalAccessStatus
-        enum:
-          - INVITATION_SENT
-          - REGISTERED
-          - ACTIVE
-          - INACTIVE
+      terms_accepted_at:
+        description: PortalAccessTermsAcceptedAt
+        format: date-time
         type: string
+    required:
+      - id
     type: object
   RecordingDTO:
     description: RecordingDTO
