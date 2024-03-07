@@ -21,7 +21,8 @@ class AuditLogManager:
 
             if not check_existing_record(destination_cursor,'audits', 'table_record_id', table_record_id):
                 id = str(uuid.uuid4())
-                source = "AUTO"
+                source = audit_log[16].strip().upper() if audit_log[16] and audit_log[16].strip().upper() in ['AUTO', 'APPLICATION', 'PORTAL', 'ADMIN'] else 'AUTO'
+
                 category =audit_log[20]
                 activity = audit_log[2]
                 functional_area = audit_log[17]
@@ -35,7 +36,6 @@ class AuditLogManager:
                     "caseId": audit_log[4],
                     "caseReference": audit_log[8],
                     "courtName": audit_log[9],
-                    "source": audit_log[16],
                     "auditSession":audit_log[7]
                 }
                 audit_details_json = json.dumps(audit_details_dict)
