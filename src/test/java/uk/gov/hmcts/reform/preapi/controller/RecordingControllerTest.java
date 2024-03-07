@@ -110,9 +110,9 @@ class RecordingControllerTest {
         verify(recordingService, times(1)).findAll(any(), eq(false), any());
     }
 
-    @DisplayName("Should get a list of recordings with 200 response code when searching by scheduled for date")
+    @DisplayName("Should get a list of recordings with 200 response code when searching by started at date")
     @Test
-    void testGetRecordingIdScheduledForSuccess() throws Exception {
+    void testGetRecordingIdStartedAtSuccess() throws Exception {
         UUID recordingId = UUID.randomUUID();
         var mockRecordingDTO = new RecordingDTO();
         mockRecordingDTO.setId(recordingId);
@@ -121,7 +121,7 @@ class RecordingControllerTest {
             .thenReturn(new PageImpl<>(recordingDTOList));
 
         mockMvc.perform(get("/recordings")
-                            .param("scheduledFor", "2024-01-01")
+                            .param("startedAt", "2024-01-01")
                             .with(csrf())
                             .accept(MediaType.APPLICATION_JSON_VALUE)
             )
@@ -131,7 +131,7 @@ class RecordingControllerTest {
             .andExpect(jsonPath("$._embedded.recordingDTOList[0].id").value(recordingId.toString()));
 
         var params = new SearchRecordings();
-        params.setScheduledForFrom(Timestamp.valueOf("2024-01-01 00:00:00"));
+        params.setStartedAtFrom(Timestamp.valueOf("2024-01-01 00:00:00"));
 
         verify(recordingService, times(1))
             .findAll(

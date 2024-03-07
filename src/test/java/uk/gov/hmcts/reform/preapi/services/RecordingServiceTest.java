@@ -147,12 +147,12 @@ class RecordingServiceTest {
         assertThat(modelList.getFirst().getCaptureSession().getId()).isEqualTo(recordingEntity.getCaptureSession().getId());
     }
 
-    @DisplayName("Find a list of recordings filtered by scheduledFor and return a list of models")
+    @DisplayName("Find a list of recordings filtered by startedAt and return a list of models")
     @Test
-    void findAllRecordingsScheduledForSuccess() {
+    void findAllRecordingsStartedAtSuccess() {
         var params = new SearchRecordings();
-        params.setScheduledForFrom(Timestamp.valueOf("2023-01-01 00:00:00"));
-        params.setScheduledForUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
+        params.setStartedAtFrom(Timestamp.valueOf("2023-01-01 00:00:00"));
+        params.setStartedAtUntil(Timestamp.valueOf("2023-01-01 23:59:59"));
 
         when(
             recordingRepository.searchAllBy(params, false, null)
@@ -407,31 +407,31 @@ class RecordingServiceTest {
         assertThat(message).isEqualTo("Cannot delete because and associated recording has not been deleted.");
     }
 
-    @DisplayName("Should set scheduled for from and until when scheduled for is set")
+    @DisplayName("Should set started at from and until when started at is set")
     @Test
-    void searchRecordingsScheduledForFromUntilSet() {
+    void searchRecordingsStartedAtFromUntilSet() {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var params = new SearchRecordings();
-        var scheduledFor = new Date();
-        params.setScheduledFor(scheduledFor);
+        var startedAt = new Date();
+        params.setStartedAt(startedAt);
         when(recordingRepository.searchAllBy(params, false, null)).thenReturn(Page.empty());
 
         recordingService.findAll(params, false, null);
 
-        assertThat(params.getScheduledForFrom()).isNotNull();
-        assertThat(params.getScheduledForFrom().toInstant()).isEqualTo(scheduledFor.toInstant());
+        assertThat(params.getStartedAtFrom()).isNotNull();
+        assertThat(params.getStartedAtFrom().toInstant()).isEqualTo(startedAt.toInstant());
 
-        assertThat(params.getScheduledForUntil()).isNotNull();
-        assertThat(params.getScheduledForUntil().toInstant())
-            .isEqualTo(scheduledFor.toInstant().plus(86399, ChronoUnit.SECONDS));
+        assertThat(params.getStartedAtUntil()).isNotNull();
+        assertThat(params.getStartedAtUntil().toInstant())
+            .isEqualTo(startedAt.toInstant().plus(86399, ChronoUnit.SECONDS));
     }
 
-    @DisplayName("Should not set scheduled for from and until when scheduled for is not set")
+    @DisplayName("Should not set started at from and until when started at is not set")
     @Test
-    void searchRecordingsScheduledForFromUntilNotSet() {
+    void searchRecordingsStartedAtFromUntilNotSet() {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.isAdmin()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
@@ -441,9 +441,9 @@ class RecordingServiceTest {
 
         recordingService.findAll(params, false, null);
 
-        assertThat(params.getScheduledForFrom()).isNull();
+        assertThat(params.getStartedAtFrom()).isNull();
 
-        assertThat(params.getScheduledForUntil()).isNull();
+        assertThat(params.getStartedAtUntil()).isNull();
     }
 
     @DisplayName("Should undelete a recording successfully when recording is marked as deleted")
