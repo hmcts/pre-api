@@ -16,7 +16,6 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -191,7 +190,6 @@ public class UserService {
             .orElse(new PortalAccess());
 
         portalAccessEntity.setUser(userEntity);
-        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
         portalAccessEntity.setCode(createInviteDTO.getCode());
         portalAccessEntity.setInvitedAt(Timestamp.from(java.time.Instant.now()));
         portalAccessRepository.save(portalAccessEntity);

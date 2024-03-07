@@ -18,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -679,7 +678,6 @@ public class UserControllerTest {
         user.setEmail("example@example.com");
         user.setAppAccess(Set.of());
         var access = new CreatePortalAccessDTO();
-        access.setStatus(AccessStatus.INACTIVE);
         access.setInvitedAt(Timestamp.from(Instant.now()));
         user.setPortalAccess(Set.of(access));
 
@@ -694,35 +692,6 @@ public class UserControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo(
                 "{\"portalAccess[].id\":\"must not be null\"}"
-            );
-    }
-
-    @DisplayName("Should fail to create/update a user with 400 when user portal access status is null")
-    @Test
-    void upsertUserPortalAccessStatusNull() throws Exception {
-        var userId = UUID.randomUUID();
-        var user = new CreateUserDTO();
-        user.setId(userId);
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        user.setEmail("example@example.com");
-        user.setAppAccess(Set.of());
-        var access = new CreatePortalAccessDTO();
-        access.setId(UUID.randomUUID());
-        access.setInvitedAt(Timestamp.from(Instant.now()));
-        user.setPortalAccess(Set.of(access));
-
-        MvcResult response = mockMvc.perform(put("/users/" + userId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andReturn();
-
-        assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"portalAccess[].status\":\"must not be null\"}"
             );
     }
 

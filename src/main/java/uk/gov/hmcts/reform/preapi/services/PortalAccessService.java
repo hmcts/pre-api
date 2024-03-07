@@ -27,7 +27,6 @@ public class PortalAccessService {
             .orElseThrow(() -> new NotFoundException("PortalAccess: " + createDto.getId()));
 
         entity.setLastAccess(createDto.getLastAccess());
-        entity.setStatus(createDto.getStatus());
         entity.setInvitedAt(createDto.getInvitedAt());
         entity.setRegisteredAt(createDto.getRegisteredAt());
         portalAccessRepository.save(entity);

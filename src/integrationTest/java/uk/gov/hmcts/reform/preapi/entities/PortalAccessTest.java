@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -28,7 +27,6 @@ class PortalAccessTest {
         PortalAccess testPortalAccess = new PortalAccess();
         testPortalAccess.setUser(user);
         testPortalAccess.setLastAccess(new Timestamp(System.currentTimeMillis()));
-        testPortalAccess.setStatus(AccessStatus.REGISTERED);
         testPortalAccess.setInvitedAt(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
         testPortalAccess.setDeletedAt(new Timestamp(System.currentTimeMillis()));
@@ -40,7 +38,6 @@ class PortalAccessTest {
 
         assertEquals(testPortalAccess.getId(), retrievedPortalAccess.getId(), "Id should match");
         assertEquals(testPortalAccess.getUser(), retrievedPortalAccess.getUser(), "User should match");
-        assertEquals(testPortalAccess.getStatus(), retrievedPortalAccess.getStatus(), "Status should match");
         assertEquals(
             testPortalAccess.getLastAccess(),
             retrievedPortalAccess.getLastAccess(),

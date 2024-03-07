@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +17,7 @@ import java.util.UUID;
 public interface PortalAccessRepository extends SoftDeleteRepository<PortalAccess, UUID> {
     Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID id);
 
-    Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(UUID id, AccessStatus status);
+    Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(UUID id);
 
     Optional<PortalAccess> findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(String email, String code);
 

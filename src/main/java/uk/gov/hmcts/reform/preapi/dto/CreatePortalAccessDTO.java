@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -22,10 +21,6 @@ public class CreatePortalAccessDTO {
 
     @Schema(description = "PortalAccessLastAccess")
     private Timestamp lastAccess;
-
-    @Schema(description = "PortalAccessStatus")
-    @NotNull
-    private AccessStatus status;
 
     @Schema(description = "PortalAccessInvitedAt")
     private Timestamp invitedAt;
