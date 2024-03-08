@@ -50,7 +50,8 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
                 (
                     CAST(:scheduledForFrom as Timestamp) IS NULL OR
                     CAST(:scheduledForUntil as Timestamp) IS NULL OR
-                    CAST(FUNCTION('TIMEZONE', 'Europe/London', b.scheduledFor) as Timestamp) BETWEEN :scheduledForFrom AND :scheduledForUntil
+                    CAST(FUNCTION('TIMEZONE', 'Europe/London', b.scheduledFor) as Timestamp)
+                    BETWEEN :scheduledForFrom AND :scheduledForUntil
                 )
                 AND (
                     CAST(:participantId as uuid) IS NULL OR EXISTS (
