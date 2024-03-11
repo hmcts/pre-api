@@ -2420,7 +2420,7 @@ paths:
       tags:
         - invite-controller
   /invites/redeem:
-    get:
+    post:
       operationId: redeemInvite
       parameters:
         - description: The email of the user to redeem the invite for
@@ -2429,12 +2429,6 @@ paths:
           required: true
           type: string
           x-example: example@example.com
-        - description: The invite code to redeem
-          in: query
-          name: inviteCode
-          required: true
-          type: string
-          x-example: ABCDEF
         - description: The User Id of the User making the request
           format: uuid
           in: header

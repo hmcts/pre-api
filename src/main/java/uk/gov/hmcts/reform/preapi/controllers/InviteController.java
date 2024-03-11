@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -82,7 +83,6 @@ public class InviteController extends PreApiController {
         schema = @Schema(implementation = Integer.class),
         example = "10"
     )
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<InviteDTO>>> getInvites(
         @Parameter(hidden = true) @ModelAttribute() SearchInvites params,
         @Parameter(hidden = true) Pageable pageable,
@@ -130,7 +130,7 @@ public class InviteController extends PreApiController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/redeem")
+    @PostMapping("/redeem")
     @Operation(operationId = "redeemInvite", summary = "Redeem an invite")
     @Parameter(
         name = "email",
@@ -138,13 +138,7 @@ public class InviteController extends PreApiController {
         example = "example@example.com",
         schema = @Schema(implementation = String.class)
     )
-    @Parameter(
-        name = "inviteCode",
-        description = "The invite code to redeem",
-        example = "ABCDEF",
-        schema = @Schema(implementation = String.class)
-    )
-    public ResponseEntity<Void> redeemInvite(@RequestParam String email, @RequestParam String inviteCode) {
-        return getUpsertResponse(inviteService.redeemInvite(email, inviteCode), null);
+    public ResponseEntity<Void> redeemInvite(@RequestParam String email) {
+        return getUpsertResponse(inviteService.redeemInvite(email), null);
     }
 }
