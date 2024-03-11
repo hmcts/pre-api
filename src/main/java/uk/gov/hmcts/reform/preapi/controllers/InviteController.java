@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -129,7 +130,7 @@ public class InviteController extends PreApiController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/redeem")
+    @PostMapping("/redeem")
     @Operation(operationId = "redeemInvite", summary = "Redeem an invite")
     @Parameter(
         name = "email",

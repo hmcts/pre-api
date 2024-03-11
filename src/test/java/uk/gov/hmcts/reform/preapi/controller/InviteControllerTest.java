@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -199,7 +200,7 @@ class InviteControllerTest {
 
         when(inviteService.redeemInvite(email)).thenReturn(UpsertResult.UPDATED);
 
-        MvcResult response = mockMvc.perform(get("/invites/redeem" + "?email=" + email)
+        MvcResult response = mockMvc.perform(post("/invites/redeem" + "?email=" + email)
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent())
