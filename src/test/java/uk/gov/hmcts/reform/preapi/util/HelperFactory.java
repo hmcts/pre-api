@@ -10,12 +10,14 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -92,6 +94,24 @@ public class HelperFactory {
         appAccess.setActive(active);
         appAccess.setDeletedAt(deletedAt);
         return appAccess;
+    }
+
+    public static PortalAccess createPortalAccess(
+        User user,
+        Timestamp lastAccess,
+        AccessStatus status,
+        Timestamp invitedAt,
+        Timestamp registeredAt,
+        Timestamp deletedAt
+    ) {
+        var portalAccess = new PortalAccess();
+        portalAccess.setUser(user);
+        portalAccess.setLastAccess(lastAccess);
+        portalAccess.setStatus(status);
+        portalAccess.setInvitedAt(invitedAt);
+        portalAccess.setRegisteredAt(registeredAt);
+        portalAccess.setDeletedAt(deletedAt);
+        return portalAccess;
     }
 
     public static Case createCase(Court court, String reference, boolean test, Timestamp deletedAt) {

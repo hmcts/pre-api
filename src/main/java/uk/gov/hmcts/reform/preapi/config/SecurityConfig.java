@@ -32,7 +32,9 @@ public class SecurityConfig {
         "/users/by-email/**",
         "/reports/**",
         "/audit/**",
-        "/error"
+        "/error",
+        "/invites",
+        "/invites/redeem"
     };
 
     @Autowired

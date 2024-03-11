@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 
 import java.util.Collection;
 import java.util.List;
@@ -14,6 +15,7 @@ public class UserAuthentication extends AbstractAuthenticationToken {
     private final UUID userId;
     private final String email;
     private final AppAccess appAccess;
+    private final PortalAccess portalAccess;
     private final UUID courtId;
     private final boolean admin;
     private final boolean portalUser;
@@ -28,8 +30,9 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         userId = access.getUser().getId();
         email = access.getUser().getEmail();
         appAccess = access;
+        portalAccess = null;
         courtId = access.getCourt().getId();
-        this.sharedBookings = List.of();
+        sharedBookings = List.of();
         appUser = true;
         portalUser = false;
         admin = authorities.stream().anyMatch(a ->
@@ -38,7 +41,23 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         setAuthenticated(true);
     }
 
-    // TODO constructor for portal access request
+    public UserAuthentication(
+        PortalAccess access,
+        List<UUID> sharedBookings,
+        Collection<? extends GrantedAuthority> authorities
+    ) {
+        super(authorities);
+        userId = access.getUser().getId();
+        email = access.getUser().getEmail();
+        appAccess = null;
+        portalAccess = access;
+        courtId = null;
+        this.sharedBookings = sharedBookings;
+        appUser = false;
+        portalUser = true;
+        admin = false;
+        setAuthenticated(true);
+    }
 
     @Override
     public Object getCredentials() {
