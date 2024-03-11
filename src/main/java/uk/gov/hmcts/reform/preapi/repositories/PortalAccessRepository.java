@@ -43,4 +43,18 @@ public interface PortalAccessRepository extends SoftDeleteRepository<PortalAcces
     );
 
     List<PortalAccess> findAllByUser_IdAndDeletedAtIsNotNull(UUID id);
+
+    @Query(
+        """
+        SELECT p FROM PortalAccess p
+        WHERE p.id = :userId
+        AND p.deletedAt IS NULL
+        AND p.user.deletedAt IS NULL
+        AND p.registeredAt IS NOT NULL
+        AND p.invitedAt IS NOT NULL
+        AND p.status = 'ACTIVE'
+        """
+    )
+    Optional<PortalAccess> findByIdValidUser(@Param("userId") UUID userId);
+
 }
