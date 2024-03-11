@@ -2420,7 +2420,7 @@ paths:
       tags:
         - invite-controller
   /invites/redeem:
-    get:
+    post:
       operationId: redeemInvite
       parameters:
         - description: The email of the user to redeem the invite for
