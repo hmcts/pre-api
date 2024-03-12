@@ -84,7 +84,7 @@ public class HelperFactory {
         Role role,
         boolean active,
         Timestamp deletedAt,
-        @Nullable Date lastAccess
+        @Nullable Timestamp lastAccess
     ) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);
