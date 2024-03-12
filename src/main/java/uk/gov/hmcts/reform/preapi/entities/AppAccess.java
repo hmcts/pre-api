@@ -11,7 +11,6 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.HashMap;
 
