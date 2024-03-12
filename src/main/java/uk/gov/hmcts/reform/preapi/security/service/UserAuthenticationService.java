@@ -45,21 +45,21 @@ public class UserAuthenticationService {
     }
 
     @Transactional
-    protected UserAuthentication getAuthentication(AppAccess access) {
+    public UserAuthentication getAuthentication(AppAccess access) {
         access.setLastAccess(Timestamp.from(Instant.now()));
         appAccessRepository.saveAndFlush(access);
         return new UserAuthentication(access, getAuthorities(access));
     }
 
     @Transactional
-    protected UserAuthentication getAuthentication(PortalAccess access) {
+    public UserAuthentication getAuthentication(PortalAccess access) {
         access.setLastAccess(Timestamp.from(Instant.now()));
         portalAccessRepository.saveAndFlush(access);
         return new UserAuthentication(access, getSharedBookings(access), getAuthorities());
     }
 
     @Transactional
-    protected Optional<UserAuthentication> validateUser(String accessId) {
+    public Optional<UserAuthentication> validateUser(String accessId) {
         if (accessId == null || accessId.isEmpty()) {
             return Optional.empty();
         }
