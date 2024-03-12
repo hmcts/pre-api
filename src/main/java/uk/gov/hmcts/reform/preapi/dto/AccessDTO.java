@@ -1,0 +1,47 @@
+package uk.gov.hmcts.reform.preapi.dto;
+
+
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.User;
+
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Data
+@NoArgsConstructor
+@Schema(description = "AccessDTO")
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class AccessDTO {
+
+    @Schema(description = "AccessUser")
+    private BaseUserDTO user;
+
+    @Schema(description = "AccessAppAccess")
+    private Set<BaseAppAccessDTO> appAccess;
+
+    @Schema(description = "AccessPortalAccess")
+    private Set<PortalAccessDTO> portalAccess;
+
+
+    public AccessDTO(User entity) {
+        user = new BaseUserDTO(entity);
+        appAccess = entity
+            .getAppAccess()
+            .stream()
+            .filter(access -> !access.isDeleted())
+            .map(BaseAppAccessDTO::new)
+            .collect(Collectors.toSet());
+        portalAccess = entity
+            .getPortalAccess()
+            .stream()
+            .filter(access -> !access.isDeleted())
+            .map(PortalAccessDTO::new)
+            .collect(Collectors.toSet());
+    }
+}

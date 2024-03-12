@@ -679,25 +679,33 @@ public class UserServiceTest {
     @DisplayName("Get a user's access information by email")
     @Test
     void findUserAccessByEmailSuccess() {
-        when(appAccessRepository
-                 .findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getEmail())
-        ).thenReturn(List.of(appAccessEntity));
+        when(userRepository
+                 .findAllByEmailIgnoreCaseAndDeletedAtIsNull(userEntity.getEmail())
+        ).thenReturn(Optional.of(userEntity));
 
-        var models = userService.findByEmail(userEntity.getEmail());
+        var userAccess = userService.findByEmail(userEntity.getEmail());
 
-        assertThat(models.size()).isEqualTo(1);
-        assertThat(models.getFirst().getId()).isEqualTo(appAccessEntity.getId());
-        assertThat(models.getFirst().getUser().getId()).isEqualTo(userEntity.getId());
-        assertThat(models.getFirst().getCourt().getId()).isEqualTo(appAccessEntity.getCourt().getId());
-        assertThat(models.getFirst().getRole().getId()).isEqualTo(appAccessEntity.getRole().getId());
+        assertThat(userAccess).isNotNull();
+        assertThat(userAccess.getAppAccess()).isNotNull();
+        assertThat(userAccess.getAppAccess().stream().findFirst()).isNotNull();
+        assertThat(userAccess.getAppAccess().stream().findFirst().get().getId()).isEqualTo(appAccessEntity.getId());
+        assertThat(userAccess.getAppAccess().stream().findFirst().get().getCourt().getId())
+            .isEqualTo(appAccessEntity.getCourt().getId());
+        assertThat(userAccess.getAppAccess().stream().findFirst().get().getRole().getId())
+            .isEqualTo(appAccessEntity.getRole().getId());
+        assertThat(userAccess.getUser().getId()).isEqualTo(userEntity.getId());
+        assertThat(userAccess.getPortalAccess()).isNotNull();
+        assertThat(userAccess.getPortalAccess().stream().findFirst()).isNotNull();
+        assertThat(userAccess.getPortalAccess().stream().findFirst().get().getId())
+            .isEqualTo(portalAccessEntity.getId());
     }
 
     @DisplayName("Get a user's access information by email when no app access found")
     @Test
     void findUserAccessByEmailNotFound() {
-        when(appAccessRepository
-                 .findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getEmail())
-        ).thenReturn(List.of());
+        when(userRepository
+                 .findAllByEmailIgnoreCaseAndDeletedAtIsNull(userEntity.getEmail())
+        ).thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
