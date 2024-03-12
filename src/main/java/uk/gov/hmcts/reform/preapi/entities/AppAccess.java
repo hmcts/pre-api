@@ -33,7 +33,7 @@ public class AppAccess extends CreatedModifiedAtEntity {
     private Role role;
 
     @Column(name = "last_access")
-    private Date lastAccess;
+    private Timestamp lastAccess;
 
     @Column(name = "active")
     private boolean active = true;
