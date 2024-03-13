@@ -5,13 +5,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import uk.gov.hmcts.reform.preapi.dto.*;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
