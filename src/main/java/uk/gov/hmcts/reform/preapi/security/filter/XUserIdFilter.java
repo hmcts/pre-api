@@ -33,7 +33,7 @@ public class XUserIdFilter extends GenericFilterBean {
         throws IOException, ServletException {
         var request = (HttpServletRequest) servletRequest;
 
-        if (!applyAuth(request.getRequestURI())) {
+        if (!applyAuth(request)) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
         }
@@ -49,9 +49,9 @@ public class XUserIdFilter extends GenericFilterBean {
         filterChain.doFilter(servletRequest, servletResponse);
     }
 
-    private boolean applyAuth(String uri) {
+    private boolean applyAuth(HttpServletRequest request) {
         return Arrays.stream(SecurityConfig.NOT_AUTHORIZED_URIS)
-            .noneMatch(notAuthorisedUri -> uri.contains(notAuthorisedUri.replace("**", "")));
+            .noneMatch(antPathRequestMatcher -> antPathRequestMatcher.matches(request));
     }
 
     private void writeErrorResponse(Exception e, HttpServletResponse response) throws IOException {
