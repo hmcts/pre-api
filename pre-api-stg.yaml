@@ -1,5 +1,23 @@
 basePath: /pre-api
 definitions:
+  AccessDTO:
+    description: AccessDTO
+    properties:
+      app_access:
+        description: AccessAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+        uniqueItems: true
+      portal_access:
+        description: AccessPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
+      user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
   AccessRemovedReportDTO:
     description: AccessRemovedReportDTO
     properties:
@@ -28,27 +46,6 @@ definitions:
       user_full_name:
         description: AccessRemovedReportUserFullName
         type: string
-    type: object
-  AppAccessDTO:
-    description: AppAccessDTO
-    properties:
-      active:
-        description: AppAccessActive
-        type: boolean
-      court:
-        $ref: '#/definitions/CourtDTO'
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
-      last_access:
-        description: AppAccessLastAccess
-        format: date-time
-        type: string
-      role:
-        $ref: '#/definitions/RoleDTO'
-      user:
-        $ref: '#/definitions/BaseUserDTO'
     type: object
   BaseAppAccessDTO:
     description: BaseAppAccessDTO
@@ -3053,9 +3050,7 @@ paths:
         '200':
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/AppAccessDTO'
-            type: array
+            $ref: '#/definitions/AccessDTO'
       summary: Get a User's App Access by Email
       tags:
         - user-controller
