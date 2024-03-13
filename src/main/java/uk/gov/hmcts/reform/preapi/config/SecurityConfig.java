@@ -21,7 +21,7 @@ public class SecurityConfig {
 
     private final UserAuthenticationService userAuthenticationService;
 
-    public static AntPathRequestMatcher[] NOT_AUTHORIZED_URIS = new AntPathRequestMatcher[] {
+    public static final AntPathRequestMatcher[] NOT_AUTHORIZED_URIS = new AntPathRequestMatcher[] {
         new AntPathRequestMatcher("/testing-support/**"),
         new AntPathRequestMatcher("/swagger-ui/**"),
         new AntPathRequestMatcher("/v3/api-docs/**"),
