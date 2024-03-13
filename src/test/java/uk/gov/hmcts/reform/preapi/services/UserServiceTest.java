@@ -680,24 +680,20 @@ public class UserServiceTest {
     @Test
     void findUserAccessByEmailSuccess() {
         when(userRepository
-                 .findAllByEmailIgnoreCaseAndDeletedAtIsNull(userEntity.getEmail())
-        ).thenReturn(Optional.of(userEntity));
+                 .findAllByEmailIgnoreCaseAndDeletedAtIsNull(appUserEntity.getEmail())
+        ).thenReturn(Optional.of(appUserEntity));
 
-        var userAccess = userService.findByEmail(userEntity.getEmail());
+        var userAccess = userService.findByEmail(appUserEntity.getEmail());
 
         assertThat(userAccess).isNotNull();
         assertThat(userAccess.getAppAccess()).isNotNull();
         assertThat(userAccess.getAppAccess().stream().findFirst()).isNotNull();
-        assertThat(userAccess.getAppAccess().stream().findFirst().get().getId()).isEqualTo(appAccessEntity.getId());
+        assertThat(userAccess.getAppAccess().stream().findFirst().get().getId()).isEqualTo(appAccessEntity2.getId());
         assertThat(userAccess.getAppAccess().stream().findFirst().get().getCourt().getId())
-            .isEqualTo(appAccessEntity.getCourt().getId());
+            .isEqualTo(appAccessEntity2.getCourt().getId());
         assertThat(userAccess.getAppAccess().stream().findFirst().get().getRole().getId())
-            .isEqualTo(appAccessEntity.getRole().getId());
-        assertThat(userAccess.getUser().getId()).isEqualTo(userEntity.getId());
-        assertThat(userAccess.getPortalAccess()).isNotNull();
-        assertThat(userAccess.getPortalAccess().stream().findFirst()).isNotNull();
-        assertThat(userAccess.getPortalAccess().stream().findFirst().get().getId())
-            .isEqualTo(portalAccessEntity.getId());
+            .isEqualTo(appAccessEntity2.getRole().getId());
+        assertThat(userAccess.getUser().getId()).isEqualTo(appUserEntity.getId());
     }
 
     @DisplayName("Get a user's access information by email when no app access found")

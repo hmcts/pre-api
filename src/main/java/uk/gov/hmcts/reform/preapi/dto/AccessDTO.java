@@ -11,8 +11,10 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
@@ -31,17 +33,19 @@ public class AccessDTO {
 
     public AccessDTO(User entity) {
         user = new BaseUserDTO(entity);
-        appAccess = entity
-            .getAppAccess()
-            .stream()
-            .filter(access -> !access.isDeleted() && access.isActive())
-            .map(BaseAppAccessDTO::new)
+        appAccess = Stream.ofNullable(entity.getAppAccess())
+            .flatMap(access ->
+                access
+                    .stream()
+                    .filter(a -> !a.isDeleted() && a.isActive())
+                    .map(BaseAppAccessDTO::new))
             .collect(Collectors.toSet());
-        portalAccess = entity
-            .getPortalAccess()
-            .stream()
-            .filter(access -> !access.isDeleted() && access.getStatus() == AccessStatus.ACTIVE)
-            .map(PortalAccessDTO::new)
+        portalAccess = Stream.ofNullable(entity.getPortalAccess())
+            .flatMap(access ->
+                access
+                    .stream()
+                    .filter(a -> !a.isDeleted() && a.getStatus() == AccessStatus.ACTIVE)
+                    .map(PortalAccessDTO::new))
             .collect(Collectors.toSet());
     }
 }
