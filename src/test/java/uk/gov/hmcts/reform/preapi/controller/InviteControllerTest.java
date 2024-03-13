@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -196,11 +197,10 @@ class InviteControllerTest {
     @Test
     void redeemInvite() throws Exception {
         var email = "example@example.com";
-        var inviteCode = "ABCDEF";
 
-        when(inviteService.redeemInvite(email, inviteCode)).thenReturn(UpsertResult.UPDATED);
+        when(inviteService.redeemInvite(email)).thenReturn(UpsertResult.UPDATED);
 
-        MvcResult response = mockMvc.perform(get("/invites/redeem" + "?email=" + email + "&inviteCode=" + inviteCode)
+        MvcResult response = mockMvc.perform(post("/invites/redeem" + "?email=" + email)
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent())
@@ -208,6 +208,6 @@ class InviteControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(response.getResponse().getHeaderValue("Location"))
-            .isEqualTo(TEST_URL + "/invites/redeem" + "?email=" + email + "&inviteCode=" + inviteCode);
+            .isEqualTo(TEST_URL + "/invites/redeem" + "?email=" + email);
     }
 }

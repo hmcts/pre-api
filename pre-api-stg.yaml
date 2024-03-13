@@ -1,5 +1,23 @@
 basePath: /pre-api
 definitions:
+  AccessDTO:
+    description: AccessDTO
+    properties:
+      app_access:
+        description: AccessAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+        uniqueItems: true
+      portal_access:
+        description: AccessPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
+      user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
   AccessRemovedReportDTO:
     description: AccessRemovedReportDTO
     properties:
@@ -28,27 +46,6 @@ definitions:
       user_full_name:
         description: AccessRemovedReportUserFullName
         type: string
-    type: object
-  AppAccessDTO:
-    description: AppAccessDTO
-    properties:
-      active:
-        description: AppAccessActive
-        type: boolean
-      court:
-        $ref: '#/definitions/CourtDTO'
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
-      last_access:
-        description: AppAccessLastAccess
-        format: date-time
-        type: string
-      role:
-        $ref: '#/definitions/RoleDTO'
-      user:
-        $ref: '#/definitions/BaseUserDTO'
     type: object
   BaseAppAccessDTO:
     description: BaseAppAccessDTO
@@ -1839,6 +1836,18 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -2408,7 +2417,7 @@ paths:
       tags:
         - invite-controller
   /invites/redeem:
-    get:
+    post:
       operationId: redeemInvite
       parameters:
         - description: The email of the user to redeem the invite for
@@ -2417,12 +2426,6 @@ paths:
           required: true
           type: string
           x-example: example@example.com
-        - description: The invite code to redeem
-          in: query
-          name: inviteCode
-          required: true
-          type: string
-          x-example: ABCDEF
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -2515,6 +2518,11 @@ paths:
     get:
       operationId: getRecordings
       parameters:
+        - description: Partial string of the recording id to search by
+          in: query
+          name: id
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The capture session to search by
           format: uuid
           in: query
@@ -2546,10 +2554,10 @@ paths:
           name: caseReference
           type: string
           x-example: CASE12345
-        - description: The Date the recording's booking was scheduled for
+        - description: The Date the recording's capture session was started at
           format: date
           in: query
-          name: scheduledFor
+          name: startedAt
           type: string
           x-example: '2024-04-27'
         - description: The court to search by
@@ -3042,9 +3050,7 @@ paths:
         '200':
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/AppAccessDTO'
-            type: array
+            $ref: '#/definitions/AccessDTO'
       summary: Get a User's App Access by Email
       tags:
         - user-controller

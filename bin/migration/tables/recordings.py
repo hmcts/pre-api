@@ -39,7 +39,7 @@ class RecordingManager:
 
         duplicate_parent_id_records = [
             recording for recording in source_data if recording[0] in duplicate_parent_ids]
-        non_duplicate_parent_id_records = [
+        unique_parent_id_records = [
             recording for recording in source_data if recording[0] not in duplicate_parent_ids]
 
         batch_non_parent_recording = []
@@ -86,8 +86,7 @@ class RecordingManager:
                 url = recording[20] if recording[20] is not None else None
                 filename = recording[14]
 
-                created_at_datetime, user_email = self.get_recording_date_and_user(
-                    id, "Start")
+                created_at_datetime, user_email = self.get_recording_date_and_user(id, "Start")
 
                 if created_at_datetime:
                     created_at = parse_to_timestamp(created_at_datetime)
@@ -108,6 +107,9 @@ class RecordingManager:
                 recording_status = recording[11] if recording[11] is not None else None
                 deleted_at = parse_to_timestamp(
                     recording[24]) if recording_status == 'DELETED' else None
+                
+                if parent_recording_id == id:
+                    parent_recording_id = None
 
                 batch_non_parent_recording.append(
                     (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
@@ -141,7 +143,7 @@ class RecordingManager:
                 })
 
         # inserting remaining records
-        for recording in non_duplicate_parent_id_records:
+        for recording in unique_parent_id_records:
             recording_id = recording[0]
             parent_recording_id = recording[9]
 
@@ -162,6 +164,7 @@ class RecordingManager:
                     'details': f'Parent recording ID: {parent_recording_id} does not match a Recording ID'
                 })
                 continue
+           
 
             destination_cursor.execute(
                 "SELECT capture_session_id from public.temp_recordings where parent_recording_id = %s", (parent_recording_id,))
@@ -208,7 +211,6 @@ class RecordingManager:
                 url = recording[20] if recording[20] is not None else None
 
                 filename = recording[14]
-
                 if filename is None:
                     self.failed_imports.append({
                         'table_name': 'recordings',
@@ -255,10 +257,11 @@ class RecordingManager:
                 created_by = get_user_id(destination_cursor, user_email)
 
                 recording_status = recording[11] if recording[11] is not None else None
-                deleted_at = parse_to_timestamp(
-                    recording[24]) if recording_status == 'Deleted' else None
+                deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
                 # duration =  ? - this info is in the asset files on AMS
                 # edit_instruction = ?
+                if parent_recording_id == recording_id:
+                    parent_recording_id = None
 
                 try:
                     destination_cursor.execute(

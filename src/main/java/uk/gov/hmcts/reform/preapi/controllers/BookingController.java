@@ -36,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -76,7 +77,7 @@ public class BookingController extends PreApiController {
     @Parameter(
         name = "scheduledFor",
         description = "The Date the Booking is scheduled for",
-        schema = @Schema(implementation = String.class, format = "date"),
+        schema = @Schema(implementation = LocalDate.class, format = "date"),
         example = "2024-04-27"
     )
     @Parameter(
@@ -119,7 +120,7 @@ public class BookingController extends PreApiController {
             params.getCaseReference(),
             params.getCourtId(),
             params.getScheduledFor() != null
-                ? Optional.of(Timestamp.from(params.getScheduledFor().toInstant()))
+                ? Optional.of(Timestamp.valueOf(params.getScheduledFor().atStartOfDay()))
                 : Optional.empty(),
             params.getParticipantId(),
             params.getHasRecordings(),
@@ -185,6 +186,18 @@ public class BookingController extends PreApiController {
 
     @GetMapping("/{bookingId}/share")
     @Operation(operationId = "getSharedBookingLogs")
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "0"
+    )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<ShareBookingDTO>>> getSharedBookingLogs(
         @PathVariable UUID bookingId,

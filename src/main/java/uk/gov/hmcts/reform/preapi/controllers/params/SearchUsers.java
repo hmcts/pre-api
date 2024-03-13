@@ -14,4 +14,16 @@ public class SearchUsers {
     private UUID roleId;
     private AccessType accessType;
     private Boolean includeDeleted;
+
+    public String getName() {
+        return name != null && !name.isEmpty() ? name : null;
+    }
+
+    public String getEmail() {
+        return email != null && !email.isEmpty() ? email : null;
+    }
+
+    public String getOrganisation() {
+        return organisation != null && !organisation.isEmpty() ? organisation : null;
+    }
 }
