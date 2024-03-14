@@ -12,8 +12,11 @@ management:
         include: health, info, prometheus
 
 springdoc:
-  packagesToScan: uk.gov.hmcts.reform.preapi.controllers
   writer-with-order-by-keys: true
+  show-actuator: true
+  paths-to-exclude:
+    - /info
+    - /health/*
 
 spring:
   config:

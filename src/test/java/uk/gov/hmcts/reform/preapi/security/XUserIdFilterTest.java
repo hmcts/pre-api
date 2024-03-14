@@ -44,8 +44,11 @@ public class XUserIdFilterTest {
         var id = UUID.randomUUID();
 
         when(request.getRequestURI()).thenReturn("/example-uri");
+        when(request.getMethod()).thenReturn("GET");
         when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
         when(userAuthenticationService.loadAppUserById(id.toString())).thenReturn(auth);
+        when(request.getServletPath()).thenReturn("/example-uri");
+        when(request.getPathInfo()).thenReturn("/example-uri");
 
         var response = mock(MockHttpServletResponse.class);
         var filterChain = mock(MockFilterChain.class);
@@ -64,13 +67,14 @@ public class XUserIdFilterTest {
         var request = mock(MockHttpServletRequest.class);
 
         when(request.getRequestURI()).thenReturn("/swagger-ui/index.html");
+        when(request.getServletPath()).thenReturn("/swagger-ui/index.html");
+        when(request.getPathInfo()).thenReturn("/swagger-ui/index.html");
 
         var response = mock(MockHttpServletResponse.class);
         var filterChain = mock(MockFilterChain.class);
 
         filter.doFilter(request, response, filterChain);
 
-        verify(request, times(1)).getRequestURI();
         verify(request, never()).getHeader(X_USER_ID_HEADER);
         verify(userAuthenticationService, never()).loadAppUserById(any());
         verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -87,6 +91,9 @@ public class XUserIdFilterTest {
         when(response.getWriter()).thenReturn(writer);
         when(request.getRequestURI()).thenReturn("/example-uri");
         when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
+        when(request.getServletPath()).thenReturn("/example-uri");
+        when(request.getPathInfo()).thenReturn("/example-uri");
+
         doThrow(
             new BadCredentialsException("Unauthorised user: " + id)
         ).when(userAuthenticationService).loadAppUserById(id.toString());
