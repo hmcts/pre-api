@@ -37,9 +37,6 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "status", nullable = false)
     private AccessStatus status = AccessStatus.INVITATION_SENT;
 
-    @Column(name = "invite_code", length = 45)
-    private String code;
-
     @Column(name = "invited_at")
     private Timestamp invitedAt;
 
@@ -62,7 +59,6 @@ public class PortalAccess extends CreatedModifiedAtEntity {
         details.put("portalAccessUserEmail", user.getEmail());
         details.put("portalAccessStatus", status);
         details.put("portalAccessInvitedAt", invitedAt);
-        details.put("portalAccessInviteCode", code);
         details.put("portalAccessRegisteredAt", registeredAt);
         details.put("deleted", deletedAt != null);
         return details;
