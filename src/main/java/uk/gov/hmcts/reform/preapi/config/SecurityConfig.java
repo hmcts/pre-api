@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import uk.gov.hmcts.reform.preapi.security.filter.XUserIdFilter;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
@@ -20,21 +21,21 @@ public class SecurityConfig {
 
     private final UserAuthenticationService userAuthenticationService;
 
-    public static String[] NOT_AUTHORIZED_URIS = new String[] {
-        "/testing-support/**",
-        "/swagger-ui/**",
-        "/v3/api-docs/**",
-        "/v3/api-docs",
-        "/health/**",
-        "/health",
-        "/info",
-        "/prometheus",
-        "/users/by-email/**",
-        "/reports/**",
-        "/audit/**",
-        "/error",
-        "/invites",
-        "/invites/redeem"
+    public static final AntPathRequestMatcher[] NOT_AUTHORIZED_URIS = new AntPathRequestMatcher[] {
+        new AntPathRequestMatcher("/testing-support/**"),
+        new AntPathRequestMatcher("/swagger-ui/**"),
+        new AntPathRequestMatcher("/v3/api-docs/**"),
+        new AntPathRequestMatcher("/v3/api-docs"),
+        new AntPathRequestMatcher("/health/**"),
+        new AntPathRequestMatcher("/health"),
+        new AntPathRequestMatcher("/info"),
+        new AntPathRequestMatcher("/prometheus"),
+        new AntPathRequestMatcher("/users/by-email/**"),
+        new AntPathRequestMatcher("/reports/**"),
+        new AntPathRequestMatcher("/audit/**"),
+        new AntPathRequestMatcher("/error"),
+        new AntPathRequestMatcher("/invites", "GET"),
+        new AntPathRequestMatcher("/invites/redeem", "POST"),
     };
 
     @Autowired

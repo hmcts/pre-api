@@ -575,9 +575,6 @@ definitions:
   CreateInviteDTO:
     description: CreateInviteDTO
     properties:
-      code:
-        description: InviteCode
-        type: string
       email:
         description: InviteEmail
         type: string
@@ -597,6 +594,11 @@ definitions:
         description: InviteUserId
         format: uuid
         type: string
+    required:
+      - email
+      - first_name
+      - last_name
+      - user_id
     type: object
   CreateParticipantDTO:
     description: CreateParticipantDTO
@@ -2366,6 +2368,29 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
+  /health:
+    get:
+      operationId: health
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/json
+        - application/vnd.spring-boot.actuator.v2+json
+        - application/vnd.spring-boot.actuator.v3+json
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+      summary: Actuator web endpoint 'health'
+      tags:
+        - Actuator
   /invites:
     get:
       operationId: searchInvites
@@ -3161,5 +3186,11 @@ securityDefinitions:
     name: Ocp-Apim-Subscription-Key
     type: apiKey
 swagger: '2.0'
+tags:
+  - description: Monitor and interact
+    externalDocs:
+      description: Spring Boot Actuator Web API Documentation
+      url: 'https://docs.spring.io/spring-boot/docs/current/actuator-api/html/'
+    name: Actuator
 x-components: {}
 

@@ -115,7 +115,7 @@ public class InviteController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public ResponseEntity<Void> upsertInvite(@PathVariable UUID userId,
                                              @Valid @RequestBody CreateInviteDTO createInviteDTO) {
-        if (createInviteDTO.getUserId() == null || !userId.toString().equals(createInviteDTO.getUserId().toString())) {
+        if (!userId.equals(createInviteDTO.getUserId())) {
             throw new PathPayloadMismatchException("userId", "createInviteDTO.userId");
         }
 
