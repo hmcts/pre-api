@@ -175,9 +175,9 @@ public class ReportService {
                 .findById(audit.getCreatedBy())
                 .orElse(null)
                 : null,
-            audit.getTableRecordId() != null
+            audit.getAuditDetails() != null && audit.getAuditDetails().has("recordingId")
                 ? recordingRepository
-                .findById(audit.getTableRecordId())
+                .findById(UUID.fromString(audit.getAuditDetails().get("recordingId").asText()))
                 .orElse(null)
                 : null
         );
