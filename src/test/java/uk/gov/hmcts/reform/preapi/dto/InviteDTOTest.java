@@ -29,7 +29,6 @@ class InviteDTOTest {
         portalAccess.setId(UUID.randomUUID());
         portalAccess.setInvitedAt(Timestamp.from(java.time.Instant.now()));
         portalAccess.setUser(user);
-        portalAccess.setCode("ABCDE");
         portalAccess.setCreatedAt(Timestamp.from(java.time.Instant.now()));
         portalAccess.setModifiedAt(Timestamp.from(java.time.Instant.now()));
     }
@@ -43,7 +42,6 @@ class InviteDTOTest {
         assertThat(model.getFirstName()).isEqualTo(user.getFirstName());
         assertThat(model.getLastName()).isEqualTo(user.getLastName());
         assertThat(model.getEmail()).isEqualTo(user.getEmail());
-        assertThat(model.getCode()).isEqualTo(portalAccess.getCode());
         assertThat(model.getInvitedAt()).isEqualTo(portalAccess.getInvitedAt());
     }
 }

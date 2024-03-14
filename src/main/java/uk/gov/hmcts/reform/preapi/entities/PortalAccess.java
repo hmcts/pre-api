@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -36,9 +37,6 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "status", nullable = false)
     private AccessStatus status = AccessStatus.INVITATION_SENT;
 
-    @Column(name = "invite_code", length = 45)
-    private String code;
-
     @Column(name = "invited_at")
     private Timestamp invitedAt;
 
@@ -48,13 +46,19 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
+    @Transient
+    private boolean deleted;
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
         details.put("portalAccessUserEmail", user.getEmail());
         details.put("portalAccessStatus", status);
         details.put("portalAccessInvitedAt", invitedAt);
-        details.put("portalAccessInviteCode", code);
         details.put("portalAccessRegisteredAt", registeredAt);
         details.put("deleted", deletedAt != null);
         return details;

@@ -13,11 +13,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.UserController;
-import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -740,15 +741,17 @@ public class UserControllerTest {
     @Test
     void getUserByEmailSuccess() throws Exception {
         var userEmail = "example@example.com";
-        var mock = new AppAccessDTO();
-        mock.setId(UUID.randomUUID());
+        var mock = new AccessDTO();
+        var mockUser = new BaseUserDTO();
+        mockUser.setId(UUID.randomUUID());
+        mock.setUser(mockUser);
 
-        when(userService.findByEmail(userEmail)).thenReturn(List.of(mock));
+        when(userService.findByEmail(userEmail)).thenReturn(mock);
 
         mockMvc.perform(get("/users/by-email/" + userEmail))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].id").value(mock.getId().toString()));
+            .andExpect(jsonPath("$.user.id").value(mock.getUser().getId().toString()));
     }
 
     @DisplayName("Should return 404 when user's app access details by email that does not have any app access")
