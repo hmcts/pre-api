@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -18,6 +19,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -74,6 +76,24 @@ public class PortalAccessServiceTest {
 
         verify(portalAccessRepository, times(1)).findByIdAndDeletedAtIsNull(model.getId());
         verify(portalAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Should mark app access entity as deleted and inactive")
+    @Test
+    void deleteByIdSuccess() {
+        var id = UUID.randomUUID();
+        var access = new PortalAccess();
+        access.setId(id);
+        access.setStatus(AccessStatus.ACTIVE);
+
+        when(portalAccessRepository.findById(id)).thenReturn(Optional.of(access));
+        portalAccessService.deleteById(id);
+
+        assertThat(access.getDeletedAt()).isNotNull();
+        assertThat(access.getStatus()).isEqualTo(AccessStatus.INACTIVE);
+
+        verify(portalAccessRepository, times(1)).findById(id);
+        verify(portalAccessRepository, times(1)).save(any());
     }
 
 }
