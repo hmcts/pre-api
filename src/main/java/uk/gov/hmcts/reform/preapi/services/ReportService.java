@@ -11,10 +11,12 @@ import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -36,6 +38,7 @@ public class ReportService {
     private final ShareBookingRepository shareBookingRepository;
     private final AuditRepository auditRepository;
     private final UserRepository userRepository;
+    private final AppAccessRepository appAccessRepository;
 
     @Autowired
     public ReportService(CaptureSessionRepository captureSessionRepository,
@@ -43,13 +46,15 @@ public class ReportService {
                          CaseRepository caseRepository,
                          ShareBookingRepository shareBookingRepository,
                          AuditRepository auditRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         AppAccessRepository appAccessRepository) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.caseRepository = caseRepository;
         this.shareBookingRepository = shareBookingRepository;
         this.auditRepository = auditRepository;
         this.userRepository = userRepository;
+        this.appAccessRepository = appAccessRepository;
     }
 
     @Transactional
@@ -173,7 +178,9 @@ public class ReportService {
             audit.getCreatedBy() != null
                 ? userRepository
                 .findById(audit.getCreatedBy())
-                .orElse(null)
+                .orElse(appAccessRepository.findById(audit.getCreatedBy())
+                            .map(AppAccess::getUser)
+                            .orElse(null))
                 : null,
             audit.getAuditDetails() != null && audit.getAuditDetails().has("recordingId")
                 ? recordingRepository
