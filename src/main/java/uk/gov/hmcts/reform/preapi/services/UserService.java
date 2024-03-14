@@ -185,8 +185,7 @@ public class UserService {
 
         portalAccessEntity.setUser(userEntity);
         portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
-        portalAccessEntity.setCode(createInviteDTO.getCode());
-        portalAccessEntity.setInvitedAt(Timestamp.from(java.time.Instant.now()));
+        portalAccessEntity.setInvitedAt(Timestamp.from(Instant.now()));
         portalAccessRepository.save(portalAccessEntity);
 
         return UpsertResult.CREATED;
