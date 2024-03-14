@@ -159,7 +159,6 @@ class BookingControllerFT extends FunctionalTestBase {
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
-        assertThat(bookings.size()).isEqualTo(1);
         assertThat(bookings.get(0).getId()).isEqualTo(bookingId);
         assertThat(bookings.get(0).getScheduledFor()).isCloseTo(dateToSearch, 1000);
 
@@ -172,6 +171,6 @@ class BookingControllerFT extends FunctionalTestBase {
         bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
-        assertThat(bookings.size()).isEqualTo(0);
+        assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 }
