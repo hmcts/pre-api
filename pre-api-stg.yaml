@@ -575,9 +575,6 @@ definitions:
   CreateInviteDTO:
     description: CreateInviteDTO
     properties:
-      code:
-        description: InviteCode
-        type: string
       email:
         description: InviteEmail
         type: string
@@ -597,6 +594,11 @@ definitions:
         description: InviteUserId
         format: uuid
         type: string
+    required:
+      - email
+      - first_name
+      - last_name
+      - user_id
     type: object
   CreateParticipantDTO:
     description: CreateParticipantDTO
