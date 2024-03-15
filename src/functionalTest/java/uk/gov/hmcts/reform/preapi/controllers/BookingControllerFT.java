@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -21,8 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class BookingControllerFT extends FunctionalTestBase {
 
-    private static final String BOOKINGS_ENDPOINT = "/bookings/";
-    private static final String RECORDINGS_ENDPOINT = "/recordings/";
+    private static final String BOOKINGS_ENDPOINT = "/bookings";
+    private static final String RECORDINGS_ENDPOINT = "/recordings";
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -34,21 +35,21 @@ class BookingControllerFT extends FunctionalTestBase {
         var bookingId = testIds.get("bookingId");
         var recordingId = testIds.get("recordingId");
 
-        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + bookingId, true);
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookingResponse.body().jsonPath().getString("id")).isEqualTo(bookingId);
 
-        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + recordingId, true);
+        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
         assertThat(recordingResponse.statusCode()).isEqualTo(200);
         assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recordingId);
         assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + bookingId, true);
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
         assertThat(deleteResponse.statusCode()).isEqualTo(400);
         assertThat(deleteResponse.getBody().jsonPath().getString("message"))
             .isEqualTo("Cannot delete because and associated recording has not been deleted.");
 
-        var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + recordingId, true);
+        var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
         assertThat(recordingResponse2.statusCode()).isEqualTo(200);
     }
 
@@ -60,7 +61,7 @@ class BookingControllerFT extends FunctionalTestBase {
             .jsonPath()
             .getUUID("bookingId");
 
-        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + bookingId, true);
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
 
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
 
@@ -94,7 +95,7 @@ class BookingControllerFT extends FunctionalTestBase {
         createBooking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusDays(1).toInstant()));
 
         var putResponse = doPutRequest(
-            BOOKINGS_ENDPOINT + bookingId,
+            BOOKINGS_ENDPOINT + "/" + bookingId,
             OBJECT_MAPPER.writeValueAsString(createBooking),
             true
         );
@@ -105,7 +106,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Deleting a non-existent booking should return 404")
     void deletingNonExistentBookingShouldReturn404() {
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "00000000-0000-0000-0000-000000000000", true);
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + "00000000-0000-0000-0000-000000000000", true);
         assertThat(deleteResponse.statusCode()).isEqualTo(404);
     }
 
@@ -115,30 +116,80 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookingsResponse = doGetRequest("/bookings", false);
         assertThat(getBookingsResponse.statusCode()).isEqualTo(401);
 
-        var getBookingsByIdResponse = doGetRequest(BOOKINGS_ENDPOINT + UUID.randomUUID(), false);
+        var getBookingsByIdResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), false);
         assertThat(getBookingsByIdResponse.statusCode()).isEqualTo(401);
 
         var putBookingResponse = doPutRequest(
-            BOOKINGS_ENDPOINT + UUID.randomUUID(),
+            BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(),
             OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
             false
         );
         assertThat(putBookingResponse.statusCode()).isEqualTo(401);
 
-        var deleteBookingResponse = doDeleteRequest(BOOKINGS_ENDPOINT + UUID.randomUUID(), false);
+        var deleteBookingResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), false);
         assertThat(deleteBookingResponse.statusCode()).isEqualTo(401);
 
         var putShareBookingResponse = doPutRequest(
-            BOOKINGS_ENDPOINT + UUID.randomUUID() + "/share",
+            BOOKINGS_ENDPOINT + "/" + UUID.randomUUID() + "/share",
             OBJECT_MAPPER.writeValueAsString(new CreateShareBookingDTO()),
             false
         );
         assertThat(putShareBookingResponse.statusCode()).isEqualTo(401);
 
         var deleteShareBookingResponse = doDeleteRequest(
-            BOOKINGS_ENDPOINT + UUID.randomUUID() + "/share",
+            BOOKINGS_ENDPOINT + "/" + UUID.randomUUID() + "/share",
             false
         );
         assertThat(deleteShareBookingResponse.statusCode()).isEqualTo(401);
+    }
+
+    @DisplayName("Scenario: Search for a booking by schedule date")
+    @Test
+    void searchBookingByScheduleDate() throws JsonProcessingException {
+        var dateToSearch = Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant());
+        var dateToSearchStr = dateToSearch.toString().split(" ")[0];
+
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath()
+            .getUUID("bookingId");
+
+        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr, true);
+
+        var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+
+        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
+
+
+        dateToSearch = Timestamp.from(OffsetDateTime.now().toInstant());
+        dateToSearchStr = dateToSearch.toString().split(" ")[0];
+
+        bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr, true);
+
+        bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+
+        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
+    }
+
+    @DisplayName("Scenario: Search for a booking by schedule date and case reference")
+    @Test
+    void searchBookingByScheduleDateAndCaseReference() throws JsonProcessingException {
+        var dateToSearch = Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant());
+        var dateToSearchStr = dateToSearch.toString().split(" ")[0];
+
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath()
+            .getUUID("bookingId");
+
+        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr
+            + "&caseReference=4567890123", true);
+
+        var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+
+        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 }
