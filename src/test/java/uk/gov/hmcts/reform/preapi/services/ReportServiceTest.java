@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -72,6 +74,9 @@ public class ReportServiceTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private AppAccessRepository appAccessRepository;
 
     @Autowired
     private ReportService reportService;
@@ -363,6 +368,11 @@ public class ReportServiceTest {
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.PORTAL);
 
+        var objectMapper = new ObjectMapper();
+        var objectNode = objectMapper.createObjectNode();
+        objectNode.put("recordingId", recordingEntity.getId().toString());
+        auditEntity.setAuditDetails(objectNode);
+
         when(auditRepository
                  .findBySourceAndFunctionalAreaAndActivity(
                      AuditLogSource.PORTAL,
@@ -405,6 +415,11 @@ public class ReportServiceTest {
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
 
+        var objectMapper = new ObjectMapper();
+        var objectNode = objectMapper.createObjectNode();
+        objectNode.put("recordingId", recordingEntity.getId().toString());
+        auditEntity.setAuditDetails(objectNode);
+
         when(auditRepository
                  .findBySourceAndFunctionalAreaAndActivity(
                      AuditLogSource.APPLICATION,
@@ -446,6 +461,10 @@ public class ReportServiceTest {
         user.setLastName("Person");
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
+        var objectMapper = new ObjectMapper();
+        var objectNode = objectMapper.createObjectNode();
+        objectNode.put("recordingId", recordingEntity.getId().toString());
+        auditEntity.setAuditDetails(objectNode);
 
         when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
