@@ -20,7 +20,9 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 @SpringBootTest(classes = Application.class)
@@ -35,9 +37,11 @@ public class UserAuthenticationServiceIT {
     private AppAccess appAccess;
 
     private PortalAccess portalAccess;
+    private Timestamp lastAccess;
 
     @BeforeEach
     void setUp() {
+        lastAccess = Timestamp.from(Instant.now());
         var user = HelperFactory.createUser(
             "Example",
             "Example",
@@ -58,10 +62,10 @@ public class UserAuthenticationServiceIT {
         );
         entityManager.persist(court);
 
-        appAccess = HelperFactory.createAppAccess(user, court, role, true, null, null);
+        appAccess = HelperFactory.createAppAccess(user, court, role, true, null, lastAccess);
         portalAccess = HelperFactory.createPortalAccess(
             user,
-            null,
+            lastAccess,
             AccessStatus.ACTIVE,
             Timestamp.from(Instant.now()),
             Timestamp.from(Instant.now()),
@@ -77,6 +81,10 @@ public class UserAuthenticationServiceIT {
         var userWithValidId = userAuthenticationService.loadAppUserById(appAccess.getId().toString());
         assertEquals(userWithValidId.getUserId(), appAccess.getUser().getId());
         assertEquals(userWithValidId.getAppAccess(), appAccess);
+
+        entityManager.refresh(appAccess);
+        assertFalse(lastAccess.equals(userWithValidId.getAppAccess().getLastAccess()));
+        assertTrue(lastAccess.before(appAccess.getLastAccess()));
     }
 
     @Transactional
@@ -85,6 +93,10 @@ public class UserAuthenticationServiceIT {
         var userWithValidId = userAuthenticationService.loadAppUserById(portalAccess.getId().toString());
         assertEquals(userWithValidId.getUserId(), portalAccess.getUser().getId());
         assertEquals(userWithValidId.getPortalAccess(), portalAccess);
+
+        entityManager.refresh(portalAccess);
+        assertFalse(lastAccess.equals(userWithValidId.getPortalAccess().getLastAccess()));
+        assertTrue(lastAccess.before(portalAccess.getLastAccess()));
     }
 
     @Transactional
