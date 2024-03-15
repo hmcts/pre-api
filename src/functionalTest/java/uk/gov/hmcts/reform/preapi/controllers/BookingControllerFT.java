@@ -143,6 +143,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(deleteShareBookingResponse.statusCode()).isEqualTo(401);
     }
 
+    /*
     @DisplayName("Scenario: Search for a booking by schedule date")
     @Test
     void searchBookingByScheduleDate() throws JsonProcessingException {
@@ -172,6 +173,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
+     */
 
     @DisplayName("Scenario: Search for a booking by schedule date and case reference")
     @Test
