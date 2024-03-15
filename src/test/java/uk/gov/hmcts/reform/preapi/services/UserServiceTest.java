@@ -578,7 +578,7 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).findById(model.getId());
         verify(userRepository, times(1)).saveAndFlush(any());
-        verify(appAccessRepository, times(1)).deleteById(accessEntity.getId());
+        verify(appAccessService, times(1)).deleteById(accessEntity.getId());
         verify(appAccessService, times(1)).upsert(accessModel);
         verify(portalAccessRepository, times(1)).existsById(portalModel.getId());
         verify(portalAccessService, times(1)).update(portalModel);
