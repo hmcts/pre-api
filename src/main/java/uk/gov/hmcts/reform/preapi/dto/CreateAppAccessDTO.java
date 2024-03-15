@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.UUID;
 
 @Data
@@ -35,5 +35,5 @@ public class CreateAppAccessDTO {
     private Boolean active;
 
     @Schema(description = "AppAccessLastActive")
-    private Date lastActive;
+    private Timestamp lastActive;
 }

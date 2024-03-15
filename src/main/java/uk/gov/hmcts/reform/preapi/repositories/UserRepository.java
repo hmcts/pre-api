@@ -22,8 +22,16 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         SELECT u FROM User u
         WHERE (:includeDeleted = TRUE OR u.deletedAt IS NULL)
         AND (
-            (:name IS NULL OR CONCAT(u.firstName, ' ', u.lastName) ILIKE %:name%)
-            OR (:email IS NULL OR u.email ILIKE %:email%)
+            CASE
+                WHEN :name IS NULL AND :email IS NULL THEN 1
+                WHEN :name IS NULL AND :email IS NOT NULL AND u.email ILIKE %:email% THEN 1
+                WHEN :name IS NOT NULL AND CONCAT(u.firstName, ' ', u.lastName) ILIKE %:name% AND :email IS NULL THEN 1
+                WHEN :name IS NOT NULL AND :email IS NOT NULL AND (
+                    CONCAT(u.firstName, ' ', u.lastName) ILIKE %:name%
+                    OR u.email ILIKE %:email%
+                ) THEN 1
+                ELSE 0
+            END = 1
         )
         AND (:organisation IS NULL OR u.organisation ILIKE %:organisation%)
         AND (CAST(:courtId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.court.id = :courtId))

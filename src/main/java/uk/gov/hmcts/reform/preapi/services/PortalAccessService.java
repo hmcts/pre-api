@@ -1,14 +1,18 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
+
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class PortalAccessService {
@@ -35,4 +39,16 @@ public class PortalAccessService {
         return UpsertResult.UPDATED;
     }
 
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void deleteById(UUID portalId) {
+        portalAccessRepository
+            .findById(portalId)
+            .ifPresent(
+                access -> {
+                    access.setStatus(AccessStatus.INACTIVE);
+                    access.setDeletedAt(Timestamp.from(Instant.now()));
+                    portalAccessRepository.save(access);
+                });
+    }
 }

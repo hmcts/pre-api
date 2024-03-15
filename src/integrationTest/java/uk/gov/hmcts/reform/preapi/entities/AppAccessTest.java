@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,7 +44,7 @@ class AppAccessTest {
             role,
             true,
             new Timestamp(System.currentTimeMillis()),
-            new Date(System.currentTimeMillis())
+            new Timestamp(System.currentTimeMillis())
         );
 
         entityManager.persist(appAccess);
