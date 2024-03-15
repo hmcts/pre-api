@@ -76,4 +76,22 @@ public class PortalAccessServiceTest {
         verify(portalAccessRepository, never()).save(any());
     }
 
+    @DisplayName("Should mark app access entity as deleted and inactive")
+    @Test
+    void deleteByIdSuccess() {
+        var id = UUID.randomUUID();
+        var access = new PortalAccess();
+        access.setId(id);
+        access.setStatus(AccessStatus.ACTIVE);
+
+        when(portalAccessRepository.findById(id)).thenReturn(Optional.of(access));
+        portalAccessService.deleteById(id);
+
+        assertThat(access.getDeletedAt()).isNotNull();
+        assertThat(access.getStatus()).isEqualTo(AccessStatus.INACTIVE);
+
+        verify(portalAccessRepository, times(1)).findById(id);
+        verify(portalAccessRepository, times(1)).save(any());
+    }
+
 }
