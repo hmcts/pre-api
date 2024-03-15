@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -196,5 +197,23 @@ public class AppAccessServiceTest {
         verify(appAccessRepository, never()).save(any());
     }
 
+    @DisplayName("Should mark app access entity as deleted and inactive")
+    @Test
+    void deleteByIdSuccess() {
+        var id = UUID.randomUUID();
+        var access = new AppAccess();
+        access.setId(id);
+        access.setActive(true);
+
+        when(appAccessRepository.findById(id)).thenReturn(Optional.of(access));
+
+        appAccessService.deleteById(id);
+
+        assertThat(access.getDeletedAt()).isNotNull();
+        assertFalse(access.isActive());
+
+        verify(appAccessRepository, times(1)).findById(id);
+        verify(appAccessRepository, times(1)).save(any());
+    }
 
 }

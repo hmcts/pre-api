@@ -23,7 +23,6 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
@@ -84,7 +83,7 @@ public class HelperFactory {
         Role role,
         boolean active,
         Timestamp deletedAt,
-        @Nullable Date lastAccess
+        @Nullable Timestamp lastAccess
     ) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);

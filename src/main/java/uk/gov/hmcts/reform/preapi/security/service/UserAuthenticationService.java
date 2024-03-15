@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -13,6 +14,8 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -35,12 +38,28 @@ public class UserAuthenticationService {
         this.shareBookingRepository = shareBookingRepository;
     }
 
+    @Transactional
     public UserAuthentication loadAppUserById(String id) {
         return validateUser(id)
             .orElseThrow(() -> new BadCredentialsException("Unauthorised user: " + id));
     }
 
-    private Optional<UserAuthentication> validateUser(String accessId) {
+    @Transactional
+    public UserAuthentication getAuthentication(AppAccess access) {
+        access.setLastAccess(Timestamp.from(Instant.now()));
+        appAccessRepository.saveAndFlush(access);
+        return new UserAuthentication(access, getAuthorities(access));
+    }
+
+    @Transactional
+    public UserAuthentication getAuthentication(PortalAccess access) {
+        access.setLastAccess(Timestamp.from(Instant.now()));
+        portalAccessRepository.saveAndFlush(access);
+        return new UserAuthentication(access, getSharedBookings(access), getAuthorities());
+    }
+
+    @Transactional
+    public Optional<UserAuthentication> validateUser(String accessId) {
         if (accessId == null || accessId.isEmpty()) {
             return Optional.empty();
         }
@@ -54,12 +73,12 @@ public class UserAuthenticationService {
 
         var user = appAccessRepository
             .findByIdAndDeletedAtNullAndUser_DeletedAtNull(id)
-            .map(a -> new UserAuthentication(a, getAuthorities(a)));
+            .map(this::getAuthentication);
 
         return user.isPresent()
             ? user
             : portalAccessRepository.findByIdValidUser(id)
-            .map(a -> new UserAuthentication(a, getSharedBookings(a), getAuthorities(a)));
+            .map(this::getAuthentication);
     }
 
     private List<GrantedAuthority> getAuthorities(AppAccess access) {
@@ -71,7 +90,7 @@ public class UserAuthenticationService {
         }
     }
 
-    private List<GrantedAuthority> getAuthorities(PortalAccess access) {
+    private List<GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_LEVEL_3"));
     }
 
