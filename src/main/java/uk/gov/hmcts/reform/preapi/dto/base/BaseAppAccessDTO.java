@@ -9,7 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 
-import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.UUID;
 
 @Data
@@ -27,7 +27,7 @@ public class BaseAppAccessDTO {
     protected RoleDTO role;
 
     @Schema(description = "AppAccessLastAccess")
-    protected Date lastAccess;
+    protected Timestamp lastAccess;
 
     @Schema(description = "AppAccessActive")
     protected boolean active;
