@@ -54,7 +54,7 @@ spring:
 
 azure:
   application-insights:
-    instrumentation-key: ${pre.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}
+    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:00000000-0000-0000-0000-000000000000}
 
 hibernate:
   show_sql: true
