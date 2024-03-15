@@ -172,4 +172,24 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
+
+    @DisplayName("Scenario: Search for a booking by schedule date and case reference")
+    @Test
+    void searchBookingByScheduleDateAndCaseReference() throws JsonProcessingException {
+        var dateToSearch = Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant());
+        var dateToSearchStr = dateToSearch.toString().split(" ")[0];
+
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath()
+            .getUUID("bookingId");
+
+        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr
+            + "&caseReference=4567890123", true);
+
+        var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+
+        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
+    }
 }
