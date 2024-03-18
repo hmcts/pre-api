@@ -41,6 +41,5 @@ public class InviteDTO {
         lastName = user.getLastName();
         email = user.getEmail();
         invitedAt = portalAccess.getInvitedAt();
-        code = portalAccess.getCode();
     }
 }
