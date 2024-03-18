@@ -56,5 +56,7 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         Pageable pageable
     );
 
-    Optional<User> findAllByEmailIgnoreCaseAndDeletedAtIsNull(String email);
+    Optional<User> findByEmailIgnoreCaseAndDeletedAtIsNull(String email);
+
+    boolean existsByEmailIgnoreCase(String email);
 }
