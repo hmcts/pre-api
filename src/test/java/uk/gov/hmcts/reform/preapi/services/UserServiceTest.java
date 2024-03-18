@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -522,6 +523,7 @@ public class UserServiceTest {
         model.setPortalAccess(Set.of());
 
         when(userRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(userRepository.existsByEmailIgnoreCase(model.getEmail())).thenReturn(false);
 
         assertThat(userService.upsert(model)).isEqualTo(UpsertResult.CREATED);
 
@@ -676,11 +678,33 @@ public class UserServiceTest {
         verify(userRepository, never()).saveAndFlush(any());
     }
 
+    @DisplayName("Should fail to create user when a user with the same email address already exists")
+    @Test
+    void updateUserEmailAlreadyExists() {
+        var userId = UUID.randomUUID();
+        var model = new CreateUserDTO();
+        model.setId(userId);
+        model.setEmail("example@example.com");
+
+        when(userRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(userRepository.existsByEmailIgnoreCase(model.getEmail())).thenReturn(true);
+
+        var message = assertThrows(
+            ConflictException.class,
+            () -> userService.upsert(model)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Conflict: User with email: " + model.getEmail() + " already exists");
+
+        verify(userRepository, times(1)).findById(model.getId());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
     @DisplayName("Get a user's access information by email")
     @Test
     void findUserAccessByEmailSuccess() {
         when(userRepository
-                 .findAllByEmailIgnoreCaseAndDeletedAtIsNull(appUserEntity.getEmail())
+                 .findByEmailIgnoreCaseAndDeletedAtIsNull(appUserEntity.getEmail())
         ).thenReturn(Optional.of(appUserEntity));
 
         var userAccess = userService.findByEmail(appUserEntity.getEmail());
@@ -700,7 +724,7 @@ public class UserServiceTest {
     @Test
     void findUserAccessByEmailNotFound() {
         when(userRepository
-                 .findAllByEmailIgnoreCaseAndDeletedAtIsNull(userEntity.getEmail())
+                 .findByEmailIgnoreCaseAndDeletedAtIsNull(userEntity.getEmail())
         ).thenReturn(Optional.empty());
 
         var message = assertThrows(
