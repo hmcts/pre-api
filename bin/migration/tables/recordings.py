@@ -1,4 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
+from datetime import datetime
 
 
 class RecordingManager:
@@ -113,15 +114,8 @@ class RecordingManager:
                     parent_recording_id = None
                 
                 recording_available = recording[13]
-                if recording_available is None:
-                    self.failed_imports.append({
-                        'table_name': 'recordings',
-                        'table_id': id,
-                        'recording_id': id,
-                        'details':  f'recording_available is null for Recording ID: {id}'
-                    })
-                    continue
-
+                if recording_available is None: 
+                    deleted_at = datetime.now()
 
                 batch_non_parent_recording.append(
                     (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
@@ -267,18 +261,14 @@ class RecordingManager:
                     continue
 
                 created_by = get_user_id(destination_cursor, user_email)
-                recording_available = recording[13]
-                if recording_available is None:
-                    self.failed_imports.append({
-                        'table_name': 'recordings',
-                        'table_id': id,
-                        'recording_id': id,
-                        'details':  f'recording_available is null for Recording ID: {id}'
-                    })
-                    continue
+
+                
 
                 recording_status = recording[11] if recording[11] is not None else None
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
+                recording_available = recording[13]
+                if recording_available is None:
+                    deleted_at = datetime.now()
                 # duration =  ? - this info is in the asset files on AMS
                 # edit_instruction = ?
                 if parent_recording_id == recording_id:
