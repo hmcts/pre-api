@@ -148,26 +148,13 @@ public class ShareBookingServiceTest {
 
     @DisplayName("Share a booking by its id when share booking already exists")
     @Test
-    void shareBookingFailureShareBookingAlreadyExists() {
+    void shareBookingFailureShareBookingIdAlreadyExists() {
         var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
         shareBookingDTO.setBookingId(UUID.randomUUID());
         shareBookingDTO.setSharedByUser(UUID.randomUUID());
         shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
-        var bookingEntity = new Booking();
-        var sharedByUser = new User();
-        var sharedWithUser = new User();
-
-        when(
-            bookingRepository.findById(shareBookingDTO.getBookingId())
-        ).thenReturn(Optional.of(bookingEntity));
-        when(
-            userRepository.findById(shareBookingDTO.getSharedByUser())
-        ).thenReturn(Optional.of(sharedByUser));
-        when(
-            userRepository.findById(shareBookingDTO.getSharedWithUser())
-        ).thenReturn(Optional.of(sharedWithUser));
         when(
             shareBookingRepository.existsById(shareBookingDTO.getId())
         ).thenReturn(true);
@@ -177,6 +164,33 @@ public class ShareBookingServiceTest {
                 shareBookingService.shareBookingById(shareBookingDTO);
             })
             .withMessage("Conflict: Share booking already exists");
+    }
+
+    @DisplayName("Share a booking by its id when share booking already exists")
+    @Test
+    void shareBookingFailureShareBookingAlreadyExists() {
+        var shareBookingDTO = new CreateShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
+
+        when(
+            shareBookingRepository.existsById(shareBookingDTO.getId())
+        ).thenReturn(false);
+        when(
+            shareBookingRepository.existsBySharedWith_IdAndBooking_IdAndDeletedAtIsNull(
+                shareBookingDTO.getSharedWithUser(),
+                shareBookingDTO.getBookingId()
+            )
+        ).thenReturn(true);
+
+        var message = assertThrows(
+            ConflictException.class,
+            () -> shareBookingService.shareBookingById(shareBookingDTO)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Conflict: Share booking already exists");
     }
 
     @DisplayName("Delete a share")

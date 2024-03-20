@@ -70,4 +70,6 @@ public interface ShareBookingRepository extends SoftDeleteRepository<ShareBookin
     Page<ShareBooking> findAllByBooking_Id(UUID bookingId, Pageable pageable);
 
     List<ShareBooking> findAllBySharedWith_IdAndDeletedAtIsNull(UUID userId);
+
+    boolean existsBySharedWith_IdAndBooking_IdAndDeletedAtIsNull(UUID userId, UUID bookingId);
 }
