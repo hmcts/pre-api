@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchInvites;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.services.InviteService;
@@ -72,6 +73,11 @@ public class InviteController extends PreApiController {
         schema = @Schema(implementation = String.class)
     )
     @Parameter(
+        name = "status",
+        description = "The access status of the user to search by",
+        schema = @Schema(implementation = AccessStatus.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -93,6 +99,7 @@ public class InviteController extends PreApiController {
             params.getLastName(),
             params.getEmail(),
             params.getOrganisation(),
+            params.getAccessStatus(),
             pageable
         );
 
