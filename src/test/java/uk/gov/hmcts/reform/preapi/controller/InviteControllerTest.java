@@ -92,7 +92,7 @@ class InviteControllerTest {
         var mockInvite = new InviteDTO();
         mockInvite.setUserId(userId);
         var inviteList = new PageImpl<>(List.of(mockInvite));
-        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), any()))
+        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), any()))
             .thenReturn(inviteList);
 
         mockMvc.perform(get("/invites"))
@@ -143,7 +143,7 @@ class InviteControllerTest {
         var mockInvite = new InviteDTO();
         mockInvite.setUserId(userId);
         var inviteList = new PageImpl<>(List.of(mockInvite));
-        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), any()))
+        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), any()))
             .thenReturn(inviteList);
 
         mockMvc.perform(get("/invites?page=5"))
