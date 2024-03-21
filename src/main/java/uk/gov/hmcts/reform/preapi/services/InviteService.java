@@ -40,9 +40,11 @@ public class InviteService {
         String lastName,
         String email,
         String organisation,
+        AccessStatus accessStatus,
         Pageable pageable
     ) {
-        return portalAccessRepository.findAllBy(firstName, lastName, email, organisation, pageable)
+        return portalAccessRepository
+            .findAllBy(firstName, lastName, email, organisation, accessStatus, pageable)
             .map(InviteDTO::new);
     }
 

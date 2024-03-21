@@ -126,11 +126,12 @@ public class InviteServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
             )
         ).thenReturn(new PageImpl<>(List.of(portalAccessEntity)));
 
-        var models = inviteService.findAllBy(null, null, null, null, null);
+        var models = inviteService.findAllBy(null, null, null, null, null,null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
