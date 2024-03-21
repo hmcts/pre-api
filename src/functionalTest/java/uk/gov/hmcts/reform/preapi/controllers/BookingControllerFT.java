@@ -192,4 +192,20 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
+
+    @DisplayName("Scenario: Search for a booking by partial case reference")
+    @Test
+    void searchBookingByPartialCaseReference() throws JsonProcessingException {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath()
+            .getUUID("bookingId");
+
+        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=456789", true);
+
+        var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+
+        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
+    }
 }
