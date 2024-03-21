@@ -40,7 +40,11 @@ public class ShareBookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createShareBookingDTO)")
     public UpsertResult shareBookingById(CreateShareBookingDTO createShareBookingDTO) {
-        if (shareBookingRepository.existsById(createShareBookingDTO.getId())) {
+        if (shareBookingRepository.existsById(createShareBookingDTO.getId())
+            || shareBookingRepository.existsBySharedWith_IdAndBooking_IdAndDeletedAtIsNull(
+                createShareBookingDTO.getSharedWithUser(),
+                createShareBookingDTO.getBookingId()
+        )) {
             throw new ConflictException("Share booking already exists");
         }
 
