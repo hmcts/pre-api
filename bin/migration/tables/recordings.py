@@ -1,4 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
+from datetime import datetime
 
 
 class RecordingManager:
@@ -24,6 +25,7 @@ class RecordingManager:
         self.source_cursor.execute(query, (activity, recording_id))
         result = self.source_cursor.fetchone()
         return (result[0], result[1]) if result else (None, None)
+    
 
     def migrate_data(self, destination_cursor, source_data):
         #  first inserting the recordings with multiple recordings versions - this is to satisfy the parent_recording_id FK constraint
@@ -110,6 +112,10 @@ class RecordingManager:
                 
                 if parent_recording_id == id:
                     parent_recording_id = None
+                
+                recording_available = recording[13]
+                if recording_available is None: 
+                    deleted_at = datetime.now()
 
                 batch_non_parent_recording.append(
                     (id, capture_session_id, parent_recording_id, version, url, filename, created_at, deleted_at))
@@ -256,8 +262,13 @@ class RecordingManager:
 
                 created_by = get_user_id(destination_cursor, user_email)
 
+                
+
                 recording_status = recording[11] if recording[11] is not None else None
                 deleted_at = parse_to_timestamp(recording[24]) if recording_status == 'Deleted' else None
+                recording_available = recording[13]
+                if recording_available is None:
+                    deleted_at = datetime.now()
                 # duration =  ? - this info is in the asset files on AMS
                 # edit_instruction = ?
                 if parent_recording_id == recording_id:
