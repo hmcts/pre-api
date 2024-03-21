@@ -28,6 +28,7 @@ public interface PortalAccessRepository extends SoftDeleteRepository<PortalAcces
         """
         SELECT pa FROM PortalAccess pa
         WHERE pa.deletedAt IS NULL
+        AND (CAST(:status as text) IS NULL OR pa.status = :status)
         AND (:firstName IS NULL OR pa.user.firstName ILIKE %:firstName%)
         AND (:lastName IS NULL OR pa.user.lastName ILIKE %:lastName%)
         AND (:email IS NULL OR pa.user.email ILIKE %:email%)
@@ -39,6 +40,7 @@ public interface PortalAccessRepository extends SoftDeleteRepository<PortalAcces
         @Param("lastName") String lastName,
         @Param("email") String email,
         @Param("organisation") String organisation,
+        @Param("status") AccessStatus status,
         Pageable pageable
     );
 

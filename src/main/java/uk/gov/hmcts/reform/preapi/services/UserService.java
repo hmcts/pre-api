@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -68,7 +69,7 @@ public class UserService {
 
     @Transactional
     public AccessDTO findByEmail(String email) {
-        return userRepository.findAllByEmailIgnoreCaseAndDeletedAtIsNull(email)
+        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
             .map(AccessDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + email));
     }
@@ -115,6 +116,10 @@ public class UserService {
         var isUpdate = user.isPresent();
         if (isUpdate && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
+        }
+
+        if (!isUpdate && userRepository.existsByEmailIgnoreCase(createUserDTO.getEmail())) {
+            throw new ConflictException("User with email: " + createUserDTO.getEmail() + " already exists");
         }
 
         createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId).forEach(id -> {

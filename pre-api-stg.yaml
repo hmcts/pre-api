@@ -2412,6 +2412,15 @@ paths:
           in: query
           name: organisation
           type: string
+        - description: The access status of the user to search by
+          enum:
+            - INVITATION_SENT
+            - REGISTERED
+            - ACTIVE
+            - INACTIVE
+          in: query
+          name: status
+          type: string
         - description: The page number of search result to return
           format: int32
           in: query

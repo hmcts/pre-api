@@ -71,12 +71,14 @@ public interface BookingRepository extends SoftDeleteRepository<Booking, UUID> {
             AND (
                 :hasRecordings IS NULL
                 OR (:hasRecordings = TRUE AND EXISTS (
-                    SELECT 1 FROM Recording r
-                    WHERE r.captureSession.booking = b
+                    SELECT 1 FROM CaptureSession c
+                    WHERE c.booking.id = b.id
+                    AND c.status = 'RECORDING_AVAILABLE'
                 ))
                 OR (:hasRecordings = FALSE AND NOT EXISTS (
-                    SELECT 1 FROM Recording r
-                    WHERE r.captureSession.booking = b
+                    SELECT 1 FROM CaptureSession c
+                    WHERE c.booking.id = b.id
+                    AND c.status = 'RECORDING_AVAILABLE'
                 ))
             )
         ORDER BY b.scheduledFor ASC
