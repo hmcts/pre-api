@@ -36,9 +36,12 @@ public class HelperFactory {
         return createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);
     }
 
-    public User createUser(String firstName, String lastName, String email, Timestamp deletedAt,
-                                  @Nullable String phone,
-                                  @Nullable String organisation) { //NOPMD - suppressed UseObjectForClearerAPI
+    public User createUser(String firstName,
+                           String lastName,
+                           String email,
+                           Timestamp deletedAt,
+                           @Nullable String phone,
+                           @Nullable String organisation) { //NOPMD - suppressed UseObjectForClearerAPI
         User user = new User();
         user.setFirstName(firstName);
         user.setLastName(lastName);
@@ -63,8 +66,12 @@ public class HelperFactory {
         return role;
     }
 
-    public AppAccess createAppAccess(User user, Court court, Role role, boolean active, Timestamp deletedAt,
-                                            @Nullable Timestamp lastAccess) {
+    public AppAccess createAppAccess(User user,
+                                     Court court,
+                                     Role role,
+                                     boolean active,
+                                     Timestamp deletedAt,
+                                     @Nullable Timestamp lastAccess) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);
         appAccess.setCourt(court);
@@ -75,8 +82,12 @@ public class HelperFactory {
         return appAccess;
     }
 
-    public PortalAccess createPortalAccess(User user, Timestamp lastAccess, AccessStatus status,
-                                                  Timestamp invitedAt, Timestamp registeredAt, Timestamp deletedAt) {
+    public PortalAccess createPortalAccess(User user,
+                                           Timestamp lastAccess,
+                                           AccessStatus status,
+                                           Timestamp invitedAt,
+                                           Timestamp registeredAt,
+                                           Timestamp deletedAt) {
         var portalAccess = new PortalAccess();
         portalAccess.setUser(user);
         portalAccess.setLastAccess(lastAccess);
@@ -100,8 +111,10 @@ public class HelperFactory {
         return createBooking(testingCase, scheduledFor, deletedAt, null);
     }
 
-    public Booking createBooking(Case testingCase, Timestamp scheduledFor, Timestamp deletedAt,
-                                        @Nullable Set<Participant> participants) {
+    public Booking createBooking(Case testingCase,
+                                 Timestamp scheduledFor,
+                                 Timestamp deletedAt,
+                                 @Nullable Set<Participant> participants) {
         Booking booking = new Booking();
         booking.setCaseId(testingCase);
         booking.setScheduledFor(scheduledFor);
@@ -111,11 +124,16 @@ public class HelperFactory {
     }
 
     public CaptureSession createCaptureSession(//NOPMD - suppressed ExcessiveParameterList
-                                                      Booking booking, RecordingOrigin origin,
-                                                      @Nullable String ingestAddress, @Nullable String liveOutputUrl,
-                                                      @Nullable Timestamp startedAt, @Nullable User startedBy,
-                                                      @Nullable Timestamp finishedAt, @Nullable User finishedBy,
-                                                      @Nullable RecordingStatus status, @Nullable Timestamp deletedAt) {
+                                               Booking booking,
+                                               RecordingOrigin origin,
+                                               @Nullable String ingestAddress,
+                                               @Nullable String liveOutputUrl,
+                                               @Nullable Timestamp startedAt,
+                                               @Nullable User startedBy,
+                                               @Nullable Timestamp finishedAt,
+                                               @Nullable User finishedBy,
+                                               @Nullable RecordingStatus status,
+                                               @Nullable Timestamp deletedAt) {
         CaptureSession captureSession = new CaptureSession();
         captureSession.setBooking(booking);
         captureSession.setOrigin(origin);
@@ -130,8 +148,11 @@ public class HelperFactory {
         return captureSession;
     }
 
-    public Participant createParticipant(Case testCase, ParticipantType type, String firstName, String lastName,
-                                                Timestamp deletedAt) {
+    public Participant createParticipant(Case testCase,
+                                         ParticipantType type,
+                                         String firstName,
+                                         String lastName,
+                                         Timestamp deletedAt) {
         Participant participant = new Participant();
         participant.setCaseId(testCase);
         participant.setParticipantType(type);
@@ -155,8 +176,12 @@ public class HelperFactory {
         return room;
     }
 
-    public Recording createRecording(CaptureSession captureSession, @Nullable Recording parentRecording,
-                                            int version, String url, String filename, @Nullable Timestamp deletedAt) {
+    public Recording createRecording(CaptureSession captureSession,
+                                     @Nullable Recording parentRecording,
+                                     int version,
+                                     String url,
+                                     String filename,
+                                     @Nullable Timestamp deletedAt) {
         var recording = new Recording();
         recording.setCaptureSession(captureSession);
         recording.setParentRecording(parentRecording);
@@ -167,8 +192,10 @@ public class HelperFactory {
         return recording;
     }
 
-    public ShareBooking createShareBooking(User sharedWith, User sharedBy, Booking booking,
-                                                  Timestamp deletedAt) {
+    public ShareBooking createShareBooking(User sharedWith,
+                                           User sharedBy,
+                                           Booking booking,
+                                           Timestamp deletedAt) {
         var share = new ShareBooking();
         share.setSharedWith(sharedWith);
         share.setSharedBy(sharedBy);
@@ -177,8 +204,9 @@ public class HelperFactory {
         return share;
     }
 
-    public CreateParticipantDTO createParticipantDTO(String firstName, String lastName,
-                                                            ParticipantType participantType) {
+    public CreateParticipantDTO createParticipantDTO(String firstName,
+                                                     String lastName,
+                                                     ParticipantType participantType) {
         var participant = new CreateParticipantDTO();
         participant.setFirstName(firstName);
         participant.setLastName(lastName);
@@ -205,8 +233,11 @@ public class HelperFactory {
         );
     }
 
-    public BaseUserDTO createBaseUserDTO(String firstName, String lastName, String email, String phoneNumber,
-                                                String organisation) {
+    public BaseUserDTO createBaseUserDTO(String firstName,
+                                         String lastName,
+                                         String email,
+                                         String phoneNumber,
+                                         String organisation) {
         var user = new BaseUserDTO();
         user.setId(UUID.randomUUID());
         user.setFirstName(firstName);
