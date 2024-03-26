@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.security;
 
 
-import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 

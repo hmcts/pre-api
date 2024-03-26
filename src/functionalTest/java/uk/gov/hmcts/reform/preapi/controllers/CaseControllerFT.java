@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -79,7 +78,11 @@ class CaseControllerFT extends FunctionalTestBase {
     void shouldDeleteCaseWithExistingId() throws JsonProcessingException {
         var caseDTO = createCase();
 
-        var putCase = doPutRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), OBJECT_MAPPER.writeValueAsString(caseDTO), true);
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
         assertThat(putCase.statusCode()).isEqualTo(201);
 
         var getCasesResponse = doGetRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
@@ -97,7 +100,11 @@ class CaseControllerFT extends FunctionalTestBase {
     void shouldDeleteCaseWithExistingIdFail() throws JsonProcessingException {
         var caseDTO = createCase();
 
-        var putCase = doPutRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), OBJECT_MAPPER.writeValueAsString(caseDTO), true);
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
         assertThat(putCase.statusCode()).isEqualTo(201);
 
         var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
