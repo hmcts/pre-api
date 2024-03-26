@@ -20,7 +20,8 @@ class PortalAccessManager:
                     FROM public.users u
                     JOIN public.groupassignments ga ON u.userid = ga.userid
                     JOIN public.grouplist gl ON ga.groupid = gl.groupid
-                    WHERE gl.groupname = 'Level 3' OR u.invited ILIKE 'true'
+                    WHERE (gl.groupname = 'Level 3' OR u.invited ILIKE 'true')
+                    and u.status ilike 'Active'
                     GROUP BY u.userid"""
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
@@ -48,7 +49,6 @@ class PortalAccessManager:
 
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
                 id = str(uuid.uuid4())
-                password = 'password' # temporary field - to be removed once B2C implemented
                 status = 'INVITATION_SENT'
 
                 login_enabled = str(user[2]).lower() == 'true'
@@ -83,7 +83,7 @@ class PortalAccessManager:
                 modified_at = created_at
 
                 batch_portal_user_data.append((
-                    id, user_id, password,last_access, status, created_at, registered_at, invited_at, modified_at, created_by
+                    id, user_id, last_access, status, created_at, registered_at, invited_at, modified_at, created_by
                 ))
 
         try:
@@ -91,8 +91,8 @@ class PortalAccessManager:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.portal_access
-                        (id, user_id, password, last_access, status, created_at, registered_at, invited_at, modified_at)
-                    VALUES (%s, %s, %s,%s,%s,%s,%s,%s, %s)
+                        (id, user_id, last_access, status, created_at, registered_at, invited_at, modified_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     [entry[:-1] for entry in batch_portal_user_data],
                 )
@@ -105,8 +105,8 @@ class PortalAccessManager:
                         table_name='portal_access',
                         record_id=entry[0],
                         record=entry[1],
-                        created_at=entry[5],
-                        created_by= entry[9]
+                        created_at=entry[4],
+                        created_by= entry[8]
                     )
         except Exception as e:
             self.failed_imports.append({'table_name': 'portal_access','table_id': id,'details': str(e)})
