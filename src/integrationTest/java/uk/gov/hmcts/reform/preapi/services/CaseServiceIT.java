@@ -12,6 +12,8 @@ import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -247,6 +249,49 @@ public class CaseServiceIT extends IntegrationTestBase {
             () -> caseService.undelete(randomId)
         ).getMessage();
         Assertions.assertEquals(message, "Not found: Case: " + randomId);
+    }
 
+    @Transactional
+    @Test
+    void createCase() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var createDto = new CreateCaseDTO();
+        createDto.setId(UUID.randomUUID());
+        createDto.setCourtId(court.getId());
+        createDto.setReference("1234567890");
+        createDto.setParticipants(Set.of());
+        createDto.setTest(false);
+
+        var response = caseService.upsert(createDto);
+        entityManager.flush();
+        Assertions.assertEquals(response, UpsertResult.CREATED);
+
+        var newCase = caseService.findById(createDto.getId());
+        Assertions.assertNotNull(newCase);
+    }
+
+    @Transactional
+    @Test
+    void createCaseWithCaseReferenceAndCourtAlreadyExisting() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var dto = new CreateCaseDTO(caseEntity);
+        dto.setId(UUID.randomUUID());
+
+        var message = Assertions.assertThrows(
+            ConflictException.class,
+            () -> caseService.upsert(dto)
+        ).getMessage();
+        Assertions.assertEquals("Conflict: Case reference is already in use for this court", message);
     }
 }

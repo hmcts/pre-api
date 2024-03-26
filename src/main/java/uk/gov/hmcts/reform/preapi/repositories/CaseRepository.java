@@ -32,5 +32,5 @@ public interface CaseRepository extends SoftDeleteRepository<Case, UUID> {
 
     Optional<Case> findByIdAndDeletedAtIsNull(UUID id);
 
-    List<Case> findAllByReference(String caseReference);
+    List<Case> findAllByReferenceAndCourt_Id(String caseReference, UUID courtId);
 }

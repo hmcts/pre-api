@@ -86,8 +86,8 @@ public class CaseService {
         }
 
         var isUpdate = foundCase.isPresent();
-        if (!isCaseReferenceValid(isUpdate, createCaseDTO.getReference(), createCaseDTO.getId()))  {
-            throw new ConflictException("Case reference is already in use");
+        if (!isCaseReferenceValid(isUpdate, createCaseDTO))  {
+            throw new ConflictException("Case reference is already in use for this court");
         }
 
         var court = courtRepository.findById(createCaseDTO.getCourtId()).orElse(null);
@@ -167,11 +167,15 @@ public class CaseService {
         caseRepository.save(entity);
     }
 
-    private boolean isCaseReferenceValid(boolean isUpdate, String caseReference, UUID caseId) {
-        var foundCases = caseRepository.findAllByReference(caseReference);
+    private boolean isCaseReferenceValid(boolean isUpdate, CreateCaseDTO createCaseDTO) {
+        var foundCases = caseRepository
+            .findAllByReferenceAndCourt_Id(createCaseDTO.getReference(), createCaseDTO.getCourtId());
 
         return isUpdate
-            ? caseReference == null || foundCases.isEmpty() || foundCases.getFirst().getId().equals(caseId)
-            : caseReference != null && foundCases.isEmpty();
+            ? createCaseDTO.getReference() == null
+                || foundCases.isEmpty()
+                || foundCases.getFirst().getId().equals(createCaseDTO.getId())
+            : createCaseDTO.getReference() != null
+                && foundCases.isEmpty();
     }
 }
