@@ -283,14 +283,19 @@ class CaseServiceTest {
         var caseDTOModel = new CreateCaseDTO(testingCase);
 
         when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());
-        when(caseRepository.findAllByReference(caseDTOModel.getReference())).thenReturn(List.of(testingCase));
+        when(caseRepository.findAllByReferenceAndCourt_Id(caseDTOModel.getReference(), testingCase.getCourt().getId()))
+            .thenReturn(List.of(testingCase));
 
-        assertThrows(
+        var message = assertThrows(
             ConflictException.class,
             () -> caseService.upsert(caseDTOModel)
-        );
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Conflict: Case reference is already in use for this court");
+
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).findAllByReference(caseDTOModel.getReference());
+        verify(caseRepository, times(1))
+            .findAllByReferenceAndCourt_Id(caseDTOModel.getReference(), testingCase.getCourt().getId());
     }
 
     @Test
@@ -300,33 +305,15 @@ class CaseServiceTest {
         caseDTOModel.setReference(null);
 
         when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());
-        when(caseRepository.findAllByReference(caseDTOModel.getReference())).thenReturn(List.of());
 
         assertThrows(
             ConflictException.class,
             () -> caseService.upsert(caseDTOModel)
         );
+
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).findAllByReference(caseDTOModel.getReference());
-    }
-
-    @Test
-    void updateCaseReferenceConflict() {
-        var case2 = new Case();
-        case2.setId(UUID.randomUUID());
-        var testingCase = createTestingCase();
-        var caseDTOModel = new CreateCaseDTO(testingCase);
-        case2.setReference(testingCase.getReference());
-
-        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(testingCase));
-        when(caseRepository.findAllByReference(caseDTOModel.getReference())).thenReturn(List.of(case2));
-
-        assertThrows(
-            ConflictException.class,
-            () -> caseService.upsert(caseDTOModel)
-        );
-        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).findAllByReference(caseDTOModel.getReference());
+        verify(caseRepository, times(1))
+            .findAllByReferenceAndCourt_Id(caseDTOModel.getReference(), testingCase.getCourt().getId());
     }
 
     @Test

@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.controllers.CaseController;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -260,6 +261,30 @@ class CaseControllerTest {
             .isEqualTo("{\"message\":\"Resource CaseDTO("
                            + caseId + ") is in a deleted state and cannot be updated\"}"
             );
+    }
+
+    @DisplayName("Should return 400 when case reference is already in use in the specified court")
+    @Test
+    void updateCaseReferenceCourtIdAlreadyExistBadRequest() throws Exception {
+        var caseId = UUID.randomUUID();
+        var courtId = UUID.randomUUID();
+        var newCaseRequestDTO = new CreateCaseDTO();
+        newCaseRequestDTO.setId(caseId);
+        newCaseRequestDTO.setCourtId(courtId);
+
+        doThrow(new ConflictException("Case reference is already in use for this court"))
+            .when(caseService).upsert(newCaseRequestDTO);
+
+        var response = mockMvc.perform(put(CASES_ID_PATH, caseId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isConflict())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"message\":\"Conflict: Case reference is already in use for this court\"}");
     }
 
     @DisplayName("Should delete case with 200 response code")
