@@ -4,26 +4,23 @@ import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
-@SpringBootTest(classes = Application.class)
-public class AuditServiceIT {
-
-    @Autowired
-    CourtService courtService;
+public class AuditServiceIT extends IntegrationTestBase {
 
     @Autowired
-    AuditService auditService;
+    private CourtService courtService;
+
+    @Autowired
+    private AuditService auditService;
 
     @Transactional
     @Test
     public void testInternalAudit() {
-
         var court = HelperFactory.createCreateCourtDTO(CourtType.CROWN, "Foo Court", "1234");
         courtService.upsert(court);
 

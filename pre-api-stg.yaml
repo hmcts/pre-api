@@ -2973,6 +2973,12 @@ paths:
     get:
       operationId: getRooms
       parameters:
+        - description: The court id of the rooms to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The User Id of the User making the request
           format: uuid
           in: header

@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -30,14 +31,15 @@ public class RoomServiceTest {
         roomEntity = new Room();
         roomEntity.setId(UUID.randomUUID());
         roomEntity.setName("Example Room");
+        roomEntity.setCourts(Set.of());
     }
 
     @DisplayName("Find all rooms and return a list of models")
     @Test
     void findAllRoomsSuccess() {
-        when(roomRepository.findAll()).thenReturn(List.of(roomEntity));
+        when(roomRepository.searchAllBy(null)).thenReturn(List.of(roomEntity));
 
-        var models = roomService.getAllRooms();
+        var models = roomService.getAllRooms(null);
 
         assertThat(models.size()).isEqualTo(1);
         assertThat(models.getFirst().getId()).isEqualTo(roomEntity.getId());
