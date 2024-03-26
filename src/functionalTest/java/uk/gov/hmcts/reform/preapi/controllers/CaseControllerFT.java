@@ -95,7 +95,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(getCasesResponse2.statusCode()).isEqualTo(404);
     }
 
-    @DisplayName("Should delete fail to delete a case when it is already deleted")
+    @DisplayName("Should fail to delete a case when it is already deleted")
     @Test
     void shouldDeleteCaseWithExistingIdFail() throws JsonProcessingException {
         var caseDTO = createCase();
