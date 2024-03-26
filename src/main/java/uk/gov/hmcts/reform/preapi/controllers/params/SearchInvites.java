@@ -9,7 +9,7 @@ public class SearchInvites {
     private String lastName;
     private String email;
     private String organisation;
-    private AccessStatus accessStatus;
+    private AccessStatus status;
 
     public String getFirstName() {
         return firstName != null && !firstName.isEmpty() ? firstName : null;

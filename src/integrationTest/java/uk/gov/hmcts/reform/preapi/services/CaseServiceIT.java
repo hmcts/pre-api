@@ -1,15 +1,11 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
@@ -21,8 +17,8 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -31,34 +27,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-@SpringBootTest(classes = Application.class)
-public class CaseServiceIT {
-    @Autowired
-    private EntityManager entityManager;
-
+public class CaseServiceIT extends IntegrationTestBase {
     @Autowired
     private CaseService caseService;
 
     @Autowired
     private RecordingRepository recordingRepository;
-
-    public static void mockAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(true);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-    }
-
-    public static void mockNonAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(false);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        when(mockAuth.isPortalUser()).thenReturn(false);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-    }
 
     @Transactional
     @Test
