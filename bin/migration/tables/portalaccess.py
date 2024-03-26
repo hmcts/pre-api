@@ -24,7 +24,7 @@ class PortalAccessManager:
                     GROUP BY u.userid"""
         self.source_cursor.execute(query)
         return self.source_cursor.fetchall()
-    
+
     def get_last_access_date(self,email):
         query = "SELECT MAX(auditdate) FROM audits WHERE LOWER(email) = %s"
         self.source_cursor.execute(query, (email.lower(),))
@@ -33,7 +33,7 @@ class PortalAccessManager:
 
     def migrate_data(self, destination_cursor, source_user_data):
         batch_portal_user_data = []
-        
+
         # get dataverse data
         self.source_cursor.execute("SELECT * FROM public.portal_users_dataverse")
         dataverse_data = self.source_cursor.fetchall()
@@ -76,22 +76,22 @@ class PortalAccessManager:
 
                 invited_at, registered_at = dataverse_info.get(user_id, (None, None))
                 last_access = parse_to_timestamp(self.get_last_access_date(user_email))
-     
+
                 created_by = get_user_id(destination_cursor, user[6])
 
                 created_at = parse_to_timestamp(user[5])
                 modified_at = created_at
 
                 batch_portal_user_data.append((
-                    id, user_id, password,last_access, status, created_at,invited_at, registered_at, modified_at, created_by
+                    id, user_id, password,last_access, status, created_at, registered_at, invited_at, modified_at, created_by
                 ))
 
-        try: 
+        try:
             if batch_portal_user_data:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.portal_access
-                        (id, user_id, password, last_access, status, created_at,registered_at, invited_at, modified_at)
+                        (id, user_id, password, last_access, status, created_at, registered_at, invited_at, modified_at)
                     VALUES (%s, %s, %s,%s,%s,%s,%s,%s, %s)
                     """,
                     [entry[:-1] for entry in batch_portal_user_data],
@@ -110,5 +110,5 @@ class PortalAccessManager:
                     )
         except Exception as e:
             self.failed_imports.append({'table_name': 'portal_access','table_id': id,'details': str(e)})
- 
+
         self.logger.log_failed_imports(self.failed_imports)
