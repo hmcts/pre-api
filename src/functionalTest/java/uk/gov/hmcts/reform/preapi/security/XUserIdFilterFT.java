@@ -46,9 +46,4 @@ public class XUserIdFilterFT extends FunctionalTestBase {
         assertThat(doGetRequest(ENDPOINT, headersIdNotUuid, false).getStatusCode()).isEqualTo(401);
 
     }
-
-    private void assertResponse401(Response response) {
-        assertThat(response.statusCode()).isEqualTo(401);
-    }
-
 }

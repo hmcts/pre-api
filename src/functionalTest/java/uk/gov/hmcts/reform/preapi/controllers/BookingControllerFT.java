@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,12 +20,6 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BookingControllerFT extends FunctionalTestBase {
-
-    private static final String BOOKINGS_ENDPOINT = "/bookings";
-    private static final String RECORDINGS_ENDPOINT = "/recordings";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
     @Test
     void shouldNotDeleteRecordingsForBooking() {
 

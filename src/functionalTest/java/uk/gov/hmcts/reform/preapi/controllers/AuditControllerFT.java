@@ -14,10 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class AuditControllerFT  extends FunctionalTestBase {
 
-    private static final String AUDIT_ENDPOINT = "/audit/";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
     @DisplayName("Should fail to update an audit record as they are immutable")
     @Test
     void updateAuditFailure() throws JsonProcessingException {
