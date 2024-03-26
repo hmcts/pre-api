@@ -7,7 +7,9 @@ import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 @Service
 public class RoomService {
@@ -20,9 +22,9 @@ public class RoomService {
     }
 
     @Transactional
-    public List<RoomDTO> getAllRooms() {
+    public List<RoomDTO> getAllRooms(@Nullable UUID courtId) {
         return roomRepository
-            .findAll()
+            .searchAllBy(courtId)
             .stream()
             .map(RoomDTO::new)
             .collect(Collectors.toList());
