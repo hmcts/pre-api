@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -24,18 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
-@SpringBootTest(classes = Application.class)
-public class UserAuthenticationServiceIT {
-
-    @Autowired
-    private EntityManager entityManager;
-
+public class UserAuthenticationServiceIT extends IntegrationTestBase {
     @Autowired
     private UserAuthenticationService userAuthenticationService;
 
     private AppAccess appAccess;
-
     private PortalAccess portalAccess;
     private Timestamp lastAccess;
 
