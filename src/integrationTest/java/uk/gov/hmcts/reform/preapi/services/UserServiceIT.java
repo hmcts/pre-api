@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
@@ -192,6 +193,22 @@ public class UserServiceIT extends IntegrationTestBase {
         Assertions.assertEquals(appUserEntity.getId(), usersAll.get(0).getId());
         Assertions.assertEquals(userEntity.getId(), usersAll.get(1).getId());
         Assertions.assertEquals(portalUserEntity.getId(), usersAll.get(2).getId());
+
+        portalAccessEntity2.setStatus(AccessStatus.INACTIVE);
+        var resultPortal2 = userService.findAllBy(
+            null,
+            null,
+            null,
+            null,
+            null,
+            AccessType.PORTAL,
+            false,
+            PageRequest.of(0, 20)
+        );
+        Assertions.assertEquals(1, resultPortal2.getContent().size());
+        var usersPortal2 = resultPortal2.getContent().stream()
+            .sorted(Comparator.comparing(BaseUserDTO::getFirstName)).toList();
+        Assertions.assertEquals(userEntity.getId(), usersPortal2.get(0).getId());
     }
 
     @Transactional
