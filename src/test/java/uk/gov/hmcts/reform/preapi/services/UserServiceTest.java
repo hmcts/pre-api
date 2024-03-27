@@ -467,9 +467,9 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessRepository, times(1)).deleteById(portalAccessEntity.getId());
+        verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessRepository, times(1)).save(appAccessEntity);
+        verify(appAccessService, times(1)).deleteById(appAccessEntity.getId());
         verify(userRepository, times(1)).deleteById(userEntity.getId());
     }
 
