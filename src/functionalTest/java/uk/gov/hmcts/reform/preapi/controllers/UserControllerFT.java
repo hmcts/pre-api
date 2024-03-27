@@ -30,6 +30,23 @@ public class UserControllerFT extends FunctionalTestBase {
         assertPutResponseMatchesDto(dto);
     }
 
+    @DisplayName("Scenario: Duplicate email address should fail")
+    @Test
+    void shouldFailCreateUserWithDuplicateEmail() throws JsonProcessingException {
+        var dto1 = createUserDto();
+        var putResponse1 = putUser(dto1);
+        assertResponseCode(putResponse1, 201);
+        assertThat(putResponse1.header(LOCATION_HEADER)).isEqualTo(testUrl + USERS_ENDPOINT + "/" + dto1.getId());
+        assertPutResponseMatchesDto(dto1);
+
+        var dto2 = createUserDto();
+        dto2.setEmail(dto1.getEmail());
+        var putResponse2 = putUser(dto2);
+        assertResponseCode(putResponse2, 409);
+        assertThat(putResponse2.getBody().jsonPath().getString("message"))
+            .isEqualTo("Conflict: User with email: " + dto2.getEmail() + " already exists");
+    }
+
     private Response putUser(CreateUserDTO dto) throws JsonProcessingException {
         return doPutRequest(
             USERS_ENDPOINT + "/" + dto.getId(),
