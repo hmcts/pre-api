@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,22 +8,31 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
-@SpringBootTest(classes = {Application.class}, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
+    protected static final String CASES_ENDPOINT = "/cases";
+    protected static final String BOOKINGS_ENDPOINT = "/bookings";
+    protected static final String RECORDINGS_ENDPOINT = "/recordings";
+    protected static final String AUDIT_ENDPOINT = "/audit/";
 
     protected static UUID authenticatedUserId;
+    protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
 
     @Value("${TEST_URL:http://localhost:4550}")
     private String testUrl;
@@ -129,5 +139,30 @@ public class FunctionalTestBase {
             headers.putAll(additionalHeaders);
         }
         return headers;
+    }
+
+    protected CreateCaseDTO createCase() {
+        var courtId = UUID.fromString(doPostRequest("/testing-support/create-court", false)
+                                          .body().jsonPath().get("courtId"));
+
+        var caseDTO = new CreateCaseDTO();
+        caseDTO.setId(UUID.randomUUID());
+        caseDTO.setCourtId(courtId);
+        caseDTO.setReference(generateRandomCaseReference());
+        caseDTO.setParticipants(Set.of());
+        caseDTO.setTest(false);
+
+        return caseDTO;
+    }
+
+    protected String generateRandomCaseReference() {
+        return UUID.randomUUID()
+            .toString()
+            .replace("-", "")
+            .substring(0, 13);
+    }
+
+    protected void assertResponse401(Response response) {
+        assertThat(response.statusCode()).isEqualTo(401);
     }
 }

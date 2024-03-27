@@ -38,8 +38,11 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         AND (CAST(:roleId as uuid) IS NULL OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.role.id = :roleId))
         AND (
             :isPortalUser = false
-            OR
-            EXISTS (SELECT 1 FROM u.portalAccess pa WHERE pa.user = u AND pa.deletedAt IS NULL)
+            OR EXISTS (
+                SELECT 1 FROM u.portalAccess pa
+                WHERE pa.user = u AND pa.deletedAt IS NULL
+                AND pa.status != 'INACTIVE'
+            )
         )
         AND (:isAppUser = false OR EXISTS (SELECT 1 FROM u.appAccess aa WHERE aa.user = u AND aa.deletedAt IS NULL))
         """

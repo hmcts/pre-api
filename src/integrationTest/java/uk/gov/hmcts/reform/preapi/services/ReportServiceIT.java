@@ -1,11 +1,8 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -14,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -22,11 +20,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-@SpringBootTest(classes = Application.class)
-public class ReportServiceIT {
-    @Autowired
-    private EntityManager entityManager;
-
+public class ReportServiceIT extends IntegrationTestBase {
     @Autowired
     private ReportService reportService;
 
