@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.security;
 
 
-import io.restassured.response.Response;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -46,9 +45,4 @@ public class XUserIdFilterFT extends FunctionalTestBase {
         assertThat(doGetRequest(ENDPOINT, headersIdNotUuid, false).getStatusCode()).isEqualTo(401);
 
     }
-
-    private void assertResponse401(Response response) {
-        assertThat(response.statusCode()).isEqualTo(401);
-    }
-
 }
