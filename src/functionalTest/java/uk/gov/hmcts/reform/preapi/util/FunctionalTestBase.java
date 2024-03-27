@@ -27,6 +27,7 @@ public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
     protected static final String CASES_ENDPOINT = "/cases";
     protected static final String BOOKINGS_ENDPOINT = "/bookings";
+    protected static final String CAPTURE_SESSIONS_ENDPOINT = "/capture-sessions";
     protected static final String RECORDINGS_ENDPOINT = "/recordings";
     protected static final String AUDIT_ENDPOINT = "/audit/";
 
