@@ -204,7 +204,7 @@ public class UserService {
 
         portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(portalAccess -> portalAccessRepository.deleteById(portalAccess.getId()));
+            .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
 
         appAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
