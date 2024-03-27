@@ -12,7 +12,7 @@ class CourtManager:
         self.source_cursor.execute("SELECT groupid, groupname from public.grouplist where grouptype = 'Location'")
         return self.source_cursor.fetchall()
 
-    def migrate_data(self, destination_cursor, source_courts_data): 
+    def migrate_data(self, destination_cursor, source_courts_data):
         # Courts data -  https://cjscommonplatform-my.sharepoint.com/:x:/r/personal/lawrie_baber-scovell2_hmcts_net/_layouts/15/Doc.aspx?sourcedoc=%7B07C83A7F-EF01-4C78-9B02-AEDD443D15A1%7D&file=Courts%20PRE%20NRO.xlsx&wdOrigin=TEAMS-WEB.undefined_ns.rwc&action=default&mobileredirect=true
         court_types = {
             'Reading Crown Court': ('CROWN','449','UKJ-South East (England)'),
@@ -24,7 +24,8 @@ class CourtManager:
             'Kingston upon Thames Crown Court': ('CROWN','427','UKI-London'),
             'Durham Crown Court': ('CROWN','422','UKC-North East (England)'),
             'Birmingham Crown Court': ('CROWN','404','UKG-West Midlands (England)'),
-            'Birmingham Youth Court': ('CROWN','404','UKG-West Midlands (England)')
+            'Birmingham Youth Court': ('CROWN','404','UKG-West Midlands (England)'),
+            'Exeter Crown Court': ('CROWN','132', 'South West (England)')
         }
         batch_courts_data = []
 
@@ -37,17 +38,17 @@ class CourtManager:
                 regex_pattern = re.compile(rf"{re.escape(court_pattern)}(?:\sCourt)?", re.IGNORECASE)
                 if re.search(regex_pattern, name):
                     court_info = info
-                    break 
-                
+                    break
+
                 if court_info is None:
                     court_info = ('CROWN', '', '')
 
             court_type, location_code, _ = court_info
-            
+
 
             if not check_existing_record(destination_cursor,'courts', 'id', id ):
                 batch_courts_data.append((id, court_type.upper(), name, location_code))
-        
+
         try:
             if batch_courts_data:
                 destination_cursor.executemany(
@@ -82,8 +83,8 @@ class CourtManager:
                     table_name='courts',
                     record_id=default_court_id,
                     record='Default Court'
-                ) 
+                )
         except Exception as e:
             self.failed_imports.append({'table_name': 'courts','table_id': default_court_id,'details': str(e)})
- 
+
         self.logger.log_failed_imports(self.failed_imports)
