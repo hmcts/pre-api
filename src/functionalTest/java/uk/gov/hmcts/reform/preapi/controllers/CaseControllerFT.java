@@ -57,20 +57,20 @@ class CaseControllerFT extends FunctionalTestBase {
     @Test
     void unauthorisedRequestsReturn401() throws JsonProcessingException {
         var getCaseByIdResponse = doGetRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), false);
-        assertResponse401(getCaseByIdResponse);
+        assertResponseCode(getCaseByIdResponse, 401);
 
         var getCasesResponse = doGetRequest(CASES_ENDPOINT, false);
-        assertResponse401(getCasesResponse);
+        assertResponseCode(getCasesResponse, 401);
 
         var putCaseResponse = doPutRequest(
             CASES_ENDPOINT + "/" + UUID.randomUUID(),
             OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
             false
         );
-        assertResponse401(putCaseResponse);
+        assertResponseCode(putCaseResponse, 401);
 
         var deleteCaseResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), false);
-        assertResponse401(deleteCaseResponse);
+        assertResponseCode(deleteCaseResponse, 401);
     }
 
     @DisplayName("Scenario: Delete case")
