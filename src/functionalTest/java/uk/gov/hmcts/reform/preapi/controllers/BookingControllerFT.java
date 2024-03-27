@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class BookingControllerFT extends FunctionalTestBase {
+    @DisplayName("Scenario: Delete booking with recordings")
     @Test
     void shouldNotDeleteRecordingsForBooking() {
 
