@@ -99,7 +99,7 @@ public class InviteController extends PreApiController {
             params.getLastName(),
             params.getEmail(),
             params.getOrganisation(),
-            params.getAccessStatus(),
+            params.getStatus(),
             pageable
         );
 

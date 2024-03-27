@@ -1,12 +1,9 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.core.context.SecurityContextHolder;
-import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -14,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -28,11 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = Application.class)
-class BookingServiceIT {
-
-    @Autowired
-    private EntityManager entityManager;
+class BookingServiceIT extends IntegrationTestBase {
 
     @Autowired
     private BookingService bookingService;
@@ -91,11 +85,7 @@ class BookingServiceIT {
     @Transactional
     @Test
     public void testSearchBookings() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(true);
-        when(mockAuth.isAppUser()).thenReturn(true);
-
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+        mockAdminUser();
 
         var court1 = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
         var court2 = HelperFactory.createCourt(CourtType.CROWN, "Foo Court 2", "5678");
@@ -265,10 +255,7 @@ class BookingServiceIT {
     @Transactional
     @Test
     void testUndelete() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(true);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+        var mockAuth = mockAdminUser();
 
         var court = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
         entityManager.persist(court);

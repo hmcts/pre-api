@@ -1,38 +1,30 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.UUID;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-@SpringBootTest(classes = Application.class)
-public class UserServiceIT {
+public class UserServiceIT extends IntegrationTestBase {
     private static User userEntity;
     private static User portalUserEntity;
     private static User appUserEntity;
@@ -42,9 +34,6 @@ public class UserServiceIT {
     private static PortalAccess portalAccessEntity2;
     private static Court court;
     private static Role role;
-
-    @Autowired
-    private EntityManager entityManager;
 
     @Autowired
     private UserService userService;
@@ -113,26 +102,6 @@ public class UserServiceIT {
         portalAccessEntity2.setId(UUID.randomUUID());
         portalAccessEntity2.setUser(portalUserEntity);
         entityManager.persist(portalAccessEntity2);
-    }
-
-    @AfterEach
-    void tearDown() {
-        entityManager.clear();
-        entityManager.flush();
-    }
-
-    public static void mockAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(true);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-    }
-
-    public static void mockNonAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(false);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 
     @Transactional
@@ -224,6 +193,22 @@ public class UserServiceIT {
         Assertions.assertEquals(appUserEntity.getId(), usersAll.get(0).getId());
         Assertions.assertEquals(userEntity.getId(), usersAll.get(1).getId());
         Assertions.assertEquals(portalUserEntity.getId(), usersAll.get(2).getId());
+
+        portalAccessEntity2.setStatus(AccessStatus.INACTIVE);
+        var resultPortal2 = userService.findAllBy(
+            null,
+            null,
+            null,
+            null,
+            null,
+            AccessType.PORTAL,
+            false,
+            PageRequest.of(0, 20)
+        );
+        Assertions.assertEquals(1, resultPortal2.getContent().size());
+        var usersPortal2 = resultPortal2.getContent().stream()
+            .sorted(Comparator.comparing(BaseUserDTO::getFirstName)).toList();
+        Assertions.assertEquals(userEntity.getId(), usersPortal2.get(0).getId());
     }
 
     @Transactional

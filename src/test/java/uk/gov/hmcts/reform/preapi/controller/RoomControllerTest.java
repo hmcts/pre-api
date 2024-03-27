@@ -42,7 +42,7 @@ public class RoomControllerTest {
         room.setId(UUID.randomUUID());
         room.setName("Example Room");
 
-        when(roleService.getAllRooms()).thenReturn(List.of(room));
+        when(roleService.getAllRooms(null)).thenReturn(List.of(room));
 
         mockMvc.perform(get("/rooms"))
             .andExpect(status().isOk())
