@@ -208,11 +208,7 @@ public class UserService {
 
         appAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(appAccess -> {
-                appAccess.setActive(false);
-                appAccess.setDeletedAt(Timestamp.from(Instant.now()));
-                appAccessRepository.save(appAccess);
-            });
+            .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getId()));
 
         userRepository.deleteById(userId);
     }
