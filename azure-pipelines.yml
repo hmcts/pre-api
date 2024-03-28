@@ -4,17 +4,17 @@ parameters:
     type: object
     default:
       - Staging:
-        serviceConnection: 'DTS-SHAREDSERVICES-STG'
-        kvName: 'pre-hmctskv-stg'
-        sourceDbName: 'pre-pdb-stg'
+          serviceConnection: 'DTS-SHAREDSERVICES-STG'
+          kvName: 'pre-hmctskv-stg'
+          sourceDbName: 'pre-pdb-stg'
       - Demo:
-        serviceConnection: 'DTS-SHAREDSERVICES-DEMO'
-        kvName: 'pre-hmctskv-demo'
-        sourceDbName: 'pre-pdb-demo'
+          serviceConnection: 'DTS-SHAREDSERVICES-DEMO'
+          kvName: 'pre-hmctskv-demo'
+          sourceDbName: 'pre-pdb-demo'
       - Production:
-        serviceConnection: 'DTS-SHAREDSERVICES-PROD'
-        kvName: 'pre-hmctskv-prod'
-        sourceDbName: 'pre-pdb-prod'
+          serviceConnection: 'DTS-SHAREDSERVICES-PROD'
+          kvName: 'pre-hmctskv-prod'
+          sourceDbName: 'pre-pdb-prod'
 
 # Runs ad-hoc
 trigger:
