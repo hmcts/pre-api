@@ -46,7 +46,6 @@ steps:
   inputs:
     versionSpec: '3.x'
     allowUnstable: true
-    addToPath: true
     architecture: 'x64'
     disableDownloadFromRegistry: true
 
