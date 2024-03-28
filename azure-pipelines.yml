@@ -2,19 +2,19 @@ parameters:
   - name: environment
     displayName: Environment
     type: object
-    values:
+    default:
       - Staging:
-          serviceConnection: 'DTS-SHAREDSERVICES-STG'
-          kv-name: 'pre-hmctskv-stg'
-          source-db-name: 'pre-pdb-stg'
+        serviceConnection: 'DTS-SHAREDSERVICES-STG'
+        kvName: 'pre-hmctskv-stg'
+        sourceDbName: 'pre-pdb-stg'
       - Demo:
-          serviceConnection: 'DTS-SHAREDSERVICES-DEMO'
-          kv-name: 'pre-hmctskv-demo'
-          source-db-name: 'pre-pdb-demo'
+        serviceConnection: 'DTS-SHAREDSERVICES-DEMO'
+        kvName: 'pre-hmctskv-demo'
+        sourceDbName: 'pre-pdb-demo'
       - Production:
-          serviceConnection: 'DTS-SHAREDSERVICES-PROD'
-          kv-name: 'pre-hmctskv-prod'
-          source-db-name: 'pre-pdb-prod'
+        serviceConnection: 'DTS-SHAREDSERVICES-PROD'
+        kvName: 'pre-hmctskv-prod'
+        sourceDbName: 'pre-pdb-prod'
 
 # Runs ad-hoc
 trigger:
@@ -25,15 +25,15 @@ pool: hmcts-sds-ptl
 steps:
 - task: AzureKeyVault@2
   inputs:
-    azureSubscription: {{ parameters.environment.serviceConnection }}
-    KeyVaultName: {{ parameters.environment.kv-name }}
+    azureSubscription: ${{ parameters.environment.serviceConnection }}
+    KeyVaultName: ${{ parameters.environment.kvName }}
     SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST'
     RunAsPreJob: true
 
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
 
-#export SOURCE_DB_NAME={{ parameters.environment.source-db-name }}
+#export SOURCE_DB_NAME=${{ parameters.environment.sourceDbName }}
 #export SOURCE_DB_USER=$(api-POSTGRES-USER)
 #export SOURCE_DB_PASSWORD=$(api-POSTGRES-PASS)
 #export SOURCE_DB_HOST=$(api-POSTGRES-HOST)
