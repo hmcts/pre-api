@@ -39,9 +39,11 @@ public class InviteService {
         String lastName,
         String email,
         String organisation,
+        AccessStatus accessStatus,
         Pageable pageable
     ) {
-        return portalAccessRepository.findAllBy(firstName, lastName, email, organisation, pageable)
+        return portalAccessRepository
+            .findAllBy(firstName, lastName, email, organisation, accessStatus, pageable)
             .map(InviteDTO::new);
     }
 
@@ -50,10 +52,11 @@ public class InviteService {
         return userService.upsert(createInviteDTO);
     }
 
-    public UpsertResult redeemInvite(String email, String inviteCode) {
+    public UpsertResult redeemInvite(String email) {
         var portalAccess = portalAccessRepository
-            .findByUser_EmailAndCodeAndDeletedAtNullAndUser_DeletedAtNull(email, inviteCode)
-            .orElseThrow(() -> new NotFoundException("Invite: " + email + " " + inviteCode));
+            .findByUser_EmailAndDeletedAtNullAndUser_DeletedAtNull(email)
+            .orElseThrow(() -> new NotFoundException("Invite: " + email));
+        portalAccess.setStatus(AccessStatus.ACTIVE);
         portalAccess.setRegisteredAt(Timestamp.from(java.time.Instant.now()));
         portalAccessRepository.save(portalAccess);
         return UpsertResult.UPDATED;

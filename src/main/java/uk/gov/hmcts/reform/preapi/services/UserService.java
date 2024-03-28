@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.dto.AppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -28,7 +29,6 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -67,16 +67,10 @@ public class UserService {
     }
 
     @Transactional
-    public List<AppAccessDTO> findByEmail(String email) {
-        var access = appAccessRepository.findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(email)
-            .stream()
-            .map(AppAccessDTO::new)
-            .toList();
-
-        if (access.isEmpty()) {
-            throw new NotFoundException("User: " + email);
-        }
-        return access;
+    public AccessDTO findByEmail(String email) {
+        return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
+            .map(AccessDTO::new)
+            .orElseThrow(() -> new NotFoundException("User: " + email));
     }
 
     @Transactional
@@ -123,6 +117,10 @@ public class UserService {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
 
+        if (!isUpdate && userRepository.existsByEmailIgnoreCase(createUserDTO.getEmail())) {
+            throw new ConflictException("User with email: " + createUserDTO.getEmail() + " already exists");
+        }
+
         createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId).forEach(id -> {
             if (!portalAccessRepository.existsById(id)) {
                 throw new NotFoundException("Portal Access: " + id);
@@ -145,7 +143,7 @@ public class UserService {
                 .map(AppAccess::getId)
                 .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
-                .forEach(appAccessRepository::deleteById);
+                .forEach(appAccessService::deleteById);
 
             entity
                 .getPortalAccess()
@@ -153,7 +151,7 @@ public class UserService {
                 .map(PortalAccess::getId)
                 .filter(id -> createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
-                .forEach(portalAccessRepository::deleteById);
+                .forEach(portalAccessService::deleteById);
 
             createUserDTO.getPortalAccess().forEach(portalAccessService::update);
         }
@@ -190,7 +188,7 @@ public class UserService {
             .orElse(new PortalAccess());
 
         portalAccessEntity.setUser(userEntity);
-        portalAccessEntity.setCode(createInviteDTO.getCode());
+        portalAccessEntity.setStatus(AccessStatus.INVITATION_SENT);
         portalAccessEntity.setInvitedAt(Timestamp.from(Instant.now()));
         portalAccessRepository.save(portalAccessEntity);
 
@@ -205,15 +203,11 @@ public class UserService {
 
         portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(portalAccess -> portalAccessRepository.deleteById(portalAccess.getId()));
+            .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
 
         appAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(appAccess -> {
-                appAccess.setActive(false);
-                appAccess.setDeletedAt(Timestamp.from(Instant.now()));
-                appAccessRepository.save(appAccess);
-            });
+            .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getId()));
 
         userRepository.deleteById(userId);
     }

@@ -1,8 +1,9 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -12,6 +13,11 @@ import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.UUID;
+
 
 @Service
 public class AppAccessService {
@@ -64,5 +70,17 @@ public class AppAccessService {
 
         var isUpdate = appAccess.isPresent();
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void deleteById(UUID appId) {
+        appAccessRepository
+            .findById(appId)
+            .ifPresent(
+                access -> {
+                    access.setActive(false);
+                    access.setDeletedAt(Timestamp.from(Instant.now()));
+                    appAccessRepository.save(access);
+                });
     }
 }

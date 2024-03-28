@@ -16,26 +16,24 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
     C4Context
       title System Context diagram for Pre-Recorded Evidence
 
+      Person(adminUser, "Admin User", "")
       Person(judicialUser, "Judicial User", "")
       Person(professionalUser, "Professional User", "")
-      Person(adminUser, "Admin User", "")
 
-      Enterprise_Boundary(a1, "Power Platform Azure Tenant") {
 
-        System_Boundary(PowerPlatform, "Power Platform") {
-            System(Portal, "Portal", "")
-            System(PowerFlows, "Power Flows", "")
-            System(PowerApps, "Power Apps Forms", "")
-            SystemDb(Dataverse, "Dataverse", "")
-        }
+      System_Boundary(PowerPlatform, "Power Platform") {
+        System(PowerApps, "Power Apps Forms", "User Authentication via MS Teams")
+        System(PowerFlows, "Power Flows", "")
+        SystemDb(Dataverse, "Dataverse", "")
       }
 
-      Enterprise_Boundary(a0, "CFT Azure Tenant") {
+      Enterprise_Boundary(a0, "SDS Azure Tenant",) {
+        System(Portal, "Portal", "User Authentication via Azure B2C")
 
         System(function, "pre-functions", "Function apps to control Azure Media Services")
 
         System_Boundary(api, "API") {
-            System(api, "pre-api")
+            System(api, "pre-api", "System Authentication via Azure APIm.<br/>User Authorisation via X-User-Id header")
             SystemDb(db, "API db")
         }
 
@@ -48,11 +46,12 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
 
       BiRel(judicialUser, Portal, "")
       BiRel(adminUser, Portal, "")
-      BiRel(adminUser, PowerApps, "Via MS Teams")
+      BiRel(adminUser, PowerApps, "")
       BiRel(professionalUser, Portal, "")
       BiRel(PowerApps, PowerFlows, "")
-      BiRel(Portal, Dataverse, "")
-      Rel(Portal, function, "")
+      Rel(Portal, PowerFlows, "")
+      Rel(Portal, ams, "")
+      Rel(Portal, api, "")
       BiRel(PowerFlows, Dataverse, "")
       Rel(PowerApps, api, "")
       Rel(PowerFlows, api, "")
@@ -61,6 +60,7 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
       Rel(ams, blob, "")
       Rel(function, ams, "")
       UpdateElementStyle(api,  $bgColor="green", $borderColor="black")
+      UpdateElementStyle(PowerPlatform)
       UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
 

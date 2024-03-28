@@ -186,6 +186,18 @@ public class BookingController extends PreApiController {
 
     @GetMapping("/{bookingId}/share")
     @Operation(operationId = "getSharedBookingLogs")
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "0"
+    )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<ShareBookingDTO>>> getSharedBookingLogs(
         @PathVariable UUID bookingId,

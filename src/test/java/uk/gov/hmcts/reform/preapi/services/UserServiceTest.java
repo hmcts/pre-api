@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -466,9 +467,9 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(portalAccessRepository, times(1)).deleteById(portalAccessEntity.getId());
+        verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
-        verify(appAccessRepository, times(1)).save(appAccessEntity);
+        verify(appAccessService, times(1)).deleteById(appAccessEntity.getId());
         verify(userRepository, times(1)).deleteById(userEntity.getId());
     }
 
@@ -522,6 +523,7 @@ public class UserServiceTest {
         model.setPortalAccess(Set.of());
 
         when(userRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(userRepository.existsByEmailIgnoreCase(model.getEmail())).thenReturn(false);
 
         assertThat(userService.upsert(model)).isEqualTo(UpsertResult.CREATED);
 
@@ -578,7 +580,7 @@ public class UserServiceTest {
 
         verify(userRepository, times(1)).findById(model.getId());
         verify(userRepository, times(1)).saveAndFlush(any());
-        verify(appAccessRepository, times(1)).deleteById(accessEntity.getId());
+        verify(appAccessService, times(1)).deleteById(accessEntity.getId());
         verify(appAccessService, times(1)).upsert(accessModel);
         verify(portalAccessRepository, times(1)).existsById(portalModel.getId());
         verify(portalAccessService, times(1)).update(portalModel);
@@ -676,28 +678,54 @@ public class UserServiceTest {
         verify(userRepository, never()).saveAndFlush(any());
     }
 
+    @DisplayName("Should fail to create user when a user with the same email address already exists")
+    @Test
+    void updateUserEmailAlreadyExists() {
+        var userId = UUID.randomUUID();
+        var model = new CreateUserDTO();
+        model.setId(userId);
+        model.setEmail("example@example.com");
+
+        when(userRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(userRepository.existsByEmailIgnoreCase(model.getEmail())).thenReturn(true);
+
+        var message = assertThrows(
+            ConflictException.class,
+            () -> userService.upsert(model)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Conflict: User with email: " + model.getEmail() + " already exists");
+
+        verify(userRepository, times(1)).findById(model.getId());
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
     @DisplayName("Get a user's access information by email")
     @Test
     void findUserAccessByEmailSuccess() {
-        when(appAccessRepository
-                 .findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getEmail())
-        ).thenReturn(List.of(appAccessEntity));
+        when(userRepository
+                 .findByEmailIgnoreCaseAndDeletedAtIsNull(appUserEntity.getEmail())
+        ).thenReturn(Optional.of(appUserEntity));
 
-        var models = userService.findByEmail(userEntity.getEmail());
+        var userAccess = userService.findByEmail(appUserEntity.getEmail());
 
-        assertThat(models.size()).isEqualTo(1);
-        assertThat(models.getFirst().getId()).isEqualTo(appAccessEntity.getId());
-        assertThat(models.getFirst().getUser().getId()).isEqualTo(userEntity.getId());
-        assertThat(models.getFirst().getCourt().getId()).isEqualTo(appAccessEntity.getCourt().getId());
-        assertThat(models.getFirst().getRole().getId()).isEqualTo(appAccessEntity.getRole().getId());
+        assertThat(userAccess).isNotNull();
+        assertThat(userAccess.getAppAccess()).isNotNull();
+        assertThat(userAccess.getAppAccess().stream().findFirst()).isNotNull();
+        assertThat(userAccess.getAppAccess().stream().findFirst().get().getId()).isEqualTo(appAccessEntity2.getId());
+        assertThat(userAccess.getAppAccess().stream().findFirst().get().getCourt().getId())
+            .isEqualTo(appAccessEntity2.getCourt().getId());
+        assertThat(userAccess.getAppAccess().stream().findFirst().get().getRole().getId())
+            .isEqualTo(appAccessEntity2.getRole().getId());
+        assertThat(userAccess.getUser().getId()).isEqualTo(appUserEntity.getId());
     }
 
     @DisplayName("Get a user's access information by email when no app access found")
     @Test
     void findUserAccessByEmailNotFound() {
-        when(appAccessRepository
-                 .findAllByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getEmail())
-        ).thenReturn(List.of());
+        when(userRepository
+                 .findByEmailIgnoreCaseAndDeletedAtIsNull(userEntity.getEmail())
+        ).thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
@@ -803,6 +831,75 @@ public class UserServiceTest {
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, never()).save(any());
         verify(appAccessRepository, never()).save(any());
+        verify(portalAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Should create a new user and portal access entity on create invite")
+    @Test
+    void createNewUserFromInvite() {
+        var dto = new CreateInviteDTO();
+        dto.setUserId(UUID.randomUUID());
+        dto.setFirstName("Example");
+        dto.setLastName("Example");
+        dto.setEmail("example@example.com");
+
+        when(userRepository.findById(dto.getUserId())).thenReturn(Optional.empty());
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId()))
+            .thenReturn(Optional.empty());
+
+        assertThat(userService.upsert(dto)).isEqualTo(UpsertResult.CREATED);
+
+        verify(userRepository, times(1)).findById(dto.getUserId());
+        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId());
+        verify(portalAccessRepository, times(1)).save(any());
+    }
+
+    @DisplayName("Should fail create a new user and portal access entity on create invite when user has been deleted")
+    @Test
+    void createNewUserFromInviteUserResourceDeleted() {
+        var dto = new CreateInviteDTO();
+        dto.setUserId(UUID.randomUUID());
+        dto.setFirstName("Example");
+        dto.setLastName("Example");
+        dto.setEmail("example@example.com");
+
+        var user = new User();
+        user.setDeletedAt(Timestamp.from(Instant.now()));
+
+        when(userRepository.findById(dto.getUserId())).thenReturn(Optional.of(user));
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId()))
+            .thenReturn(Optional.empty());
+
+        assertThrows(
+            ResourceInDeletedStateException.class,
+            () -> userService.upsert(dto)
+        );
+
+        verify(userRepository, times(1)).findById(dto.getUserId());
+        verify(portalAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId());
+        verify(portalAccessRepository, never()).save(any());
+    }
+
+    @DisplayName("Should return updated when invitation has already been sent")
+    @Test
+    void createNewUserFromInviteUpdated() {
+        var dto = new CreateInviteDTO();
+        dto.setUserId(UUID.randomUUID());
+        dto.setFirstName("Example");
+        dto.setLastName("Example");
+        dto.setEmail("example@example.com");
+
+        var user = new User();
+        var portalAccess = new PortalAccess();
+
+        when(userRepository.findById(dto.getUserId())).thenReturn(Optional.of(user));
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId()))
+            .thenReturn(Optional.of(portalAccess));
+
+        assertThat(userService.upsert(dto)).isEqualTo(UpsertResult.UPDATED);
+
+        verify(userRepository, times(1)).findById(dto.getUserId());
+        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(dto.getUserId());
         verify(portalAccessRepository, never()).save(any());
     }
 }

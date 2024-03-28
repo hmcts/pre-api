@@ -1,8 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -17,20 +15,16 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CaseControllerFT extends FunctionalTestBase {
-
-    private static final String CASES_ENDPOINT = "/cases/";
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
+    @DisplayName("Should create a case with participants")
     @Test
     void shouldCreateACaseWithParticipants() throws JsonProcessingException {
 
         var testIds = doPostRequest("/testing-support/create-court", false).body().jsonPath();
 
-        var courtId = java.util.UUID.fromString(testIds.get("courtId"));
+        var courtId = UUID.fromString(testIds.get("courtId"));
 
         var createCase = new CreateCaseDTO();
-        createCase.setId(java.util.UUID.randomUUID());
+        createCase.setId(UUID.randomUUID());
         createCase.setCourtId(courtId);
         createCase.setReference(generateRandomCaseReference());
         var participant1 = new CreateParticipantDTO();
@@ -48,13 +42,13 @@ class CaseControllerFT extends FunctionalTestBase {
             participant2
         ));
 
-        var putResponse = doPutRequest(CASES_ENDPOINT + createCase.getId(),
+        var putResponse = doPutRequest(CASES_ENDPOINT + "/" + createCase.getId(),
                                        OBJECT_MAPPER.writeValueAsString(createCase), true);
 
-        assertThat(putResponse.statusCode()).isEqualTo(201);
+        assertResponseCode(putResponse, 201);
 
-        var getResponse = doGetRequest(CASES_ENDPOINT + createCase.getId(), true);
-        assertThat(getResponse.statusCode()).isEqualTo(200);
+        var getResponse = doGetRequest(CASES_ENDPOINT + "/" + createCase.getId(), true);
+        assertResponseCode(getResponse, 200);
         var caseResponse = OBJECT_MAPPER.readValue(getResponse.body().asString(), CaseDTO.class);
         assertThat(caseResponse.getParticipants().size()).isEqualTo(2);
     }
@@ -62,31 +56,68 @@ class CaseControllerFT extends FunctionalTestBase {
     @DisplayName("Unauthorised use of endpoints should return 401")
     @Test
     void unauthorisedRequestsReturn401() throws JsonProcessingException {
-        var getCaseByIdResponse = doGetRequest(CASES_ENDPOINT + UUID.randomUUID(), false);
-        assertResponse401(getCaseByIdResponse);
+        var getCaseByIdResponse = doGetRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), false);
+        assertResponseCode(getCaseByIdResponse, 401);
 
-        var getCasesResponse = doGetRequest("/cases", false);
-        assertResponse401(getCasesResponse);
+        var getCasesResponse = doGetRequest(CASES_ENDPOINT, false);
+        assertResponseCode(getCasesResponse, 401);
 
         var putCaseResponse = doPutRequest(
-            CASES_ENDPOINT + UUID.randomUUID(),
+            CASES_ENDPOINT + "/" + UUID.randomUUID(),
             OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
             false
         );
-        assertResponse401(putCaseResponse);
+        assertResponseCode(putCaseResponse, 401);
 
-        var deleteCaseResponse = doDeleteRequest(CASES_ENDPOINT + UUID.randomUUID(), false);
-        assertResponse401(deleteCaseResponse);
+        var deleteCaseResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), false);
+        assertResponseCode(deleteCaseResponse, 401);
     }
 
-    private void assertResponse401(Response response) {
-        assertThat(response.statusCode()).isEqualTo(401);
+    @DisplayName("Scenario: Delete case")
+    @Test
+    void shouldDeleteCaseWithExistingId() throws JsonProcessingException {
+        var caseDTO = createCase();
+
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
+        assertResponseCode(putCase, 201);
+
+        var getCasesResponse = doGetRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        assertResponseCode(getCasesResponse, 200);
+
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        assertResponseCode(deleteResponse, 200);
+
+        var getCasesResponse2 = doGetRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        assertResponseCode(getCasesResponse2, 404);
     }
 
-    private String generateRandomCaseReference() {
-        return UUID.randomUUID()
-            .toString()
-            .replace("-", "")
-            .substring(0, 13);
+    @DisplayName("Should fail to delete a case when it is already deleted")
+    @Test
+    void shouldDeleteCaseWithExistingIdFail() throws JsonProcessingException {
+        var caseDTO = createCase();
+
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
+        assertResponseCode(putCase, 201);
+
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        assertResponseCode(deleteResponse, 200);
+
+        var deleteResponse2 = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        assertResponseCode(deleteResponse2, 404);
+    }
+
+    @DisplayName("Should fail to delete a case that doesn't exist")
+    @Test
+    void shouldDeleteCaseWithNonExistingIdFail() {
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), true);
+        assertResponseCode(deleteResponse, 404);
     }
 }

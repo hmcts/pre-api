@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -91,7 +92,7 @@ class InviteControllerTest {
         var mockInvite = new InviteDTO();
         mockInvite.setUserId(userId);
         var inviteList = new PageImpl<>(List.of(mockInvite));
-        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), any()))
+        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), any()))
             .thenReturn(inviteList);
 
         mockMvc.perform(get("/invites"))
@@ -142,7 +143,7 @@ class InviteControllerTest {
         var mockInvite = new InviteDTO();
         mockInvite.setUserId(userId);
         var inviteList = new PageImpl<>(List.of(mockInvite));
-        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), any()))
+        when(inviteService.findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), any()))
             .thenReturn(inviteList);
 
         mockMvc.perform(get("/invites?page=5"))
@@ -156,6 +157,9 @@ class InviteControllerTest {
         var userId = UUID.randomUUID();
         var invite =  new CreateInviteDTO();
         invite.setUserId(userId);
+        invite.setFirstName("Example");
+        invite.setLastName("Example");
+        invite.setEmail("example@example.com");
 
         MvcResult response = mockMvc.perform(put("/invites/" + UUID.randomUUID())
                                                  .with(csrf())
@@ -169,12 +173,143 @@ class InviteControllerTest {
             .isEqualTo("{\"message\":\"Path userId does not match payload property createInviteDTO.userId\"}");
     }
 
+    @DisplayName("Should fail to create/update an invite with 400 response code first name must not be blank")
+    @Test
+    void createInviteFirstNameBlank() throws Exception {
+        var userId = UUID.randomUUID();
+        var invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setLastName("Example");
+        invite.setEmail("example@example.com");
+
+        var response = mockMvc.perform(put("/invites/" + userId)
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(invite))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"firstName\":\"must not be blank\"}");
+
+
+        invite.setFirstName("");
+
+        var response2 = mockMvc.perform(put("/invites/" + userId)
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(invite))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response2.getResponse().getContentAsString())
+            .isEqualTo("{\"firstName\":\"must not be blank\"}");
+    }
+
+    @DisplayName("Should fail to create/update an invite with 400 response code last name must not be blank")
+    @Test
+    void createInviteLastNameBlank() throws Exception {
+        var userId = UUID.randomUUID();
+        var invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setFirstName("Example");
+        invite.setEmail("example@example.com");
+
+        var response = mockMvc.perform(put("/invites/" + userId)
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(invite))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"lastName\":\"must not be blank\"}");
+
+
+        invite.setLastName("");
+
+        var response2 = mockMvc.perform(put("/invites/" + userId)
+                                            .with(csrf())
+                                            .content(OBJECT_MAPPER.writeValueAsString(invite))
+                                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response2.getResponse().getContentAsString())
+            .isEqualTo("{\"lastName\":\"must not be blank\"}");
+    }
+
+    @DisplayName("Should fail to create/update an invite with 400 response code email must not be blank")
+    @Test
+    void createInviteEmailBlank() throws Exception {
+        var userId = UUID.randomUUID();
+        var invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setFirstName("Example");
+        invite.setLastName("Example");
+
+        var response = mockMvc.perform(put("/invites/" + userId)
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(invite))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"email\":\"must not be blank\"}");
+
+
+        invite.setEmail("");
+
+        var response2 = mockMvc.perform(put("/invites/" + userId)
+                                            .with(csrf())
+                                            .content(OBJECT_MAPPER.writeValueAsString(invite))
+                                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response2.getResponse().getContentAsString())
+            .isEqualTo("{\"email\":\"must not be blank\"}");
+    }
+
+    @DisplayName("Should fail to create/update an invite with 400 response code email must be a valid email")
+    @Test
+    void createInviteEmailValid() throws Exception {
+        var userId = UUID.randomUUID();
+        var invite = new CreateInviteDTO();
+        invite.setUserId(userId);
+        invite.setFirstName("Example");
+        invite.setLastName("Example");
+        invite.setEmail("not a valid email");
+
+        var response = mockMvc.perform(put("/invites/" + userId)
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(invite))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"email\":\"must be a well-formed email address\"}");
+    }
+
+
     @DisplayName("Should create an invite with 201 response code")
     @Test
     void createUserCreated() throws Exception {
         var userId = UUID.randomUUID();
         var invite =  new CreateInviteDTO();
         invite.setUserId(userId);
+        invite.setFirstName("Example");
+        invite.setLastName("Example");
+        invite.setEmail("example@example.com");
 
         when(inviteService.upsert(invite)).thenReturn(UpsertResult.CREATED);
 
@@ -196,11 +331,10 @@ class InviteControllerTest {
     @Test
     void redeemInvite() throws Exception {
         var email = "example@example.com";
-        var inviteCode = "ABCDEF";
 
-        when(inviteService.redeemInvite(email, inviteCode)).thenReturn(UpsertResult.UPDATED);
+        when(inviteService.redeemInvite(email)).thenReturn(UpsertResult.UPDATED);
 
-        MvcResult response = mockMvc.perform(get("/invites/redeem" + "?email=" + email + "&inviteCode=" + inviteCode)
+        MvcResult response = mockMvc.perform(post("/invites/redeem" + "?email=" + email)
                                                  .with(csrf())
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isNoContent())
@@ -208,6 +342,6 @@ class InviteControllerTest {
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(response.getResponse().getHeaderValue("Location"))
-            .isEqualTo(TEST_URL + "/invites/redeem" + "?email=" + email + "&inviteCode=" + inviteCode);
+            .isEqualTo(TEST_URL + "/invites/redeem" + "?email=" + email);
     }
 }

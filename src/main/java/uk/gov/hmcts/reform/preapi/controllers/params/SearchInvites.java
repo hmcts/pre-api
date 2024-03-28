@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers.params;
 
 import lombok.Data;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 
 @Data
 public class SearchInvites {
@@ -8,6 +9,7 @@ public class SearchInvites {
     private String lastName;
     private String email;
     private String organisation;
+    private AccessStatus status;
 
     public String getFirstName() {
         return firstName != null && !firstName.isEmpty() ? firstName : null;

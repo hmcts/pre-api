@@ -7,6 +7,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
@@ -26,8 +27,10 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "last_access")
     private Timestamp lastAccess;
 
-    @Column(name = "invite_code", length = 45)
-    private String code;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false)
+    private AccessStatus status = AccessStatus.INVITATION_SENT;
 
     @Column(name = "invited_at")
     private Timestamp invitedAt;
@@ -44,12 +47,18 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
+    @Transient
+    private boolean deleted;
+
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
+
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
         details.put("portalAccessUserEmail", user.getEmail());
         details.put("portalAccessInvitedAt", invitedAt);
-        details.put("portalAccessInviteCode", code);
         details.put("portalAccessRegisteredAt", registeredAt);
         details.put("portalAccessTermsAcceptedAt", termsAcceptedAt);
         details.put("portalAccessLoggedIn", loggedIn);

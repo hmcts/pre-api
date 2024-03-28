@@ -1,5 +1,23 @@
 basePath: /pre-api
 definitions:
+  AccessDTO:
+    description: AccessDTO
+    properties:
+      app_access:
+        description: AccessAppAccess
+        items:
+          $ref: '#/definitions/BaseAppAccessDTO'
+        type: array
+        uniqueItems: true
+      portal_access:
+        description: AccessPortalAccess
+        items:
+          $ref: '#/definitions/PortalAccessDTO'
+        type: array
+        uniqueItems: true
+      user:
+        $ref: '#/definitions/BaseUserDTO'
+    type: object
   AccessRemovedReportDTO:
     description: AccessRemovedReportDTO
     properties:
@@ -28,27 +46,6 @@ definitions:
       user_full_name:
         description: AccessRemovedReportUserFullName
         type: string
-    type: object
-  AppAccessDTO:
-    description: AppAccessDTO
-    properties:
-      active:
-        description: AppAccessActive
-        type: boolean
-      court:
-        $ref: '#/definitions/CourtDTO'
-      id:
-        description: AppAccessId
-        format: uuid
-        type: string
-      last_access:
-        description: AppAccessLastAccess
-        format: date-time
-        type: string
-      role:
-        $ref: '#/definitions/RoleDTO'
-      user:
-        $ref: '#/definitions/BaseUserDTO'
     type: object
   BaseAppAccessDTO:
     description: BaseAppAccessDTO
@@ -578,9 +575,6 @@ definitions:
   CreateInviteDTO:
     description: CreateInviteDTO
     properties:
-      code:
-        description: InviteCode
-        type: string
       email:
         description: InviteEmail
         type: string
@@ -600,6 +594,11 @@ definitions:
         description: InviteUserId
         format: uuid
         type: string
+    required:
+      - email
+      - first_name
+      - last_name
+      - user_id
     type: object
   CreateParticipantDTO:
     description: CreateParticipantDTO
@@ -1840,6 +1839,18 @@ paths:
           name: bookingId
           required: true
           type: string
+        - description: The page number of search result to return
+          format: int32
+          in: query
+          name: page
+          type: integer
+          x-example: 0
+        - description: The number of search results to return per page
+          format: int32
+          in: query
+          name: size
+          type: integer
+          x-example: 10
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -2358,6 +2369,29 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
+  /health:
+    get:
+      operationId: health
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/json
+        - application/vnd.spring-boot.actuator.v2+json
+        - application/vnd.spring-boot.actuator.v3+json
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: object
+      summary: Actuator web endpoint 'health'
+      tags:
+        - Actuator
   /invites:
     get:
       operationId: searchInvites
@@ -2378,6 +2412,15 @@ paths:
         - description: The organisation of the user to search by
           in: query
           name: organisation
+          type: string
+        - description: The access status of the user to search by
+          enum:
+            - INVITATION_SENT
+            - REGISTERED
+            - ACTIVE
+            - INACTIVE
+          in: query
+          name: status
           type: string
         - description: The page number of search result to return
           format: int32
@@ -2409,7 +2452,7 @@ paths:
       tags:
         - invite-controller
   /invites/redeem:
-    get:
+    post:
       operationId: redeemInvite
       parameters:
         - description: The email of the user to redeem the invite for
@@ -2418,12 +2461,6 @@ paths:
           required: true
           type: string
           x-example: example@example.com
-        - description: The invite code to redeem
-          in: query
-          name: inviteCode
-          required: true
-          type: string
-          x-example: ABCDEF
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -2937,6 +2974,12 @@ paths:
     get:
       operationId: getRooms
       parameters:
+        - description: The court id of the rooms to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -3048,9 +3091,7 @@ paths:
         '200':
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/AppAccessDTO'
-            type: array
+            $ref: '#/definitions/AccessDTO'
       summary: Get a User's App Access by Email
       tags:
         - user-controller
@@ -3161,5 +3202,11 @@ securityDefinitions:
     name: Ocp-Apim-Subscription-Key
     type: apiKey
 swagger: '2.0'
+tags:
+  - description: Monitor and interact
+    externalDocs:
+      description: Spring Boot Actuator Web API Documentation
+      url: 'https://docs.spring.io/spring-boot/docs/current/actuator-api/html/'
+    name: Actuator
 x-components: {}
 

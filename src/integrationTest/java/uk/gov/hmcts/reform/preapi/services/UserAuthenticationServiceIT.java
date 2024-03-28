@@ -1,37 +1,38 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.BadCredentialsException;
-import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
-@SpringBootTest(classes = Application.class)
-public class UserAuthenticationServiceIT {
-
-    @Autowired
-    private EntityManager entityManager;
-
+public class UserAuthenticationServiceIT extends IntegrationTestBase {
     @Autowired
     private UserAuthenticationService userAuthenticationService;
 
-    private AppAccess access;
+    private AppAccess appAccess;
+    private PortalAccess portalAccess;
+    private Timestamp lastAccess;
 
     @BeforeEach
     void setUp() {
+        lastAccess = Timestamp.from(Instant.now());
         var user = HelperFactory.createUser(
             "Example",
             "Example",
@@ -52,21 +53,46 @@ public class UserAuthenticationServiceIT {
         );
         entityManager.persist(court);
 
-        access = HelperFactory.createAppAccess(user, court, role, true, null, null);
-        entityManager.persist(access);
+        appAccess = HelperFactory.createAppAccess(user, court, role, true, null, lastAccess);
+        portalAccess = HelperFactory.createPortalAccess(
+            user,
+            lastAccess,
+            AccessStatus.ACTIVE,
+            Timestamp.from(Instant.now()),
+            Timestamp.from(Instant.now()),
+            null
+        );
+        entityManager.persist(appAccess);
+        entityManager.persist(portalAccess);
     }
 
     @Transactional
     @Test
     public void loadAppUserByIdSuccess() {
-        var userWithValidId = userAuthenticationService.loadAppUserById(access.getId().toString());
-        assertEquals(userWithValidId.getUserId(), access.getUser().getId());
-        assertEquals(userWithValidId.getAppAccess(), access);
+        var userWithValidId = userAuthenticationService.loadAppUserById(appAccess.getId().toString());
+        assertEquals(userWithValidId.getUserId(), appAccess.getUser().getId());
+        assertEquals(userWithValidId.getAppAccess(), appAccess);
+
+        entityManager.refresh(appAccess);
+        assertFalse(lastAccess.equals(userWithValidId.getAppAccess().getLastAccess()));
+        assertTrue(lastAccess.before(appAccess.getLastAccess()));
     }
 
     @Transactional
     @Test
-    public void loadAppUserByIdNotFound() {
+    public void loadPortalUserByIdSuccess() {
+        var userWithValidId = userAuthenticationService.loadAppUserById(portalAccess.getId().toString());
+        assertEquals(userWithValidId.getUserId(), portalAccess.getUser().getId());
+        assertEquals(userWithValidId.getPortalAccess(), portalAccess);
+
+        entityManager.refresh(portalAccess);
+        assertFalse(lastAccess.equals(userWithValidId.getPortalAccess().getLastAccess()));
+        assertTrue(lastAccess.before(portalAccess.getLastAccess()));
+    }
+
+    @Transactional
+    @Test
+    public void loadUserByIdNotFound() {
         var id = UUID.randomUUID();
         var message = assertThrows(
             BadCredentialsException.class,
@@ -78,7 +104,7 @@ public class UserAuthenticationServiceIT {
 
     @Transactional
     @Test
-    public void loadAppUserByIdNull() {
+    public void loadUserByIdNull() {
         var message = assertThrows(
             BadCredentialsException.class,
             () ->  userAuthenticationService.loadAppUserById(null)
@@ -90,7 +116,7 @@ public class UserAuthenticationServiceIT {
 
     @Transactional
     @Test
-    public void loadAppUserByIdNotUuid() {
+    public void loadUserByIdNotUuid() {
         var id = "1234567890";
         var message = assertThrows(
             BadCredentialsException.class,
@@ -102,7 +128,7 @@ public class UserAuthenticationServiceIT {
 
     @Transactional
     @Test
-    public void loadAppUserByIdEmpty() {
+    public void loadUserByIdEmpty() {
         var id = "";
         var message = assertThrows(
             BadCredentialsException.class,

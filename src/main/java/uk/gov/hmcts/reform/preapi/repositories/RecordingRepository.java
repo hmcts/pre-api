@@ -80,6 +80,7 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
                 AND p.deletedAt IS NULL
             )
         )
+        ORDER BY r.captureSession.booking.caseId.reference, r.version
         """
     )
     Page<Recording> searchAllBy(
