@@ -53,6 +53,7 @@ steps:
     versionSpec: '3.x'
     allowUnstable: true
     architecture: 'x64'
+    addToPath: false
 
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
