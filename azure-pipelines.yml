@@ -42,6 +42,11 @@ steps:
     SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST'
     RunAsPreJob: true
 
+- task: UsePythonVersion@0
+  displayName: 'Install Python 3.12'
+  inputs:
+    versionSpec: '3.12'
+
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
 
