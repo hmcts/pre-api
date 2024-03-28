@@ -1,10 +1,43 @@
+parameters:
+  - name: environment
+    displayName: Environment
+    type: object
+    values:
+      - Staging:
+          serviceConnection: 'DTS-SHAREDSERVICES-STG'
+          kv-name: 'pre-hmctskv-stg'
+          source-db-name: 'pre-pdb-stg'
+      - Demo:
+          serviceConnection: 'DTS-SHAREDSERVICES-DEMO'
+          kv-name: 'pre-hmctskv-demo'
+          source-db-name: 'pre-pdb-demo'
+      - Production:
+          serviceConnection: 'DTS-SHAREDSERVICES-PROD'
+          kv-name: 'pre-hmctskv-prod'
+          source-db-name: 'pre-pdb-prod'
+
 # Runs ad-hoc
 trigger:
 - none
 
-pool:
-  vmImage: ubuntu-latest
+pool: hmcts-sds-ptl
 
 steps:
+- task: AzureKeyVault@2
+  inputs:
+    azureSubscription: {{ parameters.environment.serviceConnection }}
+    KeyVaultName: {{ parameters.environment.kv-name }}
+    SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST'
+    RunAsPreJob: true
+
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
+
+#export SOURCE_DB_NAME={{ parameters.environment.source-db-name }}
+#export SOURCE_DB_USER=$(api-POSTGRES-USER)
+#export SOURCE_DB_PASSWORD=$(api-POSTGRES-PASS)
+#export SOURCE_DB_HOST=$(api-POSTGRES-HOST)
+#export DESTINATION_DB_NAME=api
+#export DESTINATION_DB_USER=$(api-POSTGRES-USER)
+#export DESTINATION_DB_PASSWORD=$(api-POSTGRES-PASS)
+#export DESTINATION_DB_HOST=$(api-POSTGRES-HOST)
