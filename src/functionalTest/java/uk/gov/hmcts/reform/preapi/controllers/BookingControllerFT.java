@@ -46,6 +46,40 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(recordingResponse2, 200);
     }
 
+    @DisplayName("Scenario: Delete booking")
+    @Test
+    void shouldDeleteRecordingsForBooking() {
+        var testIds = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath();
+        var bookingId = testIds.getUUID("bookingId");
+        var courtId = testIds.getUUID("courtId");
+
+        // see it is available before deletion
+        var getBookingByIdResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        assertResponseCode(getBookingByIdResponse1, 200);
+        assertThat(getBookingByIdResponse1.body().jsonPath().getUUID("id")).isEqualTo(bookingId);
+
+        var searchResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
+        assertResponseCode(searchResponse1, 200);
+        var responseData1 = searchResponse1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData1.size()).isEqualTo(1);
+        assertThat(responseData1.getFirst().getId()).isEqualTo(bookingId);
+
+        // delete booking
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        assertResponseCode(deleteResponse, 204);
+
+        // see it is no longer available after deletion
+        var getBookingsByIdResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        assertResponseCode(getBookingsByIdResponse2, 404);
+
+        var searchResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
+        assertResponseCode(searchResponse2, 200);
+        var responseData2 = searchResponse2.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData2.size()).isEqualTo(0);
+    }
+
     @Test
     @DisplayName("Scenario: The schedule date should not be amended to the past date")
     void recordingScheduleDateShouldNotBeAmendedToThePast() throws JsonProcessingException {
