@@ -73,9 +73,9 @@ public class AppAccessService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void deleteById(UUID portalId) {
+    public void deleteById(UUID appId) {
         appAccessRepository
-            .findById(portalId)
+            .findById(appId)
             .ifPresent(
                 access -> {
                     access.setActive(false);

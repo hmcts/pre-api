@@ -28,14 +28,16 @@ class CourtRoomManager:
             "PRE017": "Nottingham Crown Court",
             "PRE018": "Nottingham Crown Court",
             "PRE019": "Reading Crown Court",
-            "PRE020": "Reading Crown Court"
+            "PRE020": "Reading Crown Court",
+            "PRE021": "Exeter Crown Court",
+            "PRE022": "Exeter Crown Court"
         }
 
         batch_courtrooms_data = []
 
         destination_cursor.execute("SELECT * FROM public.rooms")
         dest_rooms_data = destination_cursor.fetchall()
-        rooms_dict = {role[1]: role[0] for role in dest_rooms_data} 
+        rooms_dict = {role[1]: role[0] for role in dest_rooms_data}
 
         destination_cursor.execute("SELECT * FROM public.courts")
         dest_courts_data = destination_cursor.fetchall()
@@ -62,9 +64,9 @@ class CourtRoomManager:
                     batch_courtrooms_data
                 )
                 destination_cursor.connection.commit()
-  
+
         except Exception as e:
             self.failed_imports.append({'table_name': 'court_rooms','table_id': None,'details': str(e)})
-        
+
         self.logger.log_failed_imports(self.failed_imports)
-       
+

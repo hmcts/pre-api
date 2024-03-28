@@ -30,13 +30,14 @@ public class FunctionalTestBase {
     protected static final String CAPTURE_SESSIONS_ENDPOINT = "/capture-sessions";
     protected static final String RECORDINGS_ENDPOINT = "/recordings";
     protected static final String AUDIT_ENDPOINT = "/audit/";
-
+    protected static final String USERS_ENDPOINT = "/users";
+    protected static final String LOCATION_HEADER = "Location";
     protected static UUID authenticatedUserId;
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 
     @Value("${TEST_URL:http://localhost:4550}")
-    private String testUrl;
+    protected String testUrl;
 
     @BeforeEach
     void setUp() {
@@ -163,7 +164,7 @@ public class FunctionalTestBase {
             .substring(0, 13);
     }
 
-    protected void assertResponse401(Response response) {
-        assertThat(response.statusCode()).isEqualTo(401);
+    protected static void assertResponseCode(Response response, int expectedStatusCode) {
+        assertThat(response.statusCode()).isEqualTo(expectedStatusCode);
     }
 }

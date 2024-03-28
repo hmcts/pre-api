@@ -30,21 +30,21 @@ class BookingControllerFT extends FunctionalTestBase {
         var recordingId = testIds.get("recordingId");
 
         var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
-        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertResponseCode(bookingResponse, 200);
         assertThat(bookingResponse.body().jsonPath().getString("id")).isEqualTo(bookingId);
 
         var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
-        assertThat(recordingResponse.statusCode()).isEqualTo(200);
+        assertResponseCode(recordingResponse, 200);
         assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recordingId);
         assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
-        assertThat(deleteResponse.statusCode()).isEqualTo(400);
+        assertResponseCode(deleteResponse, 400);
         assertThat(deleteResponse.getBody().jsonPath().getString("message"))
             .isEqualTo("Cannot delete because and associated recording has not been deleted.");
 
         var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
-        assertThat(recordingResponse2.statusCode()).isEqualTo(200);
+        assertResponseCode(recordingResponse2, 200);
     }
 
     @Test
@@ -56,8 +56,7 @@ class BookingControllerFT extends FunctionalTestBase {
             .getUUID("bookingId");
 
         var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
-
-        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertResponseCode(bookingResponse, 200);
 
         BookingDTO booking = bookingResponse.body().as(BookingDTO.class);
 
@@ -70,7 +69,7 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // validate the court referenced does exist
         var courtResponse = doGetRequest("/courts/" + booking.getCaseDTO().getCourt().getId(), true);
-        assertThat(courtResponse.statusCode()).isEqualTo(200);
+        assertResponseCode(courtResponse, 200);
         assertThat(courtResponse.body().jsonPath().getString("name"))
             .isEqualTo(booking.getCaseDTO().getCourt().getName());
 
@@ -93,48 +92,47 @@ class BookingControllerFT extends FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(createBooking),
             true
         );
-
-        assertThat(putResponse.statusCode()).isEqualTo(400);
+        assertResponseCode(putResponse, 400);
     }
 
     @Test
     @DisplayName("Deleting a non-existent booking should return 404")
     void deletingNonExistentBookingShouldReturn404() {
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + "00000000-0000-0000-0000-000000000000", true);
-        assertThat(deleteResponse.statusCode()).isEqualTo(404);
+        assertResponseCode(deleteResponse, 404);
     }
 
     @DisplayName("Unauthorised use of endpoints should return 401")
     @Test
     void unauthorisedRequestsReturn401() throws JsonProcessingException {
         var getBookingsResponse = doGetRequest("/bookings", false);
-        assertThat(getBookingsResponse.statusCode()).isEqualTo(401);
+        assertResponseCode(getBookingsResponse, 401);
 
         var getBookingsByIdResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), false);
-        assertThat(getBookingsByIdResponse.statusCode()).isEqualTo(401);
+        assertResponseCode(getBookingsByIdResponse, 401);
 
         var putBookingResponse = doPutRequest(
             BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(),
             OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
             false
         );
-        assertThat(putBookingResponse.statusCode()).isEqualTo(401);
+        assertResponseCode(putBookingResponse, 401);
 
         var deleteBookingResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), false);
-        assertThat(deleteBookingResponse.statusCode()).isEqualTo(401);
+        assertResponseCode(deleteBookingResponse, 401);
 
         var putShareBookingResponse = doPutRequest(
             BOOKINGS_ENDPOINT + "/" + UUID.randomUUID() + "/share",
             OBJECT_MAPPER.writeValueAsString(new CreateShareBookingDTO()),
             false
         );
-        assertThat(putShareBookingResponse.statusCode()).isEqualTo(401);
+        assertResponseCode(putShareBookingResponse, 401);
 
         var deleteShareBookingResponse = doDeleteRequest(
             BOOKINGS_ENDPOINT + "/" + UUID.randomUUID() + "/share",
             false
         );
-        assertThat(deleteShareBookingResponse.statusCode()).isEqualTo(401);
+        assertResponseCode(deleteShareBookingResponse, 401);
     }
 
     /*
@@ -185,7 +183,7 @@ class BookingControllerFT extends FunctionalTestBase {
 
         var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
 
-        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertResponseCode(bookingResponse, 200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 }
