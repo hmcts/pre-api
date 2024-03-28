@@ -76,8 +76,8 @@ class BookingControllerFT extends FunctionalTestBase {
 
         var searchResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
         assertResponseCode(searchResponse2, 200);
-        var responseData2 = searchResponse2.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
-        assertThat(responseData2.size()).isEqualTo(0);
+        assertThat(searchResponse2.jsonPath().getInt("page.totalElements"))
+            .isEqualTo(0);
     }
 
     @Test
