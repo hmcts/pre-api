@@ -6,5 +6,5 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: pip install -r requirements.txt
+- script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
