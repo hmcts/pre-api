@@ -2,7 +2,7 @@ parameters:
   - name: environment
     displayName: Environment
     type: string
-    default: Staging
+    default: ''
     values:
       - Staging
       - Demo
@@ -46,14 +46,14 @@ steps:
   displayName: 'Install dependencies'
 
 - script: |
-    export SOURCE_DB_NAME=pre-pdb-$(envShortName)
-    export SOURCE_DB_USER=$(api-POSTGRES-USER)
-    export SOURCE_DB_PASSWORD=$(api-POSTGRES-PASS)
-    export SOURCE_DB_HOST=$(api-POSTGRES-HOST)
-    export DESTINATION_DB_NAME=api
-    export DESTINATION_DB_USER=$(api-POSTGRES-USER)
-    export DESTINATION_DB_PASSWORD=$(api-POSTGRES-PASS)
-    export DESTINATION_DB_HOST=$(api-POSTGRES-HOST)
+    export SOURCE_DB_NAME="pre-pdb-$(envShortName)"
+    export SOURCE_DB_USER="$(api-POSTGRES-USER)"
+    export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
+    export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
+    export DESTINATION_DB_NAME="api"
+    export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
+    export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
+    export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
     python bin/migration/main.py
   displayName: 'Execute migration script'
 
