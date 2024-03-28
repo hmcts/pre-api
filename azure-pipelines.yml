@@ -43,9 +43,10 @@ steps:
     RunAsPreJob: true
 
 - task: UsePythonVersion@0
-  displayName: 'Install Python 3.12'
+  displayName: 'Install Python 3.9.x'
   inputs:
-    versionSpec: '3.12'
+    versionSpec: '3.9.x'
+
 
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
