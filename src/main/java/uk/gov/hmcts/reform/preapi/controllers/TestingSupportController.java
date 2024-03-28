@@ -148,6 +148,7 @@ class TestingSupportController {
         var response = new HashMap<String, String>() {
             {
                 put("bookingId", booking.getId().toString());
+                put("courtId", court.getId().toString());
             }
         };
 
