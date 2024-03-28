@@ -54,7 +54,7 @@ steps:
     export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
     export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
     export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
-    python bin/migration/main.py
+    python3 bin/migration/main.py
   displayName: 'Execute migration script'
 
 
