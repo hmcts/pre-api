@@ -42,11 +42,15 @@ steps:
     SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST'
     RunAsPreJob: true
 
-- task: UsePythonVersion@0
-  displayName: 'Install Python 3.9.x'
-  inputs:
-    versionSpec: '3.9.x'
+#- task: UsePythonVersion@0
+#  displayName: 'Install Python 3.9.x'
+#  inputs:
+#    versionSpec: '3.9.x'
 
+- script: |
+    sudo apt-get update
+    sudo apt install python3.12
+  displayName: 'Install Python 3.12'
 
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
