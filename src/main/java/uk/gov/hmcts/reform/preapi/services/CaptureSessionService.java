@@ -154,7 +154,7 @@ public class CaptureSessionService {
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
     public void undelete(UUID id) {
         var entity =
