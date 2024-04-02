@@ -177,12 +177,35 @@ class CaseControllerTest {
             .isEqualTo("{\"reference\":\"size must be between 9 and 13\"}");
     }
 
+    @DisplayName("Should fail create/update case with 400 error message when case reference is null")
+    @Test
+    void testCreateCaseReferenceNullRequest() throws Exception {
+        UUID caseId = UUID.randomUUID();
+        var caseDTO = new CreateCaseDTO();
+        caseDTO.setId(caseId);
+        caseDTO.setReference(null);
+
+        when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(caseDTO))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"reference\":\"must not be null\"}");
+    }
+
     @DisplayName("Should update case with 204 response code")
     @Test
     void testUpdateCase() throws Exception {
         UUID caseId = UUID.randomUUID();
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
+        caseDTO.setReference("EXAMPLE123");
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.UPDATED);
 
@@ -204,6 +227,7 @@ class CaseControllerTest {
         UUID caseId = UUID.randomUUID();
         CaseDTO newCaseRequestDTO = new CaseDTO();
         newCaseRequestDTO.setId(UUID.randomUUID());
+        newCaseRequestDTO.setReference("EXAMPLE123");
 
         mockMvc.perform(put(CASES_ID_PATH, caseId)
                             .with(csrf())
@@ -223,6 +247,7 @@ class CaseControllerTest {
         var newCaseRequestDTO = new CreateCaseDTO();
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
+        newCaseRequestDTO.setReference("EXAMPLE123");
 
         doThrow(new NotFoundException("Court: " + courtId)).when(caseService).upsert(newCaseRequestDTO);
 
@@ -245,6 +270,8 @@ class CaseControllerTest {
         var newCaseRequestDTO = new CreateCaseDTO();
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
+        newCaseRequestDTO.setReference("EXAMPLE123");
+
 
         doThrow(new ResourceInDeletedStateException("CaseDTO", caseId.toString()))
             .when(caseService).upsert(newCaseRequestDTO);
@@ -271,6 +298,7 @@ class CaseControllerTest {
         var newCaseRequestDTO = new CreateCaseDTO();
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
+        newCaseRequestDTO.setReference("EXAMPLE123");
 
         doThrow(new ConflictException("Case reference is already in use for this court"))
             .when(caseService).upsert(newCaseRequestDTO);
