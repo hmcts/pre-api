@@ -241,6 +241,7 @@ class TestingSupportController {
             {
                 put("bookingId", booking.getId().toString());
                 put("recordingId", recording.getId().toString());
+                put("captureSessionId", captureSession.getId().toString());
             }
         };
 

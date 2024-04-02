@@ -1,26 +1,24 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.context.SecurityContextHolder;
-import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -29,33 +27,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-@SpringBootTest(classes = Application.class)
-public class CaseServiceIT {
-    @Autowired
-    private EntityManager entityManager;
-
+public class CaseServiceIT extends IntegrationTestBase {
     @Autowired
     private CaseService caseService;
+
     @Autowired
     private RecordingRepository recordingRepository;
-
-    public static void mockAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(true);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-    }
-
-    public static void mockNonAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.isAdmin()).thenReturn(false);
-        when(mockAuth.isAppUser()).thenReturn(true);
-        when(mockAuth.isPortalUser()).thenReturn(false);
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-    }
 
     @Transactional
     @Test
@@ -272,6 +249,49 @@ public class CaseServiceIT {
             () -> caseService.undelete(randomId)
         ).getMessage();
         Assertions.assertEquals(message, "Not found: Case: " + randomId);
+    }
 
+    @Transactional
+    @Test
+    void createCase() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var createDto = new CreateCaseDTO();
+        createDto.setId(UUID.randomUUID());
+        createDto.setCourtId(court.getId());
+        createDto.setReference("1234567890");
+        createDto.setParticipants(Set.of());
+        createDto.setTest(false);
+
+        var response = caseService.upsert(createDto);
+        entityManager.flush();
+        Assertions.assertEquals(response, UpsertResult.CREATED);
+
+        var newCase = caseService.findById(createDto.getId());
+        Assertions.assertNotNull(newCase);
+    }
+
+    @Transactional
+    @Test
+    void createCaseWithCaseReferenceAndCourtAlreadyExisting() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var dto = new CreateCaseDTO(caseEntity);
+        dto.setId(UUID.randomUUID());
+
+        var message = Assertions.assertThrows(
+            ConflictException.class,
+            () -> caseService.upsert(dto)
+        ).getMessage();
+        Assertions.assertEquals("Conflict: Case reference is already in use for this court", message);
     }
 }

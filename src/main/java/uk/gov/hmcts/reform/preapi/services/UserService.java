@@ -204,15 +204,11 @@ public class UserService {
 
         portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(portalAccess -> portalAccessRepository.deleteById(portalAccess.getId()));
+            .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
 
         appAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(appAccess -> {
-                appAccess.setActive(false);
-                appAccess.setDeletedAt(Timestamp.from(Instant.now()));
-                appAccessRepository.save(appAccess);
-            });
+            .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getId()));
 
         userRepository.deleteById(userId);
     }
