@@ -4,12 +4,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -18,10 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class RecordingDTOTest {
 
     private static Recording recordingEntity;
+    private static Case caseEntity;
 
     @BeforeAll
     static void setUp() {
-        var caseEntity = HelperFactory.createCase(
+        caseEntity = HelperFactory.createCase(
             HelperFactory.createCourt(CourtType.CROWN, "Foo Court", null),
             "1234567890",
             false,
@@ -56,10 +59,13 @@ public class RecordingDTOTest {
 
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
         assertThat(model.getParticipants().size()).isEqualTo(2);
+        assertThat(model.getCaseId()).isEqualTo(caseEntity.getId());
+        assertThat(model.getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(model.getIsTestCase()).isEqualTo(caseEntity.isTest());
         var sortedList = model
             .getParticipants()
             .stream()
-            .sorted((c1, c2) -> c1.getFirstName().compareTo(c2.getFirstName()))
+            .sorted(Comparator.comparing(ParticipantDTO::getFirstName))
             .toList();
         assertThat(sortedList.get(0).getFirstName()).isEqualTo("Jane");
         assertThat(sortedList.get(1).getFirstName()).isEqualTo("John");
