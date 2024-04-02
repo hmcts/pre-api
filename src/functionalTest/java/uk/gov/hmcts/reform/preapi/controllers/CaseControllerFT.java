@@ -120,4 +120,28 @@ class CaseControllerFT extends FunctionalTestBase {
         var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), true);
         assertResponseCode(deleteResponse, 404);
     }
+
+    @DisplayName("Scenario: Remove Case Reference")
+    @Test
+    void shouldFailToRemoveCaseReference() throws JsonProcessingException {
+        var caseDTO = createCase();
+
+        caseDTO.setReference(null);
+        var putResponse1 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
+        assertResponseCode(putResponse1, 400);
+        assertThat(putResponse1.getBody().jsonPath().getString("reference")).isEqualTo("must not be null");
+
+        caseDTO.setReference("");
+        var putResponse2 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
+        assertResponseCode(putResponse2, 400);
+        assertThat(putResponse2.getBody().jsonPath().getString("reference")).isEqualTo("size must be between 9 and 13");
+    }
 }
