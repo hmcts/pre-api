@@ -4,8 +4,9 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 public class NotPastDateValidator implements ConstraintValidator<NotPastDateConstraint, Timestamp> {
     @Override
@@ -14,7 +15,13 @@ public class NotPastDateValidator implements ConstraintValidator<NotPastDateCons
 
     @Override
     public boolean isValid(Timestamp dateField, ConstraintValidatorContext cxt) {
-        var midnight = Instant.now().truncatedTo(ChronoUnit.DAYS).minusMillis(1);
-        return dateField != null && dateField.after(Timestamp.from(midnight));
+        if (dateField == null) {
+            return false;
+        }
+
+        var localDateField = LocalDateTime.ofInstant(dateField.toInstant(), ZoneId.systemDefault()).toLocalDate();
+        var today = LocalDate.now();
+
+        return !localDateField.isBefore(today);
     }
 }
