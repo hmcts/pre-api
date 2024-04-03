@@ -51,7 +51,7 @@ steps:
 
 - task: UsePythonVersion@0
   inputs:
-    versionSpec: '3.x'
+    versionSpec: '3.10.12'
     disableDownloadFromRegistry: true
 
 - script: pip install -r bin/migration/requirements.txt
