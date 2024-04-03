@@ -36,6 +36,8 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
@@ -365,7 +367,8 @@ class BookingControllerTest {
         booking.setCaseId(caseId);
         booking.setParticipants(getCreateParticipantDTOs());
         booking.setScheduledFor(
-            Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS).minusMillis(1))
+            Timestamp.from(ZonedDateTime.now(ZoneId.of("Europe/London"))
+                               .truncatedTo(ChronoUnit.DAYS).toInstant().minusMillis(1))
         );
 
         CaseDTO mockCaseDTO = new CaseDTO();
