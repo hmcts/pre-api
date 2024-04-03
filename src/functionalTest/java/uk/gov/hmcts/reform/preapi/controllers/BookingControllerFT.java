@@ -199,7 +199,6 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
-     */
 
     @DisplayName("Scenario: Search for a booking by schedule date and case reference")
     @Test
@@ -221,7 +220,6 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
 
-    /*
     @DisplayName("Scenario: Search for a booking by partial case reference")
     @Test
     void searchBookingByPartialCaseReference() throws JsonProcessingException {
