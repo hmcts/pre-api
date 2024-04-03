@@ -48,6 +48,8 @@ steps:
     script: |
       echo "##vso[task.setvariable variable=LD_LIBRARY_PATH;]:{TOOLCACHE_PATH}/Python/{VERSION}/x64/lib/"
       python3 --version
+      mkdir -p migration_reports/logs
+      touch migration_reports/logs/error.log
 
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
