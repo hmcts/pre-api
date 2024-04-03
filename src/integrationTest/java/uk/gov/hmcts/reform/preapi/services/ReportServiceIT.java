@@ -1,20 +1,26 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -71,6 +77,57 @@ public class ReportServiceIT extends IntegrationTestBase {
 
         var reportFilterNotFound4 = reportService.reportShared(null, null, null, "test@test.com");
         assertThat(reportFilterNotFound4.isEmpty()).isTrue();
+    }
+
+    @Transactional
+    @Test
+    public void reportSharedAllRecordingIdNull() {
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example court", "12458");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var booking = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking);
+
+        var captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        var recording = HelperFactory.createRecording(captureSession, null, 1, null, "example.file", null);
+        entityManager.persist(recording);
+
+        var user = HelperFactory.createUser("Example", "One", "example1@example.com", null, null, null);
+        entityManager.persist(user);
+
+        var audit = new Audit();
+        audit.setId(UUID.randomUUID());
+        audit.setActivity("Play");
+        audit.setCreatedBy(user.getId());
+        audit.setSource(AuditLogSource.APPLICATION);
+        ObjectMapper mapper = new ObjectMapper();
+        audit.setAuditDetails(mapper.valueToTree(new HashMap<String, String>() {{
+                put("description", "Playback on recording has started");
+                put("recordingId", null);
+            }}
+        ));
+        entityManager.persist(audit);
+
+        var response = reportService.reportPlayback(null);
+        assertThat(response).isNotNull();
+        assertThat(response.size()).isEqualTo(1);
+        assertThat(response.getFirst().getRecordingId()).isNull();
     }
 
     private void assertReportSuccess(Court court, Case caseEntity, Booking booking, User user1, User user2,
