@@ -52,6 +52,7 @@ steps:
   inputs:
     versionSpec: '3.7'
     addToPath: false
+    disableDownloadFromRegistry: true
 
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
