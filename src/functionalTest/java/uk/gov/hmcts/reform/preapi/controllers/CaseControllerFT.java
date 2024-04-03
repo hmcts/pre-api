@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -143,5 +144,87 @@ class CaseControllerFT extends FunctionalTestBase {
         );
         assertResponseCode(putResponse2, 400);
         assertThat(putResponse2.getBody().jsonPath().getString("reference")).isEqualTo("size must be between 9 and 13");
+    }
+
+    @DisplayName("Scenario: Cannot create a case with reference of more than 13 characters")
+    @Test
+    void shouldFailTopUpdateCaseWithLongReference() throws JsonProcessingException {
+        var caseDTO = createCase();
+
+        caseDTO.setReference("FOURTEEN_CHARS");
+
+        var putResponse1 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
+        assertResponseCode(putResponse1, 400);
+        assertThat(putResponse1.getBody().jsonPath().getString("reference")).isEqualTo("size must be between 9 and 13");
+    }
+
+    @DisplayName("Scenario: Cannot create a case with reference of less that 9 characters")
+    @Test
+    void shouldFailTopUpdateCaseWithShortReference() throws JsonProcessingException {
+        var caseDTO = createCase();
+
+        caseDTO.setReference("12345678");
+
+        var putResponse1 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO),
+            true
+        );
+        assertResponseCode(putResponse1, 400);
+        assertThat(putResponse1.getBody().jsonPath().getString("reference")).isEqualTo("size must be between 9 and 13");
+    }
+
+    @DisplayName("Scenario: Create a case with a duplicate case reference in the same court")
+    @Test
+    void shouldFailCreateCaseWithDuplicateReferenceInSameCourt() throws JsonProcessingException {
+        var caseDTO1 = createCase();
+        var putResponse1 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO1.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO1),
+            true
+        );
+        assertResponseCode(putResponse1, 201);
+
+        var caseDTO2 = new CreateCaseDTO();
+        caseDTO2.setId(UUID.randomUUID());
+        caseDTO2.setReference(caseDTO1.getReference());
+        caseDTO2.setCourtId(caseDTO1.getCourtId());
+        caseDTO2.setParticipants(Set.of());
+        caseDTO2.setTest(false);
+
+        var putResponse2 = doPutRequest(
+            CASES_ENDPOINT + '/' + caseDTO2.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO2),
+            true
+        );
+        assertResponseCode(putResponse2, 409);
+        assertThat(putResponse2.getBody().jsonPath().getString("message"))
+            .isEqualTo("Conflict: Case reference is already in use for this court");
+    }
+
+    @DisplayName("Scenario: Create a case with a duplicate case reference in different court")
+    @Test
+    void shouldCreateCaseWithDuplicateReferenceInDifferentCourt() throws JsonProcessingException {
+        var caseDTO1 = createCase();
+        var putResponse1 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseDTO1.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO1),
+            true
+        );
+        assertResponseCode(putResponse1, 201);
+
+        var caseDTO2 = createCase();
+        caseDTO2.setReference(caseDTO1.getReference());
+
+        var putResponse2 = doPutRequest(
+            CASES_ENDPOINT + '/' + caseDTO2.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseDTO2),
+            true
+        );
+        assertResponseCode(putResponse2, 201);
     }
 }
