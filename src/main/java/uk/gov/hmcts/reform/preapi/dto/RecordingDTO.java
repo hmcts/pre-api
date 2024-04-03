@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -30,6 +31,9 @@ public class RecordingDTO extends BaseRecordingDTO {
 
     @Schema(description = "RecordingCreatedAt")
     Timestamp createdAt;
+
+    @Schema(description = "RecordingCaseId")
+    private UUID caseId;
 
     @Schema(description = "RecordingCaseReference")
     String caseReference;
@@ -53,8 +57,10 @@ public class RecordingDTO extends BaseRecordingDTO {
         editInstructions = recording.getEditInstruction();
         deletedAt = recording.getDeletedAt();
         createdAt = recording.getCreatedAt();
-        caseReference = recording.getCaptureSession().getBooking().getCaseId().getReference();
-        isTestCase = recording.getCaptureSession().getBooking().getCaseId().isTest();
+        var caseEntity = recording.getCaptureSession().getBooking().getCaseId();
+        caseId = caseEntity.getId();
+        caseReference = caseEntity.getReference();
+        isTestCase = caseEntity.isTest();
         participants = Stream.ofNullable(recording.getCaptureSession().getBooking().getParticipants())
             .flatMap(participants ->
                          participants
