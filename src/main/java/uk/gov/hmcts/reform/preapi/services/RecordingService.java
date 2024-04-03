@@ -1,7 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,11 +32,15 @@ public class RecordingService {
     private final RecordingRepository recordingRepository;
     private final CaptureSessionRepository captureSessionRepository;
 
+    private final CaptureSessionService captureSessionService;
+
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
-                            CaptureSessionRepository captureSessionRepository) {
+                            CaptureSessionRepository captureSessionRepository,
+                            @Lazy CaptureSessionService captureSessionService) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
+        this.captureSessionService = captureSessionService;
     }
 
     @Transactional
@@ -147,6 +151,7 @@ public class RecordingService {
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #id)")
     public void undelete(UUID id) {
         var entity = recordingRepository.findById(id).orElseThrow(() -> new NotFoundException("Recording: " + id));
+        captureSessionService.undelete(entity.getCaptureSession().getId());
         if (!entity.isDeleted()) {
             return;
         }
