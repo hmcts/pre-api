@@ -182,7 +182,7 @@ public class ReportService {
                             .map(AppAccess::getUser)
                             .orElse(null))
                 : null,
-            audit.getAuditDetails() != null && audit.getAuditDetails().has("recordingId")
+            audit.getAuditDetails() != null && audit.getAuditDetails().hasNonNull("recordingId")
                 ? recordingRepository
                 .findById(UUID.fromString(audit.getAuditDetails().get("recordingId").asText()))
                 .orElse(null)

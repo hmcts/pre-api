@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -57,6 +58,9 @@ class RecordingServiceTest {
 
     @MockBean
     private CaptureSessionRepository captureSessionRepository;
+
+    @MockBean
+    private CaptureSessionService captureSessionService;
 
     @Autowired
     private RecordingService recordingService;
@@ -449,29 +453,37 @@ class RecordingServiceTest {
     @DisplayName("Should undelete a recording successfully when recording is marked as deleted")
     @Test
     void undeleteSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
         var recording = new Recording();
         recording.setId(UUID.randomUUID());
         recording.setDeletedAt(Timestamp.from(Instant.now()));
+        recording.setCaptureSession(captureSession);
 
         when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
 
         recordingService.undelete(recording.getId());
 
         verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(captureSessionService, times(1)).undelete(captureSession.getId());
         verify(recordingRepository, times(1)).save(recording);
     }
 
-    @DisplayName("Should do nothing when recording is not deleted")
+    @DisplayName("Should do nothing to the recording when recording is not deleted")
     @Test
     void undeleteNotDeletedSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
         var recording = new Recording();
         recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
 
         when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
 
         recordingService.undelete(recording.getId());
 
         verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(captureSessionService, times(1)).undelete(captureSession.getId());
         verify(recordingRepository,never()).save(recording);
     }
 
@@ -490,6 +502,33 @@ class RecordingServiceTest {
         assertThat(message).isEqualTo("Not found: Recording: " + recordingId);
 
         verify(recordingRepository, times(1)).findById(recordingId);
+        verify(captureSessionService, never()).undelete(captureSession.getId());
         verify(recordingRepository, never()).save(any());
+    }
+
+    @DisplayName("Should throw error when capture session cannot be found")
+    @Test
+    void undeleteCaptureSessionNotFound() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+
+        when(recordingRepository.findById(recording.getId())).thenReturn(Optional.of(recording));
+
+        doThrow(new NotFoundException("Capture Session: " + captureSession.getId()))
+            .when(captureSessionService)
+            .undelete(captureSession.getId());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> recordingService.undelete(recording.getId())
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Capture Session: " + captureSession.getId());
+
+        verify(recordingRepository, times(1)).findById(recording.getId());
+        verify(captureSessionService, times(1)).undelete(captureSession.getId());
+        verify(recordingRepository, never()).save(recording);
     }
 }

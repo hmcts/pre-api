@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -45,6 +44,40 @@ class BookingControllerFT extends FunctionalTestBase {
 
         var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
         assertResponseCode(recordingResponse2, 200);
+    }
+
+    @DisplayName("Scenario: Delete booking")
+    @Test
+    void shouldDeleteRecordingsForBooking() {
+        var testIds = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath();
+        var bookingId = testIds.getUUID("bookingId");
+        var courtId = testIds.getUUID("courtId");
+
+        // see it is available before deletion
+        var getBookingByIdResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        assertResponseCode(getBookingByIdResponse1, 200);
+        assertThat(getBookingByIdResponse1.body().jsonPath().getUUID("id")).isEqualTo(bookingId);
+
+        var searchResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
+        assertResponseCode(searchResponse1, 200);
+        var responseData1 = searchResponse1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData1.size()).isEqualTo(1);
+        assertThat(responseData1.getFirst().getId()).isEqualTo(bookingId);
+
+        // delete booking
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        assertResponseCode(deleteResponse, 204);
+
+        // see it is no longer available after deletion
+        var getBookingsByIdResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        assertResponseCode(getBookingsByIdResponse2, 404);
+
+        var searchResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
+        assertResponseCode(searchResponse2, 200);
+        assertThat(searchResponse2.jsonPath().getInt("page.totalElements"))
+            .isEqualTo(0);
     }
 
     @Test
@@ -165,7 +198,6 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().noneMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
-    */
 
     @DisplayName("Scenario: Search for a booking by schedule date and case reference")
     @Test
@@ -186,4 +218,21 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(bookingResponse, 200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
+
+    @DisplayName("Scenario: Search for a booking by partial case reference")
+    @Test
+    void searchBookingByPartialCaseReference() throws JsonProcessingException {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath()
+            .getUUID("bookingId");
+
+        Response bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=456789", true);
+
+        var bookings = bookingResponse.body().jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+
+        assertThat(bookingResponse.statusCode()).isEqualTo(200);
+        assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
+    }
+     */
 }
