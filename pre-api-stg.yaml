@@ -525,6 +525,8 @@ definitions:
       test:
         description: CreateCaseIsTest
         type: boolean
+    required:
+      - reference
     type: object
   CreateCourtDTO:
     description: CreateCourtDTO
