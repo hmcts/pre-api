@@ -1,0 +1,42 @@
+name: Update B2C Callback URLs
+on:
+  schedule:
+    # Daily at 6:30PM Mon-Fri UTC
+    - cron: '0 18 * * 1-5'
+jobs:
+  track_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+      - run: |
+          tenant_id=7b9fbead-db31-48dd-a052-161a278d333f
+          app_id=c8deb898-d595-4fb2-8ba5-52fffa8db064
+          pr_ids=$(gh pr list --json number --repo $GITHUB_REPOSITORY | jq -r '.[].number')
+
+          # az login --tenant $tenant_id --allow-no-subscriptions
+
+          for pr_number in $pr_ids
+          do
+          az ad app update --id $app_id --web-redirect-uris \
+          https://localhost:4551/callback
+          https://pre-portal-staging.staging.platform.hmcts.net/callback
+          https://pre-portal.staging.platform.hmcts.net/callback
+          https://pre-portal-pr-${pr_id}.dev.platform.hmcts.net/callback
+          done
+
+
+          az ad app update --id $app_id --web-redirect-uris \
+          https://localhost:4551/callback
+          https://pre-portal-staging.staging.platform.hmcts.net/callback
+          https://pre-portal.staging.platform.hmcts.net/callback
+          https://pre-portal-pr-${pr_id}.dev.platform.hmcts.net/callback
+
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
