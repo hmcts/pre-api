@@ -18,9 +18,7 @@ jobs:
         uses: azure/login@v2
         with:
           creds: ${{ secrets.B2C_DEV_CREDENTIALS }}
-          # client-id: ${{ secrets.B2C_CLIENT_ID }}
-          # tenant-id: ${{ secrets.B2C_TENANT_ID }}
-          # allow-no-subscriptions: true
+          allow-no-subscriptions: true
 
       - run: |
           tenant_id=${{ secrets.B2C_TENANT_ID }}
