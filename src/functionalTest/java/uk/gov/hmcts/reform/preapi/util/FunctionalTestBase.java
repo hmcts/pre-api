@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -143,7 +144,7 @@ public class FunctionalTestBase {
         return headers;
     }
 
-    protected CreateCaseDTO createCase() {
+    protected @NotNull CreateCaseDTO createCase() {
         var courtId = UUID.fromString(doPostRequest("/testing-support/create-court", false)
                                           .body().jsonPath().get("courtId"));
 

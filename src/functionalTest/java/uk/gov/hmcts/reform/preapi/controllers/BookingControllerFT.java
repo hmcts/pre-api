@@ -1,11 +1,11 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
@@ -14,9 +14,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
@@ -174,7 +172,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteShareBookingResponse, 401);
     }
 
-    @DisplayName("Scenario: Create a booking")
+    @DisplayName("Scenario: Create and update a booking")
     @Test
     void createBookingScenario() throws JsonProcessingException {
         var caseEntity = createCase();
@@ -193,6 +191,7 @@ class BookingControllerFT extends FunctionalTestBase {
         );
         assertResponseCode(putCase, 201);
 
+        // create booking
         var putBooking = doPutRequest(
             BOOKINGS_ENDPOINT + "/" + booking.getId(),
             OBJECT_MAPPER.writeValueAsString(booking),
@@ -202,12 +201,36 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(putBooking.header(LOCATION_HEADER))
             .isEqualTo(testUrl + BOOKINGS_ENDPOINT + "/" + booking.getId());
 
-        var getResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
-        assertResponseCode(getResponse, 200);
-        assertThat(getResponse.body().jsonPath().getUUID("id")).isEqualTo(booking.getId());
+        var getResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
+        assertResponseCode(getResponse1, 200);
+        assertThat(getResponse1.body().jsonPath().getUUID("id")).isEqualTo(booking.getId());
+        assertThat(getResponse1.body().jsonPath().getUUID("case_dto.id")).isEqualTo(caseEntity.getId());
+
+        // update booking
+        var caseEntity2 = createCase();
+        caseEntity2.setParticipants(participants);
+        var putCase2 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity2.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity2),
+            true
+        );
+        assertResponseCode(putCase2, 201);
+        booking.setCaseId(caseEntity2.getId());
+
+        var updateBooking = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            true
+        );
+        assertResponseCode(updateBooking, 204);
+
+        var getResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
+        assertResponseCode(getResponse2, 200);
+        assertThat(getResponse2.body().jsonPath().getUUID("id")).isEqualTo(booking.getId());
+        assertThat(getResponse2.body().jsonPath().getUUID("case_dto.id")).isEqualTo(caseEntity2.getId());
     }
 
-    private static CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
+    private @NotNull CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
         var dto = new CreateBookingDTO();
         dto.setId(UUID.randomUUID());
         dto.setCaseId(caseId);
@@ -216,7 +239,7 @@ class BookingControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private static CreateParticipantDTO createParticipant(ParticipantType type) {
+    private @NotNull CreateParticipantDTO createParticipant(ParticipantType type) {
         var dto = new CreateParticipantDTO();
         dto.setId(UUID.randomUUID());
         dto.setFirstName("Example");

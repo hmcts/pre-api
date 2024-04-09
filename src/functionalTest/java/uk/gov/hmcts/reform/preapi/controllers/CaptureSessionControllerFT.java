@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -105,7 +106,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(searchCaptureSessionResponse.getBody().jsonPath().getInt("page.totalElements")).isEqualTo(0);
     }
 
-    @DisplayName("Scenario: Create a capture session")
+    @DisplayName("Scenario: Create and update a capture session")
     @Test
     void shouldCreateCaptureSession() throws JsonProcessingException {
         var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
@@ -114,6 +115,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
 
         var dto = createCaptureSession(bookingId);
 
+        // create capture session
         var putResponse = doPutRequest(
             CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
@@ -124,12 +126,29 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(putResponse.header(LOCATION_HEADER))
             .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
 
-        var getCaptureSession = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
-        assertResponseCode(getCaptureSession, 200);
-        assertThat(getCaptureSession.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        var getCaptureSession1 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(getCaptureSession1, 200);
+        assertThat(getCaptureSession1.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        assertThat(getCaptureSession1.getBody().jsonPath().getString("status"))
+            .isEqualTo(RecordingStatus.STANDBY.toString());
+
+        // update capture session
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        var updateResponse = doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
+        assertResponseCode(updateResponse, 204);
+
+        var getCaptureSession2 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(getCaptureSession2, 200);
+        assertThat(getCaptureSession2.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        assertThat(getCaptureSession2.getBody().jsonPath().getString("status"))
+            .isEqualTo(RecordingStatus.RECORDING_AVAILABLE.toString());
     }
 
-    private static CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+    private @NotNull CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
         var dto = new CreateCaptureSessionDTO();
         dto.setId(UUID.randomUUID());
         dto.setBookingId(bookingId);
