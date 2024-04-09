@@ -75,11 +75,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .body()
             .jsonPath().getUUID("bookingId");
 
-        var dto = new CreateCaptureSessionDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setStatus(RecordingStatus.STANDBY);
-        dto.setOrigin(RecordingOrigin.PRE);
+        var dto = createCaptureSession(bookingId);
 
         // create capture session
         var putResponse = doPutRequest(
@@ -107,6 +103,38 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var searchCaptureSessionResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "?bookingId=" + bookingId, true);
         assertResponseCode(searchCaptureSessionResponse, 200);
         assertThat(searchCaptureSessionResponse.getBody().jsonPath().getInt("page.totalElements")).isEqualTo(0);
+    }
 
+    @DisplayName("Scenario: Create a capture session")
+    @Test
+    void shouldCreateCaptureSession() throws JsonProcessingException {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath().getUUID("bookingId");
+
+        var dto = createCaptureSession(bookingId);
+
+        var putResponse = doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
+
+        assertResponseCode(putResponse, 201);
+        assertThat(putResponse.header(LOCATION_HEADER))
+            .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
+
+        var getCaptureSession = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(getCaptureSession, 200);
+        assertThat(getCaptureSession.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+    }
+
+    private static CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
     }
 }
