@@ -19,10 +19,8 @@ class CaseControllerFT extends FunctionalTestBase {
     @DisplayName("Should create a case with participants")
     @Test
     void shouldCreateACaseWithParticipants() throws JsonProcessingException {
-
         var testIds = doPostRequest("/testing-support/create-court", false).body().jsonPath();
-
-        var courtId = UUID.fromString(testIds.get("courtId"));
+        var courtId = testIds.getUUID("courtId");
 
         var createCase = new CreateCaseDTO();
         createCase.setId(UUID.randomUUID());
@@ -48,8 +46,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
         assertResponseCode(putResponse, 201);
 
-        var getResponse = doGetRequest(CASES_ENDPOINT + "/" + createCase.getId(), true);
-        assertResponseCode(getResponse, 200);
+        var getResponse = assertCaseExists(createCase.getId(), true);
         var caseResponse = OBJECT_MAPPER.readValue(getResponse.body().asString(), CaseDTO.class);
         assertThat(caseResponse.getParticipants().size()).isEqualTo(2);
     }
@@ -85,22 +82,17 @@ class CaseControllerFT extends FunctionalTestBase {
             true
         );
         assertResponseCode(putCase, 201);
-
-        var getCasesResponse = doGetRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
-        assertResponseCode(getCasesResponse, 200);
+        assertCaseExists(caseDTO.getId(), true);
 
         var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
         assertResponseCode(deleteResponse, 200);
-
-        var getCasesResponse2 = doGetRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
-        assertResponseCode(getCasesResponse2, 404);
+        assertCaseExists(caseDTO.getId(), false);
     }
 
     @DisplayName("Should fail to delete a case when it is already deleted")
     @Test
     void shouldDeleteCaseWithExistingIdFail() throws JsonProcessingException {
         var caseDTO = createCase();
-
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseDTO.getId(),
             OBJECT_MAPPER.writeValueAsString(caseDTO),
@@ -226,5 +218,22 @@ class CaseControllerFT extends FunctionalTestBase {
             true
         );
         assertResponseCode(putResponse2, 201);
+    }
+
+    @DisplayName("Scenario: Restore case")
+    @Test
+    void shouldUndeleteCase() throws JsonProcessingException {
+        var dto = createCase();
+        var putResponse = doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        assertResponseCode(putResponse, 201);
+        assertCaseExists(dto.getId(), true);
+
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(deleteResponse, 200);
+        assertCaseExists(dto.getId(), false);
+
+        var undeleteResponse = doPostRequest(CASES_ENDPOINT + "/" + dto.getId() + "/undelete", true);
+        assertResponseCode(undeleteResponse, 200);
+        assertCaseExists(dto.getId(), true);
     }
 }
