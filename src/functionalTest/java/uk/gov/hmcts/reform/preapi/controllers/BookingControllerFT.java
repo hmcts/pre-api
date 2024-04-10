@@ -172,6 +172,64 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteShareBookingResponse, 401);
     }
 
+    @DisplayName("Scenario: Create and update a booking")
+    @Test
+    void createBookingScenario() throws JsonProcessingException {
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+        var booking = createBooking(caseEntity.getId(), participants);
+
+
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity),
+            true
+        );
+        assertResponseCode(putCase, 201);
+
+        // create booking
+        var putBooking = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            true
+        );
+        assertResponseCode(putBooking, 201);
+        assertThat(putBooking.header(LOCATION_HEADER))
+            .isEqualTo(testUrl + BOOKINGS_ENDPOINT + "/" + booking.getId());
+
+        var getResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
+        assertResponseCode(getResponse1, 200);
+        assertThat(getResponse1.body().jsonPath().getUUID("id")).isEqualTo(booking.getId());
+        assertThat(getResponse1.body().jsonPath().getUUID("case_dto.id")).isEqualTo(caseEntity.getId());
+
+        // update booking
+        var caseEntity2 = createCase();
+        caseEntity2.setParticipants(participants);
+        var putCase2 = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity2.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity2),
+            true
+        );
+        assertResponseCode(putCase2, 201);
+        booking.setCaseId(caseEntity2.getId());
+
+        var updateBooking = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            true
+        );
+        assertResponseCode(updateBooking, 204);
+
+        var getResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
+        assertResponseCode(getResponse2, 200);
+        assertThat(getResponse2.body().jsonPath().getUUID("id")).isEqualTo(booking.getId());
+        assertThat(getResponse2.body().jsonPath().getUUID("case_dto.id")).isEqualTo(caseEntity2.getId());
+    }
+
     @DisplayName("Scenario: Create a booking with scheduled for in the past")
     @Test
     void createBookingWithScheduledForThePast() throws JsonProcessingException {
