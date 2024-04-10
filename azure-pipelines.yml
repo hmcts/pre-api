@@ -8,6 +8,11 @@ parameters:
       - Demo
       - Production
 
+  - name: run_recording_duration_script
+    displayName: Update recording duration
+    type: boolean
+    default: false
+
 # Runs ad-hoc
 trigger:
 - none
@@ -66,4 +71,16 @@ steps:
     python3 bin/migration/main.py
   displayName: 'Execute migration script'
 
+
+- task: Bash@3
+  condition: ${{ eq(parameters.run_recording_duration_script, true) }}
+  inputs:
+    targetType: 'inline'
+    script: |
+      export DESTINATION_DB_NAME="spike"
+      export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
+      export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
+      export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
+      python3 bin/migration/azure_storage_utils/main.py
+  displayName: 'Update recording duration'
 
