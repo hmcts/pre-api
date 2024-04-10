@@ -9,10 +9,13 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,25 +28,18 @@ class BookingControllerFT extends FunctionalTestBase {
 
         var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking", false).body().jsonPath();
 
-        var bookingId = testIds.get("bookingId");
-        var recordingId = testIds.get("recordingId");
+        var bookingId = testIds.getUUID("bookingId");
+        var recordingId = testIds.getUUID("recordingId");
 
-        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
-        assertResponseCode(bookingResponse, 200);
-        assertThat(bookingResponse.body().jsonPath().getString("id")).isEqualTo(bookingId);
-
-        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
-        assertResponseCode(recordingResponse, 200);
-        assertThat(recordingResponse.body().jsonPath().getString("id")).isEqualTo(recordingId);
+        assertBookingExists(bookingId, true);
+        var recordingResponse = assertRecordingExists(recordingId, true);
         assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
         var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
         assertResponseCode(deleteResponse, 400);
         assertThat(deleteResponse.getBody().jsonPath().getString("message"))
             .isEqualTo("Cannot delete because and associated recording has not been deleted.");
-
-        var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
-        assertResponseCode(recordingResponse2, 200);
+        assertRecordingExists(recordingId, true);
     }
 
     @DisplayName("Scenario: Delete booking")
@@ -56,9 +52,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var courtId = testIds.getUUID("courtId");
 
         // see it is available before deletion
-        var getBookingByIdResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
-        assertResponseCode(getBookingByIdResponse1, 200);
-        assertThat(getBookingByIdResponse1.body().jsonPath().getUUID("id")).isEqualTo(bookingId);
+        assertBookingExists(bookingId, true);
 
         var searchResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
         assertResponseCode(searchResponse1, 200);
@@ -71,8 +65,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteResponse, 204);
 
         // see it is no longer available after deletion
-        var getBookingsByIdResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
-        assertResponseCode(getBookingsByIdResponse2, 404);
+        assertBookingExists(bookingId, false);
 
         var searchResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
         assertResponseCode(searchResponse2, 200);
@@ -101,8 +94,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(rooms.orElseGet(RoomDTO::new).getName()).isEqualTo("Foo Room");
 
         // validate the court referenced does exist
-        var courtResponse = doGetRequest("/courts/" + booking.getCaseDTO().getCourt().getId(), true);
-        assertResponseCode(courtResponse, 200);
+        var courtResponse = assertCourtExists(booking.getCaseDTO().getCourt().getId(), true);
         assertThat(courtResponse.body().jsonPath().getString("name"))
             .isEqualTo(booking.getCaseDTO().getCourt().getName());
 
@@ -166,6 +158,59 @@ class BookingControllerFT extends FunctionalTestBase {
             false
         );
         assertResponseCode(deleteShareBookingResponse, 401);
+    }
+
+    @DisplayName("Scenario: Restore booking")
+    @Test
+    void undeleteBooking() throws JsonProcessingException {
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity),
+            true
+        );
+        assertResponseCode(putCase, 201);
+
+        var booking = createBooking(caseEntity.getId(), participants);
+        var putResponse = doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + booking.getId(),
+            OBJECT_MAPPER.writeValueAsString(booking),
+            true
+        );
+        assertResponseCode(putResponse, 201);
+        assertBookingExists(booking.getId(), true);
+
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
+        assertResponseCode(deleteResponse, 204);
+        assertBookingExists(booking.getId(), false);
+
+        var undeleteResponse = doPostRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/undelete", true);
+        assertResponseCode(undeleteResponse, 200);
+        assertBookingExists(booking.getId(), true);
+    }
+
+    private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
+        var dto = new CreateBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCaseId(caseId);
+        dto.setParticipants(participants);
+        dto.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay()));
+        return dto;
+    }
+
+    private CreateParticipantDTO createParticipant(ParticipantType type) {
+        var dto = new CreateParticipantDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName("Example");
+        dto.setLastName("Example");
+        dto.setParticipantType(type);
+        return dto;
     }
 
     /*
