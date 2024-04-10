@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -148,7 +147,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE.toString());
     }
 
-    private @NotNull CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+    private CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
         var dto = new CreateCaptureSessionDTO();
         dto.setId(UUID.randomUUID());
         dto.setBookingId(bookingId);

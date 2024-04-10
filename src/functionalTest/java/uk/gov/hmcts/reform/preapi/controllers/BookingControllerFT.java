@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -230,7 +229,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(getResponse2.body().jsonPath().getUUID("case_dto.id")).isEqualTo(caseEntity2.getId());
     }
 
-    private @NotNull CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
+    private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
         var dto = new CreateBookingDTO();
         dto.setId(UUID.randomUUID());
         dto.setCaseId(caseId);
@@ -239,7 +238,7 @@ class BookingControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private @NotNull CreateParticipantDTO createParticipant(ParticipantType type) {
+    private CreateParticipantDTO createParticipant(ParticipantType type) {
         var dto = new CreateParticipantDTO();
         dto.setId(UUID.randomUUID());
         dto.setFirstName("Example");
