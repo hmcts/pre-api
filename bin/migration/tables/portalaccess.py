@@ -72,8 +72,6 @@ class PortalAccessManager:
                     status = 'ACTIVE'
                 elif login_enabled_and_invited:
                     status = "INVITATION_SENT"
-                else:
-                    status = "INVITATION_SENT"
 
                 invited_at, registered_at = dataverse_info.get(user_id, (None, None))
                 invited_at = datetime.now() if invited_at is None else invited_at

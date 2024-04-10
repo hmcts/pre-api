@@ -64,8 +64,8 @@ def update_durations_in_dataframe():
     df.to_csv("recordings.csv", index=False, mode="w", header=False)
 
 def update_recordings_table(conn):
-    df = pd.read_csv("recordings.csv")
     try:
+        df = pd.read_csv("recordings.csv")
         cur = conn.connection.cursor()
         for index, row in df.iterrows():
             recording_id = row["Recording_ID"]
