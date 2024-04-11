@@ -70,6 +70,27 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(response2.body().jsonPath().getString("filename")).isEqualTo("updated.file");
     }
 
+    @DisplayName("Delete a recording")
+    @Test
+    void shouldDeleteRecording() {
+        var recording = createRecording();
+        assertRecordingExists(recording.recordingId, true);
+
+        var deleteResponse = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recording.recordingId, true);
+        assertResponseCode(deleteResponse, 200);
+        assertRecordingExists(recording.recordingId, false);
+    }
+
+    @DisplayName("Delete a recording that does not exist")
+    @Test
+    void deleteRecordingThatDoesntExist() {
+        var id = UUID.randomUUID();
+        assertRecordingExists(id, false);
+
+        var deleteResponse = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + id, true);
+        assertResponseCode(deleteResponse, 404);
+    }
+
     private CreateRecordingDTO createRecording(UUID captureSessionId) {
         var dto = new CreateRecordingDTO();
         dto.setId(UUID.randomUUID());
