@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -84,6 +85,24 @@ class TestingSupportController {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
+    }
+
+    @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createRoom() {
+        var room = new Room();
+        room.setName("Example Room");
+        roomRepository.save(room);
+
+        return ResponseEntity.ok(Map.of("roomId", room.getId().toString()));
+    }
+
+    @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createRegion() {
+        var region = new Region();
+        region.setName("Example Region");
+        regionRepository.save(region);
+
+        return ResponseEntity.ok(Map.of("regionId", region.getId().toString()));
     }
 
     @PostMapping(path = "/create-court", produces = MediaType.APPLICATION_JSON_VALUE)
