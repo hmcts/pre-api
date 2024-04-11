@@ -82,6 +82,48 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(searchCaptureSessionResponse.getBody().jsonPath().getInt("page.totalElements")).isEqualTo(0);
     }
 
+    @DisplayName("Scenario: Create and update a capture session")
+    @Test
+    void shouldCreateCaptureSession() throws JsonProcessingException {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath().getUUID("bookingId");
+
+        var dto = createCaptureSession(bookingId);
+
+        // create capture session
+        var putResponse = doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
+
+        assertResponseCode(putResponse, 201);
+        assertThat(putResponse.header(LOCATION_HEADER))
+            .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
+
+        var getCaptureSession1 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(getCaptureSession1, 200);
+        assertThat(getCaptureSession1.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        assertThat(getCaptureSession1.getBody().jsonPath().getString("status"))
+            .isEqualTo(RecordingStatus.STANDBY.toString());
+
+        // update capture session
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        var updateResponse = doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
+        assertResponseCode(updateResponse, 204);
+
+        var getCaptureSession2 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(getCaptureSession2, 200);
+        assertThat(getCaptureSession2.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        assertThat(getCaptureSession2.getBody().jsonPath().getString("status"))
+            .isEqualTo(RecordingStatus.RECORDING_AVAILABLE.toString());
+    }
+
     @DisplayName("Scenario: Restore capture session")
     @Test
     void undeleteCaptureSession() throws JsonProcessingException {
@@ -97,6 +139,15 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var undeleteResponse = doPostRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId() + "/undelete", true);
         assertResponseCode(undeleteResponse, 200);
         assertCaptureSessionExists(dto.getId(), true);
+    }
+
+    private CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
     }
 
     private CreateCaptureSessionDTO createCaptureSession() {
