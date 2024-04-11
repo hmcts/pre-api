@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -41,8 +42,7 @@ class CaseControllerFT extends FunctionalTestBase {
             participant2
         ));
 
-        var putResponse = doPutRequest(CASES_ENDPOINT + "/" + createCase.getId(),
-                                       OBJECT_MAPPER.writeValueAsString(createCase), true);
+        var putResponse = putCase(createCase);
 
         assertResponseCode(putResponse, 201);
 
@@ -76,11 +76,8 @@ class CaseControllerFT extends FunctionalTestBase {
     void shouldDeleteCaseWithExistingId() throws JsonProcessingException {
         var caseDTO = createCase();
 
-        var putCase = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO),
-            true
-        );
+        var putCase = putCase(caseDTO);
+
         assertResponseCode(putCase, 201);
         assertCaseExists(caseDTO.getId(), true);
 
@@ -93,11 +90,7 @@ class CaseControllerFT extends FunctionalTestBase {
     @Test
     void shouldDeleteCaseWithExistingIdFail() throws JsonProcessingException {
         var caseDTO = createCase();
-        var putCase = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO),
-            true
-        );
+        var putCase = putCase(caseDTO);
         assertResponseCode(putCase, 201);
 
         var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
@@ -120,20 +113,12 @@ class CaseControllerFT extends FunctionalTestBase {
         var caseDTO = createCase();
 
         caseDTO.setReference(null);
-        var putResponse1 = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO),
-            true
-        );
+        var putResponse1 = putCase(caseDTO);
         assertResponseCode(putResponse1, 400);
         assertThat(putResponse1.getBody().jsonPath().getString("reference")).isEqualTo("must not be null");
 
         caseDTO.setReference("");
-        var putResponse2 = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO),
-            true
-        );
+        var putResponse2 = putCase(caseDTO);
         assertResponseCode(putResponse2, 400);
         assertThat(putResponse2.getBody().jsonPath().getString("reference")).isEqualTo("size must be between 9 and 13");
     }
@@ -144,12 +129,7 @@ class CaseControllerFT extends FunctionalTestBase {
         var caseDTO = createCase();
 
         caseDTO.setReference("FOURTEEN_CHARS");
-
-        var putResponse1 = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO),
-            true
-        );
+        var putResponse1 = putCase(caseDTO);
         assertResponseCode(putResponse1, 400);
         assertThat(putResponse1.getBody().jsonPath().getString("reference")).isEqualTo("size must be between 9 and 13");
     }
@@ -158,14 +138,9 @@ class CaseControllerFT extends FunctionalTestBase {
     @Test
     void shouldFailTopUpdateCaseWithShortReference() throws JsonProcessingException {
         var caseDTO = createCase();
-
         caseDTO.setReference("12345678");
 
-        var putResponse1 = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO),
-            true
-        );
+        var putResponse1 = putCase(caseDTO);
         assertResponseCode(putResponse1, 400);
         assertThat(putResponse1.getBody().jsonPath().getString("reference")).isEqualTo("size must be between 9 and 13");
     }
@@ -174,11 +149,7 @@ class CaseControllerFT extends FunctionalTestBase {
     @Test
     void shouldFailCreateCaseWithDuplicateReferenceInSameCourt() throws JsonProcessingException {
         var caseDTO1 = createCase();
-        var putResponse1 = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO1.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO1),
-            true
-        );
+        var putResponse1 = putCase(caseDTO1);
         assertResponseCode(putResponse1, 201);
 
         var caseDTO2 = new CreateCaseDTO();
@@ -188,11 +159,7 @@ class CaseControllerFT extends FunctionalTestBase {
         caseDTO2.setParticipants(Set.of());
         caseDTO2.setTest(false);
 
-        var putResponse2 = doPutRequest(
-            CASES_ENDPOINT + '/' + caseDTO2.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO2),
-            true
-        );
+        var putResponse2 = putCase(caseDTO2);
         assertResponseCode(putResponse2, 409);
         assertThat(putResponse2.getBody().jsonPath().getString("message"))
             .isEqualTo("Conflict: Case reference is already in use for this court");
@@ -202,21 +169,13 @@ class CaseControllerFT extends FunctionalTestBase {
     @Test
     void shouldCreateCaseWithDuplicateReferenceInDifferentCourt() throws JsonProcessingException {
         var caseDTO1 = createCase();
-        var putResponse1 = doPutRequest(
-            CASES_ENDPOINT + "/" + caseDTO1.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO1),
-            true
-        );
+        var putResponse1 = putCase(caseDTO1);
         assertResponseCode(putResponse1, 201);
 
         var caseDTO2 = createCase();
         caseDTO2.setReference(caseDTO1.getReference());
 
-        var putResponse2 = doPutRequest(
-            CASES_ENDPOINT + '/' + caseDTO2.getId(),
-            OBJECT_MAPPER.writeValueAsString(caseDTO2),
-            true
-        );
+        var putResponse2 = putCase(caseDTO2);
         assertResponseCode(putResponse2, 201);
     }
 
@@ -224,7 +183,7 @@ class CaseControllerFT extends FunctionalTestBase {
     @Test
     void shouldUndeleteCase() throws JsonProcessingException {
         var dto = createCase();
-        var putResponse = doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        var putResponse = putCase(dto);
         assertResponseCode(putResponse, 201);
         assertCaseExists(dto.getId(), true);
 
@@ -235,5 +194,9 @@ class CaseControllerFT extends FunctionalTestBase {
         var undeleteResponse = doPostRequest(CASES_ENDPOINT + "/" + dto.getId() + "/undelete", true);
         assertResponseCode(undeleteResponse, 200);
         assertCaseExists(dto.getId(), true);
+    }
+
+    private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
+        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }

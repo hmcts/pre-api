@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -58,11 +59,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var dto = createCaptureSession();
 
         // create capture session
-        var putResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + '/' + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
+        var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertThat(putResponse.header(LOCATION_HEADER))
             .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
@@ -89,11 +86,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
     @Test
     void undeleteCaptureSession() throws JsonProcessingException {
         var dto = createCaptureSession();
-        var putResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
+        var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertCaptureSessionExists(dto.getId(), true);
 
@@ -117,5 +110,9 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         dto.setStatus(RecordingStatus.STANDBY);
         dto.setOrigin(RecordingOrigin.PRE);
         return dto;
+    }
+
+    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
+        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }

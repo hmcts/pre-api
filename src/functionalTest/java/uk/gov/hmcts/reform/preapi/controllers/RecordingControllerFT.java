@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -39,32 +40,20 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @Test
     void shouldCreateAndUpdateRecording() throws JsonProcessingException {
         var captureSession = createCaptureSession();
-        var putCaptureSession = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + captureSession.getId(),
-            OBJECT_MAPPER.writeValueAsString(captureSession),
-            true
-        );
+        var putCaptureSession = putCaptureSession(captureSession);
         assertResponseCode(putCaptureSession, 201);
         assertCaptureSessionExists(captureSession.getId(), true);
 
         // create recording
         var recording = createRecording(captureSession.getId());
-        var putRecording1 = doPutRequest(
-            RECORDINGS_ENDPOINT + "/" + recording.getId(),
-            OBJECT_MAPPER.writeValueAsString(recording),
-            true
-        );
+        var putRecording1 = putRecording(recording);
         assertResponseCode(putRecording1, 201);
         var response = assertRecordingExists(recording.getId(), true);
         assertThat(response.body().jsonPath().getString("filename")).isEqualTo("example.file");
 
         // update recording
         recording.setFilename("updated.file");
-        var putRecording2 = doPutRequest(
-            RECORDINGS_ENDPOINT + "/" + recording.getId(),
-            OBJECT_MAPPER.writeValueAsString(recording),
-            true
-        );
+        var putRecording2 = putRecording(recording);
         assertResponseCode(putRecording2, 204);
         var response2 = assertRecordingExists(recording.getId(), true);
         assertThat(response2.body().jsonPath().getString("filename")).isEqualTo("updated.file");
@@ -95,7 +84,6 @@ public class RecordingControllerFT extends FunctionalTestBase {
         var dto = new CreateRecordingDTO();
         dto.setId(UUID.randomUUID());
         dto.setCaptureSessionId(captureSessionId);
-        dto.setDuration(null);
         dto.setEditInstructions("{}");
         dto.setVersion(1);
         dto.setUrl("example url");
@@ -120,5 +108,13 @@ public class RecordingControllerFT extends FunctionalTestBase {
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         dto.setOrigin(RecordingOrigin.PRE);
         return dto;
+    }
+
+    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
+        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+    }
+
+    private Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
+        return doPutRequest(RECORDINGS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }

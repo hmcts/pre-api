@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -112,11 +113,7 @@ class BookingControllerFT extends FunctionalTestBase {
         // set scheduledFor to yesterday
         createBooking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusDays(1).toInstant()));
 
-        var putResponse = doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + bookingId,
-            OBJECT_MAPPER.writeValueAsString(createBooking),
-            true
-        );
+        var putResponse = putBooking(createBooking);
         assertResponseCode(putResponse, 400);
     }
 
@@ -178,11 +175,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(putCase, 201);
 
         var booking = createBooking(caseEntity.getId(), participants);
-        var putResponse = doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + booking.getId(),
-            OBJECT_MAPPER.writeValueAsString(booking),
-            true
-        );
+        var putResponse = putBooking(booking);
         assertResponseCode(putResponse, 201);
         assertBookingExists(booking.getId(), true);
 
@@ -211,6 +204,14 @@ class BookingControllerFT extends FunctionalTestBase {
         dto.setLastName("Example");
         dto.setParticipantType(type);
         return dto;
+    }
+
+    private Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
     }
 
     /*
