@@ -32,6 +32,7 @@ public class FunctionalTestBase {
     protected static final String RECORDINGS_ENDPOINT = "/recordings";
     protected static final String AUDIT_ENDPOINT = "/audit/";
     protected static final String USERS_ENDPOINT = "/users";
+    protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
     protected static UUID authenticatedUserId;
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -196,5 +197,18 @@ public class FunctionalTestBase {
 
     protected Response assertRecordingExists(UUID recordingId, boolean shouldExist) {
         return assertExists(RECORDINGS_ENDPOINT, recordingId, shouldExist);
+    }
+
+    protected Response assertInviteExists(UUID userId, boolean shouldExist) {
+        var response = doGetRequest(INVITES_ENDPOINT + "/" + userId, true);
+        assertResponseCode(response, shouldExist ? 200 : 404);
+        if (shouldExist) {
+            assertThat(response.body().jsonPath().getUUID("user_id")).isEqualTo(userId);
+        }
+        return response;
+    }
+
+    protected Response assertUserExists(UUID userId, boolean shouldExist) {
+        return assertExists(USERS_ENDPOINT, userId, shouldExist);
     }
 }
