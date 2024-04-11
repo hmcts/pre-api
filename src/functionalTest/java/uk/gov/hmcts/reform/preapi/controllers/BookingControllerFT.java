@@ -169,7 +169,6 @@ class BookingControllerFT extends FunctionalTestBase {
         caseEntity.setParticipants(participants);
         var booking = createBooking(caseEntity.getId(), participants);
 
-
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
@@ -178,18 +177,11 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(putCase, 201);
 
         // create booking
-        var putBooking = doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + booking.getId(),
-            OBJECT_MAPPER.writeValueAsString(booking),
-            true
-        );
+        var putBooking = putBooking(booking);
         assertResponseCode(putBooking, 201);
         assertThat(putBooking.header(LOCATION_HEADER))
             .isEqualTo(testUrl + BOOKINGS_ENDPOINT + "/" + booking.getId());
-
-        var getResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
-        assertResponseCode(getResponse1, 200);
-        assertThat(getResponse1.body().jsonPath().getUUID("id")).isEqualTo(booking.getId());
+        var getResponse1 = assertBookingExists(booking.getId(), true);
         assertThat(getResponse1.body().jsonPath().getUUID("case_dto.id")).isEqualTo(caseEntity.getId());
 
         // update booking
@@ -203,16 +195,10 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(putCase2, 201);
         booking.setCaseId(caseEntity2.getId());
 
-        var updateBooking = doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + booking.getId(),
-            OBJECT_MAPPER.writeValueAsString(booking),
-            true
-        );
+        var updateBooking = putBooking(booking);
         assertResponseCode(updateBooking, 204);
 
-        var getResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
-        assertResponseCode(getResponse2, 200);
-        assertThat(getResponse2.body().jsonPath().getUUID("id")).isEqualTo(booking.getId());
+        var getResponse2 = assertBookingExists(booking.getId(), true);
         assertThat(getResponse2.body().jsonPath().getUUID("case_dto.id")).isEqualTo(caseEntity2.getId());
     }
 
@@ -235,11 +221,7 @@ class BookingControllerFT extends FunctionalTestBase {
         );
         assertResponseCode(putCase, 201);
 
-        var putBooking = doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + booking.getId(),
-            OBJECT_MAPPER.writeValueAsString(booking),
-            true
-        );
+        var putBooking = putBooking(booking);
         assertResponseCode(putBooking, 400);
         assertThat(putBooking.body().jsonPath().getString("scheduledFor"))
             .isEqualTo("scheduled_for is required and must not be before today");

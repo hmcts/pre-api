@@ -92,34 +92,21 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var dto = createCaptureSession(bookingId);
 
         // create capture session
-        var putResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
-
+        var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertThat(putResponse.header(LOCATION_HEADER))
             .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
 
-        var getCaptureSession1 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
-        assertResponseCode(getCaptureSession1, 200);
-        assertThat(getCaptureSession1.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        var getCaptureSession1 = assertCaptureSessionExists(dto.getId(), true);
         assertThat(getCaptureSession1.getBody().jsonPath().getString("status"))
             .isEqualTo(RecordingStatus.STANDBY.toString());
 
         // update capture session
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
-        var updateResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
+        var updateResponse = putCaptureSession(dto);
         assertResponseCode(updateResponse, 204);
 
-        var getCaptureSession2 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
-        assertResponseCode(getCaptureSession2, 200);
-        assertThat(getCaptureSession2.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        var getCaptureSession2 = assertCaptureSessionExists(dto.getId(), true);
         assertThat(getCaptureSession2.getBody().jsonPath().getString("status"))
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE.toString());
     }
