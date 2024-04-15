@@ -25,12 +25,14 @@ import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_H
 @SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
+    protected static final String COURTS_ENDPOINT = "/courts";
     protected static final String CASES_ENDPOINT = "/cases";
     protected static final String BOOKINGS_ENDPOINT = "/bookings";
     protected static final String CAPTURE_SESSIONS_ENDPOINT = "/capture-sessions";
     protected static final String RECORDINGS_ENDPOINT = "/recordings";
     protected static final String AUDIT_ENDPOINT = "/audit/";
     protected static final String USERS_ENDPOINT = "/users";
+    protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
     protected static UUID authenticatedUserId;
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -166,5 +168,47 @@ public class FunctionalTestBase {
 
     protected static void assertResponseCode(Response response, int expectedStatusCode) {
         assertThat(response.statusCode()).isEqualTo(expectedStatusCode);
+    }
+
+    protected Response assertExists(String endpoint, UUID id, boolean shouldExist) {
+        var response = doGetRequest(endpoint + "/" + id, true);
+        assertResponseCode(response, shouldExist ? 200 : 404);
+        if (shouldExist) {
+            assertThat(response.body().jsonPath().getUUID("id")).isEqualTo(id);
+        }
+        return response;
+    }
+
+    protected Response assertCourtExists(UUID courtId, boolean shouldExist) {
+        return assertExists(COURTS_ENDPOINT, courtId, shouldExist);
+    }
+
+    protected Response assertCaseExists(UUID caseId, boolean shouldExist) {
+        return assertExists(CASES_ENDPOINT, caseId, shouldExist);
+    }
+
+    protected Response assertBookingExists(UUID bookingId, boolean shouldExist) {
+        return assertExists(BOOKINGS_ENDPOINT, bookingId, shouldExist);
+    }
+
+    protected Response assertCaptureSessionExists(UUID captureSessionId, boolean shouldExist) {
+        return assertExists(CAPTURE_SESSIONS_ENDPOINT, captureSessionId, shouldExist);
+    }
+
+    protected Response assertRecordingExists(UUID recordingId, boolean shouldExist) {
+        return assertExists(RECORDINGS_ENDPOINT, recordingId, shouldExist);
+    }
+
+    protected Response assertInviteExists(UUID userId, boolean shouldExist) {
+        var response = doGetRequest(INVITES_ENDPOINT + "/" + userId, true);
+        assertResponseCode(response, shouldExist ? 200 : 404);
+        if (shouldExist) {
+            assertThat(response.body().jsonPath().getUUID("user_id")).isEqualTo(userId);
+        }
+        return response;
+    }
+
+    protected Response assertUserExists(UUID userId, boolean shouldExist) {
+        return assertExists(USERS_ENDPOINT, userId, shouldExist);
     }
 }

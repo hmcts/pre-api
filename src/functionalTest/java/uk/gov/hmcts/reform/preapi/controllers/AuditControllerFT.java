@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
@@ -21,12 +22,16 @@ public class AuditControllerFT  extends FunctionalTestBase {
         audit.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test\"}"));
         audit.setSource(AuditLogSource.AUTO);
 
-        var success = doPutRequest(AUDIT_ENDPOINT + audit.getId(), OBJECT_MAPPER.writeValueAsString(audit), true);
+        var success = putAudit(audit);
         assertResponseCode(success, 201);
 
-        var error = doPutRequest(AUDIT_ENDPOINT + audit.getId(), OBJECT_MAPPER.writeValueAsString(audit), true);
+        var error = putAudit(audit);
         assertResponseCode(error, 400);
         assertThat(error.body().jsonPath().getString("message"))
             .isEqualTo("Data is immutable and cannot be changed. Id: " + audit.getId());
+    }
+
+    private Response putAudit(CreateAuditDTO dto) throws JsonProcessingException {
+        return doPutRequest(AUDIT_ENDPOINT + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }
