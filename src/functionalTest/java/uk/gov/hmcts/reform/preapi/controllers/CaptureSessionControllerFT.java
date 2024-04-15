@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -21,22 +22,15 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var captureSessionId = postResponseData.getUUID("captureSessionId");
         var recordingId = postResponseData.getUUID("recordingId");
 
-        var captureSessionResponse1 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, true);
-        assertResponseCode(captureSessionResponse1, 200);
-        assertThat(captureSessionResponse1.getBody().jsonPath().getUUID("id")).isEqualTo(captureSessionId);
-
-        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
-        assertResponseCode(recordingResponse, 200);
-        assertThat(recordingResponse.getBody().jsonPath().getUUID("id")).isEqualTo(recordingId);
+        assertCaptureSessionExists(captureSessionId, true);
+        assertRecordingExists(recordingId, true);
 
         var deleteCaptureSessionResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, true);
         assertResponseCode(deleteCaptureSessionResponse, 400);
         assertThat(deleteCaptureSessionResponse.getBody().jsonPath().getString("message"))
             .isEqualTo("Cannot delete because and associated recording has not been deleted.");
 
-        var captureSessionResponse2 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, true);
-        assertResponseCode(captureSessionResponse2, 200);
-        assertThat(captureSessionResponse2.getBody().jsonPath().getUUID("id")).isEqualTo(captureSessionId);
+        assertCaptureSessionExists(captureSessionId, true);
     }
 
     @DisplayName("Scenario: Delete capture session without recordings")
@@ -47,60 +41,43 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var captureSessionId = postResponseData.getUUID("captureSessionId");
         var recordingId = postResponseData.getUUID("recordingId");
 
-        var captureSessionResponse1 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, true);
-        assertResponseCode(captureSessionResponse1, 200);
-        assertThat(captureSessionResponse1.getBody().jsonPath().getUUID("id")).isEqualTo(captureSessionId);
-
-        var recordingResponse = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
-        assertResponseCode(recordingResponse, 200);
-        assertThat(recordingResponse.getBody().jsonPath().getUUID("id")).isEqualTo(recordingId);
+        assertCaptureSessionExists(captureSessionId, true);
+        assertRecordingExists(recordingId, true);
 
         var deleteRecordingResponse = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
         assertResponseCode(deleteRecordingResponse, 200);
-
-        var recordingResponse2 = doGetRequest(RECORDINGS_ENDPOINT + "/" + recordingId, true);
-        assertResponseCode(recordingResponse2, 404);
+        assertRecordingExists(recordingId, false);
 
         var deleteCaptureSessionResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, true);
         assertResponseCode(deleteCaptureSessionResponse, 200);
-
-        var captureSessionResponse2 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, true);
-        assertResponseCode(captureSessionResponse2, 404);
+        assertCaptureSessionExists(captureSessionId, false);
     }
 
     @DisplayName("Scenario: Delete capture session")
     @Test
     void shouldDeleteCaptureSession() throws JsonProcessingException {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
-            .body()
-            .jsonPath().getUUID("bookingId");
-
-        var dto = createCaptureSession(bookingId);
+        var dto = createCaptureSession();
 
         // create capture session
-        var putResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + '/' + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
+        var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertThat(putResponse.header(LOCATION_HEADER))
             .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
 
         // see it is available before deletion
-        var getCaptureSession1 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
-        assertResponseCode(getCaptureSession1, 200);
-        assertThat(getCaptureSession1.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        assertCaptureSessionExists(dto.getId(), true);
 
         // delete capture session
         var deleteResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
         assertResponseCode(deleteResponse, 200);
 
         // see it is no longer available after deletion
-        var getCaptureSession2 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
-        assertResponseCode(getCaptureSession2, 404);
+        assertCaptureSessionExists(dto.getId(), false);
 
-        var searchCaptureSessionResponse = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "?bookingId=" + bookingId, true);
+        var searchCaptureSessionResponse = doGetRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "?bookingId=" + dto.getBookingId(),
+            true
+        );
         assertResponseCode(searchCaptureSessionResponse, 200);
         assertThat(searchCaptureSessionResponse.getBody().jsonPath().getInt("page.totalElements")).isEqualTo(0);
     }
@@ -115,36 +92,40 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var dto = createCaptureSession(bookingId);
 
         // create capture session
-        var putResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
-
+        var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertThat(putResponse.header(LOCATION_HEADER))
             .isEqualTo(testUrl + CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId());
 
-        var getCaptureSession1 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
-        assertResponseCode(getCaptureSession1, 200);
-        assertThat(getCaptureSession1.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        var getCaptureSession1 = assertCaptureSessionExists(dto.getId(), true);
         assertThat(getCaptureSession1.getBody().jsonPath().getString("status"))
             .isEqualTo(RecordingStatus.STANDBY.toString());
 
         // update capture session
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
-        var updateResponse = doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
+        var updateResponse = putCaptureSession(dto);
         assertResponseCode(updateResponse, 204);
 
-        var getCaptureSession2 = doGetRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
-        assertResponseCode(getCaptureSession2, 200);
-        assertThat(getCaptureSession2.getBody().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+        var getCaptureSession2 = assertCaptureSessionExists(dto.getId(), true);
         assertThat(getCaptureSession2.getBody().jsonPath().getString("status"))
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE.toString());
+    }
+
+    @DisplayName("Scenario: Restore capture session")
+    @Test
+    void undeleteCaptureSession() throws JsonProcessingException {
+        var dto = createCaptureSession();
+        var putResponse = putCaptureSession(dto);
+        assertResponseCode(putResponse, 201);
+        assertCaptureSessionExists(dto.getId(), true);
+
+        var deleteResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(deleteResponse, 200);
+        assertCaptureSessionExists(dto.getId(), false);
+
+        var undeleteResponse = doPostRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId() + "/undelete", true);
+        assertResponseCode(undeleteResponse, 200);
+        assertCaptureSessionExists(dto.getId(), true);
     }
 
     private CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
@@ -154,5 +135,22 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         dto.setStatus(RecordingStatus.STANDBY);
         dto.setOrigin(RecordingOrigin.PRE);
         return dto;
+    }
+
+    private CreateCaptureSessionDTO createCaptureSession() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath().getUUID("bookingId");
+
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
+        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }
