@@ -47,6 +47,23 @@ public class UserControllerFT extends FunctionalTestBase {
             .isEqualTo("Conflict: User with email: " + dto2.getEmail() + " already exists");
     }
 
+    @DisplayName("Scenario: Restore a user")
+    @Test
+    void shouldRestoreUser() throws JsonProcessingException {
+        var dto = createUserDto();
+        var createResponse = putUser(dto);
+        assertResponseCode(createResponse, 201);
+        assertUserExists(dto.getId(), true);
+
+        var deleteResponse = doDeleteRequest(USERS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(deleteResponse, 200);
+        assertUserExists(dto.getId(), false);
+
+        var undeleteResponse = doPostRequest(USERS_ENDPOINT + "/" + dto.getId() + "/undelete", true);
+        assertResponseCode(undeleteResponse, 200);
+        assertUserExists(dto.getId(), true);
+    }
+
     private Response putUser(CreateUserDTO dto) throws JsonProcessingException {
         return doPutRequest(
             USERS_ENDPOINT + "/" + dto.getId(),
