@@ -44,7 +44,7 @@ steps:
   inputs:
     azureSubscription: $(serviceConnection)
     KeyVaultName: 'pre-hmctskv-$(envShortName)'
-    SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST,sa-storage-account-connection-string'
+    SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST,finalsa-storage-account-connection-string'
     RunAsPreJob: true
 
 - task: Bash@3
@@ -81,7 +81,7 @@ steps:
       export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
       export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
-      export AZURE_STORAGE_CONNECTION_STRING="$(sa-storage-account-connection-string)"
+      export AZURE_STORAGE_CONNECTION_STRING="$(finalsa-storage-account-connection-string)"
       python3 bin/migration/azure_storage_utils/main.py
   displayName: 'Update recording duration'
 
