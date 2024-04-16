@@ -1,7 +1,6 @@
 import os
 import sys
 import pandas as pd
-import argparse
 from azure_storage_utils import AzureBlobStorageManager
 
 root_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -46,7 +45,7 @@ def save_recordings_to_csv(recordings):
 
 
 def update_durations_in_dataframe():
-    df = pd.read_csv("recordings.csv", names=["Recording_ID", "Duration_seconds"])
+    df = pd.read_csv("recordings.csv", names=["Recording_ID", "Duration_seconds"], skiprows=1) 
     formatted_durations = []
     for index, row in df.iterrows():
         recording_id = row["Recording_ID"]
@@ -61,7 +60,7 @@ def update_durations_in_dataframe():
             print(f"Error for recording ID {recording_id}: {str(e)}")
 
     df["Duration_seconds"] = formatted_durations
-    df.to_csv("recordings.csv", index=False, mode="w", header=False)
+    df.to_csv("recordings.csv", index=False, mode="w")
 
 def update_recordings_table(conn):
     try:
@@ -70,12 +69,18 @@ def update_recordings_table(conn):
         for index, row in df.iterrows():
             recording_id = row["Recording_ID"]
             duration = row["Duration_seconds"]
+
+            if pd.isna(duration):
+                print(f"Skipping update for recording ID {recording_id}: Duration is NaN")
+                continue
+
             update_query = f"UPDATE public.recordings SET duration = MAKE_INTERVAL(secs => {duration}) WHERE id = '{recording_id}'"
             try:
                 cur.execute(update_query)
                 conn.connection.commit()
             except Exception as e:
                 print(f"Error updating recording ID {recording_id}: {e}")
+                conn.connection.rollback()
     except Exception as e:
         print(f"Error reading CSV file: {e}")
 
