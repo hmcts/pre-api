@@ -79,57 +79,22 @@ def update_recordings_table(conn):
     except Exception as e:
         print(f"Error reading CSV file: {e}")
 
-def print_message_start(step):
-    print(f"Attempting to start step: {step}")
 
-def print_message_finish(step):
-    print(f"Finishing step: {step}")
+def main():
+    print("Fetching recording ids from database and saving to csv")
+    conn = connect_to_database()
+    recordings = fetch_recordings(conn)
+    save_recordings_to_csv(recordings)
 
-def main(step):
-    ############################################## OPEN Connection with VPN
-    if step == "1":
-        print_message_start(step)
-        # connect to the database
-        conn = connect_to_database()
-        # Fetch recordings and save to CSV
-        recordings = fetch_recordings(conn)
-        # a csv with recording ids will be created
-        save_recordings_to_csv(recordings)
-        print_message_finish(step)
-    
-    ############################################## CLOSE Connection with VPN
-    elif step == "2":
-        print_message_start(step)
-        # Update dataframe with duration values
-        update_durations_in_dataframe()
-        print_message_finish(step)
+    print("Updating dataframe with recording duration values from storage")
+    update_durations_in_dataframe()
 
-    # ############################################# OPEN Connection with VPN
-    elif step == "3":
-        print_message_start(step)
-        # re-connect to the database
-        conn = connect_to_database()
-        # update table in db
-        update_recordings_table(conn)
-        print_message_finish(step)
+    print("Inserting values to database")
+    conn = connect_to_database()
+    update_recordings_table(conn)
 
-
-    print("Durations appended to the DataFrame.")
+    print("Recording durations inserted to database.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Script to fetch recording durations from AMS and perform database operations.")
-    parser.add_argument("--step", dest="step", choices=["1", "2", "3"],
-                        help="Specify which step to execute.")
-    args = parser.parse_args()
-
-    if args.step:
-        main(args.step)
-    else:
-        print("""Please specify a step to execute using the '--step' argument.  e.g.:  
-                    python main.py --step 1
-                    python main.py --step 2
-                    python main.py --step 3
-                    (VPN should be open for Steps 1 & 3 and closed for Step 2)
-              """)
+    main()
