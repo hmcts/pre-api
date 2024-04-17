@@ -25,15 +25,13 @@ class CaseControllerFT extends FunctionalTestBase {
         // create a case
         var putCase1 = putCase(dto);
         assertResponseCode(putCase1, 201);
-        var getCase1 = assertCaseExists(dto.getId(), true);
-        assertThat(getCase1.body().jsonPath().getBoolean("test")).isFalse();
+        assertMatchesDto(dto);
 
         // update a case
         dto.setTest(true);
         var putCase2 = putCase(dto);
         assertResponseCode(putCase2, 204);
-        var getCase2 = assertCaseExists(dto.getId(), true);
-        assertThat(getCase2.body().jsonPath().getBoolean("test")).isTrue();
+        assertMatchesDto(dto);
     }
 
     @DisplayName("Should create a case with participants")
@@ -310,5 +308,18 @@ class CaseControllerFT extends FunctionalTestBase {
 
     private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
         return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+    }
+
+    private void assertMatchesDto(CreateCaseDTO dto) {
+        var getCase = assertCaseExists(dto.getId(), true);
+        var res = getCase.body().as(CaseDTO.class);
+        assertThat(res).isNotNull();
+        assertThat(res.getCourt().getId()).isEqualTo(dto.getCourtId());
+        assertThat(res.getReference()).isEqualTo(dto.getReference());
+        assertThat(res.getParticipants()).isEmpty();
+        assertThat(res.isTest()).isEqualTo(dto.isTest());
+        assertThat(res.getCreatedAt()).isNotNull();
+        assertThat(res.getModifiedAt()).isNotNull();
+        assertThat(res.getDeletedAt()).isNull();
     }
 }
