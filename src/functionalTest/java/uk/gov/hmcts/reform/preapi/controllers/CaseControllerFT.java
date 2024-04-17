@@ -210,6 +210,104 @@ class CaseControllerFT extends FunctionalTestBase {
         assertCaseExists(dto.getId(), true);
     }
 
+    @DisplayName("Scenario: Get Case by case id")
+    @Test
+    void shouldGetCaseByCaseId() throws JsonProcessingException {
+        var dto = createCase();
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 201);
+        var getCase = assertCaseExists(dto.getId(), true);
+        assertThat(getCase.body().jsonPath().getUUID("id")).isEqualTo(dto.getId());
+    }
+
+    @DisplayName("Scenario: Get non-existing case by case id ")
+    @Test
+    void shouldGetNonExistingCaseByCaseId() throws JsonProcessingException {
+        var id = UUID.randomUUID();
+        assertCaseExists(id, false);
+    }
+
+    @DisplayName("Scenario: Search Cases by case reference")
+    @Test
+    void shouldSearchCaseByCaseReference() throws JsonProcessingException {
+        var dto = createCase();
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 201);
+        assertCaseExists(dto.getId(), true);
+
+        // match
+        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), true);
+        assertResponseCode(getCases1, 200);
+        assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
+        assertThat(getCases1.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
+        assertThat(getCases1.body().jsonPath().getString("_embedded.caseDTOList[0].reference"))
+            .isEqualTo(dto.getReference());
+
+        // match lowercase
+        var getCases2 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toLowerCase(), true);
+        assertResponseCode(getCases2, 200);
+        assertThat(getCases2.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
+        assertThat(getCases2.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
+
+        // match uppercase
+        var getCases3 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toUpperCase(), true);
+        assertResponseCode(getCases3, 200);
+        assertThat(getCases3.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
+        assertThat(getCases3.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
+
+        // match partial
+        var getCases4 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().substring(1, 12), true);
+        assertResponseCode(getCases4, 200);
+        assertThat(getCases4.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
+        assertThat(getCases4.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
+    }
+
+    @DisplayName("Scenario: Search Cases by court id")
+    @Test
+    void shouldSearchCaseByCourtId() throws JsonProcessingException {
+        var dto = createCase();
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 201);
+        assertCaseExists(dto.getId(), true);
+
+        var getCases1 = doGetRequest(CASES_ENDPOINT + "?courtId=" + dto.getCourtId(), true);
+        assertResponseCode(getCases1, 200);
+        assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
+        assertThat(getCases1.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
+        assertThat(getCases1.body().jsonPath().getUUID("_embedded.caseDTOList[0].court.id"))
+            .isEqualTo(dto.getCourtId());
+    }
+
+    @DisplayName("Scenario: Search by Cases and include deleted case")
+    @Test
+    void shouldSearchCaseAndIncludeDeletedCase() throws JsonProcessingException {
+        var dto = createCase();
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 201);
+        assertCaseExists(dto.getId(), true);
+
+        // delete the case
+        var deleteCase = doDeleteRequest(CASES_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(deleteCase, 200);
+        assertCaseExists(dto.getId(), false);
+
+        // search without including deleted
+        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), true);
+        assertResponseCode(getCases1, 200);
+        assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList")).isNullOrEmpty();
+
+        // search including deleted
+        var getCases2 = doGetRequest(
+            CASES_ENDPOINT + "?reference=" + dto.getReference() + "&includeDeleted=true",
+            true
+        );
+        assertResponseCode(getCases2, 200);
+        assertThat(getCases2.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
+        assertThat(getCases2.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
+        assertThat(getCases2.body().jsonPath().getString("_embedded.caseDTOList[0].reference"))
+            .isEqualTo(dto.getReference());
+    }
+
     private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
         return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
