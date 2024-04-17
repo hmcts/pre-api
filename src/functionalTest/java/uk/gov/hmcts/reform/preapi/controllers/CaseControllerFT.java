@@ -220,7 +220,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
     @DisplayName("Scenario: Get non-existing case by case id ")
     @Test
-    void shouldGetNonExistingCaseByCaseId() throws JsonProcessingException {
+    void shouldGetNonExistingCaseByCaseId() {
         var id = UUID.randomUUID();
         assertCaseExists(id, false);
     }
