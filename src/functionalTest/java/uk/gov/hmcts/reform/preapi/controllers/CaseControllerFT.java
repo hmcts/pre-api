@@ -34,6 +34,16 @@ class CaseControllerFT extends FunctionalTestBase {
         assertMatchesDto(dto);
     }
 
+    @DisplayName("Scenario: Create a case with a non-existing court")
+    @Test
+    void shouldNotCreateAndUpdateCaseWithNonExistingCourt() throws JsonProcessingException {
+        var dto = createCase();
+        dto.setCourtId(UUID.randomUUID());
+        var putCase1 = putCase(dto);
+        assertResponseCode(putCase1, 404);
+        assertThat(putCase1.body().jsonPath().getString("message")).isEqualTo("Not found: Court: " + dto.getCourtId());
+    }
+
     @DisplayName("Should create a case with participants")
     @Test
     void shouldCreateACaseWithParticipants() throws JsonProcessingException {
