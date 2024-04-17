@@ -39,24 +39,19 @@ class CaseControllerFT extends FunctionalTestBase {
     @DisplayName("Should create a case with participants")
     @Test
     void shouldCreateACaseWithParticipants() throws JsonProcessingException {
-        var testIds = doPostRequest("/testing-support/create-court", false).body().jsonPath();
-        var courtId = testIds.getUUID("courtId");
-
-        var createCase = new CreateCaseDTO();
-        createCase.setId(UUID.randomUUID());
-        createCase.setCourtId(courtId);
-        createCase.setReference(generateRandomCaseReference());
         var participant1 = new CreateParticipantDTO();
-        participant1.setId(java.util.UUID.randomUUID());
+        participant1.setId(UUID.randomUUID());
         participant1.setFirstName("John");
         participant1.setLastName("Smith");
         participant1.setParticipantType(ParticipantType.DEFENDANT);
         var participant2 = new CreateParticipantDTO();
-        participant2.setId(java.util.UUID.randomUUID());
+        participant2.setId(UUID.randomUUID());
         participant2.setFirstName("John");
         participant2.setLastName("Smith");
         participant2.setParticipantType(ParticipantType.DEFENDANT);
-        createCase.setParticipants(java.util.Set.of(
+
+        var createCase = createCase();
+        createCase.setParticipants(Set.of(
             participant1,
             participant2
         ));
