@@ -1,3 +1,11 @@
+name: Import Power Platform into Test
+
+# Runs ad-hoc
+trigger: none
+pr: none
+
+pool: hmcts-sds-ptl
+
 parameters:
   - name: environment
     displayName: Environment
@@ -8,16 +16,15 @@ parameters:
       - Demo
       - Production
 
+  - name: run_migration_script
+    displayName: Execute migration script
+    type: boolean
+    default: false
+
   - name: run_recording_duration_script
     displayName: Update recording duration
     type: boolean
     default: false
-
-# Runs ad-hoc
-trigger:
-- none
-
-pool: hmcts-sds-ptl
 
 variables:
   - name: 'environment'
@@ -59,7 +66,11 @@ steps:
 - script: pip install -r bin/migration/requirements.txt
   displayName: 'Install dependencies'
 
-- script: |
+- task: Bash@3
+  condition: ${{ eq(parameters.run_migration_script, true) }}
+  inputs:
+    targetType: 'inline'
+  script: |
     export SOURCE_DB_NAME="pre-pdb-$(envShortName)"
     export SOURCE_DB_USER="$(api-POSTGRES-USER)"
     export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
@@ -84,4 +95,3 @@ steps:
       export AZURE_STORAGE_CONNECTION_STRING="$(finalsa-storage-account-connection-string)"
       python3 bin/migration/azure_storage_utils/main.py
   displayName: 'Update recording duration'
-
