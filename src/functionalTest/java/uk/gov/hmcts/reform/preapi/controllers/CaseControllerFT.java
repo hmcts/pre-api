@@ -17,6 +17,25 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CaseControllerFT extends FunctionalTestBase {
+    @DisplayName("Scenario: Create/update a case")
+    @Test
+    void shouldCreateAndUpdateCase() throws JsonProcessingException {
+        var dto = createCase();
+
+        // create a case
+        var putCase1 = putCase(dto);
+        assertResponseCode(putCase1, 201);
+        var getCase1 = assertCaseExists(dto.getId(), true);
+        assertThat(getCase1.body().jsonPath().getBoolean("test")).isFalse();
+
+        // update a case
+        dto.setTest(true);
+        var putCase2 = putCase(dto);
+        assertResponseCode(putCase2, 204);
+        var getCase2 = assertCaseExists(dto.getId(), true);
+        assertThat(getCase2.body().jsonPath().getBoolean("test")).isTrue();
+    }
+
     @DisplayName("Should create a case with participants")
     @Test
     void shouldCreateACaseWithParticipants() throws JsonProcessingException {
