@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -30,6 +31,9 @@ public class CreateAppAccessDTO {
     @Schema(description = "AppAccessRoleId")
     @NotNull
     private UUID roleId;
+
+    @Schema(description = "AppAccessCourtAccessType")
+    private CourtAccessType courtAccessType;
 
     @Schema(description = "AppAccessActive")
     private Boolean active;

@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -26,6 +27,9 @@ public class BaseAppAccessDTO {
     @Schema(description = "AppAccessRole")
     protected RoleDTO role;
 
+    @Schema(description = "AppAccessCourtAccessType")
+    protected CourtAccessType courtAccessType;
+
     @Schema(description = "AppAccessLastAccess")
     protected Timestamp lastAccess;
 
@@ -36,6 +40,7 @@ public class BaseAppAccessDTO {
         id = access.getId();
         court = new CourtDTO(access.getCourt());
         role = new RoleDTO(access.getRole());
+        courtAccessType = access.getCourtAccessType();
         lastAccess = access.getLastAccess();
         active = access.isActive();
     }
