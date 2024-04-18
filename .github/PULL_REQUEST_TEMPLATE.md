@@ -23,34 +23,26 @@ PR checklist:
 -
 -
 
-#### Does this PR need manual testing from QA?
-
-- [ ] Yes
-- [x] No
-
-<!-- If yes add the `enable_keep_helm` label and uncomment the following: -->
+<!-- If this PR needs to be manually tested add the `enable_keep_helm` label and uncomment the following: -->
 
 <!--
+> [!IMPORTANT]
+> This PR requires manual testing by QA. Please notify the QA team @hmcts/pre-rec-evidence-qa.
+
 **QA instructions**
 
 -
 -
-
-@pre-rec-evidence-qa
 -->
 
-#### Does this PR introduce a breaking change?
-
-- [ ] Yes
-- [x] No
-
-<!-- If yes uncomment the following: -->
+<!-- If this PR contains a breaking change uncomment the following: -->
 
 <!--
+> [!CAUTION]
+> This PR introduces a breaking change. Please notify the Power Platform team @hmcts/pre-rec-evidence-power-platform.
+
 **Breaking change description**
 
 -
 -
-
-@pre-rec-evidence-power-platform
 -->
