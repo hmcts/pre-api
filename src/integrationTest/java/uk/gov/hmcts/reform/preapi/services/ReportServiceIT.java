@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -22,6 +23,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -129,6 +131,50 @@ public class ReportServiceIT extends IntegrationTestBase {
         assertThat(response.size()).isEqualTo(1);
         assertThat(response.getFirst().getRecordingId()).isNull();
     }
+
+    @Transactional
+    @Test
+    void reportRecordingParticipantsSuccess() {
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example court", "12458");
+        entityManager.persist(court);
+
+        var aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+
+        var participant1 = HelperFactory.createParticipant(aCase, ParticipantType.DEFENDANT, "ONE", "ONE", null);
+        entityManager.persist(participant1);
+
+        var participant2 = HelperFactory.createParticipant(aCase, ParticipantType.WITNESS, "TWO", "TWO", null);
+        entityManager.persist(participant2);
+
+        var booking = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null);
+        booking.setParticipants(Set.of(participant1, participant2));
+        entityManager.persist(booking);
+
+        var captureSession = HelperFactory.createCaptureSession(booking, RecordingOrigin.PRE, null, null, Timestamp.from(Instant.now()), null, null, null, RecordingStatus.RECORDING_AVAILABLE, null);
+        entityManager.persist(captureSession);
+
+        var recording = HelperFactory.createRecording(captureSession, null, 1, null, "example.file", null);
+        entityManager.persist(recording);
+
+        var response = reportService.reportRecordingParticipants();
+        assertThat(response).isNotNull();
+        assertThat(response.size()).isEqualTo(2);
+        assertThat(response.getFirst().getRecordedAt()).isEqualTo(captureSession.getStartedAt());
+        assertThat(response.getFirst().getCourtName()).isEqualTo(court.getName());
+        assertThat(response.getFirst().getCaseReference()).isEqualTo(aCase.getReference());
+        assertThat(response.getFirst().getRecordingId()).isEqualTo(recording.getId());
+
+        assertThat(response.stream().anyMatch(
+            r -> r.getParticipantName().equals(participant1.getFirstName() + " " + participant1.getLastName())
+                && r.getParticipantType().equals(participant1.getParticipantType())))
+            .isTrue();
+        assertThat(response.stream().anyMatch(
+            r -> r.getParticipantName().equals(participant2.getFirstName() + " " + participant2.getLastName())
+                && r.getParticipantType().equals(participant2.getParticipantType())))
+            .isTrue();
+    }
+
 
     private void assertReportSuccess(Court court, Case caseEntity, Booking booking, User user1, User user2,
                                      ShareBooking share, List<SharedReportDTO> report) {
