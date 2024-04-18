@@ -151,7 +151,18 @@ public class ReportServiceIT extends IntegrationTestBase {
         booking.setParticipants(Set.of(participant1, participant2));
         entityManager.persist(booking);
 
-        var captureSession = HelperFactory.createCaptureSession(booking, RecordingOrigin.PRE, null, null, Timestamp.from(Instant.now()), null, null, null, RecordingStatus.RECORDING_AVAILABLE, null);
+        var captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
         entityManager.persist(captureSession);
 
         var recording = HelperFactory.createRecording(captureSession, null, 1, null, "example.file", null);
