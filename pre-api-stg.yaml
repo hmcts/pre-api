@@ -1464,6 +1464,33 @@ definitions:
       - id
       - version
     type: object
+  RecordingParticipantsReportDTO:
+    description: RecordingsPerCaseReportDTO
+    properties:
+      case_reference:
+        description: RecordingParticipantCaseReference
+        type: string
+      court_name:
+        description: RecordingParticipantCourtName
+        type: string
+      participant_name:
+        description: RecordingParticipantName
+        type: string
+      participant_type:
+        description: RecordingParticipantType
+        enum:
+          - WITNESS
+          - DEFENDANT
+        type: string
+      recorded_at:
+        description: RecordingParticipantRecordedAt
+        format: date-time
+        type: string
+      recording_id:
+        description: RecordingParticipantRecordingId
+        format: uuid
+        type: string
+    type: object
   RecordingsPerCaseReportDTO:
     description: RecordingsPerCaseReportDTO
     properties:
@@ -2839,6 +2866,29 @@ paths:
               $ref: '#/definitions/PlaybackReportDTO'
             type: array
       summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
+      tags:
+        - report-controller
+  /reports/recording-participants:
+    get:
+      operationId: reportRecordingParticipants
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingParticipantsReportDTO'
+            type: array
+      summary: Get report on participants and the recordings they are part of
       tags:
         - report-controller
   /reports/recordings-per-case:
