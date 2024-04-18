@@ -10,12 +10,12 @@ PR checklist:
 - [ ] Branch name should reference the Jira ticket, if not JIRA ticket has been linked
 -->
 
-<!-- Uncomment the following to manually link the JIRA ticket -->
+<!-- Uncomment the following to manually link the JIRA ticket, ticket numbers will autolink -->
 
 <!--
-### JIRA ticket
+### JIRA ticket(s)
 
-https://tools.hmcts.net/jira/browse/S28-<TICKET_NUMBER>
+- S28-0000
 -->
 
 ### Change description
