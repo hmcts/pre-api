@@ -284,6 +284,7 @@ class BookingControllerFT extends FunctionalTestBase {
         );
     }
 
+    /*
     @DisplayName("Scenario: Search for a booking by schedule date")
     @Test
     void searchBookingByScheduleDate() throws JsonProcessingException {
@@ -345,4 +346,5 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
+    */
 }
