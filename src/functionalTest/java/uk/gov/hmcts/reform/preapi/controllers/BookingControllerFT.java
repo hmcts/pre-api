@@ -288,8 +288,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Search for a booking by schedule date")
     @Test
     void searchBookingByScheduleDate() throws JsonProcessingException {
-        var dateToSearch = Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant());
-        var dateToSearchStr = dateToSearch.toString().split(" ")[0];
+        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
 
         var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
             .body()
@@ -303,9 +302,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
 
-
-        dateToSearch = Timestamp.from(OffsetDateTime.now().toInstant());
-        dateToSearchStr = dateToSearch.toString().split(" ")[0];
+        dateToSearchStr = LocalDate.now().toString();
 
         bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "?scheduledFor=" + dateToSearchStr, true);
 
@@ -318,8 +315,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Search for a booking by schedule date and case reference")
     @Test
     void searchBookingByScheduleDateAndCaseReference() throws JsonProcessingException {
-        var dateToSearch = Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant());
-        var dateToSearchStr = dateToSearch.toString().split(" ")[0];
+        var dateToSearchStr = LocalDate.now().plusWeeks(1).toString();
 
         var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
             .body()
@@ -350,5 +346,5 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(bookingResponse.statusCode()).isEqualTo(200);
         assertThat(bookings.stream().anyMatch(b -> b.getId().equals(bookingId))).isTrue();
     }
-     */
+    */
 }
