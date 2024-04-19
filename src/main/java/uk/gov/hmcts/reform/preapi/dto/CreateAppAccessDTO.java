@@ -33,8 +33,8 @@ public class CreateAppAccessDTO {
     private UUID roleId;
 
     @Schema(description = "AppAccessCourtAccessType")
-    // TODO uncomment annotation when app integrated with new schema
-    // TODO Also update upsert app access null check
+    // TODO Uncomment annotation when app integrated
+    // TODO Also update AppAccessService + PrimaryCourtValidator
     // @NotNull
     private CourtAccessType courtAccessType;
 

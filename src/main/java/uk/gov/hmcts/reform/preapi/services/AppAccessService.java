@@ -19,7 +19,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
-
 @Service
 public class AppAccessService {
 
