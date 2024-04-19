@@ -55,6 +55,12 @@ definitions:
         type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
+      court_access_type:
+        description: AppAccessCourtAccessType
+        enum:
+          - PRIMARY
+          - SECONDARY
+        type: string
       id:
         description: AppAccessId
         format: uuid
@@ -355,6 +361,12 @@ definitions:
       active:
         description: AppAccessActive
         type: boolean
+      court_access_type:
+        description: AppAccessCourtAccessType
+        enum:
+          - PRIMARY
+          - SECONDARY
+        type: string
       court_id:
         description: AppAccessCourtId
         format: uuid
