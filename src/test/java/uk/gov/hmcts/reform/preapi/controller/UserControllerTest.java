@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -60,6 +61,9 @@ public class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private RoleRepository roleRepository;
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
