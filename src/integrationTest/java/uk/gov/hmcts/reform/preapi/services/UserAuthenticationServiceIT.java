@@ -8,6 +8,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
+import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
@@ -53,7 +54,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(court);
 
-        appAccess = HelperFactory.createAppAccess(user, court, role, true, null, lastAccess);
+        appAccess = HelperFactory.createAppAccess(user, court, role, true, null, lastAccess, CourtAccessType.PRIMARY);
         portalAccess = HelperFactory.createPortalAccess(
             user,
             lastAccess,

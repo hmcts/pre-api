@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -44,7 +45,8 @@ class AppAccessTest {
             role,
             true,
             new Timestamp(System.currentTimeMillis()),
-            new Timestamp(System.currentTimeMillis())
+            new Timestamp(System.currentTimeMillis()),
+            CourtAccessType.PRIMARY
         );
 
         entityManager.persist(appAccess);

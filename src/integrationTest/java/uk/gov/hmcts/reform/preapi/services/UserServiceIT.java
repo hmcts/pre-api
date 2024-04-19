@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
+import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
@@ -83,6 +84,7 @@ public class UserServiceIT extends IntegrationTestBase {
         appAccessEntity.setCourt(court);
         appAccessEntity.setRole(role);
         appAccessEntity.setActive(true);
+        appAccessEntity.setCourtAccessType(CourtAccessType.PRIMARY);
         entityManager.persist(appAccessEntity);
 
         appAccessEntity2 = new AppAccess();
@@ -91,6 +93,7 @@ public class UserServiceIT extends IntegrationTestBase {
         appAccessEntity2.setCourt(court);
         appAccessEntity2.setRole(role);
         appAccessEntity2.setActive(true);
+        appAccessEntity2.setCourtAccessType(CourtAccessType.PRIMARY);
         entityManager.persist(appAccessEntity2);
 
         portalAccessEntity = new PortalAccess();

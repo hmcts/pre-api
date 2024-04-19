@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -216,4 +217,31 @@ public class AppAccessServiceTest {
         verify(appAccessRepository, times(1)).save(any());
     }
 
+    @DisplayName("Should automatically set court access type to primary when null")
+    @Test
+    void upsertSetCourtAccessType() {
+        var dto = new CreateAppAccessDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(UUID.randomUUID());
+        dto.setUserId(UUID.randomUUID());
+        dto.setRoleId(UUID.randomUUID());
+        dto.setActive(true);
+        dto.setLastActive(Timestamp.from(Instant.now()));
+
+        var appAccess = new AppAccess();
+
+        when(appAccessRepository.findById(dto.getId())).thenReturn(Optional.of(appAccess));
+        when(userRepository.findByIdAndDeletedAtIsNull(dto.getUserId())).thenReturn(Optional.of(new User()));
+        when(courtRepository.findById(dto.getCourtId())).thenReturn(Optional.of(new Court()));
+        when(roleRepository.findById(dto.getRoleId())).thenReturn(Optional.of(new Role()));
+
+        assertThat(appAccessService.upsert(dto)).isEqualTo(UpsertResult.UPDATED);
+        assertThat(appAccess.getCourtAccessType()).isEqualTo(CourtAccessType.PRIMARY);
+
+        verify(appAccessRepository, times(1)).findById(dto.getId());
+        verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(dto.getUserId());
+        verify(courtRepository, times(1)).findById(dto.getCourtId());
+        verify(roleRepository, times(1)).findById(dto.getRoleId());
+        verify(appAccessRepository, times(1)).save(any());
+    }
 }
