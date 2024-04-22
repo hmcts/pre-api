@@ -42,7 +42,7 @@ def save_recordings_to_csv(recordings):
 
     for recording_id in recordings:
         df = pd.concat([df, pd.DataFrame([[recording_id[0], None]], columns=columns)], ignore_index=True)
-    df.to_csv("recordings.csv", index=False)
+    df.to_csv("recordings.csv", index=False, header=True)
 
 
 def update_durations_in_dataframe():
@@ -64,17 +64,20 @@ def update_durations_in_dataframe():
     df.to_csv("recordings.csv", index=False, mode="w", header=False)
 
 def update_recordings_table(conn):
-    df = pd.read_csv("recordings.csv", names=["Recording_ID", "Duration_seconds"])
-    for index, row in df.iterrows():
-        recording_id = row["Recording_ID"]
-        duration = row["Duration_seconds"]
-        update_query = f"UPDATE public.recordings SET duration = MAKE_INTERVAL(secs => {duration}) WHERE id = '{recording_id}'"
-        try:
-            cur = conn.connection.cursor()
-            cur.execute(update_query)
-            conn.connection.commit()
-        except Exception as e:
-            print(e)
+    try:
+        df = pd.read_csv("recordings.csv")
+        cur = conn.connection.cursor()
+        for index, row in df.iterrows():
+            recording_id = row["Recording_ID"]
+            duration = row["Duration_seconds"]
+            update_query = f"UPDATE public.recordings SET duration = MAKE_INTERVAL(secs => {duration}) WHERE id = '{recording_id}'"
+            try:
+                cur.execute(update_query)
+                conn.connection.commit()
+            except Exception as e:
+                print(f"Error updating recording ID {recording_id}: {e}")
+    except Exception as e:
+        print(f"Error reading CSV file: {e}")
 
 def print_message_start(step):
     print(f"Attempting to start step: {step}")

@@ -525,6 +525,8 @@ definitions:
       test:
         description: CreateCaseIsTest
         type: boolean
+    required:
+      - reference
     type: object
   CreateCourtDTO:
     description: CreateCourtDTO
@@ -983,6 +985,10 @@ definitions:
         $ref: '#/definitions/Links'
       capture_session:
         $ref: '#/definitions/CaptureSessionDTO'
+      case_id:
+        description: RecordingCaseId
+        format: uuid
+        type: string
       case_reference:
         description: RecordingCaseReference
         type: string
@@ -1404,6 +1410,10 @@ definitions:
     properties:
       capture_session:
         $ref: '#/definitions/CaptureSessionDTO'
+      case_id:
+        description: RecordingCaseId
+        format: uuid
+        type: string
       case_reference:
         description: RecordingCaseReference
         type: string
