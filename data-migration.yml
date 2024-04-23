@@ -70,16 +70,16 @@ steps:
   condition: ${{ eq(parameters.run_migration_script, true) }}
   inputs:
     targetType: 'inline'
-  script: |
-    export SOURCE_DB_NAME="pre-pdb-$(envShortName)"
-    export SOURCE_DB_USER="$(api-POSTGRES-USER)"
-    export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
-    export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
-    export DESTINATION_DB_NAME="spike"
-    export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
-    export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
-    export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
-    python3 bin/migration/main.py
+    script: |
+      export SOURCE_DB_NAME="pre-pdb-$(envShortName)"
+      export SOURCE_DB_USER="$(api-POSTGRES-USER)"
+      export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
+      export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
+      export DESTINATION_DB_NAME="spike"
+      export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
+      export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
+      export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
+      python3 bin/migration/main.py
   displayName: 'Execute migration script'
 
 
