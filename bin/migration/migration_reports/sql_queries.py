@@ -3,7 +3,7 @@ source_table_queries = {
     'users': "SELECT COUNT(*) FROM public.users",
     'roles': "SELECT COUNT(grouptype) FROM public.grouplist WHERE grouptype = 'Security'",
     'courts': "SELECT COUNT(grouptype) + 1 FROM public.grouplist WHERE grouptype = 'Location'" , # adds 1 for default court
-    'regions': "SELECT 12",
+    'regions': "",
     'cases': "SELECT COUNT(*) FROM public.cases",
     'bookings':"SELECT COUNT(*) FROM public.recordings WHERE parentrecuid = recordinguid and recordingversion = '1'",
     'contacts':  "SELECT COUNT(*) FROM public.contacts",

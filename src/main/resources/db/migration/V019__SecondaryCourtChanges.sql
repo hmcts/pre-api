@@ -16,9 +16,9 @@ ADD COLUMN host_pin INT,
 ADD COLUMN room_address VARCHAR(256);
 
 ALTER TABLE portal_access
-ADD COLUMN role_id UUID REFERENCES virtual_conference_rooms(id);
+ADD COLUMN role_id UUID REFERENCES roles(id);
 
 ALTER TABLE bookings
-ADD COLUMN role_id UUID REFERENCES virtual_conference_rooms(id);
+ADD COLUMN room_id UUID REFERENCES virtual_conference_rooms(id);
 
 
