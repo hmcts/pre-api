@@ -17,7 +17,7 @@ class RoomManager:
         for source_room in source_data:
             room = source_room[0]
             
-            if not check_existing_record(destination_cursor, 'rooms', 'room', room):
+            if not check_existing_record(destination_cursor, 'virtual_conference_rooms', 'room', room):
                 id = str(uuid.uuid4())  
                 created_by = source_room[1]
 
@@ -27,7 +27,7 @@ class RoomManager:
             id = None
             if batch_rooms_data:   
                 destination_cursor.executemany(
-                    "INSERT INTO public.rooms (id, room) VALUES (%s, %s)",
+                    "INSERT INTO public.virtual_conference_rooms (id, room) VALUES (%s, %s)",
                     [entry[:-1] for entry in batch_rooms_data],
                 )
 
@@ -48,6 +48,6 @@ class RoomManager:
                     )
 
         except Exception as e:
-            self.failed_imports.append({'table_name': 'rooms','table_id': id,'details': str(e)})
+            self.failed_imports.append({'table_name': 'virtual_conference_rooms','table_id': id,'details': str(e)})
 
         self.logger.log_failed_imports(self.failed_imports)

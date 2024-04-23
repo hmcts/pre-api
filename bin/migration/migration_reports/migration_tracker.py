@@ -36,8 +36,7 @@ class MigrationTracker:
         return table_counts
 
     def _count_join_tables(self):
-        db_tables = ['court_region', 'courtrooms',
-                     'booking_participant', 'regions']
+        db_tables = ['court_region','booking_participant', 'regions']
         table_counts = {}
         for table in db_tables:
             count_query = f"SELECT COUNT(*) FROM public.{table}"
