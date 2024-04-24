@@ -1465,7 +1465,7 @@ definitions:
       - version
     type: object
   RecordingParticipantsReportDTO:
-    description: RecordingsPerCaseReportDTO
+    description: RecordingParticipantsReportDTO
     properties:
       case_reference:
         description: RecordingParticipantCaseReference
