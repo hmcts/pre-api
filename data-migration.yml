@@ -16,6 +16,11 @@ parameters:
       - Demo
       - Production
 
+  - name: take_backup
+    displayName: Take backup of source database
+    type: boolean
+    default: false
+
   - name: run_migration_script
     displayName: Execute migration script
     type: boolean
@@ -67,6 +72,18 @@ steps:
   displayName: 'Install dependencies'
 
 - task: Bash@3
+  condition: ${{ eq(parameters.take_backup, true) }}
+  inputs:
+    targetType: 'inline'
+    script: |
+      export SOURCE_DB_NAME="pre-pdb-$(envShortName)"
+      export SOURCE_DB_USER="$(api-POSTGRES-USER)"
+      export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
+      export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
+      python3 bin/migration/main.py --backup "$SOURCE_DB_PASSWORD"
+  displayName: 'Take backup of source database'
+
+- task: Bash@3
   condition: ${{ eq(parameters.run_migration_script, true) }}
   inputs:
     targetType: 'inline'
@@ -79,7 +96,7 @@ steps:
       export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
       export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
-      python3 bin/migration/main.py
+      python3 bin/migration/main.py --migration
   displayName: 'Execute migration script'
 
 
