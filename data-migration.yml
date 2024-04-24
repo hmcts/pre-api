@@ -10,8 +10,9 @@ parameters:
   - name: environment
     displayName: Environment
     type: string
-    default: Staging
+    default: Dev
     values:
+      - Dev
       - Staging
       - Demo
       - Production
@@ -35,16 +36,20 @@ variables:
       value: 'DTS-SHAREDSERVICES-PROD'
     ${{ if eq(variables['environment'], 'Demo') }}:
       value: 'DTS-SHAREDSERVICES-DEMO'
-    ${{ else }}:
+    ${{ if eq(variables['environment'], 'Staging') }}:
       value: 'DTS-SHAREDSERVICES-STG'
+    ${{ else }}:
+      value: 'DTS-SHAREDSERVICES-DEV'
 
   - name: 'envShortName'
     ${{ if eq(variables['environment'], 'Production') }}:
       value: 'prod'
     ${{ if eq(variables['environment'], 'Demo') }}:
       value: 'demo'
-    ${{ else }}:
+    ${{ if eq(variables['environment'], 'Staging') }}:
       value: 'stg'
+    ${{ else }}:
+      value: 'dev'
 
 steps:
 - task: AzureKeyVault@2
