@@ -5,4 +5,9 @@ public interface IMediaService {
     String importAsset(String assetPath);
     String getAsset(String assetId);
     String getAssets();
+    String startLiveEvent(String liveEventId);
+    String playLiveEvent(String liveEventId);
+    String stopLiveEvent(String liveEventId);
+    String getLiveEvent(String liveEventId);
+    String getLiveEvents();
 }
