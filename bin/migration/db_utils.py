@@ -54,6 +54,9 @@ class DatabaseManager:
         try:            
             blob_service_client = BlobServiceClient.from_connection_string(connection_string)
             container_client = blob_service_client.get_container_client(container_name)
+            if not container_client.exists():
+                container_client.create_container()
+
             with open(backup_file_path, "rb") as data:
                 blob_client = container_client.upload_blob(name=os.path.basename(backup_file_path), data=data)
         except Exception as e:
