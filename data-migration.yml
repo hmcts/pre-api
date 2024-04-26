@@ -19,7 +19,7 @@ parameters:
   - name: take_backup
     displayName: Take backup of source database
     type: boolean
-    default: false
+    default: true
 
   - name: run_migration_script
     displayName: Execute migration script
@@ -56,7 +56,7 @@ steps:
   inputs:
     azureSubscription: $(serviceConnection)
     KeyVaultName: 'pre-hmctskv-$(envShortName)'
-    SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST,finalsa-storage-account-connection-string'
+    SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST,finalsa-storage-account-connection-string, sa-storage-account-connection-string'
     RunAsPreJob: true
 
 - task: Bash@3
@@ -80,6 +80,7 @@ steps:
       export SOURCE_DB_USER="$(api-POSTGRES-USER)"
       export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
+      export AZURE_STORAGE_CONNECTION_STRING_BACKUP="$(sa-storage-account-connection-string)"
       python3 bin/migration/main.py --backup "$SOURCE_DB_PASSWORD"
   displayName: 'Take backup of source database'
 

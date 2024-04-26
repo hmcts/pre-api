@@ -29,6 +29,7 @@ source_db_name = os.environ.get('SOURCE_DB_NAME')
 source_db_user = os.environ.get('SOURCE_DB_USER')
 source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
 source_db_host = os.environ.get('SOURCE_DB_HOST')
+azure_storage_backups = os.environ.get('AZURE_STORAGE_CONNECTION_STRING_BACKUP')
 
 source_db = DatabaseManager(
     database=source_db_name,
@@ -77,9 +78,9 @@ def migrate_manager_data(manager, destination_cursor):
     print(
         f"Data migration for {manager.__class__.__name__} complete in : {time_taken:.2f} seconds.\n")
     
-def backup_source_db(backup_dir):
+def backup_source_db(azure_connection_str):
     print("Taking backup of the source database...")
-    source_db.take_backup(backup_dir)
+    source_db.take_backup(azure_connection_str)
 
 
 logger = FailedImportsLogger(destination_db.connection)
@@ -110,8 +111,7 @@ def main():
     args = parser.parse_args()
 
     if args.backup:
-        backup_dir = "backups"
-        backup_source_db(backup_dir)
+        backup_source_db(azure_storage_backups)
 
     elif args.migration:
         destination_db_cursor = destination_db.connection.cursor()
