@@ -19,7 +19,7 @@ logger.addHandler(handler)
 cvp_url = os.getenv("CVP_URL")
 
 
-def update_cvp_room_settings(room_name, recording_uri):
+def update_cvp_room_settings(room_name: str, recording_uri: str) -> int:
     with requests.Session() as session:
         logger.info("Logging in to CVP...")
         response = session.get(f"{cvp_url}/accounts/login/")
@@ -38,7 +38,7 @@ def update_cvp_room_settings(room_name, recording_uri):
         logged_in = "sessionid" in session.cookies.get_dict()
         if not logged_in:
             logger.error("Failed to log in")
-            exit(1)
+            return 1
         logger.info("Logged in successfully")
 
         logger.info("Fetching CVP room list...")
@@ -49,7 +49,7 @@ def update_cvp_room_settings(room_name, recording_uri):
         )
         if not ul_element:
             logger.error("Failed to fetch CVP room list")
-            exit(1)
+            return 1
 
         room_id_map = {}
         for li in ul_element.find_all("li"):
@@ -65,7 +65,7 @@ def update_cvp_room_settings(room_name, recording_uri):
 
         if room_name not in room_id_map.keys():
             logger.error(f"Room '{room_name}' not found")
-            exit(1)
+            return 1
 
         room_id = room_id_map[room_name]
         logger.info(f"Found room '{room_name}' with ID {room_id}")
@@ -86,10 +86,11 @@ def update_cvp_room_settings(room_name, recording_uri):
 
         if "pin" not in response.text:
             logger.error("Failed to update CVP room settings")
-            exit(1)
+            return 1
 
         logger.info("Updated CVP room settings successfully:")
         logger.info(json.dumps(json.loads(response.text), indent=4))
+        return 0
 
 
 if __name__ == "__main__":
@@ -99,4 +100,4 @@ if __name__ == "__main__":
 
     room_name = sys.argv[1]
     recording_uri = sys.argv[2]
-    update_cvp_room_settings(room_name, recording_uri)
+    exit(update_cvp_room_settings(room_name, recording_uri))
