@@ -122,4 +122,43 @@ public class AzureMediaServiceTest {
         assertThat(models.getFirst().getContainer()).isEqualTo("container");
         assertThat(models.getFirst().getStorageAccountName()).isEqualTo("storage-account-name");
     }
+
+    @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
+    @Test
+    void unsupportedOperationException() {
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.playAsset("test-asset-name")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.importAsset("test-asset-name")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.startLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.playLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.stopLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.getLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.getLiveEvents()
+        );
+    }
 }
