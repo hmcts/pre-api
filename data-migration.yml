@@ -80,7 +80,7 @@ steps:
       export SOURCE_DB_USER="$(api-POSTGRES-USER)"
       export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
-      export DESTINATION_DB_NAME="spike"
+      export DESTINATION_DB_NAME="api"
       export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
       export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
@@ -93,7 +93,7 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      export DESTINATION_DB_NAME="spike"
+      export DESTINATION_DB_NAME="api"
       export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
       export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
