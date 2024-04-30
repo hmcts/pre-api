@@ -284,7 +284,7 @@ dependencies {
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
 
-  implementation group: 'com.azure', name: 'azure-identity', version: '1.11.4'
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.12.0'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.3.0'
 
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.5.0.Final')
