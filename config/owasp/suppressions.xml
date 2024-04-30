@@ -8,7 +8,14 @@
     <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
     <cve>CVE-2023-35116</cve>
   </suppress>
-  
+
+  <suppress>
+    <notes>False Positive, see https://github.com/jeremylong/DependencyCheck/issues/6100.
+      We aren't using the azure_cli package.
+    </notes>
+    <cve>CVE-2023-36052</cve>
+  </suppress>
+
   <suppress>
     <notes><![CDATA[
    Affecting lots of spring boot libs. We can't update due to a hibernate dependency
