@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.media;
 
-
 import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.core.management.profile.AzureProfile;
@@ -19,7 +18,7 @@ import java.util.List;
 public class AzureMediaService implements IMediaService {
     private final String resourceGroup;
     private final String accountName;
-    private final AzureMediaServices client;
+    protected AzureMediaServices client;
 
     @Autowired
     public AzureMediaService(
