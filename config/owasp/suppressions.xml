@@ -18,6 +18,15 @@
 
   <suppress>
     <notes><![CDATA[
+   We are not using any of the affected credentials
+   (DefaultAzureCredential, AzureCliCredential, AzureDeveloperCliCredential, AzurePowerShellCredential)
+   ]]></notes>
+    <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
+    <cve>CVE-2023-36415</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
    Affecting lots of spring boot libs. We can't update due to a hibernate dependency
    ]]></notes>
     <cve>CVE-2023-34055</cve>
