@@ -109,6 +109,7 @@ audit_log_manager = AuditLogManager(source_db.connection.cursor(), logger)
 
 def main():
     destination_db_cursor = destination_db.connection.cursor()
+    print("Migrating data from source to destination database...")
 
     logger.create_table("failed_imports")
     counter = MigrationTracker(source_db.connection, destination_db.connection)
