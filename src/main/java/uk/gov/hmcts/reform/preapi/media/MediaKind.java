@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.media;
 
-import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 
@@ -24,7 +23,7 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public List<AssetInner> getAssets() {
+    public List<AssetDTO> getAssets() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
