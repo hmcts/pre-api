@@ -114,8 +114,6 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(ManagementException.class)
     ResponseEntity<String> onManagementException(final ManagementException e) throws JsonProcessingException {
-        // TODO REMOVE
-        e.printStackTrace();
         return getResponseEntity(
             "An error occurred when trying to communicate with Azure Media Service.",
             HttpStatus.INTERNAL_SERVER_ERROR
