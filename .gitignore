@@ -4,6 +4,7 @@
 *.class
 bin/main/application.yaml
 **/.terraform
+.env.local
 
 ### STS ###
 .apt_generated

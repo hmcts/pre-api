@@ -283,7 +283,10 @@ dependencies {
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.4.5.Final')
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.11.4'
+  implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.3.0'
+
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.4.6.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.1:all'
