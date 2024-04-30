@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
-
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -265,6 +267,29 @@ class TestingSupportController {
             }
         };
 
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/create-role")
+    public ResponseEntity<Map<String, String>> createSuperUserRole(
+        @Parameter(
+            name = "roleName",
+            schema = @Schema(implementation = TestingSupportRoles.class),
+            required = true
+        ) TestingSupportRoles roleName
+    ) {
+        String roleStr;
+        switch (roleName) {
+            case SUPER_USER -> roleStr = "Super User";
+            case LEVEL_1 -> roleStr = "Level 1";
+            case LEVEL_2 -> roleStr = "Level 2";
+            case LEVEL_3 -> roleStr = "Level 3";
+            case LEVEL_4 -> roleStr = "Level 4";
+            default -> roleStr = "Other Role";
+        }
+
+        var role = createRole(roleStr);
+        var response = Map.of("roleId", role.getId().toString());
         return ResponseEntity.ok(response);
     }
 
