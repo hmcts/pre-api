@@ -28,7 +28,6 @@ from migration_reports.failed_imports_logger import FailedImportsLogger
 source_db_name = os.environ.get('SOURCE_DB_NAME')
 source_db_user = os.environ.get('SOURCE_DB_USER')
 source_db_password = os.environ.get('SOURCE_DB_PASSWORD')
-# PGPASSWORD = os.environ.get('SOURCE_DB_PASSWORD')
 source_db_host = os.environ.get('SOURCE_DB_HOST')
 azure_storage_backups = os.environ.get('AZURE_STORAGE_CONNECTION_STRING_BACKUP')
 
@@ -109,13 +108,9 @@ def main():
     parser = argparse.ArgumentParser(description='Database migration script')
     parser.add_argument('--backup', action='store_true', help='Perform database backup')
     parser.add_argument('--migration', action='store_true', help='Perform database migration')
-    # parser.add_argument('--password', help='Database password')
     args = parser.parse_args()
 
-    # backup_db_password = args.password
-
     if args.backup:
-        # print(backup_db_password)
         backup_source_db(azure_storage_backups)
 
     elif args.migration:
