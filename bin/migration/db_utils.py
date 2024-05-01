@@ -32,7 +32,7 @@ class DatabaseManager:
         # password_file = "password.txt"
         # with open(password_file, "w") as f:
         #     f.write(source_db_password)
-        # os.environ['PGPASSWORD'] = source_db_password
+        os.environ['PGPASSWORD'] = source_db_password
         container_name = "backups"
         timestamp = datetime.now().strftime("%d-%m-%Y_%H:%M")
         file_path = f"{timestamp}_{dbname}.sql"
