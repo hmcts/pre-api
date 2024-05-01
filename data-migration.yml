@@ -81,7 +81,7 @@ steps:
       export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
       export AZURE_STORAGE_CONNECTION_STRING_BACKUP="$(sa-storage-account-connection-string)"
-      python3 bin/migration/main.py --backup "$SOURCE_DB_PASSWORD"
+      python3 bin/migration/main.py --backup
   displayName: 'Take backup of source database'
 
 - task: Bash@3

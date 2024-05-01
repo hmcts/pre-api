@@ -2,7 +2,7 @@ import psycopg2
 import subprocess
 import os
 from datetime import datetime
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
+from azure.storage.blob import BlobServiceClient
 
 class DatabaseManager:
     def __init__(self, database, user, password, host, port):
@@ -23,12 +23,16 @@ class DatabaseManager:
         self.cursor.close()
         self.connection.close()
 
-    def take_backup(self, connection_str):
+    def take_backup(self, connection_str, source_db_password):
         dbname = self.connection.get_dsn_parameters()['dbname']
         user = self.connection.get_dsn_parameters()['user']
         host = self.connection.get_dsn_parameters()['host']
         port = self.connection.get_dsn_parameters()['port']
 
+        # password_file = "password.txt"
+        # with open(password_file, "w") as f:
+        #     f.write(source_db_password)
+        # os.environ['PGPASSWORD'] = source_db_password
         container_name = "backups"
         timestamp = datetime.now().strftime("%d-%m-%Y_%H:%M")
         file_path = f"{timestamp}_{dbname}.sql"
@@ -41,9 +45,12 @@ class DatabaseManager:
             "-W",
             "-f", file_path,
         ]
+        # print(source_db_password)
 
         try:
+            # subprocess.run(pg_dump_cmd, check=True, stdin=open(password_file))
             subprocess.run(pg_dump_cmd, check=True)
+            # subprocess.run(pg_dump_cmd, check=True, env={"SOURCE_DB_PASSWORD": source_db_password})
         except Exception as e:
             print(f"Error: Backup failed - {e}")
         finally:
