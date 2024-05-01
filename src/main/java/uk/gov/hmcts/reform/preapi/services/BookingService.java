@@ -44,8 +44,8 @@ public class BookingService {
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
-                          CaptureSessionService captureSessionService,
-                          ShareBookingService shareBookingService) {
+                          final CaptureSessionService captureSessionService,
+                          final ShareBookingService shareBookingService) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
@@ -108,6 +108,12 @@ public class BookingService {
         if (bookingAlreadyDeleted(createBookingDTO.getId())) {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
+
+        createBookingDTO.getParticipants().forEach(p -> {
+            if (!participantRepository.existsByIdAndCaseId_Id(p.getId(), createBookingDTO.getCaseId())) {
+                throw new NotFoundException("Participant: " + p.getId() + " in case: " + createBookingDTO.getCaseId());
+            }
+        });
 
         var isUpdate = bookingRepository.existsById(createBookingDTO.getId());
 
