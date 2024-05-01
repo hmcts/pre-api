@@ -592,4 +592,36 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
         assertThat(report.getFirst().getRemovalReason()).isNull();
     }
+
+    @DisplayName("Find all participants and the recordings they are linked to")
+    @Test
+    void reportParticipantsRecordings() {
+        var participant1 = new Participant();
+        participant1.setFirstName("Example");
+        participant1.setLastName("One");
+        participant1.setParticipantType(ParticipantType.DEFENDANT);
+        participant1.setCaseId(caseEntity);
+        var participant2 = new Participant();
+        participant2.setFirstName("Example");
+        participant2.setLastName("Two");
+        participant2.setParticipantType(ParticipantType.WITNESS);
+        participant2.setCaseId(caseEntity);
+        bookingEntity.setParticipants(Set.of(participant1, participant2));
+
+        when(recordingRepository.findAllByParentRecordingIsNull()).thenReturn(List.of(recordingEntity));
+
+        var result = reportService.reportRecordingParticipants();
+
+        assertThat(result.size()).isEqualTo(2);
+        assertThat(result.stream().anyMatch(dto -> dto.getParticipantName().equals("Example One"))).isTrue();
+        assertThat(result.stream().anyMatch(dto -> dto.getParticipantName().equals("Example Two"))).isTrue();
+        assertThat(result.stream().anyMatch(dto -> dto.getParticipantType().equals(ParticipantType.DEFENDANT)))
+            .isTrue();
+        assertThat(result.stream().anyMatch(dto -> dto.getParticipantType().equals(ParticipantType.WITNESS))).isTrue();
+
+        assertThat(result.getFirst().getRecordedAt()).isEqualTo(captureSessionEntity.getStartedAt());
+        assertThat(result.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(result.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(result.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+    }
 }
