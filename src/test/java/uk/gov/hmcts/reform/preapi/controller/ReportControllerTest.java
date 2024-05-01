@@ -14,10 +14,12 @@ import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
@@ -388,6 +390,29 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
 
         verify(reportService, times(1)).reportPlayback(null);
+    }
+
+    @DisplayName("Should get a report containing a list of participants and their related recordings")
+    @Test
+    void reportRecordingParticipantsSuccess() throws Exception {
+        var dto = new RecordingParticipantsReportDTO();
+        dto.setParticipantName("Participant Name");
+        dto.setParticipantType(ParticipantType.WITNESS);
+        dto.setRecordedAt(Timestamp.from(Instant.now()));
+        dto.setCourtName("Court Name");
+        dto.setCaseReference("1234567890");
+        dto.setRecordingId(UUID.randomUUID());
+
+        when(reportService.reportRecordingParticipants()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/reports/recording-participants"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$[0].participant_name").value(dto.getParticipantName()))
+            .andExpect(jsonPath("$[0].participant_type").value(dto.getParticipantType().toString()))
+            .andExpect(jsonPath("$[0].court_name").value(dto.getCourtName()))
+            .andExpect(jsonPath("$[0].case_reference").value(dto.getCaseReference()))
+            .andExpect(jsonPath("$[0].recording_id").value(dto.getRecordingId().toString()));
     }
 
     private PlaybackReportDTO createPlaybackReport() {
