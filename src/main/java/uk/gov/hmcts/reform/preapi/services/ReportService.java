@@ -8,11 +8,13 @@ import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -169,6 +171,26 @@ public class ReportService {
             .stream()
             .map(AccessRemovedReportDTO::new)
             .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<RecordingParticipantsReportDTO> reportRecordingParticipants() {
+        return recordingRepository
+            .findAllByParentRecordingIsNull()
+            .stream()
+            .map(this::getParticipantsForRecording)
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+    }
+
+    private List<RecordingParticipantsReportDTO> getParticipantsForRecording(Recording recording) {
+        return recording
+            .getCaptureSession()
+            .getBooking()
+            .getParticipants()
+            .stream()
+            .map(participant -> new RecordingParticipantsReportDTO(participant, recording))
             .collect(Collectors.toList());
     }
 
