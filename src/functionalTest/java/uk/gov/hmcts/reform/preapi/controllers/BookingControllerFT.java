@@ -267,15 +267,6 @@ class BookingControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private CreateParticipantDTO createParticipant(ParticipantType type) {
-        var dto = new CreateParticipantDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setFirstName("Example");
-        dto.setLastName("Example");
-        dto.setParticipantType(type);
-        return dto;
-    }
-
     private Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
         return doPutRequest(
             BOOKINGS_ENDPOINT + "/" + dto.getId(),

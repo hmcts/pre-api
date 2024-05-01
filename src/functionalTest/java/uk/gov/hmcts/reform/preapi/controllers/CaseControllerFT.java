@@ -28,22 +28,22 @@ class CaseControllerFT extends FunctionalTestBase {
         createCase.setCourtId(courtId);
         createCase.setReference(generateRandomCaseReference());
         var participant1 = new CreateParticipantDTO();
-        participant1.setId(java.util.UUID.randomUUID());
+        participant1.setId(UUID.randomUUID());
         participant1.setFirstName("John");
         participant1.setLastName("Smith");
         participant1.setParticipantType(ParticipantType.DEFENDANT);
         var participant2 = new CreateParticipantDTO();
-        participant2.setId(java.util.UUID.randomUUID());
+        participant2.setId(UUID.randomUUID());
         participant2.setFirstName("John");
         participant2.setLastName("Smith");
-        participant2.setParticipantType(ParticipantType.DEFENDANT);
-        createCase.setParticipants(java.util.Set.of(
+        participant2.setParticipantType(ParticipantType.WITNESS);
+        createCase.setParticipants(Set.of(
             participant1,
             participant2
         ));
 
         var putResponse = putCase(createCase);
-
+        System.out.println(putResponse.body().prettyPrint());
         assertResponseCode(putResponse, 201);
 
         var getResponse = assertCaseExists(createCase.getId(), true);
@@ -158,6 +158,10 @@ class CaseControllerFT extends FunctionalTestBase {
         caseDTO2.setCourtId(caseDTO1.getCourtId());
         caseDTO2.setParticipants(Set.of());
         caseDTO2.setTest(false);
+        caseDTO2.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        ));
 
         var putResponse2 = putCase(caseDTO2);
         assertResponseCode(putResponse2, 409);
