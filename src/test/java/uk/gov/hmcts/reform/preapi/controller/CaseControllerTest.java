@@ -248,7 +248,6 @@ class CaseControllerTest {
     @DisplayName("Should return 400 when creating case with path and payload mismatch")
     @Test
     void testCreateCasePathPayloadMismatch() throws Exception {
-        UUID caseId = UUID.randomUUID();
         var newCaseRequestDTO = new CreateCaseDTO();
         newCaseRequestDTO.setId(UUID.randomUUID());
         newCaseRequestDTO.setReference("EXAMPLE123");
@@ -257,7 +256,7 @@ class CaseControllerTest {
             createParticipant(ParticipantType.DEFENDANT))
         );
 
-        mockMvc.perform(put(CASES_ID_PATH, caseId)
+        mockMvc.perform(put(CASES_ID_PATH, UUID.randomUUID())
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
