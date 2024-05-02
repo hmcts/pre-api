@@ -60,7 +60,8 @@ public class PortalAccess extends CreatedModifiedAtEntity {
     }
 
     public boolean isTermsAccepted() {
-        return termsAcceptedAt != null && termsAcceptedAt.after(new Timestamp(System.currentTimeMillis() - 31556952000L));
+        return termsAcceptedAt != null
+            && termsAcceptedAt.after(new Timestamp(System.currentTimeMillis() - 31556952000L));
     }
 
     @Override
