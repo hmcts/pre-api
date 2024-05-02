@@ -65,6 +65,10 @@ definitions:
         type: string
       role:
         $ref: '#/definitions/RoleDTO'
+      terms_accepted_at:
+        description: AppAccessTermsAcceptedAt
+        format: date-time
+        type: string
     type: object
   BaseUserDTO:
     description: BaseUserDTO
@@ -371,6 +375,10 @@ definitions:
         description: AppAccessRoleId
         format: uuid
         type: string
+      terms_accepted_at:
+        description: AppAccessTermsAcceptedAt
+        format: date-time
+        type: string
       user_id:
         description: AppAccessUserId
         format: uuid
@@ -648,6 +656,10 @@ definitions:
           - REGISTERED
           - ACTIVE
           - INACTIVE
+        type: string
+      terms_accepted_at:
+        description: PortalAccessTermsAcceptedAt
+        format: date-time
         type: string
     required:
       - id
@@ -1402,6 +1414,10 @@ definitions:
           - REGISTERED
           - ACTIVE
           - INACTIVE
+        type: string
+      terms_accepted_at:
+        description: PortalAccessTermsAcceptedAt
+        format: date-time
         type: string
     type: object
   RecordingDTO:
