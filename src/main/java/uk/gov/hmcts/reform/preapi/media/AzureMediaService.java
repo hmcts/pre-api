@@ -53,6 +53,9 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public AssetDTO getAsset(String assetName) {
+        if (client == null) {
+            throw new NotFoundException("Azure service client not found");
+        }
         // assetName is an id without the '-'
         try {
             return new AssetDTO(client.getAssets().get(resourceGroup, accountName, assetName));
@@ -66,6 +69,9 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public List<AssetDTO> getAssets() {
+        if (client == null) {
+            throw new NotFoundException("Azure service client not found");
+        }
         return client
             .getAssets()
             .list(resourceGroup, accountName)
