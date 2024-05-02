@@ -127,7 +127,6 @@ public class InviteControllerFT extends FunctionalTestBase {
         assertResponseCode(redeemResponse2, 204);
     }
 
-
     @DisplayName("Delete an invite")
     @Test
     void deleteInvite() throws JsonProcessingException {
