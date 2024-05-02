@@ -27,6 +27,14 @@
 
   <suppress>
     <notes><![CDATA[
+   file name: azure-resourcemanager-mediaservices-2.4.0-beta.1.jar
+   ]]></notes>
+    <packageUrl regex="true">^pkg:maven/com\.azure\.resourcemanager/azure\-resourcemanager\-mediaservices@.*$</packageUrl>
+    <cve>CVE-2009-2498</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
    Affecting lots of spring boot libs. We can't update due to a hibernate dependency
    ]]></notes>
     <cve>CVE-2023-34055</cve>
