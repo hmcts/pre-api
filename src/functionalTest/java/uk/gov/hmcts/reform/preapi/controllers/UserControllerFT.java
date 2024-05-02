@@ -66,7 +66,7 @@ public class UserControllerFT extends FunctionalTestBase {
 
     @DisplayName("Get user by email (ignore case)")
     @Test
-    void redeemInviteWithEmailIgnoreCase() throws JsonProcessingException {
+    void userByEmailIgnoreCase() throws JsonProcessingException {
         // Check matches when db has a value with capitalized email
         var user1 = createUserDto();
         user1.setEmail(user1.getEmail().toUpperCase());
@@ -91,7 +91,6 @@ public class UserControllerFT extends FunctionalTestBase {
         var getResponse2 = doGetRequest(USERS_ENDPOINT + "/by-email/" + user1.getEmail().toUpperCase(), false);
         assertResponseCode(getResponse2, 200);
         assertThat(getResponse2.body().jsonPath().getUUID("user.id")).isEqualTo(user1.getId());
-
     }
 
     private Response putUser(CreateUserDTO dto) throws JsonProcessingException {
