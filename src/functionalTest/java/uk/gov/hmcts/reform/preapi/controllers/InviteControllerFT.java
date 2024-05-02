@@ -100,6 +100,34 @@ public class InviteControllerFT extends FunctionalTestBase {
         assertUserExists(dto.getUserId(), false);
     }
 
+    @DisplayName("Redeem an invite with email (ignore case)")
+    @Test
+    void redeemInviteWithEmailIgnoreCase() throws JsonProcessingException {
+        // Check matches when db has a value with capitalized email
+        var user1 = createInvite(null);
+        user1.setEmail(user1.getEmail().toUpperCase());
+
+        var putResponse = putInvite(user1);
+        assertResponseCode(putResponse, 201);
+        assertInviteExists(user1.getUserId(), true);
+
+        user1.setEmail(user1.getEmail().toLowerCase());
+        var redeemResponse = postRedeem(user1);
+        assertResponseCode(redeemResponse, 204);
+
+        // Check matches when db has a lowercase and searching with uppercase
+        var user2 = createInvite(null);
+
+        var putResponse2 = putInvite(user2);
+        assertResponseCode(putResponse2, 201);
+        assertInviteExists(user2.getUserId(), true);
+
+        user2.setEmail(user2.getEmail().toUpperCase());
+        var redeemResponse2 = postRedeem(user2);
+        assertResponseCode(redeemResponse2, 204);
+    }
+
+
     @DisplayName("Delete an invite")
     @Test
     void deleteInvite() throws JsonProcessingException {
