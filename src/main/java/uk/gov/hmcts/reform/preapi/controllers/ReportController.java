@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
@@ -133,5 +134,14 @@ public class ReportController {
     )
     public ResponseEntity<List<AccessRemovedReportDTO>> reportShareBookingRemoved() {
         return ResponseEntity.ok(reportService.reportAccessRemoved());
+    }
+
+    @GetMapping("/recording-participants")
+    @Operation(
+        operationId = "reportRecordingParticipants",
+        summary = "Get report on participants and the recordings they are part of"
+    )
+    public ResponseEntity<List<RecordingParticipantsReportDTO>> reportRecordingParticipants() {
+        return ResponseEntity.ok(reportService.reportRecordingParticipants());
     }
 }

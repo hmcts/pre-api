@@ -22,6 +22,7 @@ java:
           alias: APIM_SUB_SMOKETEST_PRIMARY_KEY
         - name: apim-sub-smoketest-secondary-key
           alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
+        - name: app-insights-connection-string
         - name: tenantid
           alias: AZURE_TENANT_ID
         - name: mediaservice
