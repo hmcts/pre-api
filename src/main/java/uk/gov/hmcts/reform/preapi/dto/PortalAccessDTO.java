@@ -34,6 +34,9 @@ public class PortalAccessDTO {
     @Schema(description = "PortalAccessDeletedAt")
     private Timestamp deletedAt;
 
+    @Schema(description = "PortalAccessTermsAcceptedAt")
+    private Timestamp termsAcceptedAt;
+
     public PortalAccessDTO(PortalAccess access) {
         id = access.getId();
         lastAccess = access.getLastAccess();
@@ -41,5 +44,6 @@ public class PortalAccessDTO {
         invitedAt = access.getInvitedAt();
         registeredAt = access.getRegisteredAt();
         deletedAt = access.getDeletedAt();
+        termsAcceptedAt = access.getTermsAcceptedAt();
     }
 }

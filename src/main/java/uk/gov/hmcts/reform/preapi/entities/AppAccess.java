@@ -40,11 +40,21 @@ public class AppAccess extends CreatedModifiedAtEntity {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
+    @Column(name = "terms_accepted_at")
+    private Timestamp termsAcceptedAt;
+
     @Transient
     private boolean deleted;
 
+    @Transient
+    private boolean isTermsAccepted;
+
     public boolean isDeleted() {
         return deletedAt != null;
+    }
+
+    public boolean isTermsAccepted() {
+        return termsAcceptedAt != null && termsAcceptedAt.after(new Timestamp(System.currentTimeMillis() - 31556952000L));
     }
 
     @Override
@@ -55,6 +65,7 @@ public class AppAccess extends CreatedModifiedAtEntity {
         details.put("roleName", role.getName());
         details.put("active", active);
         details.put("deleted", deletedAt != null);
+        details.put("termsAccepted", isTermsAccepted());
         return details;
     }
 }

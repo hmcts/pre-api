@@ -32,4 +32,7 @@ public class CreatePortalAccessDTO {
 
     @Schema(description = "PortalAccessRegisteredAt")
     private Timestamp registeredAt;
+
+    @Schema(description = "PortalAccessTermsAcceptedAt")
+    private Timestamp termsAcceptedAt;
 }

@@ -36,4 +36,7 @@ public class CreateAppAccessDTO {
 
     @Schema(description = "AppAccessLastActive")
     private Timestamp lastActive;
+
+    @Schema(description = "AppAccessTermsAcceptedAt")
+    private Timestamp termsAcceptedAt;
 }
