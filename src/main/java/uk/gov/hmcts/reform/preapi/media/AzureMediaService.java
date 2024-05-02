@@ -43,12 +43,12 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public String playAsset(String assetId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String importAsset(String assetPath) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -76,26 +76,26 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public String startLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String playLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String stopLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String getLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public String getLiveEvents() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        throw new UnsupportedOperationException();
     }
 }
