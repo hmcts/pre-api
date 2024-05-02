@@ -43,7 +43,6 @@ class CaseControllerFT extends FunctionalTestBase {
         ));
 
         var putResponse = putCase(createCase);
-        System.out.println(putResponse.body().prettyPrint());
         assertResponseCode(putResponse, 201);
 
         var getResponse = assertCaseExists(createCase.getId(), true);
