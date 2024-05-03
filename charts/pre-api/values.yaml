@@ -31,7 +31,7 @@ java:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
     APIM_URI: https://sds-api-mgmt.platform.hmcts.net
-    AZURE_TENANT_ID: "{{ .Values.global.tenantId }}"
+    AZURE_TENANT_ID: 531ff96d-0ae9-462a-8d2d-bec7c0b42082
     AZURE_SUBSCRIPTION_ID: 74dacd4f-a248-45bb-a2f0-af700dc4cf68
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preams{{ .Values.global.environment }}
     AZURE_RESOURCE_GROUP: pre-{{ .Values.global.environment }}
