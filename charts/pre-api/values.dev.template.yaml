@@ -2,7 +2,6 @@ java:
   postgresql:
     enabled: true
   keyVaults:
-# don't try to load anything from KV
     pre-hmctskv-stg:
       excludeEnvironmentSuffix: true
       secrets:
