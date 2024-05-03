@@ -23,14 +23,6 @@ java:
         - name: apim-sub-smoketest-secondary-key
           alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
         - name: app-insights-connection-string
-        - name: tenantid
-          alias: AZURE_TENANT_ID
-        - name: mediaservice
-          alias: AZURE_MEDIA_SERVICES_ACCOUNT_NAME
-        - name: pp-resourcegroup
-          alias: AZURE_RESOURCE_GROUP
-        - name: subscriptionid
-          alias: AZURE_SUBSCRIPTION_ID
         - name: pp-clientid
           alias: AZURE_CLIENT_ID
         - name: pp-clientsecret
@@ -39,5 +31,8 @@ java:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
     APIM_URI: https://sds-api-mgmt.platform.hmcts.net
+    AZURE_TENANT_ID: "{{ .Values.global.tenantId }}"
+    AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preams{{ .Values.global.environment }}
+    AZURE_RESOURCE_GROUP: pre-{{ .Values.global.environment }}
 
 
