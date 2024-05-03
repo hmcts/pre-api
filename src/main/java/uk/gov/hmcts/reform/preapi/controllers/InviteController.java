@@ -146,7 +146,6 @@ public class InviteController extends PreApiController {
         schema = @Schema(implementation = String.class)
     )
     public ResponseEntity<Void> redeemInvite(@RequestParam String email) {
-        email = email.toLowerCase();
         return getUpsertResponse(inviteService.redeemInvite(email), null);
     }
 }
