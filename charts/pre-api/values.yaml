@@ -25,7 +25,7 @@ java:
         - name: app-insights-connection-string
         - name: pp-clientid
           alias: AZURE_CLIENT_ID
-        - name: pp-clientsecret
+        - name: client-secret
           alias: AZURE_CLIENT_SECRET
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
