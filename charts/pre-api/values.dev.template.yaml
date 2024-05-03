@@ -3,6 +3,21 @@ java:
     enabled: true
   keyVaults:
     # don't try to load anything from KV
+    pre-hmctskv-stg:
+      excludeEnvironmentSuffix: true
+      secrets:
+        - name: tenantid
+          alias: AZURE_TENANT_ID
+        - name: mediaservice
+          alias: AZURE_MEDIA_SERVICES_ACCOUNT_NAME
+        - name: resourcegroup
+          alias: AZURE_RESOURCE_GROUP
+        - name: subscriptionid
+          alias: AZURE_SUBSCRIPTION_ID
+        - name: pp-clientid
+          alias: AZURE_CLIENT_ID
+        - name: pp-clientsecret
+          alias: AZURE_CLIENT_SECRET
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"

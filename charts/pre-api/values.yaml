@@ -27,13 +27,13 @@ java:
           alias: AZURE_TENANT_ID
         - name: mediaservice
           alias: AZURE_MEDIA_SERVICES_ACCOUNT_NAME
-        - name: resourcegroup
+        - name: pp-resourcegroup
           alias: AZURE_RESOURCE_GROUP
         - name: subscriptionid
           alias: AZURE_SUBSCRIPTION_ID
-        - name: clientid
+        - name: pp-clientid
           alias: AZURE_CLIENT_ID
-        - name: clientsecret
+        - name: pp-clientsecret
           alias: AZURE_CLIENT_SECRET
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
