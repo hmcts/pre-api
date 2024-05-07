@@ -2,8 +2,7 @@ java:
   postgresql:
     enabled: true
   keyVaults:
-    pre-hmctskv-stg:
-      excludeEnvironmentSuffix: true
+    pre-hmctskv:
       secrets:
         - name: pp-clientid
           alias: AZ_CLIENT_ID
