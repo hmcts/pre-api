@@ -3,7 +3,7 @@ java:
     enabled: true
   keyVaults:
     pre-hmctskv:
-      excludeEnvironmentSuffix: false
+      excludeEnvironmentSuffix: true
       resourceGroup: pre-stg
       secrets:
         - name: pp-clientid
