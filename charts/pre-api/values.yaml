@@ -33,5 +33,6 @@ java:
     APIM_URI: https://sds-api-mgmt.platform.hmcts.net
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: "preams{{ .Values.global.environment }}"
     AZURE_RESOURCE_GROUP: "pre-{{ .Values.global.environment }}"
+    AZURE_SUBSCRIPTION_ID: 5ca62022-6aa2-4cee-aaa7-e7536c8d566c
 
 
