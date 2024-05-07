@@ -11,8 +11,10 @@ class RecordingManager:
     def get_data(self):
         self.source_cursor.execute("""  SELECT * 
                                         FROM public.recordings 
-                                        WHERE recordingstatus !='No Recording' AND (recordingavailable IS NULL OR 
+                                        WHERE (recordingstatus !='No Recording' OR recordingstatus IS NULL) 
+                                        AND (recordingavailable IS NULL OR 
                                             recordingavailable LIKE 'true')""")
+        
         return self.source_cursor.fetchall()
 
     def get_recording_date_and_user(self, recording_id, activity):
@@ -90,6 +92,7 @@ class RecordingManager:
 
                 created_at_datetime, user_email = self.get_recording_date_and_user(id, "Start")
 
+                created_at = None
                 if created_at_datetime:
                     created_at = parse_to_timestamp(created_at_datetime)
                 else:
@@ -243,7 +246,8 @@ class RecordingManager:
                         'details': f'Error: Filename exceeds maximum length (255) for recording id {recording_id}'
                     })
                     continue
-
+                
+                created_at = None
                 created_at_datetime, user_email = self.get_recording_date_and_user(
                     recording_id, "Start")
                 if created_at_datetime:
@@ -269,8 +273,7 @@ class RecordingManager:
                 recording_available = recording[13]
                 if recording_available is None:
                     deleted_at = datetime.now()
-                # duration =  ? - this info is in the asset files on AMS
-                # edit_instruction = ?
+    
                 if parent_recording_id == recording_id:
                     parent_recording_id = None
 
@@ -293,6 +296,7 @@ class RecordingManager:
                         created_by=created_by if created_by is not None else None,
                     )
                 except Exception as e:
+                    destination_cursor.connection.rollback()
                     self.failed_imports.append(
                         {'table_name': 'recordings', 'table_id': capture_session_id, 'recording_id': recording_id, 'details': str(e)})
 
