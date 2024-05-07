@@ -2,8 +2,9 @@ java:
   postgresql:
     enabled: true
   keyVaults:
-    pre-hmctskv-stg:
-      excludeEnvironmentSuffix: true
+    pre-hmctskv:
+      excludeEnvironmentSuffix: false
+      resourceGroup: pre-stg
       secrets:
         - name: pp-clientid
           alias: AZURE_CLIENT_ID
