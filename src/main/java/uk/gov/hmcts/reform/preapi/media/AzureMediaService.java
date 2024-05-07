@@ -29,6 +29,10 @@ public class AzureMediaService implements IMediaService {
         @Value("${azure.client-id}") String clientId,
         @Value("${azure.client-secret}") String clientSecret
     ) {
+        if (clientId == null || clientId.isEmpty()) {
+            throw new NotFoundException("Azure Client ID is not set:'" + clientId + "'");
+        }
+
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
         var profile = new AzureProfile(tenantId, subscriptionId, AzureEnvironment.AZURE);
