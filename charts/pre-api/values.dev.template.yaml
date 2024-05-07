@@ -5,9 +5,9 @@ java:
     pre-hmctskv:
       secrets:
         - name: pp-clientid
-          alias: AZURE_CLIENT_ID
+          alias: AZ_CLIENT_ID
         - name: client-secret
-          alias: AZURE_CLIENT_SECRET
+          alias: AZ_CLIENT_SECRET
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"

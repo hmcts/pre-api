@@ -24,9 +24,9 @@ java:
           alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
         - name: app-insights-connection-string
         - name: pp-clientid
-          alias: AZURE_CLIENT_ID
+          alias: AZ_CLIENT_ID
         - name: client-secret
-          alias: AZURE_CLIENT_SECRET
+          alias: AZ_CLIENT_SECRET
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
