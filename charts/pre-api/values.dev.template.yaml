@@ -3,8 +3,6 @@ java:
     enabled: true
   keyVaults:
     pre-hmctskv:
-      excludeEnvironmentSuffix: true
-      resourceGroup: pre-stg
       secrets:
         - name: pp-clientid
           alias: AZURE_CLIENT_ID
