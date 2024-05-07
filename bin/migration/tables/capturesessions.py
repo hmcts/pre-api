@@ -10,7 +10,7 @@ class CaptureSessionManager:
 
     def get_data(self):
         self.source_cursor.execute(
-            "SELECT * FROM public.recordings WHERE parentrecuid = recordinguid AND recordingstatus != 'No Recording' AND NOT (recordingstatus = 'Deleted' AND ingestaddress IS NULL)")
+            "SELECT * FROM public.recordings WHERE parentrecuid = recordinguid AND (recordingstatus != 'No Recording' OR recordingstatus is NULL) AND NOT (recordingstatus = 'Deleted' AND ingestaddress IS NULL)")
         return self.source_cursor.fetchall()
 
     def check_record_in_temp_table(self, destination_cursor, recording_id):
@@ -96,7 +96,18 @@ class CaptureSessionManager:
                 (user[0] for user in user_data if user[3] == started_by), None)
             deleted_at = parse_to_timestamp(recording[24]) if str(
                 recording[11]).lower() == 'deleted' else None
-            status = self.map_recording_status(recording[11])
+            
+            status = recording[11]
+            if status:
+                status = self.map_recording_status(recording[11])
+            else:
+                self.failed_imports.append({
+                    'table_name': 'capture_sessions',
+                    'table_id': None,
+                    'recording_id': recording_id,
+                    'details': f"No status listed for recording: {recording_id}"
+                })
+                continue
 
             result, booking_not_in_temp_table = self.check_record_in_temp_table(destination_cursor, recording_id)
             if result:
@@ -111,6 +122,8 @@ class CaptureSessionManager:
                     'details': f"Booking not in temporary recordings table for recording ID: {recording_id}"
                 })
                 continue
+        
+
 
         if temp_recording_batch:
             try:
