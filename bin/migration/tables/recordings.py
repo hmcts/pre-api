@@ -96,7 +96,7 @@ class RecordingManager:
                 if created_at_datetime:
                     created_at = parse_to_timestamp(created_at_datetime)
                 else:
-                    parse_to_timestamp(recording[22])
+                    created_at = parse_to_timestamp(recording[22])
 
                 if created_at is None:
                     self.failed_imports.append({
@@ -253,7 +253,7 @@ class RecordingManager:
                 if created_at_datetime:
                     created_at = parse_to_timestamp(created_at_datetime)
                 else:
-                    parse_to_timestamp(recording[22])
+                    created_at = parse_to_timestamp(recording[22])
 
                 if created_at is None:
                     self.failed_imports.append({
