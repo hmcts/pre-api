@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -76,17 +77,10 @@ public class ReportService {
 
     @Transactional
     public List<RecordingsPerCaseReportDTO> reportRecordingsPerCase() {
-        return caseRepository
-            .findAll()
+        return recordingRepository
+            .countRecordingsPerCase()
             .stream()
-            .map(c -> new RecordingsPerCaseReportDTO(
-                c,
-                captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
-                    c.getId(),
-                    RecordingStatus.RECORDING_AVAILABLE
-                )
-            ))
-            .sorted((case1, case2) -> Integer.compare(case2.getCount(), case1.getCount()))
+            .map(data -> new RecordingsPerCaseReportDTO((Case) data[0], ((Long) data[1]).intValue()))
             .collect(Collectors.toList());
     }
 
