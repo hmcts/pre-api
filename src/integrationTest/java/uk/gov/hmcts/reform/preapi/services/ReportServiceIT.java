@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
@@ -54,19 +56,19 @@ public class ReportServiceIT extends IntegrationTestBase {
         entityManager.persist(share);
 
         var reportFilterNone = reportService.reportShared(null, null, null, null);
-        assertReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterNone);
+        assertSharedReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterNone);
 
         var reportFilterCourt = reportService.reportShared(court.getId(), null, null, null);
-        assertReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterCourt);
+        assertSharedReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterCourt);
 
         var reportFilterBooking = reportService.reportShared(null, booking.getId(), null, null);
-        assertReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterBooking);
+        assertSharedReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterBooking);
 
         var reportFilterUserId = reportService.reportShared(null, null, user1.getId(), null);
-        assertReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterUserId);
+        assertSharedReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterUserId);
 
         var reportFilterUserEmail = reportService.reportShared(null, null, null, user1.getEmail());
-        assertReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterUserEmail);
+        assertSharedReportSuccess(court, caseEntity, booking, user1, user2, share, reportFilterUserEmail);
 
         var reportFilterNotFound1 = reportService.reportShared(UUID.randomUUID(), null, null, null);
         assertThat(reportFilterNotFound1.isEmpty()).isTrue();
@@ -186,9 +188,112 @@ public class ReportServiceIT extends IntegrationTestBase {
             .isTrue();
     }
 
+    @Transactional
+    @Test
+    void reportRecordingsPerCaseSuccess() {
+        var region = HelperFactory.createRegion("Example Region", Set.of());
+        entityManager.persist(region);
 
-    private void assertReportSuccess(Court court, Case caseEntity, Booking booking, User user1, User user2,
-                                     ShareBooking share, List<SharedReportDTO> report) {
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example court", "12458");
+        court.setRegions(Set.of(region));
+        entityManager.persist(court);
+
+        var aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase1);
+        var aCase2 = HelperFactory.createCase(court, "CASE67890", true, null);
+        entityManager.persist(aCase2);
+
+        var booking1 = HelperFactory.createBooking(aCase1, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking1);
+        var booking2 = HelperFactory.createBooking(aCase1, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking2);
+        var booking3 = HelperFactory.createBooking(aCase2, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking3);
+
+        var captureSession1 = HelperFactory.createCaptureSession(
+            booking1,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession1);
+        var captureSession2 = HelperFactory.createCaptureSession(
+            booking2,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession2);
+        var captureSession3 = HelperFactory.createCaptureSession(
+            booking3,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession3);
+
+        var recording1 = HelperFactory.createRecording(captureSession1, null, 1, null, "example.file", null);
+        entityManager.persist(recording1);
+        var recording2 = HelperFactory.createRecording(captureSession2, null, 1, null, "example.file", null);
+        entityManager.persist(recording2);
+        var recording3 = HelperFactory.createRecording(captureSession3, null, 1, null, "example.file", null);
+        entityManager.persist(recording3);
+        var recording4 = HelperFactory.createRecording(captureSession3, recording3, 2, null, "example.file", null);
+        entityManager.persist(recording4);
+
+        var report = reportService.reportRecordingsPerCase();
+
+        assertThat(report).isNotNull();
+        assertThat(report.size()).isEqualTo(2);
+
+        var recordingsForCase1 =  report
+            .stream()
+            .filter(r -> r.getCaseReference().equals(aCase1.getReference()))
+            .findFirst();
+        assertThat(recordingsForCase1).isPresent();
+        assertRecordingPerCaseSuccess(recordingsForCase1.get(), aCase1, court, region, 2);
+
+        var recordingsForCase2 =  report
+            .stream()
+            .filter(r -> r.getCaseReference().equals(aCase2.getReference()))
+            .findFirst();
+        assertThat(recordingsForCase2).isPresent();
+        assertRecordingPerCaseSuccess(recordingsForCase2.get(), aCase2, court, region, 1);
+    }
+
+    private void assertRecordingPerCaseSuccess(RecordingsPerCaseReportDTO report,
+                                               Case aCase,
+                                               Court court,
+                                               Region region,
+                                               int expectedCount) {
+        assertThat(report.getCaseReference()).isEqualTo(aCase.getReference());
+        assertThat(report.getCourt()).isEqualTo(court.getName());
+        assertThat(report.getRegions().size()).isEqualTo(1);
+        assertThat(report.getRegions().stream().findFirst().get().getName())
+            .isEqualTo(region.getName());
+        assertThat(report.getCount()).isEqualTo(expectedCount);
+    }
+
+    private void assertSharedReportSuccess(Court court, Case caseEntity, Booking booking, User user1, User user2,
+                                           ShareBooking share, List<SharedReportDTO> report) {
         assertThat(report.size()).isEqualTo(1);
 
         assertThat(report.getFirst().getSharedAt()).isEqualTo(share.getCreatedAt());
