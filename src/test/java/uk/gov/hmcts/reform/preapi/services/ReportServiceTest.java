@@ -25,7 +25,6 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -62,9 +61,6 @@ public class ReportServiceTest {
 
     @MockBean
     private RecordingRepository recordingRepository;
-
-    @MockBean
-    private CaseRepository caseRepository;
 
     @MockBean
     private ShareBookingRepository shareBookingRepository;
@@ -207,19 +203,8 @@ public class ReportServiceTest {
         anotherCase.setCourt(courtEntity);
         anotherCase.setReference("XYZ456");
 
-        when(caseRepository.findAll()).thenReturn(List.of(anotherCase, caseEntity));
-        when(
-            captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
-                anotherCase.getId(),
-                RecordingStatus.RECORDING_AVAILABLE
-            )
-        ).thenReturn(0);
-        when(
-            captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
-                caseEntity.getId(),
-                RecordingStatus.RECORDING_AVAILABLE
-            )
-        ).thenReturn(1);
+        when(recordingRepository.countRecordingsPerCase())
+            .thenReturn(List.of(new Object[] { caseEntity, (long) 1 }, new Object[]{ anotherCase, (long) 0 }));
 
         var report = reportService.reportRecordingsPerCase();
 
