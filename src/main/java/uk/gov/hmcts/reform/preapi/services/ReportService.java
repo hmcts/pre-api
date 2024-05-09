@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -37,7 +36,6 @@ public class ReportService {
 
     private final CaptureSessionRepository captureSessionRepository;
     private final RecordingRepository recordingRepository;
-    private final CaseRepository caseRepository;
     private final ShareBookingRepository shareBookingRepository;
     private final AuditRepository auditRepository;
     private final UserRepository userRepository;
@@ -46,14 +44,12 @@ public class ReportService {
     @Autowired
     public ReportService(CaptureSessionRepository captureSessionRepository,
                          RecordingRepository recordingRepository,
-                         CaseRepository caseRepository,
                          ShareBookingRepository shareBookingRepository,
                          AuditRepository auditRepository,
                          UserRepository userRepository,
                          AppAccessRepository appAccessRepository) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
-        this.caseRepository = caseRepository;
         this.shareBookingRepository = shareBookingRepository;
         this.auditRepository = auditRepository;
         this.userRepository = userRepository;
@@ -63,15 +59,9 @@ public class ReportService {
     @Transactional
     public List<ConcurrentCaptureSessionReportDTO> reportCaptureSessions() {
         return captureSessionRepository
-            .findAll()
+            .reportConcurrentCaptureSessions()
             .stream()
-            .map(c -> {
-                var recordings = recordingRepository
-                    .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(c, 1);
-                return (recordings.isEmpty())
-                    ? new ConcurrentCaptureSessionReportDTO(c)
-                    : new ConcurrentCaptureSessionReportDTO(recordings.getFirst());
-            })
+            .map(ConcurrentCaptureSessionReportDTO::new)
             .collect(Collectors.toList());
     }
 
