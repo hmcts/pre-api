@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
 import java.time.Duration;
