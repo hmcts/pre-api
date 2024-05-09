@@ -1,4 +1,5 @@
 from .helpers import check_existing_record, parse_to_timestamp, audit_entry_creation, get_user_id
+from datetime import datetime
 import uuid
 
 class PortalAccessManager:
@@ -71,10 +72,10 @@ class PortalAccessManager:
                     status = 'ACTIVE'
                 elif login_enabled_and_invited:
                     status = "INVITATION_SENT"
-                else:
-                    status = "INVITATION_SENT"
 
                 invited_at, registered_at = dataverse_info.get(user_id, (None, None))
+                invited_at = datetime.now() if invited_at is None else invited_at
+                
                 last_access = parse_to_timestamp(self.get_last_access_date(user_email))
 
                 created_by = get_user_id(destination_cursor, user[6])

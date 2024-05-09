@@ -47,6 +47,52 @@ public class UserControllerFT extends FunctionalTestBase {
             .isEqualTo("Conflict: User with email: " + dto2.getEmail() + " already exists");
     }
 
+    @DisplayName("Scenario: Restore a user")
+    @Test
+    void shouldRestoreUser() throws JsonProcessingException {
+        var dto = createUserDto();
+        var createResponse = putUser(dto);
+        assertResponseCode(createResponse, 201);
+        assertUserExists(dto.getId(), true);
+
+        var deleteResponse = doDeleteRequest(USERS_ENDPOINT + "/" + dto.getId(), true);
+        assertResponseCode(deleteResponse, 200);
+        assertUserExists(dto.getId(), false);
+
+        var undeleteResponse = doPostRequest(USERS_ENDPOINT + "/" + dto.getId() + "/undelete", true);
+        assertResponseCode(undeleteResponse, 200);
+        assertUserExists(dto.getId(), true);
+    }
+
+    @DisplayName("Get user by email (ignore case)")
+    @Test
+    void userByEmailIgnoreCase() throws JsonProcessingException {
+        // Check matches when db has a value with capitalized email
+        var user1 = createUserDto();
+        user1.setEmail(user1.getEmail().toUpperCase());
+
+        var putResponse = putUser(user1);
+        assertResponseCode(putResponse, 201);
+        assertUserExists(user1.getId(), true);
+
+        user1.setEmail(user1.getEmail().toLowerCase());
+        var getResponse1 = doGetRequest(USERS_ENDPOINT + "/by-email/" + user1.getEmail().toLowerCase(), false);
+        assertResponseCode(getResponse1, 200);
+        assertThat(getResponse1.body().jsonPath().getUUID("user.id")).isEqualTo(user1.getId());
+
+        // Check matches when db has a lowercase and searching with uppercase
+        var user2 = createUserDto();
+
+        var putResponse2 = putUser(user2);
+        assertResponseCode(putResponse2, 201);
+        assertUserExists(user2.getId(), true);
+
+        user2.setEmail(user2.getEmail().toUpperCase());
+        var getResponse2 = doGetRequest(USERS_ENDPOINT + "/by-email/" + user1.getEmail().toUpperCase(), false);
+        assertResponseCode(getResponse2, 200);
+        assertThat(getResponse2.body().jsonPath().getUUID("user.id")).isEqualTo(user1.getId());
+    }
+
     private Response putUser(CreateUserDTO dto) throws JsonProcessingException {
         return doPutRequest(
             USERS_ENDPOINT + "/" + dto.getId(),
