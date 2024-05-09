@@ -135,19 +135,12 @@ public class ReportServiceTest {
     void captureSessionReportCaptureSessionIncompleteSuccess() {
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
-        when(captureSessionRepository.findAll()).thenReturn(List.of(captureSessionEntity));
-        when(recordingRepository
-                 .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
-                     captureSessionEntity,
-                     1
-                 )
-        ).thenReturn(List.of());
+        captureSessionEntity.setRecordings(Set.of());
+        when(captureSessionRepository.reportConcurrentCaptureSessions()).thenReturn(List.of(captureSessionEntity));
 
         var report = reportService.reportCaptureSessions();
 
-        verify(captureSessionRepository, times(1)).findAll();
-        verify(recordingRepository, times(1))
-            .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
+        verify(captureSessionRepository, times(1)).reportConcurrentCaptureSessions();
 
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
@@ -162,25 +155,18 @@ public class ReportServiceTest {
         assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
     }
 
-    @DisplayName("Find all capture sessions and return a list of models as a report when capture session is complete")
+    @DisplayName("Find all capture sessions and return a list of models as a report on concurrent capture sessions")
     @Test
-    void captureSessionReportCaptureSessionCompleteSuccess() {
+    void captureSessionReportConcurrentCaptureSessionsSuccess() {
         recordingEntity.setDuration(Duration.ofMinutes(3));
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
-        when(captureSessionRepository.findAll()).thenReturn(List.of(captureSessionEntity));
-        when(recordingRepository
-                 .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
-                     captureSessionEntity,
-                     1
-                 )
-        ).thenReturn(List.of(recordingEntity));
+        captureSessionEntity.setRecordings(Set.of(recordingEntity));
+        when(captureSessionRepository.reportConcurrentCaptureSessions()).thenReturn(List.of(captureSessionEntity));
 
         var report = reportService.reportCaptureSessions();
 
-        verify(captureSessionRepository, times(1)).findAll();
-        verify(recordingRepository, times(1))
-            .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
+        verify(captureSessionRepository, times(1)).reportConcurrentCaptureSessions();
 
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();

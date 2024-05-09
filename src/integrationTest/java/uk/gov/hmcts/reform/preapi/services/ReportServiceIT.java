@@ -4,12 +4,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -277,6 +280,111 @@ public class ReportServiceIT extends IntegrationTestBase {
             .findFirst();
         assertThat(recordingsForCase2).isPresent();
         assertRecordingPerCaseSuccess(recordingsForCase2.get(), aCase2, court, region, 1);
+    }
+
+    @Transactional
+    @Test
+    void reportConcurrentCaptureSessionsSuccess() {
+        var region = HelperFactory.createRegion("Example Region", Set.of());
+        entityManager.persist(region);
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example court", "12458");
+        court.setRegions(Set.of(region));
+        entityManager.persist(court);
+
+        var aCase = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(aCase);
+
+        var booking1 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking1);
+
+        var booking2 = HelperFactory.createBooking(aCase, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking2);
+
+        var captureSession1 = HelperFactory.createCaptureSession(
+            booking1,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSession1);
+        var captureSession2 = HelperFactory.createCaptureSession(
+            booking2,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING,
+            null
+        );
+        entityManager.persist(captureSession2);
+        var captureSession3 = HelperFactory.createCaptureSession(
+            booking1,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            Timestamp.from(Instant.now()),
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            Timestamp.from(Instant.now())
+        );
+        entityManager.persist(captureSession3);
+
+        var recording1 = HelperFactory.createRecording(captureSession1, null, 1, null, "example.file", null);
+        entityManager.persist(recording1);
+        var recording3 = HelperFactory.createRecording(
+            captureSession3,
+            null,
+            1,
+            null,
+            "example.file",
+            Timestamp.from(Instant.now())
+        );
+        entityManager.persist(recording3);
+
+        var report = reportService.reportCaptureSessions();
+        assertThat(report).isNotNull();
+        assertThat(report.size()).isEqualTo(2);
+
+        var report1 = report.stream().filter(r -> r.getId().equals(captureSession1.getId())).findFirst();
+        assertThat(report1).isPresent();
+        assertConcurrentCaptureSessionsSuccess(report1.get(), court, region, aCase, captureSession1, recording1);
+
+        var report2 = report.stream().filter(r -> r.getId().equals(captureSession2.getId())).findFirst();
+        assertThat(report2).isPresent();
+        assertConcurrentCaptureSessionsSuccess(report2.get(), court, region, aCase, captureSession2, null);
+
+        assertThat(report.stream().anyMatch(r -> r.getId().equals(captureSession3.getId()))).isFalse();
+    }
+
+    private void assertConcurrentCaptureSessionsSuccess(ConcurrentCaptureSessionReportDTO report,
+                                                        Court court,
+                                                        Region region,
+                                                        Case aCase,
+                                                        CaptureSession captureSession,
+                                                        Recording recording) {
+        assertThat(report).isNotNull();
+        assertThat(report.getId()).isEqualTo(captureSession.getId());
+        assertThat(report.getStartTime()).isEqualTo(captureSession.getStartedAt());
+        assertThat(report.getEndTime()).isEqualTo(captureSession.getFinishedAt());
+        assertThat(report.getDuration()).isEqualTo((recording == null ? null : recording.getDuration()));
+        assertThat(report.getCaseReference()).isEqualTo(aCase.getReference());
+        assertThat(report.getCourt()).isEqualTo(court.getName());
+        assertThat(report.getRegion().size()).isEqualTo(1);
+        assertThat(report.getRegion().stream().findFirst().get().getName())
+            .isEqualTo(region.getName());
+
     }
 
     private void assertRecordingPerCaseSuccess(RecordingsPerCaseReportDTO report,
