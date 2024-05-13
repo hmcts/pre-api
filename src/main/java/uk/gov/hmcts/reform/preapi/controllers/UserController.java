@@ -12,15 +12,7 @@ import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchUsers;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
@@ -174,5 +166,17 @@ public class UserController extends PreApiController {
     public ResponseEntity<Void> undeleteUser(@PathVariable UUID userId) {
         userService.undelete(userId);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/acceptPortalTerms")
+    @Operation(operationId = "acceptPortalTerms", summary = "Accept Portal Terms")
+    public ResponseEntity<Void> acceptPortalTerms(@RequestHeader("X-User-Id") UUID userId) {
+        return getUpsertResponse(userService.acceptPortalTerms(userId), userId);
+    }
+
+    @PostMapping("/acceptAppTerms")
+    @Operation(operationId = "acceptAppTerms", summary = "Accept App Terms")
+    public ResponseEntity<Void> acceptAppTerms(@RequestHeader("X-User-Id") UUID userId) {
+        return getUpsertResponse(userService.acceptAppTerms(userId), userId);
     }
 }
