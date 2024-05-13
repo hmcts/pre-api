@@ -65,6 +65,8 @@ definitions:
         type: string
       role:
         $ref: '#/definitions/RoleDTO'
+      terms_accepted:
+        type: boolean
       terms_accepted_at:
         description: AppAccessTermsAcceptedAt
         format: date-time
@@ -375,10 +377,6 @@ definitions:
         description: AppAccessRoleId
         format: uuid
         type: string
-      terms_accepted_at:
-        description: AppAccessTermsAcceptedAt
-        format: date-time
-        type: string
       user_id:
         description: AppAccessUserId
         format: uuid
@@ -656,10 +654,6 @@ definitions:
           - REGISTERED
           - ACTIVE
           - INACTIVE
-        type: string
-      terms_accepted_at:
-        description: PortalAccessTermsAcceptedAt
-        format: date-time
         type: string
     required:
       - id
@@ -1415,6 +1409,8 @@ definitions:
           - ACTIVE
           - INACTIVE
         type: string
+      terms_accepted:
+        type: boolean
       terms_accepted_at:
         description: PortalAccessTermsAcceptedAt
         format: date-time
@@ -3143,6 +3139,50 @@ paths:
       summary: >-
         Search for Users by first name, last name, email, organisation, court or
         role
+      tags:
+        - user-controller
+  /users/acceptAppTerms:
+    post:
+      operationId: acceptAppTerms
+      parameters:
+        - format: uuid
+          in: header
+          name: X-User-Id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Accept App Terms
+      tags:
+        - user-controller
+  /users/acceptPortalTerms:
+    post:
+      operationId: acceptPortalTerms
+      parameters:
+        - format: uuid
+          in: header
+          name: X-User-Id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Accept Portal Terms
       tags:
         - user-controller
   '/users/by-email/{email}':
