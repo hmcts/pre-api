@@ -53,6 +53,7 @@ public class InviteService {
         return userService.upsert(createInviteDTO);
     }
 
+    @Transactional
     public UpsertResult redeemInvite(String email) {
         var portalAccess = portalAccessRepository
             .findByUser_EmailAndDeletedAtNullAndUser_DeletedAtNull(email)
