@@ -67,11 +67,44 @@ public class BookingDTOTest {
         var participants = Set.of(participantB, participantC, participantA);
         booking.setParticipants(participants);
 
-        var captureSession2 = HelperFactory.createCaptureSession(booking, RecordingOrigin.PRE, null, null, null, null, null, null, null, null);
+        var captureSession2 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
         captureSession2.setId(UUID.fromString("22222222-2222-2222-2222-222222222222"));
-        var captureSession3 = HelperFactory.createCaptureSession(booking, RecordingOrigin.PRE, null, null, null, null, null, null, null, null);
+        var captureSession3 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
         captureSession3.setId(UUID.fromString("33333333-3333-3333-3333-333333333333"));
-        var captureSession1 = HelperFactory.createCaptureSession(booking, RecordingOrigin.PRE, null, null, null, null, null, null, null, null);
+        var captureSession1 = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
         captureSession1.setId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
         booking.setCaptureSessions(Set.of(captureSession2, captureSession3, captureSession1));
 

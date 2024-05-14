@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
