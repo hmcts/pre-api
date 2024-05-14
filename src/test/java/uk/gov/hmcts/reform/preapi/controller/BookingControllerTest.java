@@ -212,7 +212,7 @@ class BookingControllerTest {
         shareBooking.setId(UUID.randomUUID());
         shareBooking.setSharedByUser(HelperFactory.easyCreateBaseUserDTO());
         shareBooking.setSharedWithUser(HelperFactory.easyCreateBaseUserDTO());
-        booking.setShares(Set.of(shareBooking));
+        booking.setShares(List.of(shareBooking));
 
         when(caseService.findById(caseDTO.getId())).thenReturn(caseDTO);
         when(bookingService.findById(bookingId)).thenReturn(booking);
