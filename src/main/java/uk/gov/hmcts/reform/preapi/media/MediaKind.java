@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class MediaKind implements IMediaService {
     private final String mkToken;
 
-    private final MediaKindClient client;
+    protected MediaKindClient client;
 
     public MediaKind(
         @Value("${mediakind.api:}") String mkApi,

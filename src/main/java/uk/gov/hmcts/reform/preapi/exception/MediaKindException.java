@@ -8,6 +8,6 @@ public class MediaKindException extends RuntimeException {
     }
 
     public MediaKindException() {
-        super("Internal Server Error: Unable to connect to Media Service");
+        super("Unable to connect to Media Service");
     }
 }

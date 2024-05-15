@@ -6,7 +6,6 @@ import feign.RequestLine;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 
-
 public interface MediaKindClient {
 
     @RequestLine("GET /assets")

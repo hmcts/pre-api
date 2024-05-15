@@ -12,7 +12,9 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
+import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
+import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
 import java.util.List;
@@ -37,6 +39,9 @@ public class MediaServiceControllerTest {
     private AzureMediaService mediaService;
 
     @MockBean
+    private MediaKind mediaKind;
+
+    @MockBean
     private UserAuthenticationService userAuthenticationService;
 
     @DisplayName("Should return 200 when successfully connected to media service")
@@ -48,10 +53,10 @@ public class MediaServiceControllerTest {
             .andExpect(status().isOk())
             .andReturn().getResponse();
 
-        assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service");
+        assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service (ams)");
     }
 
-
+    // todo remove this test with switch to mk
     @DisplayName("Should return 500 when cannot connect to media service")
     @Test
     void getMediaCannotConnect() throws Exception {
@@ -74,5 +79,31 @@ public class MediaServiceControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
                            .value("An error occurred when trying to communicate with Azure Media Service."));
+    }
+
+    // todo remove this test with switch to mk
+    @DisplayName("Should return 200 when successfully connected to media service (mediakind)")
+    @Test
+    void getMediaMkSuccess() throws Exception {
+        when(mediaKind.getAssets()).thenReturn(List.of());
+
+        var response = mockMvc.perform(get("/media-service/health-mk"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
+
+        assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service (mk)");
+    }
+
+    // todo update this test with switch to mk
+    @DisplayName("Should return 500 when cannot connect to media service (mk)")
+    @Test
+    void getMediaMkCannotConnect() throws Exception {
+        doThrow(new MediaKindException()).when(mediaKind).getAssets();
+
+        mockMvc.perform(get("/media-service/health-mk"))
+            .andExpect(status().isInternalServerError())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Unable to connect to Media Service"));
     }
 }

@@ -17,8 +17,12 @@ public class MediaServiceController extends PreApiController {
     private final AzureMediaService mediaService;
     private final MediaKind mediaKind;
 
+    // todo change when moving to mk
     @Autowired
-    public MediaServiceController(AzureMediaService mediaService, MediaKind mediaKind) {
+    public MediaServiceController(
+        AzureMediaService mediaService,
+        MediaKind mediaKind
+    ) {
         this.mediaService = mediaService;
         this.mediaKind = mediaKind;
     }
