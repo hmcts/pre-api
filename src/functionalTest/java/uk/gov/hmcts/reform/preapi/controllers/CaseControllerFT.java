@@ -329,7 +329,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(res).isNotNull();
         assertThat(res.getCourt().getId()).isEqualTo(dto.getCourtId());
         assertThat(res.getReference()).isEqualTo(dto.getReference());
-        assertThat(res.getParticipants()).isEmpty();
+        assertThat(res.getParticipants()).hasSize(dto.getParticipants().size());
         assertThat(res.isTest()).isEqualTo(dto.isTest());
         assertThat(res.getCreatedAt()).isNotNull();
         assertThat(res.getModifiedAt()).isNotNull();
