@@ -230,6 +230,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Restore booking")
     @Test
     void undeleteBooking() throws JsonProcessingException {
+        // create booking
         var caseEntity = createCase();
         var participants = Set.of(
             createParticipant(ParticipantType.WITNESS),
@@ -248,14 +249,19 @@ class BookingControllerFT extends FunctionalTestBase {
         var putResponse = putBooking(booking);
         assertResponseCode(putResponse, 201);
         assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
 
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
-        assertResponseCode(deleteResponse, 204);
+        // delete case (and associated booking)
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseEntity.getId(), true);
+        assertResponseCode(deleteResponse, 200);
         assertBookingExists(booking.getId(), false);
+        assertCaseExists(caseEntity.getId(), false);
 
+        // undelete booking
         var undeleteResponse = doPostRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/undelete", true);
         assertResponseCode(undeleteResponse, 200);
         assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
     }
 
     private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
