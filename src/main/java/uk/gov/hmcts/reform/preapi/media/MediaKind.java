@@ -48,6 +48,8 @@ public class MediaKind implements IMediaService {
     public AssetDTO getAsset(String assetName) {
         try {
             return new AssetDTO(client.getAsset(assetName, mkToken));
+        } catch (FeignException.NotFound e) {
+            return null;
         } catch (FeignException e) {
             throw new MediaKindException();
         }

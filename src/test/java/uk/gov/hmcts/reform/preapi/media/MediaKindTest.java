@@ -136,7 +136,7 @@ public class MediaKindTest {
         assertThat(result.getName()).isEqualTo(assetName);
     }
 
-    @DisplayName("Should throw on MediaKind exception on feign client error")
+    @DisplayName("Should throw on MediaKind exception on feign client errors")
     @Test
     void getAssetByAssetNameFeignExceptionThrown() {
         when(mockClient.getAsset(anyString(), anyString())).thenThrow(FeignException.class);
@@ -145,6 +145,17 @@ public class MediaKindTest {
             MediaKindException.class,
             () -> mediaKind.getAsset("asset1")
         );
+        verify(mockClient, times(1)).getAsset(anyString(), anyString());
+    }
+
+    @DisplayName("Should return null when get asset returns 404")
+    @Test
+    void getAssetByAssetNameNotFound() {
+        var mockError = mock(FeignException.NotFound.class);
+        when(mockClient.getAsset(anyString(), anyString())).thenThrow(mockError);
+
+        assertThat(mediaKind.getAsset("asset1")).isNull();
+
         verify(mockClient, times(1)).getAsset(anyString(), anyString());
     }
 
