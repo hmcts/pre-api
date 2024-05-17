@@ -16,6 +16,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = MediaKind.class)
@@ -33,14 +35,14 @@ public class MediaKindTest {
 
     @DisplayName("Should get a list of assets")
     @Test
-    void testGetAssets_Success() {
+    void getAssetsSuccess() {
         var asset1 = createMkAsset("asset1");
         var asset2 = createMkAsset("asset2");
         var mockAssets = MkGetListResponse.<MkAsset>builder()
             .value(List.of(asset1, asset2))
             .build();
 
-        when(mockClient.getAssets(anyString())).thenReturn(mockAssets);
+        when(mockClient.getAssets(eq(0), anyString())).thenReturn(mockAssets);
 
         var assets = mediaKind.getAssets();
 
@@ -51,8 +53,8 @@ public class MediaKindTest {
 
     @DisplayName("Should fail to get a list of assets and throw a media kind exception")
     @Test
-    void testGetAssets_FeignExceptionThrown() {
-        when(mockClient.getAssets(anyString()))
+    void getAssetsFeignExceptionThrown() {
+        when(mockClient.getAssets(eq(0), anyString()))
             .thenThrow(FeignException.class);
 
         var message = assertThrows(
@@ -61,6 +63,60 @@ public class MediaKindTest {
         ).getMessage();
 
         assertThat(message).isEqualTo("Unable to connect to Media Service");
+    }
+
+
+    @Test
+    void getAllPaginatedMkListEmpty() {
+        MediaKind.GetListFunction<String> mockFunction = mock((skip ->
+            MkGetListResponse.<String>builder().value(List.of()).build()));
+
+        var result = mediaKind.getAllMkList(mockFunction);
+
+        assertThat(result).hasSize(0);
+    }
+
+    @Test
+    void getAllPaginatedMkListOnePage() {
+        MediaKind.GetListFunction<String> mockFunction = mock((skip ->
+            MkGetListResponse.<String>builder().value(List.of("item 1", "item 2")).build()));
+
+        var result = mediaKind.getAllMkList(mockFunction);
+
+        assertThat(result).hasSize(2);
+        assertThat(result.contains("item 1")).isTrue();
+        assertThat(result.contains("item 2")).isTrue();
+    }
+
+    @Test
+    void getAllPaginatedMkListMultiPage() {
+        MediaKind.GetListFunction<String> mockFunction = mock((skip ->
+            MkGetListResponse.<String>builder().build())
+        );
+
+        when(mockFunction.get(0)).thenReturn(
+            MkGetListResponse.<String>builder()
+                .value(List.of("item 1", "item 2"))
+                .nextLink("next link skip token = 2")
+                .supplemental(MkGetListResponse.Supplemental.builder()
+                                  .pagination(MkGetListResponse.MkPagination.builder()
+                                                  .end(2).build())
+                                  .build())
+                .build()
+        );
+        when(mockFunction.get(2)).thenReturn(
+            MkGetListResponse.<String>builder()
+                .value(List.of("item 3", "item 4"))
+                .build()
+        );
+
+        var result = mediaKind.getAllMkList(mockFunction);
+
+        assertThat(result).hasSize(4);
+        assertThat(result.contains("item 1")).isTrue();
+        assertThat(result.contains("item 2")).isTrue();
+        assertThat(result.contains("item 3")).isTrue();
+        assertThat(result.contains("item 4")).isTrue();
     }
 
     @DisplayName("Should throw Unsupported Operation Exception when method is not defined")

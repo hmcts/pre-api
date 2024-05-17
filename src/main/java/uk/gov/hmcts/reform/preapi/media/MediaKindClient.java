@@ -8,10 +8,10 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 
 public interface MediaKindClient {
 
-    @RequestLine("GET /assets")
+    @RequestLine("GET /assets?%24skiptoken={skipToken}")
     @Headers({
         "accept: application/json",
         "x-mkio-token: {token}"
     })
-    MkGetListResponse<MkAsset> getAssets(@Param("token") String mkToken);
+    MkGetListResponse<MkAsset> getAssets(@Param("skipToken") int skipToken, @Param("token") String mkToken);
 }

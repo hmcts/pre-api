@@ -9,9 +9,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
+import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class MediaKind implements IMediaService {
@@ -49,8 +53,8 @@ public class MediaKind implements IMediaService {
     @Override
     public List<AssetDTO> getAssets() {
         try {
-            var res = client.getAssets(mkToken).getValue();
-            return res.stream()
+            return getAllMkList(skip -> client.getAssets(skip, mkToken))
+                .stream()
                 .map(AssetDTO::new)
                 .collect(Collectors.toList());
         } catch (FeignException e) {
@@ -81,5 +85,27 @@ public class MediaKind implements IMediaService {
     @Override
     public String getLiveEvents() {
         throw new UnsupportedOperationException();
+    }
+
+    protected <E> List<E> getAllMkList(GetListFunction<E> func) {
+        var data = new ArrayList<E>();
+        Integer[] skip = {0};
+
+        Stream.iterate(func.get(skip[0]), Objects::nonNull, res -> {
+            if (res.getNextLink() != null) {
+                skip[0] = res.getSupplemental().getPagination().getEnd();
+                return func.get(skip[0]);
+            } else {
+                skip[0] = null;
+                return null;
+            }
+        }).map(MkGetListResponse::getValue).forEach(data::addAll);
+
+        return data;
+    }
+
+    @FunctionalInterface
+    protected interface GetListFunction<E> {
+        MkGetListResponse<E> get(int skip);
     }
 }
