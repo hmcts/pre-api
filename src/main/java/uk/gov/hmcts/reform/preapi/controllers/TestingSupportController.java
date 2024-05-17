@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -8,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -87,21 +87,21 @@ class TestingSupportController {
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createRoom() {
+    public ResponseEntity<Map<String, String>> createRoom(@RequestParam(required = false) String roomName) {
         var room = new Room();
-        room.setName("Example Room");
+        room.setName(roomName == null || roomName.isEmpty()  ? "Example Room" : roomName);
         roomRepository.save(room);
 
-        return ResponseEntity.ok(Map.of("roomId", room.getId().toString()));
+        return ResponseEntity.ok(Map.of("roomId", room.getId().toString(), "roomName", room.getName()));
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createRegion() {
+    public ResponseEntity<Map<String, String>> createRegion(@RequestParam(required = false) String regionName) {
         var region = new Region();
-        region.setName("Example Region");
+        region.setName(regionName == null || regionName.isEmpty()  ? "Example Region" : regionName);
         regionRepository.save(region);
 
-        return ResponseEntity.ok(Map.of("regionId", region.getId().toString()));
+        return ResponseEntity.ok(Map.of("regionId", region.getId().toString(), "regionName", region.getName()));
     }
 
     @PostMapping(path = "/create-court", produces = MediaType.APPLICATION_JSON_VALUE)
