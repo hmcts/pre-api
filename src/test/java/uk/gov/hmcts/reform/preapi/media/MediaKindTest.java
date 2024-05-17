@@ -71,7 +71,7 @@ public class MediaKindTest {
         MediaKind.GetListFunction<String> mockFunction = mock((skip ->
             MkGetListResponse.<String>builder().value(List.of()).build()));
 
-        var result = mediaKind.getAllMkList(mockFunction);
+        var result = mediaKind.getAllMkList(mockFunction).toList();
 
         assertThat(result).hasSize(0);
     }
@@ -81,7 +81,7 @@ public class MediaKindTest {
         MediaKind.GetListFunction<String> mockFunction = mock((skip ->
             MkGetListResponse.<String>builder().value(List.of("item 1", "item 2")).build()));
 
-        var result = mediaKind.getAllMkList(mockFunction);
+        var result = mediaKind.getAllMkList(mockFunction).toList();
 
         assertThat(result).hasSize(2);
         assertThat(result.contains("item 1")).isTrue();
@@ -110,7 +110,7 @@ public class MediaKindTest {
                 .build()
         );
 
-        var result = mediaKind.getAllMkList(mockFunction);
+        var result = mediaKind.getAllMkList(mockFunction).toList();
 
         assertThat(result).hasSize(4);
         assertThat(result.contains("item 1")).isTrue();
