@@ -20,7 +20,7 @@ public interface PortalAccessRepository extends SoftDeleteRepository<PortalAcces
 
     Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(UUID id, AccessStatus status);
 
-    Optional<PortalAccess> findByUser_EmailAndDeletedAtNullAndUser_DeletedAtNull(String email);
+    Optional<PortalAccess> findByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(String email);
 
     Optional<PortalAccess> findByIdAndDeletedAtIsNull(UUID id);
 
