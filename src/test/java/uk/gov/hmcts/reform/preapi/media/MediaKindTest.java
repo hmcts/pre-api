@@ -12,12 +12,15 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = MediaKind.class)
@@ -119,6 +122,32 @@ public class MediaKindTest {
         assertThat(result.contains("item 4")).isTrue();
     }
 
+    @DisplayName("Should get asset by asset name")
+    @Test
+    void getAssetByAssetNameSuccess() {
+        var assetName = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+
+        when(mockClient.getAsset(eq(assetName), anyString())).thenReturn(asset);
+
+        var result = mediaKind.getAsset(assetName);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isEqualTo(assetName);
+    }
+
+    @DisplayName("Should throw on MediaKind exception on feign client error")
+    @Test
+    void getAssetByAssetNameFeignExceptionThrown() {
+        when(mockClient.getAsset(anyString(), anyString())).thenThrow(FeignException.class);
+
+        assertThrows(
+            MediaKindException.class,
+            () -> mediaKind.getAsset("asset1")
+        );
+        verify(mockClient, times(1)).getAsset(anyString(), anyString());
+    }
+
     @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
     @Test
     void unsupportedOperationException() {
@@ -130,11 +159,6 @@ public class MediaKindTest {
         assertThrows(
             UnsupportedOperationException.class,
             () -> mediaKind.importAsset("test-asset-name")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.getAsset("test-asset-name")
         );
 
         assertThrows(

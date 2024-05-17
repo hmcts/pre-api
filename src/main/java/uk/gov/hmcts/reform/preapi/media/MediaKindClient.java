@@ -14,4 +14,11 @@ public interface MediaKindClient {
         "x-mkio-token: {token}"
     })
     MkGetListResponse<MkAsset> getAssets(@Param("skipToken") int skipToken, @Param("token") String mkToken);
+
+    @RequestLine("GET /assets/{assetName}")
+    @Headers({
+        "accept: application/json",
+        "x-mkio-token: {token}"
+    })
+    MkAsset getAsset(@Param("assetName") String assetName, @Param("token") String mkToken);
 }

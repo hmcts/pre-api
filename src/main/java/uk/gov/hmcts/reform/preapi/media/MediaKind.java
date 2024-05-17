@@ -45,8 +45,12 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public AssetDTO getAsset(String assetId) {
-        throw new UnsupportedOperationException();
+    public AssetDTO getAsset(String assetName) {
+        try {
+            return new AssetDTO(client.getAsset(assetName, mkToken));
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
     }
 
     @Override
