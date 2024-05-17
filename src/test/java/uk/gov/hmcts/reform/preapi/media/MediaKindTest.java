@@ -76,7 +76,7 @@ public class MediaKindTest {
 
         var result = mediaKind.getAllMkList(mockFunction).toList();
 
-        assertThat(result).hasSize(0);
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -87,8 +87,8 @@ public class MediaKindTest {
         var result = mediaKind.getAllMkList(mockFunction).toList();
 
         assertThat(result).hasSize(2);
-        assertThat(result.contains("item 1")).isTrue();
-        assertThat(result.contains("item 2")).isTrue();
+        assertThat(result).contains("item 1");
+        assertThat(result).contains("item 2");
     }
 
     @Test
@@ -116,10 +116,10 @@ public class MediaKindTest {
         var result = mediaKind.getAllMkList(mockFunction).toList();
 
         assertThat(result).hasSize(4);
-        assertThat(result.contains("item 1")).isTrue();
-        assertThat(result.contains("item 2")).isTrue();
-        assertThat(result.contains("item 3")).isTrue();
-        assertThat(result.contains("item 4")).isTrue();
+        assertThat(result).contains("item 1");
+        assertThat(result).contains("item 2");
+        assertThat(result).contains("item 3");
+        assertThat(result).contains("item 4");
     }
 
     @DisplayName("Should get asset by asset name")
