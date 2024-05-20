@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.dto.validators;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 
 import java.util.Set;
 
@@ -23,15 +22,15 @@ public class PrimaryCourtValidator
         }
         // TODO remove and condense above if statement into return when @NotNull removed in CreateAppAccess
         access.forEach(a -> {
-            if (a.getCourtAccessType() == null) {
-                a.setCourtAccessType(CourtAccessType.PRIMARY);
+            if (a.getDefaultCourt() == null) {
+                a.setDefaultCourt(true);
             }
         });
 
-        return access.stream().noneMatch(a -> a.getCourtAccessType() == null)
-                && access.stream().filter(a -> a.getCourtAccessType().equals(CourtAccessType.PRIMARY))
+        return access.stream().noneMatch(a -> a.getDefaultCourt() == null)
+                && access.stream().filter(CreateAppAccessDTO::getDefaultCourt)
                     .count() == 1
-                && access.stream().filter(a -> a.getCourtAccessType().equals(CourtAccessType.SECONDARY))
+                && access.stream().filter(a -> !a.getDefaultCourt())
                     .count() <= MAXIMUM_SECONDARY_COURTS;
     }
 }

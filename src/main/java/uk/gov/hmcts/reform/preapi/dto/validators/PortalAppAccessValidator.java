@@ -4,7 +4,6 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 
 import java.util.Set;
@@ -30,19 +29,19 @@ public class PortalAppAccessValidator
         }
         // TODO remove and condense above if statement into return when @NotNull removed in CreateAppAccess
         access.forEach(a -> {
-            if (a.getCourtAccessType() ==  null) {
-                a.setCourtAccessType(CourtAccessType.PRIMARY);
+            if (a.getDefaultCourt() ==  null) {
+                a.setDefaultCourt(true);
             }
         });
 
         return access.size() <= 1 || (
             access
                 .stream()
-                .filter(a -> a.getCourtAccessType().equals(CourtAccessType.PRIMARY))
+                .filter(CreateAppAccessDTO::getDefaultCourt)
                 .noneMatch(this::isRolePortal)
             && access
                 .stream()
-                .filter(a -> a.getCourtAccessType().equals(CourtAccessType.SECONDARY))
+                .filter(a -> !a.getDefaultCourt())
                 .noneMatch(this::isRolePortal));
     }
 

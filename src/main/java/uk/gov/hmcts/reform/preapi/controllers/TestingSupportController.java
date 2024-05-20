@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -322,7 +321,7 @@ class TestingSupportController {
         access.setCourt(createTestCourt());
         access.setRole(createRole(role));
         access.setActive(true);
-        access.setCourtAccessType(CourtAccessType.PRIMARY);
+        access.setDefaultCourt(true);
         appAccessRepository.save(access);
 
         return access;

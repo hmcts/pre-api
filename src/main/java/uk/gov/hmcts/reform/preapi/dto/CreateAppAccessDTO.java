@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -32,11 +31,11 @@ public class CreateAppAccessDTO {
     @NotNull
     private UUID roleId;
 
-    @Schema(description = "AppAccessCourtAccessType")
+    @Schema(description = "AppAccessIsDefaultCourt")
     // TODO Uncomment annotation when app integrated
     // TODO Also update AppAccessService + PrimaryCourtValidator
     // @NotNull
-    private CourtAccessType courtAccessType;
+    private Boolean defaultCourt;
 
     @Schema(description = "AppAccessActive")
     private Boolean active;

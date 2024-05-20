@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 
 import java.util.Set;
 import java.util.UUID;
@@ -43,24 +42,24 @@ public class PrimaryCourtValidatorTest {
         var dto = createAppAccessDTO(null);
 
         assertTrue(validator.isValid(Set.of(dto), context));
-        assertThat(dto.getCourtAccessType()).isEqualTo(CourtAccessType.PRIMARY);
+        assertThat(dto.getDefaultCourt()).isEqualTo(true);
     }
 
     @DisplayName("Should be valid when set contains only one PRIMARY court assignment")
     @Test
     void shouldBeValidOnePrimaryCourt() {
         assertTrue(validator.isValid(Set.of(createAppAccessDTO(null)), context));
-        assertTrue(validator.isValid(Set.of(createAppAccessDTO(CourtAccessType.PRIMARY)), context));
+        assertTrue(validator.isValid(Set.of(createAppAccessDTO(true)), context));
     }
 
     @DisplayName("Should be invalid when set contains multiple PRIMARY court assignments")
     @Test
     void shouldBeInvalidMultiplePrimaryCourts() {
         assertFalse(validator.isValid(
-            Set.of(createAppAccessDTO(CourtAccessType.PRIMARY), createAppAccessDTO(CourtAccessType.PRIMARY)), context
+            Set.of(createAppAccessDTO(true), createAppAccessDTO(true)), context
         ));
         assertFalse(validator.isValid(
-            Set.of(createAppAccessDTO(CourtAccessType.PRIMARY), createAppAccessDTO(null)), context
+            Set.of(createAppAccessDTO(true), createAppAccessDTO(null)), context
         ));
         assertFalse(validator.isValid(
             Set.of(createAppAccessDTO(null), createAppAccessDTO(null)), context
@@ -70,14 +69,14 @@ public class PrimaryCourtValidatorTest {
     @DisplayName("Should be valid when set contains one PRIMARY and many SECONDARY court assignments (up to maximum)")
     @Test
     void shouldBeValidOnePrimaryAndMultipleSecondaryCourts() {
-        var primary = createAppAccessDTO(CourtAccessType.PRIMARY);
+        var primary = createAppAccessDTO(true);
         assertTrue(validator.isValid(
-            Set.of(primary, createAppAccessDTO(CourtAccessType.SECONDARY)),
+            Set.of(primary, createAppAccessDTO(false)),
             context
         ));
 
         var set = IntStream.range(0, PrimaryCourtValidator.MAXIMUM_SECONDARY_COURTS)
-            .mapToObj(i -> createAppAccessDTO(CourtAccessType.SECONDARY))
+            .mapToObj(i -> createAppAccessDTO(false))
             .collect(Collectors.toSet());
         set.add(primary);
 
@@ -91,9 +90,9 @@ public class PrimaryCourtValidatorTest {
     @Test
     void shouldBeInvalidMultipleSecondaryCourts() {
         var set = IntStream.range(0, PrimaryCourtValidator.MAXIMUM_SECONDARY_COURTS + 1)
-            .mapToObj(i -> createAppAccessDTO(CourtAccessType.SECONDARY))
+            .mapToObj(i -> createAppAccessDTO(true))
             .collect(Collectors.toSet());
-        set.add(createAppAccessDTO(CourtAccessType.PRIMARY));
+        set.add(createAppAccessDTO(true));
 
         assertFalse(validator.isValid(
             set,
@@ -101,10 +100,10 @@ public class PrimaryCourtValidatorTest {
         ));
     }
 
-    private CreateAppAccessDTO createAppAccessDTO(CourtAccessType type) {
+    private CreateAppAccessDTO createAppAccessDTO(Boolean isDefaultCourt) {
         var dto = new CreateAppAccessDTO();
         dto.setId(UUID.randomUUID());
-        dto.setCourtAccessType(type);
+        dto.setDefaultCourt(isDefaultCourt);
         return dto;
     }
 }

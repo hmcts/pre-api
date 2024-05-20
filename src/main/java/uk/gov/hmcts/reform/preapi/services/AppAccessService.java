@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -62,10 +61,10 @@ public class AppAccessService {
         entity.setCourt(court);
         entity.setRole(role);
         // TODO remove if statement when uncommented @NotNull on CreateAppAccessDTO.courtAccessType
-        if (createAppAccessDTO.getCourtAccessType() == null) {
-            createAppAccessDTO.setCourtAccessType(CourtAccessType.PRIMARY);
+        if (createAppAccessDTO.getDefaultCourt() == null) {
+            createAppAccessDTO.setDefaultCourt(true);
         }
-        entity.setCourtAccessType(createAppAccessDTO.getCourtAccessType());
+        entity.setDefaultCourt(createAppAccessDTO.getDefaultCourt());
 
         if (createAppAccessDTO.getActive() != null) {
             entity.setActive(createAppAccessDTO.getActive());

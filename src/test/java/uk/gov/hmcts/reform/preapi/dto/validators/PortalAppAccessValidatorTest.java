@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 
 import java.util.Optional;
@@ -54,19 +53,19 @@ public class PortalAppAccessValidatorTest {
         when(roleRepository.findById(dto1.getRoleId())).thenReturn(Optional.of(createRole(false)));
 
         assertTrue(validator.isValid(Set.of(dto1), context));
-        assertThat(dto1.getCourtAccessType()).isEqualTo(CourtAccessType.PRIMARY);
+        assertThat(dto1.getDefaultCourt()).isTrue();
 
         var dto2 = createAppAccessDTO(null);
         when(roleRepository.findById(dto2.getRoleId())).thenReturn(Optional.of(createRole(true)));
 
         assertTrue(validator.isValid(Set.of(dto2), context));
-        assertThat(dto2.getCourtAccessType()).isEqualTo(CourtAccessType.PRIMARY);
+        assertThat(dto2.getDefaultCourt()).isTrue();
     }
 
     @DisplayName("Should be valid when contains one access and it is has a portal role")
     @Test
     void shouldBeValidOneAccessIsPortal() {
-        var dto = createAppAccessDTO(CourtAccessType.PRIMARY);
+        var dto = createAppAccessDTO(true);
         when(roleRepository.findById(dto.getRoleId())).thenReturn(Optional.of(createRole(true)));
 
         assertTrue(validator.isValid(Set.of(dto), context));
@@ -75,7 +74,7 @@ public class PortalAppAccessValidatorTest {
     @DisplayName("Should be valid when contains one access and it is not portal role")
     @Test
     void shouldBeValidOneAccessIsNotPortal() {
-        var dto = createAppAccessDTO(CourtAccessType.PRIMARY);
+        var dto = createAppAccessDTO(true);
         when(roleRepository.findById(dto.getRoleId())).thenReturn(Optional.of(createRole(false)));
 
         assertTrue(validator.isValid(Set.of(dto), context));
@@ -84,8 +83,8 @@ public class PortalAppAccessValidatorTest {
     @DisplayName("Should be valid when there are many access assignments and none have portal role")
     @Test
     void shouldBeValidManyAccessNonePortal() {
-        var dto1 = createAppAccessDTO(CourtAccessType.PRIMARY);
-        var dto2 = createAppAccessDTO(CourtAccessType.SECONDARY);
+        var dto1 = createAppAccessDTO(true);
+        var dto2 = createAppAccessDTO(false);
         when(roleRepository.findById(dto1.getRoleId())).thenReturn(Optional.of(createRole(false)));
         when(roleRepository.findById(dto2.getRoleId())).thenReturn(Optional.of(createRole(false)));
 
@@ -95,8 +94,8 @@ public class PortalAppAccessValidatorTest {
     @DisplayName("Should be invalid when there are many access assignments and any have portal role")
     @Test
     void shouldBeInvalidManyAccessSomePortal() {
-        var dto1 = createAppAccessDTO(CourtAccessType.PRIMARY);
-        var dto2 = createAppAccessDTO(CourtAccessType.SECONDARY);
+        var dto1 = createAppAccessDTO(true);
+        var dto2 = createAppAccessDTO(false);
 
         when(roleRepository.findById(dto1.getRoleId())).thenReturn(Optional.of(createRole(true)));
         when(roleRepository.findById(dto2.getRoleId())).thenReturn(Optional.of(createRole(true)));
@@ -114,11 +113,11 @@ public class PortalAppAccessValidatorTest {
     }
 
 
-    private CreateAppAccessDTO createAppAccessDTO(CourtAccessType type) {
+    private CreateAppAccessDTO createAppAccessDTO(Boolean isDefaultCourt) {
         var dto = new CreateAppAccessDTO();
         dto.setId(UUID.randomUUID());
         dto.setRoleId(UUID.randomUUID());
-        dto.setCourtAccessType(type);
+        dto.setDefaultCourt(isDefaultCourt);
         return dto;
     }
 

@@ -21,7 +21,6 @@ import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -518,7 +517,7 @@ public class UserControllerTest {
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
-        appAccess.setCourtAccessType(CourtAccessType.PRIMARY);
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -549,7 +548,7 @@ public class UserControllerTest {
         appAccess.setId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
-        appAccess.setCourtAccessType(CourtAccessType.PRIMARY);
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -580,7 +579,7 @@ public class UserControllerTest {
         appAccess.setId(UUID.randomUUID());
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
-        appAccess.setCourtAccessType(CourtAccessType.PRIMARY);
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -611,7 +610,7 @@ public class UserControllerTest {
         appAccess.setId(UUID.randomUUID());
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
-        appAccess.setCourtAccessType(CourtAccessType.PRIMARY);
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -672,8 +671,8 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setPortalAccess(Set.of());
-        var appAccess1 = createAppAccessDTO(CourtAccessType.PRIMARY, userId);
-        var appAccess2 = createAppAccessDTO(CourtAccessType.SECONDARY, userId);
+        var appAccess1 = createAppAccessDTO(true, userId);
+        var appAccess2 = createAppAccessDTO(false, userId);
         appAccess2.setCourtId(appAccess1.getCourtId());
         user.setAppAccess(Set.of(appAccess1, appAccess2));
 
@@ -701,8 +700,8 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setPortalAccess(Set.of());
-        var appAccess1 = createAppAccessDTO(CourtAccessType.PRIMARY, userId);
-        var appAccess2 = createAppAccessDTO(CourtAccessType.SECONDARY, userId);
+        var appAccess1 = createAppAccessDTO(true, userId);
+        var appAccess2 = createAppAccessDTO(false, userId);
         user.setAppAccess(Set.of(appAccess1, appAccess2));
 
         var rolePortal = new Role();
@@ -735,7 +734,7 @@ public class UserControllerTest {
         user.setLastName("Person");
         user.setEmail("example@example.com");
         user.setPortalAccess(Set.of());
-        var appAccess1 = createAppAccessDTO(CourtAccessType.SECONDARY, userId);
+        var appAccess1 = createAppAccessDTO(false, userId);
         user.setAppAccess(Set.of(appAccess1));
 
         var response = mockMvc.perform(put("/users/" + userId)
@@ -1003,13 +1002,13 @@ public class UserControllerTest {
                            .value("Not found: User: " + userId));
     }
 
-    private CreateAppAccessDTO createAppAccessDTO(CourtAccessType type, UUID userId) {
+    private CreateAppAccessDTO createAppAccessDTO(boolean isDefaultCourt, UUID userId) {
         var appAccess = new CreateAppAccessDTO();
         appAccess.setId(UUID.randomUUID());
         appAccess.setUserId(userId);
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
-        appAccess.setCourtAccessType(type);
+        appAccess.setDefaultCourt(isDefaultCourt);
         return appAccess;
     }
 }

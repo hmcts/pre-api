@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
-import uk.gov.hmcts.reform.preapi.enums.CourtAccessType;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -72,7 +71,7 @@ public class HelperFactory {
                                      Role role,
                                      boolean active,
                                      Timestamp deletedAt,
-                                     @Nullable Timestamp lastAccess, CourtAccessType courtAccessType) {
+                                     @Nullable Timestamp lastAccess, boolean isDefaultCourt) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);
         appAccess.setCourt(court);
@@ -80,7 +79,7 @@ public class HelperFactory {
         appAccess.setLastAccess(lastAccess);
         appAccess.setActive(active);
         appAccess.setDeletedAt(deletedAt);
-        appAccess.setCourtAccessType(courtAccessType);
+        appAccess.setDefaultCourt(isDefaultCourt);
         return appAccess;
     }
 
