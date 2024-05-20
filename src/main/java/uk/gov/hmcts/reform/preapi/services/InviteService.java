@@ -55,7 +55,7 @@ public class InviteService {
 
     public UpsertResult redeemInvite(String email) {
         var portalAccess = portalAccessRepository
-            .findByUser_EmailAndDeletedAtNullAndUser_DeletedAtNull(email)
+            .findByUser_EmailIgnoreCaseAndDeletedAtNullAndUser_DeletedAtNull(email)
             .orElseThrow(() -> new NotFoundException("Invite: " + email));
         portalAccess.setStatus(AccessStatus.ACTIVE);
         portalAccess.setRegisteredAt(Timestamp.from(java.time.Instant.now()));
