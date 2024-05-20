@@ -107,4 +107,18 @@ public interface RecordingRepository extends SoftDeleteRepository<Recording, UUI
     @Modifying
     @Transactional
     void deleteAllByCaptureSession(CaptureSession captureSession);
+
+    @Query("""
+        SELECT c, COUNT(c)
+        FROM Recording r
+        LEFT JOIN CaptureSession cs ON r.captureSession.id=cs.id
+        LEFT JOIN Booking b ON cs.booking.id=b.id
+        LEFT JOIN Case c ON b.caseId.id=c.id
+        WHERE r.version = 1
+        AND r.deletedAt IS NULL
+        GROUP BY c
+        ORDER BY count(c) DESC
+        """
+    )
+    List<Object[]> countRecordingsPerCase();
 }
