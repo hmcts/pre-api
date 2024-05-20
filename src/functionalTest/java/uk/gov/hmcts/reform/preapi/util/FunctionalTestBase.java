@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -9,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 
 import java.util.Map;
 import java.util.Set;
@@ -210,5 +212,9 @@ public class FunctionalTestBase {
 
     protected Response assertUserExists(UUID userId, boolean shouldExist) {
         return assertExists(USERS_ENDPOINT, userId, shouldExist);
+    }
+
+    protected Response putUser(CreateUserDTO dto) throws JsonProcessingException {
+        return doPutRequest(USERS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }

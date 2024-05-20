@@ -343,7 +343,7 @@ public class ShareBookingServiceTest {
         shareBooking.setSharedBy(user);
 
         when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId())).thenReturn(true);
-        when(shareBookingRepository.findAllByBooking_Id(booking.getId(), null))
+        when(shareBookingRepository.findByBooking_IdOrderBySharedWith_FirstNameAsc(booking.getId(), null))
             .thenReturn(new PageImpl<>(List.of(shareBooking)));
 
         var models = shareBookingService.getShareLogsForBooking(booking.getId(), null);

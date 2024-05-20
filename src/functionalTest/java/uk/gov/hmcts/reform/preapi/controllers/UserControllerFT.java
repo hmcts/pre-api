@@ -93,14 +93,6 @@ public class UserControllerFT extends FunctionalTestBase {
         assertThat(getResponse2.body().jsonPath().getUUID("user.id")).isEqualTo(user1.getId());
     }
 
-    private Response putUser(CreateUserDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            USERS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
-    }
-
     private void assertPutResponseMatchesDto(CreateUserDTO dto) {
         var getResponse = doGetRequest(USERS_ENDPOINT + "/" + dto.getId(), true);
         assertResponseCode(getResponse, 200);
