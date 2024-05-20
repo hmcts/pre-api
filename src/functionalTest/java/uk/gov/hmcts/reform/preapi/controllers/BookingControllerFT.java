@@ -187,14 +187,14 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // create users
         var user1 = createUser("AAA");
-        var user2 = createUser("BBB");
-        var user3 = createUser("CCC");
         var putUser1 = putUser(user1);
         assertResponseCode(putUser1, 201);
         assertUserExists(user1.getId(), true);
+        var user2 = createUser("BBB");
         var putUser2 = putUser(user2);
         assertResponseCode(putUser2, 201);
         assertUserExists(user2.getId(), true);
+        var user3 = createUser("CCC");
         var putUser3 = putUser(user3);
         assertResponseCode(putUser3, 201);
         assertUserExists(user3.getId(), true);
@@ -392,7 +392,11 @@ class BookingControllerFT extends FunctionalTestBase {
     }
 
     private Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share", OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
     }
 
     /*
