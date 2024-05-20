@@ -27,8 +27,8 @@ public class AzureMediaService implements IMediaService {
         @Value("${azure.tenant-id}") String tenantId,
         @Value("${azure.resource-group}") String resourceGroup,
         @Value("${azure.account-name}") String accountName,
-        @Value("${azure.client-id}") String clientId,
-        @Value("${azure.client-secret}") String clientSecret
+        @Value("${azure.clientId}") String clientId,
+        @Value("${azure.clientSecret}") String clientSecret
     ) {
         var logger = Logger.getAnonymousLogger();
         logger.info("Creating Azure Media Service client");
@@ -37,6 +37,7 @@ public class AzureMediaService implements IMediaService {
         logger.info("resourceGroup: " + resourceGroup);
         logger.info("accountName: " + accountName);
         logger.info("clientId: " + clientId);
+
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
         var profile = new AzureProfile(tenantId, subscriptionId, AzureEnvironment.AZURE);

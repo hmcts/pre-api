@@ -26,7 +26,7 @@ java:
         - name: pp-clientid
           alias: AZ_AMS_CLIENT_ID
         - name: client-secret
-          alias: AZ_CLIENT_SECRET
+          alias: AZ_AMS_CLIENT_SECRET
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
