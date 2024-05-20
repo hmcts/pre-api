@@ -1,14 +1,6 @@
 java:
   postgresql:
     enabled: true
-  keyVaults:
-    pre-hmctskv-stg:
-      excludeEnvironmentSuffix: true
-      secrets:
-        - name: pp-clientid
-          alias: AZ_AMS_CLIENT_ID
-        - name: client-secret
-          alias: AZ_AMS_CLIENT_SECRET
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
