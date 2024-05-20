@@ -37,9 +37,6 @@ public class AzureMediaService implements IMediaService {
         logger.info("resourceGroup: " + resourceGroup);
         logger.info("accountName: " + accountName);
         logger.info("clientId: " + clientId);
-        if (clientSecret.length() > 5) {
-            logger.info("clientSecret: " + clientSecret.substring(0, 5) + "...");
-        }
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
         var profile = new AzureProfile(tenantId, subscriptionId, AzureEnvironment.AZURE);
