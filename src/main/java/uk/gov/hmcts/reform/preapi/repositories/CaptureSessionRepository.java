@@ -72,4 +72,12 @@ public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSe
         @Param("authCourtId") UUID authCourtId,
         Pageable pageable
     );
+
+    @Query("""
+        SELECT cs FROM CaptureSession cs
+        WHERE cs.deletedAt IS NULL
+        AND cs.startedAt IS NOT NULL
+        """
+    )
+    List<CaptureSession> reportConcurrentCaptureSessions();
 }

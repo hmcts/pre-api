@@ -10,7 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.util.Map;
 import java.util.Set;
@@ -155,10 +157,22 @@ public class FunctionalTestBase {
         caseDTO.setId(UUID.randomUUID());
         caseDTO.setCourtId(courtId);
         caseDTO.setReference(generateRandomCaseReference());
-        caseDTO.setParticipants(Set.of());
+        caseDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        ));
         caseDTO.setTest(false);
 
         return caseDTO;
+    }
+
+    protected CreateParticipantDTO createParticipant(ParticipantType type) {
+        var dto = new CreateParticipantDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName("Example");
+        dto.setLastName("Person");
+        dto.setParticipantType(type);
+        return dto;
     }
 
     protected String generateRandomCaseReference() {
