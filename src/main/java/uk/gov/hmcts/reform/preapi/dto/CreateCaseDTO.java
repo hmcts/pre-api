@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 
 import java.util.Set;
@@ -32,6 +33,7 @@ public class CreateCaseDTO {
     private String reference;
 
     @Schema(description = "CaseParticipants")
+    @ParticipantTypeConstraint
     private Set<CreateParticipantDTO> participants;
 
     @Schema(description = "CreateCaseIsTest")
