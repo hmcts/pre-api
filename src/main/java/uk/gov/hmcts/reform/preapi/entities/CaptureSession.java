@@ -8,6 +8,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -20,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -65,6 +67,9 @@ public class CaptureSession extends BaseEntity {
 
     @Transient
     private boolean deleted;
+
+    @OneToMany(mappedBy = "captureSession")
+    private Set<Recording> recordings;
 
     public boolean isDeleted() {
         return deletedAt != null;

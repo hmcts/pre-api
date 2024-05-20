@@ -25,7 +25,6 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -41,7 +40,6 @@ import java.util.UUID;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -62,9 +60,6 @@ public class ReportServiceTest {
 
     @MockBean
     private RecordingRepository recordingRepository;
-
-    @MockBean
-    private CaseRepository caseRepository;
 
     @MockBean
     private ShareBookingRepository shareBookingRepository;
@@ -139,19 +134,12 @@ public class ReportServiceTest {
     void captureSessionReportCaptureSessionIncompleteSuccess() {
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
-        when(captureSessionRepository.findAll()).thenReturn(List.of(captureSessionEntity));
-        when(recordingRepository
-                 .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
-                     captureSessionEntity,
-                     1
-                 )
-        ).thenReturn(List.of());
+        captureSessionEntity.setRecordings(Set.of());
+        when(captureSessionRepository.reportConcurrentCaptureSessions()).thenReturn(List.of(captureSessionEntity));
 
         var report = reportService.reportCaptureSessions();
 
-        verify(captureSessionRepository, times(1)).findAll();
-        verify(recordingRepository, times(1))
-            .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
+        verify(captureSessionRepository, times(1)).reportConcurrentCaptureSessions();
 
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
@@ -166,25 +154,18 @@ public class ReportServiceTest {
         assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
     }
 
-    @DisplayName("Find all capture sessions and return a list of models as a report when capture session is complete")
+    @DisplayName("Find all capture sessions and return a list of models as a report on concurrent capture sessions")
     @Test
-    void captureSessionReportCaptureSessionCompleteSuccess() {
+    void captureSessionReportConcurrentCaptureSessionsSuccess() {
         recordingEntity.setDuration(Duration.ofMinutes(3));
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
         captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
-        when(captureSessionRepository.findAll()).thenReturn(List.of(captureSessionEntity));
-        when(recordingRepository
-                 .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(
-                     captureSessionEntity,
-                     1
-                 )
-        ).thenReturn(List.of(recordingEntity));
+        captureSessionEntity.setRecordings(Set.of(recordingEntity));
+        when(captureSessionRepository.reportConcurrentCaptureSessions()).thenReturn(List.of(captureSessionEntity));
 
         var report = reportService.reportCaptureSessions();
 
-        verify(captureSessionRepository, times(1)).findAll();
-        verify(recordingRepository, times(1))
-            .findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(any(), eq(1));
+        verify(captureSessionRepository, times(1)).reportConcurrentCaptureSessions();
 
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
@@ -207,19 +188,8 @@ public class ReportServiceTest {
         anotherCase.setCourt(courtEntity);
         anotherCase.setReference("XYZ456");
 
-        when(caseRepository.findAll()).thenReturn(List.of(anotherCase, caseEntity));
-        when(
-            captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
-                anotherCase.getId(),
-                RecordingStatus.RECORDING_AVAILABLE
-            )
-        ).thenReturn(0);
-        when(
-            captureSessionRepository.countAllByBooking_CaseId_IdAndStatus(
-                caseEntity.getId(),
-                RecordingStatus.RECORDING_AVAILABLE
-            )
-        ).thenReturn(1);
+        when(recordingRepository.countRecordingsPerCase())
+            .thenReturn(List.of(new Object[] { caseEntity, (long) 1 }, new Object[]{ anotherCase, (long) 0 }));
 
         var report = reportService.reportRecordingsPerCase();
 
