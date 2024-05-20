@@ -2,6 +2,9 @@ java:
   postgresql:
     enabled: true
   keyVaults:
+    pre-hmctskv:
+      disabled: true
+      secrets:
     pre-hmctskv-stg:
       excludeEnvironmentSuffix: true
       secrets:
