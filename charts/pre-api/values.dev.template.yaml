@@ -1,4 +1,5 @@
 java:
+  devmemoryLimits: '2048Mi'
   postgresql:
     enabled: true
   environment:
