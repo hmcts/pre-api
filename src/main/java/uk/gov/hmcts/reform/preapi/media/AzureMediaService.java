@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 @Component
 public class AzureMediaService implements IMediaService {
@@ -29,6 +30,10 @@ public class AzureMediaService implements IMediaService {
         @Value("${azure.clientId}") String clientId,
         @Value("${azure.clientSecret}") String clientSecret
     ) {
+
+        var logger = Logger.getAnonymousLogger();
+        logger.info("clientId: " + clientId);
+
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
         var profile = new AzureProfile(tenantId, subscriptionId, AzureEnvironment.AZURE);
