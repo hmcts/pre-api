@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 
-import java.util.logging.Logger;
-
 @RestController
 @RequestMapping("/media-service")
 public class MediaServiceController extends PreApiController {
