@@ -56,7 +56,7 @@ class CaseControllerFT extends FunctionalTestBase {
         participant2.setId(UUID.randomUUID());
         participant2.setFirstName("John");
         participant2.setLastName("Smith");
-        participant2.setParticipantType(ParticipantType.DEFENDANT);
+        participant2.setParticipantType(ParticipantType.WITNESS);
 
         var createCase = createCase();
         createCase.setParticipants(Set.of(
@@ -65,7 +65,6 @@ class CaseControllerFT extends FunctionalTestBase {
         ));
 
         var putResponse = putCase(createCase);
-
         assertResponseCode(putResponse, 201);
 
         var getResponse = assertCaseExists(createCase.getId(), true);
@@ -180,6 +179,10 @@ class CaseControllerFT extends FunctionalTestBase {
         caseDTO2.setCourtId(caseDTO1.getCourtId());
         caseDTO2.setParticipants(Set.of());
         caseDTO2.setTest(false);
+        caseDTO2.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        ));
 
         var putResponse2 = putCase(caseDTO2);
         assertResponseCode(putResponse2, 409);
@@ -326,7 +329,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(res).isNotNull();
         assertThat(res.getCourt().getId()).isEqualTo(dto.getCourtId());
         assertThat(res.getReference()).isEqualTo(dto.getReference());
-        assertThat(res.getParticipants()).isEmpty();
+        assertThat(res.getParticipants()).hasSize(dto.getParticipants().size());
         assertThat(res.isTest()).isEqualTo(dto.isTest());
         assertThat(res.getCreatedAt()).isNotNull();
         assertThat(res.getModifiedAt()).isNotNull();

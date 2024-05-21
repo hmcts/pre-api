@@ -7,4 +7,5 @@ import java.util.UUID;
 
 @Repository
 public interface ParticipantRepository extends SoftDeleteRepository<Participant, UUID> {
+    boolean existsByIdAndCaseId_Id(UUID id, UUID caseId);
 }

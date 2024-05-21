@@ -7,7 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -44,16 +43,8 @@ public class ConcurrentCaptureSessionReportDTO {
     @Schema(description = "CaptureSessionRegionName")
     private Set<RegionDTO> region;
 
-    public ConcurrentCaptureSessionReportDTO(Recording entity) {
-        initCaptureSessionValues(entity.getCaptureSession());
-        duration = entity.getDuration();
-    }
 
     public ConcurrentCaptureSessionReportDTO(CaptureSession entity) {
-        initCaptureSessionValues(entity);
-    }
-
-    private void initCaptureSessionValues(CaptureSession entity) {
         id = entity.getId();
         startTime = entity.getStartedAt();
         endTime = entity.getFinishedAt();
@@ -64,5 +55,11 @@ public class ConcurrentCaptureSessionReportDTO {
         region = Stream.ofNullable(caseEntity.getCourt().getRegions())
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .collect(Collectors.toSet());
+
+        Stream.ofNullable(entity.getRecordings())
+            .flatMap(Set::stream)
+            .filter(r -> r.getVersion() == 1 && !r.isDeleted())
+            .findFirst()
+            .ifPresent(r -> duration = r.getDuration());
     }
 }
