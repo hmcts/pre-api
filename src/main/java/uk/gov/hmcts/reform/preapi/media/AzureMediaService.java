@@ -26,8 +26,8 @@ public class AzureMediaService implements IMediaService {
         @Value("${azure.tenant-id}") String tenantId,
         @Value("${azure.resource-group}") String resourceGroup,
         @Value("${azure.account-name}") String accountName,
-        @Value("${azure.client-id}") String clientId,
-        @Value("${azure.client-secret}") String clientSecret
+        @Value("${azure.clientId}") String clientId,
+        @Value("${azure.clientSecret}") String clientSecret
     ) {
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;

@@ -227,6 +227,37 @@ class BookingControllerFT extends FunctionalTestBase {
             .isEqualTo("scheduled_for is required and must not be before today");
     }
 
+    @DisplayName("Create a booking with a participant that is not part of the case")
+    @Test
+    void createBookingWithParticipantNotInCase() throws JsonProcessingException {
+        var caseEntity = createCase();
+        var participant1 = createParticipant(ParticipantType.WITNESS);
+        var participant2 = createParticipant(ParticipantType.DEFENDANT);
+        var participants = Set.of(
+            participant1,
+            participant2
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity),
+            true
+        );
+        assertResponseCode(putCase, 201);
+        var participant3 = createParticipant(ParticipantType.DEFENDANT);
+        var booking = createBooking(
+            caseEntity.getId(),
+            Set.of(participant1, participant2, participant3)
+        );
+
+        // create booking
+        var putBooking = putBooking(booking);
+        assertResponseCode(putBooking, 404);
+        assertThat(putBooking.body().jsonPath().getString("message"))
+            .isEqualTo("Not found: Participant: " + participant3.getId() + " in case: " + caseEntity.getId());
+    }
+
     @DisplayName("Scenario: Restore booking")
     @Test
     void undeleteBooking() throws JsonProcessingException {
@@ -264,15 +295,6 @@ class BookingControllerFT extends FunctionalTestBase {
         dto.setCaseId(caseId);
         dto.setParticipants(participants);
         dto.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay()));
-        return dto;
-    }
-
-    private CreateParticipantDTO createParticipant(ParticipantType type) {
-        var dto = new CreateParticipantDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setFirstName("Example");
-        dto.setLastName("Example");
-        dto.setParticipantType(type);
         return dto;
     }
 

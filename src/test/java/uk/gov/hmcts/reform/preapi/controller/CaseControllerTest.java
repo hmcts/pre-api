@@ -15,6 +15,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.CaseController;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -24,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -118,6 +121,11 @@ class CaseControllerTest {
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
         caseDTO.setReference("TestCase1");
+        caseDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
+
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
 
@@ -140,6 +148,10 @@ class CaseControllerTest {
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
         caseDTO.setReference("TestCase");
+        caseDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
 
@@ -162,6 +174,10 @@ class CaseControllerTest {
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
         caseDTO.setReference("TestCase123456");
+        caseDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
 
@@ -184,6 +200,10 @@ class CaseControllerTest {
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
         caseDTO.setReference(null);
+        caseDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
 
@@ -206,6 +226,10 @@ class CaseControllerTest {
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(caseId);
         caseDTO.setReference("EXAMPLE123");
+        caseDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.UPDATED);
 
@@ -224,12 +248,15 @@ class CaseControllerTest {
     @DisplayName("Should return 400 when creating case with path and payload mismatch")
     @Test
     void testCreateCasePathPayloadMismatch() throws Exception {
-        UUID caseId = UUID.randomUUID();
-        CaseDTO newCaseRequestDTO = new CaseDTO();
+        var newCaseRequestDTO = new CreateCaseDTO();
         newCaseRequestDTO.setId(UUID.randomUUID());
         newCaseRequestDTO.setReference("EXAMPLE123");
+        newCaseRequestDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
-        mockMvc.perform(put(CASES_ID_PATH, caseId)
+        mockMvc.perform(put(CASES_ID_PATH, UUID.randomUUID())
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -237,6 +264,52 @@ class CaseControllerTest {
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message")
                            .value("Path id does not match payload property createCaseDTO.id"));
+    }
+
+    @DisplayName("Should return 400 when participants does not contain a witness")
+    @Test
+    void createCaseNoWitnessParticipantBadRequest() throws Exception {
+        var caseId = UUID.randomUUID();
+        var courtId = UUID.randomUUID();
+        var newCaseRequestDTO = new CreateCaseDTO();
+        newCaseRequestDTO.setId(caseId);
+        newCaseRequestDTO.setCourtId(courtId);
+        newCaseRequestDTO.setReference("EXAMPLE123");
+        newCaseRequestDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.DEFENDANT))
+        );
+
+        mockMvc.perform(put(CASES_ID_PATH, caseId)
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.participants")
+                           .value("Participants must consist of at least 1 defendant and 1 witness"));
+    }
+
+    @DisplayName("Should return 400 when participants does not contain a defendant")
+    @Test
+    void createCaseNoDefendantParticipantBadRequest() throws Exception {
+        var caseId = UUID.randomUUID();
+        var courtId = UUID.randomUUID();
+        var newCaseRequestDTO = new CreateCaseDTO();
+        newCaseRequestDTO.setId(caseId);
+        newCaseRequestDTO.setCourtId(courtId);
+        newCaseRequestDTO.setReference("EXAMPLE123");
+        newCaseRequestDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS))
+        );
+
+        mockMvc.perform(put(CASES_ID_PATH, caseId)
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.participants")
+                           .value("Participants must consist of at least 1 defendant and 1 witness"));
     }
 
     @DisplayName("Should return 400 when creating case with court that does not exist")
@@ -248,6 +321,10 @@ class CaseControllerTest {
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
         newCaseRequestDTO.setReference("EXAMPLE123");
+        newCaseRequestDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
         doThrow(new NotFoundException("Court: " + courtId)).when(caseService).upsert(newCaseRequestDTO);
 
@@ -271,6 +348,10 @@ class CaseControllerTest {
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
         newCaseRequestDTO.setReference("EXAMPLE123");
+        newCaseRequestDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
 
         doThrow(new ResourceInDeletedStateException("CaseDTO", caseId.toString()))
@@ -299,6 +380,10 @@ class CaseControllerTest {
         newCaseRequestDTO.setId(caseId);
         newCaseRequestDTO.setCourtId(courtId);
         newCaseRequestDTO.setReference("EXAMPLE123");
+        newCaseRequestDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT))
+        );
 
         doThrow(new ConflictException("Case reference is already in use for this court"))
             .when(caseService).upsert(newCaseRequestDTO);
@@ -417,5 +502,14 @@ class CaseControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Case: " + caseId));
+    }
+
+    private CreateParticipantDTO createParticipant(ParticipantType type) {
+        var dto = new CreateParticipantDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName("Example");
+        dto.setLastName("Person");
+        dto.setParticipantType(type);
+        return dto;
     }
 }

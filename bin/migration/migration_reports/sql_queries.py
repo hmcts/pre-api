@@ -7,8 +7,8 @@ source_table_queries = {
     'cases': "SELECT COUNT(*) FROM public.cases",
     'bookings':"SELECT COUNT(*) FROM public.recordings WHERE parentrecuid = recordinguid and recordingversion = '1'",
     'contacts':  "SELECT COUNT(*) FROM public.contacts",
-    'capture_sessions': "SELECT COUNT(*) FROM public.recordings WHERE parentrecuid = recordinguid AND recordingstatus != 'No Recording' AND NOT (recordingstatus = 'Deleted' AND ingestaddress IS NULL)",
-    'recordings': "SELECT COUNT(*) FROM public.recordings WHERE recordingstatus !='No Recording' AND (recordingavailable IS NULL OR recordingavailable LIKE 'true')",
+    'capture_sessions': "SELECT COUNT(*) FROM public.recordings WHERE parentrecuid = recordinguid AND (recordingstatus != 'No Recording' OR recordingstatus IS NULL) AND NOT (recordingstatus = 'Deleted' AND ingestaddress IS NULL)",
+    'recordings': "SELECT COUNT(*) FROM public.recordings WHERE (recordingstatus !='No Recording'OR recordingstatus IS NULL) AND (recordingavailable IS NULL OR recordingavailable LIKE 'true')",
     'audits': "SELECT COUNT(*) FROM public.audits",
     'share_bookings': "SELECT COUNT(*) FROM public.videopermissions",
     'portal_access': """SELECT COUNT(*) AS count_result FROM (

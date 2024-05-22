@@ -24,9 +24,9 @@ java:
           alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
         - name: app-insights-connection-string
         - name: pp-clientid
-          alias: AZ_CLIENT_ID
+          alias: AZ_AMS_CLIENT_ID
         - name: client-secret
-          alias: AZ_CLIENT_SECRET
+          alias: AZ_AMS_CLIENT_SECRET
 #          todo add token to kv
 #        - name: media-kind-token
 #          alias: MEDIA_KIND_TOKEN

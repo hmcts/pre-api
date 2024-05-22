@@ -59,8 +59,8 @@ azure:
   account-name: ${AZURE_MEDIA_SERVICES_ACCOUNT_NAME:}
   resource-group: ${AZURE_RESOURCE_GROUP:}
   subscription-id: ${AZURE_SUBSCRIPTION_ID:00000000-0000-0000-0000-000000000000}
-  client-id: ${AZ_CLIENT_ID:00000000-0000-0000-0000-000000000000}
-  client-secret: ${AZ_CLIENT_SECRET:}
+  clientId: ${AZ_AMS_CLIENT_ID:00000000-0000-0000-0000-000000000000}
+  clientSecret: ${AZ_AMS_CLIENT_SECRET:}
 
 hibernate:
   show_sql: true
