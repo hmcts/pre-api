@@ -55,6 +55,12 @@ spring:
 azure:
   application-insights:
     instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:00000000-0000-0000-0000-000000000000}
+  tenant-id: ${AZURE_TENANT_ID:00000000-0000-0000-0000-000000000000}
+  account-name: ${AZURE_MEDIA_SERVICES_ACCOUNT_NAME:}
+  resource-group: ${AZURE_RESOURCE_GROUP:}
+  subscription-id: ${AZURE_SUBSCRIPTION_ID:00000000-0000-0000-0000-000000000000}
+  clientId: ${AZ_AMS_CLIENT_ID:00000000-0000-0000-0000-000000000000}
+  clientSecret: ${AZ_AMS_CLIENT_SECRET:}
 
 hibernate:
   show_sql: true
