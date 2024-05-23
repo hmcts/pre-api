@@ -32,11 +32,19 @@ public class BaseAppAccessDTO {
     @Schema(description = "AppAccessActive")
     protected boolean active;
 
+    @Schema(description = "AppAccessTermsAcceptedAt")
+    protected Timestamp termsAcceptedAt;
+
+    @Schema(description = "AppAccessIsTermsAccepted")
+    private boolean isTermsAccepted;
+
     public BaseAppAccessDTO(AppAccess access) {
         id = access.getId();
         court = new CourtDTO(access.getCourt());
         role = new RoleDTO(access.getRole());
         lastAccess = access.getLastAccess();
         active = access.isActive();
+        termsAcceptedAt = access.getTermsAcceptedAt();
+        isTermsAccepted = access.isTermsAccepted();
     }
 }

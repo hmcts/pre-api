@@ -1,0 +1,2 @@
+ALTER TABLE portal_access ADD COLUMN terms_accepted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE app_access ADD COLUMN terms_accepted_at TIMESTAMPTZ DEFAULT NULL;

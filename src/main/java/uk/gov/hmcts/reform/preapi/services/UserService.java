@@ -237,4 +237,24 @@ public class UserService {
                 portalAccessRepository.save(p);
             });
     }
+
+    @Transactional
+    public UpsertResult acceptPortalTerms(UUID userId) {
+        var portalAccess = portalAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+        portalAccess.setTermsAcceptedAt(Timestamp.from(java.time.Instant.now()));
+        portalAccessRepository.save(portalAccess);
+        return UpsertResult.UPDATED;
+    }
+
+    @Transactional
+    public UpsertResult acceptAppTerms(UUID userId) {
+        var appAccess = appAccessRepository
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+        appAccess.setTermsAcceptedAt(Timestamp.from(java.time.Instant.now()));
+        appAccessRepository.save(appAccess);
+        return UpsertResult.UPDATED;
+    }
 }
