@@ -16,6 +16,11 @@ parameters:
       - Demo
       - Production
 
+  - name: take_backup
+    displayName: Take backup of source database
+    type: boolean
+    default: true
+
   - name: run_migration_script
     displayName: Execute migration script
     type: boolean
@@ -51,7 +56,7 @@ steps:
   inputs:
     azureSubscription: $(serviceConnection)
     KeyVaultName: 'pre-hmctskv-$(envShortName)'
-    SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST,finalsa-storage-account-connection-string'
+    SecretsFilter: 'api-POSTGRES-USER,api-POSTGRES-PASS,api-POSTGRES-HOST,finalsa-storage-account-connection-string, sa-storage-account-connection-string'
     RunAsPreJob: true
 
 - task: Bash@3
@@ -67,6 +72,19 @@ steps:
   displayName: 'Install dependencies'
 
 - task: Bash@3
+  condition: ${{ eq(parameters.take_backup, true) }}
+  inputs:
+    targetType: 'inline'
+    script: |
+      export SOURCE_DB_NAME="pre-pdb-$(envShortName)"
+      export SOURCE_DB_USER="$(api-POSTGRES-USER)"
+      export SOURCE_DB_PASSWORD="$(api-POSTGRES-PASS)"
+      export SOURCE_DB_HOST="$(api-POSTGRES-HOST)"
+      export AZURE_STORAGE_CONNECTION_STRING_BACKUP="$(sa-storage-account-connection-string)"
+      python3 bin/migration/main.py --backup
+  displayName: 'Take backup of source database'
+
+- task: Bash@3
   condition: ${{ eq(parameters.run_migration_script, true) }}
   inputs:
     targetType: 'inline'
@@ -79,7 +97,7 @@ steps:
       export DESTINATION_DB_USER="$(api-POSTGRES-USER)"
       export DESTINATION_DB_PASSWORD="$(api-POSTGRES-PASS)"
       export DESTINATION_DB_HOST="$(api-POSTGRES-HOST)"
-      python3 bin/migration/main.py
+      python3 bin/migration/main.py --migration
   displayName: 'Execute migration script'
 
 
