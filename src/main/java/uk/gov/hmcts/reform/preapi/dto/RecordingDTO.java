@@ -8,10 +8,12 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
-import java.util.Set;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,7 +44,7 @@ public class RecordingDTO extends BaseRecordingDTO {
     Boolean isTestCase;
 
     @Schema(description = "RecordingParticipants")
-    private Set<ParticipantDTO> participants;
+    private List<ParticipantDTO> participants;
 
     public RecordingDTO(Recording recording) {
         id = recording.getId();
@@ -66,7 +68,8 @@ public class RecordingDTO extends BaseRecordingDTO {
                          participants
                              .stream()
                              .filter(participant -> participant.getDeletedAt() == null)
+                             .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toList());
     }
 }

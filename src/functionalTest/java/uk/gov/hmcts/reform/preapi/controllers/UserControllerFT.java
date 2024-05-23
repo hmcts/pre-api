@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
@@ -91,14 +90,6 @@ public class UserControllerFT extends FunctionalTestBase {
         var getResponse2 = doGetRequest(USERS_ENDPOINT + "/by-email/" + user1.getEmail().toUpperCase(), false);
         assertResponseCode(getResponse2, 200);
         assertThat(getResponse2.body().jsonPath().getUUID("user.id")).isEqualTo(user1.getId());
-    }
-
-    private Response putUser(CreateUserDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            USERS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
     }
 
     private void assertPutResponseMatchesDto(CreateUserDTO dto) {
