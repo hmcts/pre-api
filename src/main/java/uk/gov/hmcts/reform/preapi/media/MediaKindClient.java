@@ -1,24 +1,18 @@
 package uk.gov.hmcts.reform.preapi.media;
 
-import feign.Headers;
-import feign.Param;
-import feign.RequestLine;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 
+@FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
+    @GetMapping("/assets")
+    MkGetListResponse<MkAsset> getAssets(@RequestParam("$skipToken") int skipToken);
 
-    @RequestLine("GET /assets?%24skiptoken={skipToken}")
-    @Headers({
-        "accept: application/json",
-        "x-mkio-token: {token}"
-    })
-    MkGetListResponse<MkAsset> getAssets(@Param("skipToken") int skipToken, @Param("token") String mkToken);
-
-    @RequestLine("GET /assets/{assetName}")
-    @Headers({
-        "accept: application/json",
-        "x-mkio-token: {token}"
-    })
-    MkAsset getAsset(@Param("assetName") String assetName, @Param("token") String mkToken);
+    @GetMapping("/assets/{assetName}")
+    MkAsset getAsset(@PathVariable("assetName") String assetName);
 }

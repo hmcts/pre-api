@@ -1,11 +1,11 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import feign.FeignException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
@@ -25,16 +25,11 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = MediaKind.class)
 public class MediaKindTest {
-    @Mock
+    @MockBean
     private MediaKindClient mockClient;
 
-    private static MediaKind mediaKind;
-
-    @BeforeEach
-    void setUp() {
-        mediaKind = new MediaKind("https://api.mk.io/api/ams/EXAMPLE/", "exampleToken");
-        mediaKind.client = mockClient;
-    }
+    @Autowired
+    private MediaKind mediaKind;
 
     @DisplayName("Should get a list of assets")
     @Test
@@ -45,7 +40,7 @@ public class MediaKindTest {
             .value(List.of(asset1, asset2))
             .build();
 
-        when(mockClient.getAssets(eq(0), anyString())).thenReturn(mockAssets);
+        when(mockClient.getAssets(eq(0))).thenReturn(mockAssets);
 
         var assets = mediaKind.getAssets();
 
@@ -57,7 +52,7 @@ public class MediaKindTest {
     @DisplayName("Should fail to get a list of assets and throw a media kind exception")
     @Test
     void getAssetsFeignExceptionThrown() {
-        when(mockClient.getAssets(eq(0), anyString()))
+        when(mockClient.getAssets(eq(0)))
             .thenThrow(FeignException.class);
 
         var message = assertThrows(
@@ -128,7 +123,7 @@ public class MediaKindTest {
         var assetName = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
 
-        when(mockClient.getAsset(eq(assetName), anyString())).thenReturn(asset);
+        when(mockClient.getAsset(eq(assetName))).thenReturn(asset);
 
         var result = mediaKind.getAsset(assetName);
 
@@ -139,24 +134,24 @@ public class MediaKindTest {
     @DisplayName("Should throw on MediaKind exception on feign client errors")
     @Test
     void getAssetByAssetNameFeignExceptionThrown() {
-        when(mockClient.getAsset(anyString(), anyString())).thenThrow(FeignException.class);
+        when(mockClient.getAsset(anyString())).thenThrow(FeignException.class);
 
         assertThrows(
             MediaKindException.class,
             () -> mediaKind.getAsset("asset1")
         );
-        verify(mockClient, times(1)).getAsset(anyString(), anyString());
+        verify(mockClient, times(1)).getAsset(anyString());
     }
 
     @DisplayName("Should return null when get asset returns 404")
     @Test
     void getAssetByAssetNameNotFound() {
         var mockError = mock(FeignException.NotFound.class);
-        when(mockClient.getAsset(anyString(), anyString())).thenThrow(mockError);
+        when(mockClient.getAsset(anyString())).thenThrow(mockError);
 
         assertThat(mediaKind.getAsset("asset1")).isNull();
 
-        verify(mockClient, times(1)).getAsset(anyString(), anyString());
+        verify(mockClient, times(1)).getAsset(anyString());
     }
 
     @DisplayName("Should throw Unsupported Operation Exception when method is not defined")

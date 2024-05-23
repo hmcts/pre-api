@@ -1,11 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
-import feign.Feign;
 import feign.FeignException;
-import feign.gson.GsonDecoder;
-import feign.gson.GsonEncoder;
-import feign.okhttp.OkHttpClient;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
@@ -18,20 +14,11 @@ import java.util.stream.Stream;
 
 @Service
 public class MediaKind implements IMediaService {
-    private final String mkToken;
+    private final MediaKindClient mediaKindClient;
 
-    protected MediaKindClient client;
-
-    public MediaKind(
-        @Value("${mediakind.api:}") String mkApi,
-        @Value("${mediakind.token:}") String token
-    ) {
-        client = Feign.builder()
-            .client(new OkHttpClient())
-            .encoder(new GsonEncoder())
-            .decoder(new GsonDecoder())
-            .target(MediaKindClient.class, mkApi);
-        mkToken = token;
+    @Autowired
+    public MediaKind(MediaKindClient mediaKindClient) {
+        this.mediaKindClient = mediaKindClient;
     }
 
     @Override
@@ -47,7 +34,7 @@ public class MediaKind implements IMediaService {
     @Override
     public AssetDTO getAsset(String assetName) {
         try {
-            return new AssetDTO(client.getAsset(assetName, mkToken));
+            return new AssetDTO(mediaKindClient.getAsset(assetName));
         } catch (FeignException.NotFound e) {
             return null;
         } catch (FeignException e) {
@@ -58,7 +45,7 @@ public class MediaKind implements IMediaService {
     @Override
     public List<AssetDTO> getAssets() {
         try {
-            return getAllMkList(skip -> client.getAssets(skip, mkToken))
+            return getAllMkList(mediaKindClient::getAssets)
                 .map(AssetDTO::new)
                 .collect(Collectors.toList());
         } catch (FeignException e) {
