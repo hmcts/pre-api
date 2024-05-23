@@ -258,6 +258,7 @@ class TestingSupportController {
 
         var response = new HashMap<String, String>() {
             {
+                put("caseId", caseEntity.getId().toString());
                 put("bookingId", booking.getId().toString());
                 put("recordingId", recording.getId().toString());
                 put("captureSessionId", captureSession.getId().toString());
