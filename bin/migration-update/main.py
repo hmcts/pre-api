@@ -76,6 +76,7 @@ def main():
     )
 
     update_audit_table_with_created_by(source_db, destination_db, 'users')
+    update_audit_table_with_created_by(source_db, destination_db, 'app_access')
 
     
 if __name__ == "__main__":
