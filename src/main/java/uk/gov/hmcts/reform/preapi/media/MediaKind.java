@@ -53,6 +53,7 @@ public class MediaKind implements IMediaService {
         }
     }
 
+    /*
     @Override
     public String startLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
@@ -77,6 +78,7 @@ public class MediaKind implements IMediaService {
     public String getLiveEvents() {
         throw new UnsupportedOperationException();
     }
+     */
 
     protected <E> Stream<E> getAllMkList(GetListFunction<E> func) {
         Integer[] skip = {0};

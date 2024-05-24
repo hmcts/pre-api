@@ -80,6 +80,7 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
+    /*
     @Override
     public String startLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
@@ -104,4 +105,5 @@ public class AzureMediaService implements IMediaService {
     public String getLiveEvents() {
         throw new UnsupportedOperationException();
     }
+     */
 }

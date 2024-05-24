@@ -154,45 +154,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(anyString());
     }
 
-    @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
-    @Test
-    void unsupportedOperationException() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.playAsset("test-asset-name")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.importAsset("test-asset-name")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.startLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.playLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.stopLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.getLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.getLiveEvents()
-        );
-    }
-
     private MkAsset createMkAsset(String name) {
         return MkAsset.builder()
             .name(name)
