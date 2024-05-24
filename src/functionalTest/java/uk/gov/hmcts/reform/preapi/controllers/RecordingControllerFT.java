@@ -15,7 +15,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RecordingControllerFT extends FunctionalTestBase {
-    private record CreateRecordingResponse(UUID bookingId, UUID captureSessionId, UUID recordingId) {
+    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
     }
 
     @DisplayName("Scenario: Restore recording")
@@ -78,6 +78,40 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
         var deleteResponse = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + id, true);
         assertResponseCode(deleteResponse, 404);
+    }
+
+    @DisplayName("Undelete a recording should cascade to associated capture sessions, bookings and cases")
+    @Test
+    void shouldUndeleteRecording() throws JsonProcessingException {
+        // create recording
+        var recordingDetails = createRecording();
+        assertRecordingExists(recordingDetails.recordingId, true);
+        assertCaptureSessionExists(recordingDetails.captureSessionId, true);
+        assertBookingExists(recordingDetails.bookingId, true);
+        assertCaseExists(recordingDetails.caseId, true);
+
+        // must delete all recordings associated to case before deleting case
+        var deleteRecording = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, true);
+        assertResponseCode(deleteRecording, 200);
+
+        // delete case (deleting associated bookings + capture sessions)
+        var deleteCase = doDeleteRequest(CASES_ENDPOINT + "/" + recordingDetails.caseId, true);
+        assertResponseCode(deleteCase, 200);
+        assertRecordingExists(recordingDetails.recordingId, false);
+        assertCaptureSessionExists(recordingDetails.captureSessionId, false);
+        assertBookingExists(recordingDetails.bookingId, false);
+        assertCaseExists(recordingDetails.caseId, false);
+
+        // undelete recording (and associated capture session, booking, case)
+        var undeleteRecording = doPostRequest(
+            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId + "/undelete",
+            true
+        );
+        assertResponseCode(undeleteRecording, 200);
+        assertRecordingExists(recordingDetails.recordingId, true);
+        assertCaptureSessionExists(recordingDetails.captureSessionId, true);
+        assertBookingExists(recordingDetails.bookingId, true);
+        assertCaseExists(recordingDetails.caseId, true);
     }
 
     private CreateRecordingDTO createRecording(UUID captureSessionId) {

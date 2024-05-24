@@ -55,6 +55,9 @@ public class CaptureSessionServiceTest {
     @MockBean
     private UserRepository userRepository;
 
+    @MockBean
+    private BookingService bookingService;
+
     @Autowired
     private CaptureSessionService captureSessionService;
 
@@ -447,29 +450,38 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should undelete a capture session successfully when capture session is marked as deleted")
     @Test
     void undeleteSuccess() {
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setDeletedAt(Timestamp.from(Instant.now()));
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
+        captureSession.setBooking(booking);
 
         when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
 
         captureSessionService.undelete(captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findById(captureSession.getId());
+        verify(bookingService, times(1)).undelete(booking.getId());
         verify(captureSessionRepository, times(1)).save(captureSession);
     }
 
     @DisplayName("Should do nothing when capture session is not deleted")
     @Test
     void undeleteNotDeletedSuccess() {
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
 
         when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
 
         captureSessionService.undelete(captureSession.getId());
 
         verify(captureSessionRepository, times(1)).findById(captureSession.getId());
+        verify(bookingService, times(1)).undelete(booking.getId());
         verify(captureSessionRepository, never()).save(captureSession);
     }
 

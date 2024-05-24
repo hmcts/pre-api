@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,24 +34,26 @@ import javax.annotation.Nullable;
 @SuppressWarnings("PMD.SingularField")
 public class BookingService {
 
-
     private final BookingRepository bookingRepository;
     private final ParticipantRepository participantRepository;
     private final CaseRepository caseRepository;
     private final CaptureSessionService captureSessionService;
     private final ShareBookingService shareBookingService;
+    private final CaseService caseService;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
                           final CaptureSessionService captureSessionService,
-                          final ShareBookingService shareBookingService) {
+                          final ShareBookingService shareBookingService,
+                          @Lazy CaseService caseService) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
+        this.caseService = caseService;
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
@@ -171,10 +174,11 @@ public class BookingService {
         bookingRepository.deleteById(id);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void undelete(UUID id) {
         var entity = bookingRepository.findById(id).orElseThrow(() -> new NotFoundException("Booking: " + id));
+        caseService.undelete(entity.getCaseId().getId());
         if (!entity.isDeleted()) {
             return;
         }
