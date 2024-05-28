@@ -108,7 +108,6 @@ definitions:
         items:
           $ref: '#/definitions/CaptureSessionDTO'
         type: array
-        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -132,7 +131,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       scheduled_for:
         description: BookingScheduledFor
         format: date-time
@@ -142,7 +140,6 @@ definitions:
         items:
           $ref: '#/definitions/ShareBookingDTO'
         type: array
-        uniqueItems: true
     type: object
   CaptureSessionDTO:
     description: CaptureSessionDTO
@@ -233,7 +230,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -347,13 +343,11 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
-        uniqueItems: true
       rooms:
         description: CourtRooms
         items:
           $ref: '#/definitions/RoomDTO'
         type: array
-        uniqueItems: true
     type: object
   CreateAppAccessDTO:
     description: CreateAppAccessDTO
@@ -798,7 +792,6 @@ definitions:
         items:
           $ref: '#/definitions/CaptureSessionDTO'
         type: array
-        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -822,7 +815,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       scheduled_for:
         description: BookingScheduledFor
         format: date-time
@@ -832,7 +824,6 @@ definitions:
         items:
           $ref: '#/definitions/ShareBookingDTO'
         type: array
-        uniqueItems: true
     type: object
   EntityModelCaptureSessionDTO:
     properties:
@@ -925,7 +916,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -959,13 +949,11 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
-        uniqueItems: true
       rooms:
         description: CourtRooms
         items:
           $ref: '#/definitions/RoomDTO'
         type: array
-        uniqueItems: true
     type: object
   EntityModelInviteDTO:
     properties:
@@ -1039,7 +1027,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       url:
         description: RecordingURL
         type: string
@@ -1083,7 +1070,6 @@ definitions:
         items:
           $ref: '#/definitions/BaseAppAccessDTO'
         type: array
-        uniqueItems: true
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -1120,7 +1106,6 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
-        uniqueItems: true
     required:
       - email
       - first_name
@@ -1462,7 +1447,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       url:
         description: RecordingURL
         type: string
@@ -1652,7 +1636,6 @@ definitions:
         items:
           $ref: '#/definitions/BaseAppAccessDTO'
         type: array
-        uniqueItems: true
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -1689,7 +1672,6 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
-        uniqueItems: true
     required:
       - email
       - first_name
@@ -2597,6 +2579,26 @@ paths:
       summary: Create a portal access user and invite them
       tags:
         - invite-controller
+  /media-service/health:
+    get:
+      operationId: mediaService
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+      tags:
+        - media-service-controller
   /recordings:
     get:
       operationId: getRecordings
