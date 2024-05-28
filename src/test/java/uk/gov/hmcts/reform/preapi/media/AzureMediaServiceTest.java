@@ -8,9 +8,8 @@ import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.stream.Stream;
@@ -22,20 +21,17 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AzureMediaService.class)
 public class AzureMediaServiceTest {
-    @Mock
-    private AzureMediaServices azureMediaServices;
-
-    private AzureMediaService mediaService;
+    @MockBean
+    private AzureMediaServices amsClient;
 
     private final String resourceGroup = "test-resource-group";
     private final String accountName = "test-account-name";
 
+    private AzureMediaService mediaService;
+
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mediaService = new AzureMediaService("test-subscription-id", "test-tenant-id", resourceGroup,
-                                             accountName, "test-client-id", "test-client-secret");
-        mediaService.client = azureMediaServices;
+        mediaService = new AzureMediaService(resourceGroup, accountName, amsClient);
     }
 
     @DisplayName("Should get a valid asset and return an AssetDTO")
@@ -49,8 +45,8 @@ public class AzureMediaServiceTest {
         when(asset.container()).thenReturn("container");
         when(asset.storageAccountName()).thenReturn("storage-account-name");
 
-        when(azureMediaServices.getAssets()).thenReturn(mockAssetsClient);
-        when(azureMediaServices.getAssets().get(resourceGroup, accountName, name)).thenReturn(asset);
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+        when(amsClient.getAssets().get(resourceGroup, accountName, name)).thenReturn(asset);
 
         var model = mediaService.getAsset(name);
         assertThat(model).isNotNull();
@@ -68,8 +64,8 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(httpResponse.getStatusCode()).thenReturn(404);
 
-        when(azureMediaServices.getAssets()).thenReturn(mockAssetsClient);
-        when(azureMediaServices.getAssets().get(resourceGroup, accountName, name))
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+        when(amsClient.getAssets().get(resourceGroup, accountName, name))
             .thenThrow(new ManagementException("not found", httpResponse));
 
         var message = assertThrows(
@@ -88,8 +84,8 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(httpResponse.getStatusCode()).thenReturn(400);
 
-        when(azureMediaServices.getAssets()).thenReturn(mockAssetsClient);
-        when(azureMediaServices.getAssets().get(resourceGroup, accountName, name))
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+        when(amsClient.getAssets().get(resourceGroup, accountName, name))
             .thenThrow(new ManagementException("bad request", httpResponse));
 
         var message = assertThrows(
@@ -110,7 +106,7 @@ public class AzureMediaServiceTest {
         when(asset.storageAccountName()).thenReturn("storage-account-name");
 
         var mockedClient = mock(AssetsClient.class);
-        when(azureMediaServices.getAssets()).thenReturn(mockedClient);
+        when(amsClient.getAssets()).thenReturn(mockedClient);
         when(mockedClient.list(resourceGroup, accountName)).thenReturn(mock());
         when(mockedClient.list(resourceGroup, accountName).stream()).thenReturn(Stream.of(asset));
 
