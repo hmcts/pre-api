@@ -44,7 +44,8 @@ class AppAccessTest {
             role,
             true,
             new Timestamp(System.currentTimeMillis()),
-            new Timestamp(System.currentTimeMillis())
+            new Timestamp(System.currentTimeMillis()),
+            true
         );
 
         entityManager.persist(appAccess);

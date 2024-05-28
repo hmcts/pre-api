@@ -35,7 +35,8 @@ public class UserDTOTest {
             HelperFactory.createRole("Example Role 1"),
             true,
             null,
-            Timestamp.from(Instant.now())
+            Timestamp.from(Instant.now()),
+            true
         );
         var access3 = HelperFactory.createAppAccess(
             user,
@@ -43,7 +44,8 @@ public class UserDTOTest {
             HelperFactory.createRole("Example Role 2"),
             true,
             null,
-            Timestamp.from(Instant.now())
+            Timestamp.from(Instant.now()),
+            false
         );
         var access1 = HelperFactory.createAppAccess(
             user,
@@ -51,7 +53,8 @@ public class UserDTOTest {
             HelperFactory.createRole("Example Role 3"),
             true,
             null,
-            Timestamp.from(Instant.now())
+            Timestamp.from(Instant.now()),
+            false
         );
 
         user.setAppAccess(Set.of(access2, access3, access1));
