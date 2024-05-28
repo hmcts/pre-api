@@ -1,0 +1,2 @@
+ALTER TABLE public.app_access
+ADD COLUMN default_court BOOLEAN NOT NULL DEFAULT TRUE;

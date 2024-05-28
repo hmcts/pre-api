@@ -26,6 +26,9 @@ public class BaseAppAccessDTO {
     @Schema(description = "AppAccessRole")
     protected RoleDTO role;
 
+    @Schema(description = "AppAccessIsDefaultCourt")
+    protected Boolean defaultCourt;
+
     @Schema(description = "AppAccessLastAccess")
     protected Timestamp lastAccess;
 
@@ -36,6 +39,7 @@ public class BaseAppAccessDTO {
         id = access.getId();
         court = new CourtDTO(access.getCourt());
         role = new RoleDTO(access.getRole());
+        defaultCourt = access.isDefaultCourt();
         lastAccess = access.getLastAccess();
         active = access.isActive();
     }

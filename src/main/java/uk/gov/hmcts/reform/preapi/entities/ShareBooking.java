@@ -21,7 +21,6 @@ import java.util.HashMap;
 @Entity
 @Table(name = "share_bookings")
 public class ShareBooking extends BaseEntity {
-    // @todo should be able to share before capture session created and after
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Booking booking;
