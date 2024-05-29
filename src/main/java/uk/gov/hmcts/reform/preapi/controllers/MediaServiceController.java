@@ -4,11 +4,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/media-service")
