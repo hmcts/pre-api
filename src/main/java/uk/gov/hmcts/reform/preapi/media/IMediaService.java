@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 
 import java.util.List;
 
@@ -13,15 +14,14 @@ public interface IMediaService {
 
     List<AssetDTO> getAssets();
 
-    /*
-    String startLiveEvent(String liveEventId);
+    void startLiveEvent(String liveEventId);
 
     String playLiveEvent(String liveEventId);
 
-    String stopLiveEvent(String liveEventId);
+    void stopLiveEvent(String liveEventId);
 
-    String getLiveEvent(String liveEventId);
+    LiveEventDTO getLiveEvent(String liveEventId);
 
-    String getLiveEvents();
-     */
+    List<LiveEventDTO> getLiveEvents();
+
 }

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
@@ -47,28 +48,21 @@ public class AzureMediaService implements IMediaService {
                 throw new NotFoundException("Asset with name: " + assetName);
             }
             throw e;
-        } catch (IllegalArgumentException e) {
-            throw new NotFoundException("Unable to communicate with Azure");
         }
     }
 
     @Override
     public List<AssetDTO> getAssets() {
-        try {
-            return amsClient
-                .getAssets()
-                .list(resourceGroup, accountName)
-                .stream()
-                .map(AssetDTO::new)
-                .toList();
-        } catch (IllegalArgumentException e) {
-            throw new NotFoundException("Unable to communicate with Azure");
-        }
+        return amsClient
+            .getAssets()
+            .list(resourceGroup, accountName)
+            .stream()
+            .map(AssetDTO::new)
+            .toList();
     }
 
-    /*
     @Override
-    public String startLiveEvent(String liveEventId) {
+    public void startLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
     }
 
@@ -78,18 +72,29 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public String stopLiveEvent(String liveEventId) {
+    public void stopLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public String getLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
+    public LiveEventDTO getLiveEvent(String liveEventName) {
+        try {
+            return new LiveEventDTO(amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName));
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new NotFoundException("Live event: " + liveEventName);
+            }
+            throw e;
+        }
     }
 
     @Override
-    public String getLiveEvents() {
-        throw new UnsupportedOperationException();
+    public List<LiveEventDTO> getLiveEvents() {
+        return amsClient
+            .getLiveEvents()
+            .list(resourceGroup, accountName)
+            .stream()
+            .map(LiveEventDTO::new)
+            .toList();
     }
-     */
 }

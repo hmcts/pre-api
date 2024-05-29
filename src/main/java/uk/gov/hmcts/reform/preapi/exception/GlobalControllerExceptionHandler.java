@@ -4,6 +4,7 @@ import com.azure.core.management.exception.ManagementException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
+import feign.FeignException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -113,6 +114,24 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<String> onIllegalArgumentException(final IllegalArgumentException e)
+        throws JsonProcessingException {
+        return getResponseEntity(
+            "Unable to communicate with Azure.",
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
+    @ExceptionHandler(FeignException.class)
+    ResponseEntity<String> onIllegalArgumentException(final FeignException e)
+        throws JsonProcessingException {
+        return getResponseEntity(
+            "Unable to connect to Media Service",
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
     @ExceptionHandler(ManagementException.class)
     ResponseEntity<String> onManagementException(final ManagementException e) throws JsonProcessingException {
         return getResponseEntity(
@@ -127,11 +146,6 @@ public class GlobalControllerExceptionHandler {
             "An error occurred when trying to communicate with Azure Media Service.",
             HttpStatus.INTERNAL_SERVER_ERROR
         );
-    }
-
-    @ExceptionHandler(MediaKindException.class)
-    ResponseEntity<String> onMediaKindException(final MediaKindException e) throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)

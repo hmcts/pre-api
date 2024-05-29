@@ -1,15 +1,18 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
+import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
+import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import feign.FeignException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 
 import java.util.List;
 import java.util.UUID;
@@ -52,15 +55,9 @@ public class MediaKindTest {
     @DisplayName("Should fail to get a list of assets and throw a media kind exception")
     @Test
     void getAssetsFeignExceptionThrown() {
-        when(mockClient.getAssets(eq(0)))
-            .thenThrow(FeignException.class);
+        when(mockClient.getAssets(0)).thenThrow(FeignException.class);
 
-        var message = assertThrows(
-            MediaKindException.class,
-            () -> mediaKind.getAssets()
-        ).getMessage();
-
-        assertThat(message).isEqualTo("Unable to connect to Media Service");
+        assertThrows(FeignException.class, () -> mediaKind.getAssets());
     }
 
 
@@ -137,7 +134,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(anyString())).thenThrow(FeignException.class);
 
         assertThrows(
-            MediaKindException.class,
+            FeignException.class,
             () -> mediaKind.getAsset("asset1")
         );
         verify(mockClient, times(1)).getAsset(anyString());
@@ -154,6 +151,58 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(anyString());
     }
 
+    @DisplayName("Should get live event by name")
+    @Test
+    void getLiveEventByNameSuccess() {
+        var liveEventName = UUID.randomUUID().toString();
+        var liveEvent = createLiveEvent(liveEventName);
+
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(liveEvent);
+
+        var result = mediaKind.getLiveEvent(liveEventName);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getName()).isEqualTo(liveEventName);
+        assertThat(result.getDescription()).isEqualTo(liveEvent.getProperties().getDescription());
+        assertThat(result.getResourceState()).isEqualTo(liveEvent.getProperties().getResourceState());
+        assertThat(result.getId()).isEqualTo(liveEvent.getId());
+        assertThat(result.getInputRtmp()).isEqualTo(liveEvent.getProperties().getInput().endpoints().getFirst().url());
+    }
+
+    @DisplayName("Should return null when get live event returns 404")
+    @Test
+    void getLiveEventNotFound() {
+        var mockError = mock(FeignException.NotFound.class);
+
+        when(mockClient.getLiveEvent(anyString())).thenThrow(mockError);
+
+        assertThat(mediaKind.getLiveEvent("not-found")).isNull();
+        verify(mockClient, times(1)).getLiveEvent("not-found");
+    }
+
+    @DisplayName("Should return a list of all live events")
+    @Test
+    void getLiveEventListSuccess() {
+        var liveEventName1 = UUID.randomUUID().toString();
+        var liveEventName2 = UUID.randomUUID().toString();
+        var liveEvents = List.of(
+            createLiveEvent(liveEventName1),
+            createLiveEvent(liveEventName2)
+        );
+
+        when(mockClient.getLiveEvents(0))
+            .thenReturn(MkGetListResponse.<MkLiveEvent>builder()
+                            .value(liveEvents)
+                            .build()
+            );
+
+        var results = mediaKind.getLiveEvents();
+        assertThat(results).hasSize(2);
+
+        assertThat(results.getFirst().getName()).isEqualTo(liveEventName1);
+        assertThat(results.getLast().getName()).isEqualTo(liveEventName2);
+    }
+
     private MkAsset createMkAsset(String name) {
         return MkAsset.builder()
             .name(name)
@@ -161,6 +210,24 @@ public class MediaKindTest {
                             .description("description: " + name)
                             .storageAccountName("example storage account")
                             .container("container name")
+                            .build())
+            .build();
+    }
+
+    private MkLiveEvent createLiveEvent(String name) {
+        return MkLiveEvent.builder()
+            .id(UUID.randomUUID().toString())
+            .name(name)
+            .location("UK South")
+            .properties(MkLiveEvent.MkLiveEventProperties.builder()
+                            .description("description: " + name)
+                            .useStaticHostname(true)
+                            .resourceState("Stopped")
+                            .input(new LiveEventInput()
+                                       .withEndpoints(List.of(new LiveEventEndpoint()
+                                                                  .withProtocol("RTMP")
+                                                                  .withUrl("rtmps://example url"))))
+                            .preview(new LiveEventPreview())
                             .build())
             .build();
     }

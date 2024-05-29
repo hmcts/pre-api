@@ -42,4 +42,18 @@ public class MediaServiceController extends PreApiController {
         mediaKind.getAssets();
         return ResponseEntity.ok("successfully connected to media service (mk)");
     }
+
+    @GetMapping("/assets")
+    public ResponseEntity<List<AssetDTO>> getAssets() {
+        return ResponseEntity.ok(mediaService.getAssets());
+    }
+
+    @GetMapping("/assets/{assetName}")
+    public ResponseEntity<AssetDTO> getAsset(@PathVariable String assetName) {
+        var data = mediaService.getAsset(assetName);
+        if (data == null) {
+            throw new NotFoundException("Asset: " + assetName);
+        }
+        return ResponseEntity.ok(data);
+    }
 }
