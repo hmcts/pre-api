@@ -62,7 +62,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public void startLiveEvent(String liveEventId) {
+    public String startLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
     }
 
@@ -72,7 +72,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public void stopLiveEvent(String liveEventId) {
+    public String stopLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
     }
 
