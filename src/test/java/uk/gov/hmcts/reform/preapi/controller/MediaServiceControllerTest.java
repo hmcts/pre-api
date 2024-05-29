@@ -115,7 +115,7 @@ public class MediaServiceControllerTest {
     void getAssetSuccess() throws Exception {
         var name = UUID.randomUUID().toString();
         var asset = HelperFactory.createAsset(name, "description", "container", "storage account name");
-        when(mediaKind.getAsset(name)).thenReturn(asset);
+        when(mediaService.getAsset(name)).thenReturn(asset);
 
         mockMvc.perform(get("/media-service/assets/" + name))
             .andExpect(status().isOk())
@@ -144,7 +144,7 @@ public class MediaServiceControllerTest {
         var assets = List.of(
             HelperFactory.createAsset("name", "description", "container", "storage account")
         );
-        when(mediaKind.getAssets()).thenReturn(assets);
+        when(mediaService.getAssets()).thenReturn(assets);
 
         mockMvc.perform(get("/media-service/assets"))
             .andExpect(status().isOk())
@@ -160,12 +160,12 @@ public class MediaServiceControllerTest {
     void getLiveEventSuccess() throws Exception {
         var name = UUID.randomUUID().toString();
         var liveEvent = HelperFactory.createLiveEvent(name, "description", "Stopped", "rtmps://example.com");
-        when(mediaKind.getLiveEvent(name)).thenReturn(liveEvent);
+        when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
 
-        mockMvc.perform(get("/media-service/live-event/" + name))
+        mockMvc.perform(get("/media-service/live-events/" + name))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.name").value("name"))
+            .andExpect(jsonPath("$.name").value(name))
             .andExpect(jsonPath("$.description").value("description"))
             .andExpect(jsonPath("$.resource_state").value("Stopped"))
             .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
@@ -175,12 +175,12 @@ public class MediaServiceControllerTest {
     @Test
     void getLiveEventNotFound() throws Exception {
         var name = UUID.randomUUID().toString();
-        when(mediaKind.getLiveEvent(name)).thenReturn(null);
+        when(mediaService.getLiveEvent(name)).thenReturn(null);
 
-        mockMvc.perform(get("/media-service/live-event/" + name))
+        mockMvc.perform(get("/media-service/live-events/" + name))
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Not found: Live event:" + name));
+            .andExpect(jsonPath("$.message").value("Not found: Live event: " + name));
     }
 
     @DisplayName("Should return 200 and a list of live events")
@@ -189,7 +189,7 @@ public class MediaServiceControllerTest {
         var liveEvents = List.of(
             HelperFactory.createLiveEvent("name", "description", "Stopped", "rtmps://example.com")
         );
-        when(mediaKind.getLiveEvents()).thenReturn(liveEvents);
+        when(mediaService.getLiveEvents()).thenReturn(liveEvents);
 
         mockMvc.perform(get("/media-service/live-events"))
             .andExpect(status().isOk())
