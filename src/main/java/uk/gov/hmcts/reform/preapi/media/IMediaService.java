@@ -14,11 +14,11 @@ public interface IMediaService {
 
     List<AssetDTO> getAssets();
 
-    void startLiveEvent(String liveEventId);
+    String startLiveEvent(String liveEventId);
 
     String playLiveEvent(String liveEventId);
 
-    void stopLiveEvent(String liveEventId);
+    String stopLiveEvent(String liveEventId);
 
     LiveEventDTO getLiveEvent(String liveEventId);
 
