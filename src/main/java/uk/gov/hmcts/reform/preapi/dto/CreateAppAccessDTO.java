@@ -31,6 +31,12 @@ public class CreateAppAccessDTO {
     @NotNull
     private UUID roleId;
 
+    @Schema(description = "AppAccessIsDefaultCourt")
+    // TODO Uncomment annotation when app integrated
+    // TODO Also update AppAccessService + PrimaryCourtValidator
+    // @NotNull
+    private Boolean defaultCourt;
+
     @Schema(description = "AppAccessActive")
     private Boolean active;
 

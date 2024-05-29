@@ -55,6 +55,9 @@ definitions:
         type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
+      default_court:
+        description: AppAccessIsDefaultCourt
+        type: boolean
       id:
         description: AppAccessId
         format: uuid
@@ -353,6 +356,9 @@ definitions:
         description: AppAccessCourtId
         format: uuid
         type: string
+      default_court:
+        description: AppAccessIsDefaultCourt
+        type: boolean
       id:
         description: AppAccessId
         format: uuid

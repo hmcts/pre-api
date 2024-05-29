@@ -71,7 +71,7 @@ public class HelperFactory {
                                      Role role,
                                      boolean active,
                                      Timestamp deletedAt,
-                                     @Nullable Timestamp lastAccess) {
+                                     @Nullable Timestamp lastAccess, boolean isDefaultCourt) {
         AppAccess appAccess = new AppAccess();
         appAccess.setUser(user);
         appAccess.setCourt(court);
@@ -79,6 +79,7 @@ public class HelperFactory {
         appAccess.setLastAccess(lastAccess);
         appAccess.setActive(active);
         appAccess.setDeletedAt(deletedAt);
+        appAccess.setDefaultCourt(isDefaultCourt);
         return appAccess;
     }
 
