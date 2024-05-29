@@ -9,6 +9,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.validators.NoDuplicateCourtsConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.PortalAppAccessConstraint;
+import uk.gov.hmcts.reform.preapi.dto.validators.PrimaryCourtConstraint;
 
 import java.util.Set;
 
@@ -21,6 +24,9 @@ public class CreateUserDTO extends BaseUserDTO {
 
     @Schema(description = "UserAppAccess")
     @NotNull
+    @PrimaryCourtConstraint
+    @NoDuplicateCourtsConstraint
+    @PortalAppAccessConstraint
     @Valid
     private Set<CreateAppAccessDTO> appAccess;
 

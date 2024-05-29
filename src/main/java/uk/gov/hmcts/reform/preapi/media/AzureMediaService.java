@@ -1,10 +1,6 @@
 package uk.gov.hmcts.reform.preapi.media;
 
-import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.exception.ManagementException;
-import com.azure.core.management.profile.AzureProfile;
-import com.azure.identity.ClientSecretCredentialBuilder;
-import com.azure.resourcemanager.mediaservices.MediaServicesManager;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,27 +14,17 @@ import java.util.List;
 public class AzureMediaService implements IMediaService {
     private final String resourceGroup;
     private final String accountName;
-    protected AzureMediaServices client;
+    private final AzureMediaServices amsClient;
 
     @Autowired
     public AzureMediaService(
-        @Value("${azure.subscription-id}") String subscriptionId,
-        @Value("${azure.tenant-id}") String tenantId,
         @Value("${azure.resource-group}") String resourceGroup,
         @Value("${azure.account-name}") String accountName,
-        @Value("${azure.clientId}") String clientId,
-        @Value("${azure.clientSecret}") String clientSecret
+        AzureMediaServices amsClient
     ) {
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
-        var profile = new AzureProfile(tenantId, subscriptionId, AzureEnvironment.AZURE);
-        var credentials = new ClientSecretCredentialBuilder()
-            .clientId(clientId)
-            .clientSecret(clientSecret)
-            .tenantId(tenantId)
-            .authorityHost(profile.getEnvironment().getActiveDirectoryEndpoint())
-            .build();
-        client = MediaServicesManager.authenticate(credentials, profile).serviceClient();
+        this.amsClient = amsClient;
     }
 
     @Override
@@ -55,7 +41,7 @@ public class AzureMediaService implements IMediaService {
     public AssetDTO getAsset(String assetName) {
         // assetName is an id without the '-'
         try {
-            return new AssetDTO(client.getAssets().get(resourceGroup, accountName, assetName));
+            return new AssetDTO(amsClient.getAssets().get(resourceGroup, accountName, assetName));
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
                 throw new NotFoundException("Asset with name: " + assetName);
@@ -69,7 +55,7 @@ public class AzureMediaService implements IMediaService {
     @Override
     public List<AssetDTO> getAssets() {
         try {
-            return client
+            return amsClient
                 .getAssets()
                 .list(resourceGroup, accountName)
                 .stream()

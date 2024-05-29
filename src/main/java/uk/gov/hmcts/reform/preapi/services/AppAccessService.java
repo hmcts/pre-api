@@ -18,7 +18,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
-
 @Service
 public class AppAccessService {
 
@@ -61,6 +60,11 @@ public class AppAccessService {
         entity.setUser(user);
         entity.setCourt(court);
         entity.setRole(role);
+        // TODO remove if statement when uncommented @NotNull on CreateAppAccessDTO.courtAccessType
+        if (createAppAccessDTO.getDefaultCourt() == null) {
+            createAppAccessDTO.setDefaultCourt(true);
+        }
+        entity.setDefaultCourt(createAppAccessDTO.getDefaultCourt());
 
         if (createAppAccessDTO.getActive() != null) {
             entity.setActive(createAppAccessDTO.getActive());

@@ -31,6 +31,9 @@ public class AppAccess extends CreatedModifiedAtEntity {
     @JoinColumn(name = "role_id", referencedColumnName = "id")
     private Role role;
 
+    @Column(name = "default_court", nullable = false)
+    private boolean defaultCourt;
+
     @Column(name = "last_access")
     private Timestamp lastAccess;
 
