@@ -112,7 +112,7 @@ public class ReportServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(captureSession);
 
-        var recording = HelperFactory.createRecording(captureSession, null, 1, null, "example.file", null);
+        var recording = HelperFactory.createRecording(captureSession, null, 1, "example.file", null);
         entityManager.persist(recording);
 
         var user = HelperFactory.createUser("Example", "One", "example1@example.com", null, null, null);
@@ -170,7 +170,7 @@ public class ReportServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(captureSession);
 
-        var recording = HelperFactory.createRecording(captureSession, null, 1, null, "example.file", null);
+        var recording = HelperFactory.createRecording(captureSession, null, 1, "example.file", null);
         entityManager.persist(recording);
 
         var response = reportService.reportRecordingParticipants();
@@ -253,13 +253,13 @@ public class ReportServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(captureSession3);
 
-        var recording1 = HelperFactory.createRecording(captureSession1, null, 1, null, "example.file", null);
+        var recording1 = HelperFactory.createRecording(captureSession1, null, 1, "example.file", null);
         entityManager.persist(recording1);
-        var recording2 = HelperFactory.createRecording(captureSession2, null, 1, null, "example.file", null);
+        var recording2 = HelperFactory.createRecording(captureSession2, null, 1, "example.file", null);
         entityManager.persist(recording2);
-        var recording3 = HelperFactory.createRecording(captureSession3, null, 1, null, "example.file", null);
+        var recording3 = HelperFactory.createRecording(captureSession3, null, 1, "example.file", null);
         entityManager.persist(recording3);
-        var recording4 = HelperFactory.createRecording(captureSession3, recording3, 2, null, "example.file", null);
+        var recording4 = HelperFactory.createRecording(captureSession3, recording3, 2, "example.file", null);
         entityManager.persist(recording4);
 
         var report = reportService.reportRecordingsPerCase();
@@ -341,13 +341,12 @@ public class ReportServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(captureSession3);
 
-        var recording1 = HelperFactory.createRecording(captureSession1, null, 1, null, "example.file", null);
+        var recording1 = HelperFactory.createRecording(captureSession1, null, 1, "example.file", null);
         entityManager.persist(recording1);
         var recording3 = HelperFactory.createRecording(
             captureSession3,
             null,
             1,
-            null,
             "example.file",
             Timestamp.from(Instant.now())
         );
