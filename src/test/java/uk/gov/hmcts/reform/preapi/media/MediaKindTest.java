@@ -58,7 +58,7 @@ public class MediaKindTest {
     void getAssetsFeignExceptionThrown() {
         when(mockClient.getAssets(0)).thenThrow(FeignException.class);
 
-        assertThrows(FeignException.class, () -> mediaKind.getAssets());
+        assertThrows(MediaKindException.class, () -> mediaKind.getAssets());
     }
 
 
@@ -135,7 +135,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(anyString())).thenThrow(FeignException.class);
 
         assertThrows(
-            FeignException.class,
+            MediaKindException.class,
             () -> mediaKind.getAsset("asset1")
         );
         verify(mockClient, times(1)).getAsset(anyString());
