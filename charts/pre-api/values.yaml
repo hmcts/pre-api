@@ -27,6 +27,8 @@ java:
           alias: AZ_AMS_CLIENT_ID
         - name: client-secret
           alias: AZ_AMS_CLIENT_SECRET
+        - name: pp-authorization
+          alias: MEDIA_KIND_TOKEN
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
@@ -34,5 +36,5 @@ java:
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: "preams{{ .Values.global.environment }}"
     AZURE_RESOURCE_GROUP: "pre-{{ .Values.global.environment }}"
     AZURE_SUBSCRIPTION_ID: 5ca62022-6aa2-4cee-aaa7-e7536c8d566c
-
+    MEDIA_KIND_SUBSCRIPTION: "pre-mediakind-{{ .Values.global.environment }}"
 
