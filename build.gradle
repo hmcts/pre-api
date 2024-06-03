@@ -283,13 +283,18 @@ dependencies {
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
+  implementation 'io.github.openfeign:feign-okhttp:10.11'
+  implementation 'io.github.openfeign:feign-gson:10.11'
+  implementation 'io.github.openfeign:feign-slf4j:10.11'
+  implementation group: 'org.springframework.cloud', name: 'spring-cloud-starter-openfeign', version: '4.1.1'
+
   implementation group: 'com.azure', name: 'azure-identity', version: '1.12.1'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
 
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.5.2.Final')
 
 
-  testImplementation 'com.github.hmcts:fortify-client:1.4.1:all'
+  testImplementation 'com.github.hmcts:fortify-client:1.4.2:all'
   testImplementation 'org.springframework.security:spring-security-test:6.3.0'
   testImplementation libraries.junit5
 

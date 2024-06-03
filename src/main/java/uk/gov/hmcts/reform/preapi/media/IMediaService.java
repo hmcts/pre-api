@@ -13,6 +13,7 @@ public interface IMediaService {
 
     List<AssetDTO> getAssets();
 
+    /*
     String startLiveEvent(String liveEventId);
 
     String playLiveEvent(String liveEventId);
@@ -22,4 +23,5 @@ public interface IMediaService {
     String getLiveEvent(String liveEventId);
 
     String getLiveEvents();
+     */
 }
