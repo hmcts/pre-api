@@ -148,6 +148,11 @@ public class GlobalControllerExceptionHandler {
         );
     }
 
+    @ExceptionHandler(MediaKindException.class)
+    ResponseEntity<String> onMediaKindException(final MediaKindException e) throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 

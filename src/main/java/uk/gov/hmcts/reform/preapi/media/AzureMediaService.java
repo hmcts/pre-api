@@ -61,6 +61,7 @@ public class AzureMediaService implements IMediaService {
             .toList();
     }
 
+    /*
     @Override
     public String startLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
@@ -97,4 +98,5 @@ public class AzureMediaService implements IMediaService {
             .map(LiveEventDTO::new)
             .toList();
     }
+     */
 }
