@@ -51,7 +51,6 @@ public class RecordingDTOTest {
         recordingEntity = new Recording();
         recordingEntity.setId(UUID.randomUUID());
         recordingEntity.setVersion(1);
-        recordingEntity.setUrl("http://localhost:8080");
         recordingEntity.setFilename("test.mp4");
         recordingEntity.setCaptureSession(captureSession);
     }
@@ -96,7 +95,6 @@ public class RecordingDTOTest {
         );
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
-        recording.setUrl("http://localhost");
         recording.setFilename("example-filename.txt");
         recording.setCreatedAt(Timestamp.from(Instant.now()));
 
