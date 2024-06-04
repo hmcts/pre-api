@@ -53,12 +53,17 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public List<AssetDTO> getAssets() {
-        return amsClient
-            .getAssets()
-            .list(resourceGroup, accountName)
-            .stream()
-            .map(AssetDTO::new)
-            .toList();
+        try {
+            return amsClient
+                .getAssets()
+                .list(resourceGroup, accountName)
+                .stream()
+                .map(AssetDTO::new)
+                .toList();
+        } catch (Exception e) {
+            return null;
+        }
+
     }
 
     /*
