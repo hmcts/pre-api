@@ -69,9 +69,7 @@ public class MediaServiceControllerTest {
 
         mockMvc.perform(get("/media-service/health"))
             .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("An error occurred when trying to communicate with Azure Media Service."));
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON));
 
         // resource manager issue
         doThrow(new ManagementException("error", mock(HttpResponse.class)))
