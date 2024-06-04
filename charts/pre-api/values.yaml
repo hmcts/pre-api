@@ -29,6 +29,8 @@ java:
           alias: AZ_AMS_CLIENT_SECRET
         - name: pp-authorization
           alias: MEDIA_KIND_TOKEN
+        - name: api-MKIO-TOKEN
+          alias: MEDIA_KIND_TOKEN_DEV
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true

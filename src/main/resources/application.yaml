@@ -75,4 +75,4 @@ testing-support-endpoints:
 
 mediakind:
   api: https://api.mk.io/api/ams/${MEDIA_KIND_SUBSCRIPTION:}/
-  token: ${MEDIA_KIND_TOKEN:}
+  token: ${MEDIA_KIND_TOKEN_DEV:${MEDIA_KIND_TOKEN:}}
