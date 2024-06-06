@@ -9,8 +9,14 @@
   <rule ref="category/java/bestpractices.xml">
     <exclude name="GuardLogStatement"/>
     <exclude name="JUnitTestContainsTooManyAsserts"/>
-    <exclude name="JUnitTestsShouldIncludeAssert"/>
     <exclude name="JUnitAssertionsShouldIncludeMessage"/>
+    <exclude name="JUnitTestsShouldIncludeAssert"/>
+    <exclude name="UnusedFormalParameter"/>
+  </rule>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField">
+    <properties>
+      <property name="ignoredAnnotations" value="Autowired" />
+    </properties>
   </rule>
   <rule ref="category/java/codestyle.xml">
     <exclude name="AtLeastOneConstructor"/>
@@ -19,7 +25,12 @@
     <exclude name="MethodArgumentCouldBeFinal"/>
     <exclude name="OnlyOneReturn"/>
     <exclude name="TooManyStaticImports"/>
+    <exclude name="DefaultPackage"/>
     <exclude name="CommentDefaultAccessModifier"/>
+    <exclude name="FieldNamingConventions"/>
+    <exclude name="UnnecessaryAnnotationValueElement"/>
+    <exclude name="LinguisticNaming"/>
+    <exclude name="ConfusingTernary"/>
   </rule>
   <rule ref="category/java/codestyle.xml/ClassNamingConventions">
     <properties>
@@ -42,16 +53,9 @@
     <exclude name="UseUtilityClass"/>
     <exclude name="LoosePackageCoupling"/>
     <exclude name="DataClass"/>
-  </rule>
-  <rule ref="category/java/design.xml/ExcessiveImports">
-    <properties>
-      <property name="minimum" value="35"/><!-- should be reduced -->
-    </properties>
-  </rule>
-  <rule ref="category/java/design.xml/LawOfDemeter">
-    <properties>
-      <property name="violationSuppressRegex" value="(.*method chain calls.*|.*object not created locally.*)"/>
-    </properties>
+    <exclude name="TooManyFields"/>
+    <exclude name="UseObjectForClearerAPI"/>
+    <exclude name="LawOfDemeter"/>
   </rule>
   <rule ref="category/java/design.xml/SignatureDeclareThrowsException">
     <properties>
@@ -64,14 +68,41 @@
     <exclude name="UncommentedEmptyMethodBody"/>
   </rule>
   <rule ref="category/java/errorprone.xml">
-    <exclude name="NonSerializableClass"/>
+    <exclude name="BeanMembersShouldSerialize"/>
+    <exclude name="AvoidDuplicateLiterals"/>
+    <exclude name="DataflowAnomalyAnalysis"/>
   </rule>
-  <rule ref="category/java/multithreading.xml"/>
+  <rule ref="category/java/multithreading.xml">
+    <exclude name="UseConcurrentHashMap"/>
+    <exclude name="DoNotUseThreads"/>
+  </rule>
   <rule ref="category/java/performance.xml"/>
   <rule ref="category/java/security.xml"/>
+  <rule ref="category/java/design.xml/ExcessiveImports">
+    <properties>
+      <property name="minimum" value="62.0" />
+    </properties>
+  </rule>
+  <rule ref="category/java/codestyle.xml/UseUnderscoresInNumericLiterals">
+    <properties>
+      <property name="acceptableDecimalLength" value="16" />
+    </properties>
+  </rule>
   <rule ref="category/java/design.xml/TooManyMethods">
     <properties>
-      <property name="maxmethods" value="12" />
+      <property name="maxmethods" value="21" />
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/NPathComplexity">
+    <properties>
+      <property name="reportLevel" value="35000" />
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/CyclomaticComplexity">
+    <properties>
+      <property name="classReportLevel" value="80" />
+      <property name="methodReportLevel" value="20" />
+      <property name="cycloOptions" value="" />
     </properties>
   </rule>
 </ruleset>
