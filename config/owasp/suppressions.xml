@@ -8,7 +8,31 @@
     <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
     <cve>CVE-2023-35116</cve>
   </suppress>
-  
+
+  <suppress>
+    <notes>False Positive, see https://github.com/jeremylong/DependencyCheck/issues/6100.
+      We aren't using the azure_cli package.
+    </notes>
+    <cve>CVE-2023-36052</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+   We are not using any of the affected credentials
+   (DefaultAzureCredential, AzureCliCredential, AzureDeveloperCliCredential, AzurePowerShellCredential)
+   ]]></notes>
+    <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
+    <cve>CVE-2023-36415</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+   file name: azure-resourcemanager-mediaservices-2.4.0-beta.1.jar
+   ]]></notes>
+    <packageUrl regex="true">^pkg:maven/com\.azure\.resourcemanager/azure\-resourcemanager\-mediaservices@.*$</packageUrl>
+    <cve>CVE-2009-2498</cve>
+  </suppress>
+
   <suppress>
     <notes><![CDATA[
    Affecting lots of spring boot libs. We can't update due to a hibernate dependency

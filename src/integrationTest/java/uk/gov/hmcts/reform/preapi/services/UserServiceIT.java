@@ -83,6 +83,7 @@ public class UserServiceIT extends IntegrationTestBase {
         appAccessEntity.setCourt(court);
         appAccessEntity.setRole(role);
         appAccessEntity.setActive(true);
+        appAccessEntity.setDefaultCourt(true);
         entityManager.persist(appAccessEntity);
 
         appAccessEntity2 = new AppAccess();
@@ -91,6 +92,7 @@ public class UserServiceIT extends IntegrationTestBase {
         appAccessEntity2.setCourt(court);
         appAccessEntity2.setRole(role);
         appAccessEntity2.setActive(true);
+        appAccessEntity2.setDefaultCourt(true);
         entityManager.persist(appAccessEntity2);
 
         portalAccessEntity = new PortalAccess();

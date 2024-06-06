@@ -8,8 +8,10 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -158,6 +160,70 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteShareBookingResponse, 401);
     }
 
+    @DisplayName("Should return list of shares for a booking sorted by shared with user's first name")
+    @Test
+    void listBookingSharesSuccess() throws JsonProcessingException {
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+        var booking = createBooking(caseEntity.getId(), participants);
+
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity),
+            true
+        );
+        assertResponseCode(putCase, 201);
+
+        // create booking
+        var putBooking = putBooking(booking);
+        assertResponseCode(putBooking, 201);
+        assertThat(putBooking.header(LOCATION_HEADER))
+            .isEqualTo(testUrl + BOOKINGS_ENDPOINT + "/" + booking.getId());
+        assertBookingExists(booking.getId(), true);
+
+        // create users
+        var user1 = createUser("AAA");
+        var putUser1 = putUser(user1);
+        assertResponseCode(putUser1, 201);
+        assertUserExists(user1.getId(), true);
+        var user2 = createUser("BBB");
+        var putUser2 = putUser(user2);
+        assertResponseCode(putUser2, 201);
+        assertUserExists(user2.getId(), true);
+        var user3 = createUser("CCC");
+        var putUser3 = putUser(user3);
+        assertResponseCode(putUser3, 201);
+        assertUserExists(user3.getId(), true);
+
+        // share with users
+        var putShare2 = putShareBooking(createShareBooking(booking.getId(), user2.getId()));
+        assertResponseCode(putShare2, 201);
+        var putShare3 = putShareBooking(createShareBooking(booking.getId(), user3.getId()));
+        assertResponseCode(putShare3, 201);
+        var putShare1 = putShareBooking(createShareBooking(booking.getId(), user1.getId()));
+        assertResponseCode(putShare1, 201);
+
+        // see shares are sorted
+        var getShares = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/share", true);
+        assertResponseCode(getShares, 200);
+
+        var shares = getShares.getBody().jsonPath().getList("_embedded.shareBookingDTOList", ShareBookingDTO.class);
+        assertThat(shares.size()).isEqualTo(3);
+        assertThat(shares.getFirst().getSharedWithUser().getId()).isEqualTo(user1.getId());
+        assertThat(shares.getFirst().getSharedWithUser().getFirstName()).isEqualTo("AAA");
+
+        assertThat(shares.get(1).getSharedWithUser().getId()).isEqualTo(user2.getId());
+        assertThat(shares.get(1).getSharedWithUser().getFirstName()).isEqualTo("BBB");
+
+        assertThat(shares.getLast().getSharedWithUser().getId()).isEqualTo(user3.getId());
+        assertThat(shares.getLast().getSharedWithUser().getFirstName()).isEqualTo("CCC");
+
+    }
+
     @DisplayName("Scenario: Create and update a booking")
     @Test
     void createBookingScenario() throws JsonProcessingException {
@@ -227,9 +293,41 @@ class BookingControllerFT extends FunctionalTestBase {
             .isEqualTo("scheduled_for is required and must not be before today");
     }
 
+    @DisplayName("Create a booking with a participant that is not part of the case")
+    @Test
+    void createBookingWithParticipantNotInCase() throws JsonProcessingException {
+        var caseEntity = createCase();
+        var participant1 = createParticipant(ParticipantType.WITNESS);
+        var participant2 = createParticipant(ParticipantType.DEFENDANT);
+        var participants = Set.of(
+            participant1,
+            participant2
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase = doPutRequest(
+            CASES_ENDPOINT + "/" + caseEntity.getId(),
+            OBJECT_MAPPER.writeValueAsString(caseEntity),
+            true
+        );
+        assertResponseCode(putCase, 201);
+        var participant3 = createParticipant(ParticipantType.DEFENDANT);
+        var booking = createBooking(
+            caseEntity.getId(),
+            Set.of(participant1, participant2, participant3)
+        );
+
+        // create booking
+        var putBooking = putBooking(booking);
+        assertResponseCode(putBooking, 404);
+        assertThat(putBooking.body().jsonPath().getString("message"))
+            .isEqualTo("Not found: Participant: " + participant3.getId() + " in case: " + caseEntity.getId());
+    }
+
     @DisplayName("Scenario: Restore booking")
     @Test
     void undeleteBooking() throws JsonProcessingException {
+        // create booking
         var caseEntity = createCase();
         var participants = Set.of(
             createParticipant(ParticipantType.WITNESS),
@@ -248,14 +346,19 @@ class BookingControllerFT extends FunctionalTestBase {
         var putResponse = putBooking(booking);
         assertResponseCode(putResponse, 201);
         assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
 
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + booking.getId(), true);
-        assertResponseCode(deleteResponse, 204);
+        // delete case (and associated booking)
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseEntity.getId(), true);
+        assertResponseCode(deleteResponse, 200);
         assertBookingExists(booking.getId(), false);
+        assertCaseExists(caseEntity.getId(), false);
 
+        // undelete booking
         var undeleteResponse = doPostRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/undelete", true);
         assertResponseCode(undeleteResponse, 200);
         assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
     }
 
     private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
@@ -267,18 +370,36 @@ class BookingControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private CreateParticipantDTO createParticipant(ParticipantType type) {
-        var dto = new CreateParticipantDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setFirstName("Example");
-        dto.setLastName("Example");
-        dto.setParticipantType(type);
-        return dto;
-    }
-
     private Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
         return doPutRequest(
             BOOKINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
+    }
+
+    private CreateUserDTO createUser(String firstName) {
+        var dto = new CreateUserDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName(firstName);
+        dto.setLastName("Example");
+        dto.setAppAccess(Set.of());
+        dto.setPortalAccess(Set.of());
+        dto.setEmail(dto.getId() + "@example.com");
+        return dto;
+    }
+
+    private CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
+        var dto = new CreateShareBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setSharedWithUser(shareWithId);
+        return dto;
+    }
+
+    private Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
             OBJECT_MAPPER.writeValueAsString(dto),
             true
         );

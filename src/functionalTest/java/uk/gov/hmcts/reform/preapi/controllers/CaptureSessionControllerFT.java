@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -114,18 +115,28 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Restore capture session")
     @Test
     void undeleteCaptureSession() throws JsonProcessingException {
+        // create capture session
         var dto = createCaptureSession();
         var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertCaptureSessionExists(dto.getId(), true);
+        var bookingResponse = assertBookingExists(dto.getBookingId(), true);
+        var caseId = bookingResponse.as(BookingDTO.class).getCaseDTO().getId();
+        assertCaseExists(caseId, true);
 
-        var deleteResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), true);
+        // delete case (and associated bookings + capture session)
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseId, true);
         assertResponseCode(deleteResponse, 200);
         assertCaptureSessionExists(dto.getId(), false);
+        assertBookingExists(dto.getBookingId(), false);
+        assertCaseExists(caseId, false);
 
+        // undelete capture session
         var undeleteResponse = doPostRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId() + "/undelete", true);
         assertResponseCode(undeleteResponse, 200);
         assertCaptureSessionExists(dto.getId(), true);
+        assertBookingExists(dto.getBookingId(), true);
+        assertCaseExists(caseId, true);
     }
 
     private CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {

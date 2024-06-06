@@ -9,10 +9,12 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
-import java.util.Set;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,10 +25,10 @@ import java.util.stream.Stream;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UserDTO extends BaseUserDTO {
     @Schema(description = "UserAppAccess")
-    private Set<BaseAppAccessDTO> appAccess;
+    private List<BaseAppAccessDTO> appAccess;
 
     @Schema(description = "UserPortalAccess")
-    private Set<PortalAccessDTO> portalAccess;
+    private List<PortalAccessDTO> portalAccess;
 
     @Schema(description = "UserCreatedAt")
     private Timestamp createdAt;
@@ -51,12 +53,13 @@ public class UserDTO extends BaseUserDTO {
         appAccess = Stream.ofNullable(user.getAppAccess())
             .flatMap(access -> access.stream()
                 .filter(a -> a.getDeletedAt() == null)
+                .sorted(Comparator.nullsLast(Comparator.comparing(AppAccess::getLastAccess).reversed()))
                 .map(BaseAppAccessDTO::new))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toList());
         portalAccess = Stream.ofNullable(user.getPortalAccess())
             .flatMap(access -> access.stream()
                 .filter(a -> a.getDeletedAt() == null)
                 .map(PortalAccessDTO::new))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toList());
     }
 }

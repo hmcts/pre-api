@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
-
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -8,7 +9,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -87,21 +90,21 @@ class TestingSupportController {
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createRoom() {
+    public ResponseEntity<Map<String, String>> createRoom(@RequestParam(required = false) String roomName) {
         var room = new Room();
-        room.setName("Example Room");
+        room.setName(roomName == null || roomName.isEmpty()  ? "Example Room" : roomName);
         roomRepository.save(room);
 
-        return ResponseEntity.ok(Map.of("roomId", room.getId().toString()));
+        return ResponseEntity.ok(Map.of("roomId", room.getId().toString(), "roomName", room.getName()));
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createRegion() {
+    public ResponseEntity<Map<String, String>> createRegion(@RequestParam(required = false) String regionName) {
         var region = new Region();
-        region.setName("Example Region");
+        region.setName(regionName == null || regionName.isEmpty()  ? "Example Region" : regionName);
         regionRepository.save(region);
 
-        return ResponseEntity.ok(Map.of("regionId", region.getId().toString()));
+        return ResponseEntity.ok(Map.of("regionId", region.getId().toString(), "regionName", region.getName()));
     }
 
     @PostMapping(path = "/create-court", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -258,12 +261,36 @@ class TestingSupportController {
 
         var response = new HashMap<String, String>() {
             {
+                put("caseId", caseEntity.getId().toString());
                 put("bookingId", booking.getId().toString());
                 put("recordingId", recording.getId().toString());
                 put("captureSessionId", captureSession.getId().toString());
             }
         };
 
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/create-role")
+    public ResponseEntity<Map<String, String>> createSuperUserRole(
+        @Parameter(
+            name = "roleName",
+            schema = @Schema(implementation = TestingSupportRoles.class),
+            required = true
+        ) TestingSupportRoles roleName
+    ) {
+        String roleStr;
+        switch (roleName) {
+            case SUPER_USER -> roleStr = "Super User";
+            case LEVEL_1 -> roleStr = "Level 1";
+            case LEVEL_2 -> roleStr = "Level 2";
+            case LEVEL_3 -> roleStr = "Level 3";
+            case LEVEL_4 -> roleStr = "Level 4";
+            default -> roleStr = "Other Role";
+        }
+
+        var role = createRole(roleStr);
+        var response = Map.of("roleId", role.getId().toString());
         return ResponseEntity.ok(response);
     }
 
@@ -296,6 +323,7 @@ class TestingSupportController {
         access.setCourt(createTestCourt());
         access.setRole(createRole(role));
         access.setActive(true);
+        access.setDefaultCourt(true);
         appAccessRepository.save(access);
 
         return access;

@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -9,6 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.util.Map;
 import java.util.Set;
@@ -153,10 +157,22 @@ public class FunctionalTestBase {
         caseDTO.setId(UUID.randomUUID());
         caseDTO.setCourtId(courtId);
         caseDTO.setReference(generateRandomCaseReference());
-        caseDTO.setParticipants(Set.of());
+        caseDTO.setParticipants(Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        ));
         caseDTO.setTest(false);
 
         return caseDTO;
+    }
+
+    protected CreateParticipantDTO createParticipant(ParticipantType type) {
+        var dto = new CreateParticipantDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName("Example");
+        dto.setLastName("Person");
+        dto.setParticipantType(type);
+        return dto;
     }
 
     protected String generateRandomCaseReference() {
@@ -210,5 +226,9 @@ public class FunctionalTestBase {
 
     protected Response assertUserExists(UUID userId, boolean shouldExist) {
         return assertExists(USERS_ENDPOINT, userId, shouldExist);
+    }
+
+    protected Response putUser(CreateUserDTO dto) throws JsonProcessingException {
+        return doPutRequest(USERS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }

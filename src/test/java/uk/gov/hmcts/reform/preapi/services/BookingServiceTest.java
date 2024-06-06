@@ -64,6 +64,9 @@ class BookingServiceTest {
     @MockBean
     private ShareBookingService shareBookingService;
 
+    @MockBean
+    private CaseService caseService;
+
     @Autowired
     private BookingService bookingService;
 
@@ -192,7 +195,7 @@ class BookingServiceTest {
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
         when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
-
+        when(participantRepository.existsByIdAndCaseId_Id(participantModel.getId(), caseId)).thenReturn(true);
         when(participantRepository.findById(participantModel.getId())).thenReturn(Optional.empty());
         when(participantRepository.save(any())).thenReturn(participantEntity);
 
@@ -324,18 +327,18 @@ class BookingServiceTest {
         caseEntity.setId(caseId);
         bookingModel.setId(UUID.randomUUID());
         bookingModel.setCaseId(caseId);
-        bookingModel.setCaseId(caseId);
-        bookingModel.setParticipants(Set.of());
         var participantModel = new CreateParticipantDTO();
         participantModel.setId(UUID.randomUUID());
         participantModel.setParticipantType(ParticipantType.WITNESS);
         participantModel.setFirstName("John");
         participantModel.setLastName("Smith");
+
         bookingModel.setParticipants(Set.of(participantModel));
 
         var participantEntity = new Participant();
         participantEntity.setId(participantModel.getId());
         participantEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        caseEntity.setParticipants(Set.of(participantEntity));
         var bookingEntity = new Booking();
 
         when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(caseEntity));
@@ -344,6 +347,7 @@ class BookingServiceTest {
         when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
         when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
         when(bookingRepository.save(bookingEntity)).thenReturn(bookingEntity);
+        when(participantRepository.existsByIdAndCaseId_Id(participantModel.getId(), caseId)).thenReturn(true);
 
         when(participantRepository.findById(participantModel.getId())).thenReturn(Optional.of(participantEntity));
         assertThatExceptionOfType(ResourceInDeletedStateException.class)
@@ -353,6 +357,37 @@ class BookingServiceTest {
             .withMessage("Resource Participant("
                              + participantModel.getId().toString()
                              + ") is in a deleted state and cannot be updated");
+    }
+
+    @DisplayName("Create a booking with a participant not assigned to the case")
+    @Test
+    void createBookingWithParticipantNotAssignedToTheCase() {
+        var bookingModel = new CreateBookingDTO();
+        var caseId = UUID.randomUUID();
+        var caseEntity = new Case();
+        caseEntity.setId(caseId);
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(caseId);
+        var participantModel = new CreateParticipantDTO();
+        participantModel.setId(UUID.randomUUID());
+        participantModel.setParticipantType(ParticipantType.WITNESS);
+        participantModel.setFirstName("John");
+        participantModel.setLastName("Smith");
+
+        bookingModel.setParticipants(Set.of(participantModel));
+
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(caseEntity));
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.existsByIdAndDeletedAtIsNotNull(bookingModel.getId())).thenReturn(false);
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
+        when(caseRepository.findByIdAndDeletedAtIsNull(bookingModel.getCaseId())).thenReturn(Optional.of(new Case()));
+        when(participantRepository.existsByIdAndCaseId_Id(participantModel.getId(), caseId)).thenReturn(false);
+
+        assertThatExceptionOfType(NotFoundException.class)
+            .isThrownBy(() -> {
+                bookingService.upsert(bookingModel);
+            })
+            .withMessage("Not found: Participant: " + participantModel.getId() + " in case: " + caseId);
     }
 
     @DisplayName("Delete a booking")
@@ -407,29 +442,38 @@ class BookingServiceTest {
     @DisplayName("Should undelete a booking successfully when booking is marked as deleted")
     @Test
     void undeleteSuccess() {
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setDeletedAt(Timestamp.from(Instant.now()));
         var booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setDeletedAt(Timestamp.from(Instant.now()));
+        booking.setCaseId(aCase);
 
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
 
         bookingService.undelete(booking.getId());
 
         verify(bookingRepository, times(1)).findById(booking.getId());
+        verify(caseService, times(1)).undelete(aCase.getId());
         verify(bookingRepository, times(1)).save(booking);
     }
 
     @DisplayName("Should do nothing when booking is not deleted")
     @Test
     void undeleteNotDeletedSuccess() {
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
         var booking = new Booking();
         booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
 
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
 
         bookingService.undelete(booking.getId());
 
         verify(bookingRepository, times(1)).findById(booking.getId());
+        verify(caseService, times(1)).undelete(aCase.getId());
         verify(bookingRepository,never()).save(booking);
     }
 

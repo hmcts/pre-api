@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.exception;
 
+import com.azure.core.management.exception.ManagementException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.aad.msal4j.MsalServiceException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -109,6 +111,27 @@ public class GlobalControllerExceptionHandler {
         throws JsonProcessingException {
 
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ManagementException.class)
+    ResponseEntity<String> onManagementException(final ManagementException e) throws JsonProcessingException {
+        return getResponseEntity(
+            "An error occurred when trying to communicate with Azure Media Service.",
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
+    @ExceptionHandler(MsalServiceException.class)
+    ResponseEntity<String> onMsalServiceException(final MsalServiceException e) throws JsonProcessingException {
+        return getResponseEntity(
+            "An error occurred when trying to communicate with Azure Media Service.",
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
+    @ExceptionHandler(MediaKindException.class)
+    ResponseEntity<String> onMediaKindException(final MediaKindException e) throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)

@@ -100,7 +100,7 @@ public class ShareBookingService {
         }
 
         return shareBookingRepository
-            .findAllByBooking_Id(bookingId, pageable)
+            .findByBooking_IdOrderBySharedWith_FirstNameAsc(bookingId, pageable)
             .map(ShareBookingDTO::new);
     }
 }

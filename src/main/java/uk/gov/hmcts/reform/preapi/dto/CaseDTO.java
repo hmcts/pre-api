@@ -6,9 +6,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 
 import java.sql.Timestamp;
-import java.util.Set;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,7 +31,7 @@ public class CaseDTO {
     private String reference;
 
     @Schema(description = "CaseParticipants")
-    private Set<ParticipantDTO> participants;
+    private List<ParticipantDTO> participants;
 
     @Schema(description = "CaseIsTest")
     private boolean test;
@@ -52,8 +54,9 @@ public class CaseDTO {
                          participants
                              .stream()
                              .filter(participant -> participant.getDeletedAt() == null)
+                             .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toList());
         this.test = caseEntity.isTest();
         this.deletedAt = caseEntity.getDeletedAt();
         this.createdAt = caseEntity.getCreatedAt();

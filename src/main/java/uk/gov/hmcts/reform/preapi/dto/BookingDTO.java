@@ -6,9 +6,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 
 import java.sql.Timestamp;
-import java.util.Set;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -28,13 +30,13 @@ public class BookingDTO {
     private Timestamp scheduledFor;
 
     @Schema(description = "BookingParticipants")
-    private Set<ParticipantDTO> participants;
+    private List<ParticipantDTO> participants;
 
     @Schema(description = "CaptureSessions")
-    private Set<CaptureSessionDTO> captureSessions;
+    private List<CaptureSessionDTO> captureSessions;
 
     @Schema(description = "BookingShares")
-    private Set<ShareBookingDTO> shares;
+    private List<ShareBookingDTO> shares;
 
     @Schema(description = "BookingDeletedAt")
     private Timestamp deletedAt;
@@ -56,14 +58,17 @@ public class BookingDTO {
                          participants
                              .stream()
                              .filter(participant -> participant.getDeletedAt() == null)
+                             .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toList());
         this.captureSessions = Stream.ofNullable(bookingEntity.getCaptureSessions())
             .flatMap(captureSessions -> captureSessions.stream().map(CaptureSessionDTO::new))
-            .collect(Collectors.toSet());
+            .sorted(Comparator.comparing(CaptureSessionDTO::getId))
+            .collect(Collectors.toList());
         this.shares = Stream.ofNullable(bookingEntity.getShares())
             .flatMap(shares -> shares.stream().map(ShareBookingDTO::new))
-            .collect(Collectors.toSet());
+            .sorted(Comparator.comparing(dto -> dto.getSharedWithUser().getFirstName()))
+            .collect(Collectors.toList());
         this.deletedAt = bookingEntity.getDeletedAt();
         this.createdAt = bookingEntity.getCreatedAt();
         this.modifiedAt = bookingEntity.getModifiedAt();
