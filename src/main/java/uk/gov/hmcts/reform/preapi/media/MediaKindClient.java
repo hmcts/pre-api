@@ -1,9 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
@@ -15,4 +13,16 @@ public interface MediaKindClient {
 
     @GetMapping("/assets/{assetName}")
     MkAsset getAsset(@PathVariable("assetName") String assetName);
+
+    @PostMapping("/assets/{assetName}/listStreamingLocators")
+    MkStreamingLocatorList getAssetStreamingLocators(@PathVariable String assetName);
+
+    @PutMapping("/streamingLocators/{locatorName}")
+    void putStreamingLocator(@PathVariable String locatorName, @RequestBody MkCreateStreamingLocator dto);
+
+    @GetMapping("/streamingEndpoints/{endpointName}")
+    MkStreamingEndpoint getStreamingEndpointByName(@PathVariable String endpointName);
+
+    @PostMapping("/streamingLocators/{locatorName}/listPaths")
+    MkStreamingLocatorPaths getStreamingLocatorPaths(@PathVariable String locatorName);
 }
