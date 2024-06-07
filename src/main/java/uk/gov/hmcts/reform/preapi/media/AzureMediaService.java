@@ -5,10 +5,12 @@ import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class AzureMediaService implements IMediaService {
@@ -64,6 +66,11 @@ public class AzureMediaService implements IMediaService {
         } catch (IllegalArgumentException e) {
             throw new NotFoundException("Unable to communicate with Azure");
         }
+    }
+
+    @Override
+    public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
+        throw new UnsupportedOperationException();
     }
 
     /*

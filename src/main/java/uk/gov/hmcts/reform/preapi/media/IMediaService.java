@@ -1,8 +1,10 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface IMediaService {
     String playAsset(String assetId);
@@ -13,9 +15,8 @@ public interface IMediaService {
 
     List<AssetDTO> getAssets();
 
+    CaptureSessionDTO startLiveEvent(UUID captureSessionId);
     /*
-    String startLiveEvent(String liveEventId);
-
     String playLiveEvent(String liveEventId);
 
     String stopLiveEvent(String liveEventId);
