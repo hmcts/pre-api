@@ -2,11 +2,18 @@ package uk.gov.hmcts.reform.preapi.media;
 
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.media.dto.MkCreateStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -22,8 +29,58 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String playAsset(String assetId) {
-        throw new UnsupportedOperationException();
+    public PlaybackDTO playAsset(String assetName) {
+        if (getAsset(assetName) == null) {
+            throw new NotFoundException("Asset: " + assetName);
+        }
+
+        var locators = mediaKindClient.getAssetStreamingLocators(assetName);
+        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId().toString();
+
+        var locator = locators.getStreamingLocators()
+            .stream()
+            .filter(l -> l.getName().equals(userId))
+            .findFirst()
+            .orElse(null);
+
+        if (locator == null) {
+            var properties = MkCreateStreamingLocator.MkCreateStreamingLocatorProperties.builder()
+                .assetName(assetName)
+                .streamingPolicyName("Predefined_ClearStreamingOnly")
+                .endTime(Instant.now().plusSeconds(3600).toString())
+                .build();
+            try {
+                mediaKindClient.putStreamingLocator(userId, MkCreateStreamingLocator.builder().properties(properties).build());
+            } catch (FeignException e) {
+                throw new MediaKindException();
+            }
+        }
+
+        String hostName;
+        try {
+            hostName = mediaKindClient.getStreamingEndpointByName("default").getProperties().getHostName();
+        } catch (FeignException.NotFound e) {
+            throw new NotFoundException("Streaming Endpoint: default");
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
+
+        MkStreamingLocatorPaths paths;
+        try {
+            paths = mediaKindClient.getStreamingLocatorPaths(userId);
+        } catch (FeignException.NotFound e) {
+            throw new NotFoundException("Streaming Locator: " + userId);
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
+
+        var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Dash")).findFirst().orElse(null);
+        var hls = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Hls")).findFirst().orElse(null);
+
+        return new PlaybackDTO(
+            dash != null ? hostName + dash.getPaths().getFirst() : null,
+            hls != null ? hostName + hls.getPaths().getFirst() : null
+        );
     }
 
     @Override

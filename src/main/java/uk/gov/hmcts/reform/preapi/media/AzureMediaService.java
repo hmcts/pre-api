@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
@@ -28,7 +29,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public String playAsset(String assetId) {
+    public PlaybackDTO playAsset(String assetId) {
         throw new UnsupportedOperationException();
     }
 
