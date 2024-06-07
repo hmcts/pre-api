@@ -56,6 +56,7 @@ public class MediaKind implements IMediaService {
             }
         }
 
+        // TODO check streaming endpoint running + start if not
         String hostName;
         try {
             hostName = mediaKindClient.getStreamingEndpointByName("default").getProperties().getHostName();
