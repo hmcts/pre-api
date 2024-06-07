@@ -27,7 +27,7 @@ java:
           alias: AZ_AMS_CLIENT_ID
         - name: client-secret
           alias: AZ_AMS_CLIENT_SECRET
-        - name: pp-authorization
+        - name: api-MKIO-TOKEN
           alias: MEDIA_KIND_TOKEN
         - name: api-MKIO-TOKEN
           alias: MEDIA_KIND_TOKEN_STG
