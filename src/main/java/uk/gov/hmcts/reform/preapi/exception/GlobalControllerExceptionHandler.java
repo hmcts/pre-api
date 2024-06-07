@@ -135,7 +135,7 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(ManagementException.class)
     ResponseEntity<String> onManagementException(final ManagementException e) throws JsonProcessingException {
         return getResponseEntity(
-            "An error occurred when trying to communicate with Azure Media Service.",
+            "An error occurred when trying to communicate with Azure Media Service." + e,
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
@@ -143,7 +143,7 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(MsalServiceException.class)
     ResponseEntity<String> onMsalServiceException(final MsalServiceException e) throws JsonProcessingException {
         return getResponseEntity(
-            "An error occurred when trying to communicate with Azure Media Service.",
+            "An error occurred when trying to communicate with Azure Media Service." + e,
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
