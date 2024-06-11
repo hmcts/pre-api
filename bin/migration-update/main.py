@@ -30,13 +30,26 @@ def update_audit_table_with_created_by(source_db, destination_db, table_name):
             return
 
     with get_database_cursor(destination_db) as destination_cursor:
+        updated_data = []
+        if table_name == 'portal_access':
+            for row in data:
+                group_assignment_id, user_id, created_by = row[0], row[1], row[2]
+                destination_cursor.execute(sql['portal_access_api_db'], (user_id,))
+                portal_row = destination_cursor.fetchone()
+                if portal_row:
+                    portal_id = portal_row[0]
+                    logger.info(f"{group_assignment_id}, {user_id}, {created_by}, {portal_id}")
+                    updated_data.append((portal_id, created_by))
+                updated_data.append((portal_id, created_by))
+        else:
+            updated_data = data
         try:
             update_query = """
                 UPDATE public.audits
                 SET created_by = %s
                 WHERE table_name = %s AND table_record_id = %s
             """
-            for table_id, created_by in data:
+            for table_id, created_by in updated_data:
                 destination_cursor.execute(update_query, (created_by, table_name, table_id))
 
             destination_db.connection.commit()
@@ -77,7 +90,7 @@ def main():
 
     update_audit_table_with_created_by(source_db, destination_db, 'users')
     update_audit_table_with_created_by(source_db, destination_db, 'app_access')
-
+    update_audit_table_with_created_by(source_db, destination_db, 'portal_access')
     
 if __name__ == "__main__":
     main()
