@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import com.azure.resourcemanager.mediaservices.models.Hls;
 import com.azure.resourcemanager.mediaservices.models.IpAccessControl;
 import com.azure.resourcemanager.mediaservices.models.IpRange;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncoding;
@@ -12,15 +13,23 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -37,13 +46,25 @@ import java.util.stream.Stream;
 
 @Service
 public class MediaKind implements IMediaService {
+    private final String ingestStorageAccount;
+    private final String environmentTag;
+
     private final MediaKindClient mediaKindClient;
     private final CaptureSessionRepository captureSessionRepository;
     private final UserRepository userRepository;
 
+    private static final String LOCATION = "uksouth";
+
     @Autowired
-    public MediaKind(MediaKindClient mediaKindClient,
-                     CaptureSessionRepository captureSessionRepository, UserRepository userRepository) {
+    public MediaKind(
+        @Value("${azure.ingestStorage}") String ingestStorageAccount,
+        @Value("${azure.environmentTag}") String env,
+        MediaKindClient mediaKindClient,
+        CaptureSessionRepository captureSessionRepository,
+        UserRepository userRepository
+    ) {
+        this.ingestStorageAccount = ingestStorageAccount;
+        this.environmentTag = env;
         this.mediaKindClient = mediaKindClient;
         this.captureSessionRepository = captureSessionRepository;
         this.userRepository = userRepository;
@@ -81,118 +102,204 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    @Override
-    public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
-//        var captureSession = captureSessionRepository
-//            .findByIdAndDeletedAtIsNull(captureSessionId)
-//            .orElseThrow(() ->  new NotFoundException("Capture Session: " + captureSessionId));
-
-//        if (captureSession.getFinishedAt() != null
-//            || (captureSession.getStartedAt() != null && captureSession.getIngestAddress() != null)) {
-//            return new CaptureSessionDTO(captureSession);
-//        }
-
-        var liveEventName = uuidToNameString(captureSessionId);
-
-        liveEventName = "lucas-test-event-1";
-        createLiveEvent(null);
-
+    public MkLiveEvent getLiveEvent(String liveEventName) {
         try {
-            // check live event exists
-            mediaKindClient.getLiveEvent(liveEventName);
-            // start live event
-            mediaKindClient.startLiveEvent(liveEventName);
-
-            MkLiveEvent liveEvent;
-            do {
-                Thread.sleep(2000);
-                liveEvent = mediaKindClient.getLiveEvent(liveEventName);
-                System.out.println(liveEvent.getProperties().getResourceState());
-            } while (!liveEvent.getProperties().getResourceState().equals("Running"));
-            // get live event details
-
-
-//            var inputRtmp = Stream.ofNullable(liveEvent
-//                                                  .getProperties()
-//                                                  .getInput()
-//                                                  .endpoints())
-//                .flatMap(Collection::stream)
-//                .filter(e -> e.url().startsWith("rtmps://"))
-//                .findFirst()
-//                .map(LiveEventEndpoint::url)
-//                .orElse(null);
-
-            var inputRtmp = liveEvent.getProperties().getInput().endpoints().stream().findFirst().orElse(null);
-
-            System.out.println("INPUT RTMP:" + inputRtmp);
-
-//            var liveOutputUrl = generateLiveOutputUrl();
-
-//            var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-//            captureSession.setStartedByUser(userRepository.findById(auth.getUserId()).orElse(null));
-//            captureSession.setStartedAt(Timestamp.from(Instant.now()));
-//            captureSession.setIngestAddress(inputRtmp);
-//            captureSession.setLiveOutputUrl(liveOutputUrl);
-//            captureSessionRepository.save(captureSession);
-            return null;
-//            return new CaptureSessionDTO(captureSession);
+            return mediaKindClient.getLiveEvent(liveEventName);
         } catch (FeignException.NotFound e) {
-            throw new NotFoundException("Capture Session: " + captureSessionId);
-        } catch (FeignException | InterruptedException e) {
+            throw new NotFoundException("Live Event: " + liveEventName);
+        } catch (FeignException e) {
             throw new MediaKindException();
         }
     }
 
-//    private String generateLiveOutputUrl(String liveEventName) {
-//        var appMediaService = "pre-mediakind-test"
-//        return "https://" + liveEventName + "_" + appMediaService + "-uksouth1.streaming.media.azure.net/";
-//    }
+    @Override
+    public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
+        var captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(captureSessionId)
+            .orElseThrow(() ->  new NotFoundException("Capture Session: " + captureSessionId));
+
+        if (captureSession.getFinishedAt() != null
+            || (captureSession.getStartedAt() != null && captureSession.getIngestAddress() != null)) {
+            return new CaptureSessionDTO(captureSession);
+        }
+        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+        var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
+
+        captureSession.setStartedByUser(user);
+        captureSession.setStartedAt(Timestamp.from(Instant.now()));
+        captureSessionRepository.saveAndFlush(captureSession);
+
+        try {
+
+//            var liveEventName = uuidToNameString(captureSessionId);
+            var liveEventName = "lucastestevent";
+
+            // create live event
+            // todo
+            createLiveEvent(null);
+
+            // check live event exists
+            getLiveEvent(liveEventName);
+
+            // create asset todo add capture session
+            createAsset(liveEventName, null);
+
+            // create live output
+            createLiveOutput(liveEventName, liveEventName);
+
+            // start live event
+            startLiveEvent(liveEventName);
+
+            // check stream ready
+            var liveEvent = checkStreamReady(liveEventName);
+
+            // todo get rtmps
+            var inputRtmp = Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
+                .flatMap(Collection::stream)
+                //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
+                .findFirst()
+                .map(LiveEventEndpoint::url)
+                .orElse(null);
+
+            // update capture session
+            captureSession.setStatus(RecordingStatus.STANDBY);
+            captureSession.setIngestAddress(inputRtmp);
+            captureSessionRepository.saveAndFlush(captureSession);
+            return new CaptureSessionDTO(captureSession);
+        } catch (InterruptedException e) {
+            throw new UnknownServerException("Something went wrong when attempting to communicate with Azure");
+        } catch (Exception e) {
+            captureSession.setStatus(RecordingStatus.FAILURE);
+            captureSessionRepository.saveAndFlush(captureSession);
+            throw e;
+        }
+    }
+
+    private MkStreamingLocator createStreamingLocator(String locatorName, String assetName) {
+        try {
+            return mediaKindClient.putStreamingLocator(
+                locatorName, MkStreamingLocator.builder()
+                        .properties(MkStreamingLocator.MkStreamingLocatorProperties.builder()
+                                        .assetName(assetName)
+                                        .streamingPolicyName("Predefined_ClearStreamingOnly")
+                                        .build())
+                    .build()
+            );
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
+    }
+
+    private MkLiveEvent checkStreamReady(String liveEventName) throws InterruptedException {
+        MkLiveEvent liveEvent;
+        do {
+            Thread.sleep(2000); // 2 secs
+            liveEvent = getLiveEvent(liveEventName);
+        } while (!liveEvent.getProperties().getResourceState().equals("Running"));
+        return liveEvent;
+    }
+
+    private void startLiveEvent(String liveEventName) {
+        try {
+            mediaKindClient.startLiveEvent(liveEventName);
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
+    }
+
+    private void createLiveOutput(String liveEventName, String liveOutputName) {
+        try {
+            mediaKindClient.putLiveOutput(
+                liveEventName,
+                liveOutputName,
+                MkLiveOutput.builder()
+                    .properties(MkLiveOutput.MkLiveOutputProperties.builder()
+                                    .description("Live output for: " + liveEventName)
+                                    .assetName(liveEventName)
+                                    .archiveWindowLength("PT8H")
+                                    .hls(new Hls().withFragmentsPerTsSegment(5))
+                                    .manifestName(liveEventName)
+                                    .build())
+                    .build()
+            );
+        } catch (FeignException.Conflict e) {
+            throw new ConflictException("Live Output: " + liveOutputName);
+        } catch (FeignException.NotFound e) {
+            throw new NotFoundException("Live Event: " + liveEventName);
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
+    }
+
+    private void createAsset(String assetName, CaptureSession captureSession) {
+        try {
+            mediaKindClient.putAsset(
+                assetName,
+                MkAsset.builder()
+                    .properties(MkAssetProperties.builder()
+//                                    .container(captureSession.getBooking().getId().toString())
+                                    .container("lucastestevent")
+                                    .storageAccountName(ingestStorageAccount)
+//                                    .description(captureSession.getBooking().getId().toString())
+                                    .description("this is a test")
+                                    .build())
+                    .build()
+            );
+        } catch (FeignException.Conflict e) {
+            throw new ConflictException("Asset: "  + assetName);
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
+    }
 
     private void createLiveEvent(CaptureSession captureSession) {
         var accessToken = UUID.randomUUID();
-        System.out.println("CREATING LIVE EVENT WITH ACCESS TOKEN: " + accessToken);
-        mediaKindClient.putLiveEvent(
-//            uuidToNameString(captureSession.getId()),
-            "lucas-test-event-1",
-            MkLiveEvent.builder()
-                .location("uksouth")
-                .tags(Map.of(
-                    "environment", "development",
-                    "application", "pre-recorded evidence",
-                    "businessArea", "cross-cutting",
-                    "builtFrom", "azurePortal"
-                ))
-                .properties(MkLiveEvent.MkLiveEventProperties.builder()
-                                .encoding(new LiveEventEncoding()
-                                              .withEncodingType(LiveEventEncodingType.PASSTHROUGH_BASIC)
-                                )
-//                                .description(captureSession.getBooking().getId().toString())
-                                .description("this is a test")
-                                .useStaticHostname(true)
-                                .input(new LiveEventInput()
-                                           .withStreamingProtocol(LiveEventInputProtocol.RTMP)
-                                           .withKeyFrameIntervalDuration("PT6S")
-                                           .withAccessToken(accessToken.toString())
-                                           .withAccessControl(
-                                               new LiveEventInputAccessControl()
-                                                   .withIp(new IpAccessControl()
-                                                               .withAllow(List.of(new IpRange()
-                                                                                      .withName("AllowAll")
-                                                                                      .withAddress("0.0.0.0")
-                                                                                      .withSubnetPrefixLength(0)))
-                                                   )))
-                                .preview(new LiveEventPreview()
-                                             .withAccessControl(
-                                                 new LiveEventPreviewAccessControl()
-                                                     .withIp(new IpAccessControl()
-                                                                 .withAllow(List.of(new IpRange()
-                                                                                        .withName("AllowAll")
-                                                                                        .withAddress("0.0.0.0")
-                                                                                        .withSubnetPrefixLength(0)))
-                                                     )))
-                                .build())
-                .build()
-        );
+        try {
+            mediaKindClient.putLiveEvent(
+            uuidToNameString(captureSession.getId()),
+//                "lucastestevent",
+                MkLiveEvent.builder()
+                    .location(LOCATION)
+                    .tags(Map.of(
+                        "environment", environmentTag,
+                        "application", "pre-recorded evidence",
+                        "businessArea", "cross-cutting",
+                        "builtFrom", "pre-api"
+                    ))
+                    .properties(MkLiveEvent.MkLiveEventProperties.builder()
+                                    .encoding(new LiveEventEncoding()
+                                                  .withEncodingType(LiveEventEncodingType.PASSTHROUGH_BASIC)
+                                    )
+                                .description(captureSession.getBooking().getId().toString())
+                                    .useStaticHostname(true)
+                                    .input(new LiveEventInput()
+                                               .withStreamingProtocol(LiveEventInputProtocol.RTMP)
+                                               .withKeyFrameIntervalDuration("PT6S")
+                                               .withAccessToken(accessToken.toString())
+                                               .withAccessControl(
+                                                   new LiveEventInputAccessControl()
+                                                       .withIp(new IpAccessControl()
+                                                                   .withAllow(List.of(new IpRange()
+                                                                                          .withName("AllowAll")
+                                                                                          .withAddress("0.0.0.0")
+                                                                                          .withSubnetPrefixLength(0)))
+                                                       )))
+                                    .preview(new LiveEventPreview()
+                                                 .withAccessControl(
+                                                     new LiveEventPreviewAccessControl()
+                                                         .withIp(new IpAccessControl()
+                                                                     .withAllow(List.of(new IpRange()
+                                                                                            .withName("AllowAll")
+                                                                                            .withAddress("0.0.0.0")
+                                                                                            .withSubnetPrefixLength(0)))
+                                                         )))
+                                    .build())
+                    .build()
+            );
+        } catch (FeignException e) {
+            e.printStackTrace();
+            throw new MediaKindException();
+        }
     }
 
 

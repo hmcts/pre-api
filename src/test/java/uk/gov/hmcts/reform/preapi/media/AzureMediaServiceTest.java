@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.util.stream.Stream;
 
@@ -24,14 +26,22 @@ public class AzureMediaServiceTest {
     @MockBean
     private AzureMediaServices amsClient;
 
+    @MockBean
+    private CaptureSessionRepository captureSessionRepository;
+
+    @MockBean
+    private UserRepository userRepository;
+
     private final String resourceGroup = "test-resource-group";
     private final String accountName = "test-account-name";
+    private final String ingestSa = "test-sa";
+    private final String env = "test-env";
 
     private AzureMediaService mediaService;
 
     @BeforeEach
     void setUp() {
-        mediaService = new AzureMediaService(resourceGroup, accountName, amsClient);
+        mediaService = new AzureMediaService(resourceGroup, accountName, ingestSa, env, amsClient, captureSessionRepository, userRepository);
     }
 
     @DisplayName("Should get a valid asset and return an AssetDTO")
