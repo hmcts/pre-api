@@ -38,7 +38,6 @@ def update_audit_table_with_created_by(source_db, destination_db, table_name):
                 portal_row = destination_cursor.fetchone()
                 if portal_row:
                     portal_id = portal_row[0]
-                    logger.info(f"{group_assignment_id}, {user_id}, {created_by}, {portal_id}")
                     updated_data.append((portal_id, created_by))
                 updated_data.append((portal_id, created_by))
         else:
