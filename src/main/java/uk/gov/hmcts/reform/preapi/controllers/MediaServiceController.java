@@ -29,7 +29,8 @@ public class MediaServiceController extends PreApiController {
     private final CaptureSessionService captureSessionService;
 
     @Autowired
-    public MediaServiceController(MediaServiceBroker mediaServiceBroker, CaptureSessionService captureSessionService) {
+    public MediaServiceController(MediaServiceBroker mediaServiceBroker,
+                                  CaptureSessionService captureSessionService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
@@ -111,5 +112,17 @@ public class MediaServiceController extends PreApiController {
         }
 
         return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
+    }
+
+    @PutMapping("/streaming-locator/live-event/{captureSessionId}")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<String> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
+        // load captureSession
+        var captureSession = captureSessionService.findById(captureSessionId);
+        if (!captureSession.getLiveOutputUrl().isEmpty()) {
+            return ResponseEntity.ok("live event streaming locator already exists");
+        }
+
+        return ResponseEntity.notFound().build();
     }
 }
