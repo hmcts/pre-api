@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
@@ -13,6 +14,9 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+
+import java.util.UUID;
 
 import java.util.List;
 
@@ -21,11 +25,14 @@ import java.util.List;
 public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
+    private final CaptureSessionService captureSessionService;
 
     @Autowired
-    public MediaServiceController(MediaServiceBroker mediaServiceBroker) {
+    public MediaServiceController(MediaServiceBroker mediaServiceBroker,
+                                  CaptureSessionService captureSessionService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
+        this.captureSessionService = captureSessionService;
     }
 
     @GetMapping("/health")
@@ -76,5 +83,17 @@ public class MediaServiceController extends PreApiController {
             throw new NotFoundException("Live event: " + liveEventName);
         }
         return ResponseEntity.ok(data);
+    }
+
+    @PutMapping("/streaming-locator/live-event/{captureSessionId}")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<String> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
+        // load captureSession
+        var captureSession = captureSessionService.findById(captureSessionId);
+        if (!captureSession.getLiveOutputUrl().isEmpty()) {
+            return ResponseEntity.ok("live event streaming locator already exists");
+        }
+
+        return ResponseEntity.notFound().build();
     }
 }
