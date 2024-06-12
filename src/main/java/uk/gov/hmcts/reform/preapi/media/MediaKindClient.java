@@ -35,8 +35,11 @@ public interface MediaKindClient {
     void startLiveEvent(@PathVariable String liveEventName);
 
     @PutMapping("/liveEvents/{liveEventName}/liveOutputs/{liveOutputName}")
-    MkLiveOutput putLiveOutput(@PathVariable String liveEventName, @PathVariable String liveOutputName, @RequestBody MkLiveOutput mkLiveOutput);
+    MkLiveOutput putLiveOutput(@PathVariable String liveEventName,
+                               @PathVariable String liveOutputName,
+                               @RequestBody MkLiveOutput mkLiveOutput);
 
     @PutMapping("/streamingLocators/{locatorName}")
-    MkStreamingLocator putStreamingLocator(@PathVariable String locatorName, @RequestBody MkStreamingLocator mkStreamingLocator);
+    MkStreamingLocator putStreamingLocator(@PathVariable String locatorName,
+                                           @RequestBody MkStreamingLocator mkStreamingLocator);
 }

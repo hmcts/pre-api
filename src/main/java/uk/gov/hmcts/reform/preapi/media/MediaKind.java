@@ -131,7 +131,7 @@ public class MediaKind implements IMediaService {
 
         try {
 
-//            var liveEventName = uuidToNameString(captureSessionId);
+            //            var liveEventName = uuidToNameString(captureSessionId);
             var liveEventName = "lucastestevent";
 
             // create live event
@@ -175,6 +175,14 @@ public class MediaKind implements IMediaService {
         }
     }
 
+    private void startLiveEvent(String liveEventName) {
+        try {
+            mediaKindClient.startLiveEvent(liveEventName);
+        } catch (FeignException e) {
+            throw new MediaKindException();
+        }
+    }
+
     private MkStreamingLocator createStreamingLocator(String locatorName, String assetName) {
         try {
             return mediaKindClient.putStreamingLocator(
@@ -197,14 +205,6 @@ public class MediaKind implements IMediaService {
             liveEvent = getLiveEvent(liveEventName);
         } while (!liveEvent.getProperties().getResourceState().equals("Running"));
         return liveEvent;
-    }
-
-    private void startLiveEvent(String liveEventName) {
-        try {
-            mediaKindClient.startLiveEvent(liveEventName);
-        } catch (FeignException e) {
-            throw new MediaKindException();
-        }
     }
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
@@ -237,10 +237,10 @@ public class MediaKind implements IMediaService {
                 assetName,
                 MkAsset.builder()
                     .properties(MkAssetProperties.builder()
-//                                    .container(captureSession.getBooking().getId().toString())
+                                    // .container(captureSession.getBooking().getId().toString())
                                     .container("lucastestevent")
                                     .storageAccountName(ingestStorageAccount)
-//                                    .description(captureSession.getBooking().getId().toString())
+                                    //  .description(captureSession.getBooking().getId().toString())
                                     .description("this is a test")
                                     .build())
                     .build()
@@ -256,8 +256,8 @@ public class MediaKind implements IMediaService {
         var accessToken = UUID.randomUUID();
         try {
             mediaKindClient.putLiveEvent(
-            uuidToNameString(captureSession.getId()),
-//                "lucastestevent",
+                uuidToNameString(captureSession.getId()),
+                //                "lucastestevent",
                 MkLiveEvent.builder()
                     .location(LOCATION)
                     .tags(Map.of(

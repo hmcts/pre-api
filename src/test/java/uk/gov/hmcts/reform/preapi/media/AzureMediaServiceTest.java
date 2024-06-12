@@ -41,7 +41,15 @@ public class AzureMediaServiceTest {
 
     @BeforeEach
     void setUp() {
-        mediaService = new AzureMediaService(resourceGroup, accountName, ingestSa, env, amsClient, captureSessionRepository, userRepository);
+        mediaService = new AzureMediaService(
+            resourceGroup,
+            accountName,
+            ingestSa,
+            env,
+            amsClient,
+            captureSessionRepository,
+            userRepository
+        );
     }
 
     @DisplayName("Should get a valid asset and return an AssetDTO")

@@ -5,7 +5,6 @@ import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
-import com.azure.resourcemanager.mediaservices.fluent.models.StreamingLocatorInner;
 import com.azure.resourcemanager.mediaservices.models.Hls;
 import com.azure.resourcemanager.mediaservices.models.IpAccessControl;
 import com.azure.resourcemanager.mediaservices.models.IpRange;
@@ -246,10 +245,8 @@ public class AzureMediaService implements IMediaService {
                     assetName,
                     new AssetInner()
                         .withContainer(captureSession.getBooking().getId().toString()))
-//                        .withContainer("lucastestevent1")
                         .withStorageAccountName(ingestStorageAccount)
                         .withDescription(captureSession.getBooking().getId().toString()
-//                        .withDescription("this is a test")
                 ),
             Map.of(
                 409, e -> {
