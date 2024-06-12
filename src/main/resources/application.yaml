@@ -74,6 +74,7 @@ testing-support-endpoints:
   enabled: ${TESTING_SUPPORT_ENDPOINTS_ENABLED:false}
 
 mediakind:
-  enabled: ${MEDIA_KIND_ENABLED:false}
   api: https://api.mk.io/api/ams/${MEDIA_KIND_SUBSCRIPTION:}/
   token: ${MEDIA_KIND_TOKEN:}
+
+media-service: ${MEDIA_SERVICE:AzureMediaService}
