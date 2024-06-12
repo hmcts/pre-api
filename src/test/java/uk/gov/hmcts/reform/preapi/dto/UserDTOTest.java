@@ -23,6 +23,7 @@ public class UserDTOTest {
         assertEquals("Example Role 3", appAccess.get(0).getRole().getName());
         assertEquals("Example Role 2", appAccess.get(1).getRole().getName());
         assertEquals("Example Role 1", appAccess.get(2).getRole().getName());
+        assertEquals("Example Role 4", appAccess.get(3).getRole().getName());
     }
 
     private User createUserEntity() {
@@ -56,8 +57,17 @@ public class UserDTOTest {
             Timestamp.from(Instant.now()),
             false
         );
+        var access4 = HelperFactory.createAppAccess(
+            user,
+            court,
+            HelperFactory.createRole("Example Role 4"),
+            true,
+            null,
+            null,
+            false
+        );
 
-        user.setAppAccess(Set.of(access2, access3, access1));
+        user.setAppAccess(Set.of(access2, access3, access1, access4));
 
         return user;
     }

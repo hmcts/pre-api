@@ -53,7 +53,7 @@ public class UserDTO extends BaseUserDTO {
         appAccess = Stream.ofNullable(user.getAppAccess())
             .flatMap(access -> access.stream()
                 .filter(a -> a.getDeletedAt() == null)
-                .sorted(Comparator.nullsLast(Comparator.comparing(AppAccess::getLastAccess).reversed()))
+                .sorted(Comparator.comparing(AppAccess::getLastAccess, Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(BaseAppAccessDTO::new))
             .collect(Collectors.toList());
         portalAccess = Stream.ofNullable(user.getPortalAccess())
