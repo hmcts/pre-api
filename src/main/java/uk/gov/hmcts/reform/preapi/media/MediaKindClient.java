@@ -28,6 +28,9 @@ public interface MediaKindClient {
     @PutMapping("/liveEvents/{liveEventName}")
     MkLiveEvent putLiveEvent(@PathVariable String liveEventName, @RequestBody MkLiveEvent mkLiveEvent);
 
+    @GetMapping("/liveEvents")
+    MkGetListResponse<MkLiveEvent> getLiveEvents(@RequestParam("$skipToken") int skipToken);
+
     @GetMapping("/liveEvents/{liveEventName}")
     MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
 

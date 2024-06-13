@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -102,6 +103,15 @@ public class MediaKind implements IMediaService {
         }
     }
 
+    @Override
+    public LiveEventDTO getLiveEvent(String liveEventName) {
+        try {
+            return new LiveEventDTO(mediaKindClient.getLiveEvent(liveEventName));
+        } catch (FeignException.NotFound e) {
+            return null;
+        }
+    }
+
     public MkLiveEvent getLiveEvent(String liveEventName) {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
@@ -111,6 +121,12 @@ public class MediaKind implements IMediaService {
             throw new MediaKindException();
         }
     }
+
+    public List<LiveEventDTO> getLiveEvents() {
+        return getAllMkList(mediaKindClient::getLiveEvents)
+            .map(LiveEventDTO::new)
+            .toList();
+     }
 
     @Override
     public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
@@ -188,10 +204,10 @@ public class MediaKind implements IMediaService {
         try {
             return mediaKindClient.putStreamingLocator(
                 locatorName, MkStreamingLocator.builder()
-                        .properties(MkStreamingLocator.MkStreamingLocatorProperties.builder()
-                                        .assetName(assetName)
-                                        .streamingPolicyName("Predefined_ClearStreamingOnly")
-                                        .build())
+                    .properties(MkStreamingLocator.MkStreamingLocatorProperties.builder()
+                                    .assetName(assetName)
+                                    .streamingPolicyName("Predefined_ClearStreamingOnly")
+                                    .build())
                     .build()
             );
         } catch (FeignException e) {
@@ -271,7 +287,7 @@ public class MediaKind implements IMediaService {
                                     .encoding(new LiveEventEncoding()
                                                   .withEncodingType(LiveEventEncodingType.PASSTHROUGH_BASIC)
                                     )
-                                .description(captureSession.getBooking().getId().toString())
+                                    .description(captureSession.getBooking().getId().toString())
                                     .useStaticHostname(true)
                                     .input(new LiveEventInput()
                                                .withStreamingProtocol(LiveEventInputProtocol.RTMP)
@@ -328,6 +344,23 @@ public class MediaKind implements IMediaService {
 
     private String uuidToNameString(UUID id) {
         return id.toString().replaceAll("-", "");
+    }
+
+    protected <E> Stream<E> getAllMkList(GetListFunction<E> func) {
+        Integer[] skip = {0};
+
+        return Stream.iterate(func.get(skip[0]), Objects::nonNull, res -> {
+            if (res.getNextLink() != null) {
+                skip[0] = res.getSupplemental().getPagination().getEnd();
+                return func.get(skip[0]);
+            }
+            return null;
+        }).map(MkGetListResponse::getValue).flatMap(List::stream);
+    }
+
+    @FunctionalInterface
+    protected interface GetListFunction<E> {
+        MkGetListResponse<E> get(int skip);
     }
 
     protected <E> Stream<E> getAllMkList(GetListFunction<E> func) {

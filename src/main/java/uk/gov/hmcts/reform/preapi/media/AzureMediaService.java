@@ -20,9 +20,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -42,7 +43,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-@Component
+@Service
 public class AzureMediaService implements IMediaService {
     private final String resourceGroup;
     private final String accountName;
@@ -211,10 +212,6 @@ public class AzureMediaService implements IMediaService {
         );
     }
 
-    private String generateLiveOutputUrl(String liveEventName, String locatorId) {
-        return "https://" + liveEventName + "_" + accountName + "-" + LOCATION + "1.streaming.media.azure.net/" + locatorId + "/" + liveEventName + ".ism/manifest";
-    }
-
     private LiveOutputInner createLiveOutput(String liveEventName, String liveOutputName) {
         return tryAmsRequest(
             () -> amsClient.getLiveOutputs().create(
@@ -322,13 +319,25 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public String getLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
+    public LiveEventDTO getLiveEvent(String liveEventName) {
+        try {
+            return new LiveEventDTO(amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName));
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new NotFoundException("Live event: " + liveEventName);
+            }
+            throw e;
+        }
     }
 
     @Override
-    public String getLiveEvents() {
-        throw new UnsupportedOperationException();
+    public List<LiveEventDTO> getLiveEvents() {
+        return amsClient
+            .getLiveEvents()
+            .list(resourceGroup, accountName)
+            .stream()
+            .map(LiveEventDTO::new)
+            .toList();
     }
      */
     private String uuidToNameString(UUID id) {

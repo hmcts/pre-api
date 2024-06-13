@@ -6,7 +6,12 @@ import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
 import com.azure.resourcemanager.mediaservices.fluent.LiveOutputsClient;
+import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
+import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
+import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
+import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
@@ -36,6 +41,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -134,9 +140,7 @@ public class AzureMediaServiceTest {
     @Test
     void getAssetNotFound() {
         var name = "test-asset-name";
-//        var httpResponse = mock(HttpResponse.class);
         var mockAssetsClient = mock(AssetsClient.class);
-//        when(httpResponse.getStatusCode()).thenReturn(404);
         var amsError = mockAmsError(404);
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
         when(amsClient.getAssets().get(resourceGroup, accountName, name))
@@ -190,6 +194,143 @@ public class AzureMediaServiceTest {
         assertThat(models.getFirst().getDescription()).isEqualTo("description");
         assertThat(models.getFirst().getContainer()).isEqualTo("container");
         assertThat(models.getFirst().getStorageAccountName()).isEqualTo("storage-account-name");
+    }
+
+    @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
+    @Test
+    void unsupportedOperationException() {
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.playAsset("test-asset-name")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.importAsset("test-asset-name")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.startLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.playLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.stopLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.getLiveEvent("live-event-id")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaService.getLiveEvents()
+        );
+    }
+
+    @DisplayName("Should return a valid live event by name")
+    @Test
+    void getLiveEventByNameSuccess() {
+        var name = "test-live-event-name";
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var liveEvent = mock(LiveEventInner.class);
+        when(liveEvent.id()).thenReturn("id");
+        when(liveEvent.name()).thenReturn(name);
+        when(liveEvent.description()).thenReturn("description");
+        when(liveEvent.resourceState()).thenReturn(LiveEventResourceState.STOPPED);
+        when(liveEvent.input())
+            .thenReturn(new LiveEventInput()
+                            .withEndpoints(List.of(new LiveEventEndpoint()
+                                                       .withProtocol("RTMP")
+                                                       .withUrl("rtmps://example"))));
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        when(amsClient.getLiveEvents().get(resourceGroup, accountName, name)).thenReturn(liveEvent);
+
+        var model = mediaService.getLiveEvent(name);
+        assertThat(model).isNotNull();
+        assertThat(model.getId()).isEqualTo(liveEvent.id());
+        assertThat(model.getName()).isEqualTo(name);
+        assertThat(model.getDescription()).isEqualTo("description");
+        assertThat(model.getResourceState()).isEqualTo("Stopped");
+        assertThat(model.getInputRtmp()).isEqualTo("rtmps://example");
+    }
+
+    @DisplayName("Should throw not found error when AMS returns 404")
+    @Test
+    void getLiveEventByNameNotFound() {
+        var name = "test-live-event-name";
+        var httpResponse = mock(HttpResponse.class);
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        when(httpResponse.getStatusCode()).thenReturn(404);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        when(amsClient.getLiveEvents().get(resourceGroup, accountName, name))
+            .thenThrow(new ManagementException("not found", httpResponse));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> mediaService.getLiveEvent(name)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Live event: " + name);
+    }
+
+    @DisplayName("Should throw any other management exception when not 404 response from Azure (live event)")
+    @Test
+    void getLiveEventManagementException() {
+        var name = "test-live-event-name";
+        var httpResponse = mock(HttpResponse.class);
+        var mockClient = mock(LiveEventsClient.class);
+        when(httpResponse.getStatusCode()).thenReturn(400);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockClient);
+        when(amsClient.getLiveEvents().get(resourceGroup, accountName, name))
+            .thenThrow(new ManagementException("bad request", httpResponse));
+
+        var message = assertThrows(
+            ManagementException.class,
+            () -> mediaService.getLiveEvent(name)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("bad request");
+    }
+
+    @DisplayName("Should return a list of live events")
+    @Test
+    void getLiveEventsSuccess() {
+        var name = "test-live-event-name";
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var liveEvent = mock(LiveEventInner.class);
+        when(liveEvent.id()).thenReturn("id");
+        when(liveEvent.name()).thenReturn(name);
+        when(liveEvent.description()).thenReturn("description");
+        when(liveEvent.resourceState()).thenReturn(LiveEventResourceState.STOPPED);
+        when(liveEvent.input())
+            .thenReturn(new LiveEventInput()
+                            .withEndpoints(List.of(new LiveEventEndpoint()
+                                                       .withProtocol("RTMP")
+                                                       .withUrl("rtmps://example"))));
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        when(mockLiveEventClient.list(resourceGroup, accountName)).thenReturn(mock());
+        when(amsClient.getLiveEvents().list(resourceGroup, accountName).stream()).thenReturn(Stream.of(liveEvent));
+
+        var results = mediaService.getLiveEvents();
+        assertThat(results).isNotNull();
+        assertThat(results).hasSize(1);
+
+        var model = results.getFirst();
+        assertThat(model).isNotNull();
+        assertThat(model.getId()).isEqualTo(liveEvent.id());
+        assertThat(model.getName()).isEqualTo(name);
+        assertThat(model.getDescription()).isEqualTo("description");
+        assertThat(model.getResourceState()).isEqualTo("Stopped");
+        assertThat(model.getInputRtmp()).isEqualTo("rtmps://example");
     }
 
     @DisplayName("Should return 404 error when starting live event for a capture session that does not exist")
