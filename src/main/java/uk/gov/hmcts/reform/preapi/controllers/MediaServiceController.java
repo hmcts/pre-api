@@ -88,6 +88,7 @@ public class MediaServiceController extends PreApiController {
     @Operation(operationId = "startLiveEvent", summary = "Start a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
         return ResponseEntity.ok(mediaService.startLiveEvent(captureSessionId));
 //        return ResponseEntity.ok(mediaKind.startLiveEvent(captureSessionId));
     }

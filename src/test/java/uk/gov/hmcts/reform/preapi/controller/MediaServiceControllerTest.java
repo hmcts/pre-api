@@ -56,6 +56,9 @@ public class MediaServiceControllerTest {
     private AzureMediaService mediaService;
 
     @MockBean
+    private MediaKind mediaKind;
+
+    @MockBean
     private UserAuthenticationService userAuthenticationService;
 
     @DisplayName("Should return 200 when successfully connected to media service")
@@ -223,32 +226,6 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"));
     }
 
-    // todo remove this test with switch to mk
-    @DisplayName("Should return 200 when successfully connected to media service (mediakind)")
-    @Test
-    void getMediaMkSuccess() throws Exception {
-        when(mediaKind.getAssets()).thenReturn(List.of());
-
-        var response = mockMvc.perform(get("/media-service/health-mk"))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
-
-        assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service (mk)");
-    }
-
-    // todo update this test with switch to mk
-    @DisplayName("Should return 500 when cannot connect to media service (mk)")
-    @Test
-    void getMediaMkCannotConnect() throws Exception {
-        doThrow(new MediaKindException()).when(mediaKind).getAssets();
-
-        mockMvc.perform(get("/media-service/health-mk"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Unable to connect to Media Service"));
-    }
-
     @DisplayName("Should return 200 with capture session once live event is started")
     @Test
     void startLiveEventSuccess() throws Exception {
@@ -258,6 +235,7 @@ public class MediaServiceControllerTest {
         dto.setStatus(RecordingStatus.STANDBY);
         dto.setStartedAt(Timestamp.from(Instant.now()));
 
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.startLiveEvent(any())).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))

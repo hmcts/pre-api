@@ -208,31 +208,6 @@ public class AzureMediaServiceTest {
             UnsupportedOperationException.class,
             () -> mediaService.importAsset("test-asset-name")
         );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.startLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.playLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.stopLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.getLiveEvent("live-event-id")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.getLiveEvents()
-        );
     }
 
     @DisplayName("Should return a valid live event by name")

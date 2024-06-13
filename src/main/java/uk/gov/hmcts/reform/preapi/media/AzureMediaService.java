@@ -40,6 +40,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -111,6 +112,28 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
+    public LiveEventDTO getLiveEvent(String liveEventName) {
+        try {
+            return new LiveEventDTO(amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName));
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new NotFoundException("Live event: " + liveEventName);
+            }
+            throw e;
+        }
+    }
+
+    @Override
+    public List<LiveEventDTO> getLiveEvents() {
+        return amsClient
+            .getLiveEvents()
+            .list(resourceGroup, accountName)
+            .stream()
+            .map(LiveEventDTO::new)
+            .toList();
+    }
+
+    @Override
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSessionId)")
     public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
@@ -140,7 +163,7 @@ public class AzureMediaService implements IMediaService {
             createLiveEvent(captureSession);
 
             // check live event exists
-            getLiveEvent(liveEventName);
+            getLiveEventAms(liveEventName);
 
             // create output asset
             createAsset(liveEventName, captureSession);
@@ -195,13 +218,13 @@ public class AzureMediaService implements IMediaService {
     private LiveEventInner checkStreamReady(String liveEventName) throws InterruptedException {
         LiveEventInner liveEvent;
         do {
-            Thread.sleep(2000); // wait 2 secs
-            liveEvent = getLiveEvent(liveEventName);
+            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
+            liveEvent = getLiveEventAms(liveEventName);
         } while (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
         return liveEvent;
     }
 
-    private LiveEventInner getLiveEvent(String liveEventName) {
+    private LiveEventInner getLiveEventAms(String liveEventName) {
         return tryAmsRequest(
             () -> amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName),
             Map.of(
@@ -307,39 +330,6 @@ public class AzureMediaService implements IMediaService {
         );
     }
 
-    /*
-    @Override
-    public String playLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String stopLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public LiveEventDTO getLiveEvent(String liveEventName) {
-        try {
-            return new LiveEventDTO(amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName));
-        } catch (ManagementException e) {
-            if (e.getResponse().getStatusCode() == 404) {
-                throw new NotFoundException("Live event: " + liveEventName);
-            }
-            throw e;
-        }
-    }
-
-    @Override
-    public List<LiveEventDTO> getLiveEvents() {
-        return amsClient
-            .getLiveEvents()
-            .list(resourceGroup, accountName)
-            .stream()
-            .map(LiveEventDTO::new)
-            .toList();
-    }
-     */
     private String uuidToNameString(UUID id) {
         return id.toString().replaceAll("-", "");
     }

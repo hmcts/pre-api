@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -105,14 +106,10 @@ public class MediaKind implements IMediaService {
 
     @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
-        try {
-            return new LiveEventDTO(mediaKindClient.getLiveEvent(liveEventName));
-        } catch (FeignException.NotFound e) {
-            return null;
-        }
+        return new LiveEventDTO(getLiveEventMk(liveEventName));
     }
 
-    public MkLiveEvent getLiveEvent(String liveEventName) {
+    private MkLiveEvent getLiveEventMk(String liveEventName) {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
         } catch (FeignException.NotFound e) {
@@ -218,8 +215,8 @@ public class MediaKind implements IMediaService {
     private MkLiveEvent checkStreamReady(String liveEventName) throws InterruptedException {
         MkLiveEvent liveEvent;
         do {
-            Thread.sleep(2000); // 2 secs
-            liveEvent = getLiveEvent(liveEventName);
+            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
+            liveEvent = getLiveEventMk(liveEventName);
         } while (!liveEvent.getProperties().getResourceState().equals("Running"));
         return liveEvent;
     }
@@ -314,53 +311,12 @@ public class MediaKind implements IMediaService {
                     .build()
             );
         } catch (FeignException e) {
-            e.printStackTrace();
             throw new MediaKindException();
         }
     }
 
-
-    /*
-    @Override
-    public String playLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String stopLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String getLiveEvents() {
-        throw new UnsupportedOperationException();
-    }
-     */
-
     private String uuidToNameString(UUID id) {
         return id.toString().replaceAll("-", "");
-    }
-
-    protected <E> Stream<E> getAllMkList(GetListFunction<E> func) {
-        Integer[] skip = {0};
-
-        return Stream.iterate(func.get(skip[0]), Objects::nonNull, res -> {
-            if (res.getNextLink() != null) {
-                skip[0] = res.getSupplemental().getPagination().getEnd();
-                return func.get(skip[0]);
-            }
-            return null;
-        }).map(MkGetListResponse::getValue).flatMap(List::stream);
-    }
-
-    @FunctionalInterface
-    protected interface GetListFunction<E> {
-        MkGetListResponse<E> get(int skip);
     }
 
     protected <E> Stream<E> getAllMkList(GetListFunction<E> func) {
