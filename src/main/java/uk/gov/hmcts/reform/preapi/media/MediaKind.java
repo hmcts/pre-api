@@ -116,7 +116,8 @@ public class MediaKind implements IMediaService {
     public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(captureSessionId)
-            .orElseThrow(() ->  new NotFoundException("Capture Session: " + captureSessionId));
+            .orElse(new CaptureSession());
+        captureSession.setId(captureSessionId);
 
         if (captureSession.getFinishedAt() != null
             || (captureSession.getStartedAt() != null && captureSession.getIngestAddress() != null)) {

@@ -116,10 +116,15 @@ public class AzureMediaService implements IMediaService {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() ->  new NotFoundException("Capture Session: " + captureSessionId));
-        if (captureSession.getFinishedAt() != null
-            || (captureSession.getStartedAt() != null && captureSession.getIngestAddress() != null)) {
+
+        if (captureSession.getFinishedAt() != null) {
+            throw new ConflictException("Capture Session: " + captureSession.getId() + " has already been finished");
+        }
+
+        if (captureSession.getStartedAt() != null) {
             return new CaptureSessionDTO(captureSession);
         }
+
         var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
         var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
 
@@ -180,7 +185,7 @@ public class AzureMediaService implements IMediaService {
             },
             Map.of(
                 404, e -> {
-                    throw new NotFoundException("Live event: " + liveEventName);
+                    throw new NotFoundException("Live Event: " + liveEventName);
                 }
             )
         );
@@ -191,7 +196,7 @@ public class AzureMediaService implements IMediaService {
         do {
             Thread.sleep(2000); // wait 2 secs
             liveEvent = getLiveEvent(liveEventName);
-        } while (liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
+        } while (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
         return liveEvent;
     }
 
@@ -244,9 +249,9 @@ public class AzureMediaService implements IMediaService {
                     accountName,
                     assetName,
                     new AssetInner()
-                        .withContainer(captureSession.getBooking().getId().toString()))
+                        .withContainer(captureSession.getBooking().getId().toString())
                         .withStorageAccountName(ingestStorageAccount)
-                        .withDescription(captureSession.getBooking().getId().toString()
+                        .withDescription(captureSession.getBooking().getId().toString())
                 ),
             Map.of(
                 409, e -> {
@@ -262,7 +267,7 @@ public class AzureMediaService implements IMediaService {
             () -> amsClient.getLiveEvents().create(
                 resourceGroup,
                 accountName,
-                captureSession.getId().toString().replace("-", ""),
+                uuidToNameString(captureSession.getId()),
                 new LiveEventInner()
                     .withLocation(LOCATION)
                     .withTags(Map.of(
@@ -345,7 +350,6 @@ public class AzureMediaService implements IMediaService {
                 .ifPresentOrElse(
                     key -> onErrorResponse.get(key).accept(e),
                     () -> {
-                        e.printStackTrace();
                         throw e;
                     }
                 );
