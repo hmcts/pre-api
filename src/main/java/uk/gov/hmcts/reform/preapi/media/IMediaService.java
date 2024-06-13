@@ -4,9 +4,12 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface IMediaService {
     String playAsset(String assetId);
+
+    String playLiveEvent(UUID liveEventId);
 
     String importAsset(String assetPath);
 
@@ -21,9 +24,6 @@ public interface IMediaService {
     /*
     String startLiveEvent(String liveEventId);
 
-    String playLiveEvent(String liveEventId);
-
     String stopLiveEvent(String liveEventId);
     */
-
 }

@@ -10,15 +10,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
-import java.util.UUID;
-
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/media-service")
@@ -86,14 +86,20 @@ public class MediaServiceController extends PreApiController {
     }
 
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<String> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
+    // @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
         // load captureSession
         var captureSession = captureSessionService.findById(captureSessionId);
-        if (!captureSession.getLiveOutputUrl().isEmpty()) {
-            return ResponseEntity.ok("live event streaming locator already exists");
+        if (captureSession.getLiveOutputUrl() != null) {
+            return ResponseEntity.ok(captureSession);
         }
 
-        return ResponseEntity.notFound().build();
+        var liveOutputUrl = mediaServiceBroker.getEnabledMediaService().playLiveEvent(captureSessionId);
+
+        // update captureSession
+        captureSession.setLiveOutputUrl(liveOutputUrl);
+        captureSessionService.upsert(captureSession);
+
+        return ResponseEntity.ok(captureSession);
     }
 }

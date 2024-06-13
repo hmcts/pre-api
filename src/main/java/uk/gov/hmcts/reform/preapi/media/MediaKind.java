@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -54,14 +55,14 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    /*
     @Override
-    public String startLiveEvent(String liveEventId) {
+    public String playLiveEvent(UUID liveEventId) {
         throw new UnsupportedOperationException();
     }
 
+    /*
     @Override
-    public String playLiveEvent(String liveEventId) {
+    public String startLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
     }
 
