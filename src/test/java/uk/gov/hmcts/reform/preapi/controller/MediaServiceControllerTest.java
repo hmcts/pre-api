@@ -122,8 +122,10 @@ public class MediaServiceControllerTest {
     @DisplayName("Should return 200 and an asset")
     @Test
     void getAssetSuccess() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var name = UUID.randomUUID().toString();
         var asset = HelperFactory.createAsset(name, "description", "container", "storage account name");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getAsset(name)).thenReturn(asset);
 
         mockMvc.perform(get("/media-service/assets/" + name))
@@ -139,6 +141,7 @@ public class MediaServiceControllerTest {
     @Test
     void getAssetNotFound() throws Exception {
         var name = UUID.randomUUID().toString();
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         doThrow((new NotFoundException("Asset: " + name))).when(mediaKind).getAsset(name);
 
         mockMvc.perform(get("/media-service/assets/" + name))
@@ -153,6 +156,7 @@ public class MediaServiceControllerTest {
         var assets = List.of(
             HelperFactory.createAsset("name", "description", "container", "storage account")
         );
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getAssets()).thenReturn(assets);
 
         mockMvc.perform(get("/media-service/assets"))
@@ -169,6 +173,7 @@ public class MediaServiceControllerTest {
     void getLiveEventSuccess() throws Exception {
         var name = UUID.randomUUID().toString();
         var liveEvent = HelperFactory.createLiveEvent(name, "description", "Stopped", "rtmps://example.com");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
 
         mockMvc.perform(get("/media-service/live-events/" + name))
@@ -184,6 +189,7 @@ public class MediaServiceControllerTest {
     @Test
     void getLiveEventNotFound() throws Exception {
         var name = UUID.randomUUID().toString();
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvent(name)).thenReturn(null);
 
         mockMvc.perform(get("/media-service/live-events/" + name))
@@ -198,6 +204,7 @@ public class MediaServiceControllerTest {
         var liveEvents = List.of(
             HelperFactory.createLiveEvent("name", "description", "Stopped", "rtmps://example.com")
         );
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvents()).thenReturn(liveEvents);
 
         mockMvc.perform(get("/media-service/live-events"))

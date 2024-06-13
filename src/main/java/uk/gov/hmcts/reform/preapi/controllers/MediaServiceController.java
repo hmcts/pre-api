@@ -42,6 +42,7 @@ public class MediaServiceController extends PreApiController {
     @Operation(operationId = "getAssets", summary = "Get all media service assets")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<List<AssetDTO>> getAssets() {
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
         return ResponseEntity.ok(mediaService.getAssets());
     }
 
@@ -49,6 +50,7 @@ public class MediaServiceController extends PreApiController {
     @Operation(operationId = "getAssetsByName", summary = "Get a media service asset by name")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<AssetDTO> getAsset(@PathVariable String assetName) {
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
         var data = mediaService.getAsset(assetName);
         if (data == null) {
             throw new NotFoundException("Asset: " + assetName);
@@ -60,6 +62,7 @@ public class MediaServiceController extends PreApiController {
     @Operation(operationId = "getLiveEvents", summary = "Get a list of media service live events")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<List<LiveEventDTO>> getLiveEvents() {
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
         return ResponseEntity.ok(mediaService.getLiveEvents());
     }
 
@@ -67,6 +70,7 @@ public class MediaServiceController extends PreApiController {
     @Operation(operationId = "getLiveEventsByName", summary = "Get a media service live event by name")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<LiveEventDTO> getLiveEvents(@PathVariable String liveEventName) {
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
         var data = mediaService.getLiveEvent(liveEventName);
         if (data == null) {
             throw new NotFoundException("Live event: " + liveEventName);
