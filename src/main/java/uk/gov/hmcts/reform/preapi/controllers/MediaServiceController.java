@@ -115,14 +115,20 @@ public class MediaServiceController extends PreApiController {
     }
 
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<String> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
+    // @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
         // load captureSession
         var captureSession = captureSessionService.findById(captureSessionId);
-        if (!captureSession.getLiveOutputUrl().isEmpty()) {
-            return ResponseEntity.ok("live event streaming locator already exists");
+        if (captureSession.getLiveOutputUrl() != null) {
+            return ResponseEntity.ok(captureSession);
         }
 
-        return ResponseEntity.notFound().build();
+        var liveOutputUrl = mediaServiceBroker.getEnabledMediaService().playLiveEvent(captureSessionId);
+
+        // update captureSession
+        captureSession.setLiveOutputUrl(liveOutputUrl);
+        captureSessionService.upsert(captureSession);
+
+        return ResponseEntity.ok(captureSession);
     }
 }

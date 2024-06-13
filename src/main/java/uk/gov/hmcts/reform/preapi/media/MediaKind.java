@@ -89,6 +89,23 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public String playLiveEvent(UUID liveEventId) {
+        throw new UnsupportedOperationException();
+    }
+
+    /*
+    @Override
+    public String startLiveEvent(String liveEventId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String stopLiveEvent(String liveEventId) {
+        throw new UnsupportedOperationException();
+    }
+    */
+
+    @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
         return new LiveEventDTO(getLiveEventMk(liveEventName));
     }
