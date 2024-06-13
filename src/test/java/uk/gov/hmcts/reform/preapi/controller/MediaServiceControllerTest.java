@@ -6,6 +6,7 @@ import com.microsoft.aad.msal4j.MsalServiceException;
 import feign.FeignException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -385,5 +386,24 @@ public class MediaServiceControllerTest {
             .contains("Resource CaptureSessionDTO("
                           + captureSessionId
                           + ") is in a INITIALISING state. Expected state is STANDBY.");
+    }
+
+    @DisplayName("Should not create any resources when capture session already has a live_output_url set")
+    @Test
+    void captureSessionAlreadyHasLiveOutputUrl200() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSession.setLiveOutputUrl("https://www.gov.uk");
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
+        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
+        Mockito.verify(mediaService, Mockito.times(0)).playLiveEvent(any());
     }
 }
