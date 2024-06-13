@@ -228,14 +228,48 @@ public class MediaServiceControllerTest {
     void createStreamingLocatorSuccess() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         var captureSessionId = UUID.randomUUID();
-        CaptureSessionDTO captureSession = mock(CaptureSessionDTO.class);
-        when(captureSession.getStatus()).thenReturn(RecordingStatus.STANDBY);
-        when(captureSession.getLiveOutputUrl()).thenReturn(null);
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.STANDBY);
         when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
-        when(mediaService.playLiveEvent(captureSessionId)).thenReturn("liveOutputUrl");
+        when(mediaService.playLiveEvent(captureSessionId)).thenReturn("https://www.gov.uk");
 
-        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
+        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
+    }
+
+    @DisplayName("Should return 404 when capture session doesn't exist")
+    @Test
+    void captureSession404() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        when(captureSessionService.findById(captureSessionId))
+            .thenThrow(new NotFoundException("CaptureSession: " + captureSessionId));
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isNotFound())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("Not found: CaptureSession: " + captureSessionId);
+    }
+
+    @DisplayName("Should return 400 when capture session is not in a state of STANDBY")
+    @Test
+    void captureSession400() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.INITIALISING);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isBadRequest())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString())
+            .contains("Resource CaptureSessionDTO("
+                          + captureSessionId
+                          + ") is in a INITIALISING state. Expected state is STANDBY.");
     }
 }
