@@ -4,6 +4,7 @@ import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 
@@ -68,17 +69,23 @@ public class MediaKind implements IMediaService {
     public String stopLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
     }
+    */
 
     @Override
-    public String getLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
+    public LiveEventDTO getLiveEvent(String liveEventName) {
+        try {
+            return new LiveEventDTO(mediaKindClient.getLiveEvent(liveEventName));
+        } catch (FeignException.NotFound e) {
+            return null;
+        }
     }
 
     @Override
-    public String getLiveEvents() {
-        throw new UnsupportedOperationException();
+    public List<LiveEventDTO> getLiveEvents() {
+        return getAllMkList(mediaKindClient::getLiveEvents)
+            .map(LiveEventDTO::new)
+            .toList();
     }
-     */
 
     protected <E> Stream<E> getAllMkList(GetListFunction<E> func) {
         Integer[] skip = {0};

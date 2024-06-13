@@ -2,11 +2,6 @@ java:
   devmemoryLimits: '2048Mi'
   postgresql:
     enabled: true
-  keyVaults:
-    pre-hmctskv:
-      secrets:
-        - name: api-MKIO-TOKEN
-          alias: MEDIA_KIND_TOKEN
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"

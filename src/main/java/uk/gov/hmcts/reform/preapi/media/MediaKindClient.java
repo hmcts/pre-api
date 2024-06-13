@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
@@ -15,4 +16,10 @@ public interface MediaKindClient {
 
     @GetMapping("/assets/{assetName}")
     MkAsset getAsset(@PathVariable("assetName") String assetName);
+
+    @GetMapping("/liveEvents")
+    MkGetListResponse<MkLiveEvent> getLiveEvents(@RequestParam("$skipToken") int skipToken);
+
+    @GetMapping("/liveEvents/{liveEventName}")
+    MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
 }
