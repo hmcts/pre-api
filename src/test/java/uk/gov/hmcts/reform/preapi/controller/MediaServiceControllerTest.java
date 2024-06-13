@@ -63,9 +63,6 @@ public class MediaServiceControllerTest {
     @MockBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
-    private CaptureSessionService captureSessionService;
-
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test
     void getMediaSuccess() throws Exception {
@@ -332,11 +329,27 @@ public class MediaServiceControllerTest {
             .when(mediaService).startLiveEvent(dto);
 
         mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Not found: live event error"));
+               .andExpect(status().isNotFound())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Not found: live event error"));
 
         verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, null);
+    }
+
+    @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
+    @Test
+    void createStreamingLocatorSuccess() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        CaptureSessionDTO captureSession = mock(CaptureSessionDTO.class);
+        when(captureSession.getStatus()).thenReturn(RecordingStatus.STANDBY);
+        when(captureSession.getLiveOutputUrl()).thenReturn(null);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(mediaService.playLiveEvent(captureSessionId)).thenReturn("liveOutputUrl");
+
+        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
     }
 }
