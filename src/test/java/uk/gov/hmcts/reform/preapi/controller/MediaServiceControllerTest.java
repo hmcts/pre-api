@@ -18,8 +18,8 @@ import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +51,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private CaptureSessionService captureSessionService;
 
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test
