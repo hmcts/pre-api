@@ -29,8 +29,6 @@ java:
           alias: AZ_AMS_CLIENT_SECRET
         - name: api-MKIO-TOKEN
           alias: MEDIA_KIND_TOKEN
-        - name: api-MKIO-TOKEN
-          alias: MEDIA_KIND_TOKEN_STG
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
