@@ -123,7 +123,7 @@ public class MediaKind implements IMediaService {
         return getAllMkList(mediaKindClient::getLiveEvents)
             .map(LiveEventDTO::new)
             .toList();
-     }
+    }
 
     @Override
     public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {

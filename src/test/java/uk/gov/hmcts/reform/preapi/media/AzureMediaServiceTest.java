@@ -6,12 +6,7 @@ import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
 import com.azure.resourcemanager.mediaservices.fluent.LiveOutputsClient;
-import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
-import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
-import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
-import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
-import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
@@ -41,7 +36,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.List;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -337,7 +331,8 @@ public class AzureMediaServiceTest {
             ConflictException.class,
             () -> mediaService.startLiveEvent(captureSession.getId())
         ).getMessage();
-        assertThat(message).isEqualTo("Conflict: Capture Session: " + captureSession.getId() + " has already been finished");
+        assertThat(message)
+            .isEqualTo("Conflict: Capture Session: " + captureSession.getId() + " has already been finished");
     }
 
     @DisplayName("Should return the capture session if already started and not finished")

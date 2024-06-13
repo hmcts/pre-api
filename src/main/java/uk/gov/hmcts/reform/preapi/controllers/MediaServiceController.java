@@ -18,8 +18,6 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 
 import java.util.List;
-import uk.gov.hmcts.reform.preapi.media.MediaKind;
-
 import java.util.UUID;
 
 @RestController
@@ -90,6 +88,5 @@ public class MediaServiceController extends PreApiController {
     public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         return ResponseEntity.ok(mediaService.startLiveEvent(captureSessionId));
-//        return ResponseEntity.ok(mediaKind.startLiveEvent(captureSessionId));
     }
 }
