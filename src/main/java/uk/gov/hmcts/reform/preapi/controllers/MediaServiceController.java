@@ -92,16 +92,21 @@ public class MediaServiceController extends PreApiController {
     public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
         // load captureSession
         var captureSession = captureSessionService.findById(captureSessionId);
+
+        // return existing captureSession if currently live
+        if (captureSession.getLiveOutputUrl() != null && captureSession.getStatus() == RecordingStatus.RECORDING) {
+            return ResponseEntity.ok(captureSession);
+        }
+
+        // check if captureSession is in correct state
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {
             throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
                                                     captureSessionId.toString(),
                                                     captureSession.getStatus().name(),
                                                     RecordingStatus.STANDBY.name());
         }
-        if (captureSession.getLiveOutputUrl() != null) {
-            return ResponseEntity.ok(captureSession);
-        }
 
+        // play live event
         var liveOutputUrl = mediaServiceBroker.getEnabledMediaService().playLiveEvent(captureSessionId);
 
         // update captureSession
