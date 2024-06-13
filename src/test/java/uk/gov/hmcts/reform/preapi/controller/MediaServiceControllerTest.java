@@ -13,6 +13,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -29,6 +31,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -218,5 +221,21 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].description").value("description"))
             .andExpect(jsonPath("$[0].resource_state").value("Stopped"))
             .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"));
+    }
+
+    @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
+    @Test
+    void createStreamingLocatorSuccess() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        CaptureSessionDTO captureSession = mock(CaptureSessionDTO.class);
+        when(captureSession.getStatus()).thenReturn(RecordingStatus.STANDBY);
+        when(captureSession.getLiveOutputUrl()).thenReturn(null);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(mediaService.playLiveEvent(captureSessionId)).thenReturn("liveOutputUrl");
+
+        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
     }
 }
