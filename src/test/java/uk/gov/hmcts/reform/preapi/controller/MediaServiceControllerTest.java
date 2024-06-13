@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -63,6 +62,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private CaptureSessionService captureSessionService;
 
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test

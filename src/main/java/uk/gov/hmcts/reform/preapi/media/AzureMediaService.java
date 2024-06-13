@@ -241,8 +241,7 @@ public class AzureMediaService implements IMediaService {
     public String stopLiveEvent(String liveEventId) {
         throw new UnsupportedOperationException();
     }
-
-     */
+    */
 
     @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
