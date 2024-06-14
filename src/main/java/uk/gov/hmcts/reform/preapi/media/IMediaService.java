@@ -19,7 +19,7 @@ public interface IMediaService {
 
     List<LiveEventDTO> getLiveEvents();
 
-    String startLiveEvent(CaptureSessionDTO captureSession);
+    String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException;
 
     /*
     String playLiveEvent(String liveEventId);

@@ -124,10 +124,19 @@ public class GlobalControllerExceptionHandler {
     }
 
     @ExceptionHandler(FeignException.class)
-    ResponseEntity<String> onIllegalArgumentException(final FeignException e)
+    ResponseEntity<String> onFeignException(final FeignException e)
         throws JsonProcessingException {
         return getResponseEntity(
             "Unable to connect to Media Service",
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
+    }
+
+    @ExceptionHandler(InterruptedException.class)
+    ResponseEntity<String> onInterruptedException(final InterruptedException e)
+        throws JsonProcessingException {
+        return getResponseEntity(
+            "An error occurred when trying to communicate with Media Service.",
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }

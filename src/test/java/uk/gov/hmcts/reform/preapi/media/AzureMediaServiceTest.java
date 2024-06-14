@@ -260,7 +260,7 @@ public class AzureMediaServiceTest {
 
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
-    void startLiveEventSuccess() {
+    void startLiveEventSuccess() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var liveEventClient = mockLiveEventClient();
         var mockLiveEvent = mock(LiveEventInner.class);
@@ -304,7 +304,7 @@ public class AzureMediaServiceTest {
 
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
-    void startLiveEventLiveEventConflictSuccess() {
+    void startLiveEventLiveEventConflictSuccess() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var liveEventClient = mockLiveEventClient();
         var mockLiveEvent = mock(LiveEventInner.class);

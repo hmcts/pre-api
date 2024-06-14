@@ -21,7 +21,6 @@ import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
@@ -111,26 +110,23 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String startLiveEvent(CaptureSessionDTO captureSession) {
-        try {
-            var liveEventName = uuidToNameString(captureSession.getId());
-            createLiveEvent(captureSession);
-            getLiveEventMk(liveEventName);
-            createAsset(liveEventName, captureSession);
-            createLiveOutput(liveEventName, liveEventName);
-            startLiveEvent(liveEventName);
-            var liveEvent = checkStreamReady(liveEventName);
+    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
 
-            // todo get rtmps from mk (uncomment filter)
-            return Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
-                .flatMap(Collection::stream)
-                //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-                .findFirst()
-                .map(LiveEventEndpoint::url)
-                .orElse(null);
-        } catch (InterruptedException e) {
-            throw new UnknownServerException("Something went wrong when attempting to communicate with Azure");
-        }
+        var liveEventName = uuidToNameString(captureSession.getId());
+        createLiveEvent(captureSession);
+        getLiveEventMk(liveEventName);
+        createAsset(liveEventName, captureSession);
+        createLiveOutput(liveEventName, liveEventName);
+        startLiveEvent(liveEventName);
+        var liveEvent = checkStreamReady(liveEventName);
+
+        // todo return rtmps from mk (uncomment filter)
+        return Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
+            .flatMap(Collection::stream)
+            //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
+            .findFirst()
+            .map(LiveEventEndpoint::url)
+            .orElse(null);
     }
 
     private void startLiveEvent(String liveEventName) {

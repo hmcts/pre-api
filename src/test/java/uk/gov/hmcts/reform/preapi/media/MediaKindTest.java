@@ -255,7 +255,7 @@ public class MediaKindTest {
 
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
-    void startLiveEventSuccess() {
+    void startLiveEventSuccess() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
@@ -287,7 +287,6 @@ public class MediaKindTest {
             );
 
         var ingest = mediaKind.startLiveEvent(captureSession);
-
         assertThat(ingest).isEqualTo("rtmps://some-rtmp-address");
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(4)).getLiveEvent(any());
@@ -298,7 +297,7 @@ public class MediaKindTest {
 
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
-    void startLiveEventLiveEventConflictSuccess() {
+    void startLiveEventLiveEventConflictSuccess() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 

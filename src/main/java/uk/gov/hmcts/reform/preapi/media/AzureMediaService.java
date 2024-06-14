@@ -123,26 +123,22 @@ public class AzureMediaService implements IMediaService {
     @Override
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSessionId)")
-    public String startLiveEvent(CaptureSessionDTO captureSession) {
-        try {
-            var liveEventName = uuidToNameString(captureSession.getId());
-            createLiveEvent(captureSession);
-            getLiveEventAms(liveEventName);
-            createAsset(liveEventName, captureSession);
-            createLiveOutput(liveEventName, liveEventName);
-            startLiveEvent(liveEventName);
-            var liveEvent = checkStreamReady(liveEventName);
+    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+        var liveEventName = uuidToNameString(captureSession.getId());
+        createLiveEvent(captureSession);
+        getLiveEventAms(liveEventName);
+        createAsset(liveEventName, captureSession);
+        createLiveOutput(liveEventName, liveEventName);
+        startLiveEvent(liveEventName);
+        var liveEvent = checkStreamReady(liveEventName);
 
-            // get ingest url (rtmps)
-            return Stream.ofNullable(liveEvent.input().endpoints())
-                .flatMap(Collection::stream)
-                .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-                .findFirst()
-                .map(LiveEventEndpoint::url)
-                .orElse(null);
-        } catch (InterruptedException e) {
-            throw new UnknownServerException("Something went wrong when attempting to communicate with Azure");
-        }
+        // return ingest url (rtmps)
+        return Stream.ofNullable(liveEvent.input().endpoints())
+            .flatMap(Collection::stream)
+            .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
+            .findFirst()
+            .map(LiveEventEndpoint::url)
+            .orElse(null);
     }
 
     private void startLiveEvent(String liveEventName) {
