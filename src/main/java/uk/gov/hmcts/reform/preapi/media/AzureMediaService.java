@@ -27,14 +27,18 @@ public class AzureMediaService implements IMediaService {
     private final String accountName;
     private final AzureMediaServices amsClient;
 
+    private final String platformEnv;
+
     @Autowired
     public AzureMediaService(
         @Value("${azure.resource-group}") String resourceGroup,
         @Value("${azure.account-name}") String accountName,
+        @Value("${platform-env}") String platformEnv,
         AzureMediaServices amsClient
     ) {
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
+        this.platformEnv = platformEnv;
         this.amsClient = amsClient;
     }
 
@@ -121,7 +125,7 @@ public class AzureMediaService implements IMediaService {
                                 new StreamingEndpointInner()
                                     .withLocation("UK South")
                                     .withTags(Map.of(
-                                        "environment", "Staging", // @TODO populate this
+                                        "environment", this.platformEnv,
                                         "application", "pre-recorded evidence",
                                         "businessArea", "cross-cutting",
                                         "builtFrom", "azure portal"

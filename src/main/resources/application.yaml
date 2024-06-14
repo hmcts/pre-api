@@ -78,3 +78,5 @@ mediakind:
   token: ${MEDIA_KIND_TOKEN:}
 
 media-service: ${MEDIA_SERVICE:AzureMediaService}
+
+platform-env: ${PLATFORM_ENV_TAG:Staging}
