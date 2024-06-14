@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 @Service
@@ -52,7 +51,7 @@ public class AzureMediaService implements IMediaService {
         @Value("${azure.resource-group}") String resourceGroup,
         @Value("${azure.account-name}") String accountName,
         @Value("${azure.ingestStorage}") String ingestStorageAccount,
-        @Value("${azure.environmentTag}") String env,
+        @Value("${platform-env}") String env,
         AzureMediaServices amsClient) {
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;

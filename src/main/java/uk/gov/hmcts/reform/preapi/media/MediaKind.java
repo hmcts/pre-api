@@ -49,7 +49,7 @@ public class MediaKind implements IMediaService {
     @Autowired
     public MediaKind(
         @Value("${azure.ingestStorage}") String ingestStorageAccount,
-        @Value("${azure.environmentTag}") String env,
+        @Value("${platform-env}") String env,
         MediaKindClient mediaKindClient
     ) {
         this.ingestStorageAccount = ingestStorageAccount;
