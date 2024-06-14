@@ -285,6 +285,56 @@ public class AzureMediaServiceTest {
                        any());
     }
 
+    @DisplayName("Should complete play live event successfully, all required resources already exist")
+    @Test
+    void playLiveEventFreshSuccessPreExistingResources() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(409);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenThrow(new ManagementException("Already exists", mockHttpResponse));
+
+        when(mockStreamingEndpointsClient.get(resourceGroup, accountName, shortenedLiveEventId))
+            .thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+        when(mockStreamingLocatorsClient.create(eq(resourceGroup), eq(accountName), eq(sanitisedLiveEventId), any()))
+            .thenThrow(new ManagementException("Already exists", mockHttpResponse));
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        var response = mediaService.playLiveEvent(liveEventId);
+        assertThat(response).isEqualTo("https://pre-example.com/path1");
+    }
+
     @DisplayName("Should throw an exception when live event doesn't exist")
     @Test
     void playLiveEventAMSLiveEventNotFoundException() {
