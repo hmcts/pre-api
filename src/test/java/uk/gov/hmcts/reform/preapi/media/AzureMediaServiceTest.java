@@ -681,4 +681,44 @@ public class AzureMediaServiceTest {
 
         assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
     }
+
+    @DisplayName("Should throw a RuntimeException if all paths are blank")
+    @Test
+    void playLiveEventParseLiveOutputUrlFromStreamingLocatorPathsRuntimeException() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of());
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of());
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        assertThrows(RuntimeException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
 }
