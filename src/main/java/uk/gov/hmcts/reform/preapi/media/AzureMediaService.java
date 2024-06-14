@@ -73,29 +73,30 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public AssetDTO getAsset(String assetName) {
-        // assetName is an id without the '-'
-        return tryAmsRequest(
-            () -> new AssetDTO(amsClient.getAssets().get(resourceGroup, accountName, assetName)),
-            Map.of(
-                404, e -> {
-                    throw new NotFoundException("Asset with name: " + assetName);
-                }
-            )
-        );
-
+        try {
+            return  new AssetDTO(amsClient.getAssets().get(resourceGroup, accountName, assetName));
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure");
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new NotFoundException("Asset with name: " + assetName);
+            }
+            throw e;
+        }
     }
 
     @Override
     public List<AssetDTO> getAssets() {
-        return tryAmsRequest(
-            () -> amsClient
+        try {
+            return amsClient
                 .getAssets()
                 .list(resourceGroup, accountName)
                 .stream()
                 .map(AssetDTO::new)
-                .toList(),
-            Map.of()
-        );
+                .toList();
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure");
+        }
     }
 
     @Override
@@ -146,17 +147,16 @@ public class AzureMediaService implements IMediaService {
     }
 
     private void startLiveEvent(String liveEventName) {
-        tryAmsRequest(
-            () -> {
-                amsClient.getLiveEvents().start(resourceGroup, accountName, liveEventName);
-                return null;
-            },
-            Map.of(
-                404, e -> {
-                    throw new NotFoundException("Live Event: " + liveEventName);
-                }
-            )
-        );
+        try {
+            amsClient.getLiveEvents().start(resourceGroup, accountName, liveEventName);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure");
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new NotFoundException("Live Event: " + liveEventName);
+            }
+            throw e;
+        }
     }
 
     private LiveEventInner checkStreamReady(String liveEventName) throws InterruptedException {
@@ -164,24 +164,26 @@ public class AzureMediaService implements IMediaService {
         do {
             TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
             liveEvent = getLiveEventAms(liveEventName);
-        } while (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
+        } while (liveEvent == null || !liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
         return liveEvent;
     }
 
     private LiveEventInner getLiveEventAms(String liveEventName) {
-        return tryAmsRequest(
-            () -> amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName),
-            Map.of(
-                404, e -> {
-                    throw new NotFoundException("Live event: " + liveEventName);
-                }
-            )
-        );
+        try {
+            return amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure");
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new NotFoundException("Live event: " + liveEventName);
+            }
+            throw e;
+        }
     }
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
-        tryAmsRequest(
-            () -> amsClient.getLiveOutputs().create(
+        try {
+            amsClient.getLiveOutputs().create(
                 resourceGroup,
                 accountName,
                 liveEventName,
@@ -192,21 +194,23 @@ public class AzureMediaService implements IMediaService {
                     .withArchiveWindowLength(Duration.ofHours(8))
                     .withHls(new Hls().withFragmentsPerTsSegment(5))
                     .withManifestName(liveEventName)
-            ),
-            Map.of(
-                409, e -> {
-                    throw new ConflictException("Live Output: " + liveOutputName);
-                },
-                404, e -> {
-                    throw new NotFoundException("Live Event: " + liveEventName);
-                }
-            )
-        );
+            );
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure");
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new NotFoundException("Live Event: " + liveEventName);
+            }
+            if (e.getResponse().getStatusCode() == 409) {
+                throw new ConflictException("Live Output: " + liveOutputName);
+            }
+            throw e;
+        }
     }
 
     private void createAsset(String assetName, CaptureSessionDTO captureSession) {
-        tryAmsRequest(
-            () -> amsClient
+        try {
+            amsClient
                 .getAssets()
                 .createOrUpdate(
                     resourceGroup,
@@ -216,19 +220,21 @@ public class AzureMediaService implements IMediaService {
                         .withContainer(captureSession.getBookingId().toString())
                         .withStorageAccountName(ingestStorageAccount)
                         .withDescription(captureSession.getBookingId().toString())
-                ),
-            Map.of(
-                409, e -> {
-                    throw new ConflictException("Asset: " + assetName);
-                }
-            )
-        );
+                );
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure");
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 409) {
+                throw new ConflictException("Asset: " + assetName);
+            }
+            throw e;
+        }
     }
 
     private void createLiveEvent(CaptureSessionDTO captureSession) {
         var accessToken = UUID.randomUUID();
-        tryAmsRequest(
-            () -> amsClient.getLiveEvents().create(
+        try {
+            amsClient.getLiveEvents().create(
                 resourceGroup,
                 accountName,
                 uuidToNameString(captureSession.getId()),
@@ -265,43 +271,18 @@ public class AzureMediaService implements IMediaService {
                                                                        .withAddress("0.0.0.0")
                                                                        .withSubnetPrefixLength(0)
                                                 )))
-                            ))),
-            Map.of(
-                409, e -> {
-                    // already exists so do nothing
-                }
-            )
-        );
+                            )));
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure");
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 409) {
+                return;
+            }
+            throw e;
+        }
     }
 
     private String uuidToNameString(UUID id) {
         return id.toString().replace("-", "");
-    }
-
-    private <E> E tryAmsRequest(RunAmsRequestFunction<E> requestFunction,
-                                Map<Integer, Consumer<Exception>> onErrorResponse) {
-        try {
-            return requestFunction.run();
-        } catch (IllegalArgumentException e) {
-            throw new NotFoundException("Unable to communicate with Azure");
-        } catch (ManagementException e) {
-            onErrorResponse
-                .keySet()
-                .stream()
-                .filter(k -> e.getResponse().getStatusCode() == k)
-                .findFirst()
-                .ifPresentOrElse(
-                    key -> onErrorResponse.get(key).accept(e),
-                    () -> {
-                        throw e;
-                    }
-                );
-        }
-        return null;
-    }
-
-    @FunctionalInterface
-    protected interface RunAmsRequestFunction<E> {
-        E run();
     }
 }
