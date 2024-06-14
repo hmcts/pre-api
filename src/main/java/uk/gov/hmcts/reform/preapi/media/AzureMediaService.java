@@ -73,21 +73,18 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public String playLiveEvent(@NotNull UUID liveEventId) {
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-        Logger.getAnonymousLogger().info("Sanitised live event id: " + sanitisedLiveEventId);
-
-        assertLiveEventExists(sanitisedLiveEventId);
-        String hostname = null;
+        assertLiveEventExists(liveEventId);
+        String hostname;
         try {
-            hostname = getStreamingEndpointHostname(sanitisedLiveEventId);
-            amsClient.getStreamingEndpoints().start(resourceGroup, accountName, sanitisedLiveEventId.substring(0, 23));
+            hostname = getStreamingEndpointHostname(liveEventId);
+            amsClient.getStreamingEndpoints().start(resourceGroup, accountName, getShortenedLiveEventId(liveEventId));
         } catch (Exception ex) {
             Logger.getAnonymousLogger().info("Error creating streaming endpoint: " + ex.getMessage());
             throw ex;
         }
 
         try {
-            assertStreamingLocatorExists(liveEventId, sanitisedLiveEventId);
+            assertStreamingLocatorExists(liveEventId);
         } catch (Exception e) {
             Logger.getAnonymousLogger().info("Error creating streaming locator: " + e.getMessage());
             if (e instanceof ManagementException managementException) {
@@ -101,23 +98,32 @@ public class AzureMediaService implements IMediaService {
             }
         }
 
-        var paths = amsClient.getStreamingLocators().listPaths(resourceGroup, accountName, sanitisedLiveEventId);
+        var paths = amsClient.getStreamingLocators()
+                             .listPaths(resourceGroup, accountName, getSanitisedLiveEventId(liveEventId));
 
         return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
     }
 
-    private String getStreamingEndpointHostname(@NotNull String sanitisedLiveEventId) {
-        var streamingEndpointName = sanitisedLiveEventId.substring(0, 23);
+    private String getSanitisedLiveEventId(UUID liveEventId) {
+        return liveEventId.toString().replace("-", "");
+    }
+
+    private String getShortenedLiveEventId(UUID liveEventId) {
+        return getSanitisedLiveEventId(liveEventId).substring(0, 23);
+    }
+
+    private String getStreamingEndpointHostname(@NotNull UUID liveEventId) {
         Logger.getAnonymousLogger().info("creating streaming endpoint");
         try {
-            return createStreamingEndpoint(streamingEndpointName).hostname();
+            return createStreamingEndpoint(liveEventId).hostname();
         } catch (Exception e) {
             Logger.getAnonymousLogger().severe("Error creating streaming endpoint: " + e.getMessage());
             throw e;
         }
     }
 
-    private StreamingEndpointInner createStreamingEndpoint(String streamingEndpointName) {
+    private StreamingEndpointInner createStreamingEndpoint(@NotNull UUID liveEventId) {
+        var streamingEndpointName = getShortenedLiveEventId(liveEventId);
         try {
             return amsClient.getStreamingEndpoints()
                             .create(
@@ -127,7 +133,7 @@ public class AzureMediaService implements IMediaService {
                                 new StreamingEndpointInner()
                                     .withLocation("UK South")
                                     .withTags(Map.of(
-                                        "environment", "Staging",
+                                        "environment", "Staging", // @TODO populate this
                                         "application", "pre-recorded evidence",
                                         "businessArea", "cross-cutting",
                                         "builtFrom", "azure portal"
@@ -145,34 +151,31 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void assertStreamingLocatorExists(UUID liveEventId, String sanitisedLiveEventId) {
+    private void assertStreamingLocatorExists(UUID liveEventId) {
 
         try {
-            var streamingLocator = amsClient.getStreamingLocators()
-                                            .get(resourceGroup, accountName, sanitisedLiveEventId);
-            if (streamingLocator != null) {
+            Logger.getAnonymousLogger().info("Creating Streaming locator");
+            var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+            var streamingLocatorProperties = new StreamingLocatorInner()
+                .withAssetName(sanitisedLiveEventId)
+                .withStreamingPolicyName("Predefined_ClearStreamingOnly")
+                .withStreamingLocatorId(liveEventId);
+
+            amsClient.getStreamingLocators().create(resourceGroup,
+                                                    accountName,
+                                                    sanitisedLiveEventId,
+                                                    streamingLocatorProperties);
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 409) {
                 Logger.getAnonymousLogger().info("Streaming locator already exists");
                 return;
             }
-        } catch (ManagementException e) {
-            if (e.getResponse().getStatusCode() != 404) {
-                throw e;
-            }
+            throw e;
         }
-
-        Logger.getAnonymousLogger().info("Creating Streaming locator");
-        var streamingLocatorProperties = new StreamingLocatorInner()
-            .withAssetName(sanitisedLiveEventId)
-            .withStreamingPolicyName("Predefined_ClearStreamingOnly")
-            .withStreamingLocatorId(liveEventId);
-
-        amsClient.getStreamingLocators().create(resourceGroup,
-                                                accountName,
-                                                sanitisedLiveEventId,
-                                                streamingLocatorProperties);
     }
 
-    private void assertLiveEventExists(String sanitisedLiveEventId) {
+    private void assertLiveEventExists(@NotNull UUID liveEventId) {
+        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
         try {
             var liveEvent = amsClient.getLiveEvents().get(resourceGroup, accountName, sanitisedLiveEventId);
             if (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING)) {

@@ -5,23 +5,32 @@ import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
+import com.azure.resourcemanager.mediaservices.fluent.StreamingEndpointsClient;
+import com.azure.resourcemanager.mediaservices.fluent.StreamingLocatorsClient;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import com.azure.resourcemanager.mediaservices.models.StreamingPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -221,5 +230,56 @@ public class AzureMediaServiceTest {
         assertThat(model.getDescription()).isEqualTo("description");
         assertThat(model.getResourceState()).isEqualTo("Stopped");
         assertThat(model.getInputRtmp()).isEqualTo("rtmps://example");
+    }
+
+    @DisplayName("Should complete play live event successfully, creating all required resources")
+    @Test
+    void playLiveEventFreshSuccess() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        var response = mediaService.playLiveEvent(liveEventId);
+        assertThat(response).isEqualTo("https://pre-example.com/path1");
+
+        Mockito.verify(mockStreamingEndpointsClient, Mockito.times(1))
+               .start(resourceGroup, accountName, shortenedLiveEventId);
+
+        Mockito.verify(mockStreamingLocatorsClient, Mockito.times(1))
+               .create(eq(resourceGroup),
+                       eq(accountName),
+                       eq(sanitisedLiveEventId),
+                       any());
     }
 }
