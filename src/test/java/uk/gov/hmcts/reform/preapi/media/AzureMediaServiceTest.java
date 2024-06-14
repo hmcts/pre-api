@@ -71,6 +71,7 @@ public class AzureMediaServiceTest {
         captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBookingId(UUID.randomUUID());
+        mediaService = new AzureMediaService(resourceGroup, accountName, "unittesting", env, amsClient);
     }
 
     @DisplayName("Should get a valid asset and return an AssetDTO")

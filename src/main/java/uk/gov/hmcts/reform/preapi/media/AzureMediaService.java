@@ -62,9 +62,9 @@ public class AzureMediaService implements IMediaService {
         AzureMediaServices amsClient) {
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
+        this.amsClient = amsClient;
         this.ingestStorageAccount = ingestStorageAccount;
         this.environmentTag = env;
-        this.amsClient = amsClient;
     }
 
     @Override
@@ -155,7 +155,7 @@ public class AzureMediaService implements IMediaService {
                                 new StreamingEndpointInner()
                                     .withLocation("UK South")
                                     .withTags(Map.of(
-                                        "environment", "Staging", // @TODO populate this
+                                        "environment", this.environmentTag,
                                         "application", "pre-recorded evidence",
                                         "businessArea", "cross-cutting",
                                         "builtFrom", "azure portal"
