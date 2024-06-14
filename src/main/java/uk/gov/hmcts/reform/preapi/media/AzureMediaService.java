@@ -83,20 +83,8 @@ public class AzureMediaService implements IMediaService {
             throw ex;
         }
 
-        try {
-            assertStreamingLocatorExists(liveEventId);
-        } catch (Exception e) {
-            Logger.getAnonymousLogger().info("Error creating streaming locator: " + e.getMessage());
-            if (e instanceof ManagementException managementException) {
-                if (managementException.getResponse().getStatusCode() == 409) {
-                    Logger.getAnonymousLogger().info("Streaming locator already exists");
-                } else {
-                    throw e;
-                }
-            } else {
-                throw e;
-            }
-        }
+        assertStreamingLocatorExists(liveEventId);
+
 
         var paths = amsClient.getStreamingLocators()
                              .listPaths(resourceGroup, accountName, getSanitisedLiveEventId(liveEventId));

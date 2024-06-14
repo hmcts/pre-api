@@ -320,4 +320,32 @@ public class AzureMediaServiceTest {
 
         assertThrows(AMSLiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
     }
+
+    @DisplayName("Should throw a ManagementException unable to check if Streaming Locator Exists")
+    @Test
+    void playLiveEventAssertStreamingLocatorExistsError() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenThrow(new ManagementException("bad request", mock(HttpResponse.class)));
+
+        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
 }
