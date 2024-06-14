@@ -321,6 +321,25 @@ public class AzureMediaServiceTest {
         assertThrows(AMSLiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
     }
 
+    @DisplayName("Should throw an exception when unable to check live event exists")
+    @Test
+    void playLiveEventAMSLiveEvent500() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(500);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenThrow(new ManagementException("Internal Server Error", mockHttpResponse));
+
+        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
     @DisplayName("Should throw a ManagementException unable to check if Streaming Locator Exists")
     @Test
     void playLiveEventAssertStreamingLocatorExistsError() {
