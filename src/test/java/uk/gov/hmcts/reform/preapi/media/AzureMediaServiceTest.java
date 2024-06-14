@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
@@ -281,5 +283,41 @@ public class AzureMediaServiceTest {
                        eq(accountName),
                        eq(sanitisedLiveEventId),
                        any());
+    }
+
+    @DisplayName("Should throw an exception when live event doesn't exist")
+    @Test
+    void playLiveEventAMSLiveEventNotFoundException() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(404);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenThrow(new ManagementException("not found", mockHttpResponse));
+
+        assertThrows(AMSLiveEventNotFoundException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw an exception when live event exists but is not running")
+    @Test
+    void playLiveEventAMSLiveEventNotRunningException() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.STARTING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        assertThrows(AMSLiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
     }
 }
