@@ -30,7 +30,6 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -129,13 +128,16 @@ public class MediaKind implements IMediaService {
     public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(captureSessionId)
-            .orElse(new CaptureSession());
-        captureSession.setId(captureSessionId);
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
 
-        if (captureSession.getFinishedAt() != null
-            || (captureSession.getStartedAt() != null && captureSession.getIngestAddress() != null)) {
+        if (captureSession.getFinishedAt() != null) {
+            throw new ConflictException("Capture Session: " + captureSession.getId() + " has already been finished");
+        }
+
+        if (captureSession.getStartedAt() != null) {
             return new CaptureSessionDTO(captureSession);
         }
+
         var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
         var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
 
@@ -144,30 +146,15 @@ public class MediaKind implements IMediaService {
         captureSessionRepository.saveAndFlush(captureSession);
 
         try {
-
-            //            var liveEventName = uuidToNameString(captureSessionId);
-            var liveEventName = "lucastestevent";
-
-            // create live event
-            // todo
-            createLiveEvent(null);
-
-            // check live event exists
-            getLiveEvent(liveEventName);
-
-            // create asset todo add capture session
-            createAsset(liveEventName, null);
-
-            // create live output
+            var liveEventName = uuidToNameString(captureSessionId);
+            createLiveEvent(captureSession);
+            getLiveEventMk(liveEventName);
+            createAsset(liveEventName, captureSession);
             createLiveOutput(liveEventName, liveEventName);
-
-            // start live event
             startLiveEvent(liveEventName);
-
-            // check stream ready
             var liveEvent = checkStreamReady(liveEventName);
 
-            // todo get rtmps
+            // todo get rtmps from mk (uncomment filter)
             var inputRtmp = Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
                 .flatMap(Collection::stream)
                 //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
@@ -175,10 +162,10 @@ public class MediaKind implements IMediaService {
                 .map(LiveEventEndpoint::url)
                 .orElse(null);
 
-            // update capture session
             captureSession.setStatus(RecordingStatus.STANDBY);
             captureSession.setIngestAddress(inputRtmp);
             captureSessionRepository.saveAndFlush(captureSession);
+
             return new CaptureSessionDTO(captureSession);
         } catch (InterruptedException e) {
             throw new UnknownServerException("Something went wrong when attempting to communicate with Azure");
@@ -189,24 +176,13 @@ public class MediaKind implements IMediaService {
         }
     }
 
+
+
     private void startLiveEvent(String liveEventName) {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
-        } catch (FeignException e) {
-            throw new MediaKindException();
-        }
-    }
-
-    private MkStreamingLocator createStreamingLocator(String locatorName, String assetName) {
-        try {
-            return mediaKindClient.putStreamingLocator(
-                locatorName, MkStreamingLocator.builder()
-                    .properties(MkStreamingLocator.MkStreamingLocatorProperties.builder()
-                                    .assetName(assetName)
-                                    .streamingPolicyName("Predefined_ClearStreamingOnly")
-                                    .build())
-                    .build()
-            );
+        } catch (FeignException.NotFound e) {
+            throw new NotFoundException("Live Event: " + liveEventName);
         } catch (FeignException e) {
             throw new MediaKindException();
         }
@@ -251,11 +227,9 @@ public class MediaKind implements IMediaService {
                 assetName,
                 MkAsset.builder()
                     .properties(MkAssetProperties.builder()
-                                    // .container(captureSession.getBooking().getId().toString())
-                                    .container("lucastestevent")
+                                     .container(captureSession.getBooking().getId().toString())
                                     .storageAccountName(ingestStorageAccount)
-                                    //  .description(captureSession.getBooking().getId().toString())
-                                    .description("this is a test")
+                                    .description(captureSession.getBooking().getId().toString())
                                     .build())
                     .build()
             );
@@ -271,7 +245,6 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.putLiveEvent(
                 uuidToNameString(captureSession.getId()),
-                //                "lucastestevent",
                 MkLiveEvent.builder()
                     .location(LOCATION)
                     .tags(Map.of(
@@ -310,6 +283,8 @@ public class MediaKind implements IMediaService {
                                     .build())
                     .build()
             );
+        } catch (FeignException.Conflict e) {
+            // do nothing
         } catch (FeignException e) {
             throw new MediaKindException();
         }

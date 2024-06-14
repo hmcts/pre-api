@@ -139,7 +139,7 @@ public class AzureMediaService implements IMediaService {
     public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(captureSessionId)
-            .orElseThrow(() ->  new NotFoundException("Capture Session: " + captureSessionId));
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
 
         if (captureSession.getFinishedAt() != null) {
             throw new ConflictException("Capture Session: " + captureSession.getId() + " has already been finished");
@@ -158,23 +158,11 @@ public class AzureMediaService implements IMediaService {
 
         try {
             var liveEventName = uuidToNameString(captureSessionId);
-
-            // create live event
             createLiveEvent(captureSession);
-
-            // check live event exists
             getLiveEventAms(liveEventName);
-
-            // create output asset
             createAsset(liveEventName, captureSession);
-
-            // create live output
             createLiveOutput(liveEventName, liveEventName);
-
-            // start live event
             startLiveEvent(liveEventName);
-
-            // check stream ready
             var liveEvent = checkStreamReady(liveEventName);
 
             // get ingest url (rtmps)
@@ -185,7 +173,6 @@ public class AzureMediaService implements IMediaService {
                 .map(LiveEventEndpoint::url)
                 .orElse(null);
 
-            // update capture session
             captureSession.setStatus(RecordingStatus.STANDBY);
             captureSession.setIngestAddress(inputRtmp);
             captureSessionRepository.saveAndFlush(captureSession);
@@ -194,7 +181,6 @@ public class AzureMediaService implements IMediaService {
         } catch (InterruptedException e) {
             throw new UnknownServerException("Something went wrong when attempting to communicate with Azure");
         } catch (Exception e) {
-            // update capture session with failure
             captureSession.setStatus(RecordingStatus.FAILURE);
             captureSessionRepository.saveAndFlush(captureSession);
             throw e;
@@ -235,8 +221,8 @@ public class AzureMediaService implements IMediaService {
         );
     }
 
-    private LiveOutputInner createLiveOutput(String liveEventName, String liveOutputName) {
-        return tryAmsRequest(
+    private void createLiveOutput(String liveEventName, String liveOutputName) {
+        tryAmsRequest(
             () -> amsClient.getLiveOutputs().create(
                 resourceGroup,
                 accountName,

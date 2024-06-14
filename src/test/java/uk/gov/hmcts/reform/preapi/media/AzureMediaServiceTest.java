@@ -335,7 +335,7 @@ public class AzureMediaServiceTest {
             .isEqualTo("Conflict: Capture Session: " + captureSession.getId() + " has already been finished");
     }
 
-    @DisplayName("Should return the capture session if already started and not finished")
+    @DisplayName("Should return the capture session if already started and not finished live event")
     @Test
     void startLiveEventAlreadyRunning() {
         captureSession.setIngestAddress("valid ingest address");
@@ -657,11 +657,10 @@ public class AzureMediaServiceTest {
         verify(captureSessionRepository, times(2)).saveAndFlush(any());
     }
 
-    private UserAuthentication mockAdminUser() {
+    private void mockAdminUser() {
         var mockAuth = mock(UserAuthentication.class);
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
-        return mockAuth;
     }
 
     private LiveEventsClient mockLiveEventClient() {
