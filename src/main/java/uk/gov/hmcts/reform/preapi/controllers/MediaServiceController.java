@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,8 +13,10 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,11 +26,13 @@ import java.util.UUID;
 public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
+    private final CaptureSessionService captureSessionService;
 
     @Autowired
-    public MediaServiceController(MediaServiceBroker mediaServiceBroker) {
+    public MediaServiceController(MediaServiceBroker mediaServiceBroker, CaptureSessionService captureSessionService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
+        this.captureSessionService = captureSessionService;
     }
 
     @GetMapping("/health")
@@ -86,7 +89,26 @@ public class MediaServiceController extends PreApiController {
     @Operation(operationId = "startLiveEvent", summary = "Start a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
+        var dto = captureSessionService.findById(captureSessionId);
+
+        if (dto.getFinishedAt() != null) {
+            throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
+        }
+
+        if (dto.getStartedAt() != null) {
+            return ResponseEntity.ok(dto);
+        }
+
         var mediaService = mediaServiceBroker.getEnabledMediaService();
-        return ResponseEntity.ok(mediaService.startLiveEvent(captureSessionId));
+        String ingestAddress;
+
+        try {
+            ingestAddress = mediaService.startLiveEvent(dto);
+        } catch (Exception e) {
+            captureSessionService.startCaptureSession(captureSessionId, null);
+            throw e;
+        }
+
+        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
     }
 }

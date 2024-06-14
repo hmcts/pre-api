@@ -10,13 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.core.context.SecurityContextHolder;
-import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Court;
-import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -25,15 +19,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
-import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
-import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -50,47 +37,18 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = MediaKind.class)
 public class MediaKindTest {
     @MockBean
-    private CaptureSessionRepository captureSessionRepository;
-
-    @MockBean
-    private UserRepository userRepository;
-
-    @MockBean
     private MediaKindClient mockClient;
 
     @Autowired
     private MediaKind mediaKind;
 
-    private User user;
-
-    private CaptureSession captureSession;
+    private CaptureSessionDTO captureSession;
 
     @BeforeEach
     void setUp() {
-        user = HelperFactory.createUser(
-            "Test",
-            "User",
-            "example@example.com",
-            null,
-            null,
-            null
-        );
-        var court = new Court();
-        court.setId(UUID.randomUUID());
-        court.setName("EXAMPLE COURT");
-
-        var aCase = new Case();
-        aCase.setId(UUID.randomUUID());
-        aCase.setReference("TESTCASE123");
-        aCase.setCourt(court);
-
-        var booking = new Booking();
-        booking.setId(UUID.randomUUID());
-        booking.setCaseId(aCase);
-
-        captureSession = new CaptureSession();
+        captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
+        captureSession.setBookingId(UUID.randomUUID());
     }
 
     @DisplayName("Should get a list of assets")
@@ -295,66 +253,12 @@ public class MediaKindTest {
             .build();
     }
 
-    @DisplayName("Should return 404 error when starting live event for a capture session that does not exist")
-    @Test
-    void startLiveEventCaptureSessionNotFound() {
-        var id = UUID.randomUUID();
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(id))
-            .thenReturn(Optional.empty());
-
-        var message = assertThrows(
-            NotFoundException.class,
-            () -> mediaKind.startLiveEvent(id)
-        ).getMessage();
-        assertThat(message).isEqualTo("Not found: Capture Session: " + id);
-    }
-
-    @DisplayName("Should return 409 error when starting live event that has already finished")
-    @Test
-    void startLiveEventFinished() {
-        captureSession.setStartedAt(Timestamp.from(Instant.now()));
-        captureSession.setFinishedAt(Timestamp.from(Instant.now()));
-        captureSession.setStartedByUser(user);
-        captureSession.setFinishedByUser(user);
-
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-
-        var message = assertThrows(
-            ConflictException.class,
-            () -> mediaKind.startLiveEvent(captureSession.getId())
-        ).getMessage();
-        assertThat(message)
-            .isEqualTo("Conflict: Capture Session: " + captureSession.getId() + " has already been finished");
-    }
-
-    @DisplayName("Should return the capture session if already started and not finished live event")
-    @Test
-    void startLiveEventAlreadyRunning() {
-        captureSession.setIngestAddress("valid ingest address");
-        captureSession.setStartedAt(Timestamp.from(Instant.now()));
-        captureSession.setStartedByUser(user);
-
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-
-        var model = mediaKind.startLiveEvent(captureSession.getId());
-        assertThat(model).isNotNull();
-        assertThat(model.getId()).isEqualTo(captureSession.getId());
-        assertThat(model.getStartedAt()).isNotNull();
-    }
-
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
     void startLiveEventSuccess() {
-        mockAdminUser();
-        var liveEventName = captureSession.getId().toString().replaceAll("-", "");
+        var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
             .thenReturn(
@@ -382,33 +286,22 @@ public class MediaKindTest {
                     .build()
             );
 
-        var model = mediaKind.startLiveEvent(captureSession.getId());
+        var ingest = mediaKind.startLiveEvent(captureSession);
 
-        assertThat(model).isNotNull();
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.STANDBY);
-        assertThat(model.getIngestAddress()).isEqualTo("rtmps://some-rtmp-address");
-        assertThat(model.getStartedAt()).isNotNull();
-        assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
-
+        assertThat(ingest).isEqualTo("rtmps://some-rtmp-address");
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(4)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
-        verify(captureSessionRepository, times(2)).saveAndFlush(any());
     }
 
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
     void startLiveEventLiveEventConflictSuccess() {
-        mockAdminUser();
-        var liveEventName = captureSession.getId().toString().replaceAll("-", "");
+        var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
         when(mockClient.putLiveEvent(any(), any()))
             .thenThrow(mock(FeignException.Conflict.class));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
@@ -438,180 +331,119 @@ public class MediaKindTest {
                     .build()
             );
 
-        var model = mediaKind.startLiveEvent(captureSession.getId());
+        var ingest = mediaKind.startLiveEvent(captureSession);
 
-        assertThat(model).isNotNull();
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.STANDBY);
-        assertThat(model.getIngestAddress()).isEqualTo("rtmps://some-rtmp-address");
-        assertThat(model.getStartedAt()).isNotNull();
-        assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
+        assertThat(ingest).isEqualTo("rtmps://some-rtmp-address");
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(4)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
-        verify(captureSessionRepository, times(2)).saveAndFlush(any());
     }
 
     @DisplayName("Should throw not found error when live event cannot be found after creation")
     @Test
     void startLiveEventNotFoundAfterCreate() {
-        mockAdminUser();
-        var liveEventName = captureSession.getId().toString().replaceAll("-", "");
+        var liveEventName = captureSession.getId().toString().replace("-", "");
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
         when(mockClient.getLiveEvent(liveEventName)).thenThrow(mock(FeignException.NotFound.class));
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> mediaKind.startLiveEvent(captureSession.getId())
+            () -> mediaKind.startLiveEvent(captureSession)
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
 
-        assertThat(captureSession.getStartedAt()).isNotNull();
-        assertThat(captureSession.getStartedByUser().getId()).isEqualTo(user.getId());
-        assertThat(captureSession.getStatus()).isEqualTo(RecordingStatus.FAILURE);
-
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
-        verify(captureSessionRepository, times(2)).saveAndFlush(any());
     }
 
     @DisplayName("Should throw 409 error when asset already exists")
     @Test
     void startLiveEventAssetConflict() {
-        mockAdminUser();
-        var liveEventName = captureSession.getId().toString().replaceAll("-", "");
+        var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putAsset(eq(liveEventName), any(MkAsset.class)))
             .thenThrow(mock(FeignException.Conflict.class));
 
         var message = assertThrows(
             ConflictException.class,
-            () -> mediaKind.startLiveEvent(captureSession.getId())
+            () -> mediaKind.startLiveEvent(captureSession)
         ).getMessage();
         assertThat(message).isEqualTo("Conflict: Asset: " + liveEventName);
-
-        assertThat(captureSession.getStartedAt()).isNotNull();
-        assertThat(captureSession.getStartedByUser().getId()).isEqualTo(user.getId());
-        assertThat(captureSession.getStatus()).isEqualTo(RecordingStatus.FAILURE);
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
-        verify(captureSessionRepository, times(2)).saveAndFlush(any());
     }
 
     @DisplayName("Should throw 409 error when live output already exists")
     @Test
     void startLiveEventLiveOutputConflict() {
-        mockAdminUser();
-        var liveEventName = captureSession.getId().toString().replaceAll("-", "");
+        var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putLiveOutput(eq(liveEventName), eq(liveEventName), any()))
             .thenThrow(mock(FeignException.Conflict.class));
 
         var message = assertThrows(
             ConflictException.class,
-            () -> mediaKind.startLiveEvent(captureSession.getId())
+            () -> mediaKind.startLiveEvent(captureSession)
         ).getMessage();
         assertThat(message).isEqualTo("Conflict: Live Output: " + liveEventName);
-
-        assertThat(captureSession.getStartedAt()).isNotNull();
-        assertThat(captureSession.getStartedByUser().getId()).isEqualTo(user.getId());
-        assertThat(captureSession.getStatus()).isEqualTo(RecordingStatus.FAILURE);
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
-        verify(captureSessionRepository, times(2)).saveAndFlush(any());
     }
 
     @DisplayName("Should throw 404 error when creating a live output but cannot find live event")
     @Test
     void startLiveEventLiveOutputLiveEventNotFound() {
-        mockAdminUser();
-        var liveEventName = captureSession.getId().toString().replaceAll("-", "");
+        var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putLiveOutput(eq(liveEventName), eq(liveEventName), any(MkLiveOutput.class)))
             .thenThrow(FeignException.NotFound.class);
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> mediaKind.startLiveEvent(captureSession.getId())
+            () -> mediaKind.startLiveEvent(captureSession)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
-
-        assertThat(captureSession.getStartedAt()).isNotNull();
-        assertThat(captureSession.getStartedByUser().getId()).isEqualTo(user.getId());
-        assertThat(captureSession.getStatus()).isEqualTo(RecordingStatus.FAILURE);
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
-        verify(captureSessionRepository, times(2)).saveAndFlush(any());
     }
 
     @DisplayName("Should throw 404 error when attempting to start live event that cannot be found (after setup)")
     @Test
     void startLiveEventStartNotFound() {
-        mockAdminUser();
-        var liveEventName = captureSession.getId().toString().replaceAll("-", "");
+        var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId()))
-            .thenReturn(Optional.of(user));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         doThrow(mock(FeignException.NotFound.class)).when(mockClient).startLiveEvent(liveEventName);
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> mediaKind.startLiveEvent(captureSession.getId())
+            () -> mediaKind.startLiveEvent(captureSession)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
-
-        assertThat(captureSession.getStartedAt()).isNotNull();
-        assertThat(captureSession.getStartedByUser().getId()).isEqualTo(user.getId());
-        assertThat(captureSession.getStatus()).isEqualTo(RecordingStatus.FAILURE);
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
-        verify(captureSessionRepository, times(2)).saveAndFlush(any());
-    }
-
-    private void mockAdminUser() {
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.getUserId()).thenReturn(user.getId());
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
     }
 }

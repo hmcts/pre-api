@@ -14,13 +14,10 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessCont
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -30,12 +27,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
-import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -51,8 +43,6 @@ public class MediaKind implements IMediaService {
     private final String environmentTag;
 
     private final MediaKindClient mediaKindClient;
-    private final CaptureSessionRepository captureSessionRepository;
-    private final UserRepository userRepository;
 
     private static final String LOCATION = "uksouth";
 
@@ -60,15 +50,11 @@ public class MediaKind implements IMediaService {
     public MediaKind(
         @Value("${azure.ingestStorage}") String ingestStorageAccount,
         @Value("${azure.environmentTag}") String env,
-        MediaKindClient mediaKindClient,
-        CaptureSessionRepository captureSessionRepository,
-        UserRepository userRepository
+        MediaKindClient mediaKindClient
     ) {
         this.ingestStorageAccount = ingestStorageAccount;
         this.environmentTag = env;
         this.mediaKindClient = mediaKindClient;
-        this.captureSessionRepository = captureSessionRepository;
-        this.userRepository = userRepository;
     }
 
     @Override
@@ -125,28 +111,9 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
-        var captureSession = captureSessionRepository
-            .findByIdAndDeletedAtIsNull(captureSessionId)
-            .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
-
-        if (captureSession.getFinishedAt() != null) {
-            throw new ConflictException("Capture Session: " + captureSession.getId() + " has already been finished");
-        }
-
-        if (captureSession.getStartedAt() != null) {
-            return new CaptureSessionDTO(captureSession);
-        }
-
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
-        var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
-
-        captureSession.setStartedByUser(user);
-        captureSession.setStartedAt(Timestamp.from(Instant.now()));
-        captureSessionRepository.saveAndFlush(captureSession);
-
+    public String startLiveEvent(CaptureSessionDTO captureSession) {
         try {
-            var liveEventName = uuidToNameString(captureSessionId);
+            var liveEventName = uuidToNameString(captureSession.getId());
             createLiveEvent(captureSession);
             getLiveEventMk(liveEventName);
             createAsset(liveEventName, captureSession);
@@ -155,28 +122,16 @@ public class MediaKind implements IMediaService {
             var liveEvent = checkStreamReady(liveEventName);
 
             // todo get rtmps from mk (uncomment filter)
-            var inputRtmp = Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
+            return Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
                 .flatMap(Collection::stream)
                 //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
                 .findFirst()
                 .map(LiveEventEndpoint::url)
                 .orElse(null);
-
-            captureSession.setStatus(RecordingStatus.STANDBY);
-            captureSession.setIngestAddress(inputRtmp);
-            captureSessionRepository.saveAndFlush(captureSession);
-
-            return new CaptureSessionDTO(captureSession);
         } catch (InterruptedException e) {
             throw new UnknownServerException("Something went wrong when attempting to communicate with Azure");
-        } catch (Exception e) {
-            captureSession.setStatus(RecordingStatus.FAILURE);
-            captureSessionRepository.saveAndFlush(captureSession);
-            throw e;
         }
     }
-
-
 
     private void startLiveEvent(String liveEventName) {
         try {
@@ -221,15 +176,15 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private void createAsset(String assetName, CaptureSession captureSession) {
+    private void createAsset(String assetName, CaptureSessionDTO captureSession) {
         try {
             mediaKindClient.putAsset(
                 assetName,
                 MkAsset.builder()
                     .properties(MkAssetProperties.builder()
-                                     .container(captureSession.getBooking().getId().toString())
+                                     .container(captureSession.getBookingId().toString())
                                     .storageAccountName(ingestStorageAccount)
-                                    .description(captureSession.getBooking().getId().toString())
+                                    .description(captureSession.getBookingId().toString())
                                     .build())
                     .build()
             );
@@ -240,7 +195,7 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private void createLiveEvent(CaptureSession captureSession) {
+    private void createLiveEvent(CaptureSessionDTO captureSession) {
         var accessToken = UUID.randomUUID();
         try {
             mediaKindClient.putLiveEvent(
@@ -257,7 +212,7 @@ public class MediaKind implements IMediaService {
                                     .encoding(new LiveEventEncoding()
                                                   .withEncodingType(LiveEventEncodingType.PASSTHROUGH_BASIC)
                                     )
-                                    .description(captureSession.getBooking().getId().toString())
+                                    .description(captureSession.getBookingId().toString())
                                     .useStaticHostname(true)
                                     .input(new LiveEventInput()
                                                .withStreamingProtocol(LiveEventInputProtocol.RTMP)
@@ -291,7 +246,7 @@ public class MediaKind implements IMediaService {
     }
 
     private String uuidToNameString(UUID id) {
-        return id.toString().replaceAll("-", "");
+        return id.toString().replace("-", "");
     }
 
     protected <E> Stream<E> getAllMkList(GetListFunction<E> func) {

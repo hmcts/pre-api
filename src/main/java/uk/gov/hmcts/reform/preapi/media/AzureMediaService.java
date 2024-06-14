@@ -19,23 +19,15 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
-import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
-import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -50,9 +42,8 @@ public class AzureMediaService implements IMediaService {
     private final String accountName;
     private final String ingestStorageAccount;
     private final String environmentTag;
+
     private final AzureMediaServices amsClient;
-    private final CaptureSessionRepository captureSessionRepository;
-    private final UserRepository userRepository;
 
     private static final String LOCATION = "uksouth";
 
@@ -62,16 +53,12 @@ public class AzureMediaService implements IMediaService {
         @Value("${azure.account-name}") String accountName,
         @Value("${azure.ingestStorage}") String ingestStorageAccount,
         @Value("${azure.environmentTag}") String env,
-        AzureMediaServices amsClient,
-        CaptureSessionRepository captureSessionRepository,
-        UserRepository userRepository) {
+        AzureMediaServices amsClient) {
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
         this.ingestStorageAccount = ingestStorageAccount;
         this.environmentTag = env;
         this.amsClient = amsClient;
-        this.captureSessionRepository = captureSessionRepository;
-        this.userRepository = userRepository;
     }
 
     @Override
@@ -136,28 +123,9 @@ public class AzureMediaService implements IMediaService {
     @Override
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSessionId)")
-    public CaptureSessionDTO startLiveEvent(UUID captureSessionId) {
-        var captureSession = captureSessionRepository
-            .findByIdAndDeletedAtIsNull(captureSessionId)
-            .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
-
-        if (captureSession.getFinishedAt() != null) {
-            throw new ConflictException("Capture Session: " + captureSession.getId() + " has already been finished");
-        }
-
-        if (captureSession.getStartedAt() != null) {
-            return new CaptureSessionDTO(captureSession);
-        }
-
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
-        var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
-
-        captureSession.setStartedByUser(user);
-        captureSession.setStartedAt(Timestamp.from(Instant.now()));
-        captureSessionRepository.saveAndFlush(captureSession);
-
+    public String startLiveEvent(CaptureSessionDTO captureSession) {
         try {
-            var liveEventName = uuidToNameString(captureSessionId);
+            var liveEventName = uuidToNameString(captureSession.getId());
             createLiveEvent(captureSession);
             getLiveEventAms(liveEventName);
             createAsset(liveEventName, captureSession);
@@ -166,24 +134,14 @@ public class AzureMediaService implements IMediaService {
             var liveEvent = checkStreamReady(liveEventName);
 
             // get ingest url (rtmps)
-            var inputRtmp = Stream.ofNullable(liveEvent.input().endpoints())
+            return Stream.ofNullable(liveEvent.input().endpoints())
                 .flatMap(Collection::stream)
                 .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
                 .findFirst()
                 .map(LiveEventEndpoint::url)
                 .orElse(null);
-
-            captureSession.setStatus(RecordingStatus.STANDBY);
-            captureSession.setIngestAddress(inputRtmp);
-            captureSessionRepository.saveAndFlush(captureSession);
-
-            return new CaptureSessionDTO(captureSession);
         } catch (InterruptedException e) {
             throw new UnknownServerException("Something went wrong when attempting to communicate with Azure");
-        } catch (Exception e) {
-            captureSession.setStatus(RecordingStatus.FAILURE);
-            captureSessionRepository.saveAndFlush(captureSession);
-            throw e;
         }
     }
 
@@ -246,8 +204,8 @@ public class AzureMediaService implements IMediaService {
         );
     }
 
-    private AssetInner createAsset(String assetName, CaptureSession captureSession) {
-        return tryAmsRequest(
+    private void createAsset(String assetName, CaptureSessionDTO captureSession) {
+        tryAmsRequest(
             () -> amsClient
                 .getAssets()
                 .createOrUpdate(
@@ -255,9 +213,9 @@ public class AzureMediaService implements IMediaService {
                     accountName,
                     assetName,
                     new AssetInner()
-                        .withContainer(captureSession.getBooking().getId().toString())
+                        .withContainer(captureSession.getBookingId().toString())
                         .withStorageAccountName(ingestStorageAccount)
-                        .withDescription(captureSession.getBooking().getId().toString())
+                        .withDescription(captureSession.getBookingId().toString())
                 ),
             Map.of(
                 409, e -> {
@@ -267,7 +225,7 @@ public class AzureMediaService implements IMediaService {
         );
     }
 
-    private void createLiveEvent(CaptureSession captureSession) {
+    private void createLiveEvent(CaptureSessionDTO captureSession) {
         var accessToken = UUID.randomUUID();
         tryAmsRequest(
             () -> amsClient.getLiveEvents().create(
@@ -282,7 +240,7 @@ public class AzureMediaService implements IMediaService {
                         "businessArea", "cross-cutting",
                         "builtFrom", "pre-api"
                     ))
-                    .withDescription(captureSession.getBooking().getId().toString())
+                    .withDescription(captureSession.getBookingId().toString())
                     .withUseStaticHostname(true)
                     .withInput(
                         new LiveEventInput()
@@ -309,7 +267,7 @@ public class AzureMediaService implements IMediaService {
                                                 )))
                             ))),
             Map.of(
-                409, (e) -> {
+                409, e -> {
                     // already exists so do nothing
                 }
             )
@@ -317,7 +275,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     private String uuidToNameString(UUID id) {
-        return id.toString().replaceAll("-", "");
+        return id.toString().replace("-", "");
     }
 
     private <E> E tryAmsRequest(RunAmsRequestFunction<E> requestFunction,

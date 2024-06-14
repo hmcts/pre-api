@@ -20,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +53,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private AzureMediaService mediaService;
+
+    @MockBean
+    private CaptureSessionService captureSessionService;
 
     @MockBean
     private MediaKind mediaKind;
@@ -227,13 +232,19 @@ public class MediaServiceControllerTest {
     @Test
     void startLiveEventSuccess() throws Exception {
         var captureSessionId = UUID.randomUUID();
-        var dto = new CaptureSessionDTO();
-        dto.setId(captureSessionId);
-        dto.setStatus(RecordingStatus.STANDBY);
-        dto.setStartedAt(Timestamp.from(Instant.now()));
+        var dto1 = new CaptureSessionDTO();
+        dto1.setId(captureSessionId);
+        var dto2 = new CaptureSessionDTO();
+        dto2.setId(captureSessionId);
+        dto2.setStartedAt(Timestamp.from(Instant.now()));
+        dto2.setStartedByUserId(UUID.randomUUID());
+        dto2.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto1);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.startLiveEvent(any())).thenReturn(dto);
+        when(mediaService.startLiveEvent(any())).thenReturn("example ingest");
+        when(captureSessionService.startCaptureSession(captureSessionId, "example ingest")).thenReturn(dto2);
 
         mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
             .andExpect(status().isOk())
@@ -242,6 +253,80 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.status").value("STANDBY"))
             .andExpect(jsonPath("$.started_at").isNotEmpty());
 
-        verify(mediaService, times(1)).startLiveEvent(captureSessionId);
+        verify(mediaService, times(1)).startLiveEvent(dto1);
+    }
+
+    @DisplayName("Should return not found error when capture session does not exist")
+    @Test
+    void startLiveEventCaptureSessionNotFound() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+
+        doThrow(new NotFoundException("Capture Session: " + captureSessionId))
+            .when(captureSessionService).findById(captureSessionId);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Capture Session: " + captureSessionId));
+    }
+
+    @DisplayName("Should return conflict error when capture session has already finished")
+    @Test
+    void startLiveEventConflictAlreadyFinished() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setFinishedAt(Timestamp.from(Instant.now()));
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Conflict: Capture Session: " + captureSessionId + " has already been finished"));
+    }
+
+    @DisplayName("Should return capture session but do nothing when capture session already started")
+    @Test
+    void startLiveEventAlreadyStarted() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+        dto.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+            .andExpect(jsonPath("$.status").value("STANDBY"))
+            .andExpect(jsonPath("$.started_at").isNotEmpty());
+
+        verify(mediaService, never()).startLiveEvent(any());
+    }
+
+    @DisplayName("Should update capture session and throw error when media service encounters an error")
+    @Test
+    void startLiveEventThrowError() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+        doThrow(new NotFoundException("live event error"))
+            .when(mediaService).startLiveEvent(dto);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: live event error"));
+
+        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, null);
     }
 }
