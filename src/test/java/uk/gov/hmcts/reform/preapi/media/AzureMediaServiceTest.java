@@ -22,7 +22,7 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
@@ -368,7 +368,7 @@ public class AzureMediaServiceTest {
         when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
             .thenReturn(mockLiveEvent);
 
-        assertThrows(AMSLiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
+        assertThrows(LiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
     }
 
     @DisplayName("Should throw an exception when unable to check live event exists")

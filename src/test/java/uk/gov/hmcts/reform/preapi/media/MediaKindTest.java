@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
@@ -170,14 +171,16 @@ public class MediaKindTest {
         assertThat(result.getInputRtmp()).isEqualTo(liveEvent.getProperties().getInput().endpoints().getFirst().url());
     }
 
-    @DisplayName("Should return null when get live event returns 404")
+    @DisplayName("Should throw a NotFoundException null when get live event returns 404")
     @Test
     void getLiveEventNotFound() {
         var mockError = mock(FeignException.NotFound.class);
 
         when(mockClient.getLiveEvent(anyString())).thenThrow(mockError);
-
-        assertThat(mediaKind.getLiveEvent("not-found")).isNull();
+        assertThrows(
+            NotFoundException.class,
+            () -> mediaKind.getLiveEvent("not-found")
+        );
         verify(mockClient, times(1)).getLiveEvent("not-found");
     }
 

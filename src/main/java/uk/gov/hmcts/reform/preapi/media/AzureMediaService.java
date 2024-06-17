@@ -13,13 +13,16 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
+
+import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
+import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortenedLiveEventId;
 
 @Service
 public class AzureMediaService implements IMediaService {
@@ -96,14 +99,6 @@ public class AzureMediaService implements IMediaService {
         return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
     }
 
-    private String getSanitisedLiveEventId(UUID liveEventId) {
-        return liveEventId.toString().replace("-", "");
-    }
-
-    private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedLiveEventId(liveEventId).substring(0, 23);
-    }
-
     private String getStreamingEndpointHostname(@NotNull UUID liveEventId) {
         Logger.getAnonymousLogger().info("creating streaming endpoint");
         try {
@@ -171,7 +166,7 @@ public class AzureMediaService implements IMediaService {
         try {
             var liveEvent = amsClient.getLiveEvents().get(resourceGroup, accountName, sanitisedLiveEventId);
             if (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING)) {
-                throw new AMSLiveEventNotRunningException(sanitisedLiveEventId);
+                throw new LiveEventNotRunningException(sanitisedLiveEventId);
             }
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {

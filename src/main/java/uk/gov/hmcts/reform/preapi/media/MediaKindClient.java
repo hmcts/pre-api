@@ -3,11 +3,17 @@ package uk.gov.hmcts.reform.preapi.media;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
 
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
@@ -22,4 +28,20 @@ public interface MediaKindClient {
 
     @GetMapping("/liveEvents/{liveEventName}")
     MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
+
+    @PutMapping("/streamingEndpoints/{streamingEndpointName}")
+    MkStreamingEndpoint createStreamingEndpoint(@PathVariable("streamingEndpointName") String streamingEndpointName,
+                                                @RequestBody MkStreamingEndpoint streamingEndpoint);
+
+    @PostMapping("/streamingEndpoints/{streamingEndpointName}/start")
+    void startStreamingEndpoint(@PathVariable("streamingEndpointName") String streamingEndpointName);
+
+    @PutMapping("/streamingLocators/{streamingLocatorName}")
+    MkStreamingLocator createStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName,
+                                              @RequestBody MkStreamingLocator streamingLocator);
+
+    @PostMapping("/streamingLocators/{streamingLocatorName}/listPaths")
+    MkStreamingLocatorUrlPaths listStreamingLocatorPaths(
+        @PathVariable("streamingLocatorName") String streamingLocatorName
+    );
 }
