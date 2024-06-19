@@ -1,10 +1,10 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
+import lombok.Builder;
 import lombok.Data;
-import lombok.experimental.Accessors;
 
 @Data
-@Accessors(fluent = true)
+@Builder
 public class MkStreamingLocator {
     private MkStreamingLocatorProperties properties;
 }

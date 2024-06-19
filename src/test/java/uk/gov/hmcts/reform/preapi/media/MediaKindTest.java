@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEventProperties;
 
 import java.util.List;
 import java.util.UUID;
@@ -223,16 +224,16 @@ public class MediaKindTest {
             .id(UUID.randomUUID().toString())
             .name(name)
             .location("UK South")
-            .properties(MkLiveEvent.MkLiveEventProperties.builder()
-                            .description("description: " + name)
-                            .useStaticHostname(true)
-                            .resourceState("Stopped")
-                            .input(new LiveEventInput()
+            .properties(MkLiveEventProperties.builder()
+                                             .description("description: " + name)
+                                             .useStaticHostname(true)
+                                             .resourceState("Stopped")
+                                             .input(new LiveEventInput()
                                        .withEndpoints(List.of(new LiveEventEndpoint()
                                                                   .withProtocol("RTMP")
                                                                   .withUrl("rtmps://example url"))))
-                            .preview(new LiveEventPreview())
-                            .build())
+                                             .preview(new LiveEventPreview())
+                                             .build())
             .build();
     }
 }

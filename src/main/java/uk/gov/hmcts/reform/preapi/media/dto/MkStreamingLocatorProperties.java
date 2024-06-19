@@ -2,15 +2,12 @@ package uk.gov.hmcts.reform.preapi.media.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.experimental.Accessors;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@NoArgsConstructor
-@Accessors(fluent = true)
+@Builder
 public class MkStreamingLocatorProperties {
     private String alternativeMediaId;
     private String assetName;

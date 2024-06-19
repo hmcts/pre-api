@@ -2,11 +2,10 @@ package uk.gov.hmcts.reform.preapi.media.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.experimental.Accessors;
 
 import java.util.List;
 
-@Accessors(fluent = true)
+@Builder
 @Data
 public class MkStreamingEndpointProperties {
     private AccessControl accessControl;

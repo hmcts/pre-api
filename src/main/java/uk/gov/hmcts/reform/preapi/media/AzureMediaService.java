@@ -6,7 +6,6 @@ import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseIn
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingLocatorInner;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -79,7 +78,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public String playLiveEvent(@NotNull UUID liveEventId) {
+    public String playLiveEvent(UUID liveEventId) {
         assertLiveEventExists(liveEventId);
         String hostname;
         try {
@@ -99,7 +98,7 @@ public class AzureMediaService implements IMediaService {
         return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
     }
 
-    private String getStreamingEndpointHostname(@NotNull UUID liveEventId) {
+    private String getStreamingEndpointHostname(UUID liveEventId) {
         Logger.getAnonymousLogger().info("creating streaming endpoint");
         try {
             return createStreamingEndpoint(liveEventId).hostname();
@@ -109,7 +108,7 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private StreamingEndpointInner createStreamingEndpoint(@NotNull UUID liveEventId) {
+    private StreamingEndpointInner createStreamingEndpoint(UUID liveEventId) {
         var streamingEndpointName = getShortenedLiveEventId(liveEventId);
         try {
             return amsClient.getStreamingEndpoints()
@@ -161,7 +160,7 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void assertLiveEventExists(@NotNull UUID liveEventId) {
+    private void assertLiveEventExists(UUID liveEventId) {
         var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
         try {
             var liveEvent = amsClient.getLiveEvents().get(resourceGroup, accountName, sanitisedLiveEventId);
@@ -177,7 +176,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     private String parseLiveOutputUrlFromStreamingLocatorPaths(String streamingEndpointHostname,
-                                                               @NotNull ListPathsResponseInner paths) {
+                                                               ListPathsResponseInner paths) {
         Logger.getAnonymousLogger().info("parsing live output url from streaming locator paths");
         Logger.getAnonymousLogger().info(streamingEndpointHostname);
         paths.streamingPaths().forEach(p -> Logger.getAnonymousLogger().info(p.paths().toString()));

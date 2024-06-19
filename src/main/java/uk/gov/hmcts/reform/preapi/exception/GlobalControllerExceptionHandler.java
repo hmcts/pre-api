@@ -126,9 +126,10 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(FeignException.class)
     ResponseEntity<String> onIllegalArgumentException(final FeignException e)
         throws JsonProcessingException {
+
         return getResponseEntity(
-            "Unable to connect to Media Service",
-            HttpStatus.INTERNAL_SERVER_ERROR
+            e.getMessage(),
+            e.status() >= 400 ? HttpStatus.resolve(e.status()) : HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
 

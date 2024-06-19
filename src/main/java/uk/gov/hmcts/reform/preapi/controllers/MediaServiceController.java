@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/media-service")
@@ -92,11 +93,14 @@ public class MediaServiceController extends PreApiController {
     public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
         // load captureSession
         var captureSession = captureSessionService.findById(captureSessionId);
+        Logger.getAnonymousLogger().info("createLiveEventStreamingLocator: " + captureSession);
 
         // return existing captureSession if currently live
         if (captureSession.getLiveOutputUrl() != null && captureSession.getStatus() == RecordingStatus.RECORDING) {
             return ResponseEntity.ok(captureSession);
         }
+        Logger.getAnonymousLogger().info("captureSession getStatus: " + captureSession.getStatus());
+        Logger.getAnonymousLogger().info("captureSession getLiveOutputUrl: " + captureSession.getLiveOutputUrl());
 
         // check if captureSession is in correct state
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {

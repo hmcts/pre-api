@@ -2,7 +2,8 @@ package uk.gov.hmcts.reform.preapi.media;
 
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import feign.FeignException;
-import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,6 +38,8 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortened
 public class MediaKind implements IMediaService {
     private final MediaKindClient mediaKindClient;
     private final String platformEnv;
+
+    private static final Logger logger = LoggerFactory.getLogger(MediaKind.class);
 
     @Autowired
     public MediaKind(MediaKindClient mediaKindClient,
@@ -80,19 +82,21 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String playLiveEvent(UUID liveEventId) {
+
         assertLiveEventExists(liveEventId);
         assertStreamingEndpointExists(liveEventId);
         try {
             mediaKindClient.startStreamingEndpoint(getShortenedLiveEventId(liveEventId));
         } catch (Exception ex) {
-            Logger.getAnonymousLogger().info("Error starting streaming endpoint: " + ex.getMessage());
+            logger.error("Error starting streaming endpoint: " + ex.getMessage());
             throw ex;
         }
 
-        assertStreamingLocatorExists(liveEventId);
-        var paths = mediaKindClient.listStreamingLocatorPaths(getSanitisedLiveEventId(liveEventId));
+//        assertStreamingLocatorExists(liveEventId);
+//        var paths = mediaKindClient.listStreamingLocatorPaths(getSanitisedLiveEventId(liveEventId));
 
-        return parseLiveOutputUrlFromStreamingLocatorPaths(paths);
+        return "";
+//        return parseLiveOutputUrlFromStreamingLocatorPaths(paths);
     }
 
     /*
@@ -140,53 +144,64 @@ public class MediaKind implements IMediaService {
         MkGetListResponse<E> get(int skip);
     }
 
-    private void assertLiveEventExists(@NotNull UUID liveEventId) {
+    private void assertLiveEventExists(UUID liveEventId) {
         var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
-        var liveEvent = mediaKindClient.getLiveEvent(sanitisedLiveEventId);
-        if (!liveEvent.getProperties().getResourceState().equals(LiveEventResourceState.RUNNING.toString())) {
-            throw new LiveEventNotRunningException(sanitisedLiveEventId);
+        try {
+            var liveEvent = mediaKindClient.getLiveEvent(sanitisedLiveEventId);
+            if (!liveEvent.getProperties().getResourceState().equals(LiveEventResourceState.RUNNING.toString())) {
+                throw new LiveEventNotRunningException(sanitisedLiveEventId);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw e;
         }
     }
 
-    private void assertStreamingEndpointExists(@NotNull UUID liveEventId) {
+    private void assertStreamingEndpointExists(UUID liveEventId) {
         var streamingEndpointName = getShortenedLiveEventId(liveEventId);
-        var streamingEndpointBody = new MkStreamingEndpoint()
-            .location("UKSouth")
+        var streamingEndpointBody = MkStreamingEndpoint.builder()
+            .location("uksouth")
             .tags(Map.of("environment", this.platformEnv,
-                   "application", "pre-recorded evidence",
-                   "businessArea", "cross-cutting",
-                   "builtFrom", "azure portal"))
-            .properties(new MkStreamingEndpointProperties()
+                   "application", "pre-recorded evidence"))
+            .properties(MkStreamingEndpointProperties.builder()
                             .description("Streaming Endpoint for " + streamingEndpointName)
                             .scaleUnits(0)
-                            .sku(new MkStreamingEndpointSku().name(Tier.Standard)));
-        mediaKindClient.createStreamingEndpoint(streamingEndpointName, streamingEndpointBody);
+                            .sku(MkStreamingEndpointSku.builder().name(Tier.Standard).build())
+                            .build())
+            .build();
+        try {
+            mediaKindClient.createStreamingEndpoint(streamingEndpointName, streamingEndpointBody);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw e;
+        }
     }
 
     private void assertStreamingLocatorExists(UUID liveEventId) {
 
         try {
-            Logger.getAnonymousLogger().info("Creating Streaming locator");
+            logger.info("Creating Streaming locator");
             var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
             mediaKindClient.createStreamingLocator(sanitisedLiveEventId,
-                                                   new MkStreamingLocator()
-                                                       .properties(new MkStreamingLocatorProperties()
+                                                   MkStreamingLocator.builder()
+                                                       .properties(MkStreamingLocatorProperties.builder()
                                                            .assetName(sanitisedLiveEventId)
                                                            .streamingLocatorId(sanitisedLiveEventId)
                                                            .streamingPolicyName("Predefined_ClearStreamingOnly")
-                                                       ));
+                                                           .build()
+                                                       ).build());
         } catch (FeignException.Conflict e) {
-            Logger.getAnonymousLogger().info("Streaming locator already exists");
+            logger.info("Streaming locator already exists");
         }
     }
 
-    private String parseLiveOutputUrlFromStreamingLocatorPaths(@NotNull MkStreamingLocatorUrlPaths paths) {
-        Logger.getAnonymousLogger().info("parsing live output url from streaming locator paths");
+    private String parseLiveOutputUrlFromStreamingLocatorPaths(MkStreamingLocatorUrlPaths paths) {
+        logger.info("parsing live output url from streaming locator paths");
         paths.getStreamingPaths().forEach(p -> {
-            Logger.getAnonymousLogger().info(String.valueOf(p.getEncryptionScheme()));
-            Logger.getAnonymousLogger().info(String.valueOf(p.getStreamingProtocol()));
-            p.getPaths().forEach(Logger.getAnonymousLogger()::info);
+            logger.info(String.valueOf(p.getEncryptionScheme()));
+            logger.info(String.valueOf(p.getStreamingProtocol()));
+            p.getPaths().forEach(logger::info);
         });
         return paths.getStreamingPaths().stream()
             .filter(p -> p.getEncryptionScheme() == EncryptionScheme.EnvelopeEncryption
