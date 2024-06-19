@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 import lombok.Data;
 
@@ -7,9 +8,10 @@ import java.util.List;
 
 @Data
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MkStreamingLocatorUrlPaths {
     private List<String> downloadPaths;
-    private List<MkStreamingLocatorDrm> drm;
+    private MkStreamingLocatorDrm drm;
     private List<MkStreamingLocatorStreamingPath> streamingPaths;
 
     @Data

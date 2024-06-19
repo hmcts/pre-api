@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import uk.gov.hmcts.reform.preapi.media.FeignErrorDecoder;
 
 @Configuration
 public class MediaKindClientConfiguration {
@@ -28,6 +29,11 @@ public class MediaKindClientConfiguration {
     @Primary
     Decoder feignDecoder(ObjectMapper objectMapper) {
         return new JacksonDecoder(objectMapper);
+    }
+
+    @Bean
+    public FeignErrorDecoder errorDecoder() {
+        return new FeignErrorDecoder();
     }
 
     @Bean

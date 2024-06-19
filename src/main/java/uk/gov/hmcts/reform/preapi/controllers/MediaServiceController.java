@@ -15,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
@@ -96,19 +95,19 @@ public class MediaServiceController extends PreApiController {
         Logger.getAnonymousLogger().info("createLiveEventStreamingLocator: " + captureSession);
 
         // return existing captureSession if currently live
-        if (captureSession.getLiveOutputUrl() != null && captureSession.getStatus() == RecordingStatus.RECORDING) {
+        if (!captureSession.getLiveOutputUrl().isEmpty() && captureSession.getStatus() == RecordingStatus.RECORDING) {
             return ResponseEntity.ok(captureSession);
         }
         Logger.getAnonymousLogger().info("captureSession getStatus: " + captureSession.getStatus());
         Logger.getAnonymousLogger().info("captureSession getLiveOutputUrl: " + captureSession.getLiveOutputUrl());
 
         // check if captureSession is in correct state
-        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
-            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
-                                                    captureSessionId.toString(),
-                                                    captureSession.getStatus().name(),
-                                                    RecordingStatus.STANDBY.name());
-        }
+//        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
+//            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
+//                                                    captureSessionId.toString(),
+//                                                    captureSession.getStatus().name(),
+//                                                    RecordingStatus.STANDBY.name());
+//        }
 
         // play live event
         var liveOutputUrl = mediaServiceBroker.getEnabledMediaService().playLiveEvent(captureSessionId);

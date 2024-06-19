@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -92,11 +93,10 @@ public class MediaKind implements IMediaService {
             throw ex;
         }
 
-//        assertStreamingLocatorExists(liveEventId);
-//        var paths = mediaKindClient.listStreamingLocatorPaths(getSanitisedLiveEventId(liveEventId));
+        assertStreamingLocatorExists(liveEventId);
+        var paths = mediaKindClient.listStreamingLocatorPaths(getSanitisedLiveEventId(liveEventId));
 
-        return "";
-//        return parseLiveOutputUrlFromStreamingLocatorPaths(paths);
+        return parseLiveOutputUrlFromStreamingLocatorPaths(paths);
     }
 
     /*
@@ -171,6 +171,8 @@ public class MediaKind implements IMediaService {
             .build();
         try {
             mediaKindClient.createStreamingEndpoint(streamingEndpointName, streamingEndpointBody);
+        } catch (ConflictException e) {
+            logger.info("Streaming endpoint already exists");
         } catch (Exception e) {
             logger.error(e.getMessage());
             throw e;
@@ -186,13 +188,16 @@ public class MediaKind implements IMediaService {
             mediaKindClient.createStreamingLocator(sanitisedLiveEventId,
                                                    MkStreamingLocator.builder()
                                                        .properties(MkStreamingLocatorProperties.builder()
-                                                           .assetName(sanitisedLiveEventId)
+                                                           .assetName("asset-230b581dc2f94560b9a87790890315a5-2024618-114816")
                                                            .streamingLocatorId(sanitisedLiveEventId)
                                                            .streamingPolicyName("Predefined_ClearStreamingOnly")
                                                            .build()
                                                        ).build());
-        } catch (FeignException.Conflict e) {
+        } catch (ConflictException e) {
             logger.info("Streaming locator already exists");
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw e;
         }
     }
 
@@ -209,6 +214,6 @@ public class MediaKind implements IMediaService {
                     .flatMap(path -> path.getPaths().stream())
                     .findFirst()
                     .map(p -> "https://" + p)
-                    .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
+                    .orElseThrow(() -> new RuntimeException("No valid paths returned from Streaming Locator"));
     }
 }
