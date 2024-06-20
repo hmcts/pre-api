@@ -169,6 +169,7 @@ public class BookingService {
             throw new NotFoundException("Booking: " + id);
         }
         var booking = entity.get();
+        booking.setDeleteOperation(true);
         captureSessionService.deleteCascade(booking);
         shareBookingService.deleteCascade(booking);
         bookingRepository.deleteById(id);

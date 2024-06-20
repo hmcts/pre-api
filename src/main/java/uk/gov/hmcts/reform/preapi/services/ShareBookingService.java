@@ -84,6 +84,8 @@ public class ShareBookingService {
             throw new NotFoundException("Found ShareBooking: " + shareId + ". Booking does not match: " + bookingId);
         }
 
+        share.setDeleteOperation(true);
+
         shareBookingRepository.deleteById(shareId);
     }
 

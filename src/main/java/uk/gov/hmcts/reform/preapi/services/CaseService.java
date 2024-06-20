@@ -153,6 +153,7 @@ public class CaseService {
         if (entity.isEmpty()) {
             throw new NotFoundException("CaseDTO: " + id);
         }
+        entity.get().setDeleteOperation(true);
         bookingService.deleteCascade(entity.get());
         caseRepository.deleteById(id);
     }

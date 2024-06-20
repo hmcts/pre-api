@@ -100,6 +100,7 @@ public class CaptureSessionService {
         if (entity.isEmpty()) {
             throw new NotFoundException("CaptureSession: " + id);
         }
+        entity.get().setDeleteOperation(true);
         recordingService.deleteCascade(entity.get());
         captureSessionRepository.deleteById(id);
     }

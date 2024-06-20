@@ -137,6 +137,8 @@ public class RecordingService {
             throw new NotFoundException("Recording: " + recordingId);
         }
 
+        recording.get().setDeleteOperation(true);
+
         recordingRepository.deleteById(recordingId);
     }
 

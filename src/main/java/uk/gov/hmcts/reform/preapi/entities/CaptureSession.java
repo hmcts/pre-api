@@ -16,6 +16,7 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
@@ -27,7 +28,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "capture_sessions")
-public class CaptureSession extends BaseEntity {
+public class CaptureSession extends BaseEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Booking booking;
@@ -68,6 +69,9 @@ public class CaptureSession extends BaseEntity {
     @Transient
     private boolean deleted;
 
+    @Transient
+    private boolean isSoftDeleteOperation;
+
     @OneToMany(mappedBy = "captureSession")
     private Set<Recording> recordings;
 
@@ -91,5 +95,15 @@ public class CaptureSession extends BaseEntity {
         details.put("captureSessionStatus", status);
         details.put("deleted", isDeleted());
         return details;
+    }
+
+    @Override
+    public void setDeleteOperation(boolean deleteOperation) {
+        this.isSoftDeleteOperation = deleteOperation;
+    }
+
+    @Override
+    public boolean isDeleteOperation() {
+        return this.isSoftDeleteOperation;
     }
 }
