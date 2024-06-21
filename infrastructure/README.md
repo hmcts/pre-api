@@ -8,8 +8,6 @@ This could be things like:
 * vault
 * application insights
 
-Ensure that infrastructure code is formatted and documented using the pre-commit hooks.
-
 ## Contributing
 
 Ensure that infrastructure code is formatted and automatically documented using the pre-commit hooks.
