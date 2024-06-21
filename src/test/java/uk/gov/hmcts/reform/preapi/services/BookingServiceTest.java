@@ -403,7 +403,7 @@ class BookingServiceTest {
 
         verify(shareBookingService, times(1)).deleteCascade(bookingEntity);
         verify(captureSessionService, times(1)).deleteCascade(bookingEntity);
-        verify(bookingRepository, times(1)).deleteById(bookingId);
+        verify(bookingRepository, times(1)).saveAndFlush(bookingEntity);
     }
 
     @DisplayName("Delete a booking that doesn't exist")

@@ -4,6 +4,7 @@ package uk.gov.hmcts.reform.preapi.repositories;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,7 +21,7 @@ import java.util.UUID;
 
 @Repository
 @SuppressWarnings("PMD.MethodNamingConventions")
-public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSession, UUID> {
+public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
     int countAllByBooking_CaseId_IdAndStatus(UUID caseId, RecordingStatus status);

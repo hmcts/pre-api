@@ -68,9 +68,7 @@ public class InviteService {
         var portalAccess = portalAccessRepository
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
-        var user = portalAccess.getUser();
-        user.setDeleteOperation(true);
 
-        userService.deleteById(user.getId());
+        userService.deleteById(portalAccess.getUser().getId());
     }
 }

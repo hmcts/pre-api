@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.repositories;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,7 +16,7 @@ import java.util.UUID;
 
 @Repository
 @SuppressWarnings("PMD.MethodNamingConventions")
-public interface PortalAccessRepository extends SoftDeleteRepository<PortalAccess, UUID> {
+public interface PortalAccessRepository extends JpaRepository<PortalAccess, UUID> {
     Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(UUID id);
 
     Optional<PortalAccess> findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(UUID id, AccessStatus status);

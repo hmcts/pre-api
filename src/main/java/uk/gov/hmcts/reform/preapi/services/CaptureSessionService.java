@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
@@ -100,9 +101,11 @@ public class CaptureSessionService {
         if (entity.isEmpty()) {
             throw new NotFoundException("CaptureSession: " + id);
         }
-        entity.get().setDeleteOperation(true);
+        var captureSession = entity.get();
+        captureSession.setDeleteOperation(true);
+        captureSession.setDeletedAt(Timestamp.from(Instant.now()));
         recordingService.deleteCascade(entity.get());
-        captureSessionRepository.deleteById(id);
+        captureSessionRepository.saveAndFlush(captureSession);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)

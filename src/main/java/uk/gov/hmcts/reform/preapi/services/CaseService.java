@@ -153,9 +153,12 @@ public class CaseService {
         if (entity.isEmpty()) {
             throw new NotFoundException("CaseDTO: " + id);
         }
-        entity.get().setDeleteOperation(true);
-        bookingService.deleteCascade(entity.get());
-        caseRepository.deleteById(id);
+        var caseEntity = entity.get();
+        caseEntity.setDeleteOperation(true);
+        bookingService.deleteCascade(caseEntity);
+        caseEntity.setDeletedAt(Timestamp.from(Instant.now()));
+        caseRepository.saveAndFlush(caseEntity);
+        caseRepository.flush();
     }
 
     @Transactional

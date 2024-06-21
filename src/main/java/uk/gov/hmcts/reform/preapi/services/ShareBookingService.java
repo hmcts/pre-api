@@ -18,6 +18,8 @@ import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -85,8 +87,9 @@ public class ShareBookingService {
         }
 
         share.setDeleteOperation(true);
+        share.setDeletedAt(Timestamp.from(Instant.now()));
 
-        shareBookingRepository.deleteById(shareId);
+        shareBookingRepository.saveAndFlush(share);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)

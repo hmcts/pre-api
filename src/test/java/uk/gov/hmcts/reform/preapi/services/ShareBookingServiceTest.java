@@ -211,7 +211,7 @@ public class ShareBookingServiceTest {
 
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
-        verify(shareBookingRepository, times(1)).deleteById(share.getId());
+        verify(shareBookingRepository, times(1)).saveAndFlush(share);
     }
 
     @DisplayName("Delete a share when booking not found")

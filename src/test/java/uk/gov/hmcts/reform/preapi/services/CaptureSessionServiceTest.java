@@ -235,7 +235,7 @@ public class CaptureSessionServiceTest {
 
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
         verify(recordingService, times(1)).deleteCascade(captureSession);
-        verify(captureSessionRepository, times(1)).deleteById(captureSession.getId());
+        verify(captureSessionRepository, times(1)).saveAndFlush(captureSession);
     }
 
     @DisplayName("Should delete a capture session by id when capture session not found")

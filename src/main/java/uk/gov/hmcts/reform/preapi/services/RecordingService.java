@@ -137,9 +137,10 @@ public class RecordingService {
             throw new NotFoundException("Recording: " + recordingId);
         }
 
-        recording.get().setDeleteOperation(true);
+        var recordingEntity = recording.get();
+        recordingEntity.setDeleteOperation(true);
 
-        recordingRepository.deleteById(recordingId);
+        recordingRepository.saveAndFlush(recordingEntity);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
