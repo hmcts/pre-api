@@ -8,4 +8,4 @@ This could be things like:
 * vault
 * application insights
 
-If you don't need any application infrastructure here, you can delete the whole folder (it will speed up your Jenkins build)
+Ensure that infrastructure code is formatted and documented using the pre-commit hooks.
