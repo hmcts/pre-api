@@ -217,8 +217,15 @@ public class AzureMediaService implements IMediaService {
                         .withDescription(captureSession.getBookingId().toString())
                 );
         } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("The storage container is used by another asset already")) {
+                throw new ConflictException("Asset(IllegalArgumentException): " + assetName);
+            }
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 400
+                && e.getMessage().contains("The storage container is used by another asset already")) {
+                throw new ConflictException("Asset: " + assetName);
+            }
             if (e.getResponse().getStatusCode() == 409) {
                 throw new ConflictException("Asset: " + assetName);
             }
