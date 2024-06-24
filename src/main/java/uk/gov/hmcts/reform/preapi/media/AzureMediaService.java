@@ -75,7 +75,7 @@ public class AzureMediaService implements IMediaService {
         try {
             return  new AssetDTO(amsClient.getAssets().get(resourceGroup, accountName, assetName));
         } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure");
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
                 throw new NotFoundException("Asset with name: " + assetName);
@@ -94,7 +94,7 @@ public class AzureMediaService implements IMediaService {
                 .map(AssetDTO::new)
                 .toList();
         } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure");
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         }
     }
 
@@ -145,7 +145,7 @@ public class AzureMediaService implements IMediaService {
         try {
             amsClient.getLiveEvents().start(resourceGroup, accountName, liveEventName);
         } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure");
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
                 throw new NotFoundException("Live Event: " + liveEventName);
@@ -167,7 +167,7 @@ public class AzureMediaService implements IMediaService {
         try {
             return amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName);
         } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure");
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
                 throw new NotFoundException("Live event: " + liveEventName);
@@ -191,7 +191,7 @@ public class AzureMediaService implements IMediaService {
                     .withManifestName(liveEventName)
             );
         } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure");
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
                 throw new NotFoundException("Live Event: " + liveEventName);
@@ -217,7 +217,7 @@ public class AzureMediaService implements IMediaService {
                         .withDescription(captureSession.getBookingId().toString())
                 );
         } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure");
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
                 throw new ConflictException("Asset: " + assetName);
@@ -268,7 +268,7 @@ public class AzureMediaService implements IMediaService {
                                                 )))
                             )));
         } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure");
+            throw new UnknownServerException("Unable to communicate with Azure.  " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
                 return;

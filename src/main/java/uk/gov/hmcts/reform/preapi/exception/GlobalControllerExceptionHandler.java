@@ -118,7 +118,7 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> onIllegalArgumentException(final IllegalArgumentException e)
         throws JsonProcessingException {
         return getResponseEntity(
-            "Unable to communicate with Azure.",
+            "Unable to communicate with Azure. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
@@ -127,7 +127,7 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> onFeignException(final FeignException e)
         throws JsonProcessingException {
         return getResponseEntity(
-            "Unable to connect to Media Service",
+            "Unable to connect to Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
@@ -136,7 +136,7 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> onInterruptedException(final InterruptedException e)
         throws JsonProcessingException {
         return getResponseEntity(
-            "An error occurred when trying to communicate with Media Service.",
+            "An error occurred when trying to communicate with Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
@@ -144,7 +144,7 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(ManagementException.class)
     ResponseEntity<String> onManagementException(final ManagementException e) throws JsonProcessingException {
         return getResponseEntity(
-            "An error occurred when trying to communicate with Azure Media Service.",
+            "An error occurred when trying to communicate with Azure Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
@@ -152,7 +152,7 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(MsalServiceException.class)
     ResponseEntity<String> onMsalServiceException(final MsalServiceException e) throws JsonProcessingException {
         return getResponseEntity(
-            "An error occurred when trying to communicate with Azure Media Service.",
+            "An error occurred when trying to communicate with Azure Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
         );
     }
