@@ -102,9 +102,9 @@ public class CaptureSessionService {
             throw new NotFoundException("CaptureSession: " + id);
         }
         var captureSession = entity.get();
+        recordingService.deleteCascade(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
-        recordingService.deleteCascade(entity.get());
         captureSessionRepository.saveAndFlush(captureSession);
     }
 

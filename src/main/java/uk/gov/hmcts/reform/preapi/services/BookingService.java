@@ -195,6 +195,9 @@ public class BookingService {
             .forEach((booking) -> {
                 captureSessionService.deleteCascade(booking);
                 shareBookingService.deleteCascade(booking);
+                booking.setDeleteOperation(true);
+                booking.setDeletedAt(Timestamp.from(Instant.now()));
+                bookingRepository.save(booking);
             });
         bookingRepository.deleteAllByCaseId(caseEntity);
     }
