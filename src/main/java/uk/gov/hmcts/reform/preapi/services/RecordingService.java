@@ -139,6 +139,7 @@ public class RecordingService {
 
         var recordingEntity = recording.get();
         recordingEntity.setDeleteOperation(true);
+        recordingEntity.setDeletedAt(new Timestamp(System.currentTimeMillis()));
 
         recordingRepository.saveAndFlush(recordingEntity);
     }
