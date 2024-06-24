@@ -58,7 +58,7 @@ steps:
       export DB_USER="$(api-POSTGRES-USER)"
       export DB_PASSWORD="$(api-POSTGRES-PASS)"
       export DB_HOST="$(api-POSTGRES-HOST)"
-      python3 bin/disassociation/main.py
+      python3 bin/data_disassociation/main.py
   displayName: 'Execute disassociation script'
 
 
