@@ -97,7 +97,7 @@
     <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
     <cve>CVE-2024-35255</cve>
   </suppress>
-  
+
   <suppress>
     <notes><![CDATA[
    file name: msal4j-1.15.1.jar
