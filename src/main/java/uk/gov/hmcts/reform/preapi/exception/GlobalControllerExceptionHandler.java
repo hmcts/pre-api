@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 @ControllerAdvice
 public class GlobalControllerExceptionHandler {
@@ -22,6 +24,8 @@ public class GlobalControllerExceptionHandler {
     private static final String MESSAGE = "message";
     private static final String CONTENT_TYPE = "Content-Type";
     private static final String APPLICATION_JSON = "application/json";
+
+    private static final Logger logger = Logger.getLogger(GlobalControllerExceptionHandler.class.getName());
 
     @ExceptionHandler(NotFoundException.class)
     ResponseEntity<String> notFoundExceptionHandler(final NotFoundException e) throws JsonProcessingException {
@@ -135,6 +139,8 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(InterruptedException.class)
     ResponseEntity<String> onInterruptedException(final InterruptedException e)
         throws JsonProcessingException {
+        logger.severe("An error occurred when trying to communicate with Media Service. " + e.getMessage());
+        logger.severe(Arrays.toString(e.getStackTrace()));
         return getResponseEntity(
             "An error occurred when trying to communicate with Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
@@ -143,6 +149,8 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(ManagementException.class)
     ResponseEntity<String> onManagementException(final ManagementException e) throws JsonProcessingException {
+        logger.severe("An error occurred when trying to communicate with Azure Media Service. " + e.getMessage());
+        logger.severe(Arrays.toString(e.getStackTrace()));
         return getResponseEntity(
             "An error occurred when trying to communicate with Azure Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
@@ -151,6 +159,8 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(MsalServiceException.class)
     ResponseEntity<String> onMsalServiceException(final MsalServiceException e) throws JsonProcessingException {
+        logger.severe("An error occurred when trying to communicate with Azure Media Service. " + e.getMessage());
+        logger.severe(Arrays.toString(e.getStackTrace()));
         return getResponseEntity(
             "An error occurred when trying to communicate with Azure Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
