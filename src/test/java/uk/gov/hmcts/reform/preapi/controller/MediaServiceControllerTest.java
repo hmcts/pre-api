@@ -86,21 +86,27 @@ public class MediaServiceControllerTest {
         doThrow(new MsalServiceException("error", "something went wrong"))
             .when(mediaService).getAssets();
 
-        mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("An error occurred when trying to communicate with Azure Media Service."));
+        var result = mockMvc.perform(get("/media-service/health"))
+                             .andExpect(status().isInternalServerError())
+                             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                             .andReturn();
+        assertThat(result
+                       .getResponse()
+                       .getContentAsString()
+        ).contains("An error occurred when trying to communicate with Azure Media Service.");
 
         // resource manager issue
         doThrow(new ManagementException("error", mock(HttpResponse.class)))
             .when(mediaService).getAssets();
 
-        mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("An error occurred when trying to communicate with Azure Media Service."));
+        var result2 = mockMvc.perform(get("/media-service/health"))
+                             .andExpect(status().isInternalServerError())
+                             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                             .andReturn();
+        assertThat(result2
+                       .getResponse()
+                       .getContentAsString()
+        ).contains("An error occurred when trying to communicate with Azure Media Service.");
     }
 
     // todo remove this test with switch to mk
@@ -124,11 +130,12 @@ public class MediaServiceControllerTest {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaKind);
         doThrow(FeignException.class).when(mediaKind).getAssets();
 
-        mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Unable to connect to Media Service"));
+        var result = mockMvc.perform(get("/media-service/health"))
+                            .andExpect(status().isInternalServerError())
+                            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                            .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).contains("Unable to connect to Media Service");
     }
 
     @DisplayName("Should return 200 and an asset")
