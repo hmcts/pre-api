@@ -85,7 +85,8 @@ public class MediaKind implements IMediaService {
 
         return new PlaybackDTO(
             dash != null ? hostName + dash.getPaths().getFirst() : null,
-            hls != null ? hostName + hls.getPaths().getFirst() : null
+            hls != null ? hostName + hls.getPaths().getFirst() : null,
+            ""
         );
     }
 

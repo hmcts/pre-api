@@ -18,4 +18,7 @@ public class PlaybackDTO {
 
     @Schema(description = "PlaybackHlsUrl")
     private String hlsUrl;
+
+    @Schema(description = "PlaybackToken")
+    private String token;
 }

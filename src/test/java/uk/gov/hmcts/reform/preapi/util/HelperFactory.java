@@ -7,6 +7,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -274,6 +275,14 @@ public class HelperFactory {
         dto.setDescription(description);
         dto.setResourceState(resourceState);
         dto.setInputRtmp(inputRtmp);
+        return dto;
+    }
+
+    public PlaybackDTO createPlayback(String dashUrl, String hlsUrl, String token) {
+        var dto = new PlaybackDTO();
+        dto.setDashUrl(dashUrl);
+        dto.setHlsUrl(hlsUrl);
+        dto.setToken(token);
         return dto;
     }
 }

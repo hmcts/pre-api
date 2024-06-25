@@ -215,4 +215,22 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].resource_state").value("Stopped"))
             .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"));
     }
+
+    @DisplayName("Should return 200 and playback information")
+    @Test
+    void getVodSuccess() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var assetName = recordingId.toString().replace("-", "") + "_output";
+        var playback = HelperFactory.createPlayback("dash", "hls", "token");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.playAsset(assetName)).thenReturn(playback);
+
+        mockMvc.perform(get("/media-service/vod")
+                            .param("recordingId", recordingId.toString()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.dash_url").value("dash"))
+            .andExpect(jsonPath("$.hls_url").value("hls"))
+            .andExpect(jsonPath("$.token").value("token"));
+    }
 }
