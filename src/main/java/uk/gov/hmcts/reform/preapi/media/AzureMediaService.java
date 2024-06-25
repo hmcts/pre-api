@@ -62,6 +62,8 @@ public class AzureMediaService implements IMediaService {
         AzureMediaServices amsClient) {
         this.resourceGroup = resourceGroup;
         this.accountName = accountName;
+        this.ingestStorageAccount = ingestStorageAccount;
+        this.environmentTag = env;
         this.amsClient = amsClient;
         this.ingestStorageAccount = ingestStorageAccount;
         this.environmentTag = env;
