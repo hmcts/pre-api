@@ -188,7 +188,7 @@ public class MediaKind implements IMediaService {
             mediaKindClient.createStreamingLocator(sanitisedLiveEventId,
                                                    MkStreamingLocator.builder()
                                                        .properties(MkStreamingLocatorProperties.builder()
-                                                           .assetName("asset-230b581dc2f94560b9a87790890315a5-2024618-114816")
+                                                           .assetName(getShortenedLiveEventId(liveEventId))
                                                            .streamingLocatorId(sanitisedLiveEventId)
                                                            .streamingPolicyName("Predefined_ClearStreamingOnly")
                                                            .build()
