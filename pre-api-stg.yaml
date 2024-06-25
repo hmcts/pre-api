@@ -1370,6 +1370,9 @@ definitions:
       hls_url:
         description: PlaybackHlsUrl
         type: string
+      token:
+        description: PlaybackToken
+        type: string
     type: object
   PlaybackReportDTO:
     description: PlaybackReportDTO
