@@ -14,4 +14,13 @@ public class MkStreamingLocator {
     private String streamingPolicyName;
     private Date created;
     private Date endTime;
+    private MkStreamingLocatorProperties properties;
+
+    @Data
+    @Builder
+    public static class MkStreamingLocatorProperties {
+        private String assetName;
+        private String streamingLocatorId;
+        private String streamingPolicyName;
+    }
 }

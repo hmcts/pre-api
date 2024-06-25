@@ -12,6 +12,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkCreateStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorList;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
@@ -23,6 +25,12 @@ public interface MediaKindClient {
 
     @GetMapping("/assets/{assetName}")
     MkAsset getAsset(@PathVariable("assetName") String assetName);
+
+    @PutMapping("/assets/{assetName}")
+    MkAsset putAsset(@PathVariable("assetName") String assetName, @RequestBody MkAsset mkAsset);
+
+    @PutMapping("/liveEvents/{liveEventName}")
+    MkLiveEvent putLiveEvent(@PathVariable String liveEventName, @RequestBody MkLiveEvent mkLiveEvent);
 
     @PostMapping("/assets/{assetName}/listStreamingLocators")
     MkStreamingLocatorList getAssetStreamingLocators(@PathVariable String assetName);
@@ -41,4 +49,16 @@ public interface MediaKindClient {
 
     @GetMapping("/liveEvents/{liveEventName}")
     MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
+
+    @PostMapping("/liveEvents/{liveEventName}/start")
+    void startLiveEvent(@PathVariable String liveEventName);
+
+    @PutMapping("/liveEvents/{liveEventName}/liveOutputs/{liveOutputName}")
+    MkLiveOutput putLiveOutput(@PathVariable String liveEventName,
+                               @PathVariable String liveOutputName,
+                               @RequestBody MkLiveOutput mkLiveOutput);
+
+    @PutMapping("/streamingLocators/{locatorName}")
+    MkStreamingLocator putStreamingLocator(@PathVariable String locatorName,
+                                           @RequestBody MkStreamingLocator mkStreamingLocator);
 }
