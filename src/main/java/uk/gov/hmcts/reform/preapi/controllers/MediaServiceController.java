@@ -10,16 +10,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
-import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
-import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
-import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 
 import java.util.List;
-
 import java.util.UUID;
 
 @RestController

@@ -5,8 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkCreateStreamingLocator;
@@ -36,7 +36,8 @@ public class MediaKind implements IMediaService {
         }
 
         var locators = mediaKindClient.getAssetStreamingLocators(assetName);
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId().toString();
+        var userId = ((UserAuthentication) SecurityContextHolder.getContext()
+            .getAuthentication()).getUserId().toString();
 
         var locator = locators.getStreamingLocators()
             .stream()
@@ -51,7 +52,8 @@ public class MediaKind implements IMediaService {
                 .endTime(Instant.now().plusSeconds(3600).toString())
                 .build();
             try {
-                mediaKindClient.putStreamingLocator(userId, MkCreateStreamingLocator.builder().properties(properties).build());
+                mediaKindClient.putStreamingLocator(userId, MkCreateStreamingLocator.builder()
+                    .properties(properties).build());
             } catch (FeignException e) {
                 throw new MediaKindException();
             }
@@ -76,8 +78,10 @@ public class MediaKind implements IMediaService {
             throw new MediaKindException();
         }
 
-        var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Dash")).findFirst().orElse(null);
-        var hls = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Hls")).findFirst().orElse(null);
+        var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Dash"))
+            .findFirst().orElse(null);
+        var hls = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Hls"))
+            .findFirst().orElse(null);
 
         return new PlaybackDTO(
             dash != null ? hostName + dash.getPaths().getFirst() : null,

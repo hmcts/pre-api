@@ -1,8 +1,8 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 
 import java.util.List;
 
