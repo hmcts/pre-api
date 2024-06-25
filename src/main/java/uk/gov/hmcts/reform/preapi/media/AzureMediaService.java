@@ -138,7 +138,9 @@ public class AzureMediaService implements IMediaService {
             .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
             .findFirst()
             .map(LiveEventEndpoint::url)
-            .orElse(null);
+            .orElseThrow(
+                () -> new UnknownServerException("Unable to get ingest URL from AMS. No error of exception thrown")
+            );
     }
 
     private void startLiveEvent(String liveEventName) {

@@ -20,6 +20,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.util.List;
 import java.util.UUID;
@@ -487,6 +488,48 @@ public class AzureMediaServiceTest {
 
         verify(liveEventClient, times(1)).create(any(), any(), any(), any());
         verify(liveEventClient, times(1)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).start(any(), any(), any());
+    }
+
+    @DisplayName("Should fail to start a live event with blank ingest url")
+    @Test
+    void startLiveEventBlankIngestUrl() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.resourceState())
+            .thenReturn(
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.RUNNING,
+                LiveEventResourceState.RUNNING
+            );
+        when(mockLiveEvent.input())
+            .thenReturn(
+                new LiveEventInput()
+                    .withEndpoints(List.of())
+            );
+
+        var message = assertThrows(
+            UnknownServerException.class,
+            () -> mediaService.startLiveEvent(captureSession)
+        ).getMessage();
+
+        assertThat("Unknown Server Exception: Unable to get ingest URL from AMS. No error of exception thrown")
+            .isEqualTo(message);
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(4)).get(any(), any(), any());
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
         verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
         verify(liveEventClient, times(1)).start(any(), any(), any());
