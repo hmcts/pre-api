@@ -65,8 +65,6 @@ public class AzureMediaService implements IMediaService {
         this.ingestStorageAccount = ingestStorageAccount;
         this.environmentTag = env;
         this.amsClient = amsClient;
-        this.ingestStorageAccount = ingestStorageAccount;
-        this.environmentTag = env;
     }
 
     @Override
