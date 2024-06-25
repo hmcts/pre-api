@@ -13,8 +13,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkCreateStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorList;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
 
@@ -34,9 +34,6 @@ public interface MediaKindClient {
 
     @PostMapping("/assets/{assetName}/listStreamingLocators")
     MkStreamingLocatorList getAssetStreamingLocators(@PathVariable String assetName);
-
-    @PutMapping("/streamingLocators/{locatorName}")
-    void putStreamingLocator(@PathVariable String locatorName, @RequestBody MkCreateStreamingLocator dto);
 
     @GetMapping("/streamingEndpoints/{endpointName}")
     MkStreamingEndpoint getStreamingEndpointByName(@PathVariable String endpointName);
@@ -60,5 +57,5 @@ public interface MediaKindClient {
 
     @PutMapping("/streamingLocators/{locatorName}")
     MkStreamingLocator putStreamingLocator(@PathVariable String locatorName,
-                                           @RequestBody MkStreamingLocator mkStreamingLocator);
+                                           @RequestBody MkCreateStreamingLocator mkStreamingLocator);
 }
