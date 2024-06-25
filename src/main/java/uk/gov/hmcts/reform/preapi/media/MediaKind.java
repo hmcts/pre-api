@@ -14,7 +14,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessCont
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
@@ -30,7 +29,6 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -63,14 +61,12 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public PlaybackDTO playAsset(String assetName) {
+    public PlaybackDTO playAsset(String assetName, String userId) {
         if (getAsset(assetName) == null) {
             throw new NotFoundException("Asset: " + assetName);
         }
 
         var locators = mediaKindClient.getAssetStreamingLocators(assetName);
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext()
-            .getAuthentication()).getUserId().toString();
 
         var locator = locators.getStreamingLocators()
             .stream()

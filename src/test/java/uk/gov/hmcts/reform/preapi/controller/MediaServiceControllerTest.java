@@ -242,7 +242,7 @@ public class MediaServiceControllerTest {
         var assetName = recordingId.toString().replace("-", "") + "_output";
         var playback = HelperFactory.createPlayback("dash", "hls", "token");
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.playAsset(assetName)).thenReturn(playback);
+        when(mediaService.playAsset(assetName, "12345")).thenReturn(playback);
 
         mockMvc.perform(get("/media-service/vod")
                             .param("recordingId", recordingId.toString()))
@@ -259,7 +259,7 @@ public class MediaServiceControllerTest {
         var recordingId = UUID.randomUUID();
         var assetName = recordingId.toString().replace("-", "") + "_output";
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        doThrow(new NotFoundException("Asset: " + assetName)).when(mediaService).playAsset(assetName);
+        doThrow(new NotFoundException("Asset: " + assetName)).when(mediaService).playAsset(assetName, "12345");
 
         mockMvc.perform(get("/media-service/vod")
                             .param("recordingId", recordingId.toString()))

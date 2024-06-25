@@ -8,7 +8,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import java.util.List;
 
 public interface IMediaService {
-    PlaybackDTO playAsset(String assetId);
+    PlaybackDTO playAsset(String assetId, String userId);
 
     String importAsset(String assetPath);
 

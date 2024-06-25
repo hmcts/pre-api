@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -18,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.util.List;
@@ -93,7 +95,9 @@ public class MediaServiceController extends PreApiController {
         // todo: dont rely on naming convention, link asset name in db
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         var assetName = recordingId.toString().replace("-", "") + "_output";
-        var data = mediaService.playAsset(assetName);
+        var userId = ((UserAuthentication) SecurityContextHolder.getContext()
+            .getAuthentication()).getUserId().toString();
+        var data = mediaService.playAsset(assetName, userId);
         if (data == null) {
             throw new NotFoundException("Asset: " + assetName);
         }

@@ -62,7 +62,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public PlaybackDTO playAsset(String assetId) {
+    public PlaybackDTO playAsset(String assetId, String userId) {
         throw new UnsupportedOperationException();
     }
 
