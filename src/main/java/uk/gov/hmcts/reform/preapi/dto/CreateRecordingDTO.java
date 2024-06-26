@@ -31,7 +31,6 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
             ? recording.getParentRecording().getId()
             : null;
         version = recording.getVersion();
-        url = recording.getUrl();
         filename = recording.getFilename();
         duration = recording.getDuration();
         editInstructions = recording.getEditInstruction();

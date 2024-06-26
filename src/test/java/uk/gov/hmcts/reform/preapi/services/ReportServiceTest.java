@@ -105,7 +105,6 @@ public class ReportServiceTest {
 
         recordingEntity.setCaptureSession(captureSessionEntity);
         recordingEntity.setVersion(1);
-        recordingEntity.setUrl("http://localhost");
         recordingEntity.setFilename("example-filename.txt");
         recordingEntity.setCreatedAt(Timestamp.from(Instant.now()));
 
