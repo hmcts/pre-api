@@ -261,16 +261,16 @@ public class MediaKindTest {
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
             .thenReturn(
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .input(
                         new LiveEventInput()
@@ -305,16 +305,16 @@ public class MediaKindTest {
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
             .thenReturn(
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .input(
                         new LiveEventInput()

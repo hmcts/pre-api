@@ -5,6 +5,7 @@ import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
+import com.azure.resourcemanager.mediaservices.fluent.LiveOutputsClient;
 import com.azure.resourcemanager.mediaservices.fluent.StreamingEndpointsClient;
 import com.azure.resourcemanager.mediaservices.fluent.StreamingLocatorsClient;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
@@ -24,8 +25,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
@@ -489,7 +490,7 @@ public class AzureMediaServiceTest {
 
         assertThrows(RuntimeException.class, () -> mediaService.playLiveEvent(liveEventId));
     }
-  
+
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
     void startLiveEventSuccess() throws InterruptedException {

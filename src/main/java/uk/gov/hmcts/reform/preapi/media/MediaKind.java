@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEventProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpointProperties;
@@ -240,13 +241,13 @@ public class MediaKind implements IMediaService {
                         "businessArea", "cross-cutting",
                         "builtFrom", "pre-api"
                     ))
-                    .properties(MkLiveEvent.MkLiveEventProperties.builder()
-                                    .encoding(new LiveEventEncoding()
+                    .properties(MkLiveEventProperties.builder()
+                                                     .encoding(new LiveEventEncoding()
                                                   .withEncodingType(LiveEventEncodingType.STANDARD)
                                     )
-                                    .description(captureSession.getBookingId().toString())
-                                    .useStaticHostname(true)
-                                    .input(new LiveEventInput()
+                                                     .description(captureSession.getBookingId().toString())
+                                                     .useStaticHostname(true)
+                                                     .input(new LiveEventInput()
                                                .withStreamingProtocol(LiveEventInputProtocol.RTMP)
                                                .withKeyFrameIntervalDuration("PT6S")
                                                .withAccessToken(accessToken.toString())
@@ -258,7 +259,7 @@ public class MediaKind implements IMediaService {
                                                                                           .withAddress("0.0.0.0")
                                                                                           .withSubnetPrefixLength(0)))
                                                        )))
-                                    .preview(new LiveEventPreview()
+                                                     .preview(new LiveEventPreview()
                                                  .withAccessControl(
                                                      new LiveEventPreviewAccessControl()
                                                          .withIp(new IpAccessControl()
@@ -267,7 +268,7 @@ public class MediaKind implements IMediaService {
                                                                                             .withAddress("0.0.0.0")
                                                                                             .withSubnetPrefixLength(0)))
                                                          )))
-                                    .build())
+                                                     .build())
                     .build()
             );
         } catch (FeignException.Conflict e) {

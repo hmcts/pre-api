@@ -27,19 +27,19 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.Map;
-import java.util.stream.Stream;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortenedLiveEventId;

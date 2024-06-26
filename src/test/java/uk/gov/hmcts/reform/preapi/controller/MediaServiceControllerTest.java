@@ -64,9 +64,6 @@ public class MediaServiceControllerTest {
     @MockBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
-    private CaptureSessionService captureSessionService;
-
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test
     void getMediaSuccess() throws Exception {
@@ -307,7 +304,7 @@ public class MediaServiceControllerTest {
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
         Mockito.verify(mediaService, Mockito.times(0)).playLiveEvent(any());
     }
-  
+
     @DisplayName("Should return 200 with capture session once live event is started")
     @Test
     void startLiveEventSuccess() throws Exception {

@@ -97,7 +97,7 @@ public class MediaServiceController extends PreApiController {
         Logger.getAnonymousLogger().info("createLiveEventStreamingLocator: " + captureSession);
 
         // return existing captureSession if currently live
-        if (!captureSession.getLiveOutputUrl().isEmpty() && captureSession.getStatus() == RecordingStatus.RECORDING) {
+        if (captureSession.getLiveOutputUrl() != null && captureSession.getStatus() == RecordingStatus.RECORDING) {
             return ResponseEntity.ok(captureSession);
         }
         Logger.getAnonymousLogger().info("captureSession getStatus: " + captureSession.getStatus());
@@ -121,7 +121,7 @@ public class MediaServiceController extends PreApiController {
 
         return ResponseEntity.ok(captureSession);
     }
-  
+
     @PutMapping("/live-event/start/{captureSessionId}")
     @Operation(operationId = "startLiveEvent", summary = "Start a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
