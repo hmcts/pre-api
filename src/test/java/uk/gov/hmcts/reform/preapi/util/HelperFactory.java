@@ -182,14 +182,12 @@ public class HelperFactory {
     public static Recording createRecording(CaptureSession captureSession,
                                             @Nullable Recording parentRecording,
                                             int version,
-                                            String url,
                                             String filename,
                                             @Nullable Timestamp deletedAt) {
         var recording = new Recording();
         recording.setCaptureSession(captureSession);
         recording.setParentRecording(parentRecording);
         recording.setVersion(version);
-        recording.setUrl(url);
         recording.setFilename(filename);
         recording.setDeletedAt(deletedAt);
         return recording;

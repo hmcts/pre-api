@@ -185,7 +185,7 @@ public class CaseServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(captureSession);
 
-        var recording = HelperFactory.createRecording(captureSession, null, 1, "url", "filename", null);
+        var recording = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
         entityManager.persist(recording);
 
         var message = Assertions.assertThrows(

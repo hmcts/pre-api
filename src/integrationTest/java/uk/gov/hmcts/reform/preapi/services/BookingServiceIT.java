@@ -157,7 +157,6 @@ class BookingServiceIT extends IntegrationTestBase {
             captureSession,
             null,
             1,
-            null,
             "example",
             null
         );
