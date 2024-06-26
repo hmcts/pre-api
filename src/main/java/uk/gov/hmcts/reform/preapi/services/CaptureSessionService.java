@@ -176,4 +176,27 @@ public class CaptureSessionService {
         entity.setDeletedAt(null);
         captureSessionRepository.save(entity);
     }
+
+    @Transactional
+    public CaptureSessionDTO startCaptureSession(UUID id, String ingestAddress) {
+        var captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
+
+        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+        var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
+
+        captureSession.setStartedByUser(user);
+        captureSession.setStartedAt(Timestamp.from(Instant.now()));
+
+        if (ingestAddress != null) {
+            captureSession.setIngestAddress(ingestAddress);
+            captureSession.setStatus(RecordingStatus.STANDBY);
+        } else {
+            captureSession.setStatus(RecordingStatus.FAILURE);
+        }
+
+        captureSessionRepository.save(captureSession);
+        return new CaptureSessionDTO(captureSession);
+    }
 }
