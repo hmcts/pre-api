@@ -149,11 +149,9 @@ public class CaseService {
     @Transactional
     @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
     public void deleteById(UUID id) {
-        var entity = caseRepository.findByIdAndDeletedAtIsNull(id);
-        if (entity.isEmpty()) {
-            throw new NotFoundException("CaseDTO: " + id);
-        }
-        var caseEntity = entity.get();
+        var caseEntity = caseRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("CaseDTO: " + id));
         caseEntity.setDeleteOperation(true);
         bookingService.deleteCascade(caseEntity);
         caseEntity.setDeletedAt(Timestamp.from(Instant.now()));

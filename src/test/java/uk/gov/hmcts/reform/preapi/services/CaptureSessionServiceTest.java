@@ -138,7 +138,7 @@ public class CaptureSessionServiceTest {
 
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
         verify(recordingService, times(1)).deleteCascade(captureSession);
-        verify(captureSessionRepository, times(1)).deleteAllByBooking(booking);
+        verify(captureSessionRepository, times(1)).save(captureSession);
     }
 
     @DisplayName("Find a list of capture sessions and return a list of models")

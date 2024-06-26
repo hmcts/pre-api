@@ -164,15 +164,13 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void markAsDeleted(UUID id) {
-        var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
-        if (entity.isEmpty()) {
-            throw new NotFoundException("Booking: " + id);
-        }
-        var booking = entity.get();
-        booking.setDeleteOperation(true);
-        booking.setDeletedAt(Timestamp.from(Instant.now()));
+        var booking = bookingRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("Booking: " + id));
         captureSessionService.deleteCascade(booking);
         shareBookingService.deleteCascade(booking);
+        booking.setDeleteOperation(true);
+        booking.setDeletedAt(Timestamp.from(Instant.now()));
         bookingRepository.saveAndFlush(booking);
     }
 
@@ -192,13 +190,12 @@ public class BookingService {
     public void deleteCascade(Case caseEntity) {
         bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(caseEntity)
-            .forEach((booking) -> {
+            .forEach(booking -> {
                 captureSessionService.deleteCascade(booking);
                 shareBookingService.deleteCascade(booking);
                 booking.setDeleteOperation(true);
                 booking.setDeletedAt(Timestamp.from(Instant.now()));
                 bookingRepository.save(booking);
             });
-        bookingRepository.deleteAllByCaseId(caseEntity);
     }
 }

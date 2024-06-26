@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
@@ -139,7 +140,7 @@ public class RecordingService {
 
         var recordingEntity = recording.get();
         recordingEntity.setDeleteOperation(true);
-        recordingEntity.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
 
         recordingRepository.saveAndFlush(recordingEntity);
     }

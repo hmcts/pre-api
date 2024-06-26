@@ -47,6 +47,8 @@ public interface ShareBookingRepository extends JpaRepository<ShareBooking, UUID
         @Param("sharedWithEmail") String sharedWithEmail
     );
 
+    List<ShareBooking> findAllByBookingAndDeletedAtIsNull(Booking booking);
+
     @Query("""
         update ShareBooking e
         set e.deletedAt=CURRENT_TIMESTAMP

@@ -94,7 +94,13 @@ public class ShareBookingService {
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteCascade(Booking booking) {
-        shareBookingRepository.deleteAllByBooking(booking);
+        shareBookingRepository
+            .findAllByBookingAndDeletedAtIsNull(booking)
+            .forEach(share -> {
+                share.setSoftDeleteOperation(true);
+                share.setDeletedAt(Timestamp.from(Instant.now()));
+                shareBookingRepository.save(share);
+            });
     }
 
     @Transactional

@@ -436,7 +436,7 @@ class BookingServiceTest {
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(caseEntity);
         verify(shareBookingService, times(1)).deleteCascade(booking);
         verify(captureSessionService, times(1)).deleteCascade(booking);
-        verify(bookingRepository, times(1)).deleteAllByCaseId(caseEntity);
+        verify(bookingRepository, times(1)).save(booking);
     }
 
     @DisplayName("Should undelete a booking successfully when booking is marked as deleted")
