@@ -91,12 +91,10 @@ public class MediaServiceController extends PreApiController {
 
     @GetMapping("/vod")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<PlaybackDTO> getVod(@RequestParam UUID recordingId) {
+    public ResponseEntity<PlaybackDTO> getVod(@RequestParam UUID recordingId, @RequestParam String userId) {
         // todo: dont rely on naming convention, link asset name in db
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         var assetName = recordingId.toString().replace("-", "") + "_output";
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext()
-            .getAuthentication()).getUserId().toString();
         var data = mediaService.playAsset(assetName, userId);
         if (data == null) {
             throw new NotFoundException("Asset: " + assetName);
