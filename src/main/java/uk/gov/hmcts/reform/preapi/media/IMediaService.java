@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 
 import java.util.List;
 
@@ -13,15 +15,15 @@ public interface IMediaService {
 
     List<AssetDTO> getAssets();
 
-    /*
-    String startLiveEvent(String liveEventId);
+    LiveEventDTO getLiveEvent(String liveEventId);
 
+    List<LiveEventDTO> getLiveEvents();
+
+    String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException;
+
+    /*
     String playLiveEvent(String liveEventId);
 
     String stopLiveEvent(String liveEventId);
-
-    String getLiveEvent(String liveEventId);
-
-    String getLiveEvents();
-     */
+    */
 }
