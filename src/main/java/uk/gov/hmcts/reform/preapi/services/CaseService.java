@@ -158,7 +158,6 @@ public class CaseService {
         bookingService.deleteCascade(caseEntity);
         caseEntity.setDeletedAt(Timestamp.from(Instant.now()));
         caseRepository.saveAndFlush(caseEntity);
-        caseRepository.flush();
     }
 
     @Transactional
