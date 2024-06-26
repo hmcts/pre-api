@@ -245,7 +245,8 @@ public class MediaServiceControllerTest {
         when(mediaService.playAsset(assetName, "12345")).thenReturn(playback);
 
         mockMvc.perform(get("/media-service/vod")
-                            .param("recordingId", recordingId.toString()))
+                            .param("recordingId", recordingId.toString())
+                            .param("userId", "12345"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.dash_url").value("dash"))
@@ -259,10 +260,11 @@ public class MediaServiceControllerTest {
         var recordingId = UUID.randomUUID();
         var assetName = recordingId.toString().replace("-", "") + "_output";
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        doThrow(new NotFoundException("Asset: " + assetName)).when(mediaService).playAsset(assetName, "12345");
+        when(mediaService.playAsset(assetName, "12345")).thenReturn(null);
 
         mockMvc.perform(get("/media-service/vod")
-                            .param("recordingId", recordingId.toString()))
+                            .param("recordingId", recordingId.toString())
+                            .param("userId", "12345"))
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message").value("Not found: Asset: " + assetName));
