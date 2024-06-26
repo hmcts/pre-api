@@ -24,7 +24,6 @@ class CreateRecordingDTOTest {
         captureSession.setId(UUID.randomUUID());
         recordingEntity.setCaptureSession(captureSession);
         recordingEntity.setVersion(1);
-        recordingEntity.setUrl("http://localhost");
         recordingEntity.setFilename("example-filename.txt");
         recordingEntity.setCreatedAt(Timestamp.from(Instant.now()));
     }

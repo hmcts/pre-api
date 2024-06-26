@@ -114,7 +114,6 @@ public class RecordingService {
             recordingEntity.setParentRecording(null);
         }
         recordingEntity.setVersion(createRecordingDTO.getVersion());
-        recordingEntity.setUrl(createRecordingDTO.getUrl());
         recordingEntity.setFilename(createRecordingDTO.getFilename());
         recordingEntity.setDuration(createRecordingDTO.getDuration());
         recordingEntity.setEditInstruction(createRecordingDTO.getEditInstructions());

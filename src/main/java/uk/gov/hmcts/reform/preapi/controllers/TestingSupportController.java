@@ -252,7 +252,6 @@ class TestingSupportController {
         recording.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
-        recording.setUrl("http://localhost:8080/recording");
         recording.setFilename("recording.mp4");
         recording.setDuration(Duration.ofMinutes(30));
         recording.setEditInstruction("{\"foo\": \"bar\"}");
