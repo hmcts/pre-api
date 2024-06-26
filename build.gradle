@@ -117,12 +117,12 @@ checkstyle {
 }
 
 pmd {
-  toolVersion = "7.2.0"
+  toolVersion = "6.55.0"
   sourceSets = [sourceSets.main]
   reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
   ruleSets = []
-  ruleSetFiles = files("config/pmd/ruleset.xml")
+  ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")
 }
 
 jacocoTestReport {
@@ -293,7 +293,7 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
 
-  implementation group: 'com.azure', name: 'azure-identity', version: '1.12.2'
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.13.0'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
 
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.5.2.Final')

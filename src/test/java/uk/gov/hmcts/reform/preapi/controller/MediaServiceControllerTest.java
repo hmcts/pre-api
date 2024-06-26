@@ -24,6 +24,8 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,13 +33,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 
 @WebMvcTest(MediaServiceController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -50,6 +54,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private AzureMediaService mediaService;
+
+    @MockBean
+    private CaptureSessionService captureSessionService;
 
     @MockBean
     private MediaKind mediaKind;
@@ -83,21 +90,27 @@ public class MediaServiceControllerTest {
         doThrow(new MsalServiceException("error", "something went wrong"))
             .when(mediaService).getAssets();
 
-        mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("An error occurred when trying to communicate with Azure Media Service."));
+        var result = mockMvc.perform(get("/media-service/health"))
+                             .andExpect(status().isInternalServerError())
+                             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                             .andReturn();
+        assertThat(result
+                       .getResponse()
+                       .getContentAsString()
+        ).contains("An error occurred when trying to communicate with Azure Media Service.");
 
         // resource manager issue
         doThrow(new ManagementException("error", mock(HttpResponse.class)))
             .when(mediaService).getAssets();
 
-        mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("An error occurred when trying to communicate with Azure Media Service."));
+        var result2 = mockMvc.perform(get("/media-service/health"))
+                             .andExpect(status().isInternalServerError())
+                             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                             .andReturn();
+        assertThat(result2
+                       .getResponse()
+                       .getContentAsString()
+        ).contains("An error occurred when trying to communicate with Azure Media Service.");
     }
 
     // todo remove this test with switch to mk
@@ -121,11 +134,12 @@ public class MediaServiceControllerTest {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaKind);
         doThrow(FeignException.class).when(mediaKind).getAssets();
 
-        mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isInternalServerError())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Unable to connect to Media Service"));
+        var result = mockMvc.perform(get("/media-service/health"))
+                            .andExpect(status().isInternalServerError())
+                            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                            .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).contains("Unable to connect to Media Service");
     }
 
     @DisplayName("Should return 200 and an asset")
@@ -292,5 +306,107 @@ public class MediaServiceControllerTest {
         assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
         Mockito.verify(mediaService, Mockito.times(0)).playLiveEvent(any());
+    }
+  
+    @DisplayName("Should return 200 with capture session once live event is started")
+    @Test
+    void startLiveEventSuccess() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto1 = new CaptureSessionDTO();
+        dto1.setId(captureSessionId);
+        var dto2 = new CaptureSessionDTO();
+        dto2.setId(captureSessionId);
+        dto2.setStartedAt(Timestamp.from(Instant.now()));
+        dto2.setStartedByUserId(UUID.randomUUID());
+        dto2.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto1);
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.startLiveEvent(any())).thenReturn("example ingest");
+        when(captureSessionService.startCaptureSession(captureSessionId, "example ingest")).thenReturn(dto2);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+            .andExpect(jsonPath("$.status").value("STANDBY"))
+            .andExpect(jsonPath("$.started_at").isNotEmpty());
+
+        verify(mediaService, times(1)).startLiveEvent(dto1);
+    }
+
+    @DisplayName("Should return not found error when capture session does not exist")
+    @Test
+    void startLiveEventCaptureSessionNotFound() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+
+        doThrow(new NotFoundException("Capture Session: " + captureSessionId))
+            .when(captureSessionService).findById(captureSessionId);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Capture Session: " + captureSessionId));
+    }
+
+    @DisplayName("Should return conflict error when capture session has already finished")
+    @Test
+    void startLiveEventConflictAlreadyFinished() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setFinishedAt(Timestamp.from(Instant.now()));
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Conflict: Capture Session: " + captureSessionId + " has already been finished"));
+    }
+
+    @DisplayName("Should return capture session but do nothing when capture session already started")
+    @Test
+    void startLiveEventAlreadyStarted() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+        dto.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+            .andExpect(jsonPath("$.status").value("STANDBY"))
+            .andExpect(jsonPath("$.started_at").isNotEmpty());
+
+        verify(mediaService, never()).startLiveEvent(any());
+    }
+
+    @DisplayName("Should update capture session and throw error when media service encounters an error")
+    @Test
+    void startLiveEventThrowError() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+        doThrow(new NotFoundException("live event error"))
+            .when(mediaService).startLiveEvent(dto);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: live event error"));
+
+        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, null);
     }
 }

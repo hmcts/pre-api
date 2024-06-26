@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -119,5 +120,33 @@ public class MediaServiceController extends PreApiController {
         captureSessionService.upsert(captureSession);
 
         return ResponseEntity.ok(captureSession);
+    }
+  
+    @PutMapping("/live-event/start/{captureSessionId}")
+    @Operation(operationId = "startLiveEvent", summary = "Start a live event")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId)
+        throws InterruptedException {
+        var dto = captureSessionService.findById(captureSessionId);
+
+        if (dto.getFinishedAt() != null) {
+            throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
+        }
+
+        if (dto.getStartedAt() != null) {
+            return ResponseEntity.ok(dto);
+        }
+
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        String ingestAddress;
+
+        try {
+            ingestAddress = mediaService.startLiveEvent(dto);
+        } catch (Exception e) {
+            captureSessionService.startCaptureSession(captureSessionId, null);
+            throw e;
+        }
+
+        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
     }
 }

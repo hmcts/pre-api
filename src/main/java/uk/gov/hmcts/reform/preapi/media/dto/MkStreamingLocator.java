@@ -8,4 +8,3 @@ import lombok.Data;
 public class MkStreamingLocator {
     private MkStreamingLocatorProperties properties;
 }
-
