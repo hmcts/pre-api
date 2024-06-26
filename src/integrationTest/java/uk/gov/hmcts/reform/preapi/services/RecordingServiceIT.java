@@ -61,14 +61,13 @@ public class RecordingServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(captureSession);
 
-        var recording1 = HelperFactory.createRecording(captureSession, null, 1, null, "filename", null);
+        var recording1 = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
         entityManager.persist(recording1);
 
         var recording2 = HelperFactory.createRecording(
             captureSession,
             null,
             2,
-            null,
             "filename",
             Timestamp.from(Instant.now())
         );
@@ -112,14 +111,13 @@ public class RecordingServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(captureSession);
 
-        var recording1 = HelperFactory.createRecording(captureSession, null, 1, null, "filename", null);
+        var recording1 = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
         entityManager.persist(recording1);
 
         var recording2 = HelperFactory.createRecording(
             captureSession,
             null,
             2,
-            null,
             "filename",
             Timestamp.from(Instant.now())
         );
