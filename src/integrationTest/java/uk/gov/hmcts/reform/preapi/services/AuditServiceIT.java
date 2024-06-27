@@ -228,7 +228,6 @@ public class AuditServiceIT extends IntegrationTestBase {
         var recording = HelperFactory.createRecording(captureSession,
                                                       null,
                                                       1,
-                                                      null,
                                                       "test.mp4",
                                                       null);
 
