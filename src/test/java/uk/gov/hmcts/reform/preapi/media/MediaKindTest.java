@@ -12,7 +12,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
-import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
@@ -75,7 +74,7 @@ public class MediaKindTest {
     void getAssetsFeignExceptionThrown() {
         when(mockClient.getAssets(0)).thenThrow(FeignException.class);
 
-        assertThrows(MediaKindException.class, () -> mediaKind.getAssets());
+        assertThrows(FeignException.class, () -> mediaKind.getAssets());
     }
 
 
@@ -152,7 +151,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(anyString())).thenThrow(FeignException.class);
 
         assertThrows(
-            MediaKindException.class,
+            FeignException.class,
             () -> mediaKind.getAsset("asset1")
         );
         verify(mockClient, times(1)).getAsset(anyString());

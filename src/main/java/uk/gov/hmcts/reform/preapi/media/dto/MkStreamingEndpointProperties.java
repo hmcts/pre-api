@@ -53,7 +53,8 @@ public class MkStreamingEndpointProperties {
         Stopped,
         Starting,
         Running,
-        Stopping
+        Stopping,
+        Creating
     }
 
     @Data

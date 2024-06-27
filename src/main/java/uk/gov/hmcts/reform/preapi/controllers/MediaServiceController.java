@@ -129,7 +129,7 @@ public class MediaServiceController extends PreApiController {
         throws InterruptedException {
         var dto = captureSessionService.findById(captureSessionId);
 
-        if (dto.getStatus().equals(RecordingStatus.FAILURE)) {
+        if (dto.getStatus() == RecordingStatus.FAILURE) {
             throw new ResourceInWrongStateException("Capture Session",
                                                     dto.getId().toString(),
                                                     dto.getStatus().toString(),
