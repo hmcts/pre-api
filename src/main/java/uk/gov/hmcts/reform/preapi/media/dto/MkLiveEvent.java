@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
+import com.azure.resourcemanager.mediaservices.models.LiveEventEncoding;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import lombok.Builder;
@@ -25,5 +26,6 @@ public class MkLiveEvent {
         private LiveEventInput input;
         private String resourceState;
         private LiveEventPreview preview;
+        private LiveEventEncoding encoding;
     }
 }

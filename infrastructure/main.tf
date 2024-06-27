@@ -3,7 +3,7 @@ provider "azurerm" {
 }
 
 locals {
-  app_name         = "pre-api"
+  app_name = "pre-api"
   // rather than removing this and the counts I've left it in so that we can disable an env easily in the future
   // without deleting the resource as moving from a count to no count will delete and recreate the resource
   // env_to_deploy = var.env != "prod" ? 1 : 0
@@ -39,7 +39,7 @@ module "pre_api" {
   api_mgmt_rg           = "ss-${var.env}-network-rg"
   api_mgmt_name         = "sds-api-mgmt-${var.env}"
   display_name          = "Pre Recorded Evidence API"
-  revision              = "65"
+  revision              = "66"
   product_id            = module.pre_product[0].product_id
   path                  = "pre-api"
   service_url           = local.apim_service_url
