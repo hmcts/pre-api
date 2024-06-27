@@ -15,7 +15,15 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.media.dto.*;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
+import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorList;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
 
 import java.util.List;
 import java.util.UUID;
