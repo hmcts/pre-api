@@ -129,6 +129,13 @@ public class MediaServiceController extends PreApiController {
         throws InterruptedException {
         var dto = captureSessionService.findById(captureSessionId);
 
+        if (dto.getStatus().equals(RecordingStatus.FAILURE)) {
+            throw new ResourceInWrongStateException("Capture Session",
+                                                    dto.getId().toString(),
+                                                    dto.getStatus().toString(),
+                                                    RecordingStatus.INITIALISING.toString());
+        }
+
         if (dto.getFinishedAt() != null) {
             throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
         }

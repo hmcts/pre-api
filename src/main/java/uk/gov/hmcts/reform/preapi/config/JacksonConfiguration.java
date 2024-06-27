@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.config;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -10,6 +11,8 @@ import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+
+import java.text.SimpleDateFormat;
 
 import static com.fasterxml.jackson.databind.MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS;
 import static com.fasterxml.jackson.databind.MapperFeature.INFER_BUILDER_TYPE_BINDINGS;
@@ -22,6 +25,7 @@ public class JacksonConfiguration {
     public ObjectMapper getMapper() {
         ObjectMapper mapper = JsonMapper.builder()
                                         .configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true)
+                                        .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
                                         .enable(INFER_BUILDER_TYPE_BINDINGS)
                                         .serializationInclusion(JsonInclude.Include.NON_NULL)
                                         .build();
@@ -32,6 +36,7 @@ public class JacksonConfiguration {
         JavaTimeModule datetime = new JavaTimeModule();
         datetime.addSerializer(LocalDateSerializer.INSTANCE);
         mapper.registerModule(datetime);
+        mapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
 
         mapper.registerModule(new ParameterNamesModule());
 

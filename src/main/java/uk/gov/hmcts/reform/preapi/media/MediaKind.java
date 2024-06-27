@@ -23,7 +23,6 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
-import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
@@ -92,20 +91,14 @@ public class MediaKind implements IMediaService {
             return new AssetDTO(mediaKindClient.getAsset(assetName));
         } catch (FeignException.NotFound e) {
             return null;
-        } catch (FeignException e) {
-            throw new MediaKindException();
         }
     }
 
     @Override
     public List<AssetDTO> getAssets() {
-        try {
-            return getAllMkList(mediaKindClient::getAssets)
-                .map(AssetDTO::new)
-                .collect(Collectors.toList());
-        } catch (FeignException e) {
-            throw new MediaKindException();
-        }
+        return getAllMkList(mediaKindClient::getAssets)
+            .map(AssetDTO::new)
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -135,8 +128,6 @@ public class MediaKind implements IMediaService {
             return mediaKindClient.getLiveEvent(liveEventName);
         } catch (FeignException.NotFound e) {
             throw new NotFoundException("Live Event: " + liveEventName);
-        } catch (FeignException e) {
-            throw new MediaKindException();
         }
     }
 
@@ -159,11 +150,11 @@ public class MediaKind implements IMediaService {
 
         // todo return rtmps from mk (uncomment filter)
         return Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
-            .flatMap(Collection::stream)
-            //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-            .findFirst()
-            .map(LiveEventEndpoint::url)
-            .orElse(null);
+                     .flatMap(Collection::stream)
+                     //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
+                     .findFirst()
+                     .map(LiveEventEndpoint::url)
+                     .orElse(null);
     }
 
     private void startLiveEvent(String liveEventName) {
@@ -171,8 +162,6 @@ public class MediaKind implements IMediaService {
             mediaKindClient.startLiveEvent(liveEventName);
         } catch (FeignException.NotFound e) {
             throw new NotFoundException("Live Event: " + liveEventName);
-        } catch (FeignException e) {
-            throw new MediaKindException();
         }
     }
 
@@ -191,21 +180,19 @@ public class MediaKind implements IMediaService {
                 liveEventName,
                 liveOutputName,
                 MkLiveOutput.builder()
-                    .properties(MkLiveOutput.MkLiveOutputProperties.builder()
-                                    .description("Live output for: " + liveEventName)
-                                    .assetName(liveEventName)
-                                    .archiveWindowLength("PT8H")
-                                    .hls(new Hls().withFragmentsPerTsSegment(5))
-                                    .manifestName(liveEventName)
-                                    .build())
-                    .build()
+                            .properties(MkLiveOutput.MkLiveOutputProperties.builder()
+                                                                           .description("Live output for: " + liveEventName)
+                                                                           .assetName(liveEventName)
+                                                                           .archiveWindowLength("PT8H")
+                                                                           .hls(new Hls().withFragmentsPerTsSegment(5))
+                                                                           .manifestName(liveEventName)
+                                                                           .build())
+                            .build()
             );
         } catch (FeignException.Conflict e) {
             throw new ConflictException("Live Output: " + liveOutputName);
         } catch (FeignException.NotFound e) {
             throw new NotFoundException("Live Event: " + liveEventName);
-        } catch (FeignException e) {
-            throw new MediaKindException();
         }
     }
 
@@ -214,17 +201,15 @@ public class MediaKind implements IMediaService {
             mediaKindClient.putAsset(
                 assetName,
                 MkAsset.builder()
-                    .properties(MkAssetProperties.builder()
-                                     .container(captureSession.getBookingId().toString())
-                                    .storageAccountName(ingestStorageAccount)
-                                    .description(captureSession.getBookingId().toString())
-                                    .build())
-                    .build()
+                       .properties(MkAssetProperties.builder()
+                                                    .container(captureSession.getBookingId().toString())
+                                                    .storageAccountName(ingestStorageAccount)
+                                                    .description(captureSession.getBookingId().toString())
+                                                    .build())
+                       .build()
             );
         } catch (FeignException.Conflict e) {
-            throw new ConflictException("Asset: "  + assetName);
-        } catch (FeignException e) {
-            throw new MediaKindException();
+            throw new ConflictException("Asset: " + assetName);
         }
     }
 
@@ -234,47 +219,51 @@ public class MediaKind implements IMediaService {
             mediaKindClient.putLiveEvent(
                 uuidToNameString(captureSession.getId()),
                 MkLiveEvent.builder()
-                    .location(LOCATION)
-                    .tags(Map.of(
-                        "environment", environmentTag,
-                        "application", "pre-recorded evidence",
-                        "businessArea", "cross-cutting",
-                        "builtFrom", "pre-api"
-                    ))
-                    .properties(MkLiveEventProperties.builder()
-                                                     .encoding(new LiveEventEncoding()
-                                                  .withEncodingType(LiveEventEncodingType.STANDARD)
-                                    )
-                                                     .description(captureSession.getBookingId().toString())
-                                                     .useStaticHostname(true)
-                                                     .input(new LiveEventInput()
-                                               .withStreamingProtocol(LiveEventInputProtocol.RTMP)
-                                               .withKeyFrameIntervalDuration("PT6S")
-                                               .withAccessToken(accessToken.toString())
-                                               .withAccessControl(
-                                                   new LiveEventInputAccessControl()
-                                                       .withIp(new IpAccessControl()
-                                                                   .withAllow(List.of(new IpRange()
-                                                                                          .withName("AllowAll")
-                                                                                          .withAddress("0.0.0.0")
-                                                                                          .withSubnetPrefixLength(0)))
-                                                       )))
-                                                     .preview(new LiveEventPreview()
-                                                 .withAccessControl(
-                                                     new LiveEventPreviewAccessControl()
-                                                         .withIp(new IpAccessControl()
-                                                                     .withAllow(List.of(new IpRange()
-                                                                                            .withName("AllowAll")
-                                                                                            .withAddress("0.0.0.0")
-                                                                                            .withSubnetPrefixLength(0)))
-                                                         )))
-                                                     .build())
-                    .build()
+                           .location(LOCATION)
+                           .tags(Map.of(
+                               "environment", environmentTag,
+                               "application", "pre-recorded evidence",
+                               "businessArea", "cross-cutting",
+                               "builtFrom", "pre-api"
+                           ))
+                           .properties(MkLiveEventProperties.builder()
+                                                            .encoding(new LiveEventEncoding()
+                                                                          .withEncodingType(LiveEventEncodingType.STANDARD)
+                                                            )
+                                                            .description(captureSession.getBookingId().toString())
+                                                            .useStaticHostname(true)
+                                                            .input(new LiveEventInput()
+                                                                       .withStreamingProtocol(LiveEventInputProtocol.RTMP)
+                                                                       .withKeyFrameIntervalDuration("PT6S")
+                                                                       .withAccessToken(accessToken.toString())
+                                                                       .withAccessControl(
+                                                                           new LiveEventInputAccessControl()
+                                                                               .withIp(new IpAccessControl()
+                                                                                           .withAllow(List.of(new IpRange()
+                                                                                                                  .withName(
+                                                                                                                      "AllowAll")
+                                                                                                                  .withAddress(
+                                                                                                                      "0.0.0.0")
+                                                                                                                  .withSubnetPrefixLength(
+                                                                                                                      0)))
+                                                                               )))
+                                                            .preview(new LiveEventPreview()
+                                                                         .withAccessControl(
+                                                                             new LiveEventPreviewAccessControl()
+                                                                                 .withIp(new IpAccessControl()
+                                                                                             .withAllow(List.of(new IpRange()
+                                                                                                                    .withName(
+                                                                                                                        "AllowAll")
+                                                                                                                    .withAddress(
+                                                                                                                        "0.0.0.0")
+                                                                                                                    .withSubnetPrefixLength(
+                                                                                                                        0)))
+                                                                                 )))
+                                                            .build())
+                           .build()
             );
         } catch (FeignException.Conflict e) {
-            // do nothing
-        } catch (FeignException e) {
-            throw new MediaKindException();
+            logger.info("Live Event already exists. Continuing...");
         }
     }
 
@@ -315,15 +304,21 @@ public class MediaKind implements IMediaService {
     private void assertStreamingEndpointExists(UUID liveEventId) {
         var streamingEndpointName = getShortenedLiveEventId(liveEventId);
         var streamingEndpointBody = MkStreamingEndpoint.builder()
-            .location("uksouth")
-            .tags(Map.of("environment", this.environmentTag,
-                   "application", "pre-recorded evidence"))
-            .properties(MkStreamingEndpointProperties.builder()
-                            .description("Streaming Endpoint for " + streamingEndpointName)
-                            .scaleUnits(0)
-                            .sku(MkStreamingEndpointSku.builder().name(Tier.Standard).build())
-                            .build())
-            .build();
+                                                       .location("uksouth")
+                                                       .tags(Map.of("environment", this.environmentTag,
+                                                                    "application", "pre-recorded evidence"
+                                                       ))
+                                                       .properties(MkStreamingEndpointProperties.builder()
+                                                                                                .description(
+                                                                                                    "Streaming Endpoint for " + streamingEndpointName)
+                                                                                                .scaleUnits(0)
+                                                                                                .sku(
+                                                                                                    MkStreamingEndpointSku
+                                                                                                        .builder()
+                                                                                                        .name(Tier.Standard)
+                                                                                                        .build())
+                                                                                                .build())
+                                                       .build();
         try {
             mediaKindClient.createStreamingEndpoint(streamingEndpointName, streamingEndpointBody);
         } catch (ConflictException e) {
@@ -340,14 +335,17 @@ public class MediaKind implements IMediaService {
             logger.info("Creating Streaming locator");
             var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
-            mediaKindClient.createStreamingLocator(sanitisedLiveEventId,
-                                                   MkStreamingLocator.builder()
-                                                       .properties(MkStreamingLocatorProperties.builder()
-                                                           .assetName(getShortenedLiveEventId(liveEventId))
-                                                           .streamingLocatorId(sanitisedLiveEventId)
-                                                           .streamingPolicyName("Predefined_ClearStreamingOnly")
-                                                           .build()
-                                                       ).build());
+            mediaKindClient.createStreamingLocator(
+                sanitisedLiveEventId,
+                MkStreamingLocator.builder()
+                                  .properties(MkStreamingLocatorProperties.builder()
+                                                                          .assetName(getShortenedLiveEventId(liveEventId))
+                                                                          .streamingLocatorId(sanitisedLiveEventId)
+                                                                          .streamingPolicyName(
+                                                                              "Predefined_ClearStreamingOnly")
+                                                                          .build()
+                                  ).build()
+            );
         } catch (ConflictException e) {
             logger.info("Streaming locator already exists");
         } catch (Exception e) {
@@ -364,8 +362,8 @@ public class MediaKind implements IMediaService {
             p.getPaths().forEach(logger::info);
         });
         return paths.getStreamingPaths().stream()
-            .filter(p -> p.getEncryptionScheme() == EncryptionScheme.EnvelopeEncryption
-            && p.getStreamingProtocol() == StreamingProtocol.Hls)
+                    .filter(p -> p.getEncryptionScheme() == EncryptionScheme.EnvelopeEncryption
+                        && p.getStreamingProtocol() == StreamingProtocol.Hls)
                     .flatMap(path -> path.getPaths().stream())
                     .findFirst()
                     .map(p -> "https://" + p)
