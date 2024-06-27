@@ -38,9 +38,6 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @Column(name = "version", nullable = false)
     private int version;
 
-    @Column(name = "url")
-    private String url;
-
     @Column(name = "filename", nullable = false)
     private String filename;
 

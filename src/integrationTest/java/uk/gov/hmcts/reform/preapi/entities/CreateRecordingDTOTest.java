@@ -58,7 +58,6 @@ class CreateRecordingDTOTest {
         Recording testRecording = new Recording();
         testRecording.setCaptureSession(captureSession);
         testRecording.setVersion(1);
-        testRecording.setUrl("TestUrl");
         testRecording.setFilename("TestFilename");
         testRecording.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         testRecording.setEditInstruction("{\"instruction\":\"TestInstruction\"}");
@@ -84,7 +83,6 @@ class CreateRecordingDTOTest {
             "Parent recording should match"
         );
         assertEquals(testRecording.getVersion(), retrievedRecording.getVersion(), "Version should match");
-        assertEquals(testRecording.getUrl(), retrievedRecording.getUrl(), "Url should match");
         assertEquals(
             testRecording.getFilename(),
             retrievedRecording.getFilename(),
