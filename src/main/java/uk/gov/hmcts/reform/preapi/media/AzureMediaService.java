@@ -162,7 +162,6 @@ public class AzureMediaService implements IMediaService {
     @Transactional(dontRollbackOn = Exception.class)
     public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
         var liveEventName = uuidToNameString(captureSession.getId());
-        System.out.println("NAME: " + liveEventName);
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
@@ -298,7 +297,6 @@ public class AzureMediaService implements IMediaService {
                 TimeUnit.MILLISECONDS.sleep(10000); // wait 10 seconds
             }
             job = amsClient.getJobs().get(resourceGroup, accountName, ENCODE_TO_MP4_TRANSFORM, jobName);
-            System.out.println("Checking Encode Job: " + job.state());
         } while (!job.state().equals(JobState.FINISHED));
     }
 
