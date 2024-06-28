@@ -243,8 +243,8 @@ ext {
 
 def versions = [
   jackson         : '2.17.1',
-  junit           : '5.10.2',
-  junitPlatform   : '1.10.2',
+  junit           : '5.10.3',
+  junitPlatform   : '1.10.3',
   reformLogging   : '5.1.5',
   springBoot      : springBoot.class.package.implementationVersion
 ]
