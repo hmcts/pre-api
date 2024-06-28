@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -112,4 +113,44 @@ public class MediaServiceController extends PreApiController {
 
         return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
     }
+
+    @PutMapping("/live-event/end/{captureSessionId}")
+    @Operation(operationId = "stopLiveEvent", summary = "Stop a live event")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> stopLiveEvent(
+        @PathVariable UUID captureSessionId
+    ) throws InterruptedException {
+        var recordingId = UUID.randomUUID();
+        var dto = captureSessionService.findById(captureSessionId);
+
+        if (dto.getFinishedAt() != null) {
+            return ResponseEntity.ok(dto);
+        }
+
+        if (dto.getStartedAt() == null) {
+            // todo custom error here (bad request)
+            throw new NotFoundException("Live event for capture session: " + captureSessionId + " not started");
+        }
+
+        if (dto.getStatus() != RecordingStatus.STANDBY && dto.getStatus() != RecordingStatus.RECORDING) {
+            // todo change to new error in other pr that is for wrong status
+            throw new ConflictException("Capture Session: " + captureSessionId + " has wrong status");
+        }
+
+        dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
+
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        try {
+            var status = mediaService.stopLiveEvent(dto, recordingId);
+            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
+        } catch (Exception e) {
+            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
+            throw e;
+        }
+
+        return ResponseEntity.ok(dto);
+
+    }
+
+
 }
