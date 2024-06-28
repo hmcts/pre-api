@@ -3,8 +3,10 @@ package uk.gov.hmcts.reform.preapi.media;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface IMediaService {
     String playAsset(String assetId);
@@ -21,9 +23,9 @@ public interface IMediaService {
 
     String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException;
 
+    RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
+
     /*
     String playLiveEvent(String liveEventId);
-
-    String stopLiveEvent(String liveEventId);
     */
 }

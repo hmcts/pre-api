@@ -12,12 +12,14 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import feign.FeignException;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -110,8 +112,13 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    @Transactional(dontRollbackOn = Exception.class)
+    public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) {
+        throw new UnsupportedOperationException();
+    }
 
+    @Override
+    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
         var liveEventName = uuidToNameString(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
