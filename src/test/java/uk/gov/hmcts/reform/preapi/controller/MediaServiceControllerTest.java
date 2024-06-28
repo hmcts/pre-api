@@ -254,6 +254,26 @@ public class MediaServiceControllerTest {
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
     }
 
+    @DisplayName("Should return 200 with complete capture session withough calling mediakind")
+    @Test
+    void playLiveEventAlreadyRecordings() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSession.setLiveOutputUrl("https://www.gov.uk");
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
+        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
+
+        verify(mediaService, never()).playLiveEvent(any());
+    }
+
     @DisplayName("Should return 404 when capture session doesn't exist")
     @Test
     void captureSession404() throws Exception {
@@ -405,5 +425,25 @@ public class MediaServiceControllerTest {
                            .value("Not found: live event error"));
 
         verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, null);
+    }
+
+    @DisplayName("Should return an error if capture session in wrong state")
+    @Test
+    void startLiveEventCaptureSessionBadState() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStatus(RecordingStatus.FAILURE);
+
+        when(captureSessionService.findById(captureSessionId))
+            .thenReturn(dto);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+               .andExpect(status().is4xxClientError())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Resource Capture Session("
+                                     + captureSessionId
+                                     + ") is in a FAILURE state. Expected state is INITIALISING."));
     }
 }
