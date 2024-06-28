@@ -726,7 +726,7 @@ public class AzureMediaServiceTest {
 
         when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
         var e = mockAmsError(404);
         doThrow(e).when(streamingEndpointClient).stop(any(), any(), any());
@@ -759,7 +759,7 @@ public class AzureMediaServiceTest {
 
         when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
         var e = mockAmsError(500);
         doThrow(e).when(streamingEndpointClient).stop(any(), any(), any());
@@ -793,7 +793,7 @@ public class AzureMediaServiceTest {
 
         when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
         var e = mockAmsError(404);
         doThrow(e).when(streamingLocatorClient).delete(any(), any(), any());
@@ -816,7 +816,7 @@ public class AzureMediaServiceTest {
     @DisplayName("Should throw error when error occurs deleting streaming locator")
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     @Test
-    void stopLiveEventStreamingLocatorError() throws InterruptedException {
+    void stopLiveEventStreamingLocatorError()  {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var assetsClient = mockAssetsClient();
@@ -828,7 +828,7 @@ public class AzureMediaServiceTest {
 
         when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
         var e = mockAmsError(500);
         doThrow(e).when(streamingLocatorClient).delete(any(), any(), any());
@@ -864,7 +864,7 @@ public class AzureMediaServiceTest {
 
         when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
         var e = mockAmsError(404);
         doThrow(e).when(liveOutputClient).delete(any(), any(), any(), any());
@@ -887,7 +887,7 @@ public class AzureMediaServiceTest {
     @DisplayName("Should throw error when error occurs attempting to delete live output")
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     @Test
-    void stopLiveEventLiveOutputError() throws InterruptedException {
+    void stopLiveEventLiveOutputError() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var assetsClient = mockAssetsClient();
@@ -900,7 +900,7 @@ public class AzureMediaServiceTest {
 
         when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
         var e = mockAmsError(500);
         doThrow(e).when(liveOutputClient).delete(any(), any(), any(), any());

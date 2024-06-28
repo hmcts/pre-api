@@ -596,7 +596,7 @@ public class CaptureSessionServiceTest {
         assertThat(model.getFinishedAt()).isNotNull();
 
         verify(recordingService, never()).upsert(any());
-        verify(captureSessionRepository, times(1)).save(any());
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
     }
 
     @DisplayName("Should update capture session when status is RECORDING_AVAILABLE")
@@ -622,7 +622,7 @@ public class CaptureSessionServiceTest {
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
         verify(recordingService, times(1)).upsert(any());
-        verify(captureSessionRepository, times(1)).save(any());
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
     }
 
     @DisplayName("Should update capture session when status is NO_RECORDING")
@@ -648,7 +648,7 @@ public class CaptureSessionServiceTest {
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
 
         verify(recordingService, never()).upsert(any());
-        verify(captureSessionRepository, times(1)).save(any());
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
     }
 
     @DisplayName("Should throw not found error when capture session does not exist")

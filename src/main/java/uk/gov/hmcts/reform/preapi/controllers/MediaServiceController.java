@@ -120,7 +120,6 @@ public class MediaServiceController extends PreApiController {
     public ResponseEntity<CaptureSessionDTO> stopLiveEvent(
         @PathVariable UUID captureSessionId
     ) throws InterruptedException {
-        var recordingId = UUID.randomUUID();
         var dto = captureSessionService.findById(captureSessionId);
 
         if (dto.getFinishedAt() != null) {
@@ -137,6 +136,7 @@ public class MediaServiceController extends PreApiController {
             throw new ConflictException("Capture Session: " + captureSessionId + " has wrong status");
         }
 
+        var recordingId = UUID.randomUUID();
         dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();

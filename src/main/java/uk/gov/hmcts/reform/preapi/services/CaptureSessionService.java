@@ -199,7 +199,7 @@ public class CaptureSessionService {
     @Transactional
     public CaptureSessionDTO stopCaptureSession(UUID captureSessionId, RecordingStatus status, UUID recordingId) {
         var captureSession = captureSessionRepository
-            .findById(captureSessionId)
+            .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
 
         captureSession.setStatus(status);
