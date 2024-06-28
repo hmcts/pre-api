@@ -570,7 +570,7 @@ public class AzureMediaServiceTest {
 
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
         verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
-        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(jobsClient, times(2)).get(any(), any(), any(), any());
         verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
         verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
         verify(liveEventClient, times(1)).delete(any(), any(), any());
@@ -603,7 +603,7 @@ public class AzureMediaServiceTest {
 
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
         verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
-        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(jobsClient, times(2)).get(any(), any(), any(), any());
         verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
         verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
         verify(liveEventClient, times(1)).delete(any(), any(), any());
