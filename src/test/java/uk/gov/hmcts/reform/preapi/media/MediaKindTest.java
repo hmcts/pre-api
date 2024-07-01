@@ -15,16 +15,9 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
-import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
-import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
-import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
-import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorList;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
+import uk.gov.hmcts.reform.preapi.media.dto.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -522,5 +515,60 @@ public class MediaKindTest {
         assertThat(playbackUrl).isEqualTo(playbackDTO);
 
         verify(mockClient, times(1)).getAsset(assetName);
+    }
+
+    @DisplayName("Should return the playback URL for the asset, after creating a new streaming locator")
+    @Test
+    void playAssetCreateStreamingLocatorSuccess() {
+        var assetName = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+        var existingStreamingLocator = createMkStreamingLocator(UUID.randomUUID().toString());
+        var newStreamingLocatorProperties = MkCreateStreamingLocator.MkCreateStreamingLocatorProperties.builder()
+            .assetName(assetName)
+            .streamingPolicyName("Predefined_ClearStreamingOnly")
+            .endTime(Instant.now().plusSeconds(3600).toString())
+            .build();
+        var newStreamingLocator = MkCreateStreamingLocator.builder().properties(newStreamingLocatorProperties).build();
+        var streamingLocatorList = MkStreamingLocatorList.builder()
+            .streamingLocators(List.of(existingStreamingLocator))
+            .build();
+        var streamingEndpoint = MkStreamingEndpoint.builder()
+            .name("default")
+            .properties(MkStreamingEndpoint.MkStreamingEndpointProperties.builder()
+                            .hostName("https://example.com/")
+                            .build())
+            .build();
+        var streamingPaths = MkStreamingLocatorPaths.builder()
+            .streamingPaths(List.of(
+                MkStreamingLocatorPaths.MkStreamingPath.builder()
+                    .encryptionScheme("ClearKey")
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol("Hls")
+                    .build(),
+                MkStreamingLocatorPaths.MkStreamingPath.builder()
+                    .encryptionScheme("ClearKey")
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol("Dash")
+                    .build()
+            ))
+            .build();
+
+        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingEndpointByName("default")).thenReturn(streamingEndpoint);
+        when(mockClient.getAsset(assetName)).thenReturn(asset);
+        when(mockClient.getAssetStreamingLocators(assetName)).thenReturn(streamingLocatorList);
+        when(mockClient.putStreamingLocator(userId, newStreamingLocator)).thenReturn(existingStreamingLocator);
+
+        var playbackUrl = mediaKind.playAsset(assetName, userId);
+        var playbackDTO = new PlaybackDTO(
+            "https://example.com/playback/" + assetName,
+            "https://example.com/playback/" + assetName,
+            "");
+
+        assertThat(playbackUrl).isEqualTo(playbackDTO);
+
+        verify(mockClient, times(1)).getAsset(assetName);
+        verify(mockClient, times(1)).putStreamingLocator(any(), any());
     }
 }
