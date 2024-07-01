@@ -11,6 +11,8 @@ import java.util.UUID;
 public interface IMediaService {
     String playAsset(String assetId);
 
+    String playLiveEvent(UUID liveEventId);
+
     String importAsset(String assetPath);
 
     AssetDTO getAsset(String assetId);

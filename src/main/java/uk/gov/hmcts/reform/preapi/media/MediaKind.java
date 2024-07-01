@@ -13,6 +13,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -60,6 +61,11 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String playAsset(String assetId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String playLiveEvent(@NotNull UUID liveEventId) {
         throw new UnsupportedOperationException();
     }
 
