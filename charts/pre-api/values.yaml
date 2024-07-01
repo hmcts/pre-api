@@ -39,5 +39,3 @@ java:
     MEDIA_KIND_SUBSCRIPTION: "pre-mediakind-{{ .Values.global.environment }}"
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     PLATFORM_ENV_TAG: Production
-
-
