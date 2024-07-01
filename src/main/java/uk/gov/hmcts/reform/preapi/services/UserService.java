@@ -141,6 +141,7 @@ public class UserService {
             entity
                 .getAppAccess()
                 .stream()
+                .filter(appAccess -> appAccess.getDeletedAt() == null)
                 .map(AppAccess::getId)
                 .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
