@@ -3,8 +3,11 @@ package uk.gov.hmcts.reform.preapi.media;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.StreamingLocatorInner;
 import com.azure.resourcemanager.mediaservices.models.Hls;
 import com.azure.resourcemanager.mediaservices.models.IpAccessControl;
 import com.azure.resourcemanager.mediaservices.models.IpRange;
@@ -16,6 +19,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import jakarta.transaction.Transactional;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,6 +28,8 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -34,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 @Service
@@ -100,6 +107,135 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
+    public String playLiveEvent(@NotNull UUID liveEventId) {
+        assertLiveEventExists(liveEventId);
+        String hostname;
+        try {
+            hostname = getStreamingEndpointHostname(liveEventId);
+            amsClient.getStreamingEndpoints().start(resourceGroup, accountName, getShortenedLiveEventId(liveEventId));
+        } catch (Exception ex) {
+            Logger.getAnonymousLogger().info("Error creating streaming endpoint: " + ex.getMessage());
+            throw ex;
+        }
+
+        assertStreamingLocatorExists(liveEventId);
+
+
+        var paths = amsClient.getStreamingLocators()
+                             .listPaths(resourceGroup, accountName, getSanitisedLiveEventId(liveEventId));
+
+        return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
+    }
+
+    private String getSanitisedLiveEventId(UUID liveEventId) {
+        return liveEventId.toString().replace("-", "");
+    }
+
+    private String getShortenedLiveEventId(UUID liveEventId) {
+        return getSanitisedLiveEventId(liveEventId).substring(0, 23);
+    }
+
+    private String getStreamingEndpointHostname(@NotNull UUID liveEventId) {
+        Logger.getAnonymousLogger().info("creating streaming endpoint");
+        try {
+            return createStreamingEndpoint(liveEventId).hostname();
+        } catch (Exception e) {
+            Logger.getAnonymousLogger().severe("Error creating streaming endpoint: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    private StreamingEndpointInner createStreamingEndpoint(@NotNull UUID liveEventId) {
+        var streamingEndpointName = getShortenedLiveEventId(liveEventId);
+        try {
+            return amsClient.getStreamingEndpoints()
+                            .create(
+                                resourceGroup,
+                                accountName,
+                                streamingEndpointName,
+                                new StreamingEndpointInner()
+                                    .withLocation("UK South")
+                                    .withTags(Map.of(
+                                        "environment", this.environmentTag,
+                                        "application", "pre-recorded evidence",
+                                        "businessArea", "cross-cutting",
+                                        "builtFrom", "azure portal"
+                                    ))
+                                    .withDescription(
+                                        "Streaming Endpoint for " + streamingEndpointName
+                                    )
+                            );
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 409) {
+                return amsClient.getStreamingEndpoints()
+                                .get(resourceGroup, accountName, streamingEndpointName);
+            }
+            throw e;
+        }
+    }
+
+    private void assertStreamingLocatorExists(UUID liveEventId) {
+
+        try {
+            Logger.getAnonymousLogger().info("Creating Streaming locator");
+            var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+            var streamingLocatorProperties = new StreamingLocatorInner()
+                .withAssetName(sanitisedLiveEventId)
+                .withStreamingPolicyName("Predefined_ClearStreamingOnly")
+                .withStreamingLocatorId(liveEventId);
+
+            amsClient.getStreamingLocators().create(resourceGroup,
+                                                    accountName,
+                                                    sanitisedLiveEventId,
+                                                    streamingLocatorProperties);
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 409) {
+                Logger.getAnonymousLogger().info("Streaming locator already exists");
+                return;
+            }
+            throw e;
+        }
+    }
+
+    private void assertLiveEventExists(@NotNull UUID liveEventId) {
+        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+        try {
+            var liveEvent = amsClient.getLiveEvents().get(resourceGroup, accountName, sanitisedLiveEventId);
+            if (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING)) {
+                throw new AMSLiveEventNotRunningException(sanitisedLiveEventId);
+            }
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                throw new AMSLiveEventNotFoundException(sanitisedLiveEventId);
+            }
+            throw e;
+        }
+    }
+
+    private String parseLiveOutputUrlFromStreamingLocatorPaths(String streamingEndpointHostname,
+                                                               @NotNull ListPathsResponseInner paths) {
+        Logger.getAnonymousLogger().info("parsing live output url from streaming locator paths");
+        Logger.getAnonymousLogger().info(streamingEndpointHostname);
+        paths.streamingPaths().forEach(p -> Logger.getAnonymousLogger().info(p.paths().toString()));
+        return paths.streamingPaths().stream()
+            .flatMap(path -> path.paths().stream())
+            .map(p -> "https://" + streamingEndpointHostname + p)
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
+    }
+
+    /*
+    @Override
+    public String startLiveEvent(String liveEventId) {
+        throw new UnsupportedOperationException();
+    }
+    @Override
+    public String stopLiveEvent(String liveEventId) {
+        throw new UnsupportedOperationException();
+    }
+    */
+
+    @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
         try {
             return new LiveEventDTO(amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName));
@@ -123,9 +259,9 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     @Transactional(dontRollbackOn = Exception.class)
-    @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSessionId)")
+    @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
     public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
-        var liveEventName = uuidToNameString(captureSession.getId());
+        var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession);
@@ -239,7 +375,7 @@ public class AzureMediaService implements IMediaService {
             amsClient.getLiveEvents().create(
                 resourceGroup,
                 accountName,
-                uuidToNameString(captureSession.getId()),
+                getSanitisedLiveEventId(captureSession.getId()),
                 new LiveEventInner()
                     .withLocation(LOCATION)
                     .withTags(Map.of(
@@ -282,9 +418,5 @@ public class AzureMediaService implements IMediaService {
             }
             throw e;
         }
-    }
-
-    private String uuidToNameString(UUID id) {
-        return id.toString().replace("-", "");
     }
 }

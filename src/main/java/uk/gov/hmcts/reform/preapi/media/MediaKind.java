@@ -12,6 +12,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import feign.FeignException;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -117,6 +118,11 @@ public class MediaKind implements IMediaService {
             hls != null ? hostName + hls.getPaths().getFirst() : null,
             ""
         );
+    }
+
+    @Override
+    public String playLiveEvent(@NotNull UUID liveEventId) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

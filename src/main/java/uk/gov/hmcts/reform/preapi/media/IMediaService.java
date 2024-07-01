@@ -6,9 +6,12 @@ import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface IMediaService {
     PlaybackDTO playAsset(String assetId, String userId);
+
+    String playLiveEvent(UUID liveEventId);
 
     String importAsset(String assetPath);
 
@@ -23,7 +26,6 @@ public interface IMediaService {
     String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException;
 
     /*
-    String playLiveEvent(String liveEventId);
 
     String stopLiveEvent(String liveEventId);
     */
