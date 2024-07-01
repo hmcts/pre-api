@@ -21,6 +21,11 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         """
         SELECT u FROM User u
         WHERE (:includeDeleted = TRUE OR u.deletedAt IS NULL)
+        AND (:isAppActive IS NULL OR EXISTS(
+            SELECT 1 FROM u.appAccess aa
+            WHERE aa.active = :isAppActive
+            AND (CAST(:courtId as uuid) IS NULL OR aa.court.id = :courtId)
+        ))
         AND (
             CASE
                 WHEN :name IS NULL AND :email IS NULL THEN 1
@@ -56,6 +61,7 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         @Param("isPortalUser") Boolean isPortalUser,
         @Param("isAppUser") Boolean isAppUser,
         boolean includeDeleted,
+        @Param("isAppActive") Boolean isAppActive,
         Pageable pageable
     );
 

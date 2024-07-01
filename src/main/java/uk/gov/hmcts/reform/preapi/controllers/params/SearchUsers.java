@@ -14,6 +14,7 @@ public class SearchUsers {
     private UUID roleId;
     private AccessType accessType;
     private Boolean includeDeleted;
+    private Boolean appActive;
 
     public String getName() {
         return name != null && !name.isEmpty() ? name : null;
