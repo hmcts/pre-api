@@ -82,11 +82,6 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String playLiveEvent(@NotNull UUID liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public String importAsset(String assetPath) {
         throw new UnsupportedOperationException();
     }
