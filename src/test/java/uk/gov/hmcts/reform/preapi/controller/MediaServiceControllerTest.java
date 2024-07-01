@@ -416,10 +416,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isNotFound())
+            .andExpect(status().isBadRequest())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Not found: Live event for capture session: " + captureSessionId + " not started"));
+                           .value("Resource: Capture Session(" + captureSessionId + ") has not been started."));
     }
 
     @DisplayName("Should throw 400 error when capture session in wrong status")
@@ -434,10 +434,12 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isConflict())
+            .andExpect(status().isBadRequest())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Conflict: Capture Session: " + captureSessionId + " has wrong status"));
+                           .value("Resource Capture Session("
+                                      + captureSessionId
+                                      + ") is in a FAILURE state. Expected state is STANDBY or RECORDING."));
     }
 
     @DisplayName("Should update capture session when media service encounters error and return the error")

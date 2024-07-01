@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
@@ -127,13 +128,18 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (dto.getStartedAt() == null) {
-            // todo custom error here (bad request)
-            throw new NotFoundException("Live event for capture session: " + captureSessionId + " not started");
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") has not been started.");
         }
 
         if (dto.getStatus() != RecordingStatus.STANDBY && dto.getStatus() != RecordingStatus.RECORDING) {
-            // todo change to new error in other pr that is for wrong status
-            throw new ConflictException("Capture Session: " + captureSessionId + " has wrong status");
+            throw new ResourceInWrongStateException(
+                "Capture Session",
+                captureSessionId.toString(),
+                dto.getStatus().toString(),
+                "STANDBY or RECORDING"
+            );
         }
 
         var recordingId = UUID.randomUUID();

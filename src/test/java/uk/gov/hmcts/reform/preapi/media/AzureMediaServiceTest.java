@@ -24,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -669,10 +670,10 @@ public class AzureMediaServiceTest {
         doThrow(e).when(liveEventClient).stop(any(), any(), any(), any());
 
         var message = assertThrows(
-            NotFoundException.class,
+            AMSLiveEventNotFoundException.class,
             () -> mediaService.stopLiveEvent(captureSession, recordingId)
         ).getMessage();
-        assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
+        assertThat(message).isEqualTo("AMS Live event not found with id " + liveEventName);
 
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
         verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());

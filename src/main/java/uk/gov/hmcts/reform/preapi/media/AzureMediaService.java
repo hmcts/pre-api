@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -149,10 +150,8 @@ public class AzureMediaService implements IMediaService {
             : RecordingStatus.NO_RECORDING;
 
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
-        // todo use shortened (24) capture session name instead
-        stopAndDeleteStreamingEndpoint(captureSessionNoHyphen);
-        // todo use shortened (24) capture session name instead
-        deleteStreamingLocator(captureSessionNoHyphen);
+        stopAndDeleteStreamingEndpoint(captureSessionNoHyphen.substring(0, 23));
+        deleteStreamingLocator(captureSessionNoHyphen.substring(0, 23));
         deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;
@@ -208,12 +207,10 @@ public class AzureMediaService implements IMediaService {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
-                // todo use live event not found error (awaiting other pr merge)
-                throw new NotFoundException("Live Event: " + liveEventName);
+                throw new AMSLiveEventNotFoundException(liveEventName);
             }
             throw e;
         }
-        // todo live event not running
     }
 
     private void stopAndDeleteStreamingEndpoint(String endpointName) {
@@ -276,18 +273,10 @@ public class AzureMediaService implements IMediaService {
                             new JobOutputAsset()
                                 .withAssetName(outputAssetName)
                         ))
-                        .withCorrelationData(Map.of(
-                            // TODO matching flow not needed
-                            "Key1", "value1",
-                            "Key2", "value2"
-                        ))
                 );
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         }
-        // todo catch input asset not found
-        // todo catch output asset not found
-        // todo conflict (already started job)
     }
 
     private void checkEncodeComplete(String jobName) throws InterruptedException {
