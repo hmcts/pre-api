@@ -208,8 +208,8 @@ public class AzureMediaService implements IMediaService {
         paths.streamingPaths().forEach(p -> Logger.getAnonymousLogger().info(p.paths().toString()));
         return paths.streamingPaths().stream()
             .flatMap(path -> path.paths().stream())
-            .map(p -> "https://" + streamingEndpointHostname + p)
             .findFirst()
+            .map(p -> "https://" + streamingEndpointHostname + p)
             .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
     }
 

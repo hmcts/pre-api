@@ -13,8 +13,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import feign.FeignException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -54,14 +53,13 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortened
 
 
 @Service
+@Slf4j
 public class MediaKind implements IMediaService {
     private final String ingestStorageAccount;
     private final String environmentTag;
     private final String subscription;
 
     private final MediaKindClient mediaKindClient;
-
-    private static final Logger logger = LoggerFactory.getLogger(MediaKind.class);
 
     private static final String LOCATION = "uksouth";
 
@@ -112,7 +110,7 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.startStreamingEndpoint(getShortenedLiveEventId(liveEventId));
         } catch (Exception ex) {
-            logger.error("Error starting streaming endpoint: " + ex.getMessage());
+            log.error("Error starting streaming endpoint: " + ex.getMessage());
             throw ex;
         }
 
@@ -272,7 +270,7 @@ public class MediaKind implements IMediaService {
                            .build()
             );
         } catch (FeignException.Conflict e) {
-            logger.info("Live Event already exists. Continuing...");
+            log.info("Live Event already exists. Continuing...");
         }
     }
 
@@ -305,7 +303,7 @@ public class MediaKind implements IMediaService {
                 throw new LiveEventNotRunningException(sanitisedLiveEventId);
             }
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            log.error(e.getMessage());
             throw e;
         }
     }
@@ -337,9 +335,9 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.createStreamingEndpoint(streamingEndpointName, streamingEndpointBody);
         } catch (ConflictException e) {
-            logger.info("Streaming endpoint already exists");
+            log.info("Streaming endpoint already exists");
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            log.error(e.getMessage());
             throw e;
         }
     }
@@ -347,7 +345,7 @@ public class MediaKind implements IMediaService {
     private void assertStreamingLocatorExists(UUID liveEventId) {
 
         try {
-            logger.info("Creating Streaming locator");
+            log.info("Creating Streaming locator");
             var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
             mediaKindClient.createStreamingLocator(
@@ -362,19 +360,19 @@ public class MediaKind implements IMediaService {
                                   ).build()
             );
         } catch (ConflictException e) {
-            logger.info("Streaming locator already exists");
+            log.info("Streaming locator already exists");
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            log.error(e.getMessage());
             throw e;
         }
     }
 
     private String parseLiveOutputUrlFromStreamingLocatorPaths(UUID liveEventId, MkStreamingLocatorUrlPaths paths) {
-        logger.info("parsing live output url from streaming locator paths");
+        log.info("parsing live output url from streaming locator paths");
         paths.getStreamingPaths().forEach(p -> {
-            logger.info(String.valueOf(p.getEncryptionScheme()));
-            logger.info(String.valueOf(p.getStreamingProtocol()));
-            p.getPaths().forEach(logger::info);
+            log.info(String.valueOf(p.getEncryptionScheme()));
+            log.info(String.valueOf(p.getStreamingProtocol()));
+            p.getPaths().forEach(log::info);
         });
         return paths.getStreamingPaths().stream()
                     .filter(p -> p.getEncryptionScheme() == EncryptionScheme.NoEncryption
