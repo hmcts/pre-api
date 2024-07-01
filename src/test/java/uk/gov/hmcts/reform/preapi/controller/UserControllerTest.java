@@ -966,8 +966,7 @@ public class UserControllerTest {
             anyBoolean(),
             isNull(),
             any()
-        ))
-            .thenReturn(new PageImpl<>(List.of()));
+        )).thenReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/users")
                             .with(csrf())

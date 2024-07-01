@@ -201,8 +201,18 @@ public class UserServiceTest {
     @Test
     void findAllUsersFirstNameFilterSuccess() {
         when(
-            userRepository.searchAllBy(userEntity.getFirstName(), null, null, null, null, false, false, false, null, null)
-        ).thenReturn(new PageImpl<>(List.of(userEntity)));
+            userRepository.searchAllBy(
+                userEntity.getFirstName(),
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                false,
+                null,
+                null
+            )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
         var models = userService.findAllBy(userEntity.getFirstName(), null, null, null, null, null, false, null, null);
         assertThat(models.isEmpty()).isFalse();
