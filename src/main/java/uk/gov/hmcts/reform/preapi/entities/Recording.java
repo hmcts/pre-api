@@ -16,6 +16,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -25,7 +26,7 @@ import java.util.HashMap;
 @Setter
 @Entity
 @Table(name = "recordings")
-public class Recording extends BaseEntity {
+public class Recording extends BaseEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "capture_session_id", referencedColumnName = "id")
     private CaptureSession captureSession;
@@ -61,6 +62,9 @@ public class Recording extends BaseEntity {
     @Transient
     private boolean deleted;
 
+    @Transient
+    private boolean isSoftDeleteOperation;
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
@@ -77,5 +81,15 @@ public class Recording extends BaseEntity {
         details.put("recordingEditInstruction", editInstruction);
         details.put("deleted", isDeleted());
         return details;
+    }
+
+    @Override
+    public void setDeleteOperation(boolean deleteOperation) {
+        this.isSoftDeleteOperation = deleteOperation;
+    }
+
+    @Override
+    public boolean isDeleteOperation() {
+        return this.isSoftDeleteOperation;
     }
 }

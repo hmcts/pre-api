@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.exception.UnauditableTableException;
@@ -44,7 +45,11 @@ public class AuditListener {
 
     @PreUpdate
     public void preUpdate(BaseEntity entity) {
-        audit(entity, AuditAction.UPDATE);
+        if (entity instanceof ISoftDeletable && ((ISoftDeletable) entity).isDeleteOperation()) {
+            audit(entity, AuditAction.DELETE);
+        } else {
+            audit(entity, AuditAction.UPDATE);
+        }
     }
 
     @PreRemove

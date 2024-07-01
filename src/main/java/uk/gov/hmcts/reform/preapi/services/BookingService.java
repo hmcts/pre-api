@@ -23,12 +23,12 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 @Service
 @SuppressWarnings("PMD.SingularField")
@@ -70,12 +70,12 @@ public class BookingService {
     }
 
     public Page<BookingDTO> searchBy(
-        @Nullable UUID caseId,
-        @Nullable String caseReference,
-        @Nullable UUID courtId,
+        UUID caseId,
+        String caseReference,
+        UUID courtId,
         Optional<Timestamp> scheduledFor,
-        @Nullable UUID participantId,
-        @Nullable Boolean hasRecordings,
+        UUID participantId,
+        Boolean hasRecordings,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -164,14 +164,14 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void markAsDeleted(UUID id) {
-        var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
-        if (entity.isEmpty()) {
-            throw new NotFoundException("Booking: " + id);
-        }
-        var booking = entity.get();
+        var booking = bookingRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("Booking: " + id));
         captureSessionService.deleteCascade(booking);
         shareBookingService.deleteCascade(booking);
-        bookingRepository.deleteById(id);
+        booking.setDeleteOperation(true);
+        booking.setDeletedAt(Timestamp.from(Instant.now()));
+        bookingRepository.saveAndFlush(booking);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -190,10 +190,12 @@ public class BookingService {
     public void deleteCascade(Case caseEntity) {
         bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(caseEntity)
-            .forEach((booking) -> {
+            .forEach(booking -> {
                 captureSessionService.deleteCascade(booking);
                 shareBookingService.deleteCascade(booking);
+                booking.setDeleteOperation(true);
+                booking.setDeletedAt(Timestamp.from(Instant.now()));
+                bookingRepository.save(booking);
             });
-        bookingRepository.deleteAllByCaseId(caseEntity);
     }
 }

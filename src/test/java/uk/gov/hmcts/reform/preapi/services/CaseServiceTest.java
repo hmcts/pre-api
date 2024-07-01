@@ -370,7 +370,7 @@ class CaseServiceTest {
 
         verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseEntity.getId());
         verify(bookingService, times(1)).deleteCascade(caseEntity);
-        verify(caseRepository, times(1)).deleteById(caseEntity.getId());
+        verify(caseRepository, times(1)).saveAndFlush(caseEntity);
     }
 
     @Test

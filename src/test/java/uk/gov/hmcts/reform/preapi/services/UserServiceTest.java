@@ -462,6 +462,7 @@ public class UserServiceTest {
             .thenReturn(Optional.of(portalAccessEntity));
         when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
             .thenReturn(Optional.of(appAccessEntity));
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
         userService.deleteById(userEntity.getId());
 
@@ -470,7 +471,7 @@ public class UserServiceTest {
         verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessService, times(1)).deleteById(appAccessEntity.getId());
-        verify(userRepository, times(1)).deleteById(userEntity.getId());
+        verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
 
     @DisplayName("Delete a user by it's id when user is not attached to portal access or app access")
@@ -481,6 +482,7 @@ public class UserServiceTest {
             .thenReturn(Optional.empty());
         when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
             .thenReturn(Optional.empty());
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
         userService.deleteById(userEntity.getId());
 
@@ -489,7 +491,7 @@ public class UserServiceTest {
         verify(portalAccessRepository, never()).save(any());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessRepository, never()).save(any());
-        verify(userRepository, times(1)).deleteById(userEntity.getId());
+        verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
 
     @DisplayName("Delete a user when id doesn't exist")

@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
@@ -136,7 +137,11 @@ public class RecordingService {
             throw new NotFoundException("Recording: " + recordingId);
         }
 
-        recordingRepository.deleteById(recordingId);
+        var recordingEntity = recording.get();
+        recordingEntity.setDeleteOperation(true);
+        recordingEntity.setDeletedAt(Timestamp.from(Instant.now()));
+
+        recordingRepository.saveAndFlush(recordingEntity);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
