@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
@@ -29,7 +28,7 @@ public class InviteService {
     @Transactional
     public InviteDTO findByUserId(UUID userId) {
         return portalAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(userId)
             .map(InviteDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
@@ -66,7 +65,7 @@ public class InviteService {
     @Transactional
     public void deleteByUserId(UUID userId) {
         var portalAccess = portalAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndStatus(userId, AccessStatus.INVITATION_SENT)
+            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNullAndInvitedAtIsNotNull(userId)
             .orElseThrow(() -> new NotFoundException("User: " + userId));
         var user = portalAccess.getUser();
 
