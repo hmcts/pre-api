@@ -289,6 +289,7 @@ dependencies {
   implementation group: 'org.springframework.cloud', name: 'spring-cloud-starter-openfeign', version: '4.1.2'
 
   implementation group: 'com.azure', name: 'azure-identity', version: '1.13.0'
+  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.27.0-beta.1'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
 
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.5.2.Final')

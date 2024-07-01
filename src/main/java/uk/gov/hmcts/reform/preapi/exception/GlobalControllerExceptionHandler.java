@@ -178,12 +178,6 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(AMSLiveEventNotRunningException.class)
-    ResponseEntity<String> amsLiveEventNotRunningException(final AMSLiveEventNotRunningException e)
-        throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     @ExceptionHandler(ResourceInWrongStateException.class)
     ResponseEntity<String> resourceInWrongStateException(final ResourceInWrongStateException e)
         throws JsonProcessingException {
