@@ -580,4 +580,29 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).putStreamingLocator(any(), any());
     }
+
+    @DisplayName("Should throw 404 error when the streaming endpoint cannot be found")
+    @Test
+    void playAssetStreamingEndpointNotFound() {
+        var assetName = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+        var streamingLocator = createMkStreamingLocator(userId);
+        var streamingLocatorList = MkStreamingLocatorList.builder()
+            .streamingLocators(List.of(streamingLocator))
+            .build();
+
+        when(mockClient.getStreamingEndpointByName("default")).thenThrow(FeignException.NotFound.class);
+        when(mockClient.getAsset(assetName)).thenReturn(asset);
+        when(mockClient.getAssetStreamingLocators(assetName)).thenReturn(streamingLocatorList);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> mediaKind.playAsset(assetName, userId)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Streaming Endpoint: default");
+
+        verify(mockClient, times(1)).getAsset(assetName);
+        verify(mockClient, times(1)).getStreamingEndpointByName("default");
+    }
 }
