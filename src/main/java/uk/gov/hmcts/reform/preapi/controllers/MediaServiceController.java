@@ -96,11 +96,7 @@ public class MediaServiceController extends PreApiController {
         // todo: dont rely on naming convention, link asset name in db
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         var assetName = recordingId.toString().replace("-", "") + "_output";
-        var data = mediaService.playAsset(assetName, userId);
-        if (data == null) {
-            throw new NotFoundException("Asset: " + assetName);
-        }
-        return ResponseEntity.ok(data);
+        return ResponseEntity.ok(mediaService.playAsset(assetName, userId));
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")
