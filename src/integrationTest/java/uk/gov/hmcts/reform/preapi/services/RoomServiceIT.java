@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -13,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.util.Set;
 
+@Testcontainers
 public class RoomServiceIT extends IntegrationTestBase {
     @Autowired
     private RoomService roomService;

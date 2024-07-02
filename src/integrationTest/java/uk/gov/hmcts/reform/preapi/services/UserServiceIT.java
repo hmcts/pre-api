@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Court;
@@ -24,6 +25,7 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.UUID;
 
+@Testcontainers
 public class UserServiceIT extends IntegrationTestBase {
     private static User userEntity;
     private static User portalUserEntity;
