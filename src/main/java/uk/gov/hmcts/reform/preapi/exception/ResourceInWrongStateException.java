@@ -8,6 +8,10 @@ public class ResourceInWrongStateException extends RuntimeException {
                   + "Expected state is " + expectedState + ".");
     }
 
+    public ResourceInWrongStateException(String message) {
+        super(message);
+    }
+  
     public ResourceInWrongStateException(Exception exception) {
         super(exception);
     }
