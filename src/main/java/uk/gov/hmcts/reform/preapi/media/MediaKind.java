@@ -96,8 +96,6 @@ public class MediaKind implements IMediaService {
             paths = mediaKindClient.getStreamingLocatorPaths(userId);
         } catch (FeignException.NotFound e) {
             throw new NotFoundException("Streaming Locator: " + userId);
-        } catch (FeignException e) {
-            throw new MediaKindException();
         }
 
         var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Dash"))
