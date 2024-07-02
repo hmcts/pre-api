@@ -9,10 +9,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkCreateStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorList;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
 
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
@@ -27,6 +31,15 @@ public interface MediaKindClient {
 
     @PutMapping("/liveEvents/{liveEventName}")
     MkLiveEvent putLiveEvent(@PathVariable String liveEventName, @RequestBody MkLiveEvent mkLiveEvent);
+
+    @PostMapping("/assets/{assetName}/listStreamingLocators")
+    MkStreamingLocatorList getAssetStreamingLocators(@PathVariable String assetName);
+
+    @GetMapping("/streamingEndpoints/{endpointName}")
+    MkStreamingEndpoint getStreamingEndpointByName(@PathVariable String endpointName);
+
+    @PostMapping("/streamingLocators/{locatorName}/listPaths")
+    MkStreamingLocatorPaths getStreamingLocatorPaths(@PathVariable String locatorName);
 
     @GetMapping("/liveEvents")
     MkGetListResponse<MkLiveEvent> getLiveEvents(@RequestParam("$skipToken") int skipToken);
@@ -44,5 +57,5 @@ public interface MediaKindClient {
 
     @PutMapping("/streamingLocators/{locatorName}")
     MkStreamingLocator putStreamingLocator(@PathVariable String locatorName,
-                                           @RequestBody MkStreamingLocator mkStreamingLocator);
+                                           @RequestBody MkCreateStreamingLocator mkStreamingLocator);
 }

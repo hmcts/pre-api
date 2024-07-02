@@ -236,6 +236,25 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"));
     }
 
+    @DisplayName("Should return 200 and playback information")
+    @Test
+    void getVodSuccess() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var assetName = recordingId.toString().replace("-", "") + "_output";
+        var playback = HelperFactory.createPlayback("dash", "hls", "token");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.playAsset(assetName, "12345")).thenReturn(playback);
+
+        mockMvc.perform(get("/media-service/vod")
+                            .param("recordingId", recordingId.toString())
+                            .param("userId", "12345"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.dash_url").value("dash"))
+            .andExpect(jsonPath("$.hls_url").value("hls"))
+            .andExpect(jsonPath("$.token").value("token"));
+    }
+
     @DisplayName("Should return 200 with capture session once live event is started")
     @Test
     void startLiveEventSuccess() throws Exception {

@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -68,7 +69,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public String playAsset(String assetId) {
+    public PlaybackDTO playAsset(String assetId, String userId) {
         throw new UnsupportedOperationException();
     }
 
