@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -13,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @WebMvcTest(properties = {"dbMigration.runOnStartup=false"})
 @ContextConfiguration(classes = FlywayConfiguration.class)
 @Testcontainers
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class FlywayConfigurationTest {
 
     @Autowired
