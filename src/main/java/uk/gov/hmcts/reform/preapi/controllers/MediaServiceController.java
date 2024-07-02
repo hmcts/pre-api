@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/media-service")
+@Log4j2
 public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
