@@ -25,6 +25,7 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
             SELECT 1 FROM u.appAccess aa
             WHERE aa.active = :isAppActive
             AND (CAST(:courtId as uuid) IS NULL OR aa.court.id = :courtId)
+            AND aa.deletedAt IS NULL
         ))
         AND (
             CASE

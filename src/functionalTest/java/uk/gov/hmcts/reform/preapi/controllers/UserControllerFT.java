@@ -160,6 +160,21 @@ public class UserControllerFT extends FunctionalTestBase {
         assertResponseCode(responseActiveFalseByCourt2, 200);
         assertThat(responseActiveFalseByCourt2.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());
+
+        // delete app access
+        user.setAppAccess(Set.of(access1));
+        putUser(user);
+        assertUserExists(user.getId(), true);
+
+        // app access deleted, filter by appActive=false response empty
+        var responseActiveTrueForDeletedCourtAccess = doGetRequest(
+            USERS_ENDPOINT + "?appActive=false&courtId=" + court2.getId() + "&email=" + user.getEmail(),
+            true
+        );
+        assertResponseCode(responseActiveTrueForDeletedCourtAccess, 200);
+        responseActiveTrueForDeletedCourtAccess.prettyPrint();
+        assertThat(responseActiveTrueForDeletedCourtAccess.body().jsonPath().getInt("page.totalElements"))
+            .isEqualTo(0);
     }
 
     private void assertPutResponseMatchesDto(CreateUserDTO dto) {
