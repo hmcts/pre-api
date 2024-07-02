@@ -103,11 +103,17 @@ public class MediaKind implements IMediaService {
         var hls = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Hls"))
             .findFirst().orElse(null);
 
-        return new PlaybackDTO(
+        var playback = new PlaybackDTO(
             dash != null ? hostName + dash.getPaths().getFirst() : null,
             hls != null ? hostName + hls.getPaths().getFirst() : null,
             ""
         );
+
+        if (playback.getDashUrl() == null && playback.getHlsUrl() == null) {
+            throw new NotFoundException("Playback URL");
+        }
+
+        return playback;
     }
 
     @Override
