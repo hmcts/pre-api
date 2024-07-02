@@ -89,8 +89,6 @@ public class MediaKind implements IMediaService {
             hostName = mediaKindClient.getStreamingEndpointByName("default").getProperties().getHostName();
         } catch (FeignException.NotFound e) {
             throw new NotFoundException("Streaming Endpoint: default");
-        } catch (FeignException e) {
-            throw new MediaKindException();
         }
 
         MkStreamingLocatorPaths paths;
