@@ -7,8 +7,4 @@ public class ResourceInWrongStateException extends RuntimeException {
         super("Resource " + className + "(" + id + ") is in a " + currentState + " state. "
                   + "Expected state is " + expectedState + ".");
     }
-
-    public ResourceInWrongStateException(Exception exception) {
-        super(exception);
-    }
 }

@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MkAsset {
-    private String name;
-    private MkAssetProperties properties;
+public class MkStreamingEndpointSku {
+    private Tier name;
 }
+

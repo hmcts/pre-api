@@ -167,19 +167,14 @@ public class GlobalControllerExceptionHandler {
         );
     }
 
-    @ExceptionHandler(MediaKindException.class)
-    ResponseEntity<String> onMediaKindException(final MediaKindException e) throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     @ExceptionHandler(AMSLiveEventNotFoundException.class)
     ResponseEntity<String> amsLiveEventNotFoundException(final AMSLiveEventNotFoundException e)
         throws JsonProcessingException {
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler(AMSLiveEventNotRunningException.class)
-    ResponseEntity<String> amsLiveEventNotRunningException(final AMSLiveEventNotRunningException e)
+    @ExceptionHandler(LiveEventNotRunningException.class)
+    ResponseEntity<String> amsLiveEventNotRunningException(final LiveEventNotRunningException e)
         throws JsonProcessingException {
         return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
