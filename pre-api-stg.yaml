@@ -3288,6 +3288,10 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: Filter by users with active app access
+          in: query
+          name: appActive
+          type: boolean
         - description: The page number of search result to return
           format: int32
           in: query

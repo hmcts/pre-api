@@ -10,10 +10,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -175,6 +178,20 @@ public class FunctionalTestBase {
         return dto;
     }
 
+    protected CreateCourtDTO createCourt() {
+        var roomId = doPostRequest("/testing-support/create-room", false).body().jsonPath().getUUID("roomId");
+        var regionId = doPostRequest("/testing-support/create-region", false).body().jsonPath().getUUID("regionId");
+
+        var dto = new CreateCourtDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setName("Example Court");
+        dto.setCourtType(CourtType.CROWN);
+        dto.setRooms(List.of(roomId));
+        dto.setRegions(List.of(regionId));
+        dto.setLocationCode("123456789");
+        return dto;
+    }
+
     protected String generateRandomCaseReference() {
         return UUID.randomUUID()
             .toString()
@@ -230,5 +247,9 @@ public class FunctionalTestBase {
 
     protected Response putUser(CreateUserDTO dto) throws JsonProcessingException {
         return doPutRequest(USERS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+    }
+
+    protected Response putCourt(CreateCourtDTO dto) throws JsonProcessingException {
+        return doPutRequest(COURTS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }

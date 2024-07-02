@@ -85,6 +85,7 @@ public class UserService {
         UUID role,
         AccessType accessType,
         boolean includeDeleted,
+        Boolean isAppActive,
         Pageable pageable
     ) {
         if (court != null && !courtRepository.existsById(court)) {
@@ -104,6 +105,7 @@ public class UserService {
             accessType == AccessType.PORTAL,
             accessType == AccessType.APP,
             includeDeleted,
+            isAppActive,
             pageable
         ).map(UserDTO::new);
     }
