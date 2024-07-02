@@ -185,6 +185,12 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    ResponseEntity<String> forbiddenExceptionHandler(final ForbiddenException e) throws JsonProcessingException {
+
+        return getResponseEntity(e.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 

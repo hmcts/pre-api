@@ -31,6 +31,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
@@ -40,6 +42,8 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -86,8 +90,28 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public String importAsset(String assetPath) {
-        throw new UnsupportedOperationException();
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) {
+        createAsset(generateAssetDTO.getTempAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getSourceContainer(),
+                    true);
+        createAsset(generateAssetDTO.getFinalAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getDestinationContainer(),
+                    true);
+        var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
+        try {
+            var jobState = checkEncodeComplete(jobName);
+
+            return new GenerateAssetResponseDTO(
+                generateAssetDTO.getFinalAsset(),
+                generateAssetDTO.getDestinationContainer(),
+                generateAssetDTO.getDescription(),
+                jobState.toString()
+            );
+        } catch (InterruptedException ex) {
+            throw new UnknownServerException("Error waiting for encoding job to complete: " + ex.getMessage());
+        }
     }
 
     @Override
@@ -279,8 +303,8 @@ public class AzureMediaService implements IMediaService {
         var captureSessionNoHyphen = getSanitisedId(captureSession.getId());
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-        encodeToMp4(captureSessionNoHyphen, recordingAssetName);
-        checkEncodeComplete(captureSessionNoHyphen);
+        var jobName = encodeToMp4(captureSessionNoHyphen, recordingAssetName);
+        checkEncodeComplete(jobName);
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
@@ -393,7 +417,8 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void encodeToMp4(String inputAssetName, String outputAssetName) {
+    private String encodeToMp4(String inputAssetName, String outputAssetName) {
+        var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         try {
             amsClient
                 .getJobs()
@@ -401,7 +426,7 @@ public class AzureMediaService implements IMediaService {
                     resourceGroup,
                     accountName,
                     ENCODE_TO_MP4_TRANSFORM,
-                    inputAssetName,
+                    jobName,
                     new JobInner()
                         .withInput(
                             new JobInputAsset()
@@ -414,16 +439,21 @@ public class AzureMediaService implements IMediaService {
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         }
+        return jobName;
     }
 
-    private void checkEncodeComplete(String jobName) throws InterruptedException {
+    private JobState checkEncodeComplete(String jobName) throws InterruptedException {
         JobInner job = null;
         do {
             if (job != null) {
-                TimeUnit.MILLISECONDS.sleep(10000); // wait 10 seconds
+                TimeUnit.MILLISECONDS.sleep(5000); // wait 5 seconds
             }
             job = amsClient.getJobs().get(resourceGroup, accountName, ENCODE_TO_MP4_TRANSFORM, jobName);
-        } while (!job.state().equals(JobState.FINISHED));
+        } while (!job.state().equals(JobState.FINISHED)
+                 && !job.state().equals(JobState.ERROR)
+                 && !job.state().equals(JobState.CANCELED));
+
+        return job.state();
     }
 
     private LiveEventInner checkStreamReady(String liveEventName) throws InterruptedException {
@@ -475,8 +505,19 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
+
     private void createAsset(String assetName,
                              CaptureSessionDTO captureSession,
+                             String containerName,
+                             boolean isFinal) {
+        createAsset(assetName,
+                    captureSession.getBookingId().toString(),
+                    containerName,
+                    isFinal);
+    }
+
+    private void createAsset(String assetName,
+                             String description,
                              String containerName,
                              boolean isFinal) {
         try {
@@ -489,7 +530,7 @@ public class AzureMediaService implements IMediaService {
                     new AssetInner()
                         .withContainer(containerName)
                         .withStorageAccountName(isFinal ? finalStorageAccount : ingestStorageAccount)
-                        .withDescription(captureSession.getBookingId().toString())
+                        .withDescription(description)
                 );
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
