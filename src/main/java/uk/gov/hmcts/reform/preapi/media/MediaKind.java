@@ -63,9 +63,7 @@ public class MediaKind implements IMediaService {
 
     @Override
     public PlaybackDTO playAsset(String assetName, String userId) {
-        if (getAsset(assetName) == null) {
-            throw new NotFoundException("Asset: " + assetName);
-        }
+        getAsset(assetName);
 
         var locators = mediaKindClient.getAssetStreamingLocators(assetName);
 
