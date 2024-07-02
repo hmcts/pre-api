@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 import lombok.Data;
 
@@ -7,8 +8,8 @@ import java.util.List;
 
 @Builder
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MkStreamingEndpointProperties {
-    private AccessControl accessControl;
     private boolean cdnEnabled;
     private String cdnProfile;
     private CdnProviderEnum cdnProvider;
@@ -55,13 +56,6 @@ public class MkStreamingEndpointProperties {
         Running,
         Stopping,
         Creating
-    }
-
-    @Data
-    @Builder
-    public static class AccessControl {
-        private String ip;
-        private String akamai;
     }
 
     @Data
