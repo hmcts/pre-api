@@ -15,6 +15,8 @@ import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseIn
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
+import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
+import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
@@ -23,6 +25,7 @@ import com.azure.resourcemanager.mediaservices.models.StreamingPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -42,6 +45,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -173,12 +177,71 @@ public class AzureMediaServiceTest {
             UnsupportedOperationException.class,
             () -> mediaService.playAsset("test-asset-name")
         );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.importAsset(new GenerateAssetDTO())
-        );
     }
+
+    @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
+    @Test
+    void importAssetSuccess() {
+        var mockJobClient = mock(JobsClient.class);
+        var mockJob = mock(JobInner.class);
+        when(amsClient.getJobs()).thenReturn(mockJobClient);
+        when(amsClient.getJobs().get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+
+        var mockAssetsClient = mock(AssetsClient.class);
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+
+        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
+                                                     "my-destination-container",
+                                                     "tmp-asset",
+                                                     "final-asset",
+                                                     "unit test import asset");
+
+        mediaService.importAsset(generateAssetDTO);
+
+        ArgumentCaptor<AssetInner> sourceContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
+
+        verify(mockAssetsClient, times(1))
+                                   .createOrUpdate(eq(resourceGroup),
+                                                   eq(accountName),
+                                                   eq(generateAssetDTO.getTempAsset()),
+                                                   sourceContainerArgument.capture());
+
+        assertThat(sourceContainerArgument.getValue().container()).isEqualTo(generateAssetDTO.getSourceContainer());
+
+        ArgumentCaptor<AssetInner> destinationContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
+
+        verify(mockAssetsClient, times(1))
+                                   .createOrUpdate(eq(resourceGroup),
+                                                   eq(accountName),
+                                                   eq(generateAssetDTO.getFinalAsset()),
+                                                   destinationContainerArgument.capture());
+
+        assertThat(destinationContainerArgument.getValue().container())
+            .isEqualTo(generateAssetDTO.getDestinationContainer());
+
+        ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
+
+        verify(mockJobClient, times(1))
+            .create(
+                eq(resourceGroup),
+                eq(accountName),
+                eq("EncodeToMP4"),
+                anyString(),
+                jobInnerArgument.capture()
+            );
+
+        JobInputAsset ji = (JobInputAsset) jobInnerArgument.getValue().input();
+
+
+        assertThat(((JobInputAsset) jobInnerArgument.getValue().input()).assetName())
+            .isEqualTo(generateAssetDTO.getTempAsset());
+        assertThat(((JobOutputAsset) jobInnerArgument.getValue().outputs().getFirst()).assetName())
+            .isEqualTo(generateAssetDTO.getFinalAsset());
+    }
+
+
 
     @DisplayName("Should return a valid live event by name")
     @Test
