@@ -79,12 +79,8 @@ public class MediaKind implements IMediaService {
                 .streamingPolicyName("Predefined_ClearStreamingOnly")
                 .endTime(Instant.now().plusSeconds(3600).toString())
                 .build();
-            try {
-                mediaKindClient.putStreamingLocator(userId, MkCreateStreamingLocator.builder()
-                    .properties(properties).build());
-            } catch (FeignException e) {
-                throw new MediaKindException();
-            }
+            mediaKindClient.putStreamingLocator(userId, MkCreateStreamingLocator.builder()
+                .properties(properties).build());
         }
 
         // TODO check streaming endpoint running + start if not
