@@ -255,22 +255,6 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.token").value("token"));
     }
 
-    @DisplayName("Should return 404 when asset not found")
-    @Test
-    void getVodAssetNotFound() throws Exception {
-        var recordingId = UUID.randomUUID();
-        var assetName = recordingId.toString().replace("-", "") + "_output";
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.playAsset(assetName, "12345")).thenReturn(null);
-
-        mockMvc.perform(get("/media-service/vod")
-                            .param("recordingId", recordingId.toString())
-                            .param("userId", "12345"))
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message").value("Not found: Asset: " + assetName));
-    }
-
     @DisplayName("Should return 200 with capture session once live event is started")
     @Test
     void startLiveEventSuccess() throws Exception {

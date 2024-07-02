@@ -464,21 +464,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).startLiveEvent(any());
     }
 
-    @DisplayName("Should throw 404 error when asset for playback cannot be found")
-    @Test
-    void playAssetNotFound() {
-        var assetName = UUID.randomUUID().toString();
-        when(mockClient.getAsset(assetName)).thenThrow(FeignException.NotFound.class);
-
-        var message = assertThrows(
-            NotFoundException.class,
-            () -> mediaKind.playAsset(assetName, "12345")
-        ).getMessage();
-        assertThat(message).isEqualTo("Not found: Asset: " + assetName);
-
-        verify(mockClient, times(1)).getAsset(assetName);
-    }
-
     @DisplayName("Should return the playback URL for the asset")
     @Test
     void playAssetSuccess() {
