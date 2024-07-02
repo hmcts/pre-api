@@ -156,7 +156,6 @@ public class MediaServiceController extends PreApiController {
         }
 
         return ResponseEntity.ok(dto);
-
     }
 
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
