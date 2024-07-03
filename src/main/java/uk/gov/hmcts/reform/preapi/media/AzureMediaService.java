@@ -90,7 +90,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) {
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
         createAsset(generateAssetDTO.getTempAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getSourceContainer(),
@@ -100,18 +100,14 @@ public class AzureMediaService implements IMediaService {
                     generateAssetDTO.getDestinationContainer(),
                     true);
         var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
-        try {
-            var jobState = checkEncodeComplete(jobName);
+        var jobState = checkEncodeComplete(jobName);
 
-            return new GenerateAssetResponseDTO(
-                generateAssetDTO.getFinalAsset(),
-                generateAssetDTO.getDestinationContainer(),
-                generateAssetDTO.getDescription(),
-                jobState.toString()
-            );
-        } catch (InterruptedException ex) {
-            throw new UnknownServerException("Error waiting for encoding job to complete: " + ex.getMessage());
-        }
+        return new GenerateAssetResponseDTO(
+            generateAssetDTO.getFinalAsset(),
+            generateAssetDTO.getDestinationContainer(),
+            generateAssetDTO.getDescription(),
+            jobState.toString()
+        );
     }
 
     @Override

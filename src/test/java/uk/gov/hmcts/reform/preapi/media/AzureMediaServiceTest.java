@@ -181,7 +181,7 @@ public class AzureMediaServiceTest {
 
     @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
     @Test
-    void importAssetSuccess() {
+    void importAssetSuccess() throws InterruptedException {
         var mockJobClient = mock(JobsClient.class);
         var mockJob = mock(JobInner.class);
         when(amsClient.getJobs()).thenReturn(mockJobClient);
