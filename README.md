@@ -149,6 +149,15 @@ Located in `./bin/init.sh`. Simply run and follow the explanation how to execute
 The project uses [Gradle](https://gradle.org) as a build tool. It already contains
 `./gradlew` wrapper script, so there's no need to install gradle.
 
+In order for integration tests to run, a docker image is needed for the
+postgres testcontainers.
+
+For this to pull from hmcts ACR you must login to the ACR first:
+```bash
+az login # if not logged in already
+az acr login --name hmctspublic
+```
+
 To build the project execute the following command:
 
 ```bash
