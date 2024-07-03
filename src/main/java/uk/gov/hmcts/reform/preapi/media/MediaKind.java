@@ -151,6 +151,8 @@ public class MediaKind implements IMediaService {
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
         var captureSessionShort = getShortenedLiveEventId(captureSession.getId());
         stopAndDeleteStreamingEndpoint(captureSessionShort);
+
+        // delete returns 204 if not found (no need to catch)
         mediaKindClient.deleteStreamingLocator(captureSessionShort);
         mediaKindClient.deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
@@ -200,6 +202,7 @@ public class MediaKind implements IMediaService {
             mediaKindClient.stopStreamingEndpoint(endpointName);
         } catch (FeignException.NotFound e) {
             // ignore
+            return;
         }
         mediaKindClient.deleteStreamingEndpoint(endpointName);
     }
@@ -309,8 +312,6 @@ public class MediaKind implements IMediaService {
             );
         } catch (FeignException.Conflict e) {
             throw new ConflictException("Asset: "  + assetName);
-        } catch (FeignException e) {
-            throw new MediaKindException();
         }
     }
 
