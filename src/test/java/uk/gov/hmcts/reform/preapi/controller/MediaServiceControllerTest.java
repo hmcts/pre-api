@@ -255,6 +255,47 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.token").value("token"));
     }
 
+    @DisplayName("Should return 200 and playback information when playing with mk")
+    @Test
+    void getVodSuccessMkOverride() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var assetName = recordingId.toString().replace("-", "") + "_output";
+        var playback = HelperFactory.createPlayback("dash", "hls", "token");
+        when(mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_MK)).thenReturn(mediaKind);
+        when(mediaKind.playAsset(assetName, "12345")).thenReturn(playback);
+
+        mockMvc.perform(get("/media-service/vod")
+                            .param("recordingId", recordingId.toString())
+                            .param("userId", "12345")
+                            .param("mediaService", "mk"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.dash_url").value("dash"))
+            .andExpect(jsonPath("$.hls_url").value("hls"))
+            .andExpect(jsonPath("$.token").value("token"));
+    }
+
+    @DisplayName("Should return 200 and playback information when playing with ams")
+    @Test
+        void getVodSuccessAmsOverride() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var assetName = recordingId.toString().replace("-", "") + "_output";
+        var playback = HelperFactory.createPlayback("dash", "hls", "token");
+        when(mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_AMS)).thenReturn(mediaService);
+        when(mediaService.playAsset(assetName, "12345")).thenReturn(playback);
+
+        mockMvc.perform(get("/media-service/vod")
+                            .param("recordingId", recordingId.toString())
+                            .param("userId", "12345")
+                            .param("mediaService", "ams"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.dash_url").value("dash"))
+            .andExpect(jsonPath("$.hls_url").value("hls"))
+            .andExpect(jsonPath("$.token").value("token"));
+    }
+
+
     @DisplayName("Should return 200 with capture session once live event is started")
     @Test
     void startLiveEventSuccess() throws Exception {
