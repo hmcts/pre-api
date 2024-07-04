@@ -2803,7 +2803,7 @@ paths:
           type: string
         - in: query
           name: mediaService
-          required: true
+          required: false
           type: string
         - description: The User Id of the User making the request
           format: uuid
