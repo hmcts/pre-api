@@ -93,10 +93,14 @@ public class MediaServiceController extends PreApiController {
 
     @GetMapping("/vod")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<PlaybackDTO> getVod(@RequestParam UUID recordingId, @RequestParam String userId, @RequestParam String mediaService) {
+    public ResponseEntity<PlaybackDTO> getVod(@RequestParam UUID recordingId,
+                                              @RequestParam String userId,
+                                              @RequestParam(required = false) String mediaService) {
         // todo: dont rely on naming convention, link asset name in db
         IMediaService resolvedMediaService;
-        if (mediaService.equals("ams")) {
+        if (mediaService == null) {
+            resolvedMediaService = mediaServiceBroker.getEnabledMediaService();
+        } else if (mediaService.equals("ams")) {
             resolvedMediaService = mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_AMS);
         } else if (mediaService.equals("mk")) {
             resolvedMediaService = mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_MK);
