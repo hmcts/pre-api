@@ -35,6 +35,9 @@ public class BaseAppAccessDTO {
     @Schema(description = "AppAccessActive")
     protected boolean active;
 
+    @Schema(description = "AppAccessCreatedAt")
+    private Timestamp createdAt;
+
     public BaseAppAccessDTO(AppAccess access) {
         id = access.getId();
         court = new CourtDTO(access.getCourt());
@@ -42,5 +45,6 @@ public class BaseAppAccessDTO {
         defaultCourt = access.isDefaultCourt();
         lastAccess = access.getLastAccess();
         active = access.isActive();
+        createdAt = access.getCreatedAt();
     }
 }
