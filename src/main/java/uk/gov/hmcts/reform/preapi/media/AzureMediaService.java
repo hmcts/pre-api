@@ -105,7 +105,7 @@ public class AzureMediaService implements IMediaService {
 
         var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
 
-        var jobState = checkEncodeComplete(jobName);
+        var jobState = waitEncodeComplete(jobName);
 
         return new GenerateAssetResponseDTO(
             generateAssetDTO.getFinalAsset(),
@@ -261,17 +261,6 @@ public class AzureMediaService implements IMediaService {
             .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
     }
 
-    /*
-    @Override
-    public String startLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-    @Override
-    public String stopLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-    */
-
     @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
         try {
@@ -305,14 +294,15 @@ public class AzureMediaService implements IMediaService {
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
         var jobName = encodeToMp4(captureSessionNoHyphen, recordingAssetName);
-        checkEncodeComplete(jobName);
+        waitEncodeComplete(jobName);
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
 
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
-        stopAndDeleteStreamingEndpoint(captureSessionNoHyphen.substring(0, 23));
-        deleteStreamingLocator(captureSessionNoHyphen.substring(0, 23));
+        var captureSessionShort = getShortenedLiveEventId(captureSession.getId());
+        stopAndDeleteStreamingEndpoint(captureSessionShort);
+        deleteStreamingLocator(captureSessionShort);
         deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;
@@ -443,7 +433,7 @@ public class AzureMediaService implements IMediaService {
         return jobName;
     }
 
-    private JobState checkEncodeComplete(String jobName) throws InterruptedException {
+    private JobState waitEncodeComplete(String jobName) throws InterruptedException {
         JobInner job = null;
         do {
             if (job != null) {
