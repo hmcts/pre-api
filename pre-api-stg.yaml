@@ -2801,6 +2801,10 @@ paths:
           name: userId
           required: true
           type: string
+        - in: query
+          name: mediaService
+          required: true
+          type: string
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -3329,6 +3333,10 @@ paths:
         - description: Include users marked as deleted
           in: query
           name: includeDeleted
+          type: boolean
+        - description: Filter by users with active app access
+          in: query
+          name: appActive
           type: boolean
         - description: The page number of search result to return
           format: int32
