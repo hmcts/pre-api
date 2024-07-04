@@ -24,6 +24,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import jakarta.transaction.Transactional;
+import lombok.extern.log4j.Log4j2;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,6 +54,7 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 @Service
+@Log4j2
 public class AzureMediaService implements IMediaService {
     private final String resourceGroup;
     private final String accountName;
@@ -91,15 +93,22 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
+        log.info("create first asset");
         createAsset(generateAssetDTO.getTempAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getSourceContainer(),
                     true);
+
+        log.info("create second asset");
         createAsset(generateAssetDTO.getFinalAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getDestinationContainer(),
                     true);
+
+        log.info("encode to mp4");
         var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
+
+        log.info("check encode complete");
         var jobState = checkEncodeComplete(jobName);
 
         return new GenerateAssetResponseDTO(
@@ -536,6 +545,7 @@ public class AzureMediaService implements IMediaService {
                 throw new ConflictException("Asset: " + assetName);
             }
             if (e.getResponse().getStatusCode() == 409) {
+                log.error(e.getMessage());
                 throw new ConflictException("Asset: " + assetName);
             }
             throw e;
