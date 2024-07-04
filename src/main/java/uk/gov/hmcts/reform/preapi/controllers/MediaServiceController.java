@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
@@ -92,11 +93,18 @@ public class MediaServiceController extends PreApiController {
 
     @GetMapping("/vod")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<PlaybackDTO> getVod(@RequestParam UUID recordingId, @RequestParam String userId) {
+    public ResponseEntity<PlaybackDTO> getVod(@RequestParam UUID recordingId, @RequestParam String userId, @RequestParam String mediaService) {
         // todo: dont rely on naming convention, link asset name in db
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService resolvedMediaService;
+        if (mediaService.equals("ams")) {
+            resolvedMediaService = mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_AMS);
+        } else if (mediaService.equals("mk")) {
+            resolvedMediaService = mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_MK);
+        } else {
+            resolvedMediaService = mediaServiceBroker.getEnabledMediaService();
+        }
         var assetName = recordingId.toString().replace("-", "") + "_output";
-        return ResponseEntity.ok(mediaService.playAsset(assetName, userId));
+        return ResponseEntity.ok(resolvedMediaService.playAsset(assetName, userId));
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")
