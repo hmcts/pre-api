@@ -2801,6 +2801,10 @@ paths:
           name: userId
           required: true
           type: string
+        - in: query
+          name: mediaService
+          required: true
+          type: string
         - description: The User Id of the User making the request
           format: uuid
           in: header
