@@ -46,6 +46,9 @@ public class PortalAppAccessValidator
     }
 
     private boolean isRolePortal(CreateAppAccessDTO dto) {
+        if (dto.getRoleId() == null) {
+            return false;
+        }
         return roleRepository.findById(dto.getRoleId()).map(r -> r.getName().equals("Level 3")).orElse(false);
     }
 }

@@ -17,6 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PortalAppAccessValidatorTest {
@@ -110,6 +113,20 @@ public class PortalAppAccessValidatorTest {
         when(roleRepository.findById(dto2.getRoleId())).thenReturn(Optional.of(createRole(false)));
 
         assertFalse(validator.isValid(Set.of(dto1, dto2), context));
+    }
+
+    @DisplayName("Should ignore when role id is null")
+    @Test
+    void shouldBeValidWhenRoleIdIsNull() {
+        var dto1 = createAppAccessDTO(true);
+        var dto2 = createAppAccessDTO(false);
+        dto2.setRoleId(null);
+
+        when(roleRepository.findById(dto1.getRoleId())).thenReturn(Optional.of(createRole(false)));
+        assertTrue(validator.isValid(Set.of(dto1, dto2), context));
+
+        verify(roleRepository, times(1)).findById(dto1.getRoleId());
+        verify(roleRepository, never()).findById(dto2.getRoleId());
     }
 
 
