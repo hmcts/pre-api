@@ -93,22 +93,18 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
-        log.info("create first asset");
         createAsset(generateAssetDTO.getTempAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getSourceContainer(),
                     true);
 
-        log.info("create second asset");
         createAsset(generateAssetDTO.getFinalAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getDestinationContainer(),
                     true);
 
-        log.info("encode to mp4");
         var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
 
-        log.info("check encode complete");
         var jobState = checkEncodeComplete(jobName);
 
         return new GenerateAssetResponseDTO(
