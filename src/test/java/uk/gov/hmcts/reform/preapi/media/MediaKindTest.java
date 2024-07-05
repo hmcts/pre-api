@@ -8,10 +8,12 @@ import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
@@ -612,5 +614,105 @@ public class MediaKindTest {
         verify(mockClient, never()).deleteStreamingEndpoint(any());
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+    }
+
+    @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
+    @Test
+    void importAssetSuccess() throws InterruptedException {
+        var mockJob = mock(MkJob.class);
+        var mockProperties = mock(MkJob.MkJobProperties.class);
+        when(mockClient.getJob(eq(ENCODE_TO_MP4), any())).thenReturn(mockJob);
+        when(mockJob.getProperties()).thenReturn(mockProperties);
+        when(mockProperties.getState()).thenReturn(JobState.FINISHED);
+
+        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
+                                                     "my-destination-container",
+                                                     "tmp-asset",
+                                                     "final-asset",
+                                                     "unit test import asset");
+
+        var result = mediaKind.importAsset(generateAssetDTO);
+
+        assertThat(result.getJobStatus()).isEqualTo("Finished");
+
+        var sourceContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getTempAsset()), sourceContainerArgument.capture());
+
+        assertThat(sourceContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getSourceContainer());
+
+        var destinationContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getFinalAsset()), destinationContainerArgument.capture());
+
+        assertThat(destinationContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getDestinationContainer());
+
+        var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);
+
+        verify(mockClient, times(1))
+            .putJob(
+                eq("EncodeToMp4"),
+                eq(generateAssetDTO.getTempAsset()),
+                jobInnerArgument.capture()
+            );
+
+        assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
+            .isEqualTo(generateAssetDTO.getTempAsset());
+        assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
+            .isEqualTo(generateAssetDTO.getFinalAsset());
+    }
+
+    @DisplayName("Should accept a request to import an asset and handle a failed job to encode to mp4")
+    @Test
+    void importAssetJobFailed() throws InterruptedException {
+        var mockJob = mock(MkJob.class);
+        var mockProperties = mock(MkJob.MkJobProperties.class);
+        when(mockClient.getJob(eq(ENCODE_TO_MP4), any())).thenReturn(mockJob);
+        when(mockJob.getProperties()).thenReturn(mockProperties);
+        when(mockProperties.getState()).thenReturn(JobState.ERROR);
+
+        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
+                                                     "my-destination-container",
+                                                     "tmp-asset",
+                                                     "final-asset",
+                                                     "unit test import asset");
+
+        var result = mediaKind.importAsset(generateAssetDTO);
+
+        assertThat(result.getJobStatus()).isEqualTo("Error");
+
+        var sourceContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getTempAsset()), sourceContainerArgument.capture());
+
+        assertThat(sourceContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getSourceContainer());
+
+        var destinationContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getFinalAsset()), destinationContainerArgument.capture());
+
+        assertThat(destinationContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getDestinationContainer());
+
+        var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);
+
+        verify(mockClient, times(1))
+            .putJob(
+                eq("EncodeToMp4"),
+                eq(generateAssetDTO.getTempAsset()),
+                jobInnerArgument.capture()
+            );
+
+        assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
+            .isEqualTo(generateAssetDTO.getTempAsset());
+        assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
+            .isEqualTo(generateAssetDTO.getFinalAsset());
     }
 }

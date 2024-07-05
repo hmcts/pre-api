@@ -234,9 +234,6 @@ public class AzureMediaServiceTest {
                 jobInnerArgument.capture()
             );
 
-        JobInputAsset ji = (JobInputAsset) jobInnerArgument.getValue().input();
-
-
         assertThat(((JobInputAsset) jobInnerArgument.getValue().input()).assetName())
             .isEqualTo(generateAssetDTO.getTempAsset());
         assertThat(((JobOutputAsset) jobInnerArgument.getValue().outputs().getFirst()).assetName())
