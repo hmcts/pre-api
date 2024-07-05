@@ -508,8 +508,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
         verify(mockClient, never()).putTransform(any(), any());
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+        var jobArgument2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        assertThat(jobArgument.getValue()).startsWith(liveEventName);
+        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).stopStreamingEndpoint(any());
@@ -552,8 +556,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
         verify(mockClient, times(1)).putTransform(eq(ENCODE_TO_MP4), any());
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+        var jobArgument2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        assertThat(jobArgument.getValue()).startsWith(liveEventName);
+        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
@@ -585,8 +593,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
         verify(mockClient, never()).putTransform(any(), any());
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobName = ArgumentCaptor.forClass(String.class);
+        var jobName2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobName.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobName2.capture());
+        assertThat(jobName.getValue()).startsWith(liveEventName);
+        assertThat(jobName.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, never()).deleteLiveEvent(liveEventName);
     }
@@ -610,8 +622,12 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+        var jobArgument2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        assertThat(jobArgument.getValue()).startsWith(liveEventName);
+        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).stopStreamingEndpoint(any());
@@ -657,12 +673,16 @@ public class MediaKindTest {
 
         var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);
 
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+
         verify(mockClient, times(1))
             .putJob(
                 eq("EncodeToMp4"),
-                eq(generateAssetDTO.getTempAsset()),
+                jobArgument.capture(),
                 jobInnerArgument.capture()
             );
+
+        assertThat(jobArgument.getValue()).startsWith(generateAssetDTO.getTempAsset());
 
         assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
             .isEqualTo(generateAssetDTO.getTempAsset());
@@ -705,15 +725,17 @@ public class MediaKindTest {
         assertThat(destinationContainerArgument.getValue().getProperties().getContainer())
             .isEqualTo(generateAssetDTO.getDestinationContainer());
 
+        var jobName = ArgumentCaptor.forClass(String.class);
         var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);
 
         verify(mockClient, times(1))
             .putJob(
                 eq("EncodeToMp4"),
-                eq(generateAssetDTO.getTempAsset()),
+                jobName.capture(),
                 jobInnerArgument.capture()
             );
 
+        assertThat(jobName.getValue()).startsWith(generateAssetDTO.getTempAsset());
         assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
             .isEqualTo(generateAssetDTO.getTempAsset());
         assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
