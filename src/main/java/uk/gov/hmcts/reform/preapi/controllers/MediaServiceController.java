@@ -213,7 +213,7 @@ public class MediaServiceController extends PreApiController {
         if (captureSession.getFinishedAt() != null) {
             throw new ResourceInWrongStateException("Resource: Capture Session("
                                                         + captureSessionId
-                                                        + ") has been finished.");
+                                                        + ") has already finished.");
         }
 
         if (captureSession.getStartedAt() == null) {

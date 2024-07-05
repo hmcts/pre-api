@@ -237,17 +237,6 @@ public class AzureMediaService implements IMediaService {
             .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
     }
 
-    /*
-    @Override
-    public String startLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-    @Override
-    public String stopLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
-    }
-    */
-
     @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
         try {

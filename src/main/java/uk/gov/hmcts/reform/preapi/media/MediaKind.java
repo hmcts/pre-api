@@ -191,7 +191,7 @@ public class MediaKind implements IMediaService {
                 assetName,
                 MkAsset.builder()
                     .properties(MkAssetProperties.builder()
-                                     .container(captureSession.getBookingId().toString())
+                                    .container(captureSession.getBookingId().toString())
                                     .storageAccountName(ingestStorageAccount)
                                     .description(captureSession.getBookingId().toString())
                                     .build())
