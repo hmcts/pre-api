@@ -262,7 +262,7 @@ public class MediaKind implements IMediaService {
         var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         mediaKindClient.putJob(
             ENCODE_TO_MP4_TRANSFORM,
-            inputAssetName,
+            jobName,
             MkJob.builder()
                 .name(jobName)
                 .properties(MkJob.MkJobProperties.builder()
