@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.util.List;
@@ -29,16 +31,20 @@ public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
+    private final AzureIngestStorageService azureIngestStorageService;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
-                                  CaptureSessionService captureSessionService) {
+                                  CaptureSessionService captureSessionService,
+                                  AzureIngestStorageService azureIngestStorageService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
+        this.azureIngestStorageService = azureIngestStorageService;
     }
 
     @GetMapping("/health")
+    @Operation(operationId = "mediaServiceHealth", summary = "Check the status of the media service connection")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<String> mediaService() {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
@@ -156,10 +162,13 @@ public class MediaServiceController extends PreApiController {
         }
 
         return ResponseEntity.ok(dto);
-
     }
 
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
+    @Operation(
+        operationId = "createLiveEventStreamingLocator",
+        summary = "Create live event streaming endpoint and locator. Update capture session with streaming endpoint."
+    )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
         // load captureSession
@@ -185,6 +194,44 @@ public class MediaServiceController extends PreApiController {
         captureSession.setLiveOutputUrl(liveOutputUrl);
         captureSession.setStatus(RecordingStatus.RECORDING);
         captureSessionService.upsert(captureSession);
+
+        return ResponseEntity.ok(captureSession);
+    }
+
+    @PostMapping("/live-event/check/{captureSessionId}")
+    @Operation(
+        operationId = "checkStream",
+        summary = "Check stream has started"
+    )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> checkStream(@PathVariable UUID captureSessionId) {
+        var captureSession = captureSessionService.findById(captureSessionId);
+        if (captureSession.getStatus() == RecordingStatus.RECORDING) {
+            return ResponseEntity.ok(captureSession);
+        }
+
+        if (captureSession.getFinishedAt() != null) {
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") has been finished.");
+        }
+
+        if (captureSession.getStartedAt() == null) {
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                          + captureSessionId
+                                                          + ") has not been started.");
+        }
+
+        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
+            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
+                                                    captureSessionId.toString(),
+                                                    captureSession.getStatus().name(),
+                                                    RecordingStatus.STANDBY.name());
+        }
+
+        if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
+            captureSession = captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+        }
 
         return ResponseEntity.ok(captureSession);
     }

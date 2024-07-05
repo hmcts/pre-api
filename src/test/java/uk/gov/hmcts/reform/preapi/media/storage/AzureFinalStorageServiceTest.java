@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.media;
+package uk.gov.hmcts.reform.preapi.media.storage;
 
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
