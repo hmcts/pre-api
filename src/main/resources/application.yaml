@@ -83,12 +83,12 @@ media-service: ${MEDIA_SERVICE:AzureMediaService}
 
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
-logging:
-  level:
-    uk:
-      gov:
-        hmcts:
-          reform:
-            preapi:
-              media:
-                MediaKindClient: DEBUG
+#logging:
+#  level:
+#    uk:
+#      gov:
+#        hmcts:
+#          reform:
+#            preapi:
+#              media:
+#                MediaKindClient: DEBUG
