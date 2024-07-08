@@ -13,6 +13,7 @@ import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -22,7 +23,7 @@ import java.util.Set;
 @Setter
 @Entity
 @Table(name = "bookings")
-public class Booking extends CreatedModifiedAtEntity {
+public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;
@@ -52,6 +53,9 @@ public class Booking extends CreatedModifiedAtEntity {
     @Transient
     private boolean deleted;
 
+    @Transient
+    private boolean isSoftDeleteOperation;
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
@@ -63,5 +67,15 @@ public class Booking extends CreatedModifiedAtEntity {
         details.put("bookingScheduledFor", scheduledFor);
         details.put("deleted", isDeleted());
         return details;
+    }
+
+    @Override
+    public void setDeleteOperation(boolean deleteOperation) {
+        this.isSoftDeleteOperation = deleteOperation;
+    }
+
+    @Override
+    public boolean isDeleteOperation() {
+        return this.isSoftDeleteOperation;
     }
 }
