@@ -14,6 +14,7 @@ public class ScheduledTaskRunner {
 
     @Autowired
     ApplicationContext context;
+
     public void run(String taskName) {
         final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
         final var task = getTask(beanName);
