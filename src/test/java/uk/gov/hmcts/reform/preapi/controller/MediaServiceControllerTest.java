@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementException;
+import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import feign.FeignException;
@@ -575,7 +576,7 @@ public class MediaServiceControllerTest {
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(
-            new GenerateAssetResponseDTO("asset", "container", "description", "jobStatus")
+            new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
         );
 
         var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
@@ -589,6 +590,6 @@ public class MediaServiceControllerTest {
             "{\"asset\":\"asset\","
             + "\"container\":\"container\","
             + "\"description\":\"description\","
-            + "\"jobStatus\":\"jobStatus\"}");
+            + "\"jobStatus\":\"Finished\"}");
     }
 }
