@@ -71,6 +71,10 @@ definitions:
         type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: AppAccessCreatedAt
+        format: date-time
+        type: string
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
@@ -2750,6 +2754,31 @@ paths:
       summary: Get a media service live event by name
       tags:
         - media-service-controller
+  '/media-service/streaming-locator/live-event/{captureSessionId}':
+    put:
+      operationId: createLiveEventStreamingLocator
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      tags:
+        - media-service-controller
   /recordings:
     get:
       operationId: getRecordings
@@ -3262,6 +3291,10 @@ paths:
         - description: Include users marked as deleted
           in: query
           name: includeDeleted
+          type: boolean
+        - description: Filter by users with active app access
+          in: query
+          name: appActive
           type: boolean
         - description: The page number of search result to return
           format: int32

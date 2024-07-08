@@ -11,6 +11,7 @@ import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -23,7 +24,7 @@ import java.util.stream.Stream;
 @Entity
 @Table(name = "cases")
 @SuppressWarnings("PMD.ShortClassName")
-public class Case extends CreatedModifiedAtEntity {
+public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "court_id", referencedColumnName = "id")
     private Court court;
@@ -44,6 +45,9 @@ public class Case extends CreatedModifiedAtEntity {
     @Transient
     private boolean deleted;
 
+    @Transient
+    private boolean isSoftDeleteOperation;
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
@@ -62,5 +66,15 @@ public class Case extends CreatedModifiedAtEntity {
                     .collect(Collectors.toSet()));
         details.put("test", test);
         return details;
+    }
+
+    @Override
+    public void setDeleteOperation(boolean deleteOperation) {
+        this.isSoftDeleteOperation = deleteOperation;
+    }
+
+    @Override
+    public boolean isDeleteOperation() {
+        return this.isSoftDeleteOperation;
     }
 }

@@ -97,7 +97,6 @@
     <packageUrl regex="true">^pkg:maven/com\.azure/azure\-identity@.*$</packageUrl>
     <cve>CVE-2024-35255</cve>
   </suppress>
-
   <suppress>
     <notes><![CDATA[
    file name: msal4j-1.15.1.jar
@@ -105,13 +104,28 @@
     <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j@.*$</packageUrl>
     <cpe>cpe:/a:microsoft:authentication_library</cpe>
   </suppress>
-
   <suppress>
     <notes><![CDATA[
    file name: msal4j-persistence-extension-1.3.0.jar
    ]]></notes>
     <packageUrl regex="true">^pkg:maven/com\.microsoft\.azure/msal4j\-persistence\-extension@.*$</packageUrl>
     <cve>CVE-2024-35255</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+   file name: commons-compress-1.24.0.jar
+   ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.apache\.commons/commons\-compress@.*$</packageUrl>
+    <cve>CVE-2024-25710</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+   file name: commons-compress-1.24.0.jar
+   ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.apache\.commons/commons\-compress@.*$</packageUrl>
+    <cve>CVE-2024-26308</cve>
   </suppress>
   <!--End of temporary suppression section -->
 </suppressions>
