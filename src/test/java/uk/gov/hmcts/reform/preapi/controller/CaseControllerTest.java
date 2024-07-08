@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.util.List;
 import java.util.Set;
@@ -61,6 +62,9 @@ class CaseControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
