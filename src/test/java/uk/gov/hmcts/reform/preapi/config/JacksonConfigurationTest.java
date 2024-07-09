@@ -50,7 +50,9 @@ public class JacksonConfigurationTest {
             }
         ).getMessage();
 
-        assertThat(message).isEqualTo("Unexpected IOException (of type java.io.IOException): Failed to parse Date value 'FooBar'");
+        assertThat(message).isEqualTo(
+            "Unexpected IOException (of type java.io.IOException): Failed to parse Date value 'FooBar'"
+        );
 
     }
 
