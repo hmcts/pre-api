@@ -97,20 +97,25 @@ public class CaptureSessionService {
     @Transactional
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
     public void deleteById(UUID id) {
-        var entity = captureSessionRepository.findByIdAndDeletedAtIsNull(id);
-        if (entity.isEmpty()) {
-            throw new NotFoundException("CaptureSession: " + id);
-        }
-        recordingService.deleteCascade(entity.get());
-        captureSessionRepository.deleteById(id);
+        var captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("CaptureSession: " + id));
+        recordingService.deleteCascade(captureSession);
+        captureSession.setDeleteOperation(true);
+        captureSession.setDeletedAt(Timestamp.from(Instant.now()));
+        captureSessionRepository.saveAndFlush(captureSession);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteCascade(Booking booking) {
         captureSessionRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
-            .forEach(recordingService::deleteCascade);
-        captureSessionRepository.deleteAllByBooking(booking);
+            .forEach(captureSession -> {
+                recordingService.deleteCascade(captureSession);
+                captureSession.setDeleteOperation(true);
+                captureSession.setDeletedAt(Timestamp.from(Instant.now()));
+                captureSessionRepository.save(captureSession);
+            });
     }
 
     @Transactional
