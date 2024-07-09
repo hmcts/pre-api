@@ -71,6 +71,10 @@ definitions:
         type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: AppAccessCreatedAt
+        format: date-time
+        type: string
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
@@ -3313,6 +3317,10 @@ paths:
         - description: Include users marked as deleted
           in: query
           name: includeDeleted
+          type: boolean
+        - description: Filter by users with active app access
+          in: query
+          name: appActive
           type: boolean
         - description: The page number of search result to return
           format: int32

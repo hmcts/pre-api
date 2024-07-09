@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.controllers.RoomController;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.RoomService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +35,9 @@ public class RoomControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
 
     @DisplayName("Should get a list of rooms with 200 response code")
     @Test
