@@ -304,12 +304,50 @@ public class CaptureSessionControllerTest {
                                                  .content(OBJECT_MAPPER.writeValueAsString(dto))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isNoContent())
+                                    .andExpect(status().isNoContent())
+                                    .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+        assertThat(response.getResponse().getHeaderValue("Location"))
+            .isEqualTo(TEST_URL + "/capture-sessions/" + id);
+    }
+
+    @DisplayName("Should update capture session with 204 response code using raw input")
+    @Test
+    void updateCaptureSessionSuccessRaw() throws Exception {
+        var id = UUID.randomUUID();
+        var dto =  new CreateCaptureSessionDTO();
+        dto.setId(id);
+        dto.setBookingId(UUID.randomUUID());
+        dto.setOrigin(RecordingOrigin.PRE);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        dto.setStartedAt(Timestamp.from(Instant.parse("2024-07-09T10:58:55Z")));
+
+        when(captureSessionService.upsert(dto)).thenReturn(UpsertResult.UPDATED);
+
+        var response = mockMvc.perform(put(CAPTURE_SESSION_ID_PATH, id)
+                            .with(csrf())
+                            .content("{"
+                                         + "\"id\": \"" + id + "\",\n"
+                                         + "\"booking_id\": \"" + dto.getBookingId().toString() + "\","
+                                         + "\"origin\": \"PRE\",\n"
+                                         + "\"ingest_address\": null,\n"
+                                         + "\"live_output_url\": null,\n"
+                                         + "\"started_at\": \"2024-07-09T10:58:55Z\",\n"
+                                         + "\"started_by_user_id\": null,\n"
+                                         + "\"finished_at\": null,\n"
+                                         + "\"finished_by_user_id\": null,\n"
+                                         + "\"status\": \"RECORDING_AVAILABLE\"\n"
+                                         + "}")
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isNoContent())
             .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
         assertThat(response.getResponse().getHeaderValue("Location"))
             .isEqualTo(TEST_URL + "/capture-sessions/" + id);
+
     }
 
     @DisplayName("Should fail create/update capture session with 400 error when id is null")
