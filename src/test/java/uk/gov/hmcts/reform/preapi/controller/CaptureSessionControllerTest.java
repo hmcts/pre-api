@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +69,11 @@ public class CaptureSessionControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String CAPTURE_SESSION_ID_PATH = "/capture-sessions/{id}";
+
+    @BeforeAll
+    static void setUp() {
+        OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
 
     @DisplayName("Should get capture session by id with 200 response code")
     @Test
@@ -290,7 +297,7 @@ public class CaptureSessionControllerTest {
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         dto.setStartedAt(Timestamp.from(Instant.parse("2024-07-09T10:58:55Z")));
 
-        when(captureSessionService.upsert(dto)).thenReturn(UpsertResult.UPDATED);
+        when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.UPDATED);
 
         MvcResult response = mockMvc.perform(put(CAPTURE_SESSION_ID_PATH, id)
                                                  .with(csrf())
