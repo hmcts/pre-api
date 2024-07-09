@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -287,6 +288,7 @@ public class CaptureSessionControllerTest {
         dto.setBookingId(UUID.randomUUID());
         dto.setOrigin(RecordingOrigin.PRE);
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        dto.setStartedAt(Timestamp.from(Instant.parse("2024-07-09T10:58:55Z")));
 
         when(captureSessionService.upsert(dto)).thenReturn(UpsertResult.UPDATED);
 
