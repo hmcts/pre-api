@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,10 +36,9 @@ import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Set;
@@ -88,6 +88,11 @@ class BookingControllerTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static final String TEST_URL = "http://localhost";
+
+    @BeforeAll
+    static void setUp() {
+        OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
 
     @DisplayName("Should search for bookings")
     @Test
@@ -233,7 +238,6 @@ class BookingControllerTest {
     @DisplayName("Should create a booking with 201 response code")
     @Test
     void createBookingEndpointCreated() throws Exception {
-
         var caseId = UUID.randomUUID();
         var bookingId = UUID.randomUUID();
         var booking = new CreateBookingDTO();
@@ -246,7 +250,7 @@ class BookingControllerTest {
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(booking)).thenReturn(UpsertResult.CREATED);
+        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId))
                                                  .with(csrf())
@@ -278,7 +282,7 @@ class BookingControllerTest {
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(booking)).thenReturn(UpsertResult.UPDATED);
+        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.UPDATED);
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId))
                                                  .with(csrf())
@@ -370,10 +374,7 @@ class BookingControllerTest {
         booking.setId(bookingId);
         booking.setCaseId(caseId);
         booking.setParticipants(getCreateParticipantDTOs());
-        booking.setScheduledFor(
-            Timestamp.from(ZonedDateTime.now(ZoneId.of("Europe/London"))
-                               .truncatedTo(ChronoUnit.DAYS).toInstant().minusMillis(1))
-        );
+        booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().minusWeeks(1).toInstant()));
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
@@ -383,7 +384,7 @@ class BookingControllerTest {
                                                  .content(OBJECT_MAPPER.writeValueAsString(booking))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().is4xxClientError())
+                                    .andExpect(status().isBadRequest())
                                     .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
@@ -409,7 +410,7 @@ class BookingControllerTest {
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(booking)).thenReturn(UpsertResult.CREATED);
+        when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
 
         mockMvc.perform(put(getPath(bookingId))
                             .with(csrf())
@@ -435,7 +436,7 @@ class BookingControllerTest {
 
         CaseDTO mockCaseDTO = new CaseDTO();
         when(caseService.findById(caseId)).thenReturn(mockCaseDTO);
-        when(bookingService.upsert(booking))
+        when(bookingService.upsert(any(CreateBookingDTO.class)))
             .thenThrow(new ResourceInDeletedStateException("BookingDTO", bookingId.toString()));
 
         MvcResult response = mockMvc.perform(put(getPath(bookingId))
