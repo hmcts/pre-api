@@ -153,7 +153,7 @@ public class MediaKind implements IMediaService {
         stopAndDeleteStreamingEndpoint(captureSessionShort);
 
         // delete returns 204 if not found (no need to catch)
-        mediaKindClient.deleteStreamingLocator(captureSessionShort);
+        mediaKindClient.deleteStreamingLocator(captureSessionNoHyphen);
         mediaKindClient.deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;
