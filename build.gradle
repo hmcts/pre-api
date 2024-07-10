@@ -287,7 +287,7 @@ dependencies {
 
   implementation 'io.github.openfeign:feign-gson:10.12'
   implementation 'io.github.openfeign:feign-slf4j:10.12'
-  implementation group: 'io.github.openfeign', name: 'feign-jackson', version: '13.2.1'
+  implementation group: 'io.github.openfeign', name: 'feign-jackson', version: '13.3'
   implementation group: 'org.springframework.cloud', name: 'spring-cloud-starter-openfeign', version: '4.1.2'
 
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: versions.jackson
