@@ -43,6 +43,7 @@ public class FunctionalTestBase {
     protected static final String USERS_ENDPOINT = "/users";
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
+    protected static final String REPORTS_ENDPOINT = "/reports";
     protected static UUID authenticatedUserId;
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
