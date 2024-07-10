@@ -71,7 +71,8 @@ public class ReportControllerTest {
         mockMvc.perform(get("/reports/capture-sessions-concurrent"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].id").value(reportItem.getId().toString()));
+            .andExpect(jsonPath("$[0].id").value(reportItem.getId().toString()))
+            .andExpect(jsonPath("$[0].duration").value("PT3M"));
     }
 
     @DisplayName("Should get a report containing a list of cases with the count of completed capture sessions")
