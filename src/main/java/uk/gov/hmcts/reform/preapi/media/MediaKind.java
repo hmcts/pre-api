@@ -26,7 +26,6 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
-import uk.gov.hmcts.reform.preapi.media.dto.MkCreateStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEventProperties;
@@ -42,6 +41,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths.MkStreami
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -93,12 +93,12 @@ public class MediaKind implements IMediaService {
             .orElse(null);
 
         if (locator == null) {
-            var properties = MkCreateStreamingLocator.MkCreateStreamingLocatorProperties.builder()
+            var properties = MkStreamingLocatorProperties.builder()
                 .assetName(assetName)
                 .streamingPolicyName("Predefined_ClearStreamingOnly")
-                .endTime(Instant.now().plusSeconds(3600).toString())
+                .endTime(Timestamp.from(Instant.now().plusSeconds(3600)))
                 .build();
-            mediaKindClient.putStreamingLocator(userId, MkCreateStreamingLocator.builder()
+            mediaKindClient.createStreamingLocator(userId, MkStreamingLocator.builder()
                 .properties(properties).build());
         }
 

@@ -112,34 +112,6 @@ public class MediaServiceController extends PreApiController {
         return ResponseEntity.ok(resolvedMediaService.playAsset(assetName, userId));
     }
 
-    @PutMapping("/live-event/start/{captureSessionId}")
-    @Operation(operationId = "startLiveEvent", summary = "Start a live event")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId)
-        throws InterruptedException {
-        var dto = captureSessionService.findById(captureSessionId);
-
-        if (dto.getFinishedAt() != null) {
-            throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
-        }
-
-        if (dto.getStartedAt() != null) {
-            return ResponseEntity.ok(dto);
-        }
-
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        String ingestAddress;
-
-        try {
-            ingestAddress = mediaService.startLiveEvent(dto);
-        } catch (Exception e) {
-            captureSessionService.startCaptureSession(captureSessionId, null);
-            throw e;
-        }
-
-        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
-    }
-
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
     @Operation(operationId = "playLiveEvent", summary = "Play a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")

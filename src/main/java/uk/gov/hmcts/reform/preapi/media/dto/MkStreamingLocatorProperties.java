@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDateTime;
+import java.sql.Timestamp;
 import java.util.List;
 
 @Data
@@ -15,9 +15,9 @@ public class MkStreamingLocatorProperties {
     private String assetName;
     private List<MkContentKey> contentKeys;
     private String defaultContentKeyPolicyName;
-    private LocalDateTime endTime;
+    private Timestamp endTime;
     private List<String> filters;
-    private LocalDateTime startTime;
+    private Timestamp startTime;
     private String streamingLocatorId;
     private String streamingPolicyName;
 
