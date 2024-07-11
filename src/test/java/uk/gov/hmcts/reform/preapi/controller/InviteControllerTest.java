@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.InviteService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,6 +52,9 @@ class InviteControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";

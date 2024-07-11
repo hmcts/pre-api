@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +27,11 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -70,8 +73,16 @@ public class UserControllerTest {
     @MockBean
     private UserAuthenticationService userAuthenticationService;
 
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
+
+    @BeforeAll
+    static void setUp() {
+        OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
 
     @DisplayName("Should get user by id with 200 response code")
     @Test

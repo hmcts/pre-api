@@ -1,10 +1,9 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,7 +19,7 @@ import java.util.UUID;
 
 @Repository
 @SuppressWarnings("PMD.MethodNamingConventions")
-public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSession, UUID> {
+public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
     int countAllByBooking_CaseId_IdAndStatus(UUID caseId, RecordingStatus status);
@@ -28,18 +27,6 @@ public interface CaptureSessionRepository extends SoftDeleteRepository<CaptureSe
     List<CaptureSession> findAllByStatus(RecordingStatus status);
 
     List<CaptureSession> findAllByBookingAndDeletedAtIsNull(Booking booking);
-
-    @Query("""
-        update #{#entityName} e
-        set e.deletedAt=CURRENT_TIMESTAMP
-        where e.booking=:booking
-        and e.deletedAt is null
-        """
-    )
-    @Modifying
-    @Transactional
-    void deleteAllByBooking(Booking booking);
-
 
     @Query(
         """

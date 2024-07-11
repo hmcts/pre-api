@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -63,6 +64,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
 
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test
@@ -236,6 +240,95 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$[0].input_rtmp").value("rtmps://example.com"));
     }
 
+    @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
+    @Test
+    void createStreamingLocatorSuccess() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(mediaService.playLiveEvent(captureSessionId)).thenReturn("https://www.gov.uk");
+
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
+        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
+    }
+
+    @DisplayName("Should return 200 with complete capture session withough calling mediakind")
+    @Test
+    void playLiveEventAlreadyRecordings() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSession.setLiveOutputUrl("https://www.gov.uk");
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
+        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
+
+        verify(mediaService, never()).playLiveEvent(any());
+    }
+
+    @DisplayName("Should return 404 when capture session doesn't exist")
+    @Test
+    void captureSession404() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        when(captureSessionService.findById(captureSessionId))
+            .thenThrow(new NotFoundException("CaptureSession: " + captureSessionId));
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isNotFound())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("Not found: CaptureSession: " + captureSessionId);
+    }
+
+    @DisplayName("Should return 400 when capture session is not in a state of STANDBY")
+    @Test
+    void captureSession400() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.INITIALISING);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isBadRequest())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString())
+            .contains("Resource CaptureSessionDTO("
+                          + captureSessionId
+                          + ") is in a INITIALISING state. Expected state is STANDBY.");
+    }
+
+    @DisplayName("Should not create any resources when capture session already has a live_output_url set")
+    @Test
+    void captureSessionAlreadyHasLiveOutputUrl200() throws Exception {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSession.setLiveOutputUrl("https://www.gov.uk");
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+
+        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
+        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
+        Mockito.verify(mediaService, Mockito.times(0)).playLiveEvent(any());
+    }
+
     @DisplayName("Should return 200 and playback information")
     @Test
     void getVodSuccess() throws Exception {
@@ -398,72 +491,23 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, null);
     }
 
-    @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
+    @DisplayName("Should return an error if capture session in wrong state")
     @Test
-    void createStreamingLocatorSuccess() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+    void startLiveEventCaptureSessionBadState() throws Exception {
         var captureSessionId = UUID.randomUUID();
-        var captureSession = new CaptureSessionDTO();
-        captureSession.setId(captureSessionId);
-        captureSession.setStatus(RecordingStatus.STANDBY);
-        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
-        when(mediaService.playLiveEvent(captureSessionId)).thenReturn("https://www.gov.uk");
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStatus(RecordingStatus.FAILURE);
 
-        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-                              .andExpect(status().isOk())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
-        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
-    }
-
-    @DisplayName("Should return 404 when capture session doesn't exist")
-    @Test
-    void captureSession404() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        var captureSessionId = UUID.randomUUID();
         when(captureSessionService.findById(captureSessionId))
-            .thenThrow(new NotFoundException("CaptureSession: " + captureSessionId));
-        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-                              .andExpect(status().isNotFound())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString()).contains("Not found: CaptureSession: " + captureSessionId);
-    }
+            .thenReturn(dto);
 
-    @DisplayName("Should return 400 when capture session is not in a state of STANDBY")
-    @Test
-    void captureSession400() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        var captureSessionId = UUID.randomUUID();
-        var captureSession = new CaptureSessionDTO();
-        captureSession.setId(captureSessionId);
-        captureSession.setStatus(RecordingStatus.INITIALISING);
-        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
-
-        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-                              .andExpect(status().isBadRequest())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString())
-            .contains("Resource CaptureSessionDTO("
-                          + captureSessionId
-                          + ") is in a INITIALISING state. Expected state is STANDBY.");
-    }
-
-    @DisplayName("Should not create any resources when capture session already has a live_output_url set")
-    @Test
-    void captureSessionAlreadyHasLiveOutputUrl200() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        var captureSessionId = UUID.randomUUID();
-        var captureSession = new CaptureSessionDTO();
-        captureSession.setId(captureSessionId);
-        captureSession.setStatus(RecordingStatus.RECORDING);
-        captureSession.setLiveOutputUrl("https://www.gov.uk");
-        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
-
-        var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-                              .andExpect(status().isOk())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
-        assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
-        Mockito.verify(mediaService, Mockito.times(0)).playLiveEvent(any());
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+               .andExpect(status().is4xxClientError())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Resource Capture Session("
+                                     + captureSessionId
+                                     + ") is in a FAILURE state. Expected state is INITIALISING."));
     }
 }
