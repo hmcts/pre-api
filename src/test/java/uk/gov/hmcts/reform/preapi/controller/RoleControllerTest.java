@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.controllers.RoleController;
 import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.RoleService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,9 @@ public class RoleControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
 
     @DisplayName("Should get a list of roles with 200 response code")
     @Test

@@ -4,6 +4,8 @@ import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
+import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,17 +13,20 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
-import uk.gov.hmcts.reform.preapi.exception.MediaKindException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
+import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEventProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
 
 import java.util.List;
 import java.util.UUID;
@@ -83,7 +88,7 @@ public class MediaKindTest {
     void getAssetsFeignExceptionThrown() {
         when(mockClient.getAssets(0)).thenThrow(FeignException.class);
 
-        assertThrows(MediaKindException.class, () -> mediaKind.getAssets());
+        assertThrows(FeignException.class, () -> mediaKind.getAssets());
     }
 
 
@@ -160,7 +165,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(anyString())).thenThrow(FeignException.class);
 
         assertThrows(
-            MediaKindException.class,
+            FeignException.class,
             () -> mediaKind.getAsset("asset1")
         );
         verify(mockClient, times(1)).getAsset(anyString());
@@ -195,18 +200,16 @@ public class MediaKindTest {
         assertThat(result.getInputRtmp()).isEqualTo(liveEvent.getProperties().getInput().endpoints().getFirst().url());
     }
 
-    @DisplayName("Should return throw not found error when get live event returns 404")
+    @DisplayName("Should throw a NotFoundException null when get live event returns 404")
     @Test
     void getLiveEventNotFound() {
         var mockError = mock(FeignException.NotFound.class);
 
         when(mockClient.getLiveEvent(anyString())).thenThrow(mockError);
-
         assertThrows(
             NotFoundException.class,
             () -> mediaKind.getLiveEvent("not-found")
         );
-
         verify(mockClient, times(1)).getLiveEvent("not-found");
     }
 
@@ -249,16 +252,16 @@ public class MediaKindTest {
             .id(UUID.randomUUID().toString())
             .name(name)
             .location("UK South")
-            .properties(MkLiveEvent.MkLiveEventProperties.builder()
-                            .description("description: " + name)
-                            .useStaticHostname(true)
-                            .resourceState("Stopped")
-                            .input(new LiveEventInput()
+            .properties(MkLiveEventProperties.builder()
+                                             .description("description: " + name)
+                                             .useStaticHostname(true)
+                                             .resourceState("Stopped")
+                                             .input(new LiveEventInput()
                                        .withEndpoints(List.of(new LiveEventEndpoint()
                                                                   .withProtocol("RTMP")
                                                                   .withUrl("rtmps://example url"))))
-                            .preview(new LiveEventPreview())
-                            .build())
+                                             .preview(new LiveEventPreview())
+                                             .build())
             .build();
     }
 
@@ -271,16 +274,16 @@ public class MediaKindTest {
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
             .thenReturn(
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .input(
                         new LiveEventInput()
@@ -315,16 +318,16 @@ public class MediaKindTest {
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
             .thenReturn(
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Starting")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .build(),
-                MkLiveEvent.MkLiveEventProperties.builder()
+                MkLiveEventProperties.builder()
                     .resourceState("Running")
                     .input(
                         new LiveEventInput()
@@ -612,5 +615,128 @@ public class MediaKindTest {
         verify(mockClient, never()).deleteStreamingEndpoint(any());
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+    }
+      
+    @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
+    @Test
+    void unsupportedOperationException() {
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaKind.playAsset("test-asset-name")
+        );
+
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaKind.importAsset("test-asset-name")
+        );
+    }
+
+    @DisplayName("Should fail to play a live event because the live event is not running")
+    @Test
+    void playLiveEventFailureLiveEventNotRunning() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                                     .resourceState(LiveEventResourceState.STOPPED.toString())
+                                     .build()
+            );
+
+
+        assertThrows(
+            LiveEventNotRunningException.class,
+            () -> mediaKind.playLiveEvent(captureSession.getId())
+        );
+
+    }
+
+    @DisplayName("Should fail to play a live event because the streaming endpoint won't start")
+    @Test
+    void playLiveEventFailureToStartStreamingEndpoint() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                                     .resourceState(LiveEventResourceState.RUNNING.toString())
+                                     .build()
+            );
+        var endpointName = liveEventName.substring(0, 23);
+        when(mockClient.createStreamingEndpoint(eq(endpointName), any()))
+            .thenThrow(new ConflictException("Conflict"));
+
+        doThrow(mock(FeignException.InternalServerError.class))
+            .when(mockClient).startStreamingEndpoint(endpointName);
+
+        assertThrows(
+            FeignException.class,
+            () -> mediaKind.playLiveEvent(captureSession.getId())
+        );
+    }
+
+    @DisplayName("Should play a live event successfully")
+    @Test
+    @SuppressWarnings("checkstyle:linelength")
+    void playLiveEventSuccess() throws JsonProcessingException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                                     .resourceState(LiveEventResourceState.RUNNING.toString())
+                                     .build()
+            );
+
+        when(mockClient.createStreamingLocator(eq(liveEventName), any()))
+            .thenThrow(new ConflictException("Conflict"));
+
+        when(mockClient.listStreamingLocatorPaths(liveEventName))
+            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
+
+        var result = mediaKind.playLiveEvent(captureSession.getId());
+
+        assertThat(result).isEqualTo(
+            "https://ep-"
+            + liveEventName.substring(0, 23)
+            + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
+            + liveEventName
+            + "/index.qfm/manifest(format=m3u8-cmaf)");
+    }
+
+    @SuppressWarnings("checkstyle:Indentation")
+    private MkStreamingLocatorUrlPaths getGoodStreamingLocatorPaths(String liveEventName)
+        throws JsonProcessingException {
+        var jsonSnippet = """
+          {
+          "streamingPaths": [
+            {
+              "streamingProtocol": "Dash",
+              "encryptionScheme": "NoEncryption",
+              "paths": [
+                "/%s/index.qfm/manifest(format=mpd-time-cmaf)"
+              ]
+            },
+            {
+              "streamingProtocol": "Hls",
+              "encryptionScheme": "NoEncryption",
+              "paths": [
+                "/%s/index.qfm/manifest(format=m3u8-cmaf)"
+              ]
+            }
+          ],
+          "downloadPaths": [],
+          "drm": {}
+        }
+        """.formatted(liveEventName, liveEventName);
+
+        var om = new JacksonConfiguration().getMapper();
+        return om.readValue(jsonSnippet, MkStreamingLocatorUrlPaths.class);
     }
 }

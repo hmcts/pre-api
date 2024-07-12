@@ -14,8 +14,10 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
 
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
@@ -36,6 +38,22 @@ public interface MediaKindClient {
 
     @GetMapping("/liveEvents/{liveEventName}")
     MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
+
+    @PutMapping("/streamingEndpoints/{streamingEndpointName}")
+    MkStreamingEndpoint createStreamingEndpoint(@PathVariable("streamingEndpointName") String streamingEndpointName,
+                                                @RequestBody MkStreamingEndpoint streamingEndpoint);
+
+    @PostMapping("/streamingEndpoints/{streamingEndpointName}/start")
+    void startStreamingEndpoint(@PathVariable("streamingEndpointName") String streamingEndpointName);
+
+    @PutMapping("/streamingLocators/{streamingLocatorName}")
+    MkStreamingLocator createStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName,
+                                              @RequestBody MkStreamingLocator streamingLocator);
+
+    @PostMapping("/streamingLocators/{streamingLocatorName}/listPaths")
+    MkStreamingLocatorUrlPaths listStreamingLocatorPaths(
+        @PathVariable("streamingLocatorName") String streamingLocatorName
+    );
 
     @PostMapping("/liveEvents/{liveEventName}/start")
     void startLiveEvent(@PathVariable String liveEventName);
