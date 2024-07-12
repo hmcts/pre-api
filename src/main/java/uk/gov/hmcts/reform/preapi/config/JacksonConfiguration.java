@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.config;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -32,6 +33,7 @@ public class JacksonConfiguration {
         ObjectMapper mapper = JsonMapper.builder()
                                         .configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true)
                                         .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
                                         .enable(INFER_BUILDER_TYPE_BINDINGS)
                                         .serializationInclusion(JsonInclude.Include.NON_NULL)
                                         .build();
