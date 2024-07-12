@@ -44,10 +44,10 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.EncryptionScheme;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol;
-import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
+import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 
 import java.util.Collection;
 import java.util.List;
@@ -59,7 +59,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
-import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortenedLiveEventId;
 
 
 @Service

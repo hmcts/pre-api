@@ -16,8 +16,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
-import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
+import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
 public interface MediaKindClient {
