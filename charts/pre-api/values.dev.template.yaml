@@ -17,6 +17,8 @@ java:
     MEDIA_KIND_SUBSCRIPTION: pre-mediakind-stg
     PLATFORM_ENV_TAG: Staging
     MEDIA_SERVICE: AzureMediaService
+    AZURE_INGEST_SA: preingestsatest
+    AZURE_FINAL_SA: prefinalsatest
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
