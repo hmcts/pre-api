@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.repositories;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface ShareBookingRepository extends SoftDeleteRepository<ShareBooking, UUID> {
+public interface ShareBookingRepository extends JpaRepository<ShareBooking, UUID> {
     List<ShareBooking> findAllByDeletedAtIsNotNull();
 
 
@@ -46,6 +47,8 @@ public interface ShareBookingRepository extends SoftDeleteRepository<ShareBookin
         @Param("sharedWithEmail") String sharedWithEmail
     );
 
+    List<ShareBooking> findAllByBookingAndDeletedAtIsNull(Booking booking);
+
     @Query("""
         update ShareBooking e
         set e.deletedAt=CURRENT_TIMESTAMP
@@ -67,7 +70,7 @@ public interface ShareBookingRepository extends SoftDeleteRepository<ShareBookin
     )
     List<ShareBooking> findAllSharesForUserByCourt(UUID userId, UUID courtId);
 
-    Page<ShareBooking> findAllByBooking_Id(UUID bookingId, Pageable pageable);
+    Page<ShareBooking> findByBooking_IdOrderBySharedWith_FirstNameAsc(UUID bookingId, Pageable pageable);
 
     List<ShareBooking> findAllBySharedWith_IdAndDeletedAtIsNull(UUID userId);
 

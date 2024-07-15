@@ -64,6 +64,9 @@ class BookingServiceTest {
     @MockBean
     private ShareBookingService shareBookingService;
 
+    @MockBean
+    private CaseService caseService;
+
     @Autowired
     private BookingService bookingService;
 
@@ -400,7 +403,7 @@ class BookingServiceTest {
 
         verify(shareBookingService, times(1)).deleteCascade(bookingEntity);
         verify(captureSessionService, times(1)).deleteCascade(bookingEntity);
-        verify(bookingRepository, times(1)).deleteById(bookingId);
+        verify(bookingRepository, times(1)).saveAndFlush(bookingEntity);
     }
 
     @DisplayName("Delete a booking that doesn't exist")
@@ -433,35 +436,44 @@ class BookingServiceTest {
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(caseEntity);
         verify(shareBookingService, times(1)).deleteCascade(booking);
         verify(captureSessionService, times(1)).deleteCascade(booking);
-        verify(bookingRepository, times(1)).deleteAllByCaseId(caseEntity);
+        verify(bookingRepository, times(1)).save(booking);
     }
 
     @DisplayName("Should undelete a booking successfully when booking is marked as deleted")
     @Test
     void undeleteSuccess() {
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setDeletedAt(Timestamp.from(Instant.now()));
         var booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setDeletedAt(Timestamp.from(Instant.now()));
+        booking.setCaseId(aCase);
 
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
 
         bookingService.undelete(booking.getId());
 
         verify(bookingRepository, times(1)).findById(booking.getId());
+        verify(caseService, times(1)).undelete(aCase.getId());
         verify(bookingRepository, times(1)).save(booking);
     }
 
     @DisplayName("Should do nothing when booking is not deleted")
     @Test
     void undeleteNotDeletedSuccess() {
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
         var booking = new Booking();
         booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
 
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
 
         bookingService.undelete(booking.getId());
 
         verify(bookingRepository, times(1)).findById(booking.getId());
+        verify(caseService, times(1)).undelete(aCase.getId());
         verify(bookingRepository,never()).save(booking);
     }
 

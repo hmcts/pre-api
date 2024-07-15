@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,35 +23,37 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 @Service
 @SuppressWarnings("PMD.SingularField")
 public class BookingService {
-
 
     private final BookingRepository bookingRepository;
     private final ParticipantRepository participantRepository;
     private final CaseRepository caseRepository;
     private final CaptureSessionService captureSessionService;
     private final ShareBookingService shareBookingService;
+    private final CaseService caseService;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
                           final CaptureSessionService captureSessionService,
-                          final ShareBookingService shareBookingService) {
+                          final ShareBookingService shareBookingService,
+                          @Lazy CaseService caseService) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
+        this.caseService = caseService;
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
@@ -67,12 +70,12 @@ public class BookingService {
     }
 
     public Page<BookingDTO> searchBy(
-        @Nullable UUID caseId,
-        @Nullable String caseReference,
-        @Nullable UUID courtId,
+        UUID caseId,
+        String caseReference,
+        UUID courtId,
         Optional<Timestamp> scheduledFor,
-        @Nullable UUID participantId,
-        @Nullable Boolean hasRecordings,
+        UUID participantId,
+        Boolean hasRecordings,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -161,20 +164,21 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void markAsDeleted(UUID id) {
-        var entity = bookingRepository.findByIdAndDeletedAtIsNull(id);
-        if (entity.isEmpty()) {
-            throw new NotFoundException("Booking: " + id);
-        }
-        var booking = entity.get();
+        var booking = bookingRepository
+            .findByIdAndDeletedAtIsNull(id)
+            .orElseThrow(() -> new NotFoundException("Booking: " + id));
         captureSessionService.deleteCascade(booking);
         shareBookingService.deleteCascade(booking);
-        bookingRepository.deleteById(id);
+        booking.setDeleteOperation(true);
+        booking.setDeletedAt(Timestamp.from(Instant.now()));
+        bookingRepository.saveAndFlush(booking);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void undelete(UUID id) {
         var entity = bookingRepository.findById(id).orElseThrow(() -> new NotFoundException("Booking: " + id));
+        caseService.undelete(entity.getCaseId().getId());
         if (!entity.isDeleted()) {
             return;
         }
@@ -186,10 +190,12 @@ public class BookingService {
     public void deleteCascade(Case caseEntity) {
         bookingRepository
             .findAllByCaseIdAndDeletedAtIsNull(caseEntity)
-            .forEach((booking) -> {
+            .forEach(booking -> {
                 captureSessionService.deleteCascade(booking);
                 shareBookingService.deleteCascade(booking);
+                booking.setDeleteOperation(true);
+                booking.setDeletedAt(Timestamp.from(Instant.now()));
+                bookingRepository.save(booking);
             });
-        bookingRepository.deleteAllByCaseId(caseEntity);
     }
 }

@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,16 +20,21 @@ import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -62,10 +68,21 @@ public class UserControllerTest {
     private UserService userService;
 
     @MockBean
+    private RoleRepository roleRepository;
+
+    @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
+
+    @BeforeAll
+    static void setUp() {
+        OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
 
     @DisplayName("Should get user by id with 200 response code")
     @Test
@@ -112,6 +129,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             eq(false),
+            isNull(),
             any()
         )).thenReturn(userList);
 
@@ -128,6 +146,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             eq(false),
+            isNull(),
             any()
         );
     }
@@ -138,7 +157,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), isNull(), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -152,7 +171,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
+            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -511,6 +530,7 @@ public class UserControllerTest {
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -541,6 +561,7 @@ public class UserControllerTest {
         appAccess.setId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -571,6 +592,7 @@ public class UserControllerTest {
         appAccess.setId(UUID.randomUUID());
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setRoleId(UUID.randomUUID());
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -601,6 +623,7 @@ public class UserControllerTest {
         appAccess.setId(UUID.randomUUID());
         appAccess.setUserId(UUID.randomUUID());
         appAccess.setCourtId(UUID.randomUUID());
+        appAccess.setDefaultCourt(true);
         user.setAppAccess(Set.of(appAccess));
         user.setPortalAccess(Set.of());
 
@@ -615,6 +638,129 @@ public class UserControllerTest {
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo(
                 "{\"appAccess[].roleId\":\"must not be null\"}"
+            );
+    }
+
+    /*
+    TODO Uncomment this when court access type is made required
+    @DisplayName("Should fail to create/update a user with 400 when user app access court access type is null")
+    @Test
+    void upsertUserAppAccessCourtAccessTypeNull() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        var appAccess = new CreateAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUserId(UUID.randomUUID());
+        appAccess.setCourtId(UUID.randomUUID());
+        user.setAppAccess(Set.of(appAccess));
+        user.setPortalAccess(Set.of());
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"appAccess[].courtAccessType\":\"must not be null\"}"
+            );
+    }
+     */
+
+    @DisplayName("Should fail to create/update a user with 400 when app access doesnt meet NoDuplicateCourtsConstraint")
+    @Test
+    void upsertUserAppAccessNoDuplicateCourtsConstraint() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setPortalAccess(Set.of());
+        var appAccess1 = createAppAccessDTO(true, userId);
+        var appAccess2 = createAppAccessDTO(false, userId);
+        appAccess2.setCourtId(appAccess1.getCourtId());
+        user.setAppAccess(Set.of(appAccess1, appAccess2));
+
+        MvcResult response = mockMvc.perform(put("/users/" + userId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(user))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"appAccess\":\"must not contain duplicate accesses to a court\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when app access doesnt meet PortalAppAccessConstraint")
+    @Test
+    void upsertUserAppAccessPortalAppAccessConstraint() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setPortalAccess(Set.of());
+        var appAccess1 = createAppAccessDTO(true, userId);
+        var appAccess2 = createAppAccessDTO(false, userId);
+        user.setAppAccess(Set.of(appAccess1, appAccess2));
+
+        var rolePortal = new Role();
+        rolePortal.setName("Level 3");
+
+        when(roleRepository.findById(appAccess1.getRoleId())).thenReturn(Optional.of(rolePortal));
+        when(roleRepository.findById(appAccess2.getRoleId())).thenReturn(Optional.of(rolePortal));
+
+        var response = mockMvc.perform(put("/users/" + userId)
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(user))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"appAccess\":\"must not have portal access role if you have secondary courts\"}"
+            );
+    }
+
+    @DisplayName("Should fail to create/update a user with 400 when app access doesnt meet PrimaryCourtConstraint")
+    @Test
+    void upsertUserAppAccessPrimaryCourtConstraint() throws Exception {
+        var userId = UUID.randomUUID();
+        var user = new CreateUserDTO();
+        user.setId(userId);
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setPortalAccess(Set.of());
+        var appAccess1 = createAppAccessDTO(false, userId);
+        user.setAppAccess(Set.of(appAccess1));
+
+        var response = mockMvc.perform(put("/users/" + userId)
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(user))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo(
+                "{\"appAccess\":\"must be empty or contain only one PRIMARY access and up to four SECONDARY access\"}"
             );
     }
 
@@ -777,6 +923,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             anyBoolean(),
+            isNull(),
             any()
         ))
             .thenReturn(new PageImpl<>(List.of()));
@@ -788,7 +935,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
     }
 
     @DisplayName("Should set include deleted param to false when set to false")
@@ -802,6 +949,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             anyBoolean(),
+            isNull(),
             any()
         )).thenReturn(new PageImpl<>(List.of()));
 
@@ -813,7 +961,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
     }
 
     @DisplayName("Should set include deleted param to true when set to true")
@@ -827,9 +975,9 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             anyBoolean(),
+            isNull(),
             any()
-        ))
-            .thenReturn(new PageImpl<>(List.of()));
+        )).thenReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/users")
                             .with(csrf())
@@ -839,7 +987,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), isNull(), any());
     }
 
     @DisplayName("Should undelete a user by id and return a 200 response")
@@ -867,5 +1015,15 @@ public class UserControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: User: " + userId));
+    }
+
+    private CreateAppAccessDTO createAppAccessDTO(boolean isDefaultCourt, UUID userId) {
+        var appAccess = new CreateAppAccessDTO();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUserId(userId);
+        appAccess.setCourtId(UUID.randomUUID());
+        appAccess.setRoleId(UUID.randomUUID());
+        appAccess.setDefaultCourt(isDefaultCourt);
+        return appAccess;
     }
 }

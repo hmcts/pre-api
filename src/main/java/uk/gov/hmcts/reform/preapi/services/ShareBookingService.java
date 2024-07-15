@@ -18,6 +18,8 @@ import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 @Service
@@ -84,12 +86,21 @@ public class ShareBookingService {
             throw new NotFoundException("Found ShareBooking: " + shareId + ". Booking does not match: " + bookingId);
         }
 
-        shareBookingRepository.deleteById(shareId);
+        share.setDeleteOperation(true);
+        share.setDeletedAt(Timestamp.from(Instant.now()));
+
+        shareBookingRepository.saveAndFlush(share);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteCascade(Booking booking) {
-        shareBookingRepository.deleteAllByBooking(booking);
+        shareBookingRepository
+            .findAllByBookingAndDeletedAtIsNull(booking)
+            .forEach(share -> {
+                share.setSoftDeleteOperation(true);
+                share.setDeletedAt(Timestamp.from(Instant.now()));
+                shareBookingRepository.save(share);
+            });
     }
 
     @Transactional
@@ -100,7 +111,7 @@ public class ShareBookingService {
         }
 
         return shareBookingRepository
-            .findAllByBooking_Id(bookingId, pageable)
+            .findByBooking_IdOrderBySharedWith_FirstNameAsc(bookingId, pageable)
             .map(ShareBookingDTO::new);
     }
 }

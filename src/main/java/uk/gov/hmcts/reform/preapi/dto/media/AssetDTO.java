@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 
 @Data
 @NoArgsConstructor
@@ -31,5 +32,12 @@ public class AssetDTO {
         description = amsAsset.description();
         container = amsAsset.container();
         storageAccountName = amsAsset.storageAccountName();
+    }
+
+    public AssetDTO(MkAsset mkAsset) {
+        name = mkAsset.getName();
+        description = mkAsset.getProperties().getDescription();
+        container = mkAsset.getProperties().getContainer();
+        storageAccountName = mkAsset.getProperties().getStorageAccountName();
     }
 }

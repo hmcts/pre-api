@@ -53,7 +53,7 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
         );
         entityManager.persist(court);
 
-        appAccess = HelperFactory.createAppAccess(user, court, role, true, null, lastAccess);
+        appAccess = HelperFactory.createAppAccess(user, court, role, true, null, lastAccess, true);
         portalAccess = HelperFactory.createPortalAccess(
             user,
             lastAccess,

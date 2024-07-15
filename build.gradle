@@ -1,6 +1,6 @@
 buildscript {
   dependencies {
-    classpath("org.flywaydb:flyway-database-postgresql:10.13.0")
+    classpath("org.flywaydb:flyway-database-postgresql:10.15.2")
   }
 }
 
@@ -9,13 +9,13 @@ plugins {
   id 'checkstyle'
   id 'pmd'
   id 'jacoco'
-  id 'io.spring.dependency-management' version '1.1.5'
-  id 'org.springframework.boot' version '3.2.5'
-  id 'org.owasp.dependencycheck' version '9.1.0'
+  id 'io.spring.dependency-management' version '1.1.6'
+  id 'org.springframework.boot' version '3.3.1'
+  id 'org.owasp.dependencycheck' version '9.2.0'
   id 'com.github.ben-manes.versions' version '0.51.0'
-  id 'org.sonarqube' version '5.0.0.4638'
+  id 'org.sonarqube' version '5.1.0.4882'
   id "io.freefair.lombok" version "8.6"
-  id 'org.flywaydb.flyway' version '10.13.0'
+  id 'org.flywaydb.flyway' version '10.15.2'
   id "info.solidsoft.pitest" version '1.15.0'
 }
 
@@ -112,7 +112,7 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.16.0'
+  toolVersion = '10.17.0'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
@@ -122,7 +122,7 @@ pmd {
   reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
   ruleSets = []
-  ruleSetFiles = files("config/pmd/ruleset.xml")
+  ruleSetFiles = files("${rootDir}/config/pmd/ruleset.xml")
 }
 
 jacocoTestReport {
@@ -180,7 +180,8 @@ project.tasks['check'].dependsOn integration
 def coverageExclusionList = [
   '**uk/gov/hmcts/reform/preapi/data/exception/PendingMigrationScriptException*',
   '**uk/gov/hmcts/reform/preapi/data/migration/FlywayNoOpStrategy*',
-  '**uk/gov/hmcts/reform/preapi/controllers/TestingSupportController*'
+  '**uk/gov/hmcts/reform/preapi/controllers/TestingSupportController*',
+  '**/uk/gov/hmcts/reform/preapi/Application.java',
 ]
 
 def duplicateCodeExclusionList = [
@@ -242,8 +243,9 @@ ext {
 }
 
 def versions = [
-  junit           : '5.10.2',
-  junitPlatform   : '1.10.2',
+  jackson         : '2.17.2',
+  junit           : '5.10.3',
+  junitPlatform   : '1.10.3',
   reformLogging   : '5.1.5',
   springBoot      : springBoot.class.package.implementationVersion
 ]
@@ -266,31 +268,43 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-json'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation'
-  implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.5.0'
+  implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.6.0'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
-  implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.2.2'
+  implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.3.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
 
-  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.4'
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.5'
 
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
 
-  implementation group: 'org.flywaydb', name: 'flyway-core', version: '10.13.0'
-  implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '10.13.0'
+  implementation group: 'org.flywaydb', name: 'flyway-core', version: '10.15.2'
+  implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '10.15.2'
   implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.3'
-  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.7.5'
+  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.8.1'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
-  implementation group: 'com.azure', name: 'azure-identity', version: '1.12.1'
+  implementation 'io.github.openfeign:feign-gson:10.12'
+  implementation 'io.github.openfeign:feign-slf4j:10.12'
+  implementation group: 'io.github.openfeign', name: 'feign-jackson', version: '13.3'
+  implementation group: 'org.springframework.cloud', name: 'spring-cloud-starter-openfeign', version: '4.1.3'
+
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: versions.jackson
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
+  implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
+
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.13.0'
+  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.27.0-beta.1'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
+
+  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.19.8'
 
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.5.2.Final')
 
 
-  testImplementation 'com.github.hmcts:fortify-client:1.4.1:all'
-  testImplementation 'org.springframework.security:spring-security-test:6.2.4'
+  testImplementation 'com.github.hmcts:fortify-client:1.4.3:all'
+  testImplementation 'org.springframework.security:spring-security-test:6.3.1'
   testImplementation libraries.junit5
 
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
@@ -300,14 +314,12 @@ dependencies {
 
   integrationTestImplementation sourceSets.main.runtimeClasspath
   integrationTestImplementation sourceSets.test.runtimeClasspath
-  integrationTestImplementation group: 'org.testcontainers', name: 'postgresql', version: '1.19.7'
-  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.19.7'
+  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.19.8'
 
   functionalTestImplementation sourceSets.main.runtimeClasspath
   functionalTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
   functionalTestImplementation group: 'io.rest-assured', name: 'rest-assured'
-  functionalTestImplementation group: 'org.testcontainers', name: 'postgresql', version: '1.19.7'
-  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.19.7'
+  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.19.8'
 
   smokeTestImplementation sourceSets.main.runtimeClasspath
   smokeTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'

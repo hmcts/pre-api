@@ -211,7 +211,7 @@ public class ShareBookingServiceTest {
 
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(booking.getId());
         verify(shareBookingRepository, times(1)).findById(share.getId());
-        verify(shareBookingRepository, times(1)).deleteById(share.getId());
+        verify(shareBookingRepository, times(1)).saveAndFlush(share);
     }
 
     @DisplayName("Delete a share when booking not found")
@@ -343,7 +343,7 @@ public class ShareBookingServiceTest {
         shareBooking.setSharedBy(user);
 
         when(bookingRepository.existsByIdAndDeletedAtIsNull(booking.getId())).thenReturn(true);
-        when(shareBookingRepository.findAllByBooking_Id(booking.getId(), null))
+        when(shareBookingRepository.findByBooking_IdOrderBySharedWith_FirstNameAsc(booking.getId(), null))
             .thenReturn(new PageImpl<>(List.of(shareBooking)));
 
         var models = shareBookingService.getShareLogsForBooking(booking.getId(), null);

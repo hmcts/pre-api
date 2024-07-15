@@ -47,6 +47,22 @@ definitions:
         description: AccessRemovedReportUserFullName
         type: string
     type: object
+  AssetDTO:
+    description: AssetDTO
+    properties:
+      container:
+        description: AssetContainer
+        type: string
+      description:
+        description: AssetDescription
+        type: string
+      name:
+        description: AssetName
+        type: string
+      storage_account_name:
+        description: AssetStorageAccountName
+        type: string
+    type: object
   BaseAppAccessDTO:
     description: BaseAppAccessDTO
     properties:
@@ -55,6 +71,13 @@ definitions:
         type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: AppAccessCreatedAt
+        format: date-time
+        type: string
+      default_court:
+        description: AppAccessIsDefaultCourt
+        type: boolean
       id:
         description: AppAccessId
         format: uuid
@@ -102,7 +125,6 @@ definitions:
         items:
           $ref: '#/definitions/CaptureSessionDTO'
         type: array
-        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -126,7 +148,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       scheduled_for:
         description: BookingScheduledFor
         format: date-time
@@ -136,7 +157,6 @@ definitions:
         items:
           $ref: '#/definitions/ShareBookingDTO'
         type: array
-        uniqueItems: true
     type: object
   CaptureSessionDTO:
     description: CaptureSessionDTO
@@ -227,7 +247,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -341,13 +360,11 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
-        uniqueItems: true
       rooms:
         description: CourtRooms
         items:
           $ref: '#/definitions/RoomDTO'
         type: array
-        uniqueItems: true
     type: object
   CreateAppAccessDTO:
     description: CreateAppAccessDTO
@@ -359,6 +376,9 @@ definitions:
         description: AppAccessCourtId
         format: uuid
         type: string
+      default_court:
+        description: AppAccessIsDefaultCourt
+        type: boolean
       id:
         description: AppAccessId
         format: uuid
@@ -786,7 +806,6 @@ definitions:
         items:
           $ref: '#/definitions/CaptureSessionDTO'
         type: array
-        uniqueItems: true
       case_dto:
         $ref: '#/definitions/CaseDTO'
       created_at:
@@ -810,7 +829,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       scheduled_for:
         description: BookingScheduledFor
         format: date-time
@@ -820,7 +838,6 @@ definitions:
         items:
           $ref: '#/definitions/ShareBookingDTO'
         type: array
-        uniqueItems: true
     type: object
   EntityModelCaptureSessionDTO:
     properties:
@@ -913,7 +930,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       reference:
         description: CaseReference
         type: string
@@ -947,13 +963,11 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
-        uniqueItems: true
       rooms:
         description: CourtRooms
         items:
           $ref: '#/definitions/RoomDTO'
         type: array
-        uniqueItems: true
     type: object
   EntityModelInviteDTO:
     properties:
@@ -1027,7 +1041,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       url:
         description: RecordingURL
         type: string
@@ -1071,7 +1084,6 @@ definitions:
         items:
           $ref: '#/definitions/BaseAppAccessDTO'
         type: array
-        uniqueItems: true
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -1108,7 +1120,6 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
-        uniqueItems: true
     required:
       - email
       - first_name
@@ -1164,6 +1175,25 @@ definitions:
   Links:
     additionalProperties:
       $ref: '#/definitions/Link'
+    type: object
+  LiveEventDTO:
+    description: LiveEventDTO
+    properties:
+      description:
+        description: LiveEventDescription
+        type: string
+      id:
+        description: LiveEventId
+        type: string
+      input_rtmp:
+        description: LiveEventInputRtmp
+        type: string
+      name:
+        description: LiveEventName
+        type: string
+      resource_state:
+        description: LiveEventResourceState
+        type: string
     type: object
   PageMetadata:
     properties:
@@ -1450,7 +1480,6 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
-        uniqueItems: true
       url:
         description: RecordingURL
         type: string
@@ -1640,7 +1669,6 @@ definitions:
         items:
           $ref: '#/definitions/BaseAppAccessDTO'
         type: array
-        uniqueItems: true
       created_at:
         description: UserCreatedAt
         format: date-time
@@ -1677,7 +1705,6 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
-        uniqueItems: true
     required:
       - email
       - first_name
@@ -2585,6 +2612,54 @@ paths:
       summary: Create a portal access user and invite them
       tags:
         - invite-controller
+  /media-service/assets:
+    get:
+      operationId: getAssets
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AssetDTO'
+            type: array
+      summary: Get all media service assets
+      tags:
+        - media-service-controller
+  '/media-service/assets/{assetName}':
+    get:
+      operationId: getAssetsByName
+      parameters:
+        - in: path
+          name: assetName
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/AssetDTO'
+      summary: Get a media service asset by name
+      tags:
+        - media-service-controller
   /media-service/health:
     get:
       operationId: mediaService
@@ -2603,6 +2678,132 @@ paths:
           description: OK
           schema:
             type: string
+      tags:
+        - media-service-controller
+  '/media-service/live-event/end/{captureSessionId}':
+    put:
+      operationId: stopLiveEvent
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Stop a live event
+      tags:
+        - media-service-controller
+  '/media-service/live-event/start/{captureSessionId}':
+    put:
+      operationId: startLiveEvent
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Start a live event
+      tags:
+        - media-service-controller
+  /media-service/live-events:
+    get:
+      operationId: getLiveEvents
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/LiveEventDTO'
+            type: array
+      summary: Get a list of media service live events
+      tags:
+        - media-service-controller
+  '/media-service/live-events/{liveEventName}':
+    get:
+      operationId: getLiveEventsByName
+      parameters:
+        - in: path
+          name: liveEventName
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/LiveEventDTO'
+      summary: Get a media service live event by name
+      tags:
+        - media-service-controller
+  '/media-service/streaming-locator/live-event/{captureSessionId}':
+    put:
+      operationId: playLiveEvent
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Play a live event
       tags:
         - media-service-controller
   /recordings:
@@ -3117,6 +3318,10 @@ paths:
         - description: Include users marked as deleted
           in: query
           name: includeDeleted
+          type: boolean
+        - description: Filter by users with active app access
+          in: query
+          name: appActive
           type: boolean
         - description: The page number of search result to return
           format: int32

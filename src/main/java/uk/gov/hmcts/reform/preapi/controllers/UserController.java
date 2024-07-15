@@ -106,6 +106,11 @@ public class UserController extends PreApiController {
         schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
+        name = "appActive",
+        description = "Filter by users with active app access",
+        schema = @Schema(implementation = Boolean.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -131,6 +136,7 @@ public class UserController extends PreApiController {
             params.getRoleId(),
             params.getAccessType(),
             params.getIncludeDeleted() != null && params.getIncludeDeleted(),
+            params.getAppActive(),
             pageable
         );
 

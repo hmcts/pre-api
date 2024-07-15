@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.dto.reports;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,6 +33,7 @@ public class ConcurrentCaptureSessionReportDTO {
     private Timestamp endTime;
 
     @Schema(description = "CaptureSessionDuration", implementation = String.class)
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Duration duration;
 
     @Schema(description = "CaptureSessionCaseReference")

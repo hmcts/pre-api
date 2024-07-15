@@ -85,6 +85,7 @@ public class UserService {
         UUID role,
         AccessType accessType,
         boolean includeDeleted,
+        Boolean isAppActive,
         Pageable pageable
     ) {
         if (court != null && !courtRepository.existsById(court)) {
@@ -104,6 +105,7 @@ public class UserService {
             accessType == AccessType.PORTAL,
             accessType == AccessType.APP,
             includeDeleted,
+            isAppActive,
             pageable
         ).map(UserDTO::new);
     }
@@ -141,6 +143,7 @@ public class UserService {
             entity
                 .getAppAccess()
                 .stream()
+                .filter(appAccess -> appAccess.getDeletedAt() == null)
                 .map(AppAccess::getId)
                 .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
@@ -210,7 +213,13 @@ public class UserService {
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
             .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getId()));
 
-        userRepository.deleteById(userId);
+        userRepository
+            .findById(userId)
+            .ifPresent(user -> {
+                user.setDeleteOperation(true);
+                user.setDeletedAt(Timestamp.from(Instant.now()));
+                userRepository.saveAndFlush(user);
+            });
     }
 
     @Transactional

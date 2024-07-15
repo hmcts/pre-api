@@ -4,38 +4,83 @@ import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
+import com.azure.resourcemanager.mediaservices.fluent.JobsClient;
+import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
+import com.azure.resourcemanager.mediaservices.fluent.LiveOutputsClient;
+import com.azure.resourcemanager.mediaservices.fluent.StreamingEndpointsClient;
+import com.azure.resourcemanager.mediaservices.fluent.StreamingLocatorsClient;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.JobInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
+import com.azure.resourcemanager.mediaservices.models.JobState;
+import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
+import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
+import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import com.azure.resourcemanager.mediaservices.models.StreamingPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
+import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AzureMediaService.class)
 public class AzureMediaServiceTest {
-    @Mock
-    private AzureMediaServices azureMediaServices;
+    @MockBean
+    private AzureMediaServices amsClient;
 
-    private AzureMediaService mediaService;
+    @MockBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     private final String resourceGroup = "test-resource-group";
     private final String accountName = "test-account-name";
+    private final String ingestSa = "test-ingest-sa";
+    private final String finalSa = "test-final-sa";
+    private final String env = "test-env";
+
+    private AzureMediaService mediaService;
+
+    private CaptureSessionDTO captureSession;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mediaService = new AzureMediaService("test-subscription-id", "test-tenant-id", resourceGroup,
-                                             accountName, "test-client-id", "test-client-secret");
-        mediaService.client = azureMediaServices;
+        mediaService = new AzureMediaService(
+            resourceGroup,
+            accountName,
+            ingestSa,
+            finalSa,
+            env,
+            amsClient,
+            azureFinalStorageService
+        );
+
+        captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBookingId(UUID.randomUUID());
     }
 
     @DisplayName("Should get a valid asset and return an AssetDTO")
@@ -49,8 +94,8 @@ public class AzureMediaServiceTest {
         when(asset.container()).thenReturn("container");
         when(asset.storageAccountName()).thenReturn("storage-account-name");
 
-        when(azureMediaServices.getAssets()).thenReturn(mockAssetsClient);
-        when(azureMediaServices.getAssets().get(resourceGroup, accountName, name)).thenReturn(asset);
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+        when(amsClient.getAssets().get(resourceGroup, accountName, name)).thenReturn(asset);
 
         var model = mediaService.getAsset(name);
         assertThat(model).isNotNull();
@@ -64,13 +109,11 @@ public class AzureMediaServiceTest {
     @Test
     void getAssetNotFound() {
         var name = "test-asset-name";
-        var httpResponse = mock(HttpResponse.class);
         var mockAssetsClient = mock(AssetsClient.class);
-        when(httpResponse.getStatusCode()).thenReturn(404);
-
-        when(azureMediaServices.getAssets()).thenReturn(mockAssetsClient);
-        when(azureMediaServices.getAssets().get(resourceGroup, accountName, name))
-            .thenThrow(new ManagementException("not found", httpResponse));
+        var amsError = mockAmsError(404);
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+        when(amsClient.getAssets().get(resourceGroup, accountName, name))
+            .thenThrow(amsError);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -84,20 +127,19 @@ public class AzureMediaServiceTest {
     @Test
     void getAssetManagementException() {
         var name = "test-asset-name";
-        var httpResponse = mock(HttpResponse.class);
         var mockAssetsClient = mock(AssetsClient.class);
-        when(httpResponse.getStatusCode()).thenReturn(400);
+        var amsError = mockAmsError(400);
 
-        when(azureMediaServices.getAssets()).thenReturn(mockAssetsClient);
-        when(azureMediaServices.getAssets().get(resourceGroup, accountName, name))
-            .thenThrow(new ManagementException("bad request", httpResponse));
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+        when(amsClient.getAssets().get(resourceGroup, accountName, name))
+            .thenThrow(amsError);
 
         var message = assertThrows(
             ManagementException.class,
             () -> mediaService.getAsset(name)
         ).getMessage();
 
-        assertThat(message).isEqualTo("bad request");
+        assertThat(message).isEqualTo("error");
     }
 
     @DisplayName("Should get a list of all assets from Azure")
@@ -110,7 +152,7 @@ public class AzureMediaServiceTest {
         when(asset.storageAccountName()).thenReturn("storage-account-name");
 
         var mockedClient = mock(AssetsClient.class);
-        when(azureMediaServices.getAssets()).thenReturn(mockedClient);
+        when(amsClient.getAssets()).thenReturn(mockedClient);
         when(mockedClient.list(resourceGroup, accountName)).thenReturn(mock());
         when(mockedClient.list(resourceGroup, accountName).stream()).thenReturn(Stream.of(asset));
 
@@ -135,30 +177,1020 @@ public class AzureMediaServiceTest {
             UnsupportedOperationException.class,
             () -> mediaService.importAsset("test-asset-name")
         );
+    }
+
+    @DisplayName("Should return a valid live event by name")
+    @Test
+    void getLiveEventByNameSuccess() {
+        var name = "test-live-event-name";
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var liveEvent = mock(LiveEventInner.class);
+        when(liveEvent.id()).thenReturn("id");
+        when(liveEvent.name()).thenReturn(name);
+        when(liveEvent.description()).thenReturn("description");
+        when(liveEvent.resourceState()).thenReturn(LiveEventResourceState.STOPPED);
+        when(liveEvent.input())
+            .thenReturn(new LiveEventInput()
+                            .withEndpoints(List.of(new LiveEventEndpoint()
+                                                       .withProtocol("RTMP")
+                                                       .withUrl("rtmps://example"))));
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        when(amsClient.getLiveEvents().get(resourceGroup, accountName, name)).thenReturn(liveEvent);
+
+        var model = mediaService.getLiveEvent(name);
+        assertThat(model).isNotNull();
+        assertThat(model.getId()).isEqualTo(liveEvent.id());
+        assertThat(model.getName()).isEqualTo(name);
+        assertThat(model.getDescription()).isEqualTo("description");
+        assertThat(model.getResourceState()).isEqualTo("Stopped");
+        assertThat(model.getInputRtmp()).isEqualTo("rtmps://example");
+    }
+
+    @DisplayName("Should throw not found error when AMS returns 404")
+    @Test
+    void getLiveEventByNameNotFound() {
+        var name = "test-live-event-name";
+        var httpResponse = mock(HttpResponse.class);
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        when(httpResponse.getStatusCode()).thenReturn(404);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        when(amsClient.getLiveEvents().get(resourceGroup, accountName, name))
+            .thenThrow(new ManagementException("not found", httpResponse));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> mediaService.getLiveEvent(name)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Live event: " + name);
+    }
+
+    @DisplayName("Should throw any other management exception when not 404 response from Azure (live event)")
+    @Test
+    void getLiveEventManagementException() {
+        var name = "test-live-event-name";
+        var httpResponse = mock(HttpResponse.class);
+        var mockClient = mock(LiveEventsClient.class);
+        when(httpResponse.getStatusCode()).thenReturn(400);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockClient);
+        when(amsClient.getLiveEvents().get(resourceGroup, accountName, name))
+            .thenThrow(new ManagementException("bad request", httpResponse));
+
+        var message = assertThrows(
+            ManagementException.class,
+            () -> mediaService.getLiveEvent(name)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("bad request");
+    }
+
+    @DisplayName("Should return a list of live events")
+    @Test
+    void getLiveEventsSuccess() {
+        var name = "test-live-event-name";
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var liveEvent = mock(LiveEventInner.class);
+        when(liveEvent.id()).thenReturn("id");
+        when(liveEvent.name()).thenReturn(name);
+        when(liveEvent.description()).thenReturn("description");
+        when(liveEvent.resourceState()).thenReturn(LiveEventResourceState.STOPPED);
+        when(liveEvent.input())
+            .thenReturn(new LiveEventInput()
+                            .withEndpoints(List.of(new LiveEventEndpoint()
+                                                       .withProtocol("RTMP")
+                                                       .withUrl("rtmps://example"))));
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        when(mockLiveEventClient.list(resourceGroup, accountName)).thenReturn(mock());
+        when(amsClient.getLiveEvents().list(resourceGroup, accountName).stream()).thenReturn(Stream.of(liveEvent));
+
+        var results = mediaService.getLiveEvents();
+        assertThat(results).isNotNull();
+        assertThat(results).hasSize(1);
+
+        var model = results.getFirst();
+        assertThat(model).isNotNull();
+        assertThat(model.getId()).isEqualTo(liveEvent.id());
+        assertThat(model.getName()).isEqualTo(name);
+        assertThat(model.getDescription()).isEqualTo("description");
+        assertThat(model.getResourceState()).isEqualTo("Stopped");
+        assertThat(model.getInputRtmp()).isEqualTo("rtmps://example");
+    }
+
+    @DisplayName("Should complete play live event successfully, creating all required resources")
+    @Test
+    void playLiveEventFreshSuccess() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        var response = mediaService.playLiveEvent(liveEventId);
+        assertThat(response).isEqualTo("https://pre-example.com/path1");
+
+        Mockito.verify(mockStreamingEndpointsClient, Mockito.times(1))
+               .start(resourceGroup, accountName, shortenedLiveEventId);
+
+        Mockito.verify(mockStreamingLocatorsClient, Mockito.times(1))
+               .create(eq(resourceGroup),
+                       eq(accountName),
+                       eq(sanitisedLiveEventId),
+                       any());
+    }
+
+    @DisplayName("Should complete play live event successfully, all required resources already exist")
+    @Test
+    void playLiveEventFreshSuccessPreExistingResources() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(409);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenThrow(new ManagementException("Already exists", mockHttpResponse));
+
+        when(mockStreamingEndpointsClient.get(resourceGroup, accountName, shortenedLiveEventId))
+            .thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+        when(mockStreamingLocatorsClient.create(eq(resourceGroup), eq(accountName), eq(sanitisedLiveEventId), any()))
+            .thenThrow(new ManagementException("Already exists", mockHttpResponse));
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        var response = mediaService.playLiveEvent(liveEventId);
+        assertThat(response).isEqualTo("https://pre-example.com/path1");
+    }
+
+    @DisplayName("Should throw an exception when live event doesn't exist")
+    @Test
+    void playLiveEventAMSLiveEventNotFoundException() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(404);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenThrow(new ManagementException("not found", mockHttpResponse));
+
+        assertThrows(AMSLiveEventNotFoundException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw an exception when live event exists but is not running")
+    @Test
+    void playLiveEventLiveEventNotRunningException() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.STARTING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        assertThrows(LiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw an exception when unable to check live event exists")
+    @Test
+    void playLiveEventAMSLiveEvent500() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(500);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenThrow(new ManagementException("Internal Server Error", mockHttpResponse));
+
+        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw a ManagementException unable to check if Streaming Locator Exists")
+    @Test
+    void playLiveEventAssertStreamingLocatorExistsError() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenThrow(new ManagementException("bad request", mock(HttpResponse.class)));
+
+        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw a RuntimeException if all paths are blank")
+    @Test
+    void playLiveEventParseLiveOutputUrlFromStreamingLocatorPathsRuntimeException() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of());
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of());
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        assertThrows(RuntimeException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should return the capture session when successfully started the live event")
+    @Test
+    void startLiveEventSuccess() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.resourceState())
+            .thenReturn(
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.RUNNING,
+                LiveEventResourceState.RUNNING
+            );
+        when(mockLiveEvent.input())
+            .thenReturn(
+                new LiveEventInput()
+                    .withEndpoints(List.of(
+                        new LiveEventEndpoint()
+                            .withProtocol("RTMP")
+                            .withUrl("rtmp://some-rtmp-address"),
+                        new LiveEventEndpoint()
+                            .withProtocol("RTMP")
+                            .withUrl("rtmps://some-rtmp-address")
+                    ))
+            );
+
+        var ingest = mediaService.startLiveEvent(captureSession);
+        assertThat(ingest).isEqualTo("rtmps://some-rtmp-address");
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(4)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).start(any(), any(), any());
+    }
+
+    @DisplayName("Should return the capture session when successfully started the live event")
+    @Test
+    void startLiveEventLiveEventConflictSuccess() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        var amsError = mockAmsError(409);
+        when(liveEventClient.create(eq(resourceGroup), eq(accountName), eq(liveEventName), any()))
+            .thenThrow(amsError);
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.resourceState())
+            .thenReturn(
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.RUNNING,
+                LiveEventResourceState.RUNNING
+            );
+        when(mockLiveEvent.input())
+            .thenReturn(
+                new LiveEventInput()
+                    .withEndpoints(List.of(
+                        new LiveEventEndpoint()
+                            .withProtocol("RTMP")
+                            .withUrl("rtmp://some-rtmp-address"),
+                        new LiveEventEndpoint()
+                            .withProtocol("RTMP")
+                            .withUrl("rtmps://some-rtmp-address")
+                    ))
+            );
+
+        var ingest = mediaService.startLiveEvent(captureSession);
+        assertThat(ingest).isEqualTo("rtmps://some-rtmp-address");
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(4)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).start(any(), any(), any());
+    }
+
+    @DisplayName("Should throw not found error when live event cannot be found after creation")
+    @Test
+    void startLiveEventNotFoundAfterCreate() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+
+        var amsError = mockAmsError(404);
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenThrow(amsError);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> mediaService.startLiveEvent(captureSession)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: Live event: " + liveEventName);
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).get(any(), any(), any());
+    }
+
+    @DisplayName("Should throw 409 error when asset already exists")
+    @Test
+    void startLiveEventAssetConflict() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        var amsError = mockAmsError(409);
+        when(assetsClient.createOrUpdate(eq(resourceGroup), eq(accountName), eq(liveEventName), any(AssetInner.class)))
+            .thenThrow(amsError);
+
+        var message = assertThrows(
+            ConflictException.class,
+            () -> mediaService.startLiveEvent(captureSession)
+        ).getMessage();
+        assertThat(message).isEqualTo("Conflict: Asset: " + liveEventName);
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw 409 error when live output already exists")
+    @Test
+    void startLiveEventLiveOutputConflict() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        var amsError = mockAmsError(409);
+        when(liveOutputClient.create(eq(resourceGroup), eq(accountName), eq(liveEventName), eq(liveEventName), any(
+            LiveOutputInner.class))).thenThrow(amsError);
+
+        var message = assertThrows(
+            ConflictException.class,
+            () -> mediaService.startLiveEvent(captureSession)
+        ).getMessage();
+        assertThat(message).isEqualTo("Conflict: Live Output: " + liveEventName);
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+    }
+
+
+    @DisplayName("Should throw 404 error when creating a live output but cannot find live event")
+    @Test
+    void startLiveEventLiveOutputLiveEventNotFound() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        var amsError = mockAmsError(404);
+        when(liveOutputClient.create(eq(resourceGroup), eq(accountName), eq(liveEventName), eq(liveEventName), any(
+            LiveOutputInner.class))).thenThrow(amsError);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> mediaService.startLiveEvent(captureSession)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw 404 error when attempting to start live event that cannot be found (after setup)")
+    @Test
+    void startLiveEventStartNotFound() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        var amsError = mockAmsError(404);
+        doThrow(amsError).when(liveEventClient).start(resourceGroup, accountName, liveEventName);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> mediaService.startLiveEvent(captureSession)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).start(any(), any(), any());
+    }
+
+    @DisplayName("Should fail to start a live event with blank ingest url")
+    @Test
+    void startLiveEventBlankIngestUrl() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var liveEventClient = mockLiveEventClient();
+        var mockLiveEvent = mock(LiveEventInner.class);
+        var assetsClient = mockAssetsClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(liveEventClient.get(
+            resourceGroup,
+            accountName,
+            liveEventName
+        )).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.resourceState())
+            .thenReturn(
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.STARTING,
+                LiveEventResourceState.RUNNING,
+                LiveEventResourceState.RUNNING
+            );
+        when(mockLiveEvent.input())
+            .thenReturn(
+                new LiveEventInput()
+                    .withEndpoints(List.of())
+            );
+
+        var message = assertThrows(
+            UnknownServerException.class,
+            () -> mediaService.startLiveEvent(captureSession)
+        ).getMessage();
+
+        assertThat("Unknown Server Exception: Unable to get ingest URL from AMS. No error of exception thrown")
+            .isEqualTo(message);
+
+        verify(liveEventClient, times(1)).create(any(), any(), any(), any());
+        verify(liveEventClient, times(4)).get(any(), any(), any());
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).start(any(), any(), any());
+    }
+
+    @DisplayName("Should successfully stop live event when there is not a recording found")
+    @Test
+    void stopLiveEventNoRecording() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+
+        assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
+            .isEqualTo(RecordingStatus.NO_RECORDING);
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(2)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should successfully stop live event when there is a recording found")
+    @Test
+    void stopLiveEventRecordingAvailable() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
+
+        assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
+            .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(2)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw error when error occurs creating asset")
+    @Test
+    void stopLiveEventAssetCreateError() {
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+
+        var e = mockAmsError(500);
+        when(assetsClient.createOrUpdate(any(), any(), any(), any()))
+            .thenThrow(e);
 
         assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.startLiveEvent("live-event-id")
+            ManagementException.class,
+            () -> mediaService.stopLiveEvent(captureSession, recordingId)
         );
 
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.playLiveEvent("live-event-id")
-        );
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw error when error occurs creating encode to mp4 job")
+    @Test
+    void stopLiveEventTransformCreateError() {
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+
+        var e = mockAmsError(404);
+        when(jobsClient.create(any(), any(), any(), any(), any()))
+            .thenThrow(e);
 
         assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.stopLiveEvent("live-event-id")
+            ManagementException.class,
+            () -> mediaService.stopLiveEvent(captureSession, recordingId)
         );
 
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.getLiveEvent("live-event-id")
-        );
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw not found when live event cannot be found to stop and delete")
+    @Test
+    void stopLiveEventLiveEventNotFound() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
+        var e = mockAmsError(404);
+        doThrow(e).when(liveEventClient).stop(any(), any(), any(), any());
+
+        var message = assertThrows(
+            AMSLiveEventNotFoundException.class,
+            () -> mediaService.stopLiveEvent(captureSession, recordingId)
+        ).getMessage();
+        assertThat(message).isEqualTo("AMS Live event not found with id " + liveEventName);
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw management exception when error occurs stopping/deleting live event")
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
+    @Test
+    void stopLiveEventLiveEventManagementError() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
+        var e = mockAmsError(500);
+        doThrow(e).when(liveEventClient).stop(any(), any(), any(), any());
 
         assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.getLiveEvents()
+            ManagementException.class,
+            () -> mediaService.stopLiveEvent(captureSession, recordingId)
         );
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should successfully stop live event when there is not a streaming endpoint found to stop/delete")
+    @Test
+    void stopLiveEventNoStreamingEndpointFoundSuccess() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+        var e = mockAmsError(404);
+        doThrow(e).when(streamingEndpointClient).stop(any(), any(), any());
+
+        assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
+            .isEqualTo(RecordingStatus.NO_RECORDING);
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw error when an error occurs stopping/deleting streaming endpoint")
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
+    @Test
+    void stopLiveEventStreamingEndpointError() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+        var e = mockAmsError(500);
+        doThrow(e).when(streamingEndpointClient).stop(any(), any(), any());
+
+        assertThrows(
+            ManagementException.class,
+            () -> mediaService.stopLiveEvent(captureSession, recordingId)
+        );
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+    }
+
+    @DisplayName("Should successfully stop live event when there is not a streaming locator found to delete")
+    @Test
+    void stopLiveEventNoStreamingLocatorFoundSuccess() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+        var e = mockAmsError(404);
+        doThrow(e).when(streamingLocatorClient).delete(any(), any(), any());
+
+        assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
+            .isEqualTo(RecordingStatus.NO_RECORDING);
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw error when error occurs deleting streaming locator")
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
+    @Test
+    void stopLiveEventStreamingLocatorError()  {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+        var e = mockAmsError(500);
+        doThrow(e).when(streamingLocatorClient).delete(any(), any(), any());
+
+        assertThrows(
+            ManagementException.class,
+            () -> mediaService.stopLiveEvent(captureSession, recordingId)
+        );
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+    }
+
+    @DisplayName("Should successfully stop live event when there is not a live output found to delete")
+    @Test
+    void stopLiveEventLiveOutputNotFoundSuccess() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+        var e = mockAmsError(404);
+        doThrow(e).when(liveOutputClient).delete(any(), any(), any(), any());
+
+        assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
+            .isEqualTo(RecordingStatus.NO_RECORDING);
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should throw error when error occurs attempting to delete live output")
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
+    @Test
+    void stopLiveEventLiveOutputError() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+        var e = mockAmsError(500);
+        doThrow(e).when(liveOutputClient).delete(any(), any(), any(), any());
+
+        assertThrows(
+            ManagementException.class,
+            () -> mediaService.stopLiveEvent(captureSession, recordingId)
+        );
+
+        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
+        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(jobsClient, times(1)).get(any(), any(), any(), any());
+        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
+        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
+        verify(liveEventClient, times(1)).delete(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
+        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    private LiveEventsClient mockLiveEventClient() {
+        var client = mock(LiveEventsClient.class);
+        when(amsClient.getLiveEvents()).thenReturn(client);
+        return client;
+    }
+
+    private AssetsClient mockAssetsClient() {
+        var client = mock(AssetsClient.class);
+        when(amsClient.getAssets()).thenReturn(client);
+        return client;
+    }
+
+    private LiveOutputsClient mockLiveOutputClient() {
+        var client = mock(LiveOutputsClient.class);
+        when(amsClient.getLiveOutputs()).thenReturn(client);
+        return client;
+    }
+
+    private StreamingEndpointsClient mockStreamingEndpointClient() {
+        var client = mock(StreamingEndpointsClient.class);
+        when(amsClient.getStreamingEndpoints()).thenReturn(client);
+        return client;
+    }
+
+    private StreamingLocatorsClient mockStreamingLocatorClient() {
+        var client = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(client);
+        return client;
+    }
+
+    private JobsClient mockJobsClient() {
+        var client = mock(JobsClient.class);
+        when(amsClient.getJobs()).thenReturn(client);
+        return client;
+    }
+
+    private ManagementException mockAmsError(int status) {
+        var response = mock(HttpResponse.class);
+        when(response.getStatusCode()).thenReturn(status);
+        return new ManagementException("error", response);
     }
 }

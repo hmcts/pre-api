@@ -62,6 +62,9 @@ class RecordingServiceTest {
     @MockBean
     private CaptureSessionService captureSessionService;
 
+    @MockBean
+    private AuditService auditService;
+
     @Autowired
     private RecordingService recordingService;
 
@@ -88,7 +91,6 @@ class RecordingServiceTest {
 
         recordingEntity.setCaptureSession(captureSession);
         recordingEntity.setVersion(1);
-        recordingEntity.setUrl("http://localhost");
         recordingEntity.setFilename("example-filename.txt");
         recordingEntity.setCreatedAt(Timestamp.from(Instant.now()));
     }
@@ -338,7 +340,8 @@ class RecordingServiceTest {
             .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
                 recordingEntity.getId()
             );
-        verify(recordingRepository, times(1)).deleteById(recordingEntity.getId());
+
+        verify(recordingRepository, times(1)).saveAndFlush(recordingEntity);
     }
 
     @DisplayName("Delete a recording by it's id when recording doesn't exist")

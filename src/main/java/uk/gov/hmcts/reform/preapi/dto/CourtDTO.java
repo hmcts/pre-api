@@ -8,7 +8,8 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
-import java.util.Set;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,10 +32,10 @@ public class CourtDTO {
     private String locationCode;
 
     @Schema(description = "CourtRegions")
-    private Set<RegionDTO> regions; // this was removed??
+    private List<RegionDTO> regions; // this was removed??
 
     @Schema(description = "CourtRooms")
-    private Set<RoomDTO> rooms;
+    private List<RoomDTO> rooms;
 
     public CourtDTO(Court courtEntity) {
         this.id = courtEntity.getId();
@@ -43,9 +44,11 @@ public class CourtDTO {
         this.locationCode = courtEntity.getLocationCode();
         this.regions = Stream.ofNullable(courtEntity.getRegions())
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
-            .collect(Collectors.toSet());
+            .sorted(Comparator.comparing(RegionDTO::getName))
+            .collect(Collectors.toList());
         this.rooms = Stream.ofNullable(courtEntity.getRooms())
             .flatMap(rooms -> rooms.stream().map(RoomDTO::new))
-            .collect(Collectors.toSet());
+            .sorted(Comparator.comparing(RoomDTO::getName))
+            .collect(Collectors.toList());
     }
 }

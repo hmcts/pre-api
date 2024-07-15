@@ -12,6 +12,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
+import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -20,8 +21,7 @@ import java.util.HashMap;
 @Setter
 @Entity
 @Table(name = "share_bookings")
-public class ShareBooking extends BaseEntity {
-    // @todo should be able to share before capture session created and after
+public class ShareBooking extends BaseEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "booking_id", referencedColumnName = "id")
     private Booking booking;
@@ -44,6 +44,9 @@ public class ShareBooking extends BaseEntity {
     @Transient
     private boolean deleted;
 
+    @Transient
+    private boolean isSoftDeleteOperation;
+
     public boolean isDeleted() {
         return deletedAt != null;
     }
@@ -57,5 +60,15 @@ public class ShareBooking extends BaseEntity {
         details.put("sharedByUser", sharedBy.getEmail());
         details.put("deleted", isDeleted());
         return details;
+    }
+
+    @Override
+    public void setDeleteOperation(boolean deleteOperation) {
+        this.isSoftDeleteOperation = deleteOperation;
+    }
+
+    @Override
+    public boolean isDeleteOperation() {
+        return this.isSoftDeleteOperation;
     }
 }

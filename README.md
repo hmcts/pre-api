@@ -149,6 +149,15 @@ Located in `./bin/init.sh`. Simply run and follow the explanation how to execute
 The project uses [Gradle](https://gradle.org) as a build tool. It already contains
 `./gradlew` wrapper script, so there's no need to install gradle.
 
+In order for integration tests to run, a docker image is needed for the
+postgres testcontainers.
+
+For this to pull from hmcts ACR you must login to the ACR first:
+```bash
+az login # if not logged in already
+az acr login --name hmctspublic
+```
+
 To build the project execute the following command:
 
 ```bash
@@ -223,6 +232,20 @@ There is no need to remove postgres and java or similar core images.
 
 ## How to generate a Power Platform Custom Connector
 Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
+
+## Crons
+
+You can manually run a cron task from the cli:
+
+```
+TASK_NAME=[task] java -jar pre-api.jar run
+
+# E.g.
+TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
+
+# or
+TASK_NAME=CleanupLiveEvents ./gradlew bootRun
+```
 
 ## License
 
