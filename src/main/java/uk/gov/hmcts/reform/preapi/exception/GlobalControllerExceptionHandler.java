@@ -182,7 +182,7 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<String> tempGetError(final Exception e) throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
