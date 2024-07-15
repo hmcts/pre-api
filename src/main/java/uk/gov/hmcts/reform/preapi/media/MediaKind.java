@@ -147,22 +147,13 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = uuidToNameString(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
         createAsset(liveEventName, captureSession);
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        var liveEvent = checkStreamReady(liveEventName);
-
-        // todo return rtmps from mk (uncomment filter)
-        return Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
-                     .flatMap(Collection::stream)
-                     //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-                     .findFirst()
-                     .map(LiveEventEndpoint::url)
-                     .orElse(null);
     }
 
     private void startLiveEvent(String liveEventName) {
@@ -171,15 +162,6 @@ public class MediaKind implements IMediaService {
         } catch (FeignException.NotFound e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
-    }
-
-    private MkLiveEvent checkStreamReady(String liveEventName) throws InterruptedException {
-        MkLiveEvent liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventMk(liveEventName);
-        } while (!liveEvent.getProperties().getResourceState().equals("Running"));
-        return liveEvent;
     }
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {

@@ -340,19 +340,18 @@ public class MediaServiceControllerTest {
         dto2.setId(captureSessionId);
         dto2.setStartedAt(Timestamp.from(Instant.now()));
         dto2.setStartedByUserId(UUID.randomUUID());
-        dto2.setStatus(RecordingStatus.STANDBY);
+        dto2.setStatus(RecordingStatus.INITIALISING);
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto1);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.startLiveEvent(any())).thenReturn("example ingest");
-        when(captureSessionService.startCaptureSession(captureSessionId, "example ingest")).thenReturn(dto2);
+        when(captureSessionService.startCaptureSession(captureSessionId, true)).thenReturn(dto2);
 
         mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-            .andExpect(jsonPath("$.status").value("STANDBY"))
+            .andExpect(jsonPath("$.status").value("INITIALISING"))
             .andExpect(jsonPath("$.started_at").isNotEmpty());
 
         verify(mediaService, times(1)).startLiveEvent(dto1);
@@ -429,7 +428,7 @@ public class MediaServiceControllerTest {
                .andExpect(jsonPath("$.message")
                               .value("Not found: live event error"));
 
-        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, null);
+        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, false);
     }
 
     @DisplayName("Should successfully stop capture session and return 200")
@@ -561,7 +560,7 @@ public class MediaServiceControllerTest {
 
         verify(captureSessionService, times(2)).stopCaptureSession(any(), any(), any());
     }
-  
+
     @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
     @Test
     void startLiveEventCaptureSessionBadState() throws Exception {

@@ -512,7 +512,7 @@ public class CaptureSessionServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> captureSessionService.startCaptureSession(captureSessionId, null)
+            () -> captureSessionService.startCaptureSession(captureSessionId, false)
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: Capture Session: " + captureSessionId);
@@ -537,11 +537,10 @@ public class CaptureSessionServiceTest {
             .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        var model = captureSessionService.startCaptureSession(captureSession.getId(), "example");
+        var model = captureSessionService.startCaptureSession(captureSession.getId(), true);
         assertThat(model.getStartedAt()).isNotNull();
         assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
-        assertThat(model.getIngestAddress()).isEqualTo("example");
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.STANDBY);
+        assertThat(model.getStatus()).isEqualTo(RecordingStatus.INITIALISING);
 
         verify(captureSessionRepository, times(1)).save(any());
     }
@@ -562,7 +561,7 @@ public class CaptureSessionServiceTest {
             .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        var model = captureSessionService.startCaptureSession(captureSession.getId(), null);
+        var model = captureSessionService.startCaptureSession(captureSession.getId(), false);
         assertThat(model.getStartedAt()).isNotNull();
         assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.FAILURE);

@@ -179,7 +179,7 @@ public class CaptureSessionService {
     }
 
     @Transactional
-    public CaptureSessionDTO startCaptureSession(UUID id, String ingestAddress) {
+    public CaptureSessionDTO startCaptureSession(UUID id, boolean isStarted) {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
@@ -190,9 +190,8 @@ public class CaptureSessionService {
         captureSession.setStartedByUser(user);
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
-        if (ingestAddress != null) {
-            captureSession.setIngestAddress(ingestAddress);
-            captureSession.setStatus(RecordingStatus.STANDBY);
+        if (isStarted) {
+            captureSession.setStatus(RecordingStatus.INITIALISING);
         } else {
             captureSession.setStatus(RecordingStatus.FAILURE);
         }

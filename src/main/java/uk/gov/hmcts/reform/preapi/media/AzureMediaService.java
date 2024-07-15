@@ -280,24 +280,13 @@ public class AzureMediaService implements IMediaService {
     @Override
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        var liveEvent = checkStreamReady(liveEventName);
-
-        // return ingest url (rtmps)
-        return Stream.ofNullable(liveEvent.input().endpoints())
-            .flatMap(Collection::stream)
-            .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-            .findFirst()
-            .map(LiveEventEndpoint::url)
-            .orElseThrow(
-                () -> new UnknownServerException("Unable to get ingest URL from AMS. No error of exception thrown")
-            );
     }
 
     private void startLiveEvent(String liveEventName) {
@@ -408,15 +397,6 @@ public class AzureMediaService implements IMediaService {
             }
             job = amsClient.getJobs().get(resourceGroup, accountName, ENCODE_TO_MP4_TRANSFORM, jobName);
         } while (!job.state().equals(JobState.FINISHED));
-    }
-
-    private LiveEventInner checkStreamReady(String liveEventName) throws InterruptedException {
-        LiveEventInner liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventAms(liveEventName);
-        } while (liveEvent == null || !liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
-        return liveEvent;
     }
 
     private LiveEventInner getLiveEventAms(String liveEventName) {
