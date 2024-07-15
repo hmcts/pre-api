@@ -12,16 +12,20 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
@@ -58,6 +62,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private CaptureSessionService captureSessionService;
+
+    @MockBean
+    private RecordingService recordingService;
 
     @MockBean
     private MediaKind mediaKind;
@@ -332,62 +339,34 @@ public class MediaServiceControllerTest {
     @DisplayName("Should return 200 and playback information")
     @Test
     void getVodSuccess() throws Exception {
+        var user = mockAdminUser();
         var recordingId = UUID.randomUUID();
         var assetName = recordingId.toString().replace("-", "") + "_output";
-        var playback = HelperFactory.createPlayback("dash", "hls", "token");
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.playAsset(assetName, "12345")).thenReturn(playback);
+        var playback = new PlaybackDTO("dash", "hls", "license", "token");
+        when(mediaServiceBroker.getEnabledMediaService(null)).thenReturn(mediaService);
+        when(mediaService.playAsset(assetName, user.getUserId().toString())).thenReturn(playback);
 
         mockMvc.perform(get("/media-service/vod")
-                            .param("recordingId", recordingId.toString())
-                            .param("userId", "12345"))
+                            .param("recordingId", recordingId.toString()))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.dash_url").value("dash"))
             .andExpect(jsonPath("$.hls_url").value("hls"))
+            .andExpect(jsonPath("$.license_url").value("license"))
             .andExpect(jsonPath("$.token").value("token"));
     }
 
-    @DisplayName("Should return 200 and playback information when playing with mk")
+    @DisplayName("Should return 404 when recording does not exist")
     @Test
-    void getVodSuccessMkOverride() throws Exception {
+    void getVodRecordingNotFound() throws Exception {
         var recordingId = UUID.randomUUID();
-        var assetName = recordingId.toString().replace("-", "") + "_output";
-        var playback = HelperFactory.createPlayback("dash", "hls", "token");
-        when(mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_MK)).thenReturn(mediaKind);
-        when(mediaKind.playAsset(assetName, "12345")).thenReturn(playback);
+        doThrow(new NotFoundException("Recording: " + recordingId))
+            .when(recordingService).findById(recordingId);
 
         mockMvc.perform(get("/media-service/vod")
-                            .param("recordingId", recordingId.toString())
-                            .param("userId", "12345")
-                            .param("mediaService", "mk"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.dash_url").value("dash"))
-            .andExpect(jsonPath("$.hls_url").value("hls"))
-            .andExpect(jsonPath("$.token").value("token"));
+                            .param("recordingId", recordingId.toString()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Not found: Recording: " + recordingId));
     }
-
-    @DisplayName("Should return 200 and playback information when playing with ams")
-    @Test
-        void getVodSuccessAmsOverride() throws Exception {
-        var recordingId = UUID.randomUUID();
-        var assetName = recordingId.toString().replace("-", "") + "_output";
-        var playback = HelperFactory.createPlayback("dash", "hls", "token");
-        when(mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_AMS)).thenReturn(mediaService);
-        when(mediaService.playAsset(assetName, "12345")).thenReturn(playback);
-
-        mockMvc.perform(get("/media-service/vod")
-                            .param("recordingId", recordingId.toString())
-                            .param("userId", "12345")
-                            .param("mediaService", "ams"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.dash_url").value("dash"))
-            .andExpect(jsonPath("$.hls_url").value("hls"))
-            .andExpect(jsonPath("$.token").value("token"));
-    }
-
 
     @DisplayName("Should return 200 with capture session once live event is started")
     @Test
@@ -509,5 +488,14 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                      + captureSessionId
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
+    }
+
+    protected static UserAuthentication mockAdminUser() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        when(mockAuth.isAppUser()).thenReturn(true);
+        when(mockAuth.getUserId()).thenReturn(UUID.randomUUID());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+        return mockAuth;
     }
 }
