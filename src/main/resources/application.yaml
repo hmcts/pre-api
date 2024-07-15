@@ -78,6 +78,8 @@ mediakind:
   subscription: ${MEDIA_KIND_SUBSCRIPTION:pre-mediakind-stg}
   api: https://api.mk.io/api/ams/${MEDIA_KIND_SUBSCRIPTION:}/
   token: ${MEDIA_KIND_TOKEN:}
+  issuer: ${ISSUER:https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/}
+  symmetricKey: ${SYMMETRIC_KEY:}
 
 media-service: ${MEDIA_SERVICE:AzureMediaService}
 
