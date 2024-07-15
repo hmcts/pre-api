@@ -570,7 +570,7 @@ public class MediaKindTest {
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
-        doThrow(FeignException.NotFound.class).when(mockClient).stopLiveEvent(any());
+        doThrow(NotFoundException.class).when(mockClient).stopLiveEvent(any());
 
         var message = assertThrows(
             NotFoundException.class,
@@ -600,7 +600,7 @@ public class MediaKindTest {
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
-        doThrow(FeignException.NotFound.class).when(mockClient).stopStreamingEndpoint(any());
+        doThrow(NotFoundException.class).when(mockClient).stopStreamingEndpoint(any());
 
         assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
             .isEqualTo(RecordingStatus.NO_RECORDING);

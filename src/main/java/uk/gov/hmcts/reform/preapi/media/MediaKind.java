@@ -211,7 +211,7 @@ public class MediaKind implements IMediaService {
     private void stopAndDeleteLiveEvent(String liveEventName) {
         try {
             mediaKindClient.stopLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
         mediaKindClient.deleteLiveEvent(liveEventName);
@@ -220,7 +220,7 @@ public class MediaKind implements IMediaService {
     private void stopAndDeleteStreamingEndpoint(String endpointName) {
         try {
             mediaKindClient.stopStreamingEndpoint(endpointName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             // ignore
             return;
         }
