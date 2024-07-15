@@ -2680,6 +2680,32 @@ paths:
             type: string
       tags:
         - media-service-controller
+  '/media-service/live-event/end/{captureSessionId}':
+    put:
+      operationId: stopLiveEvent
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Stop a live event
+      tags:
+        - media-service-controller
   '/media-service/live-event/start/{captureSessionId}':
     put:
       operationId: startLiveEvent
