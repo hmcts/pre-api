@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -19,9 +20,10 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
 import java.util.UUID;
@@ -33,13 +35,15 @@ public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
+    private final RecordingService recordingService;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
-                                  CaptureSessionService captureSessionService) {
+                                  CaptureSessionService captureSessionService, RecordingService recordingService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
+        this.recordingService = recordingService;
     }
 
     @GetMapping("/health")
@@ -94,22 +98,20 @@ public class MediaServiceController extends PreApiController {
 
     @GetMapping("/vod")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<PlaybackDTO> getVod(@RequestParam UUID recordingId,
-                                              @RequestParam String userId,
-                                              @RequestParam(required = false) String mediaService) {
-        // todo: dont rely on naming convention, link asset name in db
-        IMediaService resolvedMediaService;
-        if (mediaService == null) {
-            resolvedMediaService = mediaServiceBroker.getEnabledMediaService();
-        } else if (mediaService.equals("ams")) {
-            resolvedMediaService = mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_AMS);
-        } else if (mediaService.equals("mk")) {
-            resolvedMediaService = mediaServiceBroker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_MK);
-        } else {
-            resolvedMediaService = mediaServiceBroker.getEnabledMediaService();
-        }
+    public ResponseEntity<PlaybackDTO> getVod(
+        @RequestParam UUID recordingId,
+        @RequestParam(required = false) String mediaService
+    ) throws InterruptedException {
+        // check recording exists + authed
+        recordingService.findById(recordingId);
+
+        var service = mediaServiceBroker.getEnabledMediaService(mediaService);
+
+        // TODO dont rely on naming convention, link asset name in db
         var assetName = recordingId.toString().replace("-", "") + "_output";
-        return ResponseEntity.ok(resolvedMediaService.playAsset(assetName, userId));
+        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+
+        return ResponseEntity.ok(service.playAsset(assetName, userId.toString()));
     }
 
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")

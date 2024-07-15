@@ -71,6 +71,20 @@ public class MediaServiceBrokerTest {
         assertThat(broker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_AMS)).isEqualTo(azureMediaService);
     }
 
+    @DisplayName("Should return default when override value is null")
+    @Test
+    void getMediaServiceOverrideNull() {
+        var broker = new MediaServiceBroker(MediaServiceBroker.MEDIA_SERVICE_AMS,
+                                            mediaKind,
+                                            azureMediaService);
+        assertThat(broker.getEnabledMediaService(null)).isEqualTo(azureMediaService);
+
+        var broker2 = new MediaServiceBroker(MediaServiceBroker.MEDIA_SERVICE_MK,
+                                            mediaKind,
+                                            azureMediaService);
+        assertThat(broker2.getEnabledMediaService(null)).isEqualTo(mediaKind);
+    }
+
     @DisplayName("Should throw exception with no media service when overridden")
     @Test
     void unknownMediaServiceOverride() {

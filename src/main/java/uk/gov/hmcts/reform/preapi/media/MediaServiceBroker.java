@@ -38,12 +38,17 @@ public class MediaServiceBroker {
     }
 
     public IMediaService getEnabledMediaService(String overrideMediaService) {
-        if (Objects.equals(overrideMediaService, MEDIA_SERVICE_MK)) {
-            return mediaKind;
-        } else if (Objects.equals(overrideMediaService, MEDIA_SERVICE_AMS)) {
-            return azureMediaService;
-        } else {
-            throw new IllegalArgumentException("Unknown media service: " + overrideMediaService);
+        switch (overrideMediaService) {
+            case MEDIA_SERVICE_MK -> {
+                return mediaKind;
+            }
+            case MEDIA_SERVICE_AMS -> {
+                return azureMediaService;
+            }
+            case null -> {
+                return getEnabledMediaService();
+            }
+            default -> throw new IllegalArgumentException("Unknown media service: " + overrideMediaService);
         }
     }
 }

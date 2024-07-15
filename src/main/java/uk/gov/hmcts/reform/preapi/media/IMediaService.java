@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface IMediaService {
-    PlaybackDTO playAsset(String assetId, String userId);
+    PlaybackDTO playAsset(String assetId, String userId) throws InterruptedException;
 
     String playLiveEvent(UUID liveEventId);
 

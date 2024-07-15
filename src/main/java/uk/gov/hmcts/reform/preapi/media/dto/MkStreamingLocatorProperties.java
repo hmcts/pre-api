@@ -30,5 +30,4 @@ public class MkStreamingLocatorProperties {
         private String type;
         private String value;
     }
-
 }

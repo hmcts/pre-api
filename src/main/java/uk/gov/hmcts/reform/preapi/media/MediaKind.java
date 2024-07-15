@@ -1,5 +1,14 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicyClearKeyConfiguration;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicyRestrictionTokenType;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicySymmetricTokenKey;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicyTokenRestriction;
+import com.azure.resourcemanager.mediaservices.models.DefaultKey;
+import com.azure.resourcemanager.mediaservices.models.EnabledProtocols;
+import com.azure.resourcemanager.mediaservices.models.EnvelopeEncryption;
 import com.azure.resourcemanager.mediaservices.models.Hls;
 import com.azure.resourcemanager.mediaservices.models.IpAccessControl;
 import com.azure.resourcemanager.mediaservices.models.IpRange;
@@ -12,6 +21,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +36,9 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
+import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
+import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyOptions;
+import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEventProperties;
@@ -34,15 +47,16 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpointProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpointSku;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.EncryptionScheme;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicy;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicyProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 
 import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -55,84 +69,143 @@ import java.util.stream.Stream;
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortenedLiveEventId;
 
-
-@Service
 @Slf4j
+@Service
 public class MediaKind implements IMediaService {
     private final String ingestStorageAccount;
     private final String environmentTag;
     private final String subscription;
+    private final String issuer;
+    private final String symmetricKey;
 
     private final MediaKindClient mediaKindClient;
 
     private static final String LOCATION = "uksouth";
+    private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
+    private static final String DEFAULT_STREAMING_ENDPOINT = "default";
 
     @Autowired
     public MediaKind(
         @Value("${azure.ingestStorage}") String ingestStorageAccount,
         @Value("${platform-env}") String env,
         @Value("${mediakind.subscription}") String subscription,
+        @Value("${mediakind.issuer:}") String issuer,
+        @Value("${mediakind.symmetricKey:}") String symmetricKey,
         MediaKindClient mediaKindClient
     ) {
         this.ingestStorageAccount = ingestStorageAccount;
         this.environmentTag = env;
         this.subscription = subscription;
+        this.issuer = issuer;
+        this.symmetricKey = symmetricKey;
         this.mediaKindClient = mediaKindClient;
     }
 
     @Override
-    public PlaybackDTO playAsset(String assetName, String userId) {
+    public PlaybackDTO playAsset(String assetName, String userId) throws InterruptedException {
         getAsset(assetName);
+        // todo check asset has files
+        createContentKeyPolicy(userId, symmetricKey);
+        assertStreamingPolicyExists(userId);
+        refreshStreamingLocatorForUser(userId, assetName);
 
-        var locators = mediaKindClient.getAssetStreamingLocators(assetName);
+        var hostName = "https://" + assertStreamingEndpointExists(DEFAULT_STREAMING_ENDPOINT).getProperties().getHostName();
+        var paths = mediaKindClient.getStreamingLocatorPaths(userId);
 
-        var locator = locators.getStreamingLocators()
-            .stream()
-            .filter(l -> l.getName().equals(userId))
-            .findFirst()
-            .orElse(null);
+        var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol() == StreamingProtocol.Dash)
+            .findFirst().map(p -> p.getPaths().getFirst()).orElse(null);
+        var hls = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol() == StreamingProtocol.Hls)
+            .findFirst().map(p -> p.getPaths().getFirst()).orElse(null);
 
-        if (locator == null) {
-            var properties = MkStreamingLocatorProperties.builder()
-                .assetName(assetName)
-                .streamingPolicyName("Predefined_ClearStreamingOnly")
-                .endTime(Timestamp.from(Instant.now().plusSeconds(3600)))
-                .build();
-            mediaKindClient.createStreamingLocator(userId, MkStreamingLocator.builder()
-                .properties(properties).build());
-        }
-
-        // TODO check streaming endpoint running + start if not
-        String hostName;
-        try {
-            hostName = mediaKindClient.getStreamingEndpointByName("default").getProperties().getHostName();
-        } catch (FeignException.NotFound e) {
-            throw new NotFoundException("Streaming Endpoint: default");
-        }
-
-        MkStreamingLocatorPaths paths;
-        try {
-            paths = mediaKindClient.getStreamingLocatorPaths(userId);
-        } catch (FeignException.NotFound e) {
-            throw new NotFoundException("Streaming Locator: " + userId);
-        }
-
-        var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Dash"))
-            .findFirst().orElse(null);
-        var hls = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol().equals("Hls"))
-            .findFirst().orElse(null);
-
-        var playback = new PlaybackDTO(
-            dash != null ? hostName + dash.getPaths().getFirst() : null,
-            hls != null ? hostName + hls.getPaths().getFirst() : null,
-            ""
-        );
-
-        if (playback.getDashUrl() == null && playback.getHlsUrl() == null) {
+        if (dash == null && hls == null) {
             throw new NotFoundException("Playback URL");
         }
 
-        return playback;
+        return new PlaybackDTO(
+            dash != null ? hostName + dash : null,
+            hls != null ? hostName + hls : null,
+            paths.getDrm().getClearKey().getLicenseAcquisitionUrl(),
+            JWT.create()
+                .withIssuer(issuer)
+                .withAudience(userId)
+                .sign(Algorithm.HMAC256(symmetricKey))
+        );
+    }
+
+    private void refreshStreamingLocatorForUser(String userId, String assetName) {
+        mediaKindClient.deleteStreamingLocator(userId);
+
+        mediaKindClient.createStreamingLocator(
+            userId,
+            MkStreamingLocator.builder()
+                .properties(
+                    MkStreamingLocatorProperties.builder()
+                        .assetName(assetName)
+                        .streamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
+                        .defaultContentKeyPolicyName(userId)
+                        .endTime(Timestamp.from(ZonedDateTime.now().toInstant()))
+                        .build())
+                .build()
+        );
+    }
+
+    private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
+        try {
+            mediaKindClient.getStreamingPolicy(MediaKind.STREAMING_POLICY_CLEAR_KEY);
+        } catch (FeignException.NotFound e) {
+            log.info("Streaming policy {} was not found. Creating streaming policy.",
+                     MediaKind.STREAMING_POLICY_CLEAR_KEY
+            );
+            mediaKindClient.putStreamingPolicy(
+                STREAMING_POLICY_CLEAR_KEY,
+                MkStreamingPolicy.builder()
+                    .properties(
+                        MkStreamingPolicyProperties.builder()
+                            .defaultContentKeyPolicyName(defaultContentKeyPolicy)
+                            .envelopeEncryption(
+                                new EnvelopeEncryption()
+                                    .withEnabledProtocols(
+                                        new EnabledProtocols()
+                                            .withDash(true)
+                                            .withHls(true)
+                                            .withSmoothStreaming(false)
+                                            .withDownload(false))
+                                    .withContentKeys(
+                                        new StreamingPolicyContentKeys()
+                                            .withDefaultKey(new DefaultKey()
+                                                                .withLabel("ContentKey_AES")
+                                                                .withPolicyName(defaultContentKeyPolicy)))
+                            )
+                            .build()
+                    )
+                    .build()
+            );
+        }
+    }
+
+    private void createContentKeyPolicy(String userId, String key) {
+        try {
+            mediaKindClient.getContentKeyPolicy(userId);
+        } catch (NotFoundException e) {
+            mediaKindClient.putContentKeyPolicy(userId, MkContentKeyPolicy.builder()
+                .properties(MkContentKeyPolicyProperties.builder()
+                                .description("Content key policy for user: " + userId)
+                                .options(
+                                    List.of(MkContentKeyPolicyOptions.builder()
+                                                .name("key")
+                                                .restriction(
+                                                    new ContentKeyPolicyTokenRestriction()
+                                                        .withIssuer(issuer)
+                                                        .withAudience(userId)
+                                                        .withRestrictionTokenType(ContentKeyPolicyRestrictionTokenType.JWT)
+                                                        .withPrimaryVerificationKey(
+                                                            new ContentKeyPolicySymmetricTokenKey()
+                                                                .withKeyValue(key.getBytes())))
+                                                .configuration(new ContentKeyPolicyClearKeyConfiguration())
+                                                .build()))
+                                .build())
+                .build());
+        }
     }
 
     @Override
@@ -227,6 +300,15 @@ public class MediaKind implements IMediaService {
             liveEvent = getLiveEventMk(liveEventName);
         } while (!liveEvent.getProperties().getResourceState().equals("Running"));
         return liveEvent;
+    }
+
+    private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {
+        var endpointName = endpoint.getName();
+        while (endpoint.getProperties().getResourceState() != MkStreamingEndpointProperties.ResourceState.Running) {
+            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
+            endpoint = mediaKindClient.getStreamingEndpointByName(endpointName);
+        }
+        return endpoint;
     }
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
@@ -359,6 +441,39 @@ public class MediaKind implements IMediaService {
         } catch (Exception e) {
             log.error(e.getMessage());
             throw e;
+        }
+    }
+
+    private MkStreamingEndpoint assertStreamingEndpointExists(String endpointName) throws InterruptedException {
+        try {
+            var endpoint = mediaKindClient.getStreamingEndpointByName(endpointName);
+            if (endpoint.getProperties().getResourceState() != MkStreamingEndpointProperties.ResourceState.Running) {
+                mediaKindClient.startStreamingEndpoint(endpointName);
+                endpoint = checkStreamingEndpointReady(endpoint);
+            }
+            return endpoint;
+        } catch (FeignException.NotFound e) {
+            var endpoint = mediaKindClient.createStreamingEndpoint(
+                DEFAULT_STREAMING_ENDPOINT,
+                MkStreamingEndpoint.builder()
+                    .location(LOCATION)
+                    .tags(Map.of(
+                        "environment", environmentTag,
+                        "application", "pre-recorded evidence"))
+                    .properties(
+                        MkStreamingEndpointProperties.builder()
+                            .description("Default streaming endpoint")
+                            .scaleUnits(0)
+                            .sku(
+                                MkStreamingEndpointSku
+                                    .builder()
+                                    .name(Tier.Standard)
+                                    .build()
+                            )
+                            .build())
+                    .build());
+            mediaKindClient.startStreamingEndpoint(DEFAULT_STREAMING_ENDPOINT);
+            return checkStreamingEndpointReady(endpoint);
         }
     }
 
