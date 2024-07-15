@@ -53,6 +53,15 @@ public class CaptureSessionService {
     }
 
     @Transactional
+    public CaptureSessionDTO findByLiveEventId(String liveEventId) {
+        var liveEventUUID = new UUID(
+            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
+            Long.parseUnsignedLong(liveEventId.substring(16), 16)
+        );
+        return this.findById(liveEventUUID);
+    }
+
+    @Transactional
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #id)")
     public CaptureSessionDTO findById(UUID id) {
         return captureSessionRepository

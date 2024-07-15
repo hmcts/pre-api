@@ -669,4 +669,27 @@ public class CaptureSessionServiceTest {
         );
         assertThat(message).hasMessageContaining("Not found: Capture Session: " + captureSession.getId());
     }
+
+    @DisplayName("Should search for a capture session using a live event id")
+    @Test
+    void findCaptureSessionByLiveEventId() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var captureSessionId = UUID.randomUUID();
+        var liveEventId = captureSessionId.toString().replace("-", "");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+            .thenReturn(Optional.empty());
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.findByLiveEventId(liveEventId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
+
+    }
 }
