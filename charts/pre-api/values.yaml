@@ -29,6 +29,8 @@ java:
           alias: AZ_AMS_CLIENT_SECRET
         - name: api-MKIO-TOKEN
           alias: MEDIA_KIND_TOKEN
+        - name: finalsa-storage-account-connection-string
+          alias: AZURE_FINAL_SA_CONNECTION_STRING
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
@@ -38,4 +40,5 @@ java:
     AZURE_SUBSCRIPTION_ID: 5ca62022-6aa2-4cee-aaa7-e7536c8d566c
     MEDIA_KIND_SUBSCRIPTION: "pre-mediakind-{{ .Values.global.environment }}"
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
+    AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"
     PLATFORM_ENV_TAG: Production
