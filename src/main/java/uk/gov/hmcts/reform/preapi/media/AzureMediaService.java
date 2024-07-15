@@ -401,7 +401,7 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void waitEncodeComplete(String jobName) throws InterruptedException {
+    private void checkEncodeComplete(String jobName) throws InterruptedException {
         JobInner job = null;
         do {
             if (job != null) {

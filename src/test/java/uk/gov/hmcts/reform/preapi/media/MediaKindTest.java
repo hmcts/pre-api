@@ -616,7 +616,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
-      
+
     @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
     @Test
     void unsupportedOperationException() {
