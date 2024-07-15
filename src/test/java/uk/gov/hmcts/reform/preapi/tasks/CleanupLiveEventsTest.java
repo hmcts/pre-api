@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -85,11 +85,14 @@ public class CleanupLiveEventsTest {
         liveEventDTO.setResourceState("Running");
         List<LiveEventDTO> liveEventDTOList = new ArrayList<>();
         liveEventDTOList.add(liveEventDTO);
+
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.STANDBY);
+
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvents()).thenReturn(liveEventDTOList);
-
-        var mockCaptureSession = mock(CaptureSessionDTO.class);
-        mockCaptureSession.setId(captureSessionId);
+        when(captureSessionService.findByLiveEventId(any())).thenReturn(captureSession);
 
         var mockRecording = new RecordingDTO();
         mockRecording.setId(UUID.randomUUID());
@@ -97,10 +100,9 @@ public class CleanupLiveEventsTest {
         var mockRecording2 = new RecordingDTO();
         mockRecording2.setId(UUID.randomUUID());
 
-        when(mediaService.stopLiveEvent(mockCaptureSession, mockRecording.getId()))
+        when(mediaService.stopLiveEvent(captureSession, mockRecording.getId()))
             .thenThrow(InterruptedException.class);
 
-        when(captureSessionService.findByLiveEventId(liveEventDTO.getId())).thenReturn(mockCaptureSession);
         when(recordingService.findAll(any(SearchRecordings.class), eq(true), eq(Pageable.unpaged())))
             .thenReturn(new PageImpl<>(List.of(mockRecording, mockRecording2)));
 
@@ -108,9 +110,11 @@ public class CleanupLiveEventsTest {
                                                                     captureSessionService,
                                                                     recordingService);
 
-        assertThrows(RuntimeException.class, cleanupLiveEvents::run);
+        cleanupLiveEvents.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(mediaService, times(1)).getLiveEvents();
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, mockRecording.getId());
     }
 }

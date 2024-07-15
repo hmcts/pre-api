@@ -147,6 +147,11 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public void cleanupStoppedLiveEvent(String liveEventId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
         var liveEventName = uuidToNameString(captureSession.getId());
         createLiveEvent(captureSession);

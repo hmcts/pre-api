@@ -26,4 +26,6 @@ public interface IMediaService {
     String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException;
 
     RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
+
+    void cleanupStoppedLiveEvent(String liveEventId);
 }

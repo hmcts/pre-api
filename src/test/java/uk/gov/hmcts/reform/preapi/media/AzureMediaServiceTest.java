@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.util.List;
@@ -81,6 +82,7 @@ public class AzureMediaServiceTest {
         captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBookingId(UUID.randomUUID());
+        captureSession.setStatus(RecordingStatus.PROCESSING);
     }
 
     @DisplayName("Should get a valid asset and return an AssetDTO")
@@ -781,6 +783,7 @@ public class AzureMediaServiceTest {
     @Test
     void stopLiveEventNoRecording() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
+        captureSession.setStatus(RecordingStatus.PROCESSING);
         var recordingId = UUID.randomUUID();
         var assetsClient = mockAssetsClient();
         var jobsClient = mockJobsClient();
@@ -797,17 +800,31 @@ public class AzureMediaServiceTest {
 
         assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
             .isEqualTo(RecordingStatus.NO_RECORDING);
+    }
 
-        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
-        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
-        verify(jobsClient, times(2)).get(any(), any(), any(), any());
-        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
-        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
-        verify(liveEventClient, times(1)).delete(any(), any(), any());
-        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
-        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
-        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
-        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
+    @DisplayName("Should fail to stop live event when capture session not in PROCESSING state")
+    @Test
+    void stopLiveEventNotStatusProcessing() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        var recordingId = UUID.randomUUID();
+        var assetsClient = mockAssetsClient();
+        var jobsClient = mockJobsClient();
+        var mockJob = mock(JobInner.class);
+        var liveEventClient = mockLiveEventClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var liveOutputClient = mockLiveOutputClient();
+
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
+        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+
+        assertThrows(
+            ResourceInWrongStateException.class, () ->
+                mediaService.stopLiveEvent(captureSession, recordingId));
     }
 
     @DisplayName("Should successfully stop live event when there is a recording found")

@@ -36,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.time.Duration;
@@ -258,6 +259,14 @@ public class AzureMediaService implements IMediaService {
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
+        if (captureSession.getStatus() != RecordingStatus.PROCESSING) {
+            throw new ResourceInWrongStateException(
+                "CaptureSessionDTO",
+                captureSession.getId().toString(),
+                captureSession.getStatus().toString(),
+                RecordingStatus.PROCESSING.toString()
+            );
+        }
         var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
         var recordingAssetName = recordingNoHyphen + "_output";
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
@@ -269,12 +278,17 @@ public class AzureMediaService implements IMediaService {
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
 
-        stopAndDeleteLiveEvent(captureSessionNoHyphen);
-        stopAndDeleteStreamingEndpoint(captureSessionNoHyphen.substring(0, 23));
-        deleteStreamingLocator(captureSessionNoHyphen);
-        deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
+        cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
         return status;
+    }
+
+    @Override
+    public void cleanupStoppedLiveEvent(String liveEventId) {
+        stopAndDeleteLiveEvent(liveEventId);
+        stopAndDeleteStreamingEndpoint(liveEventId.substring(0, 23));
+        deleteStreamingLocator(liveEventId);
+        deleteLiveOutput(liveEventId, liveEventId);
     }
 
     @Override
