@@ -12,14 +12,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
+import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEventProperties;
@@ -27,13 +28,10 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpointProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorList;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorPaths;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicy;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,6 +47,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = MediaKind.class)
+@TestPropertySource(properties = {
+    "azure.ingestStorage=testIngestStorageAccount",
+    "platform-env=Staging",
+    "mediakind.subscription=pre-mediakind-stg",
+    "mediakind.issuer=testIssuer",
+    "mediakind.symmetricKey=testSymmetricKey"
+})
 public class MediaKindTest {
     @MockBean
     private MediaKindClient mockClient;
@@ -587,130 +592,362 @@ public class MediaKindTest {
         return om.readValue(jsonSnippet, MkStreamingLocatorUrlPaths.class);
     }
 
-    @DisplayName("Should return the playback URL for the asset")
+    @DisplayName("Should return the playback urls for the asset")
     @Test
-    void playAssetSuccess() {
+    void playAssetSuccess() throws InterruptedException {
         var assetName = UUID.randomUUID().toString();
         var userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
-        var streamingLocator = createMkStreamingLocator(userId);
-        var streamingLocatorList = MkStreamingLocatorList.builder()
-            .streamingLocators(List.of(streamingLocator))
-            .build();
         var streamingEndpoint = MkStreamingEndpoint.builder()
-            .name("default")
-            .properties(MkStreamingEndpointProperties.builder()
-                            .hostName("https://example.com/")
-                            .build())
+            .properties(
+                MkStreamingEndpointProperties.builder()
+                    .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                    .hostName("example.com/")
+                    .build()
+            )
             .build();
-        var streamingPaths = MkStreamingLocatorPaths.builder()
+
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
             .streamingPaths(List.of(
-                MkStreamingLocatorPaths.MkStreamingPath.builder()
-                    .encryptionScheme("ClearKey")
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
                     .paths(List.of("playback/" + assetName))
-                    .streamingProtocol("Hls")
+                    .streamingProtocol(MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol.Hls)
                     .build(),
-                MkStreamingLocatorPaths.MkStreamingPath.builder()
-                    .encryptionScheme("ClearKey")
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
                     .paths(List.of("playback/" + assetName))
-                    .streamingProtocol("Dash")
+                    .streamingProtocol(MkStreamingLocatorUrlPaths
+                                           .MkStreamingLocatorStreamingPath
+                                           .StreamingProtocol.Dash)
                     .build()
             ))
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                    .MkDrmClearKey("license url")))
             .build();
 
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
-        when(mockClient.getStreamingEndpointByName("default")).thenReturn(streamingEndpoint);
         when(mockClient.getAsset(assetName)).thenReturn(asset);
-        when(mockClient.getAssetStreamingLocators(assetName)).thenReturn(streamingLocatorList);
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
 
-        var playbackUrl = mediaKind.playAsset(assetName, userId);
-        var playbackDTO = new PlaybackDTO(
-            "https://example.com/playback/" + assetName,
-            "https://example.com/playback/" + assetName,
-            "");
+        var playback = mediaKind.playAsset(assetName, userId);
 
-        assertThat(playbackUrl).isEqualTo(playbackDTO);
+        assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getHlsUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getToken()).isNotNull();
+        assertThat(playback.getLicenseUrl()).isEqualTo("license url");
 
         verify(mockClient, times(1)).getAsset(assetName);
+        verify(mockClient, times(1)).getContentKeyPolicy(userId);
+        verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
+        verify(mockClient, times(1)).deleteStreamingLocator(userId);
+        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1)).getStreamingEndpointByName("default");
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
     }
 
-    @DisplayName("Should return the playback URL for the asset, after creating a new streaming locator")
+    @DisplayName("Should return the playback urls for the asset when content key policy didn't exist")
     @Test
-    void playAssetCreateStreamingLocatorSuccess() {
+    void playAssetContentKeyNotFoundSuccess() throws InterruptedException {
         var assetName = UUID.randomUUID().toString();
         var userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
-        var existingStreamingLocator = createMkStreamingLocator(UUID.randomUUID().toString());
-        var newStreamingLocatorProperties = MkStreamingLocatorProperties.builder()
-            .assetName(assetName)
-            .streamingPolicyName("Predefined_ClearStreamingOnly")
-            .endTime(Timestamp.from(Instant.now().plusSeconds(3600)))
-            .build();
-        var newStreamingLocator = MkStreamingLocator.builder().properties(newStreamingLocatorProperties).build();
-        var streamingLocatorList = MkStreamingLocatorList.builder()
-            .streamingLocators(List.of(existingStreamingLocator))
-            .build();
         var streamingEndpoint = MkStreamingEndpoint.builder()
-            .name("default")
-            .properties(MkStreamingEndpointProperties.builder()
-                            .hostName("https://example.com/")
-                            .build())
+            .properties(
+                MkStreamingEndpointProperties.builder()
+                    .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                    .hostName("example.com/")
+                    .build()
+            )
             .build();
-        var streamingPaths = MkStreamingLocatorPaths.builder()
+
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
             .streamingPaths(List.of(
-                MkStreamingLocatorPaths.MkStreamingPath.builder()
-                    .encryptionScheme("ClearKey")
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
                     .paths(List.of("playback/" + assetName))
-                    .streamingProtocol("Hls")
+                    .streamingProtocol(MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol.Hls)
                     .build(),
-                MkStreamingLocatorPaths.MkStreamingPath.builder()
-                    .encryptionScheme("ClearKey")
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
                     .paths(List.of("playback/" + assetName))
-                    .streamingProtocol("Dash")
+                    .streamingProtocol(MkStreamingLocatorUrlPaths
+                                           .MkStreamingLocatorStreamingPath
+                                           .StreamingProtocol.Dash)
                     .build()
             ))
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                .MkDrmClearKey("license url")))
             .build();
-
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
-        when(mockClient.getStreamingEndpointByName("default")).thenReturn(streamingEndpoint);
+        doThrow(NotFoundException.class).when(mockClient).getContentKeyPolicy(userId);
         when(mockClient.getAsset(assetName)).thenReturn(asset);
-        when(mockClient.getAssetStreamingLocators(assetName)).thenReturn(streamingLocatorList);
-        when(mockClient.createStreamingLocator(userId, newStreamingLocator)).thenReturn(existingStreamingLocator);
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
 
-        var playbackUrl = mediaKind.playAsset(assetName, userId);
-        var playbackDTO = new PlaybackDTO(
-            "https://example.com/playback/" + assetName,
-            "https://example.com/playback/" + assetName,
-            "");
+        var playback = mediaKind.playAsset(assetName, userId);
 
-        assertThat(playbackUrl).isEqualTo(playbackDTO);
+        assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getHlsUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getToken()).isNotNull();
+        assertThat(playback.getLicenseUrl()).isEqualTo("license url");
 
         verify(mockClient, times(1)).getAsset(assetName);
-        verify(mockClient, times(1)).createStreamingLocator(any(), any());
+        verify(mockClient, times(1)).getContentKeyPolicy(userId);
+        verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), any(MkContentKeyPolicy.class));
+        verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
+        verify(mockClient, times(1)).deleteStreamingLocator(userId);
+        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1)).getStreamingEndpointByName("default");
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
     }
 
-    @DisplayName("Should throw 404 error when the streaming endpoint cannot be found")
+    @DisplayName("Should return the playback urls for the asset when streaming policy not found")
     @Test
-    void playAssetStreamingEndpointNotFound() {
+    void playAssetStreamingPolicyNotFoundSuccess() throws InterruptedException {
         var assetName = UUID.randomUUID().toString();
         var userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
-        var streamingLocator = createMkStreamingLocator(userId);
-        var streamingLocatorList = MkStreamingLocatorList.builder()
-            .streamingLocators(List.of(streamingLocator))
+        var streamingEndpoint = MkStreamingEndpoint.builder()
+            .properties(
+                MkStreamingEndpointProperties.builder()
+                    .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                    .hostName("example.com/")
+                    .build()
+            )
             .build();
 
-        when(mockClient.getStreamingEndpointByName("default")).thenThrow(FeignException.NotFound.class);
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
+            .streamingPaths(List.of(
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol.Hls)
+                    .build(),
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths
+                                           .MkStreamingLocatorStreamingPath
+                                           .StreamingProtocol.Dash)
+                    .build()
+            ))
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                .MkDrmClearKey("license url")))
+            .build();
+
+        doThrow(NotFoundException.class).when(mockClient).getStreamingPolicy("Predefined_ClearKey");
         when(mockClient.getAsset(assetName)).thenReturn(asset);
-        when(mockClient.getAssetStreamingLocators(assetName)).thenReturn(streamingLocatorList);
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+
+        var playback = mediaKind.playAsset(assetName, userId);
+
+        assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getHlsUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getToken()).isNotNull();
+        assertThat(playback.getLicenseUrl()).isEqualTo("license url");
+
+        verify(mockClient, times(1)).getAsset(assetName);
+        verify(mockClient, times(1)).getContentKeyPolicy(userId);
+        verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
+        verify(mockClient, times(1)).putStreamingPolicy(eq("Predefined_ClearKey"), any(MkStreamingPolicy.class));
+        verify(mockClient, times(1)).deleteStreamingLocator(userId);
+        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1)).getStreamingEndpointByName("default");
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+    }
+
+    @DisplayName("Should return the playback urls for the asset when default endpoint not running")
+    @Test
+    void playAssetStreamingEndpointNotRunningSuccess() throws InterruptedException {
+        var assetName = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+        var mockProperties = mock(MkStreamingEndpointProperties.class);
+
+        when(mockProperties.getHostName()).thenReturn("example.com/");
+        when(mockProperties.getResourceState()).thenReturn(
+            MkStreamingEndpointProperties.ResourceState.Stopped,
+            MkStreamingEndpointProperties.ResourceState.Starting,
+            MkStreamingEndpointProperties.ResourceState.Starting,
+            MkStreamingEndpointProperties.ResourceState.Running
+        );
+
+        var streamingEndpoint = MkStreamingEndpoint.builder()
+            .name("default")
+            .properties(mockProperties)
+            .build();
+
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
+            .streamingPaths(List.of(
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol.Hls)
+                    .build(),
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths
+                                           .MkStreamingLocatorStreamingPath
+                                           .StreamingProtocol.Dash)
+                    .build()
+            ))
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                .MkDrmClearKey("license url")))
+            .build();
+
+        when(mockClient.getAsset(assetName)).thenReturn(asset);
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+
+        var playback = mediaKind.playAsset(assetName, userId);
+
+        assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getHlsUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getToken()).isNotNull();
+        assertThat(playback.getLicenseUrl()).isEqualTo("license url");
+
+        verify(mockClient, times(1)).getAsset(assetName);
+        verify(mockClient, times(1)).getContentKeyPolicy(userId);
+        verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
+        verify(mockClient, times(1)).deleteStreamingLocator(userId);
+        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(3)).getStreamingEndpointByName("default");
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+    }
+
+    @DisplayName("Should return the playback urls for the asset when default endpoint not created")
+    @Test
+    void playAssetStreamingEndpointNotFoundSuccess() throws InterruptedException {
+        var assetName = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+        var streamingEndpoint = MkStreamingEndpoint.builder()
+            .name("default")
+            .properties(
+                MkStreamingEndpointProperties.builder()
+                    .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                    .hostName("example.com/")
+                    .build()
+            )
+            .build();
+
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
+            .streamingPaths(List.of(
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.StreamingProtocol.Hls)
+                    .build(),
+                MkStreamingLocatorUrlPaths.MkStreamingLocatorStreamingPath.builder()
+                    .encryptionScheme(MkStreamingLocatorUrlPaths
+                                          .MkStreamingLocatorStreamingPath
+                                          .EncryptionScheme.EnvelopeEncryption)
+                    .paths(List.of("playback/" + assetName))
+                    .streamingProtocol(MkStreamingLocatorUrlPaths
+                                           .MkStreamingLocatorStreamingPath
+                                           .StreamingProtocol.Dash)
+                    .build()
+            ))
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                .MkDrmClearKey("license url")))
+            .build();
+
+        when(mockClient.getAsset(assetName)).thenReturn(asset);
+
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenThrow(NotFoundException.class)
+            .thenReturn(streamingEndpoint);
+        when(mockClient.createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class)))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+
+        var playback = mediaKind.playAsset(assetName, userId);
+
+        assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getHlsUrl()).isEqualTo("https://example.com/playback/" + assetName);
+        assertThat(playback.getToken()).isNotNull();
+        assertThat(playback.getLicenseUrl()).isEqualTo("license url");
+
+        verify(mockClient, times(1)).getAsset(assetName);
+        verify(mockClient, times(1)).getContentKeyPolicy(userId);
+        verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
+        verify(mockClient, times(1)).deleteStreamingLocator(userId);
+        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1)).getStreamingEndpointByName("default");
+        verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class));
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+    }
+
+    @DisplayName("Should throw not found error when both dash and hls are null")
+    @Test
+    void playAssetNotFound() throws InterruptedException {
+        var assetName = UUID.randomUUID().toString();
+        var userId = UUID.randomUUID().toString();
+        var asset = createMkAsset(assetName);
+        var streamingEndpoint = MkStreamingEndpoint.builder()
+            .properties(
+                MkStreamingEndpointProperties.builder()
+                    .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                    .hostName("example.com/")
+                    .build()
+            )
+            .build();
+
+        var streamingPaths = MkStreamingLocatorUrlPaths.builder()
+            .streamingPaths(List.of())
+            .drm(new MkStreamingLocatorUrlPaths
+                .MkStreamingLocatorDrm(new MkStreamingLocatorUrlPaths
+                .MkDrmClearKey("license url")))
+            .build();
+
+        when(mockClient.getAsset(assetName)).thenReturn(asset);
+        when(mockClient.getStreamingEndpointByName("default"))
+            .thenReturn(streamingEndpoint);
+        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+
 
         var message = assertThrows(
             NotFoundException.class,
             () -> mediaKind.playAsset(assetName, userId)
         ).getMessage();
-        assertThat(message).isEqualTo("Not found: Streaming Endpoint: default");
+
+        assertThat(message).isEqualTo("Not found: Playback URL");
 
         verify(mockClient, times(1)).getAsset(assetName);
+        verify(mockClient, times(1)).getContentKeyPolicy(userId);
+        verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
+        verify(mockClient, times(1)).deleteStreamingLocator(userId);
+        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
     }
 }

@@ -152,7 +152,7 @@ public class MediaKind implements IMediaService {
     private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
         try {
             mediaKindClient.getStreamingPolicy(MediaKind.STREAMING_POLICY_CLEAR_KEY);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             log.info("Streaming policy {} was not found. Creating streaming policy.",
                      MediaKind.STREAMING_POLICY_CLEAR_KEY
             );
@@ -197,7 +197,8 @@ public class MediaKind implements IMediaService {
                                                     new ContentKeyPolicyTokenRestriction()
                                                         .withIssuer(issuer)
                                                         .withAudience(userId)
-                                                        .withRestrictionTokenType(ContentKeyPolicyRestrictionTokenType.JWT)
+                                                        .withRestrictionTokenType(
+                                                            ContentKeyPolicyRestrictionTokenType.JWT)
                                                         .withPrimaryVerificationKey(
                                                             new ContentKeyPolicySymmetricTokenKey()
                                                                 .withKeyValue(key.getBytes())))
@@ -452,7 +453,7 @@ public class MediaKind implements IMediaService {
                 endpoint = checkStreamingEndpointReady(endpoint);
             }
             return endpoint;
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             var endpoint = mediaKindClient.createStreamingEndpoint(
                 DEFAULT_STREAMING_ENDPOINT,
                 MkStreamingEndpoint.builder()
