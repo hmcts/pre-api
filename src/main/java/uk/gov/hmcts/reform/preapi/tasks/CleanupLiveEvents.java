@@ -75,22 +75,27 @@ public class CleanupLiveEvents implements Runnable {
                                UUID recordingId,
                                String liveEventId) {
         try {
-
             // This shouldn't happen but as this is the cleanup cron we do want to ensure the Live Events in AMS/MK
             // are terminated and cleaned up.
             // A manual process will be needed to investigate why the CaptureSession is in an unexpected state.
             if (captureSession.getStatus() != RecordingStatus.STANDBY
                 && captureSession.getStatus() != RecordingStatus.RECORDING
                 && captureSession.getStatus() != RecordingStatus.PROCESSING) {
-                log.info("CaptureSession {} is in an unexpected state: {}",
-                         captureSession.getId(),
-                         captureSession.getStatus());
+                log.info(
+                    "CaptureSession {} is in an unexpected state: {}",
+                    captureSession.getId(),
+                    captureSession.getStatus()
+                );
                 mediaService.cleanupStoppedLiveEvent(liveEventId);
             }
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.PROCESSING, recordingId);
             log.info("Stopping live event {}", liveEventId);
             var status = mediaService.stopLiveEvent(captureSession, recordingId);
             captureSessionService.stopCaptureSession(captureSession.getId(), status, recordingId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
+            log.error("Failed to stop live event for capture session {}", captureSession.getId(), e);
         } catch (Exception e) {
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             log.error("Failed to stop live event for capture session {}", captureSession.getId(), e);
