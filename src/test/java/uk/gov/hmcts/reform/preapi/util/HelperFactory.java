@@ -284,12 +284,4 @@ public class HelperFactory {
         invite.setPhone(user.getPhone());
         return invite;
     }
-
-    public PlaybackDTO createPlayback(String dashUrl, String hlsUrl, String token) {
-        var dto = new PlaybackDTO();
-        dto.setDashUrl(dashUrl);
-        dto.setHlsUrl(hlsUrl);
-        dto.setToken(token);
-        return dto;
-    }
 }
