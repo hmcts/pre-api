@@ -170,13 +170,13 @@ public class MediaKind implements IMediaService {
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
 
+        mediaKindClient.deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
         var captureSessionShort = getShortenedLiveEventId(captureSession.getId());
         stopAndDeleteStreamingEndpoint(captureSessionShort);
 
         // delete returns 204 if not found (no need to catch)
         mediaKindClient.deleteStreamingLocator(captureSessionNoHyphen);
-        mediaKindClient.deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;
     }
