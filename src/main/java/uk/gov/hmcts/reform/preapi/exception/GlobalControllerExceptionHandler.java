@@ -172,11 +172,16 @@ public class GlobalControllerExceptionHandler {
         throws JsonProcessingException {
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
-  
+
     @ExceptionHandler(ResourceInWrongStateException.class)
     ResponseEntity<String> resourceInWrongStateException(final ResourceInWrongStateException e)
         throws JsonProcessingException {
 
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<String> tempGetError(final Exception e) throws JsonProcessingException {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
