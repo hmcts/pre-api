@@ -265,13 +265,14 @@ public class AzureMediaService implements IMediaService {
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
         encodeToMp4(captureSessionNoHyphen, recordingAssetName);
-        checkEncodeComplete(captureSessionNoHyphen);
+        waitEncodeComplete(captureSessionNoHyphen);
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
 
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
-        stopAndDeleteStreamingEndpoint(captureSessionNoHyphen.substring(0, 23));
+        var captureSessionShort = getShortenedLiveEventId(captureSession.getId());
+        stopAndDeleteStreamingEndpoint(captureSessionShort);
         deleteStreamingLocator(captureSessionNoHyphen);
         deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
@@ -401,7 +402,7 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void checkEncodeComplete(String jobName) throws InterruptedException {
+    private void waitEncodeComplete(String jobName) throws InterruptedException {
         JobInner job = null;
         do {
             if (job != null) {
