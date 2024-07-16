@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.media.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -68,6 +69,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
+
+    @MockBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test
@@ -561,7 +565,7 @@ public class MediaServiceControllerTest {
 
         verify(captureSessionService, times(2)).stopCaptureSession(any(), any(), any());
     }
-  
+
     @DisplayName("Should return 200 and a CaptureSessionDTO with populated live_output_url and status as RECORDING")
     @Test
     void startLiveEventCaptureSessionBadState() throws Exception {
@@ -580,5 +584,28 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                      + captureSessionId
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
+    }
+
+    @DisplayName("Should return 204 when ism file exists")
+    @Test
+    void checkBlobExistsSuccess() throws Exception {
+        var containerName = "container";
+        when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(true);
+
+        var response = mockMvc.perform(get("/media-service/blob/" + containerName))
+                              .andExpect(status().isNoContent())
+                              .andReturn().getResponse();
+
+        assertThat(response.getContentAsString()).isEmpty();
+    }
+
+    @DisplayName("Should return 404 when ism file exists")
+    @Test
+    void checkBlobExistsFail() throws Exception {
+        var containerName = "container";
+        when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(false);
+
+        mockMvc.perform(get("/media-service/blob/" + containerName))
+               .andExpect(status().isNotFound());
     }
 }
