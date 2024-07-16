@@ -2853,7 +2853,7 @@ paths:
         - media-service-controller
   '/media-service/streaming-locator/live-event/{captureSessionId}':
     put:
-      operationId: createLiveEventStreamingLocator
+      operationId: playLiveEvent
       parameters:
         - format: uuid
           in: path
@@ -2874,6 +2874,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/CaptureSessionDTO'
+      summary: Play a live event
       tags:
         - media-service-controller
   /recordings:

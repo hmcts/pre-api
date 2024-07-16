@@ -33,8 +33,8 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
@@ -403,6 +403,230 @@ public class AzureMediaServiceTest {
         assertThat(model.getInputRtmp()).isEqualTo("rtmps://example");
     }
 
+    @DisplayName("Should complete play live event successfully, creating all required resources")
+    @Test
+    void playLiveEventFreshSuccess() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        var response = mediaService.playLiveEvent(liveEventId);
+        assertThat(response).isEqualTo("https://pre-example.com/path1");
+
+        Mockito.verify(mockStreamingEndpointsClient, Mockito.times(1))
+               .start(resourceGroup, accountName, shortenedLiveEventId);
+
+        Mockito.verify(mockStreamingLocatorsClient, Mockito.times(1))
+               .create(eq(resourceGroup),
+                       eq(accountName),
+                       eq(sanitisedLiveEventId),
+                       any());
+    }
+
+    @DisplayName("Should complete play live event successfully, all required resources already exist")
+    @Test
+    void playLiveEventFreshSuccessPreExistingResources() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(409);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenThrow(new ManagementException("Already exists", mockHttpResponse));
+
+        when(mockStreamingEndpointsClient.get(resourceGroup, accountName, shortenedLiveEventId))
+            .thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+        when(mockStreamingLocatorsClient.create(eq(resourceGroup), eq(accountName), eq(sanitisedLiveEventId), any()))
+            .thenThrow(new ManagementException("Already exists", mockHttpResponse));
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        var response = mediaService.playLiveEvent(liveEventId);
+        assertThat(response).isEqualTo("https://pre-example.com/path1");
+    }
+
+    @DisplayName("Should throw an exception when live event doesn't exist")
+    @Test
+    void playLiveEventAMSLiveEventNotFoundException() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(404);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenThrow(new ManagementException("not found", mockHttpResponse));
+
+        assertThrows(AMSLiveEventNotFoundException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw an exception when live event exists but is not running")
+    @Test
+    void playLiveEventLiveEventNotRunningException() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.STARTING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        assertThrows(LiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw an exception when unable to check live event exists")
+    @Test
+    void playLiveEventAMSLiveEvent500() {
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+
+        var mockHttpResponse = mock(HttpResponse.class);
+        when(mockHttpResponse.getStatusCode()).thenReturn(500);
+
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenThrow(new ManagementException("Internal Server Error", mockHttpResponse));
+
+        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw a ManagementException unable to check if Streaming Locator Exists")
+    @Test
+    void playLiveEventAssertStreamingLocatorExistsError() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenThrow(new ManagementException("bad request", mock(HttpResponse.class)));
+
+        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
+    @DisplayName("Should throw a RuntimeException if all paths are blank")
+    @Test
+    void playLiveEventParseLiveOutputUrlFromStreamingLocatorPathsRuntimeException() {
+        var mockLiveEventClient = mock(LiveEventsClient.class);
+        var mockLiveEvent = mock(LiveEventInner.class);
+        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
+        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
+        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
+        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
+        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockLiveEvent);
+
+        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
+        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
+        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
+
+        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
+
+        when(mockStreamingEndpointsClient
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d"),
+                         any(StreamingEndpointInner.class))
+        ).thenReturn(mockStreamingEndpointInner);
+
+        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
+
+        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
+        var mockStreamingPath1 = mock(StreamingPath.class);
+        when(mockStreamingPath1.paths()).thenReturn(List.of());
+        var mockStreamingPath2 = mock(StreamingPath.class);
+        when(mockStreamingPath2.paths()).thenReturn(List.of());
+        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
+        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
+            .thenReturn(mockListPathsResponseInner);
+
+        assertThrows(RuntimeException.class, () -> mediaService.playLiveEvent(liveEventId));
+    }
+
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
     void startLiveEventSuccess() throws InterruptedException {
@@ -692,14 +916,14 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
 
         assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
             .isEqualTo(RecordingStatus.NO_RECORDING);
-
+        
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
         verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
         verify(jobsClient, times(2)).get(any(), any(), any(), any());
@@ -710,6 +934,30 @@ public class AzureMediaServiceTest {
         verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
         verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
         verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    private StreamingEndpointsClient mockStreamingEndpointClient() {
+        var client = mock(StreamingEndpointsClient.class);
+        when(amsClient.getStreamingEndpoints()).thenReturn(client);
+        return client;
+    }
+
+    private StreamingLocatorsClient mockStreamingLocatorClient() {
+        var client = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(client);
+        return client;
+    }
+
+    private JobsClient mockJobsClient() {
+        var client = mock(JobsClient.class);
+        when(amsClient.getJobs()).thenReturn(client);
+        return client;
+    }
+
+    private ManagementException mockAmsError(int status) {
+        var response = mock(HttpResponse.class);
+        when(response.getStatusCode()).thenReturn(status);
+        return new ManagementException("error", response);
     }
 
     @DisplayName("Should successfully stop live event when there is a recording found")
@@ -725,7 +973,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -793,7 +1041,7 @@ public class AzureMediaServiceTest {
         var mockJob = mock(JobInner.class);
         var liveEventClient = mockLiveEventClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -824,7 +1072,7 @@ public class AzureMediaServiceTest {
         var mockJob = mock(JobInner.class);
         var liveEventClient = mockLiveEventClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -856,7 +1104,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -889,7 +1137,7 @@ public class AzureMediaServiceTest {
         var liveEventClient = mockLiveEventClient();
         var streamingEndpointClient = mockStreamingEndpointClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -923,7 +1171,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -958,7 +1206,7 @@ public class AzureMediaServiceTest {
         var streamingEndpointClient = mockStreamingEndpointClient();
         var streamingLocatorClient = mockStreamingLocatorClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -994,7 +1242,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1030,7 +1278,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1094,229 +1342,5 @@ public class AzureMediaServiceTest {
         var response = mock(HttpResponse.class);
         when(response.getStatusCode()).thenReturn(status);
         return new ManagementException("error", response);
-    }
-
-    @DisplayName("Should complete play live event successfully, creating all required resources")
-    @Test
-    void playLiveEventFreshSuccess() {
-        var mockLiveEventClient = mock(LiveEventsClient.class);
-        var mockLiveEvent = mock(LiveEventInner.class);
-        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
-        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
-        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockLiveEvent);
-
-        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
-        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
-        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
-
-        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
-
-        when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
-        ).thenReturn(mockStreamingEndpointInner);
-
-        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
-        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
-
-        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
-        var mockStreamingPath1 = mock(StreamingPath.class);
-        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
-        var mockStreamingPath2 = mock(StreamingPath.class);
-        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
-        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
-        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockListPathsResponseInner);
-
-        var response = mediaService.playLiveEvent(liveEventId);
-        assertThat(response).isEqualTo("https://pre-example.com/path1");
-
-        Mockito.verify(mockStreamingEndpointsClient, Mockito.times(1))
-               .start(resourceGroup, accountName, shortenedLiveEventId);
-
-        Mockito.verify(mockStreamingLocatorsClient, Mockito.times(1))
-               .create(eq(resourceGroup),
-                       eq(accountName),
-                       eq(sanitisedLiveEventId),
-                       any());
-    }
-
-    @DisplayName("Should complete play live event successfully, all required resources already exist")
-    @Test
-    void playLiveEventFreshSuccessPreExistingResources() {
-        var mockLiveEventClient = mock(LiveEventsClient.class);
-        var mockLiveEvent = mock(LiveEventInner.class);
-        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
-        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
-        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockLiveEvent);
-
-        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
-        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
-        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
-
-        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
-
-        var mockHttpResponse = mock(HttpResponse.class);
-        when(mockHttpResponse.getStatusCode()).thenReturn(409);
-
-        when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
-        ).thenThrow(new ManagementException("Already exists", mockHttpResponse));
-
-        when(mockStreamingEndpointsClient.get(resourceGroup, accountName, shortenedLiveEventId))
-            .thenReturn(mockStreamingEndpointInner);
-
-        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
-        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
-        when(mockStreamingLocatorsClient.create(eq(resourceGroup), eq(accountName), eq(sanitisedLiveEventId), any()))
-            .thenThrow(new ManagementException("Already exists", mockHttpResponse));
-
-        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
-        var mockStreamingPath1 = mock(StreamingPath.class);
-        when(mockStreamingPath1.paths()).thenReturn(List.of("/path1", "/path1.1"));
-        var mockStreamingPath2 = mock(StreamingPath.class);
-        when(mockStreamingPath2.paths()).thenReturn(List.of("/path2", "/path2.2"));
-        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
-        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockListPathsResponseInner);
-
-        var response = mediaService.playLiveEvent(liveEventId);
-        assertThat(response).isEqualTo("https://pre-example.com/path1");
-    }
-
-    @DisplayName("Should throw an exception when live event doesn't exist")
-    @Test
-    void playLiveEventAMSLiveEventNotFoundException() {
-        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-
-        var mockLiveEventClient = mock(LiveEventsClient.class);
-
-        var mockHttpResponse = mock(HttpResponse.class);
-        when(mockHttpResponse.getStatusCode()).thenReturn(404);
-
-        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
-
-        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenThrow(new ManagementException("not found", mockHttpResponse));
-
-        assertThrows(AMSLiveEventNotFoundException.class, () -> mediaService.playLiveEvent(liveEventId));
-    }
-
-    @DisplayName("Should throw an exception when live event exists but is not running")
-    @Test
-    void playLiveEventAMSLiveEventNotRunningException() {
-        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-
-        var mockLiveEventClient = mock(LiveEventsClient.class);
-        var mockLiveEvent = mock(LiveEventInner.class);
-        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.STARTING);
-        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
-
-        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockLiveEvent);
-
-        assertThrows(AMSLiveEventNotRunningException.class, () -> mediaService.playLiveEvent(liveEventId));
-    }
-
-    @DisplayName("Should throw an exception when unable to check live event exists")
-    @Test
-    void playLiveEventAMSLiveEvent500() {
-        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-
-        var mockLiveEventClient = mock(LiveEventsClient.class);
-
-        var mockHttpResponse = mock(HttpResponse.class);
-        when(mockHttpResponse.getStatusCode()).thenReturn(500);
-
-        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
-
-        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenThrow(new ManagementException("Internal Server Error", mockHttpResponse));
-
-        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
-    }
-
-    @DisplayName("Should throw a ManagementException unable to check if Streaming Locator Exists")
-    @Test
-    void playLiveEventAssertStreamingLocatorExistsError() {
-        var mockLiveEventClient = mock(LiveEventsClient.class);
-        var mockLiveEvent = mock(LiveEventInner.class);
-        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
-        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
-        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockLiveEvent);
-
-        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
-        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
-        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
-
-        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-
-        when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
-        ).thenThrow(new ManagementException("bad request", mock(HttpResponse.class)));
-
-        assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
-    }
-
-    @DisplayName("Should throw a RuntimeException if all paths are blank")
-    @Test
-    void playLiveEventParseLiveOutputUrlFromStreamingLocatorPathsRuntimeException() {
-        var mockLiveEventClient = mock(LiveEventsClient.class);
-        var mockLiveEvent = mock(LiveEventInner.class);
-        when(mockLiveEvent.resourceState()).thenReturn(LiveEventResourceState.RUNNING);
-        when(amsClient.getLiveEvents()).thenReturn(mockLiveEventClient);
-        var liveEventId = UUID.fromString("c154d36e-cab4-4aaa-a4c7-11d89a27634f");
-        var sanitisedLiveEventId = liveEventId.toString().replace("-", "");
-        when(mockLiveEventClient.get(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockLiveEvent);
-
-        var mockStreamingEndpointsClient = mock(StreamingEndpointsClient.class);
-        var mockStreamingEndpointInner = mock(StreamingEndpointInner.class);
-        when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
-
-        when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-
-        when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
-        ).thenReturn(mockStreamingEndpointInner);
-
-        var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
-        when(amsClient.getStreamingLocators()).thenReturn(mockStreamingLocatorsClient);
-
-        var mockListPathsResponseInner = mock(ListPathsResponseInner.class);
-        var mockStreamingPath1 = mock(StreamingPath.class);
-        when(mockStreamingPath1.paths()).thenReturn(List.of());
-        var mockStreamingPath2 = mock(StreamingPath.class);
-        when(mockStreamingPath2.paths()).thenReturn(List.of());
-        when(mockListPathsResponseInner.streamingPaths()).thenReturn(List.of(mockStreamingPath1, mockStreamingPath2));
-        when(mockStreamingLocatorsClient.listPaths(resourceGroup, accountName, sanitisedLiveEventId))
-            .thenReturn(mockListPathsResponseInner);
-
-        assertThrows(RuntimeException.class, () -> mediaService.playLiveEvent(liveEventId));
     }
 }
