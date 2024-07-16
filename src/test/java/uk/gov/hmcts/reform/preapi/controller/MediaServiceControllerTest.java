@@ -223,6 +223,55 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: Live event: " + name));
     }
 
+    @DisplayName("Should update corresponding capture session if status is initialising")
+    @Test
+    void getLiveEventUpdateCaptureSessionStart() throws Exception {
+        var id = UUID.randomUUID();
+        var name = id.toString().replace("-", "");
+        var dto = new CaptureSessionDTO();
+        dto.setId(id);
+        dto.setStatus(RecordingStatus.INITIALISING);
+        var liveEvent = HelperFactory.createLiveEvent(name, "description", "Running", "rtmps://example.com");
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
+        when(captureSessionService.findByLiveEventId(name)).thenReturn(dto);
+
+        mockMvc.perform(get("/media-service/live-events/" + name))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.name").value(name))
+            .andExpect(jsonPath("$.description").value("description"))
+            .andExpect(jsonPath("$.resource_state").value("Running"))
+            .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
+
+        verify(captureSessionService, times(1)).findByLiveEventId(name);
+        verify(captureSessionService, times(1)).startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
+    }
+
+    @DisplayName("Should not error when cannot find corresponding capture sessions")
+    @Test
+    void getLiveEventUpdateCaptureSessionNotFoundStart() throws Exception {
+        var id = UUID.randomUUID();
+        var name = id.toString().replace("-", "");
+        var liveEvent = HelperFactory.createLiveEvent(name, "description", "Running", "rtmps://example.com");
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
+        doThrow(NotFoundException.class).when(captureSessionService).findByLiveEventId(name);
+
+        mockMvc.perform(get("/media-service/live-events/" + name))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.name").value(name))
+            .andExpect(jsonPath("$.description").value("description"))
+            .andExpect(jsonPath("$.resource_state").value("Running"))
+            .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
+
+        verify(captureSessionService, times(1)).findByLiveEventId(name);
+        verify(captureSessionService, never()).startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
+    }
+
     @DisplayName("Should return 200 and a list of live events")
     @Test
     void getLiveEventsSuccess() throws Exception {
@@ -345,7 +394,8 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto1);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(captureSessionService.startCaptureSession(captureSessionId, true)).thenReturn(dto2);
+        when(captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.INITIALISING, null))
+            .thenReturn(dto2);
 
         mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
             .andExpect(status().isOk())
@@ -428,7 +478,7 @@ public class MediaServiceControllerTest {
                .andExpect(jsonPath("$.message")
                               .value("Not found: live event error"));
 
-        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, false);
+        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
     }
 
     @DisplayName("Should successfully stop capture session and return 200")

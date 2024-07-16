@@ -86,6 +86,20 @@ public class MediaServiceController extends PreApiController {
         if (data == null) {
             throw new NotFoundException("Live event: " + liveEventName);
         }
+        if (data.getResourceState().equals("Running") && data.getInputRtmp() != null) {
+            try {
+                var captureSession = captureSessionService.findByLiveEventId(liveEventName);
+                if (captureSession.getStatus() == RecordingStatus.INITIALISING) {
+                    captureSessionService.startCaptureSession(
+                        captureSession.getId(),
+                        RecordingStatus.STANDBY,
+                        data.getInputRtmp()
+                    );
+                }
+            } catch (NotFoundException e) {
+                // ignore
+            }
+        }
         return ResponseEntity.ok(data);
     }
 
@@ -192,10 +206,14 @@ public class MediaServiceController extends PreApiController {
         try {
             mediaService.startLiveEvent(dto);
         } catch (Exception e) {
-            captureSessionService.startCaptureSession(captureSessionId, false);
+            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
             throw e;
         }
 
-        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, true));
+        return ResponseEntity.ok(captureSessionService.startCaptureSession(
+            captureSessionId,
+            RecordingStatus.INITIALISING,
+            null
+        ));
     }
 }

@@ -179,7 +179,7 @@ public class CaptureSessionService {
     }
 
     @Transactional
-    public CaptureSessionDTO startCaptureSession(UUID id, boolean isStarted) {
+    public CaptureSessionDTO startCaptureSession(UUID id, RecordingStatus status, String ingestAddress) {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
@@ -190,11 +190,8 @@ public class CaptureSessionService {
         captureSession.setStartedByUser(user);
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
-        if (isStarted) {
-            captureSession.setStatus(RecordingStatus.INITIALISING);
-        } else {
-            captureSession.setStatus(RecordingStatus.FAILURE);
-        }
+        captureSession.setStatus(status);
+        captureSession.setIngestAddress(ingestAddress);
 
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
@@ -229,5 +226,14 @@ public class CaptureSessionService {
         }
         captureSessionRepository.saveAndFlush(captureSession);
         return new CaptureSessionDTO(captureSession);
+    }
+
+    @Transactional
+    public CaptureSessionDTO findByLiveEventId(String liveEventId) {
+        var liveEventUUID = new UUID(
+            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
+            Long.parseUnsignedLong(liveEventId.substring(16), 16)
+        );
+        return findById(liveEventUUID);
     }
 }
