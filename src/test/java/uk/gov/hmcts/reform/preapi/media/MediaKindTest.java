@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
@@ -458,15 +459,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).startLiveEvent(any());
     }
 
-    @DisplayName("Should throw unsupported operation exception when attempting to stop live event")
-    @Test
-    void stopLiveEventUnsupportedOperationException() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.stopLiveEvent(new CaptureSessionDTO(), UUID.randomUUID())
-        );
-    }
-
     @DisplayName("Should successfully stop live event when there is not a recording found")
     @Test
     void stopLiveEventNoRecording() throws InterruptedException {
@@ -636,7 +628,7 @@ public class MediaKindTest {
 
         assertThrows(
             UnsupportedOperationException.class,
-            () -> mediaKind.importAsset("test-asset-name")
+            () -> mediaKind.importAsset(mock(GenerateAssetDTO.class))
         );
     }
 

@@ -906,7 +906,6 @@ public class AzureMediaServiceTest {
     @DisplayName("Should successfully stop live event when there is not a recording found")
     @Test
     void stopLiveEventNoRecording() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var assetsClient = mockAssetsClient();
         var jobsClient = mockJobsClient();
@@ -916,14 +915,14 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
 
         assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
             .isEqualTo(RecordingStatus.NO_RECORDING);
-        
+
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
         verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
         verify(jobsClient, times(2)).get(any(), any(), any(), any());
@@ -973,7 +972,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -1041,7 +1040,7 @@ public class AzureMediaServiceTest {
         var mockJob = mock(JobInner.class);
         var liveEventClient = mockLiveEventClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -1072,7 +1071,7 @@ public class AzureMediaServiceTest {
         var mockJob = mock(JobInner.class);
         var liveEventClient = mockLiveEventClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -1104,7 +1103,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1137,7 +1136,7 @@ public class AzureMediaServiceTest {
         var liveEventClient = mockLiveEventClient();
         var streamingEndpointClient = mockStreamingEndpointClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1171,7 +1170,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1206,7 +1205,7 @@ public class AzureMediaServiceTest {
         var streamingEndpointClient = mockStreamingEndpointClient();
         var streamingLocatorClient = mockStreamingLocatorClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1242,7 +1241,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1278,7 +1277,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1318,29 +1317,5 @@ public class AzureMediaServiceTest {
         var client = mock(LiveOutputsClient.class);
         when(amsClient.getLiveOutputs()).thenReturn(client);
         return client;
-    }
-
-    private StreamingEndpointsClient mockStreamingEndpointClient() {
-        var client = mock(StreamingEndpointsClient.class);
-        when(amsClient.getStreamingEndpoints()).thenReturn(client);
-        return client;
-    }
-
-    private StreamingLocatorsClient mockStreamingLocatorClient() {
-        var client = mock(StreamingLocatorsClient.class);
-        when(amsClient.getStreamingLocators()).thenReturn(client);
-        return client;
-    }
-
-    private JobsClient mockJobsClient() {
-        var client = mock(JobsClient.class);
-        when(amsClient.getJobs()).thenReturn(client);
-        return client;
-    }
-
-    private ManagementException mockAmsError(int status) {
-        var response = mock(HttpResponse.class);
-        when(response.getStatusCode()).thenReturn(status);
-        return new ManagementException("error", response);
     }
 }

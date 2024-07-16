@@ -146,49 +146,6 @@ public class MediaServiceController extends PreApiController {
         return ResponseEntity.ok(dto);
     }
 
-    @PutMapping("/live-event/end/{captureSessionId}")
-    @Operation(operationId = "stopLiveEvent", summary = "Stop a live event")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<CaptureSessionDTO> stopLiveEvent(
-        @PathVariable UUID captureSessionId
-    ) throws InterruptedException {
-        var dto = captureSessionService.findById(captureSessionId);
-
-        if (dto.getFinishedAt() != null) {
-            return ResponseEntity.ok(dto);
-        }
-
-        if (dto.getStartedAt() == null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
-                                                        + captureSessionId
-                                                        + ") has not been started.");
-        }
-
-        if (dto.getStatus() != RecordingStatus.STANDBY && dto.getStatus() != RecordingStatus.RECORDING) {
-            throw new ResourceInWrongStateException(
-                "Capture Session",
-                captureSessionId.toString(),
-                dto.getStatus().toString(),
-                "STANDBY or RECORDING"
-            );
-        }
-
-        var recordingId = UUID.randomUUID();
-        dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
-
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        try {
-            var status = mediaService.stopLiveEvent(dto, recordingId);
-            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
-        } catch (Exception e) {
-            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
-            throw e;
-        }
-
-        return ResponseEntity.ok(dto);
-
-    }
-
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
     @Operation(operationId = "playLiveEvent", summary = "Play a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
@@ -221,27 +178,6 @@ public class MediaServiceController extends PreApiController {
         captureSessionService.upsert(captureSession);
 
         return ResponseEntity.ok(captureSession);
-    }
-
-    @PostMapping("/generate-asset")
-    @Operation(
-        operationId = "generateAsset",
-        summary = "LEGACY - Given a source & destination, this endpoint will generate a streaming asset for a given mp4"
-    )
-    @Parameter(
-        name = "code",
-        description = "Rudimentary security code to prevent unauthorised access to this endpoint",
-        schema = @Schema(implementation = String.class)
-    )
-    public ResponseEntity<GenerateAssetResponseDTO> generateAsset(
-        @Parameter(hidden = true) String code,
-        @RequestBody @Valid GenerateAssetDTO generateAssetDTO
-    ) throws InterruptedException {
-        if (!legacyAzureFunctionKey.equals(code)) {
-            throw new ForbiddenException("Invalid code parameter provided");
-        }
-
-        return ResponseEntity.ok(mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO));
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")
@@ -277,5 +213,26 @@ public class MediaServiceController extends PreApiController {
         }
 
         return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
+    }
+
+    @PostMapping("/generate-asset")
+    @Operation(
+        operationId = "generateAsset",
+        summary = "LEGACY - Given a source & destination, this endpoint will generate a streaming asset for a given mp4"
+    )
+    @Parameter(
+        name = "code",
+        description = "Rudimentary security code to prevent unauthorised access to this endpoint",
+        schema = @Schema(implementation = String.class)
+    )
+    public ResponseEntity<GenerateAssetResponseDTO> generateAsset(
+        @Parameter(hidden = true) String code,
+        @RequestBody @Valid GenerateAssetDTO generateAssetDTO
+    ) throws InterruptedException {
+        if (!legacyAzureFunctionKey.equals(code)) {
+            throw new ForbiddenException("Invalid code parameter provided");
+        }
+
+        return ResponseEntity.ok(mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO));
     }
 }

@@ -260,10 +260,6 @@ public class AzureMediaService implements IMediaService {
         return liveEventId.toString().replace("-", "");
     }
 
-    private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedLiveEventId(liveEventId).substring(0, 23);
-    }
-
     @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
         try {
@@ -422,7 +418,6 @@ public class AzureMediaService implements IMediaService {
                     accountName,
                     ENCODE_TO_MP4_TRANSFORM,
                     jobName,
-                    inputAssetName,
                     new JobInner()
                         .withInput(
                             new JobInputAsset()
