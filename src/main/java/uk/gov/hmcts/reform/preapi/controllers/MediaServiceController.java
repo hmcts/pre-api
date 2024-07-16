@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/media-service")
@@ -94,34 +95,6 @@ public class MediaServiceController extends PreApiController {
         return ResponseEntity.ok(data);
     }
 
-    @PutMapping("/live-event/start/{captureSessionId}")
-    @Operation(operationId = "startLiveEvent", summary = "Start a live event")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId)
-        throws InterruptedException {
-        var dto = captureSessionService.findById(captureSessionId);
-
-        if (dto.getFinishedAt() != null) {
-            throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
-        }
-
-        if (dto.getStartedAt() != null) {
-            return ResponseEntity.ok(dto);
-        }
-
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        String ingestAddress;
-
-        try {
-            ingestAddress = mediaService.startLiveEvent(dto);
-        } catch (Exception e) {
-            captureSessionService.startCaptureSession(captureSessionId, null);
-            throw e;
-        }
-
-        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
-    }
-
     @PutMapping("/live-event/end/{captureSessionId}")
     @Operation(operationId = "stopLiveEvent", summary = "Stop a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
@@ -162,22 +135,23 @@ public class MediaServiceController extends PreApiController {
         }
 
         return ResponseEntity.ok(dto);
+
     }
 
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
-    @Operation(
-        operationId = "createLiveEventStreamingLocator",
-        summary = "Create live event streaming endpoint and locator. Update capture session with streaming endpoint."
-    )
+    @Operation(operationId = "playLiveEvent", summary = "Play a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
         // load captureSession
         var captureSession = captureSessionService.findById(captureSessionId);
+        Logger.getAnonymousLogger().info("createLiveEventStreamingLocator: " + captureSession);
 
         // return existing captureSession if currently live
         if (captureSession.getLiveOutputUrl() != null && captureSession.getStatus() == RecordingStatus.RECORDING) {
             return ResponseEntity.ok(captureSession);
         }
+        Logger.getAnonymousLogger().info("captureSession getStatus: " + captureSession.getStatus());
+        Logger.getAnonymousLogger().info("captureSession getLiveOutputUrl: " + captureSession.getLiveOutputUrl());
 
         // check if captureSession is in correct state
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {
@@ -234,5 +208,40 @@ public class MediaServiceController extends PreApiController {
         }
 
         return ResponseEntity.ok(captureSession);
+    }
+
+    @PutMapping("/live-event/start/{captureSessionId}")
+    @Operation(operationId = "startLiveEvent", summary = "Start a live event")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId)
+        throws InterruptedException {
+        var dto = captureSessionService.findById(captureSessionId);
+
+        if (dto.getStatus() == RecordingStatus.FAILURE) {
+            throw new ResourceInWrongStateException("Capture Session",
+                                                    dto.getId().toString(),
+                                                    dto.getStatus().toString(),
+                                                    RecordingStatus.INITIALISING.toString());
+        }
+
+        if (dto.getFinishedAt() != null) {
+            throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
+        }
+
+        if (dto.getStartedAt() != null) {
+            return ResponseEntity.ok(dto);
+        }
+
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        String ingestAddress;
+
+        try {
+            ingestAddress = mediaService.startLiveEvent(dto);
+        } catch (Exception e) {
+            captureSessionService.startCaptureSession(captureSessionId, null);
+            throw e;
+        }
+
+        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
     }
 }

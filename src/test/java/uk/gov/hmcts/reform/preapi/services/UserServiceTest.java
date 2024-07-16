@@ -185,11 +185,12 @@ public class UserServiceTest {
                 false,
                 false,
                 false,
+                null,
                 null
             )
         ).thenReturn(new PageImpl<>(List.of(userEntity, portalUserEntity, appUserEntity)));
 
-        var models = userService.findAllBy(null, null, null, null, null, null, false, null);
+        var models = userService.findAllBy(null, null, null, null, null, null, false, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(3);
 
@@ -200,10 +201,20 @@ public class UserServiceTest {
     @Test
     void findAllUsersFirstNameFilterSuccess() {
         when(
-            userRepository.searchAllBy(userEntity.getFirstName(), null, null, null, null, false, false, false, null)
-        ).thenReturn(new PageImpl<>(List.of(userEntity)));
+            userRepository.searchAllBy(
+                userEntity.getFirstName(),
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                false,
+                null,
+                null
+            )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
-        var models = userService.findAllBy(userEntity.getFirstName(), null, null, null, null, null, false, null);
+        var models = userService.findAllBy(userEntity.getFirstName(), null, null, null, null, null, false, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -224,10 +235,10 @@ public class UserServiceTest {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            userRepository.searchAllBy(null, userEntity.getEmail(), null, null, null, false, false, false, null)
+            userRepository.searchAllBy(null, userEntity.getEmail(), null, null, null, false, false, false, null,null)
         ).thenReturn(new PageImpl<>(List.of(userEntity)));
 
-        var models = userService.findAllBy(null, userEntity.getEmail(), null, null, null, null, false, null);
+        var models = userService.findAllBy(null, userEntity.getEmail(), null, null, null, null, false, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -257,6 +268,7 @@ public class UserServiceTest {
                 false,
                 false,
                 false,
+                null,
                 null
             )
         ).thenReturn(new PageImpl<>(List.of(userEntity)));
@@ -269,6 +281,7 @@ public class UserServiceTest {
             null,
             null,
             false,
+            null,
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -300,6 +313,7 @@ public class UserServiceTest {
                 false,
                 false,
                 false,
+                null,
                 null
             )
         ).thenReturn(new PageImpl<>(List.of(userEntity, appUserEntity)));
@@ -312,6 +326,7 @@ public class UserServiceTest {
             null,
             null,
             false,
+            null,
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -356,6 +371,7 @@ public class UserServiceTest {
                 false,
                 false,
                 false,
+                null,
                 null
             )
         ).thenReturn(new PageImpl<>(List.of(userEntity, appUserEntity)));
@@ -368,6 +384,7 @@ public class UserServiceTest {
             appAccessEntity.getRole().getId(),
             null,
             false,
+            null,
             null
         );
         assertThat(models.isEmpty()).isFalse();
@@ -405,7 +422,7 @@ public class UserServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null, courtId, null, null, false, null)
+            () -> userService.findAllBy(null, null, null, courtId, null, null, false, null, null)
         );
 
         verify(courtRepository, times(1)).existsById(courtId);
@@ -419,6 +436,7 @@ public class UserServiceTest {
             any(),
             any(),
             eq(false),
+            any(),
             any()
         );
     }
@@ -436,7 +454,7 @@ public class UserServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null, null, roleId, null, false, null)
+            () -> userService.findAllBy(null, null, null, null, roleId, null, false, null, null)
         );
 
         verify(courtRepository, never()).existsById(any());
@@ -450,6 +468,7 @@ public class UserServiceTest {
             any(),
             any(),
             eq(false),
+            any(),
             any()
         );
     }
@@ -462,6 +481,7 @@ public class UserServiceTest {
             .thenReturn(Optional.of(portalAccessEntity));
         when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
             .thenReturn(Optional.of(appAccessEntity));
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
         userService.deleteById(userEntity.getId());
 
@@ -470,7 +490,7 @@ public class UserServiceTest {
         verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessService, times(1)).deleteById(appAccessEntity.getId());
-        verify(userRepository, times(1)).deleteById(userEntity.getId());
+        verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
 
     @DisplayName("Delete a user by it's id when user is not attached to portal access or app access")
@@ -481,6 +501,7 @@ public class UserServiceTest {
             .thenReturn(Optional.empty());
         when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
             .thenReturn(Optional.empty());
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
         userService.deleteById(userEntity.getId());
 
@@ -489,7 +510,7 @@ public class UserServiceTest {
         verify(portalAccessRepository, never()).save(any());
         verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessRepository, never()).save(any());
-        verify(userRepository, times(1)).deleteById(userEntity.getId());
+        verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
 
     @DisplayName("Delete a user when id doesn't exist")
