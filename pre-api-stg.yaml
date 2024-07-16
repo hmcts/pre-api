@@ -71,6 +71,10 @@ definitions:
         type: boolean
       court:
         $ref: '#/definitions/CourtDTO'
+      created_at:
+        description: AppAccessCreatedAt
+        format: date-time
+        type: string
       default_court:
         description: AppAccessIsDefaultCourt
         type: boolean
@@ -2778,7 +2782,7 @@ paths:
         - media-service-controller
   '/media-service/streaming-locator/live-event/{captureSessionId}':
     put:
-      operationId: createLiveEventStreamingLocator
+      operationId: playLiveEvent
       parameters:
         - format: uuid
           in: path
@@ -2799,6 +2803,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/CaptureSessionDTO'
+      summary: Play a live event
       tags:
         - media-service-controller
   /recordings:
@@ -3313,6 +3318,10 @@ paths:
         - description: Include users marked as deleted
           in: query
           name: includeDeleted
+          type: boolean
+        - description: Filter by users with active app access
+          in: query
+          name: appActive
           type: boolean
         - description: The page number of search result to return
           format: int32

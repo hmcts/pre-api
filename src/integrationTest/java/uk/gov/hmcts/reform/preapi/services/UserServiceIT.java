@@ -114,14 +114,14 @@ public class UserServiceIT extends IntegrationTestBase {
         entityManager.persist(userEntity);
         entityManager.flush();
 
-        var users = userService.findAllBy(null, null, null, null, null, null, false, Pageable.unpaged()).toList();
+        var users = userService.findAllBy(null, null, null, null, null, null, false, null, Pageable.unpaged()).toList();
 
         Assertions.assertEquals(users.size(), 2);
         Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
         Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(appUserEntity.getId())));
         Assertions.assertFalse(users.stream().anyMatch(user -> user.getId().equals(userEntity.getId())));
 
-        var users2 = userService.findAllBy(null, null, null, null, null, null, true, Pageable.unpaged()).toList();
+        var users2 = userService.findAllBy(null, null, null, null, null, null, true, null, Pageable.unpaged()).toList();
 
         Assertions.assertEquals(users2.size(), 3);
         Assertions.assertTrue(users2.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
@@ -137,7 +137,7 @@ public class UserServiceIT extends IntegrationTestBase {
         entityManager.persist(userEntity);
         entityManager.flush();
 
-        var users = userService.findAllBy(null, null, null, null, null, null, false, Pageable.unpaged()).toList();
+        var users = userService.findAllBy(null, null, null, null, null, null, false, null, Pageable.unpaged()).toList();
 
         Assertions.assertEquals(users.size(), 2);
         Assertions.assertTrue(users.stream().anyMatch(user -> user.getId().equals(portalUserEntity.getId())));
@@ -146,7 +146,7 @@ public class UserServiceIT extends IntegrationTestBase {
 
         var message = Assertions.assertThrows(
             AccessDeniedException.class,
-            () -> userService.findAllBy(null, null, null, null, null, null, true, Pageable.unpaged()).toList()
+            () -> userService.findAllBy(null, null, null, null, null, null, true, null, Pageable.unpaged()).toList()
         ).getMessage();
 
         Assertions.assertEquals(message, "Access Denied");
@@ -164,6 +164,7 @@ public class UserServiceIT extends IntegrationTestBase {
             null,
             AccessType.APP,
             false,
+            null,
             PageRequest.of(0, 20)
         );
         Assertions.assertEquals(2, resultApp.getContent().size());
@@ -180,6 +181,7 @@ public class UserServiceIT extends IntegrationTestBase {
             null,
             AccessType.PORTAL,
             false,
+            null,
             PageRequest.of(0, 20)
         );
         Assertions.assertEquals(2, resultPortal.getContent().size());
@@ -188,7 +190,7 @@ public class UserServiceIT extends IntegrationTestBase {
         Assertions.assertEquals(userEntity.getFirstName(), usersPortal.get(0).getFirstName());
         Assertions.assertEquals(portalUserEntity.getId(), usersPortal.get(1).getId());
 
-        var resultAll = userService.findAllBy(null, null, null, null, null, null, false, PageRequest.of(0, 20));
+        var resultAll = userService.findAllBy(null, null, null, null, null, null, false,null, PageRequest.of(0, 20));
         Assertions.assertEquals(3, resultAll.getContent().size());
         var usersAll = resultAll.getContent().stream()
                                 .sorted(Comparator.comparing(BaseUserDTO::getFirstName)).toList();
@@ -205,6 +207,7 @@ public class UserServiceIT extends IntegrationTestBase {
             null,
             AccessType.PORTAL,
             false,
+            null,
             PageRequest.of(0, 20)
         );
         Assertions.assertEquals(1, resultPortal2.getContent().size());

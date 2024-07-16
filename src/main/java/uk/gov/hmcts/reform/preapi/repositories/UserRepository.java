@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.repositories;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface UserRepository extends SoftDeleteRepository<User, UUID> {
+public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByIdAndDeletedAtIsNull(UUID id);
 
     Optional<User> findByIdAndDeletedAtIsNull(UUID id);
@@ -21,6 +22,12 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         """
         SELECT u FROM User u
         WHERE (:includeDeleted = TRUE OR u.deletedAt IS NULL)
+        AND (:isAppActive IS NULL OR EXISTS(
+            SELECT 1 FROM u.appAccess aa
+            WHERE aa.active = :isAppActive
+            AND (CAST(:courtId as uuid) IS NULL OR aa.court.id = :courtId)
+            AND aa.deletedAt IS NULL
+        ))
         AND (
             CASE
                 WHEN :name IS NULL AND :email IS NULL THEN 1
@@ -56,6 +63,7 @@ public interface UserRepository extends SoftDeleteRepository<User, UUID> {
         @Param("isPortalUser") Boolean isPortalUser,
         @Param("isAppUser") Boolean isAppUser,
         boolean includeDeleted,
+        @Param("isAppActive") Boolean isAppActive,
         Pageable pageable
     );
 

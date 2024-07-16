@@ -24,7 +24,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import jakarta.transaction.Transactional;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,8 +33,8 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -107,20 +106,16 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public List<AssetDTO> getAssets() {
-        try {
-            return amsClient
-                .getAssets()
-                .list(resourceGroup, accountName)
-                .stream()
-                .map(AssetDTO::new)
-                .toList();
-        } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
-        }
+        return amsClient
+            .getAssets()
+            .list(resourceGroup, accountName)
+            .stream()
+            .map(AssetDTO::new)
+            .toList();
     }
 
     @Override
-    public String playLiveEvent(@NotNull UUID liveEventId) {
+    public String playLiveEvent(UUID liveEventId) {
         assertLiveEventExists(liveEventId);
         String hostname;
         try {
@@ -135,20 +130,12 @@ public class AzureMediaService implements IMediaService {
 
 
         var paths = amsClient.getStreamingLocators()
-                             .listPaths(resourceGroup, accountName, getSanitisedId(liveEventId));
+                             .listPaths(resourceGroup, accountName, getSanitisedLiveEventId(liveEventId));
 
         return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
     }
 
-    private String getSanitisedId(UUID id) {
-        return id.toString().replace("-", "");
-    }
-
-    private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedId(liveEventId).substring(0, 23);
-    }
-
-    private String getStreamingEndpointHostname(@NotNull UUID liveEventId) {
+    private String getStreamingEndpointHostname(UUID liveEventId) {
         Logger.getAnonymousLogger().info("creating streaming endpoint");
         try {
             return createStreamingEndpoint(liveEventId).hostname();
@@ -158,7 +145,7 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private StreamingEndpointInner createStreamingEndpoint(@NotNull UUID liveEventId) {
+    private StreamingEndpointInner createStreamingEndpoint(UUID liveEventId) {
         var streamingEndpointName = getShortenedLiveEventId(liveEventId);
         try {
             return amsClient.getStreamingEndpoints()
@@ -191,7 +178,7 @@ public class AzureMediaService implements IMediaService {
 
         try {
             Logger.getAnonymousLogger().info("Creating Streaming locator");
-            var sanitisedLiveEventId = getSanitisedId(liveEventId);
+            var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
             var streamingLocatorProperties = new StreamingLocatorInner()
                 .withAssetName(sanitisedLiveEventId)
                 .withStreamingPolicyName("Predefined_ClearStreamingOnly")
@@ -210,12 +197,12 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void assertLiveEventExists(@NotNull UUID liveEventId) {
-        var sanitisedLiveEventId = getSanitisedId(liveEventId);
+    private void assertLiveEventExists(UUID liveEventId) {
+        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
         try {
             var liveEvent = amsClient.getLiveEvents().get(resourceGroup, accountName, sanitisedLiveEventId);
             if (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING)) {
-                throw new AMSLiveEventNotRunningException(sanitisedLiveEventId);
+                throw new LiveEventNotRunningException(sanitisedLiveEventId);
             }
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
@@ -226,15 +213,23 @@ public class AzureMediaService implements IMediaService {
     }
 
     private String parseLiveOutputUrlFromStreamingLocatorPaths(String streamingEndpointHostname,
-                                                               @NotNull ListPathsResponseInner paths) {
+                                                               ListPathsResponseInner paths) {
         Logger.getAnonymousLogger().info("parsing live output url from streaming locator paths");
         Logger.getAnonymousLogger().info(streamingEndpointHostname);
         paths.streamingPaths().forEach(p -> Logger.getAnonymousLogger().info(p.paths().toString()));
         return paths.streamingPaths().stream()
             .flatMap(path -> path.paths().stream())
-            .map(p -> "https://" + streamingEndpointHostname + p)
             .findFirst()
+            .map(p -> "https://" + streamingEndpointHostname + p)
             .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
+    }
+
+    private String getSanitisedLiveEventId(UUID liveEventId) {
+        return liveEventId.toString().replace("-", "");
+    }
+
+    private String getShortenedLiveEventId(UUID liveEventId) {
+        return getSanitisedLiveEventId(liveEventId).substring(0, 23);
     }
 
     @Override
@@ -264,9 +259,9 @@ public class AzureMediaService implements IMediaService {
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
-        var recordingNoHyphen = getSanitisedId(recordingId);
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
         var recordingAssetName = recordingNoHyphen + "_output";
-        var captureSessionNoHyphen = getSanitisedId(captureSession.getId());
+        var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
         encodeToMp4(captureSessionNoHyphen, recordingAssetName);
@@ -277,7 +272,7 @@ public class AzureMediaService implements IMediaService {
 
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
         stopAndDeleteStreamingEndpoint(captureSessionNoHyphen.substring(0, 23));
-        deleteStreamingLocator(captureSessionNoHyphen.substring(0, 23));
+        deleteStreamingLocator(captureSessionNoHyphen);
         deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;
@@ -287,7 +282,7 @@ public class AzureMediaService implements IMediaService {
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
     public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
-        var liveEventName = getSanitisedId(captureSession.getId());
+        var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
@@ -501,7 +496,7 @@ public class AzureMediaService implements IMediaService {
             amsClient.getLiveEvents().create(
                 resourceGroup,
                 accountName,
-                getSanitisedId(captureSession.getId()),
+                getSanitisedLiveEventId(captureSession.getId()),
                 new LiveEventInner()
                     .withLocation(LOCATION)
                     .withTags(Map.of(

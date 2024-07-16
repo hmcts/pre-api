@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +27,11 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -70,8 +73,16 @@ public class UserControllerTest {
     @MockBean
     private UserAuthenticationService userAuthenticationService;
 
+    @MockBean
+    private ScheduledTaskRunner taskRunner;
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String TEST_URL = "http://localhost";
+
+    @BeforeAll
+    static void setUp() {
+        OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+    }
 
     @DisplayName("Should get user by id with 200 response code")
     @Test
@@ -118,6 +129,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             eq(false),
+            isNull(),
             any()
         )).thenReturn(userList);
 
@@ -134,6 +146,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             eq(false),
+            isNull(),
             any()
         );
     }
@@ -144,7 +157,7 @@ public class UserControllerTest {
         UUID courtId = UUID.randomUUID();
         doThrow(new NotFoundException("Court: " + courtId))
             .when(userService)
-            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), eq(courtId), isNull(), isNull(), eq(false), isNull(), any());
 
         mockMvc.perform(get("/users")
                             .param("courtId", courtId.toString()))
@@ -158,7 +171,7 @@ public class UserControllerTest {
         UUID roleId = UUID.randomUUID();
         doThrow(new NotFoundException("Role: " + roleId))
             .when(userService)
-            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any());
+            .findAllBy(any(), any(), any(), any(), eq(roleId), any(), eq(false), any(), any());
 
         mockMvc.perform(get("/users")
                             .param("roleId", roleId.toString()))
@@ -910,6 +923,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             anyBoolean(),
+            isNull(),
             any()
         ))
             .thenReturn(new PageImpl<>(List.of()));
@@ -921,7 +935,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
     }
 
     @DisplayName("Should set include deleted param to false when set to false")
@@ -935,6 +949,7 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             anyBoolean(),
+            isNull(),
             any()
         )).thenReturn(new PageImpl<>(List.of()));
 
@@ -946,7 +961,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(false), isNull(), any());
     }
 
     @DisplayName("Should set include deleted param to true when set to true")
@@ -960,9 +975,9 @@ public class UserControllerTest {
             isNull(),
             isNull(),
             anyBoolean(),
+            isNull(),
             any()
-        ))
-            .thenReturn(new PageImpl<>(List.of()));
+        )).thenReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/users")
                             .with(csrf())
@@ -972,7 +987,7 @@ public class UserControllerTest {
             .andReturn();
 
         verify(userService, times(1))
-            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), any());
+            .findAllBy(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(true), isNull(), any());
     }
 
     @DisplayName("Should undelete a user by id and return a 200 response")
