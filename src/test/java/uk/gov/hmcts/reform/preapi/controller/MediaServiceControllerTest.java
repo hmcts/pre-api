@@ -331,7 +331,8 @@ public class MediaServiceControllerTest {
                               .andReturn().getResponse();
         assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
-        Mockito.verify(mediaService, Mockito.times(0)).playLiveEvent(any());
+
+        verify(mediaService, times(0)).playLiveEvent(any());
     }
 
     @DisplayName("Should return 200 with capture session once live event is started")

@@ -130,7 +130,7 @@ public class AzureMediaService implements IMediaService {
 
 
         var paths = amsClient.getStreamingLocators()
-                             .listPaths(resourceGroup, accountName, getSanitisedId(liveEventId));
+                             .listPaths(resourceGroup, accountName, getSanitisedLiveEventId(liveEventId));
 
         return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
     }
@@ -178,7 +178,7 @@ public class AzureMediaService implements IMediaService {
 
         try {
             Logger.getAnonymousLogger().info("Creating Streaming locator");
-            var sanitisedLiveEventId = getSanitisedId(liveEventId);
+            var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
             var streamingLocatorProperties = new StreamingLocatorInner()
                 .withAssetName(sanitisedLiveEventId)
                 .withStreamingPolicyName("Predefined_ClearStreamingOnly")
@@ -198,7 +198,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     private void assertLiveEventExists(UUID liveEventId) {
-        var sanitisedLiveEventId = getSanitisedId(liveEventId);
+        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
         try {
             var liveEvent = amsClient.getLiveEvents().get(resourceGroup, accountName, sanitisedLiveEventId);
             if (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING)) {
@@ -282,7 +282,7 @@ public class AzureMediaService implements IMediaService {
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
     public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
-        var liveEventName = getSanitisedId(captureSession.getId());
+        var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);

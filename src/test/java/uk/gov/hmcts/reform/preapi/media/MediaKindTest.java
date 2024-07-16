@@ -449,15 +449,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).startLiveEvent(any());
     }
 
-    @DisplayName("Should throw unsupported operation exception when attempting to stop live event")
-    @Test
-    void stopLiveEventUnsupportedOperationException() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.stopLiveEvent(new CaptureSessionDTO(), UUID.randomUUID())
-        );
-    }
-
     @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
     @Test
     void unsupportedOperationException() {
