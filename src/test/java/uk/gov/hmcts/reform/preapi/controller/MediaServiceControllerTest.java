@@ -223,17 +223,20 @@ public class MediaServiceControllerTest {
         var captureSession = new CaptureSessionDTO();
         captureSession.setId(captureSessionId);
         captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setBookingId(UUID.randomUUID());
         when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
         when(mediaService.playLiveEvent(captureSessionId)).thenReturn("https://www.gov.uk");
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
 
         var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-                              .andExpect(status().isOk())
-                              .andReturn().getResponse();
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
         assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
     }
 
-    @DisplayName("Should return 200 with complete capture session withough calling mediakind")
+    @DisplayName("Should return 200 with complete capture session without calling mediakind")
     @Test
     void playLiveEventAlreadyRecordings() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
