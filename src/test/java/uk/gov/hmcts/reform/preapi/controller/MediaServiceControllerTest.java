@@ -694,4 +694,28 @@ public class MediaServiceControllerTest {
         verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
+
+    @DisplayName("Should return 404 when .ism file does not exist (recording has not started)")
+    @Test
+    void createLiveEventStreamingLocatorIsmNotFound() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setBookingId(UUID.randomUUID());
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(false);
+
+        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Asset for capture session: " + captureSessionId + " found with no .ism file"));
+
+
+        verify(azureIngestStorageService, times(1))
+            .doesIsmFileExist(captureSession.getBookingId().toString());
+        verify(mediaService, never()).playLiveEvent(any());
+    }
 }
