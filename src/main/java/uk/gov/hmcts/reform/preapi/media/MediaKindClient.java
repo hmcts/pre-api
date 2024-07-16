@@ -94,9 +94,6 @@ public interface MediaKindClient {
     MkStreamingLocator putStreamingLocator(@PathVariable String locatorName,
                                            @RequestBody MkStreamingLocator mkStreamingLocator);
 
-    @DeleteMapping("/streamingLocators/{locatorName}")
-    void deleteStreamingLocator(@PathVariable String locatorName);
-
     @PutMapping("/transforms/{transformName}/jobs/{jobName}")
     MkJob putJob(@PathVariable String transformName, @PathVariable String jobName, @RequestBody MkJob mkJob);
 
