@@ -128,7 +128,6 @@ public class AzureMediaService implements IMediaService {
 
         assertStreamingLocatorExists(liveEventId);
 
-
         var paths = amsClient.getStreamingLocators()
                              .listPaths(resourceGroup, accountName, getSanitisedLiveEventId(liveEventId));
 
