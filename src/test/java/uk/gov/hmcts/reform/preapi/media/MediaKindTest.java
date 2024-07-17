@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEventProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.util.List;
 import java.util.UUID;
