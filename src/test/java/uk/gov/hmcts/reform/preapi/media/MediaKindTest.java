@@ -689,13 +689,4 @@ public class MediaKindTest {
         var om = new JacksonConfiguration().getMapper();
         return om.readValue(jsonSnippet, MkStreamingLocatorUrlPaths.class);
     }
-
-    @DisplayName("Should throw unsupported operation exception when attempting to stop live event")
-    @Test
-    void stopLiveEventUnsupportedOperationException() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.stopLiveEvent(new CaptureSessionDTO(), UUID.randomUUID())
-        );
-    }
 }

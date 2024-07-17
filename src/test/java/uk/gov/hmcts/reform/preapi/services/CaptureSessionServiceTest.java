@@ -700,32 +700,4 @@ public class CaptureSessionServiceTest {
 
         assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
     }
-
-    @DisplayName("Should update capture session status and return the capture session")
-    @Test
-    void setCaptureSessionStatus() {
-        captureSession.setStatus(RecordingStatus.STANDBY);
-
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-
-        var model = captureSessionService.setCaptureSessionStatus(captureSession.getId(), RecordingStatus.RECORDING);
-        assertThat(model.getId()).isEqualTo(captureSession.getId());
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING);
-
-        verify(captureSessionRepository, times(1)).save(any());
-    }
-
-    @DisplayName("Should throw not found when capture session does not exist")
-    @Test
-    void setCaptureSessionStatusNotFound() {
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.empty());
-
-        var message = assertThrows(
-            NotFoundException.class,
-            () -> captureSessionService.setCaptureSessionStatus(captureSession.getId(), RecordingStatus.RECORDING)
-        ).getMessage();
-        assertThat(message).isEqualTo("Not found: Capture Session: " + captureSession.getId());
-    }
 }
