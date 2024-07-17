@@ -177,7 +177,7 @@ public class MediaKindTest {
     @DisplayName("Should return null when get asset returns 404")
     @Test
     void getAssetByAssetNameNotFound() {
-        var mockError = mock(FeignException.NotFound.class);
+        var mockError = mock(NotFoundException.class);
         when(mockClient.getAsset(anyString())).thenThrow(mockError);
 
         assertThat(mediaKind.getAsset("asset1")).isNull();
@@ -206,7 +206,7 @@ public class MediaKindTest {
     @DisplayName("Should throw a NotFoundException null when get live event returns 404")
     @Test
     void getLiveEventNotFound() {
-        var mockError = mock(FeignException.NotFound.class);
+        var mockError = mock(NotFoundException.class);
 
         when(mockClient.getLiveEvent(anyString())).thenThrow(mockError);
         assertThrows(
@@ -309,7 +309,7 @@ public class MediaKindTest {
     void startLiveEventNotFoundAfterCreate() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
 
-        when(mockClient.getLiveEvent(liveEventName)).thenThrow(mock(FeignException.NotFound.class));
+        when(mockClient.getLiveEvent(liveEventName)).thenThrow(mock(NotFoundException.class));
 
         var message = assertThrows(
             NotFoundException.class,
@@ -373,7 +373,7 @@ public class MediaKindTest {
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putLiveOutput(eq(liveEventName), eq(liveEventName), any(MkLiveOutput.class)))
-            .thenThrow(FeignException.NotFound.class);
+            .thenThrow(NotFoundException.class);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -394,7 +394,7 @@ public class MediaKindTest {
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
-        doThrow(mock(FeignException.NotFound.class)).when(mockClient).startLiveEvent(liveEventName);
+        doThrow(mock(NotFoundException.class)).when(mockClient).startLiveEvent(liveEventName);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -496,7 +496,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getTransform(ENCODE_TO_MP4)).thenThrow(FeignException.NotFound.class);
+        when(mockClient.getTransform(ENCODE_TO_MP4)).thenThrow(NotFoundException.class);
         when(mockClient.getJob(ENCODE_TO_MP4, liveEventName)).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
@@ -533,7 +533,7 @@ public class MediaKindTest {
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
-        doThrow(FeignException.NotFound.class).when(mockClient).stopLiveEvent(any());
+        doThrow(NotFoundException.class).when(mockClient).stopLiveEvent(any());
 
         var message = assertThrows(
             NotFoundException.class,
@@ -567,7 +567,7 @@ public class MediaKindTest {
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
-        doThrow(FeignException.NotFound.class).when(mockClient).stopStreamingEndpoint(any());
+        doThrow(NotFoundException.class).when(mockClient).stopStreamingEndpoint(any());
 
         assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
             .isEqualTo(RecordingStatus.NO_RECORDING);

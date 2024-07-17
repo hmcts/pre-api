@@ -127,7 +127,7 @@ public class MediaKind implements IMediaService {
     public AssetDTO getAsset(String assetName) {
         try {
             return new AssetDTO(mediaKindClient.getAsset(assetName));
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             return null;
         }
     }
@@ -164,7 +164,7 @@ public class MediaKind implements IMediaService {
     private MkLiveEvent getLiveEventMk(String liveEventName) {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
@@ -215,7 +215,7 @@ public class MediaKind implements IMediaService {
     private void startLiveEvent(String liveEventName) {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
@@ -223,7 +223,7 @@ public class MediaKind implements IMediaService {
     private void stopAndDeleteLiveEvent(String liveEventName) {
         try {
             mediaKindClient.stopLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
         mediaKindClient.deleteLiveEvent(liveEventName);
@@ -232,7 +232,7 @@ public class MediaKind implements IMediaService {
     private void stopAndDeleteStreamingEndpoint(String endpointName) {
         try {
             mediaKindClient.stopStreamingEndpoint(endpointName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             // ignore
             return;
         }
@@ -242,7 +242,7 @@ public class MediaKind implements IMediaService {
     private void assertEncodeToMp4TransformExists() {
         try {
             mediaKindClient.getTransform(ENCODE_TO_MP4_TRANSFORM);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             // create EncodeToMp4 transform if it doesn't exist yet
             mediaKindClient.putTransform(
                 ENCODE_TO_MP4_TRANSFORM,
@@ -319,7 +319,7 @@ public class MediaKind implements IMediaService {
             );
         } catch (FeignException.Conflict e) {
             throw new ConflictException("Live Output: " + liveOutputName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
