@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
@@ -38,6 +41,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -71,6 +75,8 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test
@@ -197,6 +203,55 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: Live event: " + name));
     }
 
+    @DisplayName("Should update corresponding capture session if status is initialising")
+    @Test
+    void getLiveEventUpdateCaptureSessionStart() throws Exception {
+        var id = UUID.randomUUID();
+        var name = id.toString().replace("-", "");
+        var dto = new CaptureSessionDTO();
+        dto.setId(id);
+        dto.setStatus(RecordingStatus.INITIALISING);
+        var liveEvent = HelperFactory.createLiveEvent(name, "description", "Running", "rtmps://example.com");
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
+        when(captureSessionService.findByLiveEventId(name)).thenReturn(dto);
+
+        mockMvc.perform(get("/media-service/live-events/" + name))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.name").value(name))
+            .andExpect(jsonPath("$.description").value("description"))
+            .andExpect(jsonPath("$.resource_state").value("Running"))
+            .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
+
+        verify(captureSessionService, times(1)).findByLiveEventId(name);
+        verify(captureSessionService, times(1)).startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
+    }
+
+    @DisplayName("Should not error when cannot find corresponding capture sessions")
+    @Test
+    void getLiveEventUpdateCaptureSessionNotFoundStart() throws Exception {
+        var id = UUID.randomUUID();
+        var name = id.toString().replace("-", "");
+        var liveEvent = HelperFactory.createLiveEvent(name, "description", "Running", "rtmps://example.com");
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvent(name)).thenReturn(liveEvent);
+        doThrow(NotFoundException.class).when(captureSessionService).findByLiveEventId(name);
+
+        mockMvc.perform(get("/media-service/live-events/" + name))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.name").value(name))
+            .andExpect(jsonPath("$.description").value("description"))
+            .andExpect(jsonPath("$.resource_state").value("Running"))
+            .andExpect(jsonPath("$.input_rtmp").value("rtmps://example.com"));
+
+        verify(captureSessionService, times(1)).findByLiveEventId(name);
+        verify(captureSessionService, never()).startCaptureSession(id, RecordingStatus.STANDBY, "rtmps://example.com");
+    }
+
     @DisplayName("Should return 200 and a list of live events")
     @Test
     void getLiveEventsSuccess() throws Exception {
@@ -318,19 +373,19 @@ public class MediaServiceControllerTest {
         dto2.setId(captureSessionId);
         dto2.setStartedAt(Timestamp.from(Instant.now()));
         dto2.setStartedByUserId(UUID.randomUUID());
-        dto2.setStatus(RecordingStatus.STANDBY);
+        dto2.setStatus(RecordingStatus.INITIALISING);
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto1);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.startLiveEvent(any())).thenReturn("example ingest");
-        when(captureSessionService.startCaptureSession(captureSessionId, "example ingest")).thenReturn(dto2);
+        when(captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.INITIALISING, null))
+            .thenReturn(dto2);
 
         mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-            .andExpect(jsonPath("$.status").value("STANDBY"))
+            .andExpect(jsonPath("$.status").value("INITIALISING"))
             .andExpect(jsonPath("$.started_at").isNotEmpty());
 
         verify(mediaService, times(1)).startLiveEvent(dto1);
@@ -407,7 +462,7 @@ public class MediaServiceControllerTest {
                .andExpect(jsonPath("$.message")
                               .value("Not found: live event error"));
 
-        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, null);
+        verify(captureSessionService, times(1)).startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
     }
 
     @DisplayName("Should successfully stop capture session and return 200")
@@ -558,6 +613,188 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                      + captureSessionId
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
+    }
+
+    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
+    @Test
+    void generateAssetTest403Error() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isForbidden());
+    }
+
+    @DisplayName("Should return a 400 when incorrect body provided")
+    @Test
+    void generateAssetTest400Error() throws Exception {
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
+                              .andExpect(status().is4xxClientError())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains(
+            "Required request body is missing: public org.springframework.http.ResponseEntity"
+            + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
+    }
+
+    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
+    @Test
+    void generateAssetTest200() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.importAsset(any())).thenReturn(
+            new GenerateAssetResponseDTO("asset", "container", "description", "jobStatus")
+        );
+
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).isEqualTo(
+            "{\"asset\":\"asset\","
+            + "\"container\":\"container\","
+            + "\"description\":\"description\","
+            + "\"jobStatus\":\"jobStatus\"}");
+    }
+
+    @DisplayName("Should return 200 with capture session when status is already RECORDING")
+    @Test
+    void checkStreamCaptureSessionAlreadyStatusRecording() throws Exception {
+        var dto = new CaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(RecordingStatus.RECORDING);
+
+        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
+
+        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
+            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
+
+        verify(captureSessionService, times(1)).findById(dto.getId());
+        verify(azureIngestStorageService, never()).doesIsmFileExist(any());
+        verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
+    }
+
+    @DisplayName("Should throw 400 when capture session already finished")
+    @Test
+    void checkStreamCaptureSessionAlreadyFinished() throws Exception {
+        var dto = new CaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFinishedAt(Timestamp.from(Instant.now()));
+        dto.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
+
+        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Resource: Capture Session(" + dto.getId() + ") has already finished."));
+
+        verify(captureSessionService, times(1)).findById(dto.getId());
+        verify(azureIngestStorageService, never()).doesIsmFileExist(any());
+        verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
+    }
+
+    @DisplayName("Should throw 400 when capture session has not been started")
+    @Test
+    void checkStreamCaptureSessionNotStarted() throws Exception {
+        var dto = new CaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
+
+        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Resource: Capture Session(" + dto.getId() + ") has not been started."));
+
+        verify(captureSessionService, times(1)).findById(dto.getId());
+        verify(azureIngestStorageService, never()).doesIsmFileExist(any());
+        verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
+    }
+
+    @DisplayName("Should throw 400 when capture session has wrong status")
+    @Test
+    void checkStreamCaptureSessionInvalidStatus() throws Exception {
+        var dto = new CaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(RecordingStatus.FAILURE);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+
+        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
+
+        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Resource CaptureSessionDTO("
+                                      + dto.getId()
+                                      + ") is in a FAILURE state. Expected state is STANDBY."));
+
+        verify(captureSessionService, times(1)).findById(dto.getId());
+        verify(azureIngestStorageService, never()).doesIsmFileExist(any());
+        verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
+    }
+
+    @DisplayName("Should return 200 with updated capture session when .ism file exists")
+    @Test
+    void checkStreamCaptureSessionIsmFileExists() throws Exception {
+        var dto = new CaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+        dto.setBookingId(UUID.randomUUID());
+
+        var dto2 = new CaptureSessionDTO();
+        dto2.setId(dto.getId());
+        dto2.setStatus(RecordingStatus.RECORDING);
+
+        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
+        when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(true);
+        when(captureSessionService.setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING)).thenReturn(dto2);
+
+        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
+            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
+
+        verify(captureSessionService, times(1)).findById(dto.getId());
+        verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
+        verify(captureSessionService, times(1)).setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING);
+    }
+
+    @DisplayName("Should return 200 with updated capture session when .ism file does not exist")
+    @Test
+    void checkStreamCaptureSessionIsmFileNotExists() throws Exception {
+        var dto = new CaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+        dto.setBookingId(UUID.randomUUID());
+
+        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
+        when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
+
+        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
+            .andExpect(jsonPath("$.status").value(RecordingStatus.STANDBY.toString()));
+
+        verify(captureSessionService, times(1)).findById(dto.getId());
+        verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
+        verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
     @DisplayName("Should return 200 with capture session when status is already RECORDING")

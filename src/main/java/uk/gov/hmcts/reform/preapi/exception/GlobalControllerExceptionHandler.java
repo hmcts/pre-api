@@ -180,6 +180,12 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    ResponseEntity<String> forbiddenExceptionHandler(final ForbiddenException e) throws JsonProcessingException {
+
+        return getResponseEntity(e.getMessage(), HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(AssetFilesNotFoundException.class)
     ResponseEntity<String> amsAssetFilesNotFoundException(final AssetFilesNotFoundException e)
         throws JsonProcessingException {
