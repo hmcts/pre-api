@@ -513,7 +513,7 @@ public class CaptureSessionServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> captureSessionService.startCaptureSession(captureSessionId, null)
+            () -> captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null)
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: Capture Session: " + captureSessionId);
@@ -522,9 +522,9 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, never()).save(any());
     }
 
-    @DisplayName("Should set status to STANDBY when capture session ingest address is not null")
+    @DisplayName("Should set status and ingest address for capture session on start live event")
     @Test
-    void startCaptureSessionSuccessfullyStarted() {
+    void startCaptureSessionOnStart() {
         captureSession.setStatus(null);
         captureSession.setIngestAddress(null);
         captureSession.setStartedAt(null);
@@ -538,35 +538,15 @@ public class CaptureSessionServiceTest {
             .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        var model = captureSessionService.startCaptureSession(captureSession.getId(), "example");
+        var model = captureSessionService.startCaptureSession(
+            captureSession.getId(),
+            RecordingStatus.STANDBY,
+            "example ingest"
+        );
         assertThat(model.getStartedAt()).isNotNull();
         assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
-        assertThat(model.getIngestAddress()).isEqualTo("example");
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.STANDBY);
-
-        verify(captureSessionRepository, times(1)).save(any());
-    }
-
-    @DisplayName("Should set status to FAILURE when capture session ingest address is null")
-    @Test
-    void startCaptureSessionErroredOnStart() {
-        captureSession.setStatus(null);
-        captureSession.setIngestAddress(null);
-        captureSession.setStartedAt(null);
-        captureSession.setStartedByUser(null);
-        var mockAuth = mock(UserAuthentication.class);
-
-        when(mockAuth.getUserId()).thenReturn(user.getId());
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-
-        var model = captureSessionService.startCaptureSession(captureSession.getId(), null);
-        assertThat(model.getStartedAt()).isNotNull();
-        assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.FAILURE);
+        assertThat(model.getIngestAddress()).isEqualTo("example ingest");
 
         verify(captureSessionRepository, times(1)).save(any());
     }
@@ -697,5 +677,27 @@ public class CaptureSessionServiceTest {
             () -> captureSessionService.setCaptureSessionStatus(captureSession.getId(), RecordingStatus.RECORDING)
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Capture Session: " + captureSession.getId());
+    }
+
+    @DisplayName("Should search for a capture session using a live event id")
+    @Test
+    void findCaptureSessionByLiveEventId() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var captureSessionId = UUID.randomUUID();
+        var liveEventId = captureSessionId.toString().replace("-", "");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+            .thenReturn(Optional.empty());
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.findByLiveEventId(liveEventId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
     }
 }

@@ -106,6 +106,20 @@ public class MediaServiceController extends PreApiController {
         if (data == null) {
             throw new NotFoundException("Live event: " + liveEventName);
         }
+        if (data.getResourceState().equals("Running") && data.getInputRtmp() != null) {
+            try {
+                var captureSession = captureSessionService.findByLiveEventId(liveEventName);
+                if (captureSession.getStatus() == RecordingStatus.INITIALISING) {
+                    captureSessionService.startCaptureSession(
+                        captureSession.getId(),
+                        RecordingStatus.STANDBY,
+                        data.getInputRtmp()
+                    );
+                }
+            } catch (NotFoundException e) {
+                // ignore
+            }
+        }
         return ResponseEntity.ok(data);
     }
 
@@ -226,8 +240,7 @@ public class MediaServiceController extends PreApiController {
     @PutMapping("/live-event/start/{captureSessionId}")
     @Operation(operationId = "startLiveEvent", summary = "Start a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId)
-        throws InterruptedException {
+    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
         var dto = captureSessionService.findById(captureSessionId);
 
         if (dto.getStatus() == RecordingStatus.FAILURE) {
@@ -246,16 +259,18 @@ public class MediaServiceController extends PreApiController {
         }
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();
-        String ingestAddress;
-
         try {
-            ingestAddress = mediaService.startLiveEvent(dto);
+            mediaService.startLiveEvent(dto);
         } catch (Exception e) {
-            captureSessionService.startCaptureSession(captureSessionId, null);
+            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
             throw e;
         }
 
-        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
+        return ResponseEntity.ok(captureSessionService.startCaptureSession(
+            captureSessionId,
+            RecordingStatus.INITIALISING,
+            null
+        ));
     }
 
     @PostMapping("/generate-asset")
