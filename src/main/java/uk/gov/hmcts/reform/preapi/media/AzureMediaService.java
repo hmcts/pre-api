@@ -39,6 +39,7 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -68,7 +69,7 @@ public class AzureMediaService implements IMediaService {
     public AzureMediaService(
         @Value("${azure.resource-group}") String resourceGroup,
         @Value("${azure.account-name}") String accountName,
-        @Value("${azure.ingestStorage}") String ingestStorageAccount,
+        @Value("${azure.ingestStorage.accountName}") String ingestStorageAccount,
         @Value("${azure.finalStorage.accountName}") String finalStorageAccount,
         @Value("${platform-env}") String env,
         AzureMediaServices amsClient,

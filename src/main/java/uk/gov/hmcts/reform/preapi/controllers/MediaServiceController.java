@@ -28,33 +28,38 @@ import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+@Log4j2
 @RestController
 @RequestMapping("/media-service")
-@Log4j2
 public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
+    private final AzureIngestStorageService azureIngestStorageService;
 
     private final String legacyAzureFunctionKey;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
+                                  AzureIngestStorageService azureIngestStorageService,
                                   @Value("${legacy-azure-function-key}") String legacyAzureFunctionKey) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
+        this.azureIngestStorageService = azureIngestStorageService;
         this.legacyAzureFunctionKey = legacyAzureFunctionKey;
     }
 
     @GetMapping("/health")
+    @Operation(operationId = "mediaServiceHealth", summary = "Check the status of the media service connection")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<String> mediaService() {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
@@ -190,6 +195,44 @@ public class MediaServiceController extends PreApiController {
         captureSession.setLiveOutputUrl(liveOutputUrl);
         captureSession.setStatus(RecordingStatus.RECORDING);
         captureSessionService.upsert(captureSession);
+
+        return ResponseEntity.ok(captureSession);
+    }
+
+    @PostMapping("/live-event/check/{captureSessionId}")
+    @Operation(
+        operationId = "checkStream",
+        summary = "Check stream has started"
+    )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> checkStream(@PathVariable UUID captureSessionId) {
+        var captureSession = captureSessionService.findById(captureSessionId);
+        if (captureSession.getStatus() == RecordingStatus.RECORDING) {
+            return ResponseEntity.ok(captureSession);
+        }
+
+        if (captureSession.getFinishedAt() != null) {
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") has already finished.");
+        }
+
+        if (captureSession.getStartedAt() == null) {
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                          + captureSessionId
+                                                          + ") has not been started.");
+        }
+
+        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
+            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
+                                                    captureSessionId.toString(),
+                                                    captureSession.getStatus().name(),
+                                                    RecordingStatus.STANDBY.name());
+        }
+
+        if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
+            captureSession = captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+        }
 
         return ResponseEntity.ok(captureSession);
     }

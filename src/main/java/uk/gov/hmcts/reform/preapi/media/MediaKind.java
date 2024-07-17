@@ -16,6 +16,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessCont
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,6 +50,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.util.List;
 import java.util.Map;
@@ -77,7 +79,7 @@ public class MediaKind implements IMediaService {
 
     @Autowired
     public MediaKind(
-        @Value("${azure.ingestStorage}") String ingestStorageAccount,
+        @Value("${azure.ingestStorage.accountName}") String ingestStorageAccount,
         @Value("${azure.finalStorage.accountName}") String finalStorageAccount,
         @Value("${platform-env}") String env,
         @Value("${mediakind.subscription}") String subscription,

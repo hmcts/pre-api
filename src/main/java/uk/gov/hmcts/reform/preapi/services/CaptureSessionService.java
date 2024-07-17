@@ -229,6 +229,16 @@ public class CaptureSessionService {
     }
 
     @Transactional
+    public CaptureSessionDTO setCaptureSessionStatus(UUID captureSessionId, RecordingStatus status) {
+        var captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(captureSessionId)
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
+        captureSession.setStatus(status);
+        captureSessionRepository.save(captureSession);
+        return new CaptureSessionDTO(captureSession);
+    }
+
+    @Transactional
     public CaptureSessionDTO findByLiveEventId(String liveEventId) {
         var liveEventUUID = new UUID(
             Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
