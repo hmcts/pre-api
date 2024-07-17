@@ -51,6 +51,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.util.Collection;
 import java.util.List;
