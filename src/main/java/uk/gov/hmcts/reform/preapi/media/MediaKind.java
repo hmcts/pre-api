@@ -69,7 +69,6 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.sql.Timestamp;
 import java.time.ZonedDateTime;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
