@@ -86,6 +86,7 @@ media-service: ${MEDIA_SERVICE:AzureMediaService}
 
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
+legacy-azure-function-key: ${LEGACY_AZURE_FUNCTION_KEY:SecureKey}
 #logging:
 #  level:
 #    uk:
