@@ -36,7 +36,7 @@ public class SecurityConfig {
         new AntPathRequestMatcher("/error"),
         new AntPathRequestMatcher("/invites", "GET"),
         new AntPathRequestMatcher("/invites/redeem", "POST"),
-        new AntPathRequestMatcher("/media/generate-asset", "POST"),
+        new AntPathRequestMatcher("/media-service/generate-asset", "POST"),
     };
 
     @Autowired
