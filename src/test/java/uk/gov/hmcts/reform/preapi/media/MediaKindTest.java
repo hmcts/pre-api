@@ -16,6 +16,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
@@ -33,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpointProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicy;
 
 import java.util.List;
@@ -647,7 +649,7 @@ public class MediaKindTest {
     void unsupportedOperationException() {
         assertThrows(
             UnsupportedOperationException.class,
-            () -> mediaKind.importAsset("test-asset-name")
+            () -> mediaKind.importAsset(mock(GenerateAssetDTO.class))
         );
     }
 

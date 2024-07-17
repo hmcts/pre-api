@@ -15,6 +15,8 @@ import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseIn
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
+import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
+import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
@@ -23,16 +25,19 @@ import com.azure.resourcemanager.mediaservices.models.StreamingPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.util.List;
 import java.util.UUID;
@@ -41,6 +46,7 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -172,12 +178,133 @@ public class AzureMediaServiceTest {
             UnsupportedOperationException.class,
             () -> mediaService.playAsset("test-asset-name", "test-user-id")
         );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.importAsset("test-asset-name")
-        );
     }
+
+    @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
+    @Test
+    void importAssetSuccess() throws InterruptedException {
+        var mockJobClient = mock(JobsClient.class);
+        var mockJob = mock(JobInner.class);
+        when(amsClient.getJobs()).thenReturn(mockJobClient);
+        when(amsClient.getJobs().get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.FINISHED);
+
+        var mockAssetsClient = mock(AssetsClient.class);
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+
+        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
+                                                     "my-destination-container",
+                                                     "tmp-asset",
+                                                     "final-asset",
+                                                     "unit test import asset");
+
+        var result = mediaService.importAsset(generateAssetDTO);
+
+        assertThat(result.getJobStatus()).isEqualTo("Finished");
+
+        var sourceContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
+
+        verify(mockAssetsClient, times(1))
+                                   .createOrUpdate(eq(resourceGroup),
+                                                   eq(accountName),
+                                                   eq(generateAssetDTO.getTempAsset()),
+                                                   sourceContainerArgument.capture());
+
+        assertThat(sourceContainerArgument.getValue().container()).isEqualTo(generateAssetDTO.getSourceContainer());
+
+        var destinationContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
+
+        verify(mockAssetsClient, times(1))
+                                   .createOrUpdate(eq(resourceGroup),
+                                                   eq(accountName),
+                                                   eq(generateAssetDTO.getFinalAsset()),
+                                                   destinationContainerArgument.capture());
+
+        assertThat(destinationContainerArgument.getValue().container())
+            .isEqualTo(generateAssetDTO.getDestinationContainer());
+
+        ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
+
+        verify(mockJobClient, times(1))
+            .create(
+                eq(resourceGroup),
+                eq(accountName),
+                eq("EncodeToMP4"),
+                anyString(),
+                jobInnerArgument.capture()
+            );
+
+        JobInputAsset ji = (JobInputAsset) jobInnerArgument.getValue().input();
+
+
+        assertThat(((JobInputAsset) jobInnerArgument.getValue().input()).assetName())
+            .isEqualTo(generateAssetDTO.getTempAsset());
+        assertThat(((JobOutputAsset) jobInnerArgument.getValue().outputs().getFirst()).assetName())
+            .isEqualTo(generateAssetDTO.getFinalAsset());
+    }
+
+    @DisplayName("Should accept a request to import an asset and handle a failed job to encode to mp4")
+    @Test
+    void importAssetJobFailed() throws InterruptedException {
+        var mockJobClient = mock(JobsClient.class);
+        var mockJob = mock(JobInner.class);
+        when(amsClient.getJobs()).thenReturn(mockJobClient);
+        when(amsClient.getJobs().get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
+            .thenReturn(mockJob);
+        when(mockJob.state()).thenReturn(JobState.ERROR);
+
+        var mockAssetsClient = mock(AssetsClient.class);
+        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
+
+        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
+                                                     "my-destination-container",
+                                                     "tmp-asset",
+                                                     "final-asset",
+                                                     "unit test import asset");
+
+        var result = mediaService.importAsset(generateAssetDTO);
+
+        assertThat(result.getJobStatus()).isEqualTo("Error");
+
+        var sourceContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
+
+        verify(mockAssetsClient, times(1))
+            .createOrUpdate(eq(resourceGroup),
+                            eq(accountName),
+                            eq(generateAssetDTO.getTempAsset()),
+                            sourceContainerArgument.capture());
+
+        assertThat(sourceContainerArgument.getValue().container()).isEqualTo(generateAssetDTO.getSourceContainer());
+
+        var destinationContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
+
+        verify(mockAssetsClient, times(1))
+            .createOrUpdate(eq(resourceGroup),
+                            eq(accountName),
+                            eq(generateAssetDTO.getFinalAsset()),
+                            destinationContainerArgument.capture());
+
+        assertThat(destinationContainerArgument.getValue().container())
+            .isEqualTo(generateAssetDTO.getDestinationContainer());
+
+        ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
+
+        verify(mockJobClient, times(1))
+            .create(
+                eq(resourceGroup),
+                eq(accountName),
+                eq("EncodeToMP4"),
+                anyString(),
+                jobInnerArgument.capture()
+            );
+
+        assertThat(((JobInputAsset) jobInnerArgument.getValue().input()).assetName())
+            .isEqualTo(generateAssetDTO.getTempAsset());
+        assertThat(((JobOutputAsset) jobInnerArgument.getValue().outputs().getFirst()).assetName())
+            .isEqualTo(generateAssetDTO.getFinalAsset());
+    }
+
 
     @DisplayName("Should return a valid live event by name")
     @Test
@@ -780,7 +907,6 @@ public class AzureMediaServiceTest {
     @DisplayName("Should successfully stop live event when there is not a recording found")
     @Test
     void stopLiveEventNoRecording() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var assetsClient = mockAssetsClient();
         var jobsClient = mockJobsClient();
@@ -790,7 +916,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -810,6 +936,30 @@ public class AzureMediaServiceTest {
         verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
     }
 
+    private StreamingEndpointsClient mockStreamingEndpointClient() {
+        var client = mock(StreamingEndpointsClient.class);
+        when(amsClient.getStreamingEndpoints()).thenReturn(client);
+        return client;
+    }
+
+    private StreamingLocatorsClient mockStreamingLocatorClient() {
+        var client = mock(StreamingLocatorsClient.class);
+        when(amsClient.getStreamingLocators()).thenReturn(client);
+        return client;
+    }
+
+    private JobsClient mockJobsClient() {
+        var client = mock(JobsClient.class);
+        when(amsClient.getJobs()).thenReturn(client);
+        return client;
+    }
+
+    private ManagementException mockAmsError(int status) {
+        var response = mock(HttpResponse.class);
+        when(response.getStatusCode()).thenReturn(status);
+        return new ManagementException("error", response);
+    }
+
     @DisplayName("Should successfully stop live event when there is a recording found")
     @Test
     void stopLiveEventRecordingAvailable() throws InterruptedException {
@@ -823,7 +973,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -891,7 +1041,7 @@ public class AzureMediaServiceTest {
         var mockJob = mock(JobInner.class);
         var liveEventClient = mockLiveEventClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -922,7 +1072,7 @@ public class AzureMediaServiceTest {
         var mockJob = mock(JobInner.class);
         var liveEventClient = mockLiveEventClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -954,7 +1104,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -987,7 +1137,7 @@ public class AzureMediaServiceTest {
         var liveEventClient = mockLiveEventClient();
         var streamingEndpointClient = mockStreamingEndpointClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1021,7 +1171,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1056,7 +1206,7 @@ public class AzureMediaServiceTest {
         var streamingEndpointClient = mockStreamingEndpointClient();
         var streamingLocatorClient = mockStreamingLocatorClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1092,7 +1242,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1128,7 +1278,7 @@ public class AzureMediaServiceTest {
         var streamingLocatorClient = mockStreamingLocatorClient();
         var liveOutputClient = mockLiveOutputClient();
 
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
+        when(jobsClient.get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
             .thenReturn(mockJob);
         when(mockJob.state()).thenReturn(JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -1168,29 +1318,5 @@ public class AzureMediaServiceTest {
         var client = mock(LiveOutputsClient.class);
         when(amsClient.getLiveOutputs()).thenReturn(client);
         return client;
-    }
-
-    private StreamingEndpointsClient mockStreamingEndpointClient() {
-        var client = mock(StreamingEndpointsClient.class);
-        when(amsClient.getStreamingEndpoints()).thenReturn(client);
-        return client;
-    }
-
-    private StreamingLocatorsClient mockStreamingLocatorClient() {
-        var client = mock(StreamingLocatorsClient.class);
-        when(amsClient.getStreamingLocators()).thenReturn(client);
-        return client;
-    }
-
-    private JobsClient mockJobsClient() {
-        var client = mock(JobsClient.class);
-        when(amsClient.getJobs()).thenReturn(client);
-        return client;
-    }
-
-    private ManagementException mockAmsError(int status) {
-        var response = mock(HttpResponse.class);
-        when(response.getStatusCode()).thenReturn(status);
-        return new ManagementException("error", response);
     }
 }

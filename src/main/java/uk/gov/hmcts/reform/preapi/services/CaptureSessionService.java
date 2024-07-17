@@ -231,4 +231,14 @@ public class CaptureSessionService {
         captureSessionRepository.saveAndFlush(captureSession);
         return new CaptureSessionDTO(captureSession);
     }
+
+    @Transactional
+    public CaptureSessionDTO setCaptureSessionStatus(UUID captureSessionId, RecordingStatus status) {
+        var captureSession = captureSessionRepository
+            .findByIdAndDeletedAtIsNull(captureSessionId)
+            .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
+        captureSession.setStatus(status);
+        captureSessionRepository.save(captureSession);
+        return new CaptureSessionDTO(captureSession);
+    }
 }

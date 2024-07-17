@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.media;
 
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -14,7 +16,7 @@ public interface IMediaService {
 
     String playLiveEvent(UUID liveEventId);
 
-    String importAsset(String assetPath);
+    GenerateAssetResponseDTO importAsset(GenerateAssetDTO assetPath) throws InterruptedException;
 
     AssetDTO getAsset(String assetId);
 
