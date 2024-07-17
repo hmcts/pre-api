@@ -15,6 +15,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
@@ -575,7 +576,7 @@ public class MediaKindTest {
 
         assertThrows(
             UnsupportedOperationException.class,
-            () -> mediaKind.importAsset("test-asset-name")
+            () -> mediaKind.importAsset(mock(GenerateAssetDTO.class))
         );
     }
 

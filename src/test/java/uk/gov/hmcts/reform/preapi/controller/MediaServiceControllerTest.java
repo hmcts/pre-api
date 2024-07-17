@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import feign.FeignException;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +16,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
@@ -39,7 +42,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -68,6 +73,8 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @DisplayName("Should return 200 when successfully connected to media service")
     @Test
@@ -629,5 +636,52 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                      + captureSessionId
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
+    }
+
+    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
+    @Test
+    void generateAssetTest403Error() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isForbidden());
+    }
+
+    @DisplayName("Should return a 400 when incorrect body provided")
+    @Test
+    void generateAssetTest400Error() throws Exception {
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
+                              .andExpect(status().is4xxClientError())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains(
+            "Required request body is missing: public org.springframework.http.ResponseEntity"
+            + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
+    }
+
+    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
+    @Test
+    void generateAssetTest200() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.importAsset(any())).thenReturn(
+            new GenerateAssetResponseDTO("asset", "container", "description", "jobStatus")
+        );
+
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).isEqualTo(
+            "{\"asset\":\"asset\","
+            + "\"container\":\"container\","
+            + "\"description\":\"description\","
+            + "\"jobStatus\":\"jobStatus\"}");
     }
 }

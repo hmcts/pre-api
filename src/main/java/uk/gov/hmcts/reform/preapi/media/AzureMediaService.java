@@ -23,12 +23,15 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import jakarta.transaction.Transactional;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
@@ -38,6 +41,8 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 @Service
+@Log4j2
 public class AzureMediaService implements IMediaService {
     private final String resourceGroup;
     private final String accountName;
@@ -82,8 +88,27 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public String importAsset(String assetPath) {
-        throw new UnsupportedOperationException();
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
+        createAsset(generateAssetDTO.getTempAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getSourceContainer(),
+                    true);
+
+        createAsset(generateAssetDTO.getFinalAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getDestinationContainer(),
+                    true);
+
+        var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
+
+        var jobState = checkEncodeComplete(jobName);
+
+        return new GenerateAssetResponseDTO(
+            generateAssetDTO.getFinalAsset(),
+            generateAssetDTO.getDestinationContainer(),
+            generateAssetDTO.getDescription(),
+            jobState.toString()
+        );
     }
 
     @Override
@@ -126,9 +151,17 @@ public class AzureMediaService implements IMediaService {
 
 
         var paths = amsClient.getStreamingLocators()
-                             .listPaths(resourceGroup, accountName, getSanitisedLiveEventId(liveEventId));
+                             .listPaths(resourceGroup, accountName, getSanitisedId(liveEventId));
 
         return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
+    }
+
+    private String getSanitisedId(UUID id) {
+        return id.toString().replace("-", "");
+    }
+
+    private String getShortenedLiveEventId(UUID liveEventId) {
+        return getSanitisedId(liveEventId).substring(0, 23);
     }
 
     private String getStreamingEndpointHostname(UUID liveEventId) {
@@ -174,7 +207,7 @@ public class AzureMediaService implements IMediaService {
 
         try {
             Logger.getAnonymousLogger().info("Creating Streaming locator");
-            var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+            var sanitisedLiveEventId = getSanitisedId(liveEventId);
             var streamingLocatorProperties = new StreamingLocatorInner()
                 .withAssetName(sanitisedLiveEventId)
                 .withStreamingPolicyName("Predefined_ClearStreamingOnly")
@@ -224,10 +257,6 @@ public class AzureMediaService implements IMediaService {
         return liveEventId.toString().replace("-", "");
     }
 
-    private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedLiveEventId(liveEventId).substring(0, 23);
-    }
-
     @Override
     public LiveEventDTO getLiveEvent(String liveEventName) {
         try {
@@ -255,13 +284,14 @@ public class AzureMediaService implements IMediaService {
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
-        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        var recordingNoHyphen = getSanitisedId(recordingId);
         var recordingAssetName = recordingNoHyphen + "_output";
-        var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
+        var captureSessionNoHyphen = getSanitisedId(captureSession.getId());
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-        encodeToMp4(captureSessionNoHyphen, recordingAssetName);
-        waitEncodeComplete(captureSessionNoHyphen);
+        var jobName = encodeToMp4(captureSessionNoHyphen, recordingAssetName);
+        checkEncodeComplete(jobName);
+
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
@@ -279,7 +309,7 @@ public class AzureMediaService implements IMediaService {
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
     public void startLiveEvent(CaptureSessionDTO captureSession) {
-        var liveEventName = getSanitisedLiveEventId(captureSession.getId());
+        var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
@@ -364,7 +394,8 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void encodeToMp4(String inputAssetName, String outputAssetName) {
+    private String encodeToMp4(String inputAssetName, String outputAssetName) {
+        var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         try {
             amsClient
                 .getJobs()
@@ -372,7 +403,7 @@ public class AzureMediaService implements IMediaService {
                     resourceGroup,
                     accountName,
                     ENCODE_TO_MP4_TRANSFORM,
-                    inputAssetName,
+                    jobName,
                     new JobInner()
                         .withInput(
                             new JobInputAsset()
@@ -385,16 +416,22 @@ public class AzureMediaService implements IMediaService {
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         }
+
+        return jobName;
     }
 
-    private void waitEncodeComplete(String jobName) throws InterruptedException {
+    private JobState checkEncodeComplete(String jobName) throws InterruptedException {
         JobInner job = null;
         do {
             if (job != null) {
-                TimeUnit.MILLISECONDS.sleep(10000); // wait 10 seconds
+                TimeUnit.MILLISECONDS.sleep(5000); // wait 5 seconds
             }
             job = amsClient.getJobs().get(resourceGroup, accountName, ENCODE_TO_MP4_TRANSFORM, jobName);
-        } while (!job.state().equals(JobState.FINISHED));
+        } while (!job.state().equals(JobState.FINISHED)
+                 && !job.state().equals(JobState.ERROR)
+                 && !job.state().equals(JobState.CANCELED));
+
+        return job.state();
     }
 
     private LiveEventInner getLiveEventAms(String liveEventName) {
@@ -441,6 +478,16 @@ public class AzureMediaService implements IMediaService {
                              CaptureSessionDTO captureSession,
                              String containerName,
                              boolean isFinal) {
+        createAsset(assetName,
+                    captureSession.getBookingId().toString(),
+                    containerName,
+                    isFinal);
+    }
+
+    private void createAsset(String assetName,
+                             String description,
+                             String containerName,
+                             boolean isFinal) {
         try {
             amsClient
                 .getAssets()
@@ -451,7 +498,7 @@ public class AzureMediaService implements IMediaService {
                     new AssetInner()
                         .withContainer(containerName)
                         .withStorageAccountName(isFinal ? finalStorageAccount : ingestStorageAccount)
-                        .withDescription(captureSession.getBookingId().toString())
+                        .withDescription(description)
                 );
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
@@ -461,6 +508,7 @@ public class AzureMediaService implements IMediaService {
                 throw new ConflictException("Asset: " + assetName);
             }
             if (e.getResponse().getStatusCode() == 409) {
+                log.error(e.getMessage());
                 throw new ConflictException("Asset: " + assetName);
             }
             throw e;
@@ -473,7 +521,7 @@ public class AzureMediaService implements IMediaService {
             amsClient.getLiveEvents().create(
                 resourceGroup,
                 accountName,
-                getSanitisedLiveEventId(captureSession.getId()),
+                getSanitisedId(captureSession.getId()),
                 new LiveEventInner()
                     .withLocation(LOCATION)
                     .withTags(Map.of(
