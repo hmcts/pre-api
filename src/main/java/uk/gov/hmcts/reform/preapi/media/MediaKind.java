@@ -163,7 +163,7 @@ public class MediaKind implements IMediaService {
                         .assetName(assetName)
                         .streamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
                         .defaultContentKeyPolicyName(userId)
-                        .endTime(Timestamp.from(ZonedDateTime.now().toInstant()))
+                        .endTime(Timestamp.from(ZonedDateTime.now().toInstant().plusSeconds(3600)))
                         .build())
                 .build()
         );
