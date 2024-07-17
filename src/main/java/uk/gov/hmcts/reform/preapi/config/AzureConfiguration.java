@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
+import javax.annotation.Nullable;
+
 
 @Configuration
 public class AzureConfiguration {
@@ -34,10 +36,23 @@ public class AzureConfiguration {
     }
 
     @Bean
+    public BlobServiceClient ingestStorageClient(
+        @Value("${azure.ingestStorage.connectionString}") String connectionString,
+        @Value("${azure.ingestStorage.accountName}") String ingestStorageAccountName
+    ) {
+        return getBlobServiceClient(connectionString, ingestStorageAccountName);
+    }
+
+    @Bean
     public BlobServiceClient finalStorageClient(
         @Value("${azure.finalStorage.connectionString}") String connectionString,
         @Value("${azure.finalStorage.accountName}") String finalStorageAccountName
     ) {
+        return getBlobServiceClient(connectionString, finalStorageAccountName);
+    }
+
+    @Nullable
+    private BlobServiceClient getBlobServiceClient(String connectionString, String storageAccountName) {
         try {
             var accountKey = Arrays.stream(connectionString.split(";"))
                 .filter(s -> s.startsWith("AccountKey="))
@@ -52,6 +67,5 @@ public class AzureConfiguration {
         } catch (Exception e) {
             return null;
         }
-
     }
 }

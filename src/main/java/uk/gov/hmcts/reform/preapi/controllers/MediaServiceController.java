@@ -29,11 +29,14 @@ import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
+@Log4j2
 @RestController
 @RequestMapping("/media-service")
 @Log4j2
@@ -41,20 +44,26 @@ public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
+    private final AzureIngestStorageService azureIngestStorageService;
+
+    private final String legacyAzureFunctionKey;
 
     private final String legacyAzureFunctionKey;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
+                                  AzureIngestStorageService azureIngestStorageService,
                                   @Value("${legacy-azure-function-key}") String legacyAzureFunctionKey) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
+        this.azureIngestStorageService = azureIngestStorageService;
         this.legacyAzureFunctionKey = legacyAzureFunctionKey;
     }
 
     @GetMapping("/health")
+    @Operation(operationId = "mediaServiceHealth", summary = "Check the status of the media service connection")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<String> mediaService() {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
@@ -101,35 +110,63 @@ public class MediaServiceController extends PreApiController {
         if (data == null) {
             throw new NotFoundException("Live event: " + liveEventName);
         }
+        if (data.getResourceState().equals("Running") && data.getInputRtmp() != null) {
+            try {
+                var captureSession = captureSessionService.findByLiveEventId(liveEventName);
+                if (captureSession.getStatus() == RecordingStatus.INITIALISING) {
+                    captureSessionService.startCaptureSession(
+                        captureSession.getId(),
+                        RecordingStatus.STANDBY,
+                        data.getInputRtmp()
+                    );
+                }
+            } catch (NotFoundException e) {
+                // ignore
+            }
+        }
         return ResponseEntity.ok(data);
     }
 
-    @PutMapping("/live-event/start/{captureSessionId}")
-    @Operation(operationId = "startLiveEvent", summary = "Start a live event")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId)
-        throws InterruptedException {
+    @PutMapping("/live-event/end/{captureSessionId}")
+    @Operation(operationId = "stopLiveEvent", summary = "Stop a live event")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2')")
+    public ResponseEntity<CaptureSessionDTO> stopLiveEvent(
+        @PathVariable UUID captureSessionId
+    ) throws InterruptedException {
         var dto = captureSessionService.findById(captureSessionId);
 
         if (dto.getFinishedAt() != null) {
-            throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
-        }
-
-        if (dto.getStartedAt() != null) {
             return ResponseEntity.ok(dto);
         }
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        String ingestAddress;
+        if (dto.getStartedAt() == null) {
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") has not been started.");
+        }
 
+        if (dto.getStatus() != RecordingStatus.STANDBY && dto.getStatus() != RecordingStatus.RECORDING) {
+            throw new ResourceInWrongStateException(
+                "Capture Session",
+                captureSessionId.toString(),
+                dto.getStatus().toString(),
+                "STANDBY or RECORDING"
+            );
+        }
+
+        var recordingId = UUID.randomUUID();
+        dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
+
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
-            ingestAddress = mediaService.startLiveEvent(dto);
+            var status = mediaService.stopLiveEvent(dto, recordingId);
+            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
         } catch (Exception e) {
-            captureSessionService.startCaptureSession(captureSessionId, null);
+            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
             throw e;
         }
 
-        return ResponseEntity.ok(captureSessionService.startCaptureSession(captureSessionId, ingestAddress));
+        return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/live-event/end/{captureSessionId}")
@@ -175,15 +212,19 @@ public class MediaServiceController extends PreApiController {
     }
 
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
+    @Operation(operationId = "playLiveEvent", summary = "Play a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
         // load captureSession
         var captureSession = captureSessionService.findById(captureSessionId);
+        Logger.getAnonymousLogger().info("createLiveEventStreamingLocator: " + captureSession);
 
         // return existing captureSession if currently live
         if (captureSession.getLiveOutputUrl() != null && captureSession.getStatus() == RecordingStatus.RECORDING) {
             return ResponseEntity.ok(captureSession);
         }
+        Logger.getAnonymousLogger().info("captureSession getStatus: " + captureSession.getStatus());
+        Logger.getAnonymousLogger().info("captureSession getLiveOutputUrl: " + captureSession.getLiveOutputUrl());
 
         // check if captureSession is in correct state
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {
@@ -202,6 +243,80 @@ public class MediaServiceController extends PreApiController {
         captureSessionService.upsert(captureSession);
 
         return ResponseEntity.ok(captureSession);
+    }
+
+    @PostMapping("/live-event/check/{captureSessionId}")
+    @Operation(
+        operationId = "checkStream",
+        summary = "Check stream has started"
+    )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> checkStream(@PathVariable UUID captureSessionId) {
+        var captureSession = captureSessionService.findById(captureSessionId);
+        if (captureSession.getStatus() == RecordingStatus.RECORDING) {
+            return ResponseEntity.ok(captureSession);
+        }
+
+        if (captureSession.getFinishedAt() != null) {
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") has already finished.");
+        }
+
+        if (captureSession.getStartedAt() == null) {
+            throw new ResourceInWrongStateException("Resource: Capture Session("
+                                                          + captureSessionId
+                                                          + ") has not been started.");
+        }
+
+        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
+            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
+                                                    captureSessionId.toString(),
+                                                    captureSession.getStatus().name(),
+                                                    RecordingStatus.STANDBY.name());
+        }
+
+        if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
+            captureSession = captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+        }
+
+        return ResponseEntity.ok(captureSession);
+    }
+
+    @PutMapping("/live-event/start/{captureSessionId}")
+    @Operation(operationId = "startLiveEvent", summary = "Start a live event")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
+        var dto = captureSessionService.findById(captureSessionId);
+
+        if (dto.getStatus() == RecordingStatus.FAILURE) {
+            throw new ResourceInWrongStateException("Capture Session",
+                                                    dto.getId().toString(),
+                                                    dto.getStatus().toString(),
+                                                    RecordingStatus.INITIALISING.toString());
+        }
+
+        if (dto.getFinishedAt() != null) {
+            throw new ConflictException("Capture Session: " + dto.getId() + " has already been finished");
+        }
+
+        if (dto.getStartedAt() != null) {
+            return ResponseEntity.ok(dto);
+        }
+
+        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        try {
+            mediaService.startLiveEvent(dto);
+        } catch (Exception e) {
+            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
+            throw e;
+        }
+
+        return ResponseEntity.ok(captureSessionService.startCaptureSession(
+            captureSessionId,
+            RecordingStatus.INITIALISING,
+            null
+        ));
     }
 
     @PostMapping("/generate-asset")

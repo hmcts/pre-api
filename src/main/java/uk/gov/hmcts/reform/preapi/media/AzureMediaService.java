@@ -16,7 +16,6 @@ import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventActionInput;
-import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
@@ -25,7 +24,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessCont
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import jakarta.transaction.Transactional;
 import lombok.extern.log4j.Log4j2;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,10 +35,11 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -51,7 +50,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 @Service
 @Log4j2
@@ -72,7 +70,7 @@ public class AzureMediaService implements IMediaService {
     public AzureMediaService(
         @Value("${azure.resource-group}") String resourceGroup,
         @Value("${azure.account-name}") String accountName,
-        @Value("${azure.ingestStorage}") String ingestStorageAccount,
+        @Value("${azure.ingestStorage.accountName}") String ingestStorageAccount,
         @Value("${azure.finalStorage.accountName}") String finalStorageAccount,
         @Value("${platform-env}") String env,
         AzureMediaServices amsClient,
@@ -105,7 +103,7 @@ public class AzureMediaService implements IMediaService {
 
         var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
 
-        var jobState = waitEncodeComplete(jobName);
+        var jobState = checkEncodeComplete(jobName);
 
         return new GenerateAssetResponseDTO(
             generateAssetDTO.getFinalAsset(),
@@ -131,20 +129,16 @@ public class AzureMediaService implements IMediaService {
 
     @Override
     public List<AssetDTO> getAssets() {
-        try {
-            return amsClient
-                .getAssets()
-                .list(resourceGroup, accountName)
-                .stream()
-                .map(AssetDTO::new)
-                .toList();
-        } catch (IllegalArgumentException e) {
-            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
-        }
+        return amsClient
+            .getAssets()
+            .list(resourceGroup, accountName)
+            .stream()
+            .map(AssetDTO::new)
+            .toList();
     }
 
     @Override
-    public String playLiveEvent(@NotNull UUID liveEventId) {
+    public String playLiveEvent(UUID liveEventId) {
         assertLiveEventExists(liveEventId);
         String hostname;
         try {
@@ -172,7 +166,7 @@ public class AzureMediaService implements IMediaService {
         return getSanitisedId(liveEventId).substring(0, 23);
     }
 
-    private String getStreamingEndpointHostname(@NotNull UUID liveEventId) {
+    private String getStreamingEndpointHostname(UUID liveEventId) {
         Logger.getAnonymousLogger().info("creating streaming endpoint");
         try {
             return createStreamingEndpoint(liveEventId).hostname();
@@ -182,7 +176,7 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private StreamingEndpointInner createStreamingEndpoint(@NotNull UUID liveEventId) {
+    private StreamingEndpointInner createStreamingEndpoint(UUID liveEventId) {
         var streamingEndpointName = getShortenedLiveEventId(liveEventId);
         try {
             return amsClient.getStreamingEndpoints()
@@ -234,12 +228,12 @@ public class AzureMediaService implements IMediaService {
         }
     }
 
-    private void assertLiveEventExists(@NotNull UUID liveEventId) {
-        var sanitisedLiveEventId = getSanitisedId(liveEventId);
+    private void assertLiveEventExists(UUID liveEventId) {
+        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
         try {
             var liveEvent = amsClient.getLiveEvents().get(resourceGroup, accountName, sanitisedLiveEventId);
             if (!liveEvent.resourceState().equals(LiveEventResourceState.RUNNING)) {
-                throw new AMSLiveEventNotRunningException(sanitisedLiveEventId);
+                throw new LiveEventNotRunningException(sanitisedLiveEventId);
             }
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
@@ -250,15 +244,19 @@ public class AzureMediaService implements IMediaService {
     }
 
     private String parseLiveOutputUrlFromStreamingLocatorPaths(String streamingEndpointHostname,
-                                                               @NotNull ListPathsResponseInner paths) {
+                                                               ListPathsResponseInner paths) {
         Logger.getAnonymousLogger().info("parsing live output url from streaming locator paths");
         Logger.getAnonymousLogger().info(streamingEndpointHostname);
         paths.streamingPaths().forEach(p -> Logger.getAnonymousLogger().info(p.paths().toString()));
         return paths.streamingPaths().stream()
             .flatMap(path -> path.paths().stream())
-            .map(p -> "https://" + streamingEndpointHostname + p)
             .findFirst()
+            .map(p -> "https://" + streamingEndpointHostname + p)
             .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
+    }
+
+    private String getSanitisedLiveEventId(UUID liveEventId) {
+        return liveEventId.toString().replace("-", "");
     }
 
     @Override
@@ -294,7 +292,8 @@ public class AzureMediaService implements IMediaService {
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
         var jobName = encodeToMp4(captureSessionNoHyphen, recordingAssetName);
-        waitEncodeComplete(jobName);
+        checkEncodeComplete(jobName);
+
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
@@ -311,29 +310,18 @@ public class AzureMediaService implements IMediaService {
     @Override
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        var liveEvent = checkStreamReady(liveEventName);
-
-        // return ingest url (rtmps)
-        return Stream.ofNullable(liveEvent.input().endpoints())
-            .flatMap(Collection::stream)
-            .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-            .findFirst()
-            .map(LiveEventEndpoint::url)
-            .orElseThrow(
-                () -> new UnknownServerException("Unable to get ingest URL from AMS. No error of exception thrown")
-            );
     }
 
     private void startLiveEvent(String liveEventName) {
         try {
-            amsClient.getLiveEvents().start(resourceGroup, accountName, liveEventName);
+            amsClient.getLiveEvents().beginStart(resourceGroup, accountName, liveEventName);
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
@@ -430,10 +418,11 @@ public class AzureMediaService implements IMediaService {
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         }
+
         return jobName;
     }
 
-    private JobState waitEncodeComplete(String jobName) throws InterruptedException {
+    private JobState checkEncodeComplete(String jobName) throws InterruptedException {
         JobInner job = null;
         do {
             if (job != null) {
@@ -445,15 +434,6 @@ public class AzureMediaService implements IMediaService {
                  && !job.state().equals(JobState.CANCELED));
 
         return job.state();
-    }
-
-    private LiveEventInner checkStreamReady(String liveEventName) throws InterruptedException {
-        LiveEventInner liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventAms(liveEventName);
-        } while (liveEvent == null || !liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
-        return liveEvent;
     }
 
     private LiveEventInner getLiveEventAms(String liveEventName) {
@@ -471,7 +451,7 @@ public class AzureMediaService implements IMediaService {
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
         try {
-            amsClient.getLiveOutputs().create(
+            amsClient.getLiveOutputs().beginCreate(
                 resourceGroup,
                 accountName,
                 liveEventName,
@@ -495,7 +475,6 @@ public class AzureMediaService implements IMediaService {
             throw e;
         }
     }
-
 
     private void createAsset(String assetName,
                              CaptureSessionDTO captureSession,
