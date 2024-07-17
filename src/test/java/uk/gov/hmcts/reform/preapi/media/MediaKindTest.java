@@ -34,8 +34,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpointProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicy;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.util.List;
 import java.util.UUID;
