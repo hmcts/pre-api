@@ -533,8 +533,8 @@ public class AzureMediaServiceTest {
         verify(liveEventClient, times(1)).create(any(), any(), any(), any());
         verify(liveEventClient, times(1)).get(any(), any(), any());
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
-        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
-        verify(liveEventClient, times(1)).start(any(), any(), any());
+        verify(liveOutputClient, times(1)).beginCreate(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).beginStart(any(), any(), any());
     }
 
     @DisplayName("Should return the capture session when successfully started the live event")
@@ -573,8 +573,8 @@ public class AzureMediaServiceTest {
         verify(liveEventClient, times(1)).create(any(), any(), any(), any());
         verify(liveEventClient, times(1)).get(any(), any(), any());
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
-        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
-        verify(liveEventClient, times(1)).start(any(), any(), any());
+        verify(liveOutputClient, times(1)).beginCreate(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).beginStart(any(), any(), any());
     }
 
     @DisplayName("Should throw not found error when live event cannot be found after creation")
@@ -644,7 +644,7 @@ public class AzureMediaServiceTest {
             liveEventName
         )).thenReturn(mockLiveEvent);
         var amsError = mockAmsError(409);
-        when(liveOutputClient.create(eq(resourceGroup), eq(accountName), eq(liveEventName), eq(liveEventName), any(
+        when(liveOutputClient.beginCreate(eq(resourceGroup), eq(accountName), eq(liveEventName), eq(liveEventName), any(
             LiveOutputInner.class))).thenThrow(amsError);
 
         var message = assertThrows(
@@ -656,7 +656,7 @@ public class AzureMediaServiceTest {
         verify(liveEventClient, times(1)).create(any(), any(), any(), any());
         verify(liveEventClient, times(1)).get(any(), any(), any());
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
-        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).beginCreate(any(), any(), any(), any(), any());
     }
 
 
@@ -675,7 +675,7 @@ public class AzureMediaServiceTest {
             liveEventName
         )).thenReturn(mockLiveEvent);
         var amsError = mockAmsError(404);
-        when(liveOutputClient.create(eq(resourceGroup), eq(accountName), eq(liveEventName), eq(liveEventName), any(
+        when(liveOutputClient.beginCreate(eq(resourceGroup), eq(accountName), eq(liveEventName), eq(liveEventName), any(
             LiveOutputInner.class))).thenThrow(amsError);
 
         var message = assertThrows(
@@ -687,7 +687,7 @@ public class AzureMediaServiceTest {
         verify(liveEventClient, times(1)).create(any(), any(), any(), any());
         verify(liveEventClient, times(1)).get(any(), any(), any());
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
-        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
+        verify(liveOutputClient, times(1)).beginCreate(any(), any(), any(), any(), any());
     }
 
     @DisplayName("Should throw 404 error when attempting to start live event that cannot be found (after setup)")
@@ -705,7 +705,7 @@ public class AzureMediaServiceTest {
             liveEventName
         )).thenReturn(mockLiveEvent);
         var amsError = mockAmsError(404);
-        doThrow(amsError).when(liveEventClient).start(resourceGroup, accountName, liveEventName);
+        doThrow(amsError).when(liveEventClient).beginStart(resourceGroup, accountName, liveEventName);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -716,8 +716,8 @@ public class AzureMediaServiceTest {
         verify(liveEventClient, times(1)).create(any(), any(), any(), any());
         verify(liveEventClient, times(1)).get(any(), any(), any());
         verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
-        verify(liveOutputClient, times(1)).create(any(), any(), any(), any(), any());
-        verify(liveEventClient, times(1)).start(any(), any(), any());
+        verify(liveOutputClient, times(1)).beginCreate(any(), any(), any(), any(), any());
+        verify(liveEventClient, times(1)).beginStart(any(), any(), any());
     }
 
     @DisplayName("Should successfully stop live event when there is not a recording found")

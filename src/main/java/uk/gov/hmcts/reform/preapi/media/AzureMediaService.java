@@ -288,7 +288,7 @@ public class AzureMediaService implements IMediaService {
 
     private void startLiveEvent(String liveEventName) {
         try {
-            amsClient.getLiveEvents().start(resourceGroup, accountName, liveEventName);
+            amsClient.getLiveEvents().beginStart(resourceGroup, accountName, liveEventName);
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
@@ -411,7 +411,7 @@ public class AzureMediaService implements IMediaService {
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
         try {
-            amsClient.getLiveOutputs().create(
+            amsClient.getLiveOutputs().beginCreate(
                 resourceGroup,
                 accountName,
                 liveEventName,
