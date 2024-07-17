@@ -304,67 +304,6 @@ public class AzureMediaServiceTest {
             .isEqualTo(generateAssetDTO.getFinalAsset());
     }
 
-    @DisplayName("Should accept a request to import an asset and handle a failed job to encode to mp4")
-    @Test
-    void importAssetJobFailed() throws InterruptedException {
-        var mockJobClient = mock(JobsClient.class);
-        var mockJob = mock(JobInner.class);
-        when(amsClient.getJobs()).thenReturn(mockJobClient);
-        when(amsClient.getJobs().get(eq(resourceGroup), eq(accountName), eq("EncodeToMP4"), anyString()))
-            .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.ERROR);
-
-        var mockAssetsClient = mock(AssetsClient.class);
-        when(amsClient.getAssets()).thenReturn(mockAssetsClient);
-
-        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
-                                                     "my-destination-container",
-                                                     "tmp-asset",
-                                                     "final-asset",
-                                                     "unit test import asset");
-
-        var result = mediaService.importAsset(generateAssetDTO);
-
-        assertThat(result.getJobStatus()).isEqualTo("Error");
-
-        var sourceContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
-
-        verify(mockAssetsClient, times(1))
-            .createOrUpdate(eq(resourceGroup),
-                            eq(accountName),
-                            eq(generateAssetDTO.getTempAsset()),
-                            sourceContainerArgument.capture());
-
-        assertThat(sourceContainerArgument.getValue().container()).isEqualTo(generateAssetDTO.getSourceContainer());
-
-        var destinationContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
-
-        verify(mockAssetsClient, times(1))
-            .createOrUpdate(eq(resourceGroup),
-                            eq(accountName),
-                            eq(generateAssetDTO.getFinalAsset()),
-                            destinationContainerArgument.capture());
-
-        assertThat(destinationContainerArgument.getValue().container())
-            .isEqualTo(generateAssetDTO.getDestinationContainer());
-
-        ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
-
-        verify(mockJobClient, times(1))
-            .create(
-                eq(resourceGroup),
-                eq(accountName),
-                eq("EncodeToMP4"),
-                anyString(),
-                jobInnerArgument.capture()
-            );
-
-        assertThat(((JobInputAsset) jobInnerArgument.getValue().input()).assetName())
-            .isEqualTo(generateAssetDTO.getTempAsset());
-        assertThat(((JobOutputAsset) jobInnerArgument.getValue().outputs().getFirst()).assetName())
-            .isEqualTo(generateAssetDTO.getFinalAsset());
-    }
-
     @DisplayName("Should return a valid live event by name")
     @Test
     void getLiveEventByNameSuccess() {

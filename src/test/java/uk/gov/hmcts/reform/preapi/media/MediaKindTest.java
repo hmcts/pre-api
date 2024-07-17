@@ -693,18 +693,13 @@ public class MediaKindTest {
         assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
             .isEqualTo(generateAssetDTO.getFinalAsset());
     }
-  
+
     @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
     @Test
     void unsupportedOperationException() {
         assertThrows(
             UnsupportedOperationException.class,
             () -> mediaKind.playAsset("test-asset-name")
-        );
-
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.importAsset(mock(GenerateAssetDTO.class))
         );
     }
 

@@ -59,10 +59,10 @@ public class AzureConfiguration {
                 .findFirst()
                 .orElse("")
                 .replace("AccountKey=", "");
-            var credential = new StorageSharedKeyCredential(finalStorageAccountName, accountKey);
+            var credential = new StorageSharedKeyCredential(storageAccountName, accountKey);
             return new BlobServiceClientBuilder()
                 .credential(credential)
-                .endpoint(String.format("https://%s.blob.core.windows.net", finalStorageAccountName))
+                .endpoint(String.format("https://%s.blob.core.windows.net", storageAccountName))
                 .buildClient();
         } catch (Exception e) {
             return null;

@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-@Log4j2
 @RestController
 @RequestMapping("/media-service")
 @Log4j2
@@ -45,8 +44,6 @@ public class MediaServiceController extends PreApiController {
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
     private final AzureIngestStorageService azureIngestStorageService;
-
-    private final String legacyAzureFunctionKey;
 
     private final String legacyAzureFunctionKey;
 
@@ -130,48 +127,6 @@ public class MediaServiceController extends PreApiController {
     @PutMapping("/live-event/end/{captureSessionId}")
     @Operation(operationId = "stopLiveEvent", summary = "Stop a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2')")
-    public ResponseEntity<CaptureSessionDTO> stopLiveEvent(
-        @PathVariable UUID captureSessionId
-    ) throws InterruptedException {
-        var dto = captureSessionService.findById(captureSessionId);
-
-        if (dto.getFinishedAt() != null) {
-            return ResponseEntity.ok(dto);
-        }
-
-        if (dto.getStartedAt() == null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
-                                                        + captureSessionId
-                                                        + ") has not been started.");
-        }
-
-        if (dto.getStatus() != RecordingStatus.STANDBY && dto.getStatus() != RecordingStatus.RECORDING) {
-            throw new ResourceInWrongStateException(
-                "Capture Session",
-                captureSessionId.toString(),
-                dto.getStatus().toString(),
-                "STANDBY or RECORDING"
-            );
-        }
-
-        var recordingId = UUID.randomUUID();
-        dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
-
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        try {
-            var status = mediaService.stopLiveEvent(dto, recordingId);
-            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
-        } catch (Exception e) {
-            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
-            throw e;
-        }
-
-        return ResponseEntity.ok(dto);
-    }
-
-    @PutMapping("/live-event/end/{captureSessionId}")
-    @Operation(operationId = "stopLiveEvent", summary = "Stop a live event")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public ResponseEntity<CaptureSessionDTO> stopLiveEvent(
         @PathVariable UUID captureSessionId
     ) throws InterruptedException {

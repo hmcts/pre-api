@@ -51,6 +51,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -94,11 +96,6 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String playAsset(String assetId) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String playLiveEvent(@NotNull UUID liveEventId) {
         throw new UnsupportedOperationException();
     }
 

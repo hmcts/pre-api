@@ -239,35 +239,6 @@ public class CaptureSessionService {
     }
 
     @Transactional
-    public CaptureSessionDTO stopCaptureSession(UUID captureSessionId, RecordingStatus status, UUID recordingId) {
-        var captureSession = captureSessionRepository
-            .findByIdAndDeletedAtIsNull(captureSessionId)
-            .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
-
-        captureSession.setStatus(status);
-
-        switch (status) {
-            case PROCESSING -> {
-                var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
-                var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
-
-                captureSession.setFinishedByUser(user);
-                captureSession.setFinishedAt(Timestamp.from(Instant.now()));
-            }
-            case RECORDING_AVAILABLE -> {
-                var recording = new CreateRecordingDTO();
-                recording.setId(recordingId);
-                recording.setCaptureSessionId(captureSessionId);
-                recording.setVersion(1);
-                recording.setFilename("video_2000000_1280x720_4500.mp4");
-                recordingService.upsert(recording);
-            }
-            default -> {
-            }
-        }
-        captureSessionRepository.saveAndFlush(captureSession);
-        return new CaptureSessionDTO(captureSession);
-
     public CaptureSessionDTO findByLiveEventId(String liveEventId) {
         var liveEventUUID = new UUID(
             Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
