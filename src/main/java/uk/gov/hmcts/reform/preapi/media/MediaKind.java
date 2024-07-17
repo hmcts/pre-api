@@ -52,6 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -179,7 +180,7 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
