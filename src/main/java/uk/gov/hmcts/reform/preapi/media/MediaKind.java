@@ -17,7 +17,6 @@ import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncoding;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncodingType;
-import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
@@ -26,7 +25,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessCont
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
 import feign.FeignException;
-import jakarta.transaction.Transactional;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -314,22 +312,13 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        var liveEvent = checkStreamReady(liveEventName);
-
-        // todo return rtmps from mk (uncomment filter)
-        return Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
-                     .flatMap(Collection::stream)
-                     //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-                     .findFirst()
-                     .map(LiveEventEndpoint::url)
-                     .orElse(null);
     }
 
     private void startLiveEvent(String liveEventName) {

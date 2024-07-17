@@ -16,7 +16,6 @@ import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventActionInput;
-import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
@@ -46,13 +45,11 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 @Service
 @Log4j2
@@ -313,29 +310,18 @@ public class AzureMediaService implements IMediaService {
     @Override
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventAms(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        var liveEvent = checkStreamReady(liveEventName);
-
-        // return ingest url (rtmps)
-        return Stream.ofNullable(liveEvent.input().endpoints())
-            .flatMap(Collection::stream)
-            .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-            .findFirst()
-            .map(LiveEventEndpoint::url)
-            .orElseThrow(
-                () -> new UnknownServerException("Unable to get ingest URL from AMS. No error of exception thrown")
-            );
     }
 
     private void startLiveEvent(String liveEventName) {
         try {
-            amsClient.getLiveEvents().start(resourceGroup, accountName, liveEventName);
+            amsClient.getLiveEvents().beginStart(resourceGroup, accountName, liveEventName);
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
@@ -450,15 +436,6 @@ public class AzureMediaService implements IMediaService {
         return job.state();
     }
 
-    private LiveEventInner checkStreamReady(String liveEventName) throws InterruptedException {
-        LiveEventInner liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventAms(liveEventName);
-        } while (liveEvent == null || !liveEvent.resourceState().equals(LiveEventResourceState.RUNNING));
-        return liveEvent;
-    }
-
     private LiveEventInner getLiveEventAms(String liveEventName) {
         try {
             return amsClient.getLiveEvents().get(resourceGroup, accountName, liveEventName);
@@ -474,7 +451,7 @@ public class AzureMediaService implements IMediaService {
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
         try {
-            amsClient.getLiveOutputs().create(
+            amsClient.getLiveOutputs().beginCreate(
                 resourceGroup,
                 accountName,
                 liveEventName,

@@ -294,41 +294,16 @@ public class MediaKindTest {
 
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
-    void startLiveEventSuccess() throws InterruptedException {
+    void startLiveEventSuccess() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
-        when(mockLiveEvent.getProperties())
-            .thenReturn(
-                MkLiveEventProperties.builder()
-                    .resourceState("Starting")
-                    .build(),
-                MkLiveEventProperties.builder()
-                    .resourceState("Starting")
-                    .build(),
-                MkLiveEventProperties.builder()
-                    .resourceState("Running")
-                    .build(),
-                MkLiveEventProperties.builder()
-                    .resourceState("Running")
-                    .input(
-                        new LiveEventInput()
-                            .withEndpoints(List.of(
-                                new LiveEventEndpoint()
-                                    .withProtocol("RTMP")
-                                    .withUrl("rtmps://some-rtmp-address"),
-                                new LiveEventEndpoint()
-                                    .withProtocol("RTMP")
-                                    .withUrl("rtmp://some-rtmp-address")
-                            )))
-                    .build()
-            );
 
-        var ingest = mediaKind.startLiveEvent(captureSession);
-        assertThat(ingest).isEqualTo("rtmps://some-rtmp-address");
+        mediaKind.startLiveEvent(captureSession);
+
         verify(mockClient, times(1)).putLiveEvent(any(), any());
-        verify(mockClient, times(4)).getLiveEvent(any());
+        verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
@@ -336,45 +311,18 @@ public class MediaKindTest {
 
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
-    void startLiveEventLiveEventConflictSuccess() throws InterruptedException {
+    void startLiveEventLiveEventConflictSuccess() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.putLiveEvent(any(), any()))
             .thenThrow(mock(FeignException.Conflict.class));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
-        when(mockLiveEvent.getProperties())
-            .thenReturn(
-                MkLiveEventProperties.builder()
-                    .resourceState("Starting")
-                    .build(),
-                MkLiveEventProperties.builder()
-                    .resourceState("Starting")
-                    .build(),
-                MkLiveEventProperties.builder()
-                    .resourceState("Running")
-                    .build(),
-                MkLiveEventProperties.builder()
-                    .resourceState("Running")
-                    .input(
-                        new LiveEventInput()
-                            .withEndpoints(List.of(
-                                new LiveEventEndpoint()
-                                    .withProtocol("RTMP")
-                                    .withUrl("rtmps://some-rtmp-address"),
-                                new LiveEventEndpoint()
-                                    .withProtocol("RTMP")
-                                    .withUrl("rtmp://some-rtmp-address")
-                            )))
-                    .build()
-            );
 
-        var ingest = mediaKind.startLiveEvent(captureSession);
-
-        assertThat(ingest).isEqualTo("rtmps://some-rtmp-address");
+        mediaKind.startLiveEvent(captureSession);
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
-        verify(mockClient, times(4)).getLiveEvent(any());
+        verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
