@@ -2,9 +2,9 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementException;
+import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
-import feign.FeignException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -130,35 +130,6 @@ public class MediaServiceControllerTest {
                        .getResponse()
                        .getContentAsString()
         ).contains("An error occurred when trying to communicate with Azure Media Service.");
-    }
-
-    // todo remove this test with switch to mk
-    @DisplayName("Should return 200 when successfully connected to media service (mediakind)")
-    @Test
-    void getMediaMkSuccess() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaKind);
-        when(mediaKind.getAssets()).thenReturn(List.of());
-
-        var response = mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
-
-        assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service (MediaKind)");
-    }
-
-    // todo update this test with switch to mk
-    @DisplayName("Should return 500 when cannot connect to media service (mk)")
-    @Test
-    void getMediaMkCannotConnect() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaKind);
-        doThrow(FeignException.class).when(mediaKind).getAssets();
-
-        var result = mockMvc.perform(get("/media-service/health"))
-                            .andExpect(status().isInternalServerError())
-                            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                            .andReturn();
-
-        assertThat(result.getResponse().getContentAsString()).contains("Unable to connect to Media Service");
     }
 
     @DisplayName("Should return 200 and an asset")
@@ -315,17 +286,20 @@ public class MediaServiceControllerTest {
         var captureSession = new CaptureSessionDTO();
         captureSession.setId(captureSessionId);
         captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setBookingId(UUID.randomUUID());
         when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
         when(mediaService.playLiveEvent(captureSessionId)).thenReturn("https://www.gov.uk");
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
 
         var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-                              .andExpect(status().isOk())
-                              .andReturn().getResponse();
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
         assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
     }
 
-    @DisplayName("Should return 200 with complete capture session withough calling mediakind")
+    @DisplayName("Should return 200 with complete capture session without calling mediakind")
     @Test
     void playLiveEventAlreadyRecordings() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
@@ -558,10 +532,10 @@ public class MediaServiceControllerTest {
         )).thenReturn(dto3);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-            .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+               .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
     }
 
     @DisplayName("Should return 404 when capture session does not exist")
@@ -573,10 +547,10 @@ public class MediaServiceControllerTest {
             .when(captureSessionService).findById(captureSessionId);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Not found: Capture Session: " + captureSessionId));
+               .andExpect(status().isNotFound())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Not found: Capture Session: " + captureSessionId));
     }
 
     @DisplayName("Should return 200 when live event has already been finished")
@@ -592,10 +566,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-            .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+               .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
     }
 
     @DisplayName("Should throw 400 when live event has not been started")
@@ -609,10 +583,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Resource: Capture Session(" + captureSessionId + ") has not been started."));
+               .andExpect(status().isBadRequest())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Resource: Capture Session(" + captureSessionId + ") has not been started."));
     }
 
     @DisplayName("Should throw 400 error when capture session in wrong status")
@@ -627,12 +601,12 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Resource Capture Session("
-                                      + captureSessionId
-                                      + ") is in a FAILURE state. Expected state is STANDBY or RECORDING."));
+               .andExpect(status().isBadRequest())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Resource Capture Session("
+                                         + captureSessionId
+                                         + ") is in a FAILURE state. Expected state is STANDBY or RECORDING."));
     }
 
     @DisplayName("Should update capture session when media service encounters error and return the error")
@@ -655,8 +629,8 @@ public class MediaServiceControllerTest {
             .when(mediaService).stopLiveEvent(any(), any());
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+               .andExpect(status().isNotFound())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON));
 
         verify(captureSessionService, times(2)).stopCaptureSession(any(), any(), any());
     }
@@ -679,53 +653,6 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                      + captureSessionId
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
-    }
-
-    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
-    @Test
-    void generateAssetTest403Error() throws Exception {
-        var generateAssetDTO = new GenerateAssetDTO();
-        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isForbidden());
-    }
-
-    @DisplayName("Should return a 400 when incorrect body provided")
-    @Test
-    void generateAssetTest400Error() throws Exception {
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
-                              .andExpect(status().is4xxClientError())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString()).contains(
-            "Required request body is missing: public org.springframework.http.ResponseEntity"
-            + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
-    }
-
-    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
-    @Test
-    void generateAssetTest200() throws Exception {
-        var generateAssetDTO = new GenerateAssetDTO();
-
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.importAsset(any())).thenReturn(
-            new GenerateAssetResponseDTO("asset", "container", "description", "jobStatus")
-        );
-
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
-                                           .with(csrf())
-                                           .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
-                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                           .accept(MediaType.APPLICATION_JSON_VALUE))
-                              .andExpect(status().isOk())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString()).isEqualTo(
-            "{\"asset\":\"asset\","
-            + "\"container\":\"container\","
-            + "\"description\":\"description\","
-            + "\"jobStatus\":\"jobStatus\"}");
     }
 
     @DisplayName("Should return 200 with capture session when status is already RECORDING")
@@ -861,6 +788,77 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
+    }
+
+    @DisplayName("Should return 404 when .ism file does not exist (recording has not started)")
+    @Test
+    void createLiveEventStreamingLocatorIsmNotFound() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setBookingId(UUID.randomUUID());
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(false);
+
+        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Asset for capture session: " + captureSessionId + " found with no .ism file"));
+
+
+        verify(azureIngestStorageService, times(1))
+            .doesIsmFileExist(captureSession.getBookingId().toString());
+        verify(mediaService, never()).playLiveEvent(any());
+    }
+
+    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
+    @Test
+    void generateAssetTest403Error() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isForbidden());
+    }
+
+    @DisplayName("Should return a 400 when incorrect body provided")
+    @Test
+    void generateAssetTest400Error() throws Exception {
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
+                              .andExpect(status().is4xxClientError())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains(
+            "Required request body is missing: public org.springframework.http.ResponseEntity"
+            + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
+    }
+
+    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
+    @Test
+    void generateAssetTest200() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.importAsset(any())).thenReturn(
+            new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
+        );
+
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).isEqualTo(
+            "{\"asset\":\"asset\","
+            + "\"container\":\"container\","
+            + "\"description\":\"description\","
+            + "\"jobStatus\":\"Finished\"}");
     }
 
     protected static UserAuthentication mockAdminUser() {

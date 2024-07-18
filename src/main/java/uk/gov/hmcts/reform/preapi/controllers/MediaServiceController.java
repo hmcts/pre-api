@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
+import com.azure.resourcemanager.mediaservices.models.JobState;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -40,9 +42,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-@Log4j2
 @RestController
 @RequestMapping("/media-service")
+@Log4j2
 public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
@@ -214,6 +216,10 @@ public class MediaServiceController extends PreApiController {
                                                     RecordingStatus.STANDBY.name());
         }
 
+        if (!azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
+            throw new AssetFilesNotFoundException(captureSessionId);
+        }
+
         // play live event
         var liveOutputUrl = mediaServiceBroker.getEnabledMediaService().playLiveEvent(captureSessionId);
 
@@ -317,6 +323,11 @@ public class MediaServiceController extends PreApiController {
             throw new ForbiddenException("Invalid code parameter provided");
         }
 
-        return ResponseEntity.ok(mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO));
+        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
+        if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
+            return ResponseEntity.ok(result);
+        }
+
+        return ResponseEntity.internalServerError().body(result);
     }
 }

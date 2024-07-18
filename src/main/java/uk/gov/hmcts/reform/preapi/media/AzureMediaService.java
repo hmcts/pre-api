@@ -150,8 +150,6 @@ public class AzureMediaService implements IMediaService {
         }
 
         assertStreamingLocatorExists(liveEventId);
-
-
         var paths = amsClient.getStreamingLocators()
                              .listPaths(resourceGroup, accountName, getSanitisedId(liveEventId));
 
@@ -301,7 +299,7 @@ public class AzureMediaService implements IMediaService {
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
         var captureSessionShort = getShortenedLiveEventId(captureSession.getId());
         stopAndDeleteStreamingEndpoint(captureSessionShort);
-        deleteStreamingLocator(captureSessionNoHyphen);
+        deleteStreamingLocator(captureSessionShort);
         deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;

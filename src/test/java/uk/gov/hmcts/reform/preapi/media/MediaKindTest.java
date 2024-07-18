@@ -10,6 +10,7 @@ import feign.FeignException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -190,7 +191,7 @@ public class MediaKindTest {
     @DisplayName("Should return null when get asset returns 404")
     @Test
     void getAssetByAssetNameNotFound() {
-        var mockError = mock(FeignException.NotFound.class);
+        var mockError = mock(NotFoundException.class);
         when(mockClient.getAsset(anyString())).thenThrow(mockError);
 
         assertThat(mediaKind.getAsset("asset1")).isNull();
@@ -219,7 +220,7 @@ public class MediaKindTest {
     @DisplayName("Should throw a NotFoundException null when get live event returns 404")
     @Test
     void getLiveEventNotFound() {
-        var mockError = mock(FeignException.NotFound.class);
+        var mockError = mock(NotFoundException.class);
 
         when(mockClient.getLiveEvent(anyString())).thenThrow(mockError);
         assertThrows(
@@ -333,7 +334,7 @@ public class MediaKindTest {
     void startLiveEventNotFoundAfterCreate() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
 
-        when(mockClient.getLiveEvent(liveEventName)).thenThrow(mock(FeignException.NotFound.class));
+        when(mockClient.getLiveEvent(liveEventName)).thenThrow(mock(NotFoundException.class));
 
         var message = assertThrows(
             NotFoundException.class,
@@ -397,7 +398,7 @@ public class MediaKindTest {
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putLiveOutput(eq(liveEventName), eq(liveEventName), any(MkLiveOutput.class)))
-            .thenThrow(FeignException.NotFound.class);
+            .thenThrow(NotFoundException.class);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -418,7 +419,7 @@ public class MediaKindTest {
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
-        doThrow(mock(FeignException.NotFound.class)).when(mockClient).startLiveEvent(liveEventName);
+        doThrow(mock(NotFoundException.class)).when(mockClient).startLiveEvent(liveEventName);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -451,8 +452,12 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+        var jobArgument2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        assertThat(jobArgument.getValue()).startsWith(liveEventName);
+        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).stopStreamingEndpoint(any());
@@ -480,8 +485,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
         verify(mockClient, never()).putTransform(any(), any());
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+        var jobArgument2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        assertThat(jobArgument.getValue()).startsWith(liveEventName);
+        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).stopStreamingEndpoint(any());
@@ -512,7 +521,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getTransform(ENCODE_TO_MP4)).thenThrow(FeignException.NotFound.class);
+        when(mockClient.getTransform(ENCODE_TO_MP4)).thenThrow(NotFoundException.class);
         when(mockClient.getJob(ENCODE_TO_MP4, liveEventName)).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
@@ -524,8 +533,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
         verify(mockClient, times(1)).putTransform(eq(ENCODE_TO_MP4), any());
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+        var jobArgument2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        assertThat(jobArgument.getValue()).startsWith(liveEventName);
+        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
@@ -557,8 +570,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
         verify(mockClient, never()).putTransform(any(), any());
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobName = ArgumentCaptor.forClass(String.class);
+        var jobName2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobName.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobName2.capture());
+        assertThat(jobName.getValue()).startsWith(liveEventName);
+        assertThat(jobName.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, never()).deleteLiveEvent(liveEventName);
     }
@@ -582,8 +599,12 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), eq(liveEventName), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), eq(liveEventName));
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+        var jobArgument2 = ArgumentCaptor.forClass(String.class);
+        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        assertThat(jobArgument.getValue()).startsWith(liveEventName);
+        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).stopStreamingEndpoint(any());
@@ -591,14 +612,110 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
-
-    @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
+    @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
     @Test
-    void unsupportedOperationException() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaKind.importAsset(mock(GenerateAssetDTO.class))
-        );
+    void importAssetSuccess() throws InterruptedException {
+        var mockJob = mock(MkJob.class);
+        var mockProperties = mock(MkJob.MkJobProperties.class);
+        when(mockClient.getJob(eq(ENCODE_TO_MP4), any())).thenReturn(mockJob);
+        when(mockJob.getProperties()).thenReturn(mockProperties);
+        when(mockProperties.getState()).thenReturn(JobState.FINISHED);
+
+        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
+                                                     "my-destination-container",
+                                                     "tmp-asset",
+                                                     "final-asset",
+                                                     "unit test import asset");
+
+        var result = mediaKind.importAsset(generateAssetDTO);
+
+        assertThat(result.getJobStatus()).isEqualTo("Finished");
+
+        var sourceContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getTempAsset()), sourceContainerArgument.capture());
+
+        assertThat(sourceContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getSourceContainer());
+
+        var destinationContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getFinalAsset()), destinationContainerArgument.capture());
+
+        assertThat(destinationContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getDestinationContainer());
+
+        var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);
+
+        var jobArgument = ArgumentCaptor.forClass(String.class);
+
+        verify(mockClient, times(1))
+            .putJob(
+                eq("EncodeToMp4"),
+                jobArgument.capture(),
+                jobInnerArgument.capture()
+            );
+
+        assertThat(jobArgument.getValue()).startsWith(generateAssetDTO.getTempAsset());
+
+        assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
+            .isEqualTo(generateAssetDTO.getTempAsset());
+        assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
+            .isEqualTo(generateAssetDTO.getFinalAsset());
+    }
+
+    @DisplayName("Should accept a request to import an asset and handle a failed job to encode to mp4")
+    @Test
+    void importAssetJobFailed() throws InterruptedException {
+        var mockJob = mock(MkJob.class);
+        var mockProperties = mock(MkJob.MkJobProperties.class);
+        when(mockClient.getJob(eq(ENCODE_TO_MP4), any())).thenReturn(mockJob);
+        when(mockJob.getProperties()).thenReturn(mockProperties);
+        when(mockProperties.getState()).thenReturn(JobState.ERROR);
+
+        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
+                                                     "my-destination-container",
+                                                     "tmp-asset",
+                                                     "final-asset",
+                                                     "unit test import asset");
+
+        var result = mediaKind.importAsset(generateAssetDTO);
+
+        assertThat(result.getJobStatus()).isEqualTo("Error");
+
+        var sourceContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getTempAsset()), sourceContainerArgument.capture());
+
+        assertThat(sourceContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getSourceContainer());
+
+        var destinationContainerArgument = ArgumentCaptor.forClass(MkAsset.class);
+
+        verify(mockClient, times(1))
+            .putAsset(eq(generateAssetDTO.getFinalAsset()), destinationContainerArgument.capture());
+
+        assertThat(destinationContainerArgument.getValue().getProperties().getContainer())
+            .isEqualTo(generateAssetDTO.getDestinationContainer());
+
+        var jobName = ArgumentCaptor.forClass(String.class);
+        var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);
+
+        verify(mockClient, times(1))
+            .putJob(
+                eq("EncodeToMp4"),
+                jobName.capture(),
+                jobInnerArgument.capture()
+            );
+
+        assertThat(jobName.getValue()).startsWith(generateAssetDTO.getTempAsset());
+        assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
+            .isEqualTo(generateAssetDTO.getTempAsset());
+        assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
+            .isEqualTo(generateAssetDTO.getFinalAsset());
     }
 
     @DisplayName("Should fail to play a live event because the live event is not running")
