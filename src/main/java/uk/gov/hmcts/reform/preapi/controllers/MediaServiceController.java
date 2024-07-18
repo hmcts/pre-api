@@ -29,8 +29,8 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.media.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
@@ -52,7 +52,7 @@ public class MediaServiceController extends PreApiController {
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
-                                  AzureFinalStorageService azureFinalStorageService) {
+                                  AzureFinalStorageService azureFinalStorageService,
                                   AzureIngestStorageService azureIngestStorageService,
                                   @Value("${legacy-azure-function-key}") String legacyAzureFunctionKey) {
         super();
