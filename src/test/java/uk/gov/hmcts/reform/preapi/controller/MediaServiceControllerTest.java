@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controller;
 
 import com.azure.core.http.HttpResponse;
 import com.azure.core.management.exception.ManagementException;
+import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import feign.FeignException;
@@ -519,10 +520,10 @@ public class MediaServiceControllerTest {
         )).thenReturn(dto3);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-            .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+               .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
     }
 
     @DisplayName("Should return 404 when capture session does not exist")
@@ -534,10 +535,10 @@ public class MediaServiceControllerTest {
             .when(captureSessionService).findById(captureSessionId);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Not found: Capture Session: " + captureSessionId));
+               .andExpect(status().isNotFound())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Not found: Capture Session: " + captureSessionId));
     }
 
     @DisplayName("Should return 200 when live event has already been finished")
@@ -553,10 +554,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
-            .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+               .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
     }
 
     @DisplayName("Should throw 400 when live event has not been started")
@@ -570,10 +571,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Resource: Capture Session(" + captureSessionId + ") has not been started."));
+               .andExpect(status().isBadRequest())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Resource: Capture Session(" + captureSessionId + ") has not been started."));
     }
 
     @DisplayName("Should throw 400 error when capture session in wrong status")
@@ -588,12 +589,12 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.message")
-                           .value("Resource Capture Session("
-                                      + captureSessionId
-                                      + ") is in a FAILURE state. Expected state is STANDBY or RECORDING."));
+               .andExpect(status().isBadRequest())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$.message")
+                              .value("Resource Capture Session("
+                                         + captureSessionId
+                                         + ") is in a FAILURE state. Expected state is STANDBY or RECORDING."));
     }
 
     @DisplayName("Should update capture session when media service encounters error and return the error")
@@ -616,8 +617,8 @@ public class MediaServiceControllerTest {
             .when(mediaService).stopLiveEvent(any(), any());
 
         mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON));
+               .andExpect(status().isNotFound())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON));
 
         verify(captureSessionService, times(2)).stopCaptureSession(any(), any(), any());
     }
@@ -640,53 +641,6 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                      + captureSessionId
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
-    }
-
-    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
-    @Test
-    void generateAssetTest403Error() throws Exception {
-        var generateAssetDTO = new GenerateAssetDTO();
-        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isForbidden());
-    }
-
-    @DisplayName("Should return a 400 when incorrect body provided")
-    @Test
-    void generateAssetTest400Error() throws Exception {
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
-                              .andExpect(status().is4xxClientError())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString()).contains(
-            "Required request body is missing: public org.springframework.http.ResponseEntity"
-            + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
-    }
-
-    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
-    @Test
-    void generateAssetTest200() throws Exception {
-        var generateAssetDTO = new GenerateAssetDTO();
-
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.importAsset(any())).thenReturn(
-            new GenerateAssetResponseDTO("asset", "container", "description", "jobStatus")
-        );
-
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
-                                           .with(csrf())
-                                           .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
-                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                           .accept(MediaType.APPLICATION_JSON_VALUE))
-                              .andExpect(status().isOk())
-                              .andReturn().getResponse();
-        assertThat(response.getContentAsString()).isEqualTo(
-            "{\"asset\":\"asset\","
-            + "\"container\":\"container\","
-            + "\"description\":\"description\","
-            + "\"jobStatus\":\"jobStatus\"}");
     }
 
     @DisplayName("Should return 200 with capture session when status is already RECORDING")
@@ -822,5 +776,52 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
+    }
+
+    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
+    @Test
+    void generateAssetTest403Error() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isForbidden());
+    }
+
+    @DisplayName("Should return a 400 when incorrect body provided")
+    @Test
+    void generateAssetTest400Error() throws Exception {
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
+                              .andExpect(status().is4xxClientError())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains(
+            "Required request body is missing: public org.springframework.http.ResponseEntity"
+            + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
+    }
+
+    @DisplayName("Should return a GenerateAssetResponseDTO successfully")
+    @Test
+    void generateAssetTest200() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.importAsset(any())).thenReturn(
+            new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
+        );
+
+        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
+                              .andExpect(status().isOk())
+                              .andReturn().getResponse();
+        assertThat(response.getContentAsString()).isEqualTo(
+            "{\"asset\":\"asset\","
+            + "\"container\":\"container\","
+            + "\"description\":\"description\","
+            + "\"jobStatus\":\"Finished\"}");
     }
 }
