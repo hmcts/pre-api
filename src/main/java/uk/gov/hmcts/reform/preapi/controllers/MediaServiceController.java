@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -187,6 +188,10 @@ public class MediaServiceController extends PreApiController {
                                                     captureSessionId.toString(),
                                                     captureSession.getStatus().name(),
                                                     RecordingStatus.STANDBY.name());
+        }
+
+        if (!azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
+            throw new AssetFilesNotFoundException(captureSessionId);
         }
 
         // play live event

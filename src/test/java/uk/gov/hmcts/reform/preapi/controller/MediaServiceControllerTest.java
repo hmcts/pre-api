@@ -5,7 +5,6 @@ import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
-import feign.FeignException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,35 +123,6 @@ public class MediaServiceControllerTest {
                        .getResponse()
                        .getContentAsString()
         ).contains("An error occurred when trying to communicate with Azure Media Service.");
-    }
-
-    // todo remove this test with switch to mk
-    @DisplayName("Should return 200 when successfully connected to media service (mediakind)")
-    @Test
-    void getMediaMkSuccess() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaKind);
-        when(mediaKind.getAssets()).thenReturn(List.of());
-
-        var response = mockMvc.perform(get("/media-service/health"))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
-
-        assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service (MediaKind)");
-    }
-
-    // todo update this test with switch to mk
-    @DisplayName("Should return 500 when cannot connect to media service (mk)")
-    @Test
-    void getMediaMkCannotConnect() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaKind);
-        doThrow(FeignException.class).when(mediaKind).getAssets();
-
-        var result = mockMvc.perform(get("/media-service/health"))
-                            .andExpect(status().isInternalServerError())
-                            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                            .andReturn();
-
-        assertThat(result.getResponse().getContentAsString()).contains("Unable to connect to Media Service");
     }
 
     @DisplayName("Should return 200 and an asset")
@@ -309,17 +279,20 @@ public class MediaServiceControllerTest {
         var captureSession = new CaptureSessionDTO();
         captureSession.setId(captureSessionId);
         captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setBookingId(UUID.randomUUID());
         when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
         when(mediaService.playLiveEvent(captureSessionId)).thenReturn("https://www.gov.uk");
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
 
         var response = mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
-                              .andExpect(status().isOk())
-                              .andReturn().getResponse();
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
         assertThat(response.getContentAsString()).contains("\"live_output_url\":\"https://www.gov.uk\"");
         assertThat(response.getContentAsString()).contains("\"status\":\"RECORDING\"");
     }
 
-    @DisplayName("Should return 200 with complete capture session withough calling mediakind")
+    @DisplayName("Should return 200 with complete capture session without calling mediakind")
     @Test
     void playLiveEventAlreadyRecordings() throws Exception {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
@@ -778,6 +751,30 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
+    @DisplayName("Should return 404 when .ism file does not exist (recording has not started)")
+    @Test
+    void createLiveEventStreamingLocatorIsmNotFound() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setBookingId(UUID.randomUUID());
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(false);
+
+        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Asset for capture session: " + captureSessionId + " found with no .ism file"));
+
+
+        verify(azureIngestStorageService, times(1))
+            .doesIsmFileExist(captureSession.getBookingId().toString());
+        verify(mediaService, never()).playLiveEvent(any());
+    }
+  
     @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
     @Test
     void generateAssetTest403Error() throws Exception {
