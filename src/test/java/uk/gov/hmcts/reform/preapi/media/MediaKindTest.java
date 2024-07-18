@@ -612,6 +612,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
+
     @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
     @Test
     void importAssetSuccess() throws InterruptedException {

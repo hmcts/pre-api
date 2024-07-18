@@ -68,9 +68,9 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.sql.Timestamp;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
