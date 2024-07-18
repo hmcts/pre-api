@@ -33,6 +33,8 @@ java:
           alias: AZURE_FINAL_SA_CONNECTION_STRING
         - name: ingestsa-storage-account-connection-string
           alias: AZURE_INGEST_SA_CONNECTION_STRING
+        - name: symmetrickey
+          alias: SYMMETRIC_KEY
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
@@ -44,3 +46,4 @@ java:
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"
     PLATFORM_ENV_TAG: Production
+    ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
