@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
@@ -76,6 +77,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
+
+    @MockBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -616,6 +620,29 @@ public class MediaServiceControllerTest {
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
     }
 
+    @DisplayName("Should return 204 when ism file exists")
+    @Test
+    void checkBlobExistsSuccess() throws Exception {
+        var containerName = "container";
+        when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(true);
+
+        var response = mockMvc.perform(get("/media-service/blob/" + containerName))
+                              .andExpect(status().isNoContent())
+                              .andReturn().getResponse();
+
+        assertThat(response.getContentAsString()).isEmpty();
+    }
+
+    @DisplayName("Should return 404 when ism file exists")
+    @Test
+    void checkBlobExistsFail() throws Exception {
+        var containerName = "container";
+        when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(false);
+
+        mockMvc.perform(get("/media-service/blob/" + containerName))
+               .andExpect(status().isNotFound());
+    }
+
     @DisplayName("Should return 200 with capture session when status is already RECORDING")
     @Test
     void checkStreamCaptureSessionAlreadyStatusRecording() throws Exception {
@@ -774,7 +801,7 @@ public class MediaServiceControllerTest {
             .doesIsmFileExist(captureSession.getBookingId().toString());
         verify(mediaService, never()).playLiveEvent(any());
     }
-  
+
     @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
     @Test
     void generateAssetTest403Error() throws Exception {
