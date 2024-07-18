@@ -92,7 +92,7 @@ platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 legacy-azure-function-key: ${LEGACY_AZURE_FUNCTION_KEY:SecureKey}
 
-cron-user: ${CRON_USER_EMAIL:test@test.com}
+cron-user-email: ${CRON_USER_EMAIL:test@test.com}
 
 #logging:
 #  level:
