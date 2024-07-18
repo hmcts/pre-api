@@ -246,13 +246,4 @@ public class CaptureSessionService {
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
     }
-
-    @Transactional
-    public CaptureSessionDTO findByLiveEventId(String liveEventId) {
-        var liveEventUUID = new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
-        return findById(liveEventUUID);
-    }
 }

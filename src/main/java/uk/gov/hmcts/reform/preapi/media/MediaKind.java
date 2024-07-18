@@ -16,7 +16,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessCont
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -209,8 +208,8 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
-        var liveEventName = uuidToNameString(captureSession.getId());
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
+        var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
