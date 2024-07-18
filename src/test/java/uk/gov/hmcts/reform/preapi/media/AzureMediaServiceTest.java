@@ -304,7 +304,6 @@ public class AzureMediaServiceTest {
             .isEqualTo(generateAssetDTO.getFinalAsset());
     }
 
-
     @DisplayName("Should return a valid live event by name")
     @Test
     void getLiveEventByNameSuccess() {
