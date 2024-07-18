@@ -8,7 +8,6 @@ import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncoding;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncodingType;
-import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
@@ -17,12 +16,15 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessCont
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -48,8 +50,10 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
-import java.util.Collection;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,7 +63,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
-
 
 @Service
 @Slf4j
@@ -77,7 +80,7 @@ public class MediaKind implements IMediaService {
 
     @Autowired
     public MediaKind(
-        @Value("${azure.ingestStorage}") String ingestStorageAccount,
+        @Value("${azure.ingestStorage.accountName}") String ingestStorageAccount,
         @Value("${azure.finalStorage.accountName}") String finalStorageAccount,
         @Value("${platform-env}") String env,
         @Value("${mediakind.subscription}") String subscription,
@@ -98,15 +101,34 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String importAsset(String assetPath) {
-        throw new UnsupportedOperationException();
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
+        createAsset(generateAssetDTO.getTempAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getSourceContainer(),
+                    true);
+
+        createAsset(generateAssetDTO.getFinalAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getDestinationContainer(),
+                    true);
+
+        var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
+
+        var jobState = waitEncodeComplete(jobName);
+
+        return new GenerateAssetResponseDTO(
+            generateAssetDTO.getFinalAsset(),
+            generateAssetDTO.getDestinationContainer(),
+            generateAssetDTO.getDescription(),
+            jobState.toString()
+        );
     }
 
     @Override
     public AssetDTO getAsset(String assetName) {
         try {
             return new AssetDTO(mediaKindClient.getAsset(assetName));
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             return null;
         }
     }
@@ -143,7 +165,7 @@ public class MediaKind implements IMediaService {
     private MkLiveEvent getLiveEventMk(String liveEventName) {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
@@ -182,28 +204,19 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public String startLiveEvent(CaptureSessionDTO captureSession) throws InterruptedException {
+    public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
-        var liveEvent = checkStreamReady(liveEventName);
-
-        // todo return rtmps from mk (uncomment filter)
-        return Stream.ofNullable(liveEvent.getProperties().getInput().endpoints())
-                     .flatMap(Collection::stream)
-                     //  .filter(e -> e.protocol().equals("RTMP") && e.url().startsWith("rtmps://"))
-                     .findFirst()
-                     .map(LiveEventEndpoint::url)
-                     .orElse(null);
     }
 
     private void startLiveEvent(String liveEventName) {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
@@ -230,7 +243,7 @@ public class MediaKind implements IMediaService {
     private void assertEncodeToMp4TransformExists() {
         try {
             mediaKindClient.getTransform(ENCODE_TO_MP4_TRANSFORM);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             // create EncodeToMp4 transform if it doesn't exist yet
             mediaKindClient.putTransform(
                 ENCODE_TO_MP4_TRANSFORM,
@@ -254,13 +267,14 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private void encodeToMp4(String inputAssetName, String outputAssetName) {
+    private String encodeToMp4(String inputAssetName, String outputAssetName) {
         assertEncodeToMp4TransformExists();
+        var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         mediaKindClient.putJob(
             ENCODE_TO_MP4_TRANSFORM,
-            inputAssetName,
+            jobName,
             MkJob.builder()
-                .name(inputAssetName)
+                .name(jobName)
                 .properties(MkJob.MkJobProperties.builder()
                                 .input(new JobInputAsset()
                                            .withAssetName(inputAssetName)
@@ -269,9 +283,11 @@ public class MediaKind implements IMediaService {
                                                      .withAssetName(outputAssetName)))
                                 .build())
                 .build());
+
+        return jobName;
     }
 
-    private void waitEncodeComplete(String jobName) throws InterruptedException {
+    private JobState waitEncodeComplete(String jobName) throws InterruptedException {
         MkJob job = null;
         do {
             if (job != null) {
@@ -279,16 +295,10 @@ public class MediaKind implements IMediaService {
             }
             job = mediaKindClient.getJob(ENCODE_TO_MP4_TRANSFORM, jobName);
         } while (!job.getProperties().getState().equals(JobState.FINISHED)
-            && !job.getProperties().getState().equals(JobState.ERROR));
-    }
+            && !job.getProperties().getState().equals(JobState.ERROR)
+            && !job.getProperties().getState().equals(JobState.CANCELED));
 
-    private MkLiveEvent checkStreamReady(String liveEventName) throws InterruptedException {
-        MkLiveEvent liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventMk(liveEventName);
-        } while (!liveEvent.getProperties().getResourceState().equals("Running"));
-        return liveEvent;
+        return job.getProperties().getState();
     }
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
@@ -310,13 +320,23 @@ public class MediaKind implements IMediaService {
             );
         } catch (FeignException.Conflict e) {
             throw new ConflictException("Live Output: " + liveOutputName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
 
     private void createAsset(String assetName,
                              CaptureSessionDTO captureSession,
+                             String containerName,
+                             boolean isFinal) {
+        createAsset(assetName,
+                    captureSession.getBookingId().toString(),
+                    containerName,
+                    isFinal);
+    }
+
+    private void createAsset(String assetName,
+                             String description,
                              String containerName,
                              boolean isFinal) {
         try {
@@ -326,7 +346,7 @@ public class MediaKind implements IMediaService {
                     .properties(MkAssetProperties.builder()
                                     .container(containerName)
                                     .storageAccountName(isFinal ? finalStorageAccount : ingestStorageAccount)
-                                    .description(captureSession.getBookingId().toString())
+                                    .description(description)
                                     .build())
                     .build()
             );

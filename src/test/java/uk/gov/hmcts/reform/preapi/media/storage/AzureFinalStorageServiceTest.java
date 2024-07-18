@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.media;
+package uk.gov.hmcts.reform.preapi.media.storage;
 
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.util.stream.Stream;
 

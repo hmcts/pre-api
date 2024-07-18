@@ -1126,6 +1126,41 @@ definitions:
       - id
       - last_name
     type: object
+  GenerateAssetDTO:
+    description: GenerateAssetDTO
+    properties:
+      description:
+        description: GenerateAssetDescription
+        type: string
+      destination_container:
+        description: GenerateAssetDestinationContainer
+        type: string
+      final_asset:
+        description: GenerateAssetFinalAsset
+        type: string
+      source_container:
+        description: GenerateAssetSourceContainer
+        type: string
+      temp_asset:
+        description: GenerateAssetTempAsset
+        type: string
+    type: object
+  GenerateAssetResponseDTO:
+    description: GenerateAssetResponseDTO
+    properties:
+      asset:
+        description: GenerateAssetResponseAsset
+        type: string
+      container:
+        description: GenerateAssetResponseContainer
+        type: string
+      description:
+        description: GenerateAssetResponseDescription
+        type: string
+      jobStatus:
+        description: GenerateAssetResponseJobStatus
+        type: string
+    type: object
   InviteDTO:
     description: InviteDTO
     properties:
@@ -2667,6 +2702,17 @@ paths:
         - in: path
           name: containerName
           required: true
+  /media-service/generate-asset:
+    post:
+      consumes:
+        - application/json
+      operationId: generateAsset
+      parameters:
+        - description: >-
+            Rudimentary security code to prevent unauthorised access to this
+            endpoint
+          in: query
+          name: code
           type: string
         - description: The User Id of the User making the request
           format: uuid
@@ -2675,6 +2721,11 @@ paths:
           required: false
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
+        - in: body
+          name: body
+          required: true
+          schema:
+            $ref: '#/definitions/GenerateAssetDTO'
       produces:
         - application/octet-stream
       responses:
@@ -2685,11 +2736,15 @@ paths:
       summary: >-
         Checks if a container contains the .ism file. 204 on success, 404 on
         failure.
+            $ref: '#/definitions/GenerateAssetResponseDTO'
+      summary: >-
+        LEGACY - Given a source & destination, this endpoint will generate a
+        streaming asset for a given mp4
       tags:
         - media-service-controller
   /media-service/health:
     get:
-      operationId: mediaService
+      operationId: mediaServiceHealth
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -2705,6 +2760,33 @@ paths:
           description: OK
           schema:
             type: string
+      summary: Check the status of the media service connection
+      tags:
+        - media-service-controller
+  '/media-service/live-event/check/{captureSessionId}':
+    post:
+      operationId: checkStream
+      parameters:
+        - format: uuid
+          in: path
+          name: captureSessionId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Check stream has started
       tags:
         - media-service-controller
   '/media-service/live-event/end/{captureSessionId}':

@@ -31,6 +31,8 @@ java:
           alias: MEDIA_KIND_TOKEN
         - name: finalsa-storage-account-connection-string
           alias: AZURE_FINAL_SA_CONNECTION_STRING
+        - name: ingestsa-storage-account-connection-string
+          alias: AZURE_INGEST_SA_CONNECTION_STRING
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
