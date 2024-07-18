@@ -44,3 +44,4 @@ java:
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"
     PLATFORM_ENV_TAG: Production
+    CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"

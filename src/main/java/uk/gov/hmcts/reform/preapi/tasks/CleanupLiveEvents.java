@@ -3,15 +3,19 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
+import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.UUID;
 
@@ -25,17 +29,42 @@ public class CleanupLiveEvents implements Runnable {
 
     private final RecordingService recordingService;
 
+    private final UserService userService;
+
+    private final UserAuthenticationService userAuthenticationService;
+
+    private final String cronUserEmail;
+
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
                       CaptureSessionService captureSessionService,
-                      RecordingService recordingService) {
+                      RecordingService recordingService,
+                      UserService userService,
+                      UserAuthenticationService userAuthenticationService,
+                      @Value("${cron-user-email}")String cronUserEmail) {
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.recordingService = recordingService;
+        this.userService = userService;
+        this.userAuthenticationService = userAuthenticationService;
+        this.cronUserEmail = cronUserEmail;
     }
 
     @Override
     public void run() throws RuntimeException {
+        log.info("Sign in as robot user");
+        var user = userService.findByEmail(cronUserEmail);
+
+        var appAccess = user.getAppAccess().stream().findFirst();
+        if (appAccess.isEmpty()) {
+            throw new RuntimeException("Failed to authenticate as cron user with email " + cronUserEmail);
+        }
+        var userAuth = userAuthenticationService.validateUser(appAccess.get().getId().toString());
+        if (userAuth.isEmpty()) {
+            throw new RuntimeException("Failed to authenticate as cron user with email " + cronUserEmail);
+        }
+        SecurityContextHolder.getContext().setAuthentication(userAuth.get());
+
         log.info("Running CleanupLiveEvents task");
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();
@@ -47,23 +76,31 @@ public class CleanupLiveEvents implements Runnable {
                         .getResourceState().equals(LiveEventResourceState.RUNNING.toString())
                     ).forEach(liveEventDTO -> {
 
-                        log.info("Finding capture session by live event id {}", liveEventDTO.getId());
-                        var captureSession = captureSessionService.findByLiveEventId(liveEventDTO.getId());
-                        var search = new SearchRecordings();
-                        log.info("Finding recordings by capture session {}", captureSession.getId());
-                        search.setCaptureSessionId(captureSession.getId());
-                        var recordings = recordingService.findAll(search, true, Pageable.unpaged());
+                        log.info("Finding capture session by live event id {}", liveEventDTO.getName());
+                        try {
+                            var captureSession = captureSessionService.findByLiveEventId(liveEventDTO.getName());
+                            var search = new SearchRecordings();
+                            log.info("Finding recordings by capture session {}", captureSession.getId());
+                            search.setCaptureSessionId(captureSession.getId());
+                            var recordings = recordingService.findAll(search, false, Pageable.unpaged());
 
-                        if (recordings.isEmpty()) {
-                            log.info("No recordings found for capture session {}", captureSession.getId());
-                            stopLiveEvent(mediaService, captureSession, UUID.randomUUID(), liveEventDTO.getId());
-                        } else {
-                            recordings.forEach(recording -> {
-                                log.info("{} recordings found for capture session {}",
-                                         recordings.getSize(),
-                                         captureSession.getId());
-                                stopLiveEvent(mediaService, captureSession, recording.getId(), liveEventDTO.getId());
-                            });
+                            if (recordings.isEmpty()) {
+                                log.info("No recordings found for capture session {}", captureSession.getId());
+                                stopLiveEvent(mediaService, captureSession, UUID.randomUUID(), liveEventDTO.getName());
+                            } else {
+                                recordings.forEach(recording -> {
+                                    log.info("{} recordings found for capture session {}",
+                                             recordings.getSize(),
+                                             captureSession.getId());
+                                    stopLiveEvent(mediaService,
+                                                  captureSession,
+                                                  recording.getId(),
+                                                  liveEventDTO.getName());
+                                });
+                            }
+                            log.info("Stopped live event {}", liveEventDTO.getName());
+                        } catch (Exception e) {
+                            log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                         }
                     });
 

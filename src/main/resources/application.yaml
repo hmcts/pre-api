@@ -89,6 +89,9 @@ media-service: ${MEDIA_SERVICE:AzureMediaService}
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 legacy-azure-function-key: ${LEGACY_AZURE_FUNCTION_KEY:SecureKey}
+
+cron-user: ${CRON_USER_EMAIL:test@test.com}
+
 #logging:
 #  level:
 #    uk:
