@@ -61,7 +61,12 @@ azure:
   subscription-id: ${AZURE_SUBSCRIPTION_ID:00000000-0000-0000-0000-000000000000}
   clientId: ${AZ_AMS_CLIENT_ID:00000000-0000-0000-0000-000000000000}
   clientSecret: ${AZ_AMS_CLIENT_SECRET:}
-  ingestStorage: ${AZURE_INGEST_SA:}
+  ingestStorage:
+    accountName: ${AZURE_INGEST_SA:}
+    connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
+  finalStorage:
+    accountName: ${AZURE_FINAL_SA:}
+    connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
 
 hibernate:
   show_sql: true
@@ -75,9 +80,21 @@ testing-support-endpoints:
   enabled: ${TESTING_SUPPORT_ENDPOINTS_ENABLED:false}
 
 mediakind:
+  subscription: ${MEDIA_KIND_SUBSCRIPTION:pre-mediakind-stg}
   api: https://api.mk.io/api/ams/${MEDIA_KIND_SUBSCRIPTION:}/
   token: ${MEDIA_KIND_TOKEN:}
 
 media-service: ${MEDIA_SERVICE:AzureMediaService}
 
 platform-env: ${PLATFORM_ENV_TAG:Staging}
+
+legacy-azure-function-key: ${LEGACY_AZURE_FUNCTION_KEY:SecureKey}
+#logging:
+#  level:
+#    uk:
+#      gov:
+#        hmcts:
+#          reform:
+#            preapi:
+#              media:
+#                MediaKindClient: DEBUG

@@ -60,7 +60,8 @@ public class LiveEventDTO {
                 .getInput()
                 .endpoints())
             .flatMap(Collection::stream)
-            .filter(e -> e.url().startsWith("rtmps://"))
+            // todo uncomment once added by mk
+            // .filter(e -> e.url().startsWith("rtmps://"))
             .findFirst()
             .map(LiveEventEndpoint::url)
             .orElse(null);

@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -74,7 +75,7 @@ public class CaptureSessionServiceTest {
                 false,
                 null
             ),
-            Timestamp.from(java.time.Instant.now().plus(java.time.Duration.ofDays(1))),
+            Timestamp.from(Instant.now().plus(Duration.ofDays(1))),
             null
         );
 
@@ -512,7 +513,7 @@ public class CaptureSessionServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> captureSessionService.startCaptureSession(captureSessionId, null)
+            () -> captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null)
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: Capture Session: " + captureSessionId);
@@ -521,9 +522,9 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, never()).save(any());
     }
 
-    @DisplayName("Should set status to STANDBY when capture session ingest address is not null")
+    @DisplayName("Should set status and ingest address for capture session on start live event")
     @Test
-    void startCaptureSessionSuccessfullyStarted() {
+    void startCaptureSessionOnStart() {
         captureSession.setStatus(null);
         captureSession.setIngestAddress(null);
         captureSession.setStartedAt(null);
@@ -537,24 +538,26 @@ public class CaptureSessionServiceTest {
             .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        var model = captureSessionService.startCaptureSession(captureSession.getId(), "example");
+        var model = captureSessionService.startCaptureSession(
+            captureSession.getId(),
+            RecordingStatus.STANDBY,
+            "example ingest"
+        );
         assertThat(model.getStartedAt()).isNotNull();
         assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
-        assertThat(model.getIngestAddress()).isEqualTo("example");
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.STANDBY);
+        assertThat(model.getIngestAddress()).isEqualTo("example ingest");
 
         verify(captureSessionRepository, times(1)).save(any());
     }
 
-    @DisplayName("Should set status to FAILURE when capture session ingest address is null")
+    @DisplayName("Should update capture session when recording is PROCESSING")
     @Test
-    void startCaptureSessionErroredOnStart() {
-        captureSession.setStatus(null);
-        captureSession.setIngestAddress(null);
-        captureSession.setStartedAt(null);
-        captureSession.setStartedByUser(null);
+    void stopCaptureSessionProcessing() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        captureSession.setFinishedAt(null);
+        captureSession.setFinishedByUser(null);
         var mockAuth = mock(UserAuthentication.class);
-
         when(mockAuth.getUserId()).thenReturn(user.getId());
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
@@ -562,11 +565,140 @@ public class CaptureSessionServiceTest {
             .thenReturn(Optional.of(captureSession));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        var model = captureSessionService.startCaptureSession(captureSession.getId(), null);
-        assertThat(model.getStartedAt()).isNotNull();
-        assertThat(model.getStartedByUserId()).isEqualTo(user.getId());
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.FAILURE);
+        var model = captureSessionService.stopCaptureSession(
+            captureSession.getId(),
+            RecordingStatus.PROCESSING,
+            UUID.randomUUID()
+        );
+
+        assertThat(model.getId()).isEqualTo(captureSession.getId());
+        assertThat(model.getStatus()).isEqualTo(RecordingStatus.PROCESSING);
+        assertThat(model.getFinishedByUserId()).isEqualTo(user.getId());
+        assertThat(model.getFinishedAt()).isNotNull();
+
+        verify(recordingService, never()).upsert(any());
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
+    }
+
+    @DisplayName("Should update capture session when status is RECORDING_AVAILABLE")
+    @Test
+    void stopCaptureSessionRecordingAvailable() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var recordingId = UUID.randomUUID();
+        var model = captureSessionService.stopCaptureSession(
+            captureSession.getId(),
+            RecordingStatus.RECORDING_AVAILABLE,
+            recordingId
+        );
+
+        assertThat(model.getId()).isEqualTo(captureSession.getId());
+        assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+
+        verify(recordingService, times(1)).upsert(any());
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
+    }
+
+    @DisplayName("Should update capture session when status is NO_RECORDING")
+    @Test
+    void stopCaptureSessionNoRecording() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var recordingId = UUID.randomUUID();
+        var model = captureSessionService.stopCaptureSession(
+            captureSession.getId(),
+            RecordingStatus.NO_RECORDING,
+            recordingId
+        );
+
+        assertThat(model.getId()).isEqualTo(captureSession.getId());
+        assertThat(model.getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
+
+        verify(recordingService, never()).upsert(any());
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
+    }
+
+    @DisplayName("Should throw not found error when capture session does not exist")
+    @Test
+    void stopCaptureSessionNotFound() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.empty());
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.PROCESSING,
+                                                           UUID.randomUUID())
+        );
+        assertThat(message).hasMessageContaining("Not found: Capture Session: " + captureSession.getId());
+    }
+
+    @DisplayName("Should update capture session status and return the capture session")
+    @Test
+    void setCaptureSessionStatus() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+
+        var model = captureSessionService.setCaptureSessionStatus(captureSession.getId(), RecordingStatus.RECORDING);
+        assertThat(model.getId()).isEqualTo(captureSession.getId());
+        assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING);
 
         verify(captureSessionRepository, times(1)).save(any());
     }
+
+    @DisplayName("Should throw not found when capture session does not exist")
+    @Test
+    void setCaptureSessionStatusNotFound() {
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.setCaptureSessionStatus(captureSession.getId(), RecordingStatus.RECORDING)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Capture Session: " + captureSession.getId());
+    }
+
+    @DisplayName("Should search for a capture session using a live event id")
+    @Test
+    void findCaptureSessionByLiveEventId() {
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var captureSessionId = UUID.randomUUID();
+        var liveEventId = captureSessionId.toString().replace("-", "");
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSessionId))
+            .thenReturn(Optional.empty());
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.findByLiveEventId(liveEventId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
+    }
+
 }

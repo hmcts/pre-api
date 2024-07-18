@@ -167,21 +167,10 @@ public class GlobalControllerExceptionHandler {
         );
     }
 
-    @ExceptionHandler(MediaKindException.class)
-    ResponseEntity<String> onMediaKindException(final MediaKindException e) throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     @ExceptionHandler(AMSLiveEventNotFoundException.class)
     ResponseEntity<String> amsLiveEventNotFoundException(final AMSLiveEventNotFoundException e)
         throws JsonProcessingException {
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
-    }
-
-    @ExceptionHandler(AMSLiveEventNotRunningException.class)
-    ResponseEntity<String> amsLiveEventNotRunningException(final AMSLiveEventNotRunningException e)
-        throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(ResourceInWrongStateException.class)
@@ -189,6 +178,12 @@ public class GlobalControllerExceptionHandler {
         throws JsonProcessingException {
 
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    ResponseEntity<String> forbiddenExceptionHandler(final ForbiddenException e) throws JsonProcessingException {
+
+        return getResponseEntity(e.getMessage(), HttpStatus.FORBIDDEN);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
