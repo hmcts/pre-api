@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -83,6 +84,9 @@ public class MediaServiceControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
+
+    @MockBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -653,6 +657,29 @@ public class MediaServiceControllerTest {
                               .value("Resource Capture Session("
                                      + captureSessionId
                                      + ") is in a FAILURE state. Expected state is INITIALISING."));
+    }
+
+    @DisplayName("Should return 204 when ism file exists")
+    @Test
+    void checkBlobExistsSuccess() throws Exception {
+        var containerName = "container";
+        when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(true);
+
+        var response = mockMvc.perform(get("/media-service/blob/" + containerName))
+                              .andExpect(status().isNoContent())
+                              .andReturn().getResponse();
+
+        assertThat(response.getContentAsString()).isEmpty();
+    }
+
+    @DisplayName("Should return 404 when ism file exists")
+    @Test
+    void checkBlobExistsFail() throws Exception {
+        var containerName = "container";
+        when(azureFinalStorageService.doesIsmFileExist(containerName)).thenReturn(false);
+
+        mockMvc.perform(get("/media-service/blob/" + containerName))
+               .andExpect(status().isNotFound());
     }
 
     @DisplayName("Should return 200 with capture session when status is already RECORDING")

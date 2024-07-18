@@ -2711,6 +2711,33 @@ paths:
       summary: Get a media service asset by name
       tags:
         - media-service-controller
+  '/media-service/blob/{containerName}':
+    get:
+      operationId: checkBlobExists
+      parameters:
+        - in: path
+          name: containerName
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: boolean
+      summary: >-
+        Checks if a container contains the .ism file. 204 on success, 404 on
+        failure.
+      tags:
+        - media-service-controller
   /media-service/generate-asset:
     post:
       consumes:
