@@ -10,13 +10,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import uk.gov.hmcts.reform.preapi.config.MediaKindClientConfiguration;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkGetListResponse;
 import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveEvent;
 import uk.gov.hmcts.reform.preapi.media.dto.MkLiveOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingEndpoint;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorList;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorUrlPaths;
+import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransform;
 
 @FeignClient(name = "mediaKindClient", url = "${mediakind.api}", configuration = MediaKindClientConfiguration.class)
@@ -33,11 +36,14 @@ public interface MediaKindClient {
     @PutMapping("/liveEvents/{liveEventName}")
     MkLiveEvent putLiveEvent(@PathVariable String liveEventName, @RequestBody MkLiveEvent mkLiveEvent);
 
-    @GetMapping("/liveEvents")
-    MkGetListResponse<MkLiveEvent> getLiveEvents(@RequestParam("$skipToken") int skipToken);
+    @PostMapping("/assets/{assetName}/listStreamingLocators")
+    MkStreamingLocatorList getAssetStreamingLocators(@PathVariable String assetName);
 
-    @GetMapping("/liveEvents/{liveEventName}")
-    MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
+    @GetMapping("/streamingEndpoints/{endpointName}")
+    MkStreamingEndpoint getStreamingEndpointByName(@PathVariable String endpointName);
+
+    @PostMapping("/streamingLocators/{locatorName}/listPaths")
+    MkStreamingLocatorUrlPaths getStreamingLocatorPaths(@PathVariable String locatorName);
 
     @PutMapping("/streamingEndpoints/{streamingEndpointName}")
     MkStreamingEndpoint createStreamingEndpoint(@PathVariable("streamingEndpointName") String streamingEndpointName,
@@ -50,10 +56,22 @@ public interface MediaKindClient {
     MkStreamingLocator createStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName,
                                               @RequestBody MkStreamingLocator streamingLocator);
 
+    @GetMapping("/streamingLocators/{streamingLocatorName}")
+    MkStreamingLocator getStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName);
+
+    @DeleteMapping("/streamingLocators/{streamingLocatorName}")
+    void deleteStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName);
+
     @PostMapping("/streamingLocators/{streamingLocatorName}/listPaths")
     MkStreamingLocatorUrlPaths listStreamingLocatorPaths(
         @PathVariable("streamingLocatorName") String streamingLocatorName
     );
+
+    @GetMapping("/liveEvents")
+    MkGetListResponse<MkLiveEvent> getLiveEvents(@RequestParam("$skipToken") int skipToken);
+
+    @GetMapping("/liveEvents/{liveEventName}")
+    MkLiveEvent getLiveEvent(@PathVariable("liveEventName") String liveEventName);
 
     @PostMapping("/liveEvents/{liveEventName}/start")
     void startLiveEvent(@PathVariable String liveEventName);
@@ -76,9 +94,6 @@ public interface MediaKindClient {
     MkStreamingLocator putStreamingLocator(@PathVariable String locatorName,
                                            @RequestBody MkStreamingLocator mkStreamingLocator);
 
-    @DeleteMapping("/streamingLocators/{locatorName}")
-    void deleteStreamingLocator(@PathVariable String locatorName);
-
     @PutMapping("/transforms/{transformName}/jobs/{jobName}")
     MkJob putJob(@PathVariable String transformName, @PathVariable String jobName, @RequestBody MkJob mkJob);
 
@@ -96,4 +111,17 @@ public interface MediaKindClient {
 
     @PutMapping("/transforms/{transformName}")
     MkTransform putTransform(@PathVariable String transformName, @RequestBody MkTransform mkTransform);
+
+    @GetMapping("/contentKeyPolicies/{policyName}")
+    MkContentKeyPolicy getContentKeyPolicy(@PathVariable String policyName);
+
+    @PutMapping("/contentKeyPolicies/{policyName}")
+    void putContentKeyPolicy(@PathVariable String policyName, @RequestBody MkContentKeyPolicy mkContentPolicy);
+
+    @GetMapping("/streamingPolicies/{policyName}")
+    MkStreamingPolicy getStreamingPolicy(@PathVariable String policyName);
+
+    @PutMapping("/streamingPolicies/{policyName}")
+    MkStreamingPolicy putStreamingPolicy(@PathVariable String policyName,
+                                         @RequestBody MkStreamingPolicy mkStreamingPolicy);
 }

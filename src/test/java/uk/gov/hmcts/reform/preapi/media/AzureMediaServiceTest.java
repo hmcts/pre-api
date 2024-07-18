@@ -177,7 +177,7 @@ public class AzureMediaServiceTest {
     void unsupportedOperationException() {
         assertThrows(
             UnsupportedOperationException.class,
-            () -> mediaService.playAsset("test-asset-name")
+            () -> mediaService.playAsset("test-asset-name", "test-user-id")
         );
     }
 

@@ -4,14 +4,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
 import lombok.Data;
 
-import java.util.Map;
+import java.util.List;
 
 @Data
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class MkStreamingEndpoint {
-    private String name;
-    private String location;
-    private Map<String, String> tags;
-    private MkStreamingEndpointProperties properties;
+public class MkContentKeyPolicyProperties {
+    private String description;
+    private List<MkContentKeyPolicyOptions> options;
 }
