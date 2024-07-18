@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
@@ -15,9 +16,14 @@ public class MkStreamingLocatorUrlPaths {
     private List<MkStreamingLocatorStreamingPath> streamingPaths;
 
     @Data
-    @Builder
+    @AllArgsConstructor
     public static class MkStreamingLocatorDrm {
-        private String certificateUrl;
+        private MkDrmClearKey clearKey;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class MkDrmClearKey {
         private String licenseAcquisitionUrl;
     }
 
