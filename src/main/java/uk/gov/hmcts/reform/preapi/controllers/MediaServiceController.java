@@ -30,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
@@ -44,18 +45,20 @@ public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
+    private final AzureFinalStorageService azureFinalStorageService;
     private final AzureIngestStorageService azureIngestStorageService;
-
     private final String legacyAzureFunctionKey;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
+                                  AzureFinalStorageService azureFinalStorageService,
                                   AzureIngestStorageService azureIngestStorageService,
                                   @Value("${legacy-azure-function-key}") String legacyAzureFunctionKey) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
+        this.azureFinalStorageService = azureFinalStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
         this.legacyAzureFunctionKey = legacyAzureFunctionKey;
     }
@@ -303,5 +306,17 @@ public class MediaServiceController extends PreApiController {
         }
 
         return ResponseEntity.internalServerError().body(result);
+    }
+
+    @GetMapping("/blob/{containerName}")
+    @Operation(
+        operationId = "checkBlobExists",
+        summary = "Checks if a container contains the .ism file. 204 on success, 404 on failure."
+    )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<Boolean> checkBlobExists(@PathVariable String containerName) {
+        return azureFinalStorageService.doesIsmFileExist(containerName)
+            ? ResponseEntity.noContent().build()
+            : ResponseEntity.notFound().build();
     }
 }
