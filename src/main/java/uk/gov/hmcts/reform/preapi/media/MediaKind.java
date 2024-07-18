@@ -52,6 +52,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -99,15 +101,34 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO assetPath) {
-        throw new UnsupportedOperationException();
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
+        createAsset(generateAssetDTO.getTempAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getSourceContainer(),
+                    true);
+
+        createAsset(generateAssetDTO.getFinalAsset(),
+                    generateAssetDTO.getDescription(),
+                    generateAssetDTO.getDestinationContainer(),
+                    true);
+
+        var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
+
+        var jobState = waitEncodeComplete(jobName);
+
+        return new GenerateAssetResponseDTO(
+            generateAssetDTO.getFinalAsset(),
+            generateAssetDTO.getDestinationContainer(),
+            generateAssetDTO.getDescription(),
+            jobState.toString()
+        );
     }
 
     @Override
     public AssetDTO getAsset(String assetName) {
         try {
             return new AssetDTO(mediaKindClient.getAsset(assetName));
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             return null;
         }
     }
@@ -144,7 +165,7 @@ public class MediaKind implements IMediaService {
     private MkLiveEvent getLiveEventMk(String liveEventName) {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
@@ -195,7 +216,7 @@ public class MediaKind implements IMediaService {
     private void startLiveEvent(String liveEventName) {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
@@ -222,7 +243,7 @@ public class MediaKind implements IMediaService {
     private void assertEncodeToMp4TransformExists() {
         try {
             mediaKindClient.getTransform(ENCODE_TO_MP4_TRANSFORM);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             // create EncodeToMp4 transform if it doesn't exist yet
             mediaKindClient.putTransform(
                 ENCODE_TO_MP4_TRANSFORM,
@@ -246,13 +267,14 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private void encodeToMp4(String inputAssetName, String outputAssetName) {
+    private String encodeToMp4(String inputAssetName, String outputAssetName) {
         assertEncodeToMp4TransformExists();
+        var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         mediaKindClient.putJob(
             ENCODE_TO_MP4_TRANSFORM,
-            inputAssetName,
+            jobName,
             MkJob.builder()
-                .name(inputAssetName)
+                .name(jobName)
                 .properties(MkJob.MkJobProperties.builder()
                                 .input(new JobInputAsset()
                                            .withAssetName(inputAssetName)
@@ -261,9 +283,11 @@ public class MediaKind implements IMediaService {
                                                      .withAssetName(outputAssetName)))
                                 .build())
                 .build());
+
+        return jobName;
     }
 
-    private void waitEncodeComplete(String jobName) throws InterruptedException {
+    private JobState waitEncodeComplete(String jobName) throws InterruptedException {
         MkJob job = null;
         do {
             if (job != null) {
@@ -271,7 +295,10 @@ public class MediaKind implements IMediaService {
             }
             job = mediaKindClient.getJob(ENCODE_TO_MP4_TRANSFORM, jobName);
         } while (!job.getProperties().getState().equals(JobState.FINISHED)
-            && !job.getProperties().getState().equals(JobState.ERROR));
+            && !job.getProperties().getState().equals(JobState.ERROR)
+            && !job.getProperties().getState().equals(JobState.CANCELED));
+
+        return job.getProperties().getState();
     }
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {
@@ -293,13 +320,23 @@ public class MediaKind implements IMediaService {
             );
         } catch (FeignException.Conflict e) {
             throw new ConflictException("Live Output: " + liveOutputName);
-        } catch (FeignException.NotFound e) {
+        } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
     }
 
     private void createAsset(String assetName,
                              CaptureSessionDTO captureSession,
+                             String containerName,
+                             boolean isFinal) {
+        createAsset(assetName,
+                    captureSession.getBookingId().toString(),
+                    containerName,
+                    isFinal);
+    }
+
+    private void createAsset(String assetName,
+                             String description,
                              String containerName,
                              boolean isFinal) {
         try {
@@ -309,7 +346,7 @@ public class MediaKind implements IMediaService {
                     .properties(MkAssetProperties.builder()
                                     .container(containerName)
                                     .storageAccountName(isFinal ? finalStorageAccount : ingestStorageAccount)
-                                    .description(captureSession.getBookingId().toString())
+                                    .description(description)
                                     .build())
                     .build()
             );

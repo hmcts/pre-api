@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
+import com.azure.resourcemanager.mediaservices.models.JobState;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -36,9 +37,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
-@Log4j2
 @RestController
 @RequestMapping("/media-service")
+@Log4j2
 public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
@@ -296,6 +297,11 @@ public class MediaServiceController extends PreApiController {
             throw new ForbiddenException("Invalid code parameter provided");
         }
 
-        return ResponseEntity.ok(mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO));
+        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
+        if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
+            return ResponseEntity.ok(result);
+        }
+
+        return ResponseEntity.internalServerError().body(result);
     }
 }
