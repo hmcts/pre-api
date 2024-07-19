@@ -137,7 +137,6 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
         // default sort by createdAt desc
         assertThat(recordings1.size()).isEqualTo(2);
-        getRecordings1.prettyPrint();
         assertThat(recordings1.getFirst().getId()).isEqualTo(recording2.getId());
         assertThat(recordings1.getLast().getId()).isEqualTo(details.recordingId);
         assertThat(recordings1.getFirst().getCreatedAt()).isAfter(recordings1.getLast().getCreatedAt());
