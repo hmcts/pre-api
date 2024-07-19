@@ -94,7 +94,6 @@ public class CleanupLiveEvents implements Runnable {
                                                   liveEventDTO.getName());
                                 });
                             }
-                            log.info("Stopped live event {}", liveEventDTO.getName());
                         } catch (Exception e) {
                             log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                         }
@@ -121,17 +120,22 @@ public class CleanupLiveEvents implements Runnable {
                 );
                 mediaService.cleanupStoppedLiveEvent(liveEventId);
             }
-            captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.PROCESSING, recordingId);
+            var updatedCaptureSession = captureSessionService.stopCaptureSession(
+                    captureSession.getId(),
+                    RecordingStatus.PROCESSING,
+                    recordingId
+            );
             log.info("Stopping live event {}", liveEventId);
-            var status = mediaService.stopLiveEvent(captureSession, recordingId);
-            captureSessionService.stopCaptureSession(captureSession.getId(), status, recordingId);
+            var status = mediaService.stopLiveEvent(updatedCaptureSession, recordingId);
+            captureSessionService.stopCaptureSession(updatedCaptureSession.getId(), status, recordingId);
+            log.info("Stopped live event {}", liveEventId);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             log.error("Failed to stop live event for capture session {}", captureSession.getId(), e);
+            captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
         } catch (Exception e) {
-            captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             log.error("Failed to stop live event for capture session {}", captureSession.getId(), e);
+            captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
         }
     }
 }

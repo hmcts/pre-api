@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -31,6 +32,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class CaptureSessionService {
 
     private final RecordingService recordingService;
@@ -212,6 +214,7 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
 
+        log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
 
         switch (status) {

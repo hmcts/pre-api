@@ -66,8 +66,4 @@ public class LiveEventDTO {
             .map(LiveEventEndpoint::url)
             .orElse(null);
     }
-
-//    private static String parseIdFromPath(String path) {
-//        return path.substring(path.lastIndexOf('/') + 1);
-//    }
 }

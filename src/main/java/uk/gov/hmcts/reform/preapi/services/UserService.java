@@ -69,7 +69,6 @@ public class UserService {
 
     @Transactional
     public AccessDTO findByEmail(String email) {
-        var user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email);
         return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
             .map(AccessDTO::new)
             .orElseThrow(() -> new NotFoundException("User: " + email));

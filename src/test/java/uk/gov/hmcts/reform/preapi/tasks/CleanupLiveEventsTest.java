@@ -79,8 +79,9 @@ public class CleanupLiveEventsTest {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvents()).thenReturn(liveEventDTOList);
 
-        var mockCaptureSession = mock(CaptureSessionDTO.class);
+        var mockCaptureSession = new CaptureSessionDTO();
         mockCaptureSession.setId(captureSessionId);
+        mockCaptureSession.setStatus(RecordingStatus.RECORDING);
 
         var mockRecording = new RecordingDTO();
         mockRecording.setId(UUID.randomUUID());
@@ -91,6 +92,17 @@ public class CleanupLiveEventsTest {
         when(captureSessionService.findByLiveEventId(liveEventDTO.getName())).thenReturn(mockCaptureSession);
         when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
             .thenReturn(new PageImpl<>(List.of(mockRecording, mockRecording2)));
+
+        var mockCaptureSessionProcessing = mockCaptureSession;
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.PROCESSING);
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.PROCESSING,
+                                                      mockRecording.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.PROCESSING,
+                                                      mockRecording2.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
 
         CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
                                                                     captureSessionService,
