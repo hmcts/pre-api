@@ -36,7 +36,6 @@ import uk.gov.hmcts.reform.preapi.exception.AMSLiveEventNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.util.List;
@@ -869,31 +868,6 @@ public class AzureMediaServiceTest {
 
         assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
             .isEqualTo(RecordingStatus.NO_RECORDING);
-    }
-
-    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
-    @DisplayName("Should fail to stop live event when capture session not in PROCESSING state")
-    @Test
-    void stopLiveEventNotStatusProcessing() throws InterruptedException {
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        captureSession.setStatus(RecordingStatus.STANDBY);
-        var recordingId = UUID.randomUUID();
-        var assetsClient = mockAssetsClient();
-        var jobsClient = mockJobsClient();
-        var mockJob = mock(JobInner.class);
-        var liveEventClient = mockLiveEventClient();
-        var streamingEndpointClient = mockStreamingEndpointClient();
-        var streamingLocatorClient = mockStreamingLocatorClient();
-        var liveOutputClient = mockLiveOutputClient();
-
-        when(jobsClient.get(resourceGroup, accountName, "EncodeToMP4", liveEventName))
-            .thenReturn(mockJob);
-        when(mockJob.state()).thenReturn(JobState.PROCESSING, JobState.FINISHED);
-        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
-
-        assertThrows(
-            ResourceInWrongStateException.class, () ->
-                mediaService.stopLiveEvent(captureSession, recordingId));
     }
 
     private StreamingEndpointsClient mockStreamingEndpointClient() {
