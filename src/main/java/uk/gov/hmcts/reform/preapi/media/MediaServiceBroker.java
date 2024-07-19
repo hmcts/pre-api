@@ -13,12 +13,17 @@ public class MediaServiceBroker {
     public static final String MEDIA_SERVICE_MK = "MediaKind";
 
     IMediaService mediaService;
+    MediaKind mediaKind;
+    AzureMediaService azureMediaService;
 
     @Autowired
     public MediaServiceBroker(
         @Value("${media-service}") String mediaServiceEnabled,
         MediaKind mediaKind,
         AzureMediaService azureMediaService) {
+        this.mediaKind = mediaKind;
+        this.azureMediaService = azureMediaService;
+
         if (Objects.equals(mediaServiceEnabled, MEDIA_SERVICE_MK)) {
             this.mediaService = mediaKind;
         } else if (Objects.equals(mediaServiceEnabled, MEDIA_SERVICE_AMS)) {
@@ -30,5 +35,20 @@ public class MediaServiceBroker {
 
     public IMediaService getEnabledMediaService() {
         return mediaService;
+    }
+
+    public IMediaService getEnabledMediaService(String overrideMediaService) {
+        switch (overrideMediaService) {
+            case MEDIA_SERVICE_MK -> {
+                return mediaKind;
+            }
+            case MEDIA_SERVICE_AMS -> {
+                return azureMediaService;
+            }
+            case null -> {
+                return getEnabledMediaService();
+            }
+            default -> throw new IllegalArgumentException("Unknown media service: " + overrideMediaService);
+        }
     }
 }
