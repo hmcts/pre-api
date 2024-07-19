@@ -55,15 +55,11 @@ public class CleanupLiveEvents implements Runnable {
         log.info("Sign in as robot user");
         var user = userService.findByEmail(cronUserEmail);
 
-        var appAccess = user.getAppAccess().stream().findFirst();
-        if (appAccess.isEmpty()) {
-            throw new RuntimeException("Failed to authenticate as cron user with email " + cronUserEmail);
-        }
-        var userAuth = userAuthenticationService.validateUser(appAccess.get().getId().toString());
-        if (userAuth.isEmpty()) {
-            throw new RuntimeException("Failed to authenticate as cron user with email " + cronUserEmail);
-        }
-        SecurityContextHolder.getContext().setAuthentication(userAuth.get());
+        var appAccess = user.getAppAccess().stream().findFirst()
+            .orElseThrow(() -> new RuntimeException("Failed to authenticate as cron user with email " + cronUserEmail));
+        var userAuth = userAuthenticationService.validateUser(appAccess.getId().toString())
+            .orElseThrow(() -> new RuntimeException("Failed to authenticate as cron user with email " + cronUserEmail));
+        SecurityContextHolder.getContext().setAuthentication(userAuth);
 
         log.info("Running CleanupLiveEvents task");
 
