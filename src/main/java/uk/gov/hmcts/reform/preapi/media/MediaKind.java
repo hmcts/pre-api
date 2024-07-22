@@ -80,6 +80,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
+import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortenedLiveEventId;
 
 @Slf4j
 @Service
@@ -309,9 +310,9 @@ public class MediaKind implements IMediaService {
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
-        var recordingNoHyphen = getSanitisedId(recordingId);
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
         var recordingAssetName = recordingNoHyphen + "_output";
-        var captureSessionNoHyphen = getSanitisedId(captureSession.getId());
+        var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
         encodeToMp4(captureSessionNoHyphen, recordingAssetName);
@@ -320,25 +321,25 @@ public class MediaKind implements IMediaService {
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
 
-        mediaKindClient.deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
-        stopAndDeleteLiveEvent(captureSessionNoHyphen);
-        var captureSessionShort = getShortenedLiveEventId(captureSession.getId());
-        stopAndDeleteStreamingEndpoint(captureSessionShort);
-
-        // delete returns 204 if not found (no need to catch)
-        mediaKindClient.deleteStreamingLocator(captureSessionNoHyphen);
+        cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
         return status;
     }
 
     @Override
     public void cleanupStoppedLiveEvent(String liveEventId) {
+        mediaKindClient.deleteLiveOutput(liveEventId, liveEventId);
+        stopAndDeleteLiveEvent(liveEventId);
+        var captureSessionShort = getShortenedLiveEventId(liveEventId);
+        stopAndDeleteStreamingEndpoint(captureSessionShort);
 
+        // delete returns 204 if not found (no need to catch)
+        mediaKindClient.deleteStreamingLocator(liveEventId);
     }
 
     @Override
     public void startLiveEvent(CaptureSessionDTO captureSession) {
-        var liveEventName = getSanitisedId(captureSession.getId());
+        var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
@@ -510,7 +511,7 @@ public class MediaKind implements IMediaService {
         var accessToken = UUID.randomUUID();
         try {
             mediaKindClient.putLiveEvent(
-                getSanitisedId(captureSession.getId()),
+                getSanitisedLiveEventId(captureSession.getId()),
                 MkLiveEvent.builder()
                            .location(LOCATION)
                            .tags(Map.of(
@@ -710,13 +711,5 @@ public class MediaKind implements IMediaService {
                + "."
                + LOCATION
                + ".streaming.mediakind.com";
-    }
-
-    private String getSanitisedId(UUID id) {
-        return id.toString().replace("-", "");
-    }
-
-    private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedId(liveEventId).substring(0, 24);
     }
 }

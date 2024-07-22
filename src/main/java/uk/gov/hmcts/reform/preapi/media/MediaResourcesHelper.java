@@ -9,6 +9,10 @@ public abstract class MediaResourcesHelper {
     }
 
     public static String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedLiveEventId(liveEventId).substring(0, 24);
+        return getShortenedLiveEventId(getSanitisedLiveEventId(liveEventId));
+    }
+
+    public static String getShortenedLiveEventId(String liveEventId) {
+        return liveEventId.substring(0, 24);
     }
 }
