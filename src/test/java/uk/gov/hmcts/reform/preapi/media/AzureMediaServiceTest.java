@@ -420,12 +420,12 @@ public class AzureMediaServiceTest {
         when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
 
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 24);
 
         when(mockStreamingEndpointsClient
                  .create(eq(resourceGroup),
                          eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
+                         eq("c154d36ecab44aaaa4c711d8"),
                          any(StreamingEndpointInner.class))
         ).thenReturn(mockStreamingEndpointInner);
 
@@ -471,7 +471,7 @@ public class AzureMediaServiceTest {
         when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
 
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 24);
 
         var mockHttpResponse = mock(HttpResponse.class);
         when(mockHttpResponse.getStatusCode()).thenReturn(409);
@@ -479,7 +479,7 @@ public class AzureMediaServiceTest {
         when(mockStreamingEndpointsClient
                  .create(eq(resourceGroup),
                          eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
+                         eq("c154d36ecab44aaaa4c711d8"),
                          any(StreamingEndpointInner.class))
         ).thenThrow(new ManagementException("Already exists", mockHttpResponse));
 
@@ -580,7 +580,7 @@ public class AzureMediaServiceTest {
         when(mockStreamingEndpointsClient
                  .create(eq(resourceGroup),
                          eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
+                         eq("c154d36ecab44aaaa4c711d8"),
                          any(StreamingEndpointInner.class))
         ).thenThrow(new ManagementException("bad request", mock(HttpResponse.class)));
 
@@ -608,7 +608,7 @@ public class AzureMediaServiceTest {
         when(mockStreamingEndpointsClient
                  .create(eq(resourceGroup),
                          eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
+                         eq("c154d36ecab44aaaa4c711d8"),
                          any(StreamingEndpointInner.class))
         ).thenReturn(mockStreamingEndpointInner);
 

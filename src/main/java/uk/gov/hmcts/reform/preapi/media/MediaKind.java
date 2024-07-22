@@ -717,6 +717,6 @@ public class MediaKind implements IMediaService {
     }
 
     private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedId(liveEventId).substring(0, 23);
+        return getSanitisedId(liveEventId).substring(0, 24);
     }
 }

@@ -161,7 +161,7 @@ public class AzureMediaService implements IMediaService {
     }
 
     private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedId(liveEventId).substring(0, 23);
+        return getSanitisedId(liveEventId).substring(0, 24);
     }
 
     private String getStreamingEndpointHostname(UUID liveEventId) {
@@ -304,7 +304,7 @@ public class AzureMediaService implements IMediaService {
     @Override
     public void cleanupStoppedLiveEvent(String liveEventId) {
         stopAndDeleteLiveEvent(liveEventId);
-        var captureSessionShort = liveEventId.substring(0, 23);
+        var captureSessionShort = liveEventId.substring(0, 24);
         stopAndDeleteStreamingEndpoint(captureSessionShort);
         deleteStreamingLocator(captureSessionShort);
         deleteLiveOutput(liveEventId, liveEventId);
