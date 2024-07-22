@@ -1186,4 +1186,13 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
     }
+
+    @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
+    @Test
+    void unsupportedOperationException() {
+        assertThrows(
+            UnsupportedOperationException.class,
+            () -> mediaKind.cleanupStoppedLiveEvent("anything")
+        );
+    }
 }

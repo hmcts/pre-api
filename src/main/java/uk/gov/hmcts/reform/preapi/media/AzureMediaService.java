@@ -51,6 +51,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
+import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getShortenedLiveEventId;
+
 @Service
 @Log4j2
 public class AzureMediaService implements IMediaService {
@@ -160,10 +163,6 @@ public class AzureMediaService implements IMediaService {
         return id.toString().replace("-", "");
     }
 
-    private String getShortenedLiveEventId(UUID liveEventId) {
-        return getSanitisedId(liveEventId).substring(0, 24);
-    }
-
     private String getStreamingEndpointHostname(UUID liveEventId) {
         Logger.getAnonymousLogger().info("creating streaming endpoint");
         try {
@@ -253,10 +252,6 @@ public class AzureMediaService implements IMediaService {
             .findFirst()
             .map(p -> "https://" + streamingEndpointHostname + p)
             .orElseThrow(() -> new RuntimeException("Unable to create streaming locator"));
-    }
-
-    private String getSanitisedLiveEventId(UUID liveEventId) {
-        return liveEventId.toString().replace("-", "");
     }
 
     @Override
