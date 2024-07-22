@@ -176,6 +176,7 @@ public class AzureMediaService implements IMediaService {
 
     private StreamingEndpointInner createStreamingEndpoint(UUID liveEventId) {
         var streamingEndpointName = getShortenedLiveEventId(liveEventId);
+        log.info("Creating streaming endpoint: {}", streamingEndpointName);
         try {
             return amsClient.getStreamingEndpoints()
                             .create(
@@ -196,6 +197,7 @@ public class AzureMediaService implements IMediaService {
                             );
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
+                log.info("Streaming endpoint {} already exists", streamingEndpointName);
                 return amsClient.getStreamingEndpoints()
                                 .get(resourceGroup, accountName, streamingEndpointName);
             }
@@ -337,6 +339,7 @@ public class AzureMediaService implements IMediaService {
 
     private void stopAndDeleteLiveEvent(String liveEventName) {
         try {
+            log.info("Stopping live event: {}", liveEventName);
             amsClient
                 .getLiveEvents()
                 .stop(
@@ -345,11 +348,15 @@ public class AzureMediaService implements IMediaService {
                     liveEventName,
                     new LiveEventActionInput()
                         .withRemoveOutputsOnStop(true));
+            log.info("Stopped live event: {}", liveEventName);
+            log.info("Deleting live event: {}", liveEventName);
             amsClient.getLiveEvents().delete(resourceGroup, accountName, liveEventName);
+            log.info("Deleted live event: {}", liveEventName);
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 404) {
+                log.info("Unable to find live event: {}", liveEventName);
                 throw new AMSLiveEventNotFoundException(liveEventName);
             }
             throw e;
@@ -358,8 +365,12 @@ public class AzureMediaService implements IMediaService {
 
     private void stopAndDeleteStreamingEndpoint(String endpointName) {
         try {
+            log.info("Stopping streaming endpoint: {}", endpointName);
             amsClient.getStreamingEndpoints().stop(resourceGroup, accountName, endpointName);
+            log.info("Stopped streaming endpoint: {}", endpointName);
+            log.info("Deleting streaming endpoint: {}", endpointName);
             amsClient.getStreamingEndpoints().delete(resourceGroup, accountName, endpointName);
+            log.info("Deleted streaming endpoint: {}", endpointName);
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
@@ -373,7 +384,9 @@ public class AzureMediaService implements IMediaService {
 
     private void deleteStreamingLocator(String locatorName) {
         try {
+            log.info("Deleting streaming locator: {}", locatorName);
             amsClient.getStreamingLocators().delete(resourceGroup, accountName, locatorName);
+            log.info("Deleted streaming locator: {}", locatorName);
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
@@ -387,7 +400,9 @@ public class AzureMediaService implements IMediaService {
 
     private void deleteLiveOutput(String liveEventName, String liveOutputName) {
         try {
+            log.info("Deleting live output: {}", liveOutputName);
             amsClient.getLiveOutputs().delete(resourceGroup, accountName, liveEventName, liveOutputName);
+            log.info("Deleted live output: {}", liveOutputName);
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
