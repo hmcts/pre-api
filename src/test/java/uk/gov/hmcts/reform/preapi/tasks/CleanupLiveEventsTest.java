@@ -11,11 +11,13 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
@@ -37,10 +39,12 @@ public class CleanupLiveEventsTest {
 
     private static MediaServiceBroker mediaServiceBroker;
     private static CaptureSessionService captureSessionService;
+    private static BookingService bookingService;
     private static RecordingService recordingService;
     private static AzureMediaService mediaService;
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
+    private static FlowHttpClient flowHttpClient;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
 
@@ -52,6 +56,8 @@ public class CleanupLiveEventsTest {
         mediaService = mock(AzureMediaService.class);
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
+        bookingService = mock(BookingService.class);
+        flowHttpClient = mock(FlowHttpClient.class);
 
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
@@ -105,10 +111,12 @@ public class CleanupLiveEventsTest {
 
         CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
                                                                     captureSessionService,
+                                                                    bookingService,
                                                                     recordingService,
                                                                     userService,
                                                                     userAuthenticationService,
-                                                                    CRON_USER_EMAIL);
+                                                                    CRON_USER_EMAIL,
+                                                                    flowHttpClient);
 
         cleanupLiveEvents.run();
 
@@ -153,11 +161,12 @@ public class CleanupLiveEventsTest {
 
         CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
                                                                     captureSessionService,
+                                                                    bookingService,
                                                                     recordingService,
                                                                     userService,
                                                                     userAuthenticationService,
-                                                                    CRON_USER_EMAIL);
-
+                                                                    CRON_USER_EMAIL,
+                                                                    flowHttpClient);
 
         cleanupLiveEvents.run();
 

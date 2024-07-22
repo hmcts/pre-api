@@ -333,7 +333,7 @@ public class MediaKind implements IMediaService {
 
     @Override
     public void cleanupStoppedLiveEvent(String liveEventId) {
-        throw new UnsupportedOperationException();
+
     }
 
     @Override
