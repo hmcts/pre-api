@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
@@ -241,36 +242,37 @@ public class MediaServiceController extends PreApiController {
         summary = "Check stream has started"
     )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<CaptureSessionDTO> checkStream(@PathVariable UUID captureSessionId) {
+    public ResponseEntity<Void> checkStream(@PathVariable UUID captureSessionId) {
         var captureSession = captureSessionService.findById(captureSessionId);
         if (captureSession.getStatus() == RecordingStatus.RECORDING) {
-            return ResponseEntity.ok(captureSession);
+            return ResponseEntity.noContent().build();
         }
 
         if (captureSession.getFinishedAt() != null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                         + captureSessionId
                                                         + ") has already finished.");
         }
 
         if (captureSession.getStartedAt() == null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                           + captureSessionId
                                                           + ") has not been started.");
         }
 
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {
-            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
-                                                    captureSessionId.toString(),
-                                                    captureSession.getStatus().name(),
-                                                    RecordingStatus.STANDBY.name());
+            throw new UnprocessableContentException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") is in a "
+                                                        + captureSession.getStatus()
+                                                        + " state. Expected state is STANDBY.");
         }
 
         if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
-            captureSession = captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+            captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
         }
 
-        return ResponseEntity.ok(captureSession);
+        return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")

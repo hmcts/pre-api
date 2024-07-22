@@ -192,6 +192,12 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(UnprocessableContentException.class)
+    ResponseEntity<String> unprocessableContentException(final UnprocessableContentException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 
