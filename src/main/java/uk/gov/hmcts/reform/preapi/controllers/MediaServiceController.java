@@ -270,9 +270,9 @@ public class MediaServiceController extends PreApiController {
 
         if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
             captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+            return ResponseEntity.noContent().build();
         }
-
-        return ResponseEntity.noContent().build();
+        throw new NotFoundException("No stream found");
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")

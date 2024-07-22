@@ -803,7 +803,9 @@ public class MediaServiceControllerTest {
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isNoContent());
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message").value("Not found: No stream found"));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
