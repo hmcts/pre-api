@@ -2811,13 +2811,9 @@ paths:
           required: false
           type: string
           x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
       responses:
         '200':
           description: OK
-          schema:
-            $ref: '#/definitions/CaptureSessionDTO'
       summary: Check stream has started
       tags:
         - media-service-controller
