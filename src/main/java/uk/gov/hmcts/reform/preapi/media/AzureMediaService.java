@@ -163,7 +163,6 @@ public class AzureMediaService implements IMediaService {
                             ))
                             .withDescription("Default streaming endpoint")
                             .withScaleUnits(0)
-                            // todo fix this
                             .withSku(new ArmStreamingEndpointCurrentSku())
                     );
                 amsClient.getStreamingEndpoints()
