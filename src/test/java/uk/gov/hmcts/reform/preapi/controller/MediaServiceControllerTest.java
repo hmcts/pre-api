@@ -919,6 +919,12 @@ public class MediaServiceControllerTest {
     @Test
     void generateAssetTest200() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setTempAsset("blobby");
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
+        when(azureFinalStorageService.doesBlobExist("foo", "blobby")).thenReturn(true);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(
