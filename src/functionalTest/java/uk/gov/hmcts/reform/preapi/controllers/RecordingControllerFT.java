@@ -155,6 +155,19 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
     }
 
+    @DisplayName("Should throw 400 error when sort param is invalid")
+    @Test
+    void getRecordingsSortInvalidParam() {
+        var getRecordings = doGetRequest(
+            RECORDINGS_ENDPOINT + "?sort=invalidParam,asc",
+            true
+        );
+        assertResponseCode(getRecordings, 400);
+
+        assertThat(getRecordings.body().jsonPath().getString("message"))
+            .isEqualTo("Invalid sort parameter 'invalidParam' for 'uk.gov.hmcts.reform.preapi.entities.Recording'");
+    }
+
     private CreateRecordingDTO createRecording(UUID captureSessionId) {
         var dto = new CreateRecordingDTO();
         dto.setId(UUID.randomUUID());
