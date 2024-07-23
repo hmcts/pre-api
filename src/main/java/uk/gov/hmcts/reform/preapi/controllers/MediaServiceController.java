@@ -219,8 +219,9 @@ public class MediaServiceController extends PreApiController {
                                                     captureSession.getStatus().name(),
                                                     RecordingStatus.STANDBY.name());
         }
-
-        if (!azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
+        var container = captureSession.getBookingId().toString();
+        if (!azureIngestStorageService.doesIsmFileExist(container)
+            && !azureIngestStorageService.doesBlobExist(container, "gc_state")) {
             throw new AssetFilesNotFoundException(captureSessionId);
         }
 
