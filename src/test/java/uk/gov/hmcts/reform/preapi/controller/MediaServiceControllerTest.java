@@ -841,6 +841,57 @@ public class MediaServiceControllerTest {
         verify(mediaService, never()).playLiveEvent(any());
     }
 
+    @DisplayName("Should return a 404 when the source container doesn't exist")
+    @Test
+    void generateAsset404NoSourceContainer() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(false);
+        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.message").value("Not found: Source Container: foo"));
+    }
+
+    @DisplayName("Should return a 404 when the destination container doesn't exist")
+    @Test
+    void generateAsset404NoDestinationContainer() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        generateAssetDTO.setDestinationContainer("bar");
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(false);
+        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.message").value("Not found: Destination Container: bar"));
+    }
+
+    @DisplayName("Should return a 404 when the source blob doesn't exist")
+    @Test
+    void generateAsset404NoSourceBlob() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setTempAsset("blobby");
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
+        when(azureFinalStorageService.doesBlobExist("foo", "blobby")).thenReturn(false);
+        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.message").value("Not found: Source Blob: blobby"));
+    }
+
     @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
     @Test
     void generateAssetTest403Error() throws Exception {

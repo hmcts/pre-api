@@ -327,6 +327,19 @@ public class MediaServiceController extends PreApiController {
             throw new ForbiddenException("Invalid code parameter provided");
         }
 
+        if (!azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())) {
+            throw new NotFoundException("Source Container: " + generateAssetDTO.getSourceContainer());
+        }
+
+        if (!azureFinalStorageService.doesContainerExist(generateAssetDTO.getDestinationContainer())) {
+            throw new NotFoundException("Destination Container: " + generateAssetDTO.getDestinationContainer());
+        }
+
+        if (!azureFinalStorageService.doesBlobExist(generateAssetDTO.getSourceContainer(),
+                                                    generateAssetDTO.getTempAsset())) {
+            throw new NotFoundException("Source Blob: " + generateAssetDTO.getTempAsset());
+        }
+
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             return ResponseEntity.ok(result);
