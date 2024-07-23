@@ -1,15 +1,26 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -70,10 +81,10 @@ public class CleanupLiveEventsTest {
         when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
     }
 
-    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     @DisplayName("Test CleanupLiveEvents run method")
     @Test
-    public void testRun() throws InterruptedException {
+    @SuppressWarnings({"checkstyle:VariableDeclarationUsageDistance", "unchecked", "checkstyle:LineLength"})
+    public void testRun() throws InterruptedException, JsonProcessingException {
 
         var captureSessionId = UUID.randomUUID();
         var liveEventDTO = new LiveEventDTO();
@@ -85,8 +96,11 @@ public class CleanupLiveEventsTest {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.getLiveEvents()).thenReturn(liveEventDTOList);
 
+        var bookingId = UUID.randomUUID();
+
         var mockCaptureSession = new CaptureSessionDTO();
         mockCaptureSession.setId(captureSessionId);
+        mockCaptureSession.setBookingId(bookingId);
 
         var mockRecording = new RecordingDTO();
         mockRecording.setId(UUID.randomUUID());
@@ -94,12 +108,42 @@ public class CleanupLiveEventsTest {
         var mockRecording2 = new RecordingDTO();
         mockRecording2.setId(UUID.randomUUID());
 
+        var mockBaseUser = new BaseUserDTO();
+        mockBaseUser.setId(UUID.randomUUID());
+        mockBaseUser.setFirstName("Foo");
+        mockBaseUser.setEmail("foo@bar.org");
+
+        var mockUser = new UserDTO();
+        mockUser.setId(UUID.randomUUID());
+        mockUser.setFirstName("Foo");
+        mockUser.setEmail("foo@bar.org");
+
+        var mockShareBooking = new ShareBookingDTO();
+        mockShareBooking.setId(UUID.randomUUID());
+        mockShareBooking.setSharedWithUser(mockBaseUser);
+
+        var mockCourt = new CourtDTO();
+        mockCourt.setName("Test Court");
+
+        var mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setReference("123456");
+        mockCaseDTO.setCourt(mockCourt);
+
+        var mockBooking = new BookingDTO();
+        mockBooking.setId(bookingId);
+        mockBooking.setShares(List.of(
+            mockShareBooking
+        ));
+        mockBooking.setCaseDTO(mockCaseDTO);
+
         when(captureSessionService.findByLiveEventId(liveEventDTO.getName())).thenReturn(mockCaptureSession);
         when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
             .thenReturn(new PageImpl<>(List.of(mockRecording, mockRecording2)));
 
         var mockCaptureSessionProcessing = mockCaptureSession;
         mockCaptureSessionProcessing.setStatus(RecordingStatus.PROCESSING);
+        var mockCaptureSessionRecordingAvailable = mockCaptureSession;
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         when(captureSessionService.stopCaptureSession(captureSessionId,
                                                       RecordingStatus.PROCESSING,
                                                       mockRecording.getId()))
@@ -108,6 +152,13 @@ public class CleanupLiveEventsTest {
                                                       RecordingStatus.PROCESSING,
                                                       mockRecording2.getId()))
             .thenReturn(mockCaptureSessionProcessing);
+
+        when(captureSessionService.findByLiveEventId(liveEventDTO.getId()))
+            .thenReturn(mockCaptureSessionRecordingAvailable);
+
+        when(bookingService.findById(mockCaptureSessionRecordingAvailable.getBookingId())).thenReturn(mockBooking);
+
+        when(userService.findById(mockShareBooking.getSharedWithUser().getId())).thenReturn(mockUser);
 
         CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
                                                                     captureSessionService,
@@ -124,6 +175,19 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(1)).getLiveEvents();
         verify(mediaService, times(1)).stopLiveEvent(mockCaptureSession, mockRecording.getId());
         verify(mediaService, times(1)).stopLiveEvent(mockCaptureSession, mockRecording2.getId());
+
+        Class<ArrayList<StoppedLiveEventsNotificationDTO>> listClass =
+            (Class<ArrayList<StoppedLiveEventsNotificationDTO>>)(Class)ArrayList.class;
+        ArgumentCaptor<ArrayList<StoppedLiveEventsNotificationDTO>> captor = ArgumentCaptor.forClass(listClass);
+
+        verify(flowHttpClient, times(1)).emailAfterStoppingLiveEvents(captor.capture());
+
+        Assertions.assertEquals(mockUser.getFirstName(), captor.getValue().getFirst().getFirstName());
+
+        var om = new ObjectMapper();
+        Assertions.assertEquals(
+            "[{\"email\":\"foo@bar.org\",\"first_name\":\"Foo\",\"case_reference\":\"123456\",\"court_name\":\"Test Court\"}]",
+            om.writeValueAsString(captor.getValue()));
     }
 
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")

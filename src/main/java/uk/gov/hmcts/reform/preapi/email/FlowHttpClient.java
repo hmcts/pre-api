@@ -11,7 +11,7 @@ import java.util.List;
 @FeignClient(name = "flowHttpClient", url = "${flow.api}", configuration = FlowHttpClientConfiguration.class)
 public interface FlowHttpClient {
 
-    @PostMapping("/workflows/3497b00b2e404a54bc53604aea1deaae/triggers/manual/paths/invoke")
+    @PostMapping("/workflows/${flow.workflow}/triggers/manual/paths/invoke")
     void emailAfterStoppingLiveEvents(
         @RequestBody List<StoppedLiveEventsNotificationDTO> stoppedLiveEventsNotification
     );
