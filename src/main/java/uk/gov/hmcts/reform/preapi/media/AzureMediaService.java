@@ -219,6 +219,7 @@ public class AzureMediaService implements IMediaService {
                                                     accountName,
                                                     sanitisedLiveEventId,
                                                     streamingLocatorProperties);
+
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
                 Logger.getAnonymousLogger().info("Streaming locator already exists");
