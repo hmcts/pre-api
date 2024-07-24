@@ -26,7 +26,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -330,6 +329,34 @@ public class MediaKind implements IMediaService {
         mediaKindClient.deleteStreamingLocator(captureSessionNoHyphen);
 
         return status;
+    }
+
+    @Override
+    public void deleteAllStreamingLocators() {
+
+        getAllMkList(mediaKindClient::getStreamingLocators)
+            .map(MkStreamingLocator::getName)
+            .forEach(locatorName -> {
+                try {
+                    mediaKindClient.deleteStreamingLocator(locatorName);
+                } catch (Exception e) {
+                    log.error("Error deleting streaming locator: {}", e.getMessage());
+                }
+            });
+
+        deleteAllContentKeyPolicies();
+    }
+
+    private void deleteAllContentKeyPolicies() {
+        getAllMkList(mediaKindClient::getContentKeyPolicies)
+            .map(MkContentKeyPolicy::getName)
+            .forEach(policyName -> {
+                try {
+                    mediaKindClient.deleteContentKeyPolicy(policyName);
+                } catch (Exception e) {
+                    log.error("Error deleting content key policy: {}", e.getMessage());
+                }
+            });
     }
 
     @Override

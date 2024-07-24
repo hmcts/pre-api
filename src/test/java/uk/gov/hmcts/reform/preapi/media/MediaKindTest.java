@@ -44,6 +44,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -1185,5 +1186,47 @@ public class MediaKindTest {
         verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+    }
+
+    @DisplayName("Should Delete all streaming locators and Content Key Policies")
+    @Test
+    void testDeleteAllStreamingLocators() {
+
+        var locators = List.of(
+            MkStreamingLocator.builder().name("locator1").build(),
+            MkStreamingLocator.builder().name("locator2").build(),
+            MkStreamingLocator.builder().name("locator3").build()
+        );
+
+        var contentKeyPolicies = List.of(
+            MkContentKeyPolicy.builder().name("policy1").build(),
+            MkContentKeyPolicy.builder().name("policy2").build(),
+            MkContentKeyPolicy.builder().name("policy3").build()
+        );
+
+        when(mockClient.getStreamingLocators(0)).thenReturn(MkGetListResponse.<MkStreamingLocator>builder()
+                                                                                 .value(locators)
+                                                                                 .build()
+        );
+
+        // prove it continues to delete remaining locators even if one fails
+        doThrow(new RuntimeException("An error"))
+            .when(mockClient).deleteStreamingLocator("locator2");
+
+
+        when(mockClient.getContentKeyPolicies(0)).thenReturn(MkGetListResponse.<MkContentKeyPolicy>builder()
+                                                                                  .value(contentKeyPolicies)
+                                                                                  .build());
+
+        // prove it continues to delete remaining policies even if one fails
+        doThrow(new RuntimeException("An error"))
+            .when(mockClient).deleteContentKeyPolicy("policy2");
+
+        mediaKind.deleteAllStreamingLocators();
+
+        verify(mockClient, times(1)).getStreamingLocators(anyInt());
+        verify(mockClient, times(3)).deleteStreamingLocator(anyString());
+        verify(mockClient, times(1)).getContentKeyPolicies(anyInt());
+        verify(mockClient, times(3)).deleteContentKeyPolicy(anyString());
     }
 }

@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import com.azure.core.http.HttpResponse;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
@@ -15,6 +16,7 @@ import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseIn
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.StreamingLocatorInner;
 import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
@@ -1242,6 +1244,28 @@ public class AzureMediaServiceTest {
         verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
         verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
         verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
+    }
+
+    @DisplayName("Should delete all streaming locators")
+    @Test
+    @SuppressWarnings("unchecked")
+    void testDeleteAllStreamingLocators() {
+        var streamingLocatorClient = mockStreamingLocatorClient();
+
+        PagedIterable<StreamingLocatorInner> pagedIterable = mock(PagedIterable.class);
+
+        var streamingLocators = Stream.of(
+            new StreamingLocatorInner().withAssetName("asset1"),
+            new StreamingLocatorInner().withAssetName("asset2"),
+            new StreamingLocatorInner().withAssetName("asset3")
+        );
+        when(streamingLocatorClient.list(resourceGroup, accountName))
+            .thenReturn(pagedIterable);
+        when(pagedIterable.forEach()).thenReturn(streamingLocators.iterator());
+
+        mediaService.deleteAllStreamingLocators();
+
+        verify(streamingLocatorClient, times(3)).delete("asset1", "asset2", "asset3");
     }
 
     private LiveEventsClient mockLiveEventClient() {
