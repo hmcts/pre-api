@@ -26,7 +26,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -399,6 +398,7 @@ public class MediaKind implements IMediaService {
     private String encodeToMp4(String inputAssetName, String outputAssetName) {
         assertEncodeToMp4TransformExists();
         var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        log.info("Creating job [{}]", jobName);
         mediaKindClient.putJob(
             ENCODE_TO_MP4_TRANSFORM,
             jobName,
@@ -412,11 +412,12 @@ public class MediaKind implements IMediaService {
                                                      .withAssetName(outputAssetName)))
                                 .build())
                 .build());
-
+        log.info("Job [{}] created", jobName);
         return jobName;
     }
 
     private JobState waitEncodeComplete(String jobName) throws InterruptedException {
+        log.info("Waiting for job [{}] to complete", jobName);
         MkJob job = null;
         do {
             if (job != null) {
@@ -426,7 +427,6 @@ public class MediaKind implements IMediaService {
         } while (!job.getProperties().getState().equals(JobState.FINISHED)
             && !job.getProperties().getState().equals(JobState.ERROR)
             && !job.getProperties().getState().equals(JobState.CANCELED));
-
         return job.getProperties().getState();
     }
 
@@ -487,6 +487,7 @@ public class MediaKind implements IMediaService {
                              String containerName,
                              boolean isFinal) {
         try {
+            log.info("Creating asset: {} ({})", assetName, description);
             mediaKindClient.putAsset(
                 assetName,
                 MkAsset.builder()

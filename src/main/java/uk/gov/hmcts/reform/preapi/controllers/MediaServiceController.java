@@ -323,6 +323,7 @@ public class MediaServiceController extends PreApiController {
         @Parameter(hidden = true) String code,
         @RequestBody @Valid GenerateAssetDTO generateAssetDTO
     ) throws InterruptedException {
+        log.info("Attempting to generate asset: " + generateAssetDTO);
         if (!legacyAzureFunctionKey.equals(code)) {
             throw new ForbiddenException("Invalid code parameter provided");
         }
