@@ -40,8 +40,10 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -1252,20 +1254,33 @@ public class AzureMediaServiceTest {
     void testDeleteAllStreamingLocators() {
         var streamingLocatorClient = mockStreamingLocatorClient();
 
-        PagedIterable<StreamingLocatorInner> pagedIterable = mock(PagedIterable.class);
+        var mockIterable = mock(PagedIterable.class);
+        var mockIterator = mock(Iterator.class);
 
-        var streamingLocators = Stream.of(
-            new StreamingLocatorInner().withAssetName("asset1"),
-            new StreamingLocatorInner().withAssetName("asset2"),
-            new StreamingLocatorInner().withAssetName("asset3")
-        );
         when(streamingLocatorClient.list(resourceGroup, accountName))
-            .thenReturn(pagedIterable);
-        when(pagedIterable.forEach()).thenReturn(streamingLocators.iterator());
+            .thenReturn(mockIterable);
+
+        Mockito.doCallRealMethod().when(mockIterable).forEach(any(Consumer.class));
+
+        when(mockIterable.iterator()).thenReturn(mockIterator);
+
+        var sli1 = mock(StreamingLocatorInner.class);
+        when(sli1.name()).thenReturn("asset1");
+        var sli2 = mock(StreamingLocatorInner.class);
+        when(sli2.name()).thenReturn("asset2");
+        var sli3 = mock(StreamingLocatorInner.class);
+        when(sli3.name()).thenReturn("asset3");
+
+        when(mockIterator.hasNext()).thenReturn(true, true, true, false);
+        when(mockIterator.next()).thenReturn(sli1, sli2, sli3);
 
         mediaService.deleteAllStreamingLocators();
 
-        verify(streamingLocatorClient, times(3)).delete("asset1", "asset2", "asset3");
+        verify(streamingLocatorClient, times(1)).list(resourceGroup, accountName);
+
+        verify(streamingLocatorClient, times(1)).delete(resourceGroup, accountName, "asset1");
+        verify(streamingLocatorClient, times(1)).delete(resourceGroup, accountName, "asset2");
+        verify(streamingLocatorClient, times(1)).delete(resourceGroup, accountName, "asset3");
     }
 
     private LiveEventsClient mockLiveEventClient() {
