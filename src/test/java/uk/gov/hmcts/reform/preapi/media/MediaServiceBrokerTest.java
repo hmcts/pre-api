@@ -48,4 +48,54 @@ public class MediaServiceBrokerTest {
 
         assertThat(ex.getMessage()).isEqualTo("Unknown media service: foobar");
     }
+
+    @DisplayName("Should select MK as the media service when overridden")
+    @Test
+    void getMKMediaServiceSuccessOverride() {
+
+        var broker = new MediaServiceBroker(MediaServiceBroker.MEDIA_SERVICE_MK,
+                                            mediaKind,
+                                            azureMediaService);
+
+        assertThat(broker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_MK)).isEqualTo(mediaKind);
+    }
+
+    @DisplayName("Should select AMS as the media service when overridden")
+    @Test
+    void getAMSMediaServiceSuccessOverride() {
+
+        var broker = new MediaServiceBroker(MediaServiceBroker.MEDIA_SERVICE_AMS,
+                                            mediaKind,
+                                            azureMediaService);
+
+        assertThat(broker.getEnabledMediaService(MediaServiceBroker.MEDIA_SERVICE_AMS)).isEqualTo(azureMediaService);
+    }
+
+    @DisplayName("Should return default when override value is null")
+    @Test
+    void getMediaServiceOverrideNull() {
+        var broker = new MediaServiceBroker(MediaServiceBroker.MEDIA_SERVICE_AMS,
+                                            mediaKind,
+                                            azureMediaService);
+        assertThat(broker.getEnabledMediaService(null)).isEqualTo(azureMediaService);
+
+        var broker2 = new MediaServiceBroker(MediaServiceBroker.MEDIA_SERVICE_MK,
+                                            mediaKind,
+                                            azureMediaService);
+        assertThat(broker2.getEnabledMediaService(null)).isEqualTo(mediaKind);
+    }
+
+    @DisplayName("Should throw exception with no media service when overridden")
+    @Test
+    void unknownMediaServiceOverride() {
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () -> {
+            var broker = new MediaServiceBroker(MediaServiceBroker.MEDIA_SERVICE_AMS,
+                                                mediaKind,
+                                                azureMediaService);
+            broker.getEnabledMediaService("foobar");
+        });
+
+        assertThat(ex.getMessage()).isEqualTo("Unknown media service: foobar");
+    }
 }

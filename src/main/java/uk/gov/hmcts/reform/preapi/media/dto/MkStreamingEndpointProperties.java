@@ -20,6 +20,7 @@ public class MkStreamingEndpointProperties {
     private ResourceState resourceState;
     private long scaleUnits;
     private MkStreamingEndpointSku sku;
+    private String hostName;
 
     public enum CdnProviderEnum {
         EMPTY(""),
