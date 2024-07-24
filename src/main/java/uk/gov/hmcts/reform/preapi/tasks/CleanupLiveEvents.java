@@ -88,40 +88,52 @@ public class CleanupLiveEvents implements Runnable {
         // Find all Live events currently running and stop and delete them along with their streaming endpoints and
         // locators
         var liveEvents = mediaService.getLiveEvents();
-        liveEvents.stream()
-                  .filter(liveEventDTO -> liveEventDTO
+        try {
+            liveEvents.stream()
+                      .filter(liveEventDTO -> liveEventDTO
                           .getResourceState().equals(LiveEventResourceState.RUNNING.toString())
-                  )
-                  .forEach(liveEventDTO -> {
-                      log.info("Finding capture session by live event id {}", liveEventDTO.getName());
-                      try {
-                          var captureSession = captureSessionService.findByLiveEventId(liveEventDTO.getName());
-                          var search = new SearchRecordings();
-                          log.info("Finding recordings by capture session {}", captureSession.getId());
-                          search.setCaptureSessionId(captureSession.getId());
-                          var recordings = recordingService.findAll(search, false, Pageable.unpaged());
+                      )
+                      .forEach(liveEventDTO -> {
+                          log.info("Finding capture session by live event id {}", liveEventDTO.getName());
+                          try {
+                              var captureSession = captureSessionService.findByLiveEventId(liveEventDTO.getName());
+                              var search = new SearchRecordings();
+                              log.info("Finding recordings by capture session {}", captureSession.getId());
+                              search.setCaptureSessionId(captureSession.getId());
+                              var recordings = recordingService.findAll(search, false, Pageable.unpaged());
 
-                          if (recordings.isEmpty()) {
-                              log.info("No recordings found for capture session {}", captureSession.getId());
-                              stopLiveEvent(mediaService, captureSession, UUID.randomUUID(), liveEventDTO.getName());
-                          } else {
-                              recordings.forEach(recording -> {
-                                  log.info("{} recordings found for capture session {}",
-                                           recordings.getSize(),
-                                           captureSession.getId());
-                                  stopLiveEvent(mediaService,
-                                                captureSession,
-                                                recording.getId(),
-                                                liveEventDTO.getName());
-                              });
+                              if (recordings.isEmpty()) {
+                                  log.info("No recordings found for capture session {}", captureSession.getId());
+                                  stopLiveEvent(
+                                      mediaService,
+                                      captureSession,
+                                      UUID.randomUUID(),
+                                      liveEventDTO.getName()
+                                  );
+                              } else {
+                                  recordings.forEach(recording -> {
+                                      log.info(
+                                          "{} recordings found for capture session {}",
+                                          recordings.getSize(),
+                                          captureSession.getId()
+                                      );
+                                      stopLiveEvent(
+                                          mediaService,
+                                          captureSession,
+                                          recording.getId(),
+                                          liveEventDTO.getName()
+                                      );
+                                  });
+                              }
+                          } catch (Exception e) {
+                              log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                           }
-                      } catch (Exception e) {
-                          log.error("Error stopping live event {}", liveEventDTO.getName(), e);
-                      }
-                  });
+                      });
+        } catch (Exception ex) {
+            log.error("Unexpected error occurred when trying to stop live events", ex);
+        }
 
         notifyUsers(liveEvents);
-
 
         log.info("Completed CleanupLiveEvents task");
     }
