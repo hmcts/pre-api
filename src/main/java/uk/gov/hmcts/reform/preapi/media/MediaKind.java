@@ -316,7 +316,8 @@ public class MediaKind implements IMediaService {
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
         encodeFromIngest(captureSessionNoHyphen, recordingAssetName);
-        waitEncodeComplete(captureSessionNoHyphen, ENCODE_FROM_INGEST_TRANSFORM);
+        waitEncodeComplete(captureSessionNoHyphen, ENCODE_FROM_INGEST_TRANSFORM
+        );
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;

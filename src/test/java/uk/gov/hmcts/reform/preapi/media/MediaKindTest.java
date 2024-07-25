@@ -618,7 +618,7 @@ public class MediaKindTest {
     void importAssetSuccess() throws InterruptedException {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), any())).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
 
@@ -672,7 +672,7 @@ public class MediaKindTest {
     void importAssetJobFailed() throws InterruptedException {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), any())).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.ERROR);
 
