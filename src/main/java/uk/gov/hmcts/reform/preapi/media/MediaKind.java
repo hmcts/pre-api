@@ -243,7 +243,7 @@ public class MediaKind implements IMediaService {
 
         var jobName = encodeFromMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
 
-        var jobState = waitEncodeComplete(jobName);
+        var jobState = waitEncodeComplete(jobName, ENCODE_FROM_MP4_TRANSFORM);
 
         return new GenerateAssetResponseDTO(
             generateAssetDTO.getFinalAsset(),
@@ -316,7 +316,7 @@ public class MediaKind implements IMediaService {
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
         encodeFromIngest(captureSessionNoHyphen, recordingAssetName);
-        waitEncodeComplete(captureSessionNoHyphen);
+        waitEncodeComplete(captureSessionNoHyphen, ENCODE_FROM_INGEST_TRANSFORM);
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
@@ -439,14 +439,14 @@ public class MediaKind implements IMediaService {
         return jobName;
     }
 
-    private JobState waitEncodeComplete(String jobName) throws InterruptedException {
+    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
         log.info("Waiting for job [{}] to complete", jobName);
         MkJob job = null;
         do {
             if (job != null) {
                 TimeUnit.MILLISECONDS.sleep(10000);
             }
-            job = mediaKindClient.getJob(ENCODE_FROM_INGEST_TRANSFORM, jobName);
+            job = mediaKindClient.getJob(transformName, jobName);
         } while (!job.getProperties().getState().equals(JobState.FINISHED)
             && !job.getProperties().getState().equals(JobState.ERROR)
             && !job.getProperties().getState().equals(JobState.CANCELED));
