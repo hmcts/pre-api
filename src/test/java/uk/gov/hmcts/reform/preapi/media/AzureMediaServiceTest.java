@@ -11,6 +11,7 @@ import com.azure.resourcemanager.mediaservices.fluent.LiveEventsClient;
 import com.azure.resourcemanager.mediaservices.fluent.LiveOutputsClient;
 import com.azure.resourcemanager.mediaservices.fluent.StreamingEndpointsClient;
 import com.azure.resourcemanager.mediaservices.fluent.StreamingLocatorsClient;
+import com.azure.resourcemanager.mediaservices.fluent.StreamingPoliciesClient;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.ContentKeyPolicyInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.JobInner;
@@ -19,12 +20,14 @@ import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingLocatorInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.StreamingPolicyInner;
 import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import com.azure.resourcemanager.mediaservices.models.StreamingEndpointResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,21 +64,22 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AzureMediaService.class)
 public class AzureMediaServiceTest {
-    @MockBean
-    private AzureMediaServices amsClient;
-
-    @MockBean
-    private AzureFinalStorageService azureFinalStorageService;
-
     private final String resourceGroup = "test-resource-group";
     private final String accountName = "test-account-name";
     private final String ingestSa = "test-ingest-sa";
     private final String finalSa = "test-final-sa";
     private final String env = "test-env";
+    private final String issuer = "test-issuer";
+    private final String symmetricKey = "abc";
 
     private AzureMediaService mediaService;
-
     private CaptureSessionDTO captureSession;
+
+    @MockBean
+    private AzureMediaServices amsClient;
+
+    @MockBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     @BeforeEach
     void setUp() {
@@ -85,6 +89,8 @@ public class AzureMediaServiceTest {
             ingestSa,
             finalSa,
             env,
+            issuer,
+            symmetricKey,
             amsClient,
             azureFinalStorageService
         );
@@ -176,15 +182,6 @@ public class AzureMediaServiceTest {
         assertThat(models.getFirst().getStorageAccountName()).isEqualTo("storage-account-name");
     }
 
-    @DisplayName("Should throw Unsupported Operation Exception when method is not defined")
-    @Test
-    void unsupportedOperationException() {
-        assertThrows(
-            UnsupportedOperationException.class,
-            () -> mediaService.playAsset("test-asset-name", "test-user-id")
-        );
-    }
-
     @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
     @Test
     void importAssetSuccess() throws InterruptedException {
@@ -198,11 +195,13 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
-        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
-                                                     "my-destination-container",
-                                                     "tmp-asset",
-                                                     "final-asset",
-                                                     "unit test import asset");
+        var generateAssetDTO = new GenerateAssetDTO(
+            "my-source-container",
+            "my-destination-container",
+            "tmp-asset",
+            "final-asset",
+            "unit test import asset"
+        );
 
         var result = mediaService.importAsset(generateAssetDTO);
 
@@ -211,20 +210,24 @@ public class AzureMediaServiceTest {
         var sourceContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
 
         verify(mockAssetsClient, times(1))
-                                   .createOrUpdate(eq(resourceGroup),
-                                                   eq(accountName),
-                                                   eq(generateAssetDTO.getTempAsset()),
-                                                   sourceContainerArgument.capture());
+            .createOrUpdate(
+                eq(resourceGroup),
+                eq(accountName),
+                eq(generateAssetDTO.getTempAsset()),
+                sourceContainerArgument.capture()
+            );
 
         assertThat(sourceContainerArgument.getValue().container()).isEqualTo(generateAssetDTO.getSourceContainer());
 
         var destinationContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
 
         verify(mockAssetsClient, times(1))
-                                   .createOrUpdate(eq(resourceGroup),
-                                                   eq(accountName),
-                                                   eq(generateAssetDTO.getFinalAsset()),
-                                                   destinationContainerArgument.capture());
+            .createOrUpdate(
+                eq(resourceGroup),
+                eq(accountName),
+                eq(generateAssetDTO.getFinalAsset()),
+                destinationContainerArgument.capture()
+            );
 
         assertThat(destinationContainerArgument.getValue().container())
             .isEqualTo(generateAssetDTO.getDestinationContainer());
@@ -262,11 +265,13 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
-        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
-                                                     "my-destination-container",
-                                                     "tmp-asset",
-                                                     "final-asset",
-                                                     "unit test import asset");
+        var generateAssetDTO = new GenerateAssetDTO(
+            "my-source-container",
+            "my-destination-container",
+            "tmp-asset",
+            "final-asset",
+            "unit test import asset"
+        );
 
         var result = mediaService.importAsset(generateAssetDTO);
 
@@ -275,20 +280,24 @@ public class AzureMediaServiceTest {
         var sourceContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
 
         verify(mockAssetsClient, times(1))
-            .createOrUpdate(eq(resourceGroup),
-                            eq(accountName),
-                            eq(generateAssetDTO.getTempAsset()),
-                            sourceContainerArgument.capture());
+            .createOrUpdate(
+                eq(resourceGroup),
+                eq(accountName),
+                eq(generateAssetDTO.getTempAsset()),
+                sourceContainerArgument.capture()
+            );
 
         assertThat(sourceContainerArgument.getValue().container()).isEqualTo(generateAssetDTO.getSourceContainer());
 
         var destinationContainerArgument = ArgumentCaptor.forClass(AssetInner.class);
 
         verify(mockAssetsClient, times(1))
-            .createOrUpdate(eq(resourceGroup),
-                            eq(accountName),
-                            eq(generateAssetDTO.getFinalAsset()),
-                            destinationContainerArgument.capture());
+            .createOrUpdate(
+                eq(resourceGroup),
+                eq(accountName),
+                eq(generateAssetDTO.getFinalAsset()),
+                destinationContainerArgument.capture()
+            );
 
         assertThat(destinationContainerArgument.getValue().container())
             .isEqualTo(generateAssetDTO.getDestinationContainer());
@@ -428,10 +437,12 @@ public class AzureMediaServiceTest {
         var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
 
         when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
+                 .create(
+                     eq(resourceGroup),
+                     eq(accountName),
+                     eq("c154d36ecab44aaaa4c711d"),
+                     any(StreamingEndpointInner.class)
+                 )
         ).thenReturn(mockStreamingEndpointInner);
 
         var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
@@ -450,13 +461,15 @@ public class AzureMediaServiceTest {
         assertThat(response).isEqualTo("https://pre-example.com/path1");
 
         Mockito.verify(mockStreamingEndpointsClient, Mockito.times(1))
-               .start(resourceGroup, accountName, shortenedLiveEventId);
+            .start(resourceGroup, accountName, shortenedLiveEventId);
 
         Mockito.verify(mockStreamingLocatorsClient, Mockito.times(1))
-               .create(eq(resourceGroup),
-                       eq(accountName),
-                       eq(sanitisedLiveEventId),
-                       any());
+            .create(
+                eq(resourceGroup),
+                eq(accountName),
+                eq(sanitisedLiveEventId),
+                any()
+            );
     }
 
     @DisplayName("Should complete play live event successfully, all required resources already exist")
@@ -482,10 +495,12 @@ public class AzureMediaServiceTest {
         when(mockHttpResponse.getStatusCode()).thenReturn(409);
 
         when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
+                 .create(
+                     eq(resourceGroup),
+                     eq(accountName),
+                     eq("c154d36ecab44aaaa4c711d"),
+                     any(StreamingEndpointInner.class)
+                 )
         ).thenThrow(new ManagementException("Already exists", mockHttpResponse));
 
         when(mockStreamingEndpointsClient.get(resourceGroup, accountName, shortenedLiveEventId))
@@ -583,10 +598,12 @@ public class AzureMediaServiceTest {
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
 
         when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
+                 .create(
+                     eq(resourceGroup),
+                     eq(accountName),
+                     eq("c154d36ecab44aaaa4c711d"),
+                     any(StreamingEndpointInner.class)
+                 )
         ).thenThrow(new ManagementException("bad request", mock(HttpResponse.class)));
 
         assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
@@ -611,10 +628,12 @@ public class AzureMediaServiceTest {
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
 
         when(mockStreamingEndpointsClient
-                 .create(eq(resourceGroup),
-                         eq(accountName),
-                         eq("c154d36ecab44aaaa4c711d"),
-                         any(StreamingEndpointInner.class))
+                 .create(
+                     eq(resourceGroup),
+                     eq(accountName),
+                     eq("c154d36ecab44aaaa4c711d"),
+                     any(StreamingEndpointInner.class)
+                 )
         ).thenReturn(mockStreamingEndpointInner);
 
         var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
@@ -1150,7 +1169,7 @@ public class AzureMediaServiceTest {
     @DisplayName("Should throw error when error occurs deleting streaming locator")
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     @Test
-    void stopLiveEventStreamingLocatorError()  {
+    void stopLiveEventStreamingLocatorError() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var assetsClient = mockAssetsClient();
@@ -1319,6 +1338,328 @@ public class AzureMediaServiceTest {
         verify(contentKeyPolicyClient, times(1)).delete(resourceGroup, accountName, "policy3");
     }
 
+    @DisplayName("Should return playback details for asset")
+    @Test
+    void playAssetSuccess() {
+        var assetName = "example-asset_output";
+        var userId = UUID.randomUUID().toString();
+        var assetClient = mockAssetsClient();
+        var contentKeyPolicyClient = mockContentKeyPoliciesClient();
+        var streamingPolicyClient = mockStreamingPoliciesClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+
+        when(assetClient.get(resourceGroup, accountName, assetName))
+            .thenReturn(mock(AssetInner.class));
+        when(contentKeyPolicyClient.get(resourceGroup, accountName, userId))
+            .thenReturn(mock(ContentKeyPolicyInner.class));
+        when(streamingPolicyClient.get(resourceGroup, accountName, "Predefined_ClearKey"))
+            .thenReturn(mock(StreamingPolicyInner.class));
+        when(streamingLocatorClient.create(
+                 eq(resourceGroup),
+                 eq(accountName),
+                 eq("Predefined_ClearKey"),
+                 any(StreamingLocatorInner.class)
+             )
+        ).thenReturn(mock(StreamingLocatorInner.class));
+        var mockEndpoint = mock(StreamingEndpointInner.class);
+        when(streamingEndpointClient.get(resourceGroup, accountName, "default"))
+            .thenReturn(mockEndpoint);
+        when(mockEndpoint.resourceState()).thenReturn(StreamingEndpointResourceState.RUNNING);
+        when(mockEndpoint.hostname()).thenReturn("example.com");
+        var streamingPaths = List.of(
+            new StreamingPath()
+                .withPaths(List.of("/example.ism"))
+        );
+        when(streamingLocatorClient.listPaths(resourceGroup, accountName, userId))
+            .thenReturn(new ListPathsResponseInner().withStreamingPaths(streamingPaths));
+
+        var response = mediaService.playAsset(assetName, userId);
+
+        assertThat(response.getDashUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getHlsUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getLicenseUrl()).isNull();
+        assertThat(response.getToken()).isNotNull();
+
+        verify(assetClient, times(1)).get(resourceGroup, accountName, assetName);
+        verify(contentKeyPolicyClient, times(1)).get(resourceGroup, accountName, userId);
+        verify(streamingPolicyClient, times(1)).get(resourceGroup, accountName, "Predefined_ClearKey");
+        verify(streamingLocatorClient, times(1))
+            .create(eq(resourceGroup), eq(accountName), eq(userId), any(StreamingLocatorInner.class));
+        verify(streamingEndpointClient, times(1)).get(resourceGroup, accountName, "default");
+        verify(streamingLocatorClient, times(1)).listPaths(resourceGroup, accountName, userId);
+    }
+
+    @DisplayName("Should throw not found when asset does not exist")
+    @Test
+    void playAssetAssetNotFound() {
+        var assetName = "example-asset_output";
+        var userId = UUID.randomUUID().toString();
+        var assetClient = mockAssetsClient();
+
+        var amsError = mockAmsError(404);
+        ;
+        doThrow(amsError).when(assetClient).get(resourceGroup, accountName, assetName);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> mediaService.playAsset(assetName, userId)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Asset with name: " + assetName);
+
+        verify(assetClient, times(1)).get(resourceGroup, accountName, assetName);
+    }
+
+    @DisplayName("Should create new content key policy if one doesn't exist and the return playback data")
+    @Test
+    void playAssetSuccessWhenContentKeyPolicyDoesNotExist() {
+        var assetName = "example-asset_output";
+        var userId = UUID.randomUUID().toString();
+        var assetClient = mockAssetsClient();
+        var contentKeyPolicyClient = mockContentKeyPoliciesClient();
+        var streamingPolicyClient = mockStreamingPoliciesClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+
+        when(assetClient.get(resourceGroup, accountName, assetName))
+            .thenReturn(mock(AssetInner.class));
+        var amsError = mockAmsError(404);
+        doThrow(amsError).when(contentKeyPolicyClient).get(resourceGroup, accountName, userId);
+        when(streamingLocatorClient.create(
+                 eq(resourceGroup),
+                 eq(accountName),
+                 eq("Predefined_ClearKey"),
+                 any(StreamingLocatorInner.class)
+             )
+        ).thenReturn(mock(StreamingLocatorInner.class));
+        var mockEndpoint = mock(StreamingEndpointInner.class);
+        when(streamingEndpointClient.get(resourceGroup, accountName, "default"))
+            .thenReturn(mockEndpoint);
+        when(mockEndpoint.resourceState()).thenReturn(StreamingEndpointResourceState.RUNNING);
+        when(mockEndpoint.hostname()).thenReturn("example.com");
+        var streamingPaths = List.of(
+            new StreamingPath()
+                .withPaths(List.of("/example.ism"))
+        );
+        when(streamingLocatorClient.listPaths(resourceGroup, accountName, userId))
+            .thenReturn(new ListPathsResponseInner().withStreamingPaths(streamingPaths));
+
+        var response = mediaService.playAsset(assetName, userId);
+
+        assertThat(response.getDashUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getHlsUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getLicenseUrl()).isNull();
+        assertThat(response.getToken()).isNotNull();
+
+        verify(assetClient, times(1)).get(resourceGroup, accountName, assetName);
+        verify(contentKeyPolicyClient, times(1)).get(resourceGroup, accountName, userId);
+        verify(contentKeyPolicyClient, times(1))
+            .createOrUpdate(eq(resourceGroup), eq(accountName), eq(userId), any(ContentKeyPolicyInner.class));
+        verify(streamingPolicyClient, times(1)).get(resourceGroup, accountName, "Predefined_ClearKey");
+        verify(streamingLocatorClient, times(1))
+            .create(eq(resourceGroup), eq(accountName), eq(userId), any(StreamingLocatorInner.class));
+        verify(streamingEndpointClient, times(1)).get(resourceGroup, accountName, "default");
+        verify(streamingLocatorClient, times(1)).listPaths(resourceGroup, accountName, userId);
+    }
+
+    @DisplayName("Should return playback details for asset when streaming policy does not exist")
+    @Test
+    void playAssetSuccessWhenStreamingPolicyDoesNotExist() {
+        var assetName = "example-asset_output";
+        var userId = UUID.randomUUID().toString();
+        var assetClient = mockAssetsClient();
+        var contentKeyPolicyClient = mockContentKeyPoliciesClient();
+        var streamingPolicyClient = mockStreamingPoliciesClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+
+        when(assetClient.get(resourceGroup, accountName, assetName))
+            .thenReturn(mock(AssetInner.class));
+        when(contentKeyPolicyClient.get(resourceGroup, accountName, userId))
+            .thenReturn(mock(ContentKeyPolicyInner.class));
+        var amsError = mockAmsError(404);
+        doThrow(amsError).when(streamingPolicyClient).get(resourceGroup, accountName, "Predefined_ClearKey");
+        when(streamingLocatorClient.create(
+                 eq(resourceGroup),
+                 eq(accountName),
+                 eq("Predefined_ClearKey"),
+                 any(StreamingLocatorInner.class)
+             )
+        ).thenReturn(mock(StreamingLocatorInner.class));
+        var mockEndpoint = mock(StreamingEndpointInner.class);
+        when(streamingEndpointClient.get(resourceGroup, accountName, "default"))
+            .thenReturn(mockEndpoint);
+        when(mockEndpoint.resourceState()).thenReturn(StreamingEndpointResourceState.RUNNING);
+        when(mockEndpoint.hostname()).thenReturn("example.com");
+        var streamingPaths = List.of(
+            new StreamingPath()
+                .withPaths(List.of("/example.ism"))
+        );
+        when(streamingLocatorClient.listPaths(resourceGroup, accountName, userId))
+            .thenReturn(new ListPathsResponseInner().withStreamingPaths(streamingPaths));
+
+        var response = mediaService.playAsset(assetName, userId);
+
+        assertThat(response.getDashUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getHlsUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getLicenseUrl()).isNull();
+        assertThat(response.getToken()).isNotNull();
+
+        verify(assetClient, times(1)).get(resourceGroup, accountName, assetName);
+        verify(contentKeyPolicyClient, times(1)).get(resourceGroup, accountName, userId);
+        verify(streamingPolicyClient, times(1)).get(resourceGroup, accountName, "Predefined_ClearKey");
+        verify(streamingPolicyClient, times(1))
+            .create(eq(resourceGroup), eq(accountName), eq("Predefined_ClearKey"), any(StreamingPolicyInner.class));
+        verify(streamingLocatorClient, times(1))
+            .create(eq(resourceGroup), eq(accountName), eq(userId), any(StreamingLocatorInner.class));
+        verify(streamingEndpointClient, times(1)).get(resourceGroup, accountName, "default");
+        verify(streamingLocatorClient, times(1)).listPaths(resourceGroup, accountName, userId);
+    }
+
+    @DisplayName("Should throw error when a non 404 error occurs when deleting streaming locator")
+    @Test
+    void playAssetErrorDeleteStreamingLocator() {
+        var assetName = "example-asset_output";
+        var userId = UUID.randomUUID().toString();
+        var assetClient = mockAssetsClient();
+        var contentKeyPolicyClient = mockContentKeyPoliciesClient();
+        var streamingPolicyClient = mockStreamingPoliciesClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+
+        when(assetClient.get(resourceGroup, accountName, assetName))
+            .thenReturn(mock(AssetInner.class));
+        when(contentKeyPolicyClient.get(resourceGroup, accountName, userId))
+            .thenReturn(mock(ContentKeyPolicyInner.class));
+        when(streamingPolicyClient.get(resourceGroup, accountName, "Predefined_ClearKey"))
+            .thenReturn(mock(StreamingPolicyInner.class));
+        var amsError = mockAmsError(400);
+        doThrow(amsError).when(streamingLocatorClient).delete(any(), any(), any());
+
+        assertThrows(
+            ManagementException.class,
+            () -> mediaService.playAsset(assetName, userId)
+        );
+
+        verify(assetClient, times(1)).get(resourceGroup, accountName, assetName);
+        verify(contentKeyPolicyClient, times(1)).get(resourceGroup, accountName, userId);
+        verify(streamingPolicyClient, times(1)).get(resourceGroup, accountName, "Predefined_ClearKey");
+        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
+    }
+
+    @DisplayName("Should return playback details and start streaming endpoint when not started")
+    @Test
+    void playAssetSuccessWhenStreamingEndpointNotStarted() {
+        var assetName = "example-asset_output";
+        var userId = UUID.randomUUID().toString();
+        var assetClient = mockAssetsClient();
+        var contentKeyPolicyClient = mockContentKeyPoliciesClient();
+        var streamingPolicyClient = mockStreamingPoliciesClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+
+        when(assetClient.get(resourceGroup, accountName, assetName))
+            .thenReturn(mock(AssetInner.class));
+        when(contentKeyPolicyClient.get(resourceGroup, accountName, userId))
+            .thenReturn(mock(ContentKeyPolicyInner.class));
+        when(streamingPolicyClient.get(resourceGroup, accountName, "Predefined_ClearKey"))
+            .thenReturn(mock(StreamingPolicyInner.class));
+        when(streamingLocatorClient.create(
+                 eq(resourceGroup),
+                 eq(accountName),
+                 eq("Predefined_ClearKey"),
+                 any(StreamingLocatorInner.class)
+             )
+        ).thenReturn(mock(StreamingLocatorInner.class));
+        var mockEndpoint = mock(StreamingEndpointInner.class);
+        when(streamingEndpointClient.get(resourceGroup, accountName, "default"))
+            .thenReturn(mockEndpoint);
+        when(mockEndpoint.resourceState()).thenReturn(StreamingEndpointResourceState.STOPPED);
+        when(mockEndpoint.hostname()).thenReturn("example.com");
+        var streamingPaths = List.of(
+            new StreamingPath()
+                .withPaths(List.of("/example.ism"))
+        );
+        when(streamingLocatorClient.listPaths(resourceGroup, accountName, userId))
+            .thenReturn(new ListPathsResponseInner().withStreamingPaths(streamingPaths));
+
+        var response = mediaService.playAsset(assetName, userId);
+
+        assertThat(response.getDashUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getHlsUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getLicenseUrl()).isNull();
+        assertThat(response.getToken()).isNotNull();
+
+        verify(assetClient, times(1)).get(resourceGroup, accountName, assetName);
+        verify(contentKeyPolicyClient, times(1)).get(resourceGroup, accountName, userId);
+        verify(streamingPolicyClient, times(1)).get(resourceGroup, accountName, "Predefined_ClearKey");
+        verify(streamingLocatorClient, times(1))
+            .create(eq(resourceGroup), eq(accountName), eq(userId), any(StreamingLocatorInner.class));
+        verify(streamingEndpointClient, times(2)).get(resourceGroup, accountName, "default");
+        verify(streamingEndpointClient, times(1)).start(resourceGroup, accountName, "default");
+        verify(streamingLocatorClient, times(1)).listPaths(resourceGroup, accountName, userId);
+    }
+
+    @DisplayName("Should return playback details for asset when streaming endpoint does not exist")
+    @Test
+    void playAssetSuccessWhenEndpointDoesNotExist() {
+        var assetName = "example-asset_output";
+        var userId = UUID.randomUUID().toString();
+        var assetClient = mockAssetsClient();
+        var contentKeyPolicyClient = mockContentKeyPoliciesClient();
+        var streamingPolicyClient = mockStreamingPoliciesClient();
+        var streamingLocatorClient = mockStreamingLocatorClient();
+        var streamingEndpointClient = mockStreamingEndpointClient();
+
+        when(assetClient.get(resourceGroup, accountName, assetName))
+            .thenReturn(mock(AssetInner.class));
+        when(contentKeyPolicyClient.get(resourceGroup, accountName, userId))
+            .thenReturn(mock(ContentKeyPolicyInner.class));
+        when(streamingPolicyClient.get(resourceGroup, accountName, "Predefined_ClearKey"))
+            .thenReturn(mock(StreamingPolicyInner.class));
+        when(streamingLocatorClient.create(
+                 eq(resourceGroup),
+                 eq(accountName),
+                 eq("Predefined_ClearKey"),
+                 any(StreamingLocatorInner.class)
+             )
+        ).thenReturn(mock(StreamingLocatorInner.class));
+        var amsError = mockAmsError(404);
+        doThrow(amsError).when(streamingEndpointClient).get(any(), any(), any());
+        var mockEndpoint = mock(StreamingEndpointInner.class);
+        when(streamingEndpointClient.create(
+            eq(resourceGroup),
+            eq(accountName),
+            eq("default"),
+            any(StreamingEndpointInner.class)
+        )).thenReturn(mockEndpoint);
+        when(mockEndpoint.resourceState()).thenReturn(StreamingEndpointResourceState.RUNNING);
+        when(mockEndpoint.hostname()).thenReturn("example.com");
+        var streamingPaths = List.of(
+            new StreamingPath()
+                .withPaths(List.of("/example.ism"))
+        );
+        when(streamingLocatorClient.listPaths(resourceGroup, accountName, userId))
+            .thenReturn(new ListPathsResponseInner().withStreamingPaths(streamingPaths));
+
+        var response = mediaService.playAsset(assetName, userId);
+
+        assertThat(response.getDashUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getHlsUrl()).isEqualTo("https://example.com/example.ism");
+        assertThat(response.getLicenseUrl()).isNull();
+        assertThat(response.getToken()).isNotNull();
+
+        verify(assetClient, times(1)).get(resourceGroup, accountName, assetName);
+        verify(contentKeyPolicyClient, times(1)).get(resourceGroup, accountName, userId);
+        verify(streamingPolicyClient, times(1)).get(resourceGroup, accountName, "Predefined_ClearKey");
+        verify(streamingLocatorClient, times(1))
+            .create(eq(resourceGroup), eq(accountName), eq(userId), any(StreamingLocatorInner.class));
+        verify(streamingEndpointClient, times(1)).get(resourceGroup, accountName, "default");
+        verify(streamingEndpointClient, times(1))
+            .create(eq(resourceGroup), eq(accountName), eq("default"), any(StreamingEndpointInner.class));
+        verify(streamingEndpointClient, times(1)).start(resourceGroup, accountName, "default");
+        verify(streamingLocatorClient, times(1)).listPaths(resourceGroup, accountName, userId);
+    }
+
     private LiveEventsClient mockLiveEventClient() {
         var client = mock(LiveEventsClient.class);
         when(amsClient.getLiveEvents()).thenReturn(client);
@@ -1334,6 +1675,18 @@ public class AzureMediaServiceTest {
     private LiveOutputsClient mockLiveOutputClient() {
         var client = mock(LiveOutputsClient.class);
         when(amsClient.getLiveOutputs()).thenReturn(client);
+        return client;
+    }
+
+    private ContentKeyPoliciesClient mockContentKeyPoliciesClient() {
+        var client = mock(ContentKeyPoliciesClient.class);
+        when(amsClient.getContentKeyPolicies()).thenReturn(client);
+        return client;
+    }
+
+    private StreamingPoliciesClient mockStreamingPoliciesClient() {
+        var client = mock(StreamingPoliciesClient.class);
+        when(amsClient.getStreamingPolicies()).thenReturn(client);
         return client;
     }
 }
