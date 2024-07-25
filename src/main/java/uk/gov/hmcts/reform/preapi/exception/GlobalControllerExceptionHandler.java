@@ -33,7 +33,6 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     ResponseEntity<String> notFoundExceptionHandler(final NotFoundException e) throws JsonProcessingException {
         log.error("Not found exception: {}", e.getMessage());
-        log.error(Arrays.toString(e.getStackTrace()));
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
