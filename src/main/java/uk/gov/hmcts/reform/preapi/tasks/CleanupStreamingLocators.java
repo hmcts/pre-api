@@ -20,7 +20,7 @@ public class CleanupStreamingLocators implements Runnable {
     public void run() {
         log.info("Running CleanupStreamingLocators task");
 
-        mediaServiceBroker.getEnabledMediaService().deleteAllStreamingLocators();
+        mediaServiceBroker.getEnabledMediaService().deleteAllStreamingLocatorsAndContentKeyPolicies();
 
         log.info("Completed CleanupStreamingLocators task");
     }

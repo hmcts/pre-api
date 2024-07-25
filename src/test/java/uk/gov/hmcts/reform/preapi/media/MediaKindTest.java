@@ -1190,7 +1190,7 @@ public class MediaKindTest {
 
     @DisplayName("Should Delete all streaming locators and Content Key Policies")
     @Test
-    void testDeleteAllStreamingLocators() {
+    void testDeleteAllStreamingLocatorsAndContentKeyPolicies() {
 
         var locators = List.of(
             MkStreamingLocator.builder().name("locator1").build(),
@@ -1222,7 +1222,7 @@ public class MediaKindTest {
         doThrow(new RuntimeException("An error"))
             .when(mockClient).deleteContentKeyPolicy("policy2");
 
-        mediaKind.deleteAllStreamingLocators();
+        mediaKind.deleteAllStreamingLocatorsAndContentKeyPolicies();
 
         verify(mockClient, times(1)).getStreamingLocators(anyInt());
         verify(mockClient, times(3)).deleteStreamingLocator(anyString());

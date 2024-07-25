@@ -332,7 +332,7 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public void deleteAllStreamingLocators() {
+    public void deleteAllStreamingLocatorsAndContentKeyPolicies() {
 
         getAllMkList(mediaKindClient::getStreamingLocators)
             .map(MkStreamingLocator::getName)
@@ -344,10 +344,6 @@ public class MediaKind implements IMediaService {
                 }
             });
 
-        deleteAllContentKeyPolicies();
-    }
-
-    private void deleteAllContentKeyPolicies() {
         getAllMkList(mediaKindClient::getContentKeyPolicies)
             .map(MkContentKeyPolicy::getName)
             .forEach(policyName -> {
