@@ -213,7 +213,8 @@ public class MediaServiceController extends PreApiController {
         Logger.getAnonymousLogger().info("captureSession getLiveOutputUrl: " + captureSession.getLiveOutputUrl());
 
         // check if captureSession is in correct state
-        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
+        if (captureSession.getStatus() != RecordingStatus.STANDBY
+            && captureSession.getStatus() != RecordingStatus.RECORDING) {
             throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
                                                     captureSessionId.toString(),
                                                     captureSession.getStatus().name(),
