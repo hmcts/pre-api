@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import feign.FeignException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -196,6 +197,17 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> unprocessableContentException(final UnprocessableContentException e)
         throws JsonProcessingException {
         return getResponseEntity(e.getMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    ResponseEntity<String> invalidDataAccessApiUsageExceptionHandler(final InvalidDataAccessApiUsageException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage()
+                                     .split("[\\[:]")[1]
+                                     .replace("Could not resolve attribute", "Invalid sort parameter")
+                                     .replace("' of '", "' for '")
+                                     .trim(),
+                                 HttpStatus.BAD_REQUEST);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
