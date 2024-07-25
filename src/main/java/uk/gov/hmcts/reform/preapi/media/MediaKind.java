@@ -40,9 +40,11 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.media.dto.IMkBuiltInPreset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInAssetConverterPreset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInStandardEncoderPreset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyOptions;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyProperties;
@@ -80,8 +82,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitisedLiveEventId;
-import static uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInAssetConverterPreset.MkAssetConverterPreset.CopyAllBitrateInterleaved;
-import static uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInAssetConverterPreset.MkAssetConverterPreset.H264SingleBitrate720p;
 
 @Slf4j
 @Service
@@ -376,13 +376,6 @@ public class MediaKind implements IMediaService {
             mediaKindClient.getTransform(transformName);
         } catch (NotFoundException e) {
             // create transform if it doesn't exist yet
-            var converterPreset = switch(transformName) {
-                case ENCODE_FROM_INGEST_TRANSFORM -> CopyAllBitrateInterleaved;
-                case ENCODE_FROM_MP4_TRANSFORM -> H264SingleBitrate720p;
-                default -> throw new IllegalArgumentException(
-                    "Invalid MediaKind transform name '" + transformName + "'"
-                );
-            };
             mediaKindClient.putTransform(
                 transformName,
                 MkTransform.builder()
@@ -390,10 +383,8 @@ public class MediaKind implements IMediaService {
                         MkTransformProperties.builder()
                             .outputs(List.of(
                                 MkTransformOutput.builder()
-                                    .preset(MkBuiltInAssetConverterPreset.builder()
-                                                .presetName(converterPreset)
-                                                .build())
                                     .relativePriority(MkTransformOutput.MkTransformPriority.Normal)
+                                    .preset(getMkBuiltInPreset(transformName))
                                     .build()
                             ))
                             .build()
@@ -401,6 +392,16 @@ public class MediaKind implements IMediaService {
                     .build()
             );
         }
+    }
+
+    private IMkBuiltInPreset getMkBuiltInPreset(String transformName) {
+        return switch(transformName) {
+            case ENCODE_FROM_INGEST_TRANSFORM -> new MkBuiltInAssetConverterPreset();
+            case ENCODE_FROM_MP4_TRANSFORM -> new MkBuiltInStandardEncoderPreset();
+            default -> throw new IllegalArgumentException(
+                "Invalid MediaKind transform name '" + transformName + "'"
+            );
+        };
     }
 
     private String encodeFromIngest(String inputAssetName, String outputAssetName) {

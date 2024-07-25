@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 @Builder
 @Data
 @NoArgsConstructor
@@ -13,9 +14,9 @@ import lombok.NoArgsConstructor;
     use = JsonTypeInfo.Id.NAME,
     property = "@odata.type"
 )
-@JsonTypeName("#Microsoft.Media.BuiltInAssetConverterPreset")
-public class MkBuiltInAssetConverterPreset implements IMkBuiltInPreset {
-    protected final MkAssetConverterPreset presetName = MkAssetConverterPreset.CopyAllBitrateInterleaved;
+@JsonTypeName("#Microsoft.Media.BuiltInStandardEncoderPreset")
+public class MkBuiltInStandardEncoderPreset implements IMkBuiltInPreset {
+    protected final MkAssetConverterPreset presetName = MkAssetConverterPreset.H264SingleBitrate720p;
 
     @Override
     public IMkBuiltInPreset build() {
