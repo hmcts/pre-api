@@ -340,6 +340,8 @@ public class MediaServiceController extends PreApiController {
             throw new NotFoundException("Source Blob: " + generateAssetDTO.getTempAsset());
         }
 
+        log.info("Attempting to generate asset: {}", generateAssetDTO);
+
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             return ResponseEntity.ok(result);

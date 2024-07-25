@@ -18,6 +18,7 @@ public class MkBuiltInAssetConverterPreset {
     public enum MkAssetConverterPreset {
         CopyTopBitrateInterleaved,
         CopyAllBitrateNonInterleaved,
-        CopyAllBitrateInterleaved
+        CopyAllBitrateInterleaved,
+        H264SingleBitrate720p
     }
 }
