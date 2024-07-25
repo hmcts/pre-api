@@ -1,13 +1,14 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.data.web.SortDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
@@ -113,6 +114,12 @@ public class RecordingController extends PreApiController {
         schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
+        name = "sort",
+        description = "Sort by",
+        schema = @Schema(implementation = String.class),
+        example = "createdAt,desc"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -127,7 +134,9 @@ public class RecordingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<RecordingDTO>>> searchRecordings(
         @Parameter(hidden = true) @ModelAttribute SearchRecordings params,
-        @Parameter(hidden = true) Pageable pageable,
+        @SortDefault.SortDefaults(
+            @SortDefault(sort = "createdAt", direction = Sort.Direction.DESC)
+        ) @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
         var resultPage = recordingService.findAll(

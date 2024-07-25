@@ -1,14 +1,27 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
 import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.ContentKeyPolicyInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.JobInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.ListPathsResponseInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.LiveOutputInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingEndpointInner;
 import com.azure.resourcemanager.mediaservices.fluent.models.StreamingLocatorInner;
+import com.azure.resourcemanager.mediaservices.fluent.models.StreamingPolicyInner;
+import com.azure.resourcemanager.mediaservices.models.ArmStreamingEndpointCurrentSku;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicyClearKeyConfiguration;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicyOption;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicyRestrictionTokenType;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicySymmetricTokenKey;
+import com.azure.resourcemanager.mediaservices.models.ContentKeyPolicyTokenRestriction;
+import com.azure.resourcemanager.mediaservices.models.DefaultKey;
+import com.azure.resourcemanager.mediaservices.models.EnabledProtocols;
+import com.azure.resourcemanager.mediaservices.models.EnvelopeEncryption;
 import com.azure.resourcemanager.mediaservices.models.Hls;
 import com.azure.resourcemanager.mediaservices.models.IpAccessControl;
 import com.azure.resourcemanager.mediaservices.models.IpRange;
@@ -22,6 +35,8 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import com.azure.resourcemanager.mediaservices.models.StreamingEndpointResourceState;
+import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
 import jakarta.transaction.Transactional;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,8 +58,12 @@ import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -54,17 +73,20 @@ import java.util.logging.Logger;
 @Service
 @Log4j2
 public class AzureMediaService implements IMediaService {
+    private static final String LOCATION = "uksouth";
+    private static final String ENCODE_TO_MP4_TRANSFORM = "EncodeToMP4";
+    private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
+    private static final String DEFAULT_STREAMING_ENDPOINT = "default";
+
     private final String resourceGroup;
     private final String accountName;
     private final String ingestStorageAccount;
     private final String finalStorageAccount;
     private final String environmentTag;
-
+    private final String issuer;
+    private final String symmetricKey;
     private final AzureMediaServices amsClient;
     private final AzureFinalStorageService azureFinalStorageService;
-
-    private static final String LOCATION = "uksouth";
-    private static final String ENCODE_TO_MP4_TRANSFORM = "EncodeToMP4";
 
     @Autowired
     public AzureMediaService(
@@ -73,6 +95,8 @@ public class AzureMediaService implements IMediaService {
         @Value("${azure.ingestStorage.accountName}") String ingestStorageAccount,
         @Value("${azure.finalStorage.accountName}") String finalStorageAccount,
         @Value("${platform-env}") String env,
+        @Value("${mediakind.issuer:}") String issuer,
+        @Value("${mediakind.symmetricKey:}") String symmetricKey,
         AzureMediaServices amsClient,
         AzureFinalStorageService azureFinalStorageService) {
         this.resourceGroup = resourceGroup;
@@ -80,26 +104,185 @@ public class AzureMediaService implements IMediaService {
         this.ingestStorageAccount = ingestStorageAccount;
         this.finalStorageAccount = finalStorageAccount;
         this.environmentTag = env;
+        this.issuer = issuer;
+        this.symmetricKey = symmetricKey;
         this.amsClient = amsClient;
         this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @Override
-    public PlaybackDTO playAsset(String assetId, String userId) {
-        throw new UnsupportedOperationException();
+    public PlaybackDTO playAsset(String assetName, String userId) {
+        getAsset(assetName);
+        // todo check asset has files
+        createContentKeyPolicy(userId, Base64.getEncoder().encodeToString(symmetricKey.getBytes()));
+        assertStreamingPolicyExists(userId);
+        refreshStreamingLocatorForUser(userId, assetName);
+
+        var hostName = "https://" + assertStreamingEndpointExists(DEFAULT_STREAMING_ENDPOINT).hostname();
+        var paths = amsClient.getStreamingLocators().listPaths(resourceGroup, accountName, userId);
+        var manifest = hostName + paths.streamingPaths().getFirst().paths().getFirst();
+
+        return new PlaybackDTO(
+            manifest,
+            manifest,
+            null,
+            JWT.create()
+                .withIssuer(issuer)
+                .withAudience(userId)
+                .withNotBefore(Instant.now().minus(5, ChronoUnit.MINUTES))
+                .withExpiresAt(Instant.now().plus(1, ChronoUnit.DAYS))
+                .sign(Algorithm.HMAC256(symmetricKey))
+        );
+    }
+
+    private StreamingEndpointInner assertStreamingEndpointExists(String endpointName) {
+        try {
+            var endpoint = amsClient.getStreamingEndpoints()
+                .get(resourceGroup, accountName, endpointName);
+            if (endpoint.resourceState() != StreamingEndpointResourceState.RUNNING) {
+                amsClient.getStreamingEndpoints()
+                    .start(resourceGroup, accountName, endpointName);
+                endpoint = amsClient.getStreamingEndpoints()
+                    .get(resourceGroup, accountName, endpointName);
+            }
+            return endpoint;
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure.");
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                var endpoint = amsClient.getStreamingEndpoints()
+                    .create(
+                        resourceGroup,
+                        accountName,
+                        DEFAULT_STREAMING_ENDPOINT,
+                        new StreamingEndpointInner()
+                            .withLocation(LOCATION)
+                            .withTags(Map.of(
+                                "environment", environmentTag,
+                                "application", "pre-recorded evidence"
+                            ))
+                            .withDescription("Default streaming endpoint")
+                            .withScaleUnits(0)
+                            .withSku(new ArmStreamingEndpointCurrentSku())
+                    );
+                amsClient.getStreamingEndpoints()
+                    .start(resourceGroup, accountName, endpointName);
+                return endpoint;
+            }
+            throw e;
+        }
+    }
+
+    private void refreshStreamingLocatorForUser(String userId, String assetName) {
+        try {
+            amsClient.getStreamingLocators().delete(resourceGroup, accountName, userId);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() != 404) {
+                throw e;
+            }
+        }
+
+        amsClient.getStreamingLocators()
+            .create(
+                resourceGroup,
+                accountName,
+                userId,
+                new StreamingLocatorInner()
+                    .withAssetName(assetName)
+                    .withStreamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
+                    .withDefaultContentKeyPolicyName(userId)
+                    .withEndTime(Instant.now().plusSeconds(3600).atZone(ZoneId.of("UTC")).toOffsetDateTime())
+            );
+    }
+
+    private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
+        try {
+            amsClient.getStreamingPolicies()
+                .get(resourceGroup, accountName, STREAMING_POLICY_CLEAR_KEY);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                amsClient.getStreamingPolicies()
+                    .create(
+                        resourceGroup,
+                        accountName,
+                        STREAMING_POLICY_CLEAR_KEY,
+                        new StreamingPolicyInner()
+                            .withDefaultContentKeyPolicyName(defaultContentKeyPolicy)
+                            .withEnvelopeEncryption(
+                                new EnvelopeEncryption()
+                                    .withEnabledProtocols(
+                                        new EnabledProtocols()
+                                            .withDash(true)
+                                            .withHls(true)
+                                            .withSmoothStreaming(false)
+                                            .withDownload(false))
+                                    .withContentKeys(
+                                        new StreamingPolicyContentKeys()
+                                            .withDefaultKey(new DefaultKey()
+                                                                .withLabel("ContentKey_AES")
+                                                                .withPolicyName(defaultContentKeyPolicy)))
+                            )
+                    );
+                return;
+            }
+            throw e;
+        }
+    }
+
+    private void createContentKeyPolicy(String userId, String key) {
+        try {
+            amsClient.getContentKeyPolicies()
+                .get(resourceGroup, accountName, userId);
+        } catch (IllegalArgumentException e) {
+            throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
+        } catch (ManagementException e) {
+            if (e.getResponse().getStatusCode() == 404) {
+                amsClient.getContentKeyPolicies()
+                    .createOrUpdate(
+                        resourceGroup,
+                        accountName,
+                        userId,
+                        new ContentKeyPolicyInner()
+                            .withDescription("Content key policy for user: " + userId)
+                            .withOptions(List.of(
+                                new ContentKeyPolicyOption()
+                                    .withName("key")
+                                    .withRestriction(
+                                        new ContentKeyPolicyTokenRestriction()
+                                            .withIssuer(issuer)
+                                            .withAudience(userId)
+                                            .withRestrictionTokenType(
+                                                ContentKeyPolicyRestrictionTokenType.JWT)
+                                            .withPrimaryVerificationKey(
+                                                new ContentKeyPolicySymmetricTokenKey()
+                                                    .withKeyValue(key.getBytes())))
+                                    .withConfiguration(new ContentKeyPolicyClearKeyConfiguration())))
+                    );
+                return;
+            }
+            throw e;
+        }
     }
 
     @Override
     public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
-        createAsset(generateAssetDTO.getTempAsset(),
-                    generateAssetDTO.getDescription(),
-                    generateAssetDTO.getSourceContainer(),
-                    true);
+        createAsset(
+            generateAssetDTO.getTempAsset(),
+            generateAssetDTO.getDescription(),
+            generateAssetDTO.getSourceContainer(),
+            true
+        );
 
-        createAsset(generateAssetDTO.getFinalAsset(),
-                    generateAssetDTO.getDescription(),
-                    generateAssetDTO.getDestinationContainer(),
-                    true);
+        createAsset(
+            generateAssetDTO.getFinalAsset(),
+            generateAssetDTO.getDescription(),
+            generateAssetDTO.getDestinationContainer(),
+            true
+        );
 
         var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
 
@@ -116,7 +299,7 @@ public class AzureMediaService implements IMediaService {
     @Override
     public AssetDTO getAsset(String assetName) {
         try {
-            return  new AssetDTO(amsClient.getAssets().get(resourceGroup, accountName, assetName));
+            return new AssetDTO(amsClient.getAssets().get(resourceGroup, accountName, assetName));
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure. " + e.getMessage());
         } catch (ManagementException e) {
@@ -151,7 +334,7 @@ public class AzureMediaService implements IMediaService {
 
         assertStreamingLocatorExists(liveEventId);
         var paths = amsClient.getStreamingLocators()
-                             .listPaths(resourceGroup, accountName, getSanitisedId(liveEventId));
+            .listPaths(resourceGroup, accountName, getSanitisedId(liveEventId));
 
         return parseLiveOutputUrlFromStreamingLocatorPaths(hostname, paths);
     }
@@ -179,27 +362,27 @@ public class AzureMediaService implements IMediaService {
         log.info("Creating streaming endpoint: {}", streamingEndpointName);
         try {
             return amsClient.getStreamingEndpoints()
-                            .create(
-                                resourceGroup,
-                                accountName,
-                                streamingEndpointName,
-                                new StreamingEndpointInner()
-                                    .withLocation("UK South")
-                                    .withTags(Map.of(
-                                        "environment", this.environmentTag,
-                                        "application", "pre-recorded evidence",
-                                        "businessArea", "cross-cutting",
-                                        "builtFrom", "azure portal"
-                                    ))
-                                    .withDescription(
-                                        "Streaming Endpoint for " + streamingEndpointName
-                                    )
-                            );
+                .create(
+                    resourceGroup,
+                    accountName,
+                    streamingEndpointName,
+                    new StreamingEndpointInner()
+                        .withLocation("UK South")
+                        .withTags(Map.of(
+                            "environment", this.environmentTag,
+                            "application", "pre-recorded evidence",
+                            "businessArea", "cross-cutting",
+                            "builtFrom", "azure portal"
+                        ))
+                        .withDescription(
+                            "Streaming Endpoint for " + streamingEndpointName
+                        )
+                );
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
                 log.info("Streaming endpoint {} already exists", streamingEndpointName);
                 return amsClient.getStreamingEndpoints()
-                                .get(resourceGroup, accountName, streamingEndpointName);
+                    .get(resourceGroup, accountName, streamingEndpointName);
             }
             throw e;
         }
@@ -215,10 +398,12 @@ public class AzureMediaService implements IMediaService {
                 .withStreamingPolicyName("Predefined_ClearStreamingOnly")
                 .withStreamingLocatorId(liveEventId);
 
-            amsClient.getStreamingLocators().create(resourceGroup,
-                                                    accountName,
-                                                    sanitisedLiveEventId,
-                                                    streamingLocatorProperties);
+            amsClient.getStreamingLocators().create(
+                resourceGroup,
+                accountName,
+                sanitisedLiveEventId,
+                streamingLocatorProperties
+            );
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
                 Logger.getAnonymousLogger().info("Streaming locator already exists");
@@ -342,7 +527,8 @@ public class AzureMediaService implements IMediaService {
                     accountName,
                     liveEventName,
                     new LiveEventActionInput()
-                        .withRemoveOutputsOnStop(true));
+                        .withRemoveOutputsOnStop(true)
+                );
             log.info("Stopped live event: {}", liveEventName);
             log.info("Deleting live event: {}", liveEventName);
             amsClient.getLiveEvents().delete(resourceGroup, accountName, liveEventName);
@@ -443,8 +629,8 @@ public class AzureMediaService implements IMediaService {
             }
             job = amsClient.getJobs().get(resourceGroup, accountName, ENCODE_TO_MP4_TRANSFORM, jobName);
         } while (!job.state().equals(JobState.FINISHED)
-                 && !job.state().equals(JobState.ERROR)
-                 && !job.state().equals(JobState.CANCELED));
+            && !job.state().equals(JobState.ERROR)
+            && !job.state().equals(JobState.CANCELED));
 
         return job.state();
     }
@@ -493,10 +679,12 @@ public class AzureMediaService implements IMediaService {
                              CaptureSessionDTO captureSession,
                              String containerName,
                              boolean isFinal) {
-        createAsset(assetName,
-                    captureSession.getBookingId().toString(),
-                    containerName,
-                    isFinal);
+        createAsset(
+            assetName,
+            captureSession.getBookingId().toString(),
+            containerName,
+            isFinal
+        );
     }
 
     private void createAsset(String assetName,
@@ -570,7 +758,8 @@ public class AzureMediaService implements IMediaService {
                                                                        .withAddress("0.0.0.0")
                                                                        .withSubnetPrefixLength(0)
                                                 )))
-                            )));
+                            ))
+            );
         } catch (IllegalArgumentException e) {
             throw new UnknownServerException("Unable to communicate with Azure.  " + e.getMessage());
         } catch (ManagementException e) {
