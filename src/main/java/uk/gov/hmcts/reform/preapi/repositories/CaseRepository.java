@@ -7,7 +7,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,4 +36,7 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
     Optional<Case> findByIdAndDeletedAtIsNull(UUID id);
 
     List<Case> findAllByReferenceAndCourt_Id(String caseReference, UUID courtId);
+
+    List<Case> findByStateAndClosedAtBefore(CaseState state, LocalDate date);
+
 }

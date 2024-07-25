@@ -7,8 +7,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +37,12 @@ public class CaseDTO {
 
     @Schema(description = "CaseIsTest")
     private boolean test;
+
+    @Schema(description = "CaseState")
+    private CaseState state = CaseState.OPEN; 
+
+    @Schema(description = "CaseClosedAt")
+    private LocalDate closedAt;
 
     @Schema(description = "CaseDeletedAt")
     private Timestamp deletedAt;

@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -22,7 +23,9 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -179,4 +182,15 @@ public class CaseService {
             : createCaseDTO.getReference() != null
                 && foundCases.isEmpty();
     }
+
+    public void closePendingCases() {
+        LocalDate date = LocalDate.now().minusDays(29);
+        List<Case> pendingClosureCases = caseRepository.findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, date);
+
+        for (Case caseEntity : pendingClosureCases) {
+            caseEntity.setState(CaseState.CLOSED);
+            caseRepository.save(caseEntity);
+        }
+    }
+
 }

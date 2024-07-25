@@ -10,10 +10,14 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,6 +51,13 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
 
     @Transient
     private boolean isSoftDeleteOperation;
+
+    @Column(name = "state", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    private CaseState state;
+
+    @Column(name = "closed_at")
+    private LocalDate closedAt;
 
     public boolean isDeleted() {
         return deletedAt != null;
