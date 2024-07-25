@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @Builder
 public class MkTransformOutput {
-    private IMkBuiltInPreset preset;
+    private MkBuiltInPreset preset;
     private MkTransformPriority relativePriority;
 
     public enum MkTransformPriority {

@@ -40,11 +40,9 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.media.dto.IMkBuiltInPreset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
-import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInAssetConverterPreset;
-import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInStandardEncoderPreset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInPreset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyOptions;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyProperties;
@@ -394,10 +392,18 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private IMkBuiltInPreset getMkBuiltInPreset(String transformName) {
+    private MkBuiltInPreset getMkBuiltInPreset(String transformName) {
         return switch(transformName) {
-            case ENCODE_FROM_INGEST_TRANSFORM -> new MkBuiltInAssetConverterPreset();
-            case ENCODE_FROM_MP4_TRANSFORM -> new MkBuiltInStandardEncoderPreset();
+            case ENCODE_FROM_INGEST_TRANSFORM -> MkBuiltInPreset
+                .builder()
+                .odataType(MkBuiltInPreset.BUILT_IN_PRESET_ASSET_CONVERTER)
+                .presetName(MkBuiltInPreset.MkAssetConverterPreset.CopyAllBitrateNonInterleaved)
+                .build();
+            case ENCODE_FROM_MP4_TRANSFORM -> MkBuiltInPreset
+                .builder()
+                .odataType(MkBuiltInPreset.BUILT_IN_PRESET_STANDARD_ENCODER)
+                .presetName(MkBuiltInPreset.MkAssetConverterPreset.H264SingleBitrate720p)
+                .build();
             default -> throw new IllegalArgumentException(
                 "Invalid MediaKind transform name '" + transformName + "'"
             );
