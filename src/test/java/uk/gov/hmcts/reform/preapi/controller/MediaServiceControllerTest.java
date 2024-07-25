@@ -897,6 +897,26 @@ public class MediaServiceControllerTest {
                .andExpect(jsonPath("$.message").value("Not found: Destination Container: bar"));
     }
 
+    @DisplayName("Should return a 404 when the source blob doesn't exist")
+    @Test
+    @SuppressWarnings("LineLength")
+    void generateAsset404NoSourceBlob() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setTempAsset("blobby");
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
+        when(azureFinalStorageService.doesBlobMatch("foo", "+.\\.mp4$")).thenReturn(false);
+        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.message").value("Not found: No files ending .mp4 were found in the Source Container foo"));
+    }
+
     @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
     @Test
     void generateAssetTest403Error() throws Exception {
@@ -929,6 +949,7 @@ public class MediaServiceControllerTest {
         generateAssetDTO.setTempAsset("blobby");
         when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
         when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
+        when(azureFinalStorageService.doesBlobMatch("foo", ".+\\.mp4$")).thenReturn(true);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(

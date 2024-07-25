@@ -336,6 +336,11 @@ public class MediaServiceController extends PreApiController {
             throw new NotFoundException("Destination Container: " + generateAssetDTO.getDestinationContainer());
         }
 
+        if (!azureFinalStorageService.doesBlobMatch(generateAssetDTO.getSourceContainer(), ".+\\.mp4$")) {
+            throw new NotFoundException("No files ending .mp4 were found in the Source Container "
+                                            + generateAssetDTO.getSourceContainer());
+        }
+
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
