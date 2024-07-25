@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,6 +35,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -46,7 +47,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 
 @WebMvcTest(RecordingController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -539,6 +539,23 @@ class RecordingControllerTest {
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message")
                            .value("Not found: Recording: " + recordingId));
+    }
+
+    @DisplayName("Should throw 400 error when attempting to sort with invalid parameter")
+    @Test
+    void getRecordingsInvalidSortParam() throws Exception {
+        var mockError = mock(InvalidDataAccessApiUsageException.class);
+        when(mockError.getMessage())
+            .thenReturn("some error: Could not resolve attribute 'invalidParam' of 'Recording' [some sql]");
+        doThrow(mockError)
+            .when(recordingService)
+            .findAll(any(), anyBoolean(), any());
+
+        mockMvc.perform(get("/recordings?sort=invalidParam")
+                            .with(csrf()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Invalid sort parameter 'invalidParam' for 'Recording'"));
     }
 
 
