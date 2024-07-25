@@ -397,12 +397,12 @@ public class AzureMediaService implements IMediaService {
                 .withStreamingPolicyName("Predefined_ClearStreamingOnly")
                 .withStreamingLocatorId(liveEventId);
 
-            amsClient.getStreamingLocators().create(
-                resourceGroup,
-                accountName,
-                sanitisedLiveEventId,
-                streamingLocatorProperties
-            );
+
+            amsClient.getStreamingLocators().create(resourceGroup,
+                                                    accountName,
+                                                    sanitisedLiveEventId,
+                                                    streamingLocatorProperties);
+
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
                 Logger.getAnonymousLogger().info("Streaming locator already exists");
