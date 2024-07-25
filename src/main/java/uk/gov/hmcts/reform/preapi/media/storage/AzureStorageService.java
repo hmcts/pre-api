@@ -21,8 +21,4 @@ public abstract class AzureStorageService {
     public boolean doesContainerExist(String containerName) {
         return client.getBlobContainerClient(containerName).exists();
     }
-
-    public boolean doesBlobExist(String containerName, String blobName) {
-        return client.getBlobContainerClient(containerName).getBlobClient(blobName).exists();
-    }
 }

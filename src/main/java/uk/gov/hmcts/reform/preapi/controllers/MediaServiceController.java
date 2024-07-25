@@ -335,11 +335,6 @@ public class MediaServiceController extends PreApiController {
             throw new NotFoundException("Destination Container: " + generateAssetDTO.getDestinationContainer());
         }
 
-        if (!azureFinalStorageService.doesBlobExist(generateAssetDTO.getSourceContainer(),
-                                                    generateAssetDTO.getTempAsset())) {
-            throw new NotFoundException("Source Blob: " + generateAssetDTO.getTempAsset());
-        }
-
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
