@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,6 +63,7 @@ public class CleanupLiveEvents implements Runnable {
     }
 
     @Override
+    @Transactional(dontRollbackOn = Exception.class)
     public void run() throws RuntimeException {
         log.info("Sign in as robot user");
         var user = userService.findByEmail(cronUserEmail);
@@ -123,9 +125,6 @@ public class CleanupLiveEvents implements Runnable {
 
                           var booking = bookingService.findById(captureSession.getBookingId());
                           if (booking != null) {
-                              /*
-u.gov.hmcts.reform.preapi.tasks.CleanupLiveEventsorg.hibernate.LazyInitializationException: could not initialize proxy [uk.gov.hmcts.reform.preapi.entities.Case#37da9ce5-ae02-4e40-aefe-1f3b63086152] - no Session
-                               */
                               var toNotify = booking.getShares().stream()
                                                     .map(shareBooking -> userService.findById(
                                                         shareBooking.getSharedWithUser().getId())

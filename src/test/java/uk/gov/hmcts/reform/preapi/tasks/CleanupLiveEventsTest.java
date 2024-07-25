@@ -176,9 +176,9 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(1)).stopLiveEvent(mockCaptureSession, mockRecording.getId());
         verify(mediaService, times(1)).stopLiveEvent(mockCaptureSession, mockRecording2.getId());
 
-        Class<ArrayList<StoppedLiveEventsNotificationDTO>> listClass =
-            (Class<ArrayList<StoppedLiveEventsNotificationDTO>>)(Class)ArrayList.class;
-        ArgumentCaptor<ArrayList<StoppedLiveEventsNotificationDTO>> captor = ArgumentCaptor.forClass(listClass);
+        Class<List<StoppedLiveEventsNotificationDTO>> listClass =
+            (Class<List<StoppedLiveEventsNotificationDTO>>)(Class)List.class;
+        ArgumentCaptor<List<StoppedLiveEventsNotificationDTO>> captor = ArgumentCaptor.forClass(listClass);
 
         verify(flowHttpClient, times(1)).emailAfterStoppingLiveEvents(captor.capture());
 
