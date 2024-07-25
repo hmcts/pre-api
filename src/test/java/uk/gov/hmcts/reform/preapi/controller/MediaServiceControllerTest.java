@@ -375,6 +375,30 @@ public class MediaServiceControllerTest {
         verify(mediaService, times(0)).playLiveEvent(any());
     }
 
+    @DisplayName("Should create endpoint and locator when capture session status = RECORDING but liveOutputUrl = null")
+    @Test
+    void playLiveEventRecordingButNoLiveOutputUrl() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSession.setBookingId(UUID.randomUUID());
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
+        when(mediaService.playLiveEvent(captureSessionId))
+            .thenReturn("https://example.com");
+
+        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+            .andExpect(jsonPath("$.status").value("RECORDING"))
+            .andExpect(jsonPath("$.live_output_url").value("https://example.com"));
+    }
+
     @DisplayName("Should return 200 and playback information")
     @Test
     void getVodSuccess() throws Exception {
