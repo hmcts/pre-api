@@ -114,7 +114,7 @@ public class AzureMediaService implements IMediaService {
     public PlaybackDTO playAsset(String assetName, String userId) {
         getAsset(assetName);
         // todo check asset has files
-        createContentKeyPolicy(userId, Base64.getEncoder().encodeToString(symmetricKey.getBytes()));
+        createContentKeyPolicy(userId, symmetricKey);
         assertStreamingPolicyExists(userId);
         refreshStreamingLocatorForUser(userId, assetName);
 
