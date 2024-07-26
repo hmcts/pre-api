@@ -11,5 +11,6 @@ java:
     AZURE_RESOURCE_GROUP: pre-test
     AZURE_INGEST_SA: preingestsatest
     AZURE_FINAL_SA: prefinalsatest
+    MEDIA_SERVICE: MediaKind
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
