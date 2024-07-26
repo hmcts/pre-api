@@ -92,6 +92,7 @@ public class CleanupLiveEvents implements Runnable {
                   )
                   .forEach(liveEventDTO -> {
                       log.info("Finding capture session by live event id {}", liveEventDTO.getName());
+                      var sendNotification = false;
                       try {
                           var captureSession = captureSessionService.findByLiveEventId(liveEventDTO.getName());
                           var search = new SearchRecordings();
@@ -101,45 +102,50 @@ public class CleanupLiveEvents implements Runnable {
 
                           if (recordings.isEmpty()) {
                               log.info("No recordings found for capture session {}", captureSession.getId());
-                              stopLiveEvent(
+                              sendNotification = stopLiveEvent(
                                   mediaService,
                                   captureSession,
                                   UUID.randomUUID(),
                                   liveEventDTO.getName()
                               );
                           } else {
-                              recordings.forEach(recording -> {
+                              sendNotification = !recordings.map(recording -> {
                                   log.info(
                                       "{} recordings found for capture session {}",
                                       recordings.getSize(),
                                       captureSession.getId()
                                   );
-                                  stopLiveEvent(
+                                  return stopLiveEvent(
                                       mediaService,
                                       captureSession,
                                       recording.getId(),
                                       liveEventDTO.getName()
                                   );
-                              });
+                              })
+                                                            .filter(b -> b)
+                                                            .toList()
+                                                            .isEmpty();
                           }
 
-                          var booking = bookingService.findById(captureSession.getBookingId());
-                          if (booking != null) {
-                              var toNotify = booking.getShares().stream()
-                                                    .map(shareBooking -> userService.findById(
-                                                        shareBooking.getSharedWithUser().getId())
-                                                    )
-                                                    .filter(u -> u != null && u.getDeletedAt() == null)
-                                                    .map(u -> StoppedLiveEventsNotificationDTO
-                                                        .builder()
-                                                        .email(u.getEmail())
-                                                        .firstName(u.getFirstName())
-                                                        .caseReference(booking.getCaseDTO().getReference())
-                                                        .courtName(booking.getCaseDTO().getCourt().getName())
-                                                        .build())
-                                                    .toList();
+                          if (sendNotification) {
+                              var booking = bookingService.findById(captureSession.getBookingId());
+                              if (booking != null) {
+                                  var toNotify = booking.getShares().stream()
+                                                        .map(shareBooking -> userService.findById(
+                                                            shareBooking.getSharedWithUser().getId())
+                                                        )
+                                                        .filter(u -> u != null && u.getDeletedAt() == null)
+                                                        .map(u -> StoppedLiveEventsNotificationDTO
+                                                            .builder()
+                                                            .email(u.getEmail())
+                                                            .firstName(u.getFirstName())
+                                                            .caseReference(booking.getCaseDTO().getReference())
+                                                            .courtName(booking.getCaseDTO().getCourt().getName())
+                                                            .build())
+                                                        .toList();
 
-                              flowHttpClient.emailAfterStoppingLiveEvents(toNotify);
+                                  flowHttpClient.emailAfterStoppingLiveEvents(toNotify);
+                              }
                           }
                       } catch (Exception e) {
                           log.error("Error stopping live event {}", liveEventDTO.getName(), e);
@@ -149,10 +155,10 @@ public class CleanupLiveEvents implements Runnable {
         log.info("Completed CleanupLiveEvents task");
     }
 
-    private void stopLiveEvent(IMediaService mediaService,
-                               CaptureSessionDTO captureSession,
-                               UUID recordingId,
-                               String liveEventId) {
+    private boolean stopLiveEvent(IMediaService mediaService,
+                                  CaptureSessionDTO captureSession,
+                                  UUID recordingId,
+                                  String liveEventId) {
         try {
             // This shouldn't happen but as this is the cleanup cron we do want to ensure the Live Events in AMS/MK
             // are terminated and cleaned up.
@@ -174,15 +180,22 @@ public class CleanupLiveEvents implements Runnable {
             );
             log.info("Stopping live event {}", liveEventId);
             var status = mediaService.stopLiveEvent(updatedCaptureSession, recordingId);
-            captureSessionService.stopCaptureSession(updatedCaptureSession.getId(), status, recordingId);
+            var stoppedCaptureSession = captureSessionService.stopCaptureSession(
+                updatedCaptureSession.getId(),
+                status,
+                recordingId
+            );
             log.info("Stopped live event {}", liveEventId);
+            return stoppedCaptureSession.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("Failed to stop live event for capture session {}", captureSession.getId(), e);
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
+            return false;
         } catch (Exception e) {
             log.error("Failed to stop live event for capture session {}", captureSession.getId(), e);
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
+            return false;
         }
     }
 }

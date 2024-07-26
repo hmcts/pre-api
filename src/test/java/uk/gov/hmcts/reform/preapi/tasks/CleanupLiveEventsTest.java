@@ -153,6 +153,20 @@ public class CleanupLiveEventsTest {
                                                       mockRecording2.getId()))
             .thenReturn(mockCaptureSessionProcessing);
 
+        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording.getId()))
+            .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording2.getId()))
+            .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.RECORDING_AVAILABLE,
+                                                      mockRecording.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.RECORDING_AVAILABLE,
+                                                      mockRecording2.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+
         when(captureSessionService.findByLiveEventId(liveEventDTO.getId()))
             .thenReturn(mockCaptureSessionRecordingAvailable);
 
