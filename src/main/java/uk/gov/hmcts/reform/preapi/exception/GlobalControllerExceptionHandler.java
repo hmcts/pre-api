@@ -193,6 +193,12 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(UnprocessableContentException.class)
+    ResponseEntity<String> unprocessableContentException(final UnprocessableContentException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
     @ExceptionHandler(InvalidDataAccessApiUsageException.class)
     ResponseEntity<String> invalidDataAccessApiUsageExceptionHandler(final InvalidDataAccessApiUsageException e)
         throws JsonProcessingException {
@@ -202,12 +208,6 @@ public class GlobalControllerExceptionHandler {
                                      .replace("' of '", "' for '")
                                      .trim(),
                                  HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(UnprocessableContentException.class)
-    ResponseEntity<String> unprocessableContentException(final UnprocessableContentException e)
-        throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
