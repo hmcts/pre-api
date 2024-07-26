@@ -35,6 +35,8 @@ java:
           alias: AZURE_INGEST_SA_CONNECTION_STRING
         - name: symmetrickey
           alias: SYMMETRIC_KEY
+        - name: pp-authorization
+          alias: FLOW_KEY
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
