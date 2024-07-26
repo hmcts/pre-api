@@ -63,7 +63,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -114,7 +113,7 @@ public class AzureMediaService implements IMediaService {
     public PlaybackDTO playAsset(String assetName, String userId) {
         getAsset(assetName);
         // todo check asset has files
-        createContentKeyPolicy(userId, Base64.getEncoder().encodeToString(symmetricKey.getBytes()));
+        createContentKeyPolicy(userId, symmetricKey);
         assertStreamingPolicyExists(userId);
         refreshStreamingLocatorForUser(userId, assetName);
 
@@ -398,12 +397,12 @@ public class AzureMediaService implements IMediaService {
                 .withStreamingPolicyName("Predefined_ClearStreamingOnly")
                 .withStreamingLocatorId(liveEventId);
 
-            amsClient.getStreamingLocators().create(
-                resourceGroup,
-                accountName,
-                sanitisedLiveEventId,
-                streamingLocatorProperties
-            );
+
+            amsClient.getStreamingLocators().create(resourceGroup,
+                                                    accountName,
+                                                    sanitisedLiveEventId,
+                                                    streamingLocatorProperties);
+
         } catch (ManagementException e) {
             if (e.getResponse().getStatusCode() == 409) {
                 Logger.getAnonymousLogger().info("Streaming locator already exists");

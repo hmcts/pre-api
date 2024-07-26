@@ -29,4 +29,12 @@ public abstract class AzureStorageService {
             .stream()
             .anyMatch(blobItem -> blobItem.getName().matches(blobPattern));
     }
+
+    public boolean doesBlobExist(String containerName, String blobName) {
+        return client
+            .getBlobContainerClient(containerName)
+            .listBlobs()
+            .stream()
+            .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
+    }
 }

@@ -46,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -442,7 +443,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName)).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -474,7 +475,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName)).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -522,7 +523,7 @@ public class MediaKindTest {
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
         when(mockClient.getTransform(ENCODE_FROM_INGEST_TRANSFORM)).thenThrow(NotFoundException.class);
-        when(mockClient.getJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName)).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -553,7 +554,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName)).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -588,7 +589,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(ENCODE_FROM_INGEST_TRANSFORM, liveEventName)).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
