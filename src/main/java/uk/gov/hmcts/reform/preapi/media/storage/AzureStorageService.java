@@ -17,17 +17,18 @@ public abstract class AzureStorageService {
     public boolean doesIsmFileExist(String containerName) {
         return doesContainerExist(containerName)
             && client
-            .getBlobContainerClient(containerName)
-            .listBlobs()
-            .stream()
-            .anyMatch(blobItem -> blobItem.getName().endsWith(".ism"));
+                .getBlobContainerClient(containerName)
+                .listBlobs()
+                .stream()
+                .anyMatch(blobItem -> blobItem.getName().endsWith(".ism"));
     }
 
     public boolean doesBlobExist(String containerName, String blobName) {
-        return client
-            .getBlobContainerClient(containerName)
-            .listBlobs()
-            .stream()
-            .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
+        return doesContainerExist(containerName)
+            && client
+                .getBlobContainerClient(containerName)
+                .listBlobs()
+                .stream()
+                .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
     }
 }
