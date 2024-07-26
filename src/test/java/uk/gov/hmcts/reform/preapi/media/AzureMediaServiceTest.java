@@ -1678,12 +1678,6 @@ public class AzureMediaServiceTest {
         return client;
     }
 
-    private ContentKeyPoliciesClient mockContentKeyPoliciesClient() {
-        var client = mock(ContentKeyPoliciesClient.class);
-        when(amsClient.getContentKeyPolicies()).thenReturn(client);
-        return client;
-    }
-
     private StreamingPoliciesClient mockStreamingPoliciesClient() {
         var client = mock(StreamingPoliciesClient.class);
         when(amsClient.getStreamingPolicies()).thenReturn(client);
