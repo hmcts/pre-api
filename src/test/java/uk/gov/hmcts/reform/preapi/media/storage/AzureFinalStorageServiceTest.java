@@ -4,7 +4,6 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.BlobStorageException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -16,10 +15,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AzureFinalStorageService.class)
@@ -49,7 +45,6 @@ public class AzureFinalStorageServiceTest {
         when(blobItem.getName()).thenReturn("video.ism");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
 
-
         assertTrue(azureFinalStorageService.doesIsmFileExist("test-container"));
     }
 
@@ -76,5 +71,32 @@ public class AzureFinalStorageServiceTest {
         when(blobContainerClient.exists()).thenReturn(false);
 
         assertFalse(azureFinalStorageService.doesIsmFileExist("test-container"));
+    }
+
+    @Test
+    void doesBlobExistsTrue() {
+        var blobItem = mock(BlobItem.class);
+        when(blobItem.getName()).thenReturn("video.mp4");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+
+        assertTrue(azureFinalStorageService.doesBlobExist("test-container", "video.mp4"));
+    }
+
+    @Test
+    void doesBlobExistsTrueIgnoreCase() {
+        var blobItem = mock(BlobItem.class);
+        when(blobItem.getName()).thenReturn("video.mp4");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+
+        assertTrue(azureFinalStorageService.doesBlobExist("test-container", "VIDEO.mp4"));
+    }
+
+    @Test
+    void doesBlobExistsFalse() {
+        var blobItem = mock(BlobItem.class);
+        when(blobItem.getName()).thenReturn("video.mp4");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+
+        assertFalse(azureFinalStorageService.doesBlobExist("test-container", "video.ism"));
     }
 }
