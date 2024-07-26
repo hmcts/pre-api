@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -138,6 +139,8 @@ public class CleanupLiveEvents implements Runnable {
                                                         .courtName(booking.getCaseDTO().getCourt().getName())
                                                         .build())
                                                     .toList();
+                              ObjectMapper mo = new ObjectMapper();
+                              log.info("Sending email to notify users {}", mo.writeValueAsString(toNotify));
                               flowHttpClient.emailAfterStoppingLiveEvents(toNotify);
                           }
                       } catch (Exception e) {
