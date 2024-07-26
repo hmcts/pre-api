@@ -620,9 +620,10 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
         when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
-        when(azureFinalStorageService.getMp4FileName(any())).thenReturn("my-source-container");
+        when(azureFinalStorageService.getMp4FileName("my-source-container")).thenReturn("video.mp4");
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
+        when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
         var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
                                                      "my-destination-container",
