@@ -883,23 +883,6 @@ public class MediaServiceControllerTest {
                .andExpect(jsonPath("$.message").value("Not found: Source Container: foo"));
     }
 
-    @DisplayName("Should return a 404 when the destination container doesn't exist")
-    @Test
-    void generateAsset404NoDestinationContainer() throws Exception {
-        var generateAssetDTO = new GenerateAssetDTO();
-        generateAssetDTO.setSourceContainer("foo");
-        generateAssetDTO.setDestinationContainer("bar");
-        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
-        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(false);
-        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message").value("Not found: Destination Container: bar"));
-    }
-
     @DisplayName("Should return a 404 when the source blob doesn't exist")
     @Test
     @SuppressWarnings("LineLength")
@@ -908,9 +891,9 @@ public class MediaServiceControllerTest {
         generateAssetDTO.setSourceContainer("foo");
         generateAssetDTO.setDestinationContainer("bar");
         generateAssetDTO.setTempAsset("blobby");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
-        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
-        when(azureFinalStorageService.doesBlobMatch("foo", "+.\\.mp4$")).thenReturn(false);
+        when(mediaService.importAsset(any())).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container foo"));
         mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
@@ -952,7 +935,7 @@ public class MediaServiceControllerTest {
         generateAssetDTO.setTempAsset("blobby");
         when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
         when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
-        when(azureFinalStorageService.doesBlobMatch("foo", ".+\\.mp4$")).thenReturn(true);
+        when(azureFinalStorageService.getMp4FileName("foo")).thenReturn("blobby.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(

@@ -620,6 +620,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
         when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
+        when(azureFinalStorageService.getMp4FileName(any())).thenReturn("my-source-container");
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
 
@@ -674,6 +675,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
         when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
+        when(azureFinalStorageService.getMp4FileName(any())).thenReturn("my-source-container");
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.ERROR);
 

@@ -241,7 +241,8 @@ public class MediaKind implements IMediaService {
                     generateAssetDTO.getDestinationContainer(),
                     true);
 
-        var jobName = encodeFromMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
+        var fileName = azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
+        var jobName = encodeFromMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset(), fileName);
 
         var jobState = waitEncodeComplete(jobName, ENCODE_FROM_MP4_TRANSFORM);
 
@@ -411,14 +412,17 @@ public class MediaKind implements IMediaService {
     }
 
     private String encodeFromIngest(String inputAssetName, String outputAssetName) {
-        return runEncodeTransform(inputAssetName, outputAssetName, ENCODE_FROM_INGEST_TRANSFORM);
+        return runEncodeTransform(inputAssetName, outputAssetName, ENCODE_FROM_INGEST_TRANSFORM, "");
     }
 
-    private String encodeFromMp4(String inputAssetName, String outputAssetName) {
-        return runEncodeTransform(inputAssetName, outputAssetName, ENCODE_FROM_MP4_TRANSFORM);
+    private String encodeFromMp4(String inputAssetName, String outputAssetName, String fileName) {
+        return runEncodeTransform(inputAssetName, outputAssetName, ENCODE_FROM_MP4_TRANSFORM, fileName);
     }
 
-    private String runEncodeTransform(String inputAssetName, String outputAssetName, String transformName) {
+    private String runEncodeTransform(String inputAssetName,
+                                      String outputAssetName,
+                                      String transformName,
+                                      String fileName) {
         assertTransformExists(transformName);
         var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
         log.info("Creating job [{}]", jobName);
@@ -430,7 +434,7 @@ public class MediaKind implements IMediaService {
                 .properties(MkJob.MkJobProperties.builder()
                                 .input(new JobInputAsset()
                                            .withAssetName(inputAssetName)
-                                           .withFiles(List.of("")))
+                                           .withFiles(List.of(fileName)))
                                 .outputs(List.of(new JobOutputAsset()
                                                      .withAssetName(outputAssetName)))
                                 .build())
