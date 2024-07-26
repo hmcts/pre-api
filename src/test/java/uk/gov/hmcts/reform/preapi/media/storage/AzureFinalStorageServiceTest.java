@@ -4,6 +4,7 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobStorageException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -15,7 +16,10 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AzureFinalStorageService.class)
@@ -41,8 +45,10 @@ public class AzureFinalStorageServiceTest {
     @Test
     void doesIsmFileExistTrue() {
         var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
         when(blobItem.getName()).thenReturn("video.ism");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+
 
         assertTrue(azureFinalStorageService.doesIsmFileExist("test-container"));
     }
@@ -50,6 +56,7 @@ public class AzureFinalStorageServiceTest {
     @Test
     void doesIsmFileExistFalse() {
         var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
         when(blobItem.getName()).thenReturn("video.mp4");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
 
@@ -58,7 +65,15 @@ public class AzureFinalStorageServiceTest {
 
     @Test
     void doesIsmFileExistEmptyContainer() {
+        when(blobContainerClient.exists()).thenReturn(true);
         when(pagedIterable.stream()).thenReturn(Stream.of());
+
+        assertFalse(azureFinalStorageService.doesIsmFileExist("test-container"));
+    }
+
+    @Test
+    void doesIsmExistContainerNotFound() {
+        when(blobContainerClient.exists()).thenReturn(false);
 
         assertFalse(azureFinalStorageService.doesIsmFileExist("test-container"));
     }
