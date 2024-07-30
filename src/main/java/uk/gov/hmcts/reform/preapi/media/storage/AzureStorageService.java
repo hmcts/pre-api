@@ -12,7 +12,7 @@ public abstract class AzureStorageService {
     }
 
     public boolean doesIsmFileExist(String containerName) {
-        return client
+        return doesContainerExist(containerName) && client
             .getBlobContainerClient(containerName)
             .listBlobs()
             .stream()
@@ -21,6 +21,14 @@ public abstract class AzureStorageService {
 
     public boolean doesContainerExist(String containerName) {
         return client.getBlobContainerClient(containerName).exists();
+    }
+
+    public String tryGetMp4FileName(String containerName) {
+        try {
+            return getMp4FileName(containerName);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public String getMp4FileName(String containerName) {
