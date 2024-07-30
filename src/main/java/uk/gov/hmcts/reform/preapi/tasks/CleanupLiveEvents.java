@@ -134,7 +134,6 @@ public class CleanupLiveEvents implements Runnable {
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
                                                         )
-                                                        .filter(u -> u != null && u.getDeletedAt() == null)
                                                         .map(u -> StoppedLiveEventsNotificationDTO
                                                             .builder()
                                                             .email(u.getEmail())
