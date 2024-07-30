@@ -23,14 +23,6 @@ public abstract class AzureStorageService {
         return client.getBlobContainerClient(containerName).exists();
     }
 
-    public String tryGetMp4FileName(String containerName) {
-        try {
-            return getMp4FileName(containerName);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     public String getMp4FileName(String containerName) {
         var blob = client.getBlobContainerClient(containerName)
                          .listBlobs()
@@ -41,6 +33,14 @@ public abstract class AzureStorageService {
             return blob.get().getName();
         }
         throw new NotFoundException("MP4 file not found in container " + containerName);
+    }
+
+    public String tryGetMp4FileName(String containerName) {
+        try {
+            return getMp4FileName(containerName);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public boolean doesBlobExist(String containerName, String blobName) {
