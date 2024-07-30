@@ -69,8 +69,9 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -98,6 +99,7 @@ public class MediaKind implements IMediaService {
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
     public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
+    private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String DEFAULT_STREAMING_ENDPOINT = "default";
 
     @Autowired
@@ -155,6 +157,8 @@ public class MediaKind implements IMediaService {
     private void refreshStreamingLocatorForUser(String userId, String assetName) {
         mediaKindClient.deleteStreamingLocator(userId);
 
+        var now = OffsetDateTime.now();
+
         mediaKindClient.createStreamingLocator(
             userId,
             MkStreamingLocator.builder()
@@ -163,7 +167,13 @@ public class MediaKind implements IMediaService {
                         .assetName(assetName)
                         .streamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
                         .defaultContentKeyPolicyName(userId)
-                        .endTime(Timestamp.from(ZonedDateTime.now().toInstant().plusSeconds(3600)))
+                        // set end time to midnight tonight
+                        .endTime(Timestamp.from(
+                            now.toLocalDate()
+                               .atTime(LocalTime.MAX)
+                               .atZone(now.getOffset())
+                               .toInstant()
+                        ))
                         .build())
                 .build()
         );
@@ -692,15 +702,16 @@ public class MediaKind implements IMediaService {
             log.info("Creating Streaming locator");
             var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
+            // Streaming Locator for a live event
             mediaKindClient.createStreamingLocator(
                 sanitisedLiveEventId,
                 MkStreamingLocator.builder()
-                                  .properties(MkStreamingLocatorProperties.builder()
-                                                                          .assetName(sanitisedLiveEventId)
-                                                                          .streamingLocatorId(sanitisedLiveEventId)
-                                                                          .streamingPolicyName(
-                                                                              "Predefined_ClearStreamingOnly")
-                                                                          .build()
+                                  .properties(MkStreamingLocatorProperties
+                                                  .builder()
+                                                  .assetName(sanitisedLiveEventId)
+                                                  .streamingLocatorId(sanitisedLiveEventId)
+                                                  .streamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
+                                                  .build()
                                   ).build()
             );
         } catch (ConflictException e) {
