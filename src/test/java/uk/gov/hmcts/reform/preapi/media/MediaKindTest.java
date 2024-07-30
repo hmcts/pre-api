@@ -53,6 +53,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_INGEST_TRANSFORM;
+import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFORM;
 
 @SpringBootTest(classes = MediaKind.class)
 @TestPropertySource(properties = {
@@ -73,8 +75,6 @@ public class MediaKindTest {
     private MediaKind mediaKind;
 
     private CaptureSessionDTO captureSession;
-
-    private static final String ENCODE_TO_MP4 = "EncodeToMp4";
 
     @BeforeEach
     void setUp() {
@@ -443,7 +443,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(eq(ENCODE_TO_MP4), startsWith(liveEventName))).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -452,11 +452,11 @@ public class MediaKindTest {
             .isEqualTo(RecordingStatus.NO_RECORDING);
 
         verify(mockClient, times(1)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
+        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -475,7 +475,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(eq(ENCODE_TO_MP4), startsWith(liveEventName))).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -484,12 +484,12 @@ public class MediaKindTest {
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
         verify(mockClient, times(1)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
+        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
         verify(mockClient, never()).putTransform(any(), any());
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -516,14 +516,14 @@ public class MediaKindTest {
 
     @DisplayName("Should create the EncodeToMp4 transform if it doesn't exist")
     @Test
-    void stopLiveEventRecordingFoundEncodeToMp4() throws InterruptedException {
+    void stopLiveEventRecordingFoundRunEncodeTransform() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getTransform(ENCODE_TO_MP4)).thenThrow(NotFoundException.class);
-        when(mockClient.getJob(eq(ENCODE_TO_MP4), startsWith(liveEventName))).thenReturn(mockJob);
+        when(mockClient.getTransform(ENCODE_FROM_INGEST_TRANSFORM)).thenThrow(NotFoundException.class);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -532,12 +532,12 @@ public class MediaKindTest {
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
         verify(mockClient, times(1)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
-        verify(mockClient, times(1)).putTransform(eq(ENCODE_TO_MP4), any());
+        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
+        verify(mockClient, times(1)).putTransform(eq(ENCODE_FROM_INGEST_TRANSFORM), any());
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -554,7 +554,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(eq(ENCODE_TO_MP4), startsWith(liveEventName))).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
@@ -569,12 +569,12 @@ public class MediaKindTest {
         assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
 
         verify(mockClient, times(1)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
+        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
         verify(mockClient, never()).putTransform(any(), any());
         var jobName = ArgumentCaptor.forClass(String.class);
         var jobName2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobName.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobName2.capture());
+        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobName.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobName2.capture());
         assertThat(jobName.getValue()).startsWith(liveEventName);
         assertThat(jobName.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -589,7 +589,7 @@ public class MediaKindTest {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(eq(ENCODE_TO_MP4), startsWith(liveEventName))).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
@@ -599,11 +599,11 @@ public class MediaKindTest {
             .isEqualTo(RecordingStatus.NO_RECORDING);
 
         verify(mockClient, times(1)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_TO_MP4);
+        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_TO_MP4), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_TO_MP4), jobArgument2.capture());
+        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
+        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -619,9 +619,11 @@ public class MediaKindTest {
     void importAssetSuccess() throws InterruptedException {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
-        when(mockClient.getJob(eq(ENCODE_TO_MP4), any())).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
+        when(azureFinalStorageService.getMp4FileName("my-source-container")).thenReturn("video.mp4");
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
+        when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
         var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
                                                      "my-destination-container",
@@ -655,7 +657,7 @@ public class MediaKindTest {
 
         verify(mockClient, times(1))
             .putJob(
-                eq("EncodeToMp4"),
+                eq(ENCODE_FROM_MP4_TRANSFORM),
                 jobArgument.capture(),
                 jobInnerArgument.capture()
             );
@@ -673,7 +675,8 @@ public class MediaKindTest {
     void importAssetJobFailed() throws InterruptedException {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
-        when(mockClient.getJob(eq(ENCODE_TO_MP4), any())).thenReturn(mockJob);
+        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
+        when(azureFinalStorageService.getMp4FileName(any())).thenReturn("my-source-container");
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.ERROR);
 
@@ -708,7 +711,7 @@ public class MediaKindTest {
 
         verify(mockClient, times(1))
             .putJob(
-                eq("EncodeToMp4"),
+                eq(ENCODE_FROM_MP4_TRANSFORM),
                 jobName.capture(),
                 jobInnerArgument.capture()
             );

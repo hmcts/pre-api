@@ -329,6 +329,12 @@ public class MediaServiceController extends PreApiController {
             throw new ForbiddenException("Invalid code parameter provided");
         }
 
+        if (!azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())) {
+            throw new NotFoundException("Source Container: " + generateAssetDTO.getSourceContainer());
+        }
+
+        log.info("Attempting to generate asset: {}", generateAssetDTO);
+
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             return ResponseEntity.ok(result);
