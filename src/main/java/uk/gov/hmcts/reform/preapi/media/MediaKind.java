@@ -428,7 +428,7 @@ public class MediaKind implements IMediaService {
             case ENCODE_FROM_INGEST_TRANSFORM -> MkBuiltInPreset
                 .builder()
                 .odataType(MkBuiltInPreset.BUILT_IN_PRESET_ASSET_CONVERTER)
-                .presetName(MkBuiltInPreset.MkAssetConverterPreset.CopyAllBitrateNonInterleaved)
+                .presetName(MkBuiltInPreset.MkAssetConverterPreset.CopyTopBitrateInterleaved)
                 .build();
             case ENCODE_FROM_MP4_TRANSFORM -> MkBuiltInPreset
                 .builder()
