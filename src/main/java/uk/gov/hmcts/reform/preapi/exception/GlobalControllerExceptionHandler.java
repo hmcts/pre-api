@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.logging.Logger;
 
 @ControllerAdvice
+@Slf4j
 public class GlobalControllerExceptionHandler {
 
     private static final String MESSAGE = "message";
@@ -30,7 +32,7 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
     ResponseEntity<String> notFoundExceptionHandler(final NotFoundException e) throws JsonProcessingException {
-
+        log.error("Not found exception: {}", e.getMessage());
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
