@@ -42,7 +42,7 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAsset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkAssetProperties;
-import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInAssetConverterPreset;
+import uk.gov.hmcts.reform.preapi.media.dto.MkBuiltInPreset;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicy;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyOptions;
 import uk.gov.hmcts.reform.preapi.media.dto.MkContentKeyPolicyProperties;
@@ -69,8 +69,9 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -96,8 +97,10 @@ public class MediaKind implements IMediaService {
     private final AzureFinalStorageService azureFinalStorageService;
 
     private static final String LOCATION = "uksouth";
-    private static final String ENCODE_TO_MP4_TRANSFORM = "EncodeToMp4";
+    public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
+    public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
+    private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String DEFAULT_STREAMING_ENDPOINT = "default";
 
     @Autowired
@@ -155,6 +158,8 @@ public class MediaKind implements IMediaService {
     private void refreshStreamingLocatorForUser(String userId, String assetName) {
         mediaKindClient.deleteStreamingLocator(userId);
 
+        var now = OffsetDateTime.now();
+
         mediaKindClient.createStreamingLocator(
             userId,
             MkStreamingLocator.builder()
@@ -163,7 +168,13 @@ public class MediaKind implements IMediaService {
                         .assetName(assetName)
                         .streamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
                         .defaultContentKeyPolicyName(userId)
-                        .endTime(Timestamp.from(ZonedDateTime.now().toInstant().plusSeconds(3600)))
+                        // set end time to midnight tonight
+                        .endTime(Timestamp.from(
+                            now.toLocalDate()
+                               .atTime(LocalTime.MAX)
+                               .atZone(now.getOffset())
+                               .toInstant()
+                        ))
                         .build())
                 .build()
         );
@@ -241,9 +252,10 @@ public class MediaKind implements IMediaService {
                     generateAssetDTO.getDestinationContainer(),
                     true);
 
-        var jobName = encodeToMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset());
+        var fileName = azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
+        var jobName = encodeFromMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset(), fileName);
 
-        var jobState = waitEncodeComplete(jobName);
+        var jobState = waitEncodeComplete(jobName, ENCODE_FROM_MP4_TRANSFORM);
 
         return new GenerateAssetResponseDTO(
             generateAssetDTO.getFinalAsset(),
@@ -315,8 +327,8 @@ public class MediaKind implements IMediaService {
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
 
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-        var jobName = encodeToMp4(captureSessionNoHyphen, recordingAssetName);
-        waitEncodeComplete(jobName);
+        var jobName = encodeFromIngest(captureSessionNoHyphen, recordingAssetName);
+        waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
         var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
             ? RecordingStatus.RECORDING_AVAILABLE
             : RecordingStatus.NO_RECORDING;
@@ -374,24 +386,20 @@ public class MediaKind implements IMediaService {
         mediaKindClient.deleteStreamingEndpoint(endpointName);
     }
 
-    private void assertEncodeToMp4TransformExists() {
+    private void assertTransformExists(String transformName) {
         try {
-            mediaKindClient.getTransform(ENCODE_TO_MP4_TRANSFORM);
+            mediaKindClient.getTransform(transformName);
         } catch (NotFoundException e) {
-            // create EncodeToMp4 transform if it doesn't exist yet
+            // create transform if it doesn't exist yet
             mediaKindClient.putTransform(
-                ENCODE_TO_MP4_TRANSFORM,
+                transformName,
                 MkTransform.builder()
                     .properties(
                         MkTransformProperties.builder()
                             .outputs(List.of(
                                 MkTransformOutput.builder()
-                                    .preset(MkBuiltInAssetConverterPreset.builder()
-                                                .presetName(MkBuiltInAssetConverterPreset
-                                                                .MkAssetConverterPreset
-                                                                .CopyAllBitrateInterleaved)
-                                                .build())
                                     .relativePriority(MkTransformOutput.MkTransformPriority.Normal)
+                                    .preset(getMkBuiltInPreset(transformName))
                                     .build()
                             ))
                             .build()
@@ -401,33 +409,64 @@ public class MediaKind implements IMediaService {
         }
     }
 
-    private String encodeToMp4(String inputAssetName, String outputAssetName) {
-        assertEncodeToMp4TransformExists();
+    private MkBuiltInPreset getMkBuiltInPreset(String transformName) {
+        return switch(transformName) {
+            case ENCODE_FROM_INGEST_TRANSFORM -> MkBuiltInPreset
+                .builder()
+                .odataType(MkBuiltInPreset.BUILT_IN_PRESET_ASSET_CONVERTER)
+                .presetName(MkBuiltInPreset.MkAssetConverterPreset.CopyAllBitrateNonInterleaved)
+                .build();
+            case ENCODE_FROM_MP4_TRANSFORM -> MkBuiltInPreset
+                .builder()
+                .odataType(MkBuiltInPreset.BUILT_IN_PRESET_STANDARD_ENCODER)
+                .presetName(MkBuiltInPreset.MkAssetConverterPreset.H264SingleBitrate720p)
+                .build();
+            default -> throw new IllegalArgumentException(
+                "Invalid MediaKind transform name '" + transformName + "'"
+            );
+        };
+    }
+
+    private String encodeFromIngest(String inputAssetName, String outputAssetName) {
+        return runEncodeTransform(inputAssetName, outputAssetName, ENCODE_FROM_INGEST_TRANSFORM, "");
+    }
+
+    private String encodeFromMp4(String inputAssetName, String outputAssetName, String fileName) {
+        return runEncodeTransform(inputAssetName, outputAssetName, ENCODE_FROM_MP4_TRANSFORM, fileName);
+    }
+
+    private String runEncodeTransform(String inputAssetName,
+                                      String outputAssetName,
+                                      String transformName,
+                                      String fileName) {
+        assertTransformExists(transformName);
         var jobName = inputAssetName + "-" + LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
+        log.info("Creating job [{}]", jobName);
         mediaKindClient.putJob(
-            ENCODE_TO_MP4_TRANSFORM,
+            transformName,
             jobName,
             MkJob.builder()
                 .name(jobName)
                 .properties(MkJob.MkJobProperties.builder()
                                 .input(new JobInputAsset()
                                            .withAssetName(inputAssetName)
-                                           .withFiles(List.of("")))
+                                           .withFiles(List.of(fileName)))
                                 .outputs(List.of(new JobOutputAsset()
                                                      .withAssetName(outputAssetName)))
                                 .build())
                 .build());
-
+        log.info("Job [{}] created", jobName);
         return jobName;
     }
 
-    private JobState waitEncodeComplete(String jobName) throws InterruptedException {
+    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
+        log.info("Waiting for job [{}] to complete", jobName);
         MkJob job = null;
         do {
             if (job != null) {
                 TimeUnit.MILLISECONDS.sleep(10000);
             }
-            job = mediaKindClient.getJob(ENCODE_TO_MP4_TRANSFORM, jobName);
+            job = mediaKindClient.getJob(transformName, jobName);
         } while (!job.getProperties().getState().equals(JobState.FINISHED)
             && !job.getProperties().getState().equals(JobState.ERROR)
             && !job.getProperties().getState().equals(JobState.CANCELED));
@@ -492,6 +531,7 @@ public class MediaKind implements IMediaService {
                              String containerName,
                              boolean isFinal) {
         try {
+            log.info("Creating asset: {} ({})", assetName, description);
             mediaKindClient.putAsset(
                 assetName,
                 MkAsset.builder()
@@ -668,15 +708,16 @@ public class MediaKind implements IMediaService {
             log.info("Creating Streaming locator");
             var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
+            // Streaming Locator for a live event
             mediaKindClient.createStreamingLocator(
                 sanitisedLiveEventId,
                 MkStreamingLocator.builder()
-                                  .properties(MkStreamingLocatorProperties.builder()
-                                                                          .assetName(sanitisedLiveEventId)
-                                                                          .streamingLocatorId(sanitisedLiveEventId)
-                                                                          .streamingPolicyName(
-                                                                              "Predefined_ClearStreamingOnly")
-                                                                          .build()
+                                  .properties(MkStreamingLocatorProperties
+                                                  .builder()
+                                                  .assetName(sanitisedLiveEventId)
+                                                  .streamingLocatorId(sanitisedLiveEventId)
+                                                  .streamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
+                                                  .build()
                                   ).build()
             );
         } catch (ConflictException e) {
