@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.media;
 
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
-import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -220,7 +219,8 @@ public class MediaKindTest {
         assertThat(result.getDescription()).isEqualTo(liveEvent.getProperties().getDescription());
         assertThat(result.getResourceState()).isEqualTo(liveEvent.getProperties().getResourceState());
         assertThat(result.getId()).isEqualTo(liveEvent.getId());
-        assertThat(result.getInputRtmp()).isEqualTo(liveEvent.getProperties().getInput().endpoints().getFirst().url());
+        assertThat(result.getInputRtmp())
+            .isEqualTo(liveEvent.getProperties().getInput().getEndpoints().getFirst().url());
     }
 
     @DisplayName("Should throw a NotFoundException null when get live event returns 404")
@@ -279,10 +279,12 @@ public class MediaKindTest {
                                              .description("description: " + name)
                                              .useStaticHostname(true)
                                              .resourceState("Stopped")
-                                             .input(new LiveEventInput()
-                                       .withEndpoints(List.of(new LiveEventEndpoint()
-                                                                  .withProtocol("RTMP")
-                                                                  .withUrl("rtmps://example url"))))
+                                             .input(MkLiveEventProperties.MkLiveEventInput.builder()
+                                                    .endpoints(List.of(
+                                                        new LiveEventEndpoint()
+                                                            .withProtocol("RTMP")
+                                                            .withUrl("rtmps://example url")))
+                                                        .build())
                                              .preview(new LiveEventPreview())
                                              .build())
             .build();

@@ -17,9 +17,7 @@ import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncoding;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncodingType;
-import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
 import com.azure.resourcemanager.mediaservices.models.LiveEventInputAccessControl;
-import com.azure.resourcemanager.mediaservices.models.LiveEventInputProtocol;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
@@ -604,11 +602,11 @@ public class MediaKind implements IMediaService {
                                         )
                                         .description(captureSession.getBookingId().toString())
                                         .useStaticHostname(true)
-                                        .input(new LiveEventInput()
-                                                   .withStreamingProtocol(LiveEventInputProtocol.RTMP)
-                                                   .withKeyFrameIntervalDuration("PT6S")
-                                                   .withAccessToken(accessToken.toString())
-                                                   .withAccessControl(
+                                        .input(MkLiveEventProperties.MkLiveEventInput.builder()
+                                                   .streamingProtocol(MkLiveEventProperties.StreamingProtocol.RTMPS)
+                                                   .keyFrameIntervalDuration("PT6S")
+                                                   .accessToken(accessToken.toString())
+                                                   .accessControl(
                                                        new LiveEventInputAccessControl()
                                                            .withIp(new IpAccessControl()
                                                                        .withAllow(
@@ -620,6 +618,7 @@ public class MediaKind implements IMediaService {
                                                                        )
                                                            )
                                                    )
+                                                   .build()
                                         )
                                         .preview(new LiveEventPreview()
                                                      .withAccessControl(
