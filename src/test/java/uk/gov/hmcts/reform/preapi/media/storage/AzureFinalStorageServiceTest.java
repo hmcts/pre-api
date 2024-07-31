@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,6 +47,7 @@ public class AzureFinalStorageServiceTest {
         var blobItem = mock(BlobItem.class);
         when(blobItem.getName()).thenReturn("video.ism");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        when(blobContainerClient.exists()).thenReturn(true);
 
         assertTrue(azureFinalStorageService.doesIsmFileExist("test-container"));
     }
@@ -135,5 +137,31 @@ public class AzureFinalStorageServiceTest {
         when(blobContainerClient.exists()).thenReturn(false);
 
         assertFalse(azureFinalStorageService.doesContainerExist("test-container"));
+    }
+
+    @Test
+    void tryGetMp4FileNameSuccess() {
+        var blobItem1 = mock(BlobItem.class);
+        when(blobItem1.getName()).thenReturn("video1.mp4");
+        var blobItem2 = mock(BlobItem.class);
+        when(blobItem2.getName()).thenReturn("something-else.txt");
+        var blobItem3 = mock(BlobItem.class);
+        when(blobItem3.getName()).thenReturn("video2.mp4");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem1, blobItem2, blobItem2));
+
+        var mp4FileName = azureFinalStorageService.tryGetMp4FileName("test-container");
+        assertEquals("video1.mp4", mp4FileName);
+    }
+
+    @Test
+    void tryGetMp4FileNameNoMp4s() {
+        var blobItem1 = mock(BlobItem.class);
+        when(blobItem1.getName()).thenReturn("video1.docx");
+        var blobItem2 = mock(BlobItem.class);
+        when(blobItem2.getName()).thenReturn("something-else.txt");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem1, blobItem2));
+
+        assertThat(azureFinalStorageService.tryGetMp4FileName("test-container"))
+            .isNull();
     }
 }
