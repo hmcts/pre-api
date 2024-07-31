@@ -10,10 +10,14 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -101,6 +105,76 @@ public class AzureFinalStorageServiceTest {
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
 
         assertFalse(azureFinalStorageService.doesBlobExist("test-container", "video.ism"));
+    }
+
+    @Test
+    void getMp4FileNameMultipleMp4s() {
+        var blobItem1 = mock(BlobItem.class);
+        when(blobItem1.getName()).thenReturn("video1.mp4");
+        var blobItem2 = mock(BlobItem.class);
+        when(blobItem2.getName()).thenReturn("something-else.txt");
+        var blobItem3 = mock(BlobItem.class);
+        when(blobItem3.getName()).thenReturn("video2.mp4");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem1, blobItem2, blobItem2));
+
+        var mp4FileName = azureFinalStorageService.getMp4FileName("test-container");
+        assertEquals("video1.mp4", mp4FileName);
+    }
+
+    @Test
+    void getMp4FileNameNoMp4s() {
+        var blobItem1 = mock(BlobItem.class);
+        when(blobItem1.getName()).thenReturn("video1.docx");
+        var blobItem2 = mock(BlobItem.class);
+        when(blobItem2.getName()).thenReturn("something-else.txt");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem1, blobItem2));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> azureFinalStorageService.getMp4FileName("test-container")
+        ).getMessage();
+
+        assertEquals("Not found: MP4 file not found in container test-container", message);
+    }
+
+    @Test
+    void doesContainerExistTrue() {
+        when(blobContainerClient.exists()).thenReturn(true);
+
+        assertTrue(azureFinalStorageService.doesContainerExist("test-container"));
+    }
+
+    @Test
+    void doesContainerExistFalse() {
+        when(blobContainerClient.exists()).thenReturn(false);
+
+        assertFalse(azureFinalStorageService.doesContainerExist("test-container"));
+    }
+
+    @Test
+    void tryGetMp4FileNameSuccess() {
+        var blobItem1 = mock(BlobItem.class);
+        when(blobItem1.getName()).thenReturn("video1.mp4");
+        var blobItem2 = mock(BlobItem.class);
+        when(blobItem2.getName()).thenReturn("something-else.txt");
+        var blobItem3 = mock(BlobItem.class);
+        when(blobItem3.getName()).thenReturn("video2.mp4");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem1, blobItem2, blobItem2));
+
+        var mp4FileName = azureFinalStorageService.tryGetMp4FileName("test-container");
+        assertEquals("video1.mp4", mp4FileName);
+    }
+
+    @Test
+    void tryGetMp4FileNameNoMp4s() {
+        var blobItem1 = mock(BlobItem.class);
+        when(blobItem1.getName()).thenReturn("video1.docx");
+        var blobItem2 = mock(BlobItem.class);
+        when(blobItem2.getName()).thenReturn("something-else.txt");
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem1, blobItem2));
+
+        assertThat(azureFinalStorageService.tryGetMp4FileName("test-container"))
+            .isNull();
     }
 
     @Test

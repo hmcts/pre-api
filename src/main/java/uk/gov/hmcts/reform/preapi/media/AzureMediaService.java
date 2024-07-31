@@ -60,7 +60,8 @@ import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -75,6 +76,7 @@ public class AzureMediaService implements IMediaService {
     private static final String LOCATION = "uksouth";
     private static final String ENCODE_TO_MP4_TRANSFORM = "EncodeToMP4";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
+    private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String DEFAULT_STREAMING_ENDPOINT = "default";
 
     private final String resourceGroup;
@@ -183,6 +185,8 @@ public class AzureMediaService implements IMediaService {
             }
         }
 
+        var now = OffsetDateTime.now();
+
         amsClient.getStreamingLocators()
             .create(
                 resourceGroup,
@@ -192,7 +196,8 @@ public class AzureMediaService implements IMediaService {
                     .withAssetName(assetName)
                     .withStreamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
                     .withDefaultContentKeyPolicyName(userId)
-                    .withEndTime(Instant.now().plusSeconds(3600).atZone(ZoneId.of("UTC")).toOffsetDateTime())
+                    // set end time to midnight tonight as an offset
+                    .withEndTime(now.toLocalDate().atTime(LocalTime.MAX).atOffset(now.getOffset()))
             );
     }
 
@@ -394,7 +399,7 @@ public class AzureMediaService implements IMediaService {
             var sanitisedLiveEventId = getSanitisedId(liveEventId);
             var streamingLocatorProperties = new StreamingLocatorInner()
                 .withAssetName(sanitisedLiveEventId)
-                .withStreamingPolicyName("Predefined_ClearStreamingOnly")
+                .withStreamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
                 .withStreamingLocatorId(liveEventId);
 
 
@@ -489,6 +494,22 @@ public class AzureMediaService implements IMediaService {
         deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;
+    }
+
+    @Override
+    public void deleteAllStreamingLocatorsAndContentKeyPolicies() {
+        amsClient.getStreamingLocators()
+                 .list(resourceGroup, accountName)
+                 .forEach(locator -> {
+                     log.info("Deleting streaming locator: {}", locator.name());
+                     deleteStreamingLocator(locator.name());
+                 });
+        amsClient.getContentKeyPolicies()
+                 .list(resourceGroup, accountName)
+                 .forEach(policy -> {
+                     log.info("Deleting content key policy: {}", policy.name());
+                     amsClient.getContentKeyPolicies().delete(resourceGroup, accountName, policy.name());
+                 });
     }
 
     @Override

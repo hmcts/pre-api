@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import com.azure.core.http.HttpResponse;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.fluent.AssetsClient;
 import com.azure.resourcemanager.mediaservices.fluent.AzureMediaServices;
@@ -44,8 +45,10 @@ import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -912,6 +915,12 @@ public class AzureMediaServiceTest {
         return client;
     }
 
+    private ContentKeyPoliciesClient mockContentKeyPoliciesClient() {
+        var client = mock(ContentKeyPoliciesClient.class);
+        when(amsClient.getContentKeyPolicies()).thenReturn(client);
+        return client;
+    }
+
     private JobsClient mockJobsClient() {
         var client = mock(JobsClient.class);
         when(amsClient.getJobs()).thenReturn(client);
@@ -1266,6 +1275,69 @@ public class AzureMediaServiceTest {
         verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
     }
 
+    @DisplayName("Should delete all streaming locators and Content Key Policies")
+    @Test
+    @SuppressWarnings("unchecked")
+    void testDeleteAllStreamingLocatorsAndContentKeyPolicies() {
+        var streamingLocatorClient = mockStreamingLocatorClient();
+
+        var mockIterable = mock(PagedIterable.class);
+        var mockIterator = mock(Iterator.class);
+
+        when(streamingLocatorClient.list(resourceGroup, accountName))
+            .thenReturn(mockIterable);
+
+        Mockito.doCallRealMethod().when(mockIterable).forEach(any(Consumer.class));
+
+        when(mockIterable.iterator()).thenReturn(mockIterator);
+
+        var sli1 = mock(StreamingLocatorInner.class);
+        when(sli1.name()).thenReturn("asset1");
+        var sli2 = mock(StreamingLocatorInner.class);
+        when(sli2.name()).thenReturn("asset2");
+        var sli3 = mock(StreamingLocatorInner.class);
+        when(sli3.name()).thenReturn("asset3");
+
+        when(mockIterator.hasNext()).thenReturn(true, true, true, false);
+        when(mockIterator.next()).thenReturn(sli1, sli2, sli3);
+
+        var contentKeyPolicyClient = mockContentKeyPoliciesClient();
+
+        var mockIterableKeyPolicy = mock(PagedIterable.class);
+        var mockIteratorKeyPolicy = mock(Iterator.class);
+
+        when(contentKeyPolicyClient.list(resourceGroup, accountName))
+            .thenReturn(mockIterableKeyPolicy);
+
+        Mockito.doCallRealMethod().when(mockIterableKeyPolicy).forEach(any(Consumer.class));
+
+        when(mockIterableKeyPolicy.iterator()).thenReturn(mockIteratorKeyPolicy);
+
+        var ckp1 = mock(ContentKeyPolicyInner.class);
+        when(ckp1.name()).thenReturn("policy1");
+        var ckp2 = mock(ContentKeyPolicyInner.class);
+        when(ckp2.name()).thenReturn("policy2");
+        var ckp3 = mock(ContentKeyPolicyInner.class);
+        when(ckp3.name()).thenReturn("policy3");
+
+        when(mockIteratorKeyPolicy.hasNext()).thenReturn(true, true, true, false);
+        when(mockIteratorKeyPolicy.next()).thenReturn(ckp1, ckp2, ckp3);
+
+        mediaService.deleteAllStreamingLocatorsAndContentKeyPolicies();
+
+        verify(streamingLocatorClient, times(1)).list(resourceGroup, accountName);
+
+        verify(streamingLocatorClient, times(1)).delete(resourceGroup, accountName, "asset1");
+        verify(streamingLocatorClient, times(1)).delete(resourceGroup, accountName, "asset2");
+        verify(streamingLocatorClient, times(1)).delete(resourceGroup, accountName, "asset3");
+
+        verify(contentKeyPolicyClient, times(1)).list(resourceGroup, accountName);
+
+        verify(contentKeyPolicyClient, times(1)).delete(resourceGroup, accountName, "policy1");
+        verify(contentKeyPolicyClient, times(1)).delete(resourceGroup, accountName, "policy2");
+        verify(contentKeyPolicyClient, times(1)).delete(resourceGroup, accountName, "policy3");
+    }
+
     @DisplayName("Should return playback details for asset")
     @Test
     void playAssetSuccess() {
@@ -1603,12 +1675,6 @@ public class AzureMediaServiceTest {
     private LiveOutputsClient mockLiveOutputClient() {
         var client = mock(LiveOutputsClient.class);
         when(amsClient.getLiveOutputs()).thenReturn(client);
-        return client;
-    }
-
-    private ContentKeyPoliciesClient mockContentKeyPoliciesClient() {
-        var client = mock(ContentKeyPoliciesClient.class);
-        when(amsClient.getContentKeyPolicies()).thenReturn(client);
         return client;
     }
 
