@@ -497,6 +497,22 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
+    public void deleteAllStreamingLocatorsAndContentKeyPolicies() {
+        amsClient.getStreamingLocators()
+                 .list(resourceGroup, accountName)
+                 .forEach(locator -> {
+                     log.info("Deleting streaming locator: {}", locator.name());
+                     deleteStreamingLocator(locator.name());
+                 });
+        amsClient.getContentKeyPolicies()
+                 .list(resourceGroup, accountName)
+                 .forEach(policy -> {
+                     log.info("Deleting content key policy: {}", policy.name());
+                     amsClient.getContentKeyPolicies().delete(resourceGroup, accountName, policy.name());
+                 });
+    }
+
+    @Override
     @Transactional(dontRollbackOn = Exception.class)
     @PreAuthorize("@authorisationService.hasCaptureSessionAccess(authentication, #captureSession.id)")
     public void startLiveEvent(CaptureSessionDTO captureSession) {
