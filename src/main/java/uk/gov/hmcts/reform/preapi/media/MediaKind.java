@@ -66,6 +66,7 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkTransformOutput;
 import uk.gov.hmcts.reform.preapi.media.dto.MkTransformProperties;
 import uk.gov.hmcts.reform.preapi.media.dto.Tier;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -93,6 +94,7 @@ public class MediaKind implements IMediaService {
     private final String symmetricKey;
 
     private final MediaKindClient mediaKindClient;
+    private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
 
     private static final String LOCATION = "uksouth";
@@ -111,6 +113,7 @@ public class MediaKind implements IMediaService {
         @Value("${mediakind.issuer:}") String issuer,
         @Value("${mediakind.symmetricKey:}") String symmetricKey,
         MediaKindClient mediaKindClient,
+        AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
     ) {
         this.ingestStorageAccount = ingestStorageAccount;
@@ -120,6 +123,7 @@ public class MediaKind implements IMediaService {
         this.issuer = issuer;
         this.symmetricKey = symmetricKey;
         this.mediaKindClient = mediaKindClient;
+        this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
     }
 
@@ -322,15 +326,31 @@ public class MediaKind implements IMediaService {
     public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
         var recordingNoHyphen = getSanitisedId(recordingId);
+        var recordingTempAssetName = recordingNoHyphen + "_temp";
         var recordingAssetName = recordingNoHyphen + "_output";
         var captureSessionNoHyphen = getSanitisedId(captureSession.getId());
 
+        createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-        var jobName = encodeFromIngest(captureSessionNoHyphen, recordingAssetName);
+
+        var jobName = encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
         waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
-        var status = azureFinalStorageService.doesIsmFileExist(recordingId.toString())
-            ? RecordingStatus.RECORDING_AVAILABLE
-            : RecordingStatus.NO_RECORDING;
+        var status = RecordingStatus.NO_RECORDING;
+
+        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
+
+        if (filename != null) {
+            var jobName2 = encodeFromMp4(
+                recordingTempAssetName,
+                recordingAssetName,
+                filename
+            );
+            waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
+
+            status =  azureFinalStorageService.doesIsmFileExist(recordingId.toString())
+                ? RecordingStatus.RECORDING_AVAILABLE
+                : RecordingStatus.NO_RECORDING;
+        }
 
         mediaKindClient.deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
@@ -432,7 +452,7 @@ public class MediaKind implements IMediaService {
             case ENCODE_FROM_INGEST_TRANSFORM -> MkBuiltInPreset
                 .builder()
                 .odataType(MkBuiltInPreset.BUILT_IN_PRESET_ASSET_CONVERTER)
-                .presetName(MkBuiltInPreset.MkAssetConverterPreset.CopyAllBitrateNonInterleaved)
+                .presetName(MkBuiltInPreset.MkAssetConverterPreset.CopyTopBitrateInterleaved)
                 .build();
             case ENCODE_FROM_MP4_TRANSFORM -> MkBuiltInPreset
                 .builder()
