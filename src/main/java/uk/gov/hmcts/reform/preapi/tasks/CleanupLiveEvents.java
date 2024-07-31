@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -128,8 +129,9 @@ public class CleanupLiveEvents implements Runnable {
                           }
 
                           if (sendNotification) {
-                              var booking = bookingService.findById(captureSession.getBookingId());
-                              if (booking != null) {
+                              try {
+                                  var booking = bookingService.findById(captureSession.getBookingId());
+
                                   var toNotify = booking.getShares().stream()
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
@@ -142,8 +144,14 @@ public class CleanupLiveEvents implements Runnable {
                                                             .courtName(booking.getCaseDTO().getCourt().getName())
                                                             .build())
                                                         .toList();
-
-                                  flowHttpClient.emailAfterStoppingLiveEvents(toNotify);
+                                  if (!toNotify.isEmpty()) {
+                                      log.info("Sending email notifications to {} user(s)", toNotify.size());
+                                      flowHttpClient.emailAfterStoppingLiveEvents(toNotify);
+                                  } else {
+                                      log.info("No users to notify for capture session {}", captureSession.getId());
+                                  }
+                              } catch (NotFoundException e) {
+                                  log.error(e.getMessage());
                               }
                           }
                       } catch (Exception e) {
