@@ -364,6 +364,30 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public void deleteAllStreamingLocatorsAndContentKeyPolicies() {
+
+        getAllMkList(mediaKindClient::getStreamingLocators)
+            .map(MkStreamingLocator::getName)
+            .forEach(locatorName -> {
+                try {
+                    mediaKindClient.deleteStreamingLocator(locatorName);
+                } catch (Exception e) {
+                    log.error("Error deleting streaming locator: {}", e.getMessage());
+                }
+            });
+
+        getAllMkList(mediaKindClient::getContentKeyPolicies)
+            .map(MkContentKeyPolicy::getName)
+            .forEach(policyName -> {
+                try {
+                    mediaKindClient.deleteContentKeyPolicy(policyName);
+                } catch (Exception e) {
+                    log.error("Error deleting content key policy: {}", e.getMessage());
+                }
+            });
+    }
+
+    @Override
     public void startLiveEvent(CaptureSessionDTO captureSession) {
         var liveEventName = getSanitisedId(captureSession.getId());
         createLiveEvent(captureSession);
