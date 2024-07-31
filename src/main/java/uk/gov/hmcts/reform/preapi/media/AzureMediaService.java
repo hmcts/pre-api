@@ -490,7 +490,7 @@ public class AzureMediaService implements IMediaService {
         stopAndDeleteLiveEvent(captureSessionNoHyphen);
         var captureSessionShort = getShortenedLiveEventId(captureSession.getId());
         stopAndDeleteStreamingEndpoint(captureSessionShort);
-        deleteStreamingLocator(captureSessionShort);
+        deleteStreamingLocator(captureSessionNoHyphen);
         deleteLiveOutput(captureSessionNoHyphen, captureSessionNoHyphen);
 
         return status;
