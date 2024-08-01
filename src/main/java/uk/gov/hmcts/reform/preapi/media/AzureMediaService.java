@@ -486,7 +486,7 @@ public class AzureMediaService implements IMediaService {
     @Override
     public void cleanupStoppedLiveEvent(String liveEventId) {
         stopAndDeleteLiveEvent(liveEventId);
-        stopAndDeleteStreamingEndpoint(liveEventId.substring(0, 24));
+        stopAndDeleteStreamingEndpoint(getShortenedLiveEventId(liveEventId));
         deleteStreamingLocator(liveEventId);
         deleteLiveOutput(liveEventId, liveEventId);
     }
