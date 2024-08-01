@@ -244,10 +244,10 @@ public class MediaServiceController extends PreApiController {
         summary = "Check stream has started"
     )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<Void> checkStream(@PathVariable UUID captureSessionId) {
+    public ResponseEntity<CaptureSessionDTO> checkStream(@PathVariable UUID captureSessionId) {
         var captureSession = captureSessionService.findById(captureSessionId);
         if (captureSession.getStatus() == RecordingStatus.RECORDING) {
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(captureSession);
         }
 
         if (captureSession.getFinishedAt() != null) {
@@ -271,8 +271,8 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
-            captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.ok(captureSessionService
+                                         .setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING));
         }
         throw new NotFoundException("No stream found");
     }
