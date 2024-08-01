@@ -716,7 +716,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isNoContent());
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
+            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, never()).doesIsmFileExist(any());
@@ -807,7 +810,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING)).thenReturn(dto2);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isNoContent());
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
+            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
