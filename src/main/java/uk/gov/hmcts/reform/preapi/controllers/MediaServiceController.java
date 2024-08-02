@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
@@ -213,14 +214,16 @@ public class MediaServiceController extends PreApiController {
         Logger.getAnonymousLogger().info("captureSession getLiveOutputUrl: " + captureSession.getLiveOutputUrl());
 
         // check if captureSession is in correct state
-        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
+        if (captureSession.getStatus() != RecordingStatus.STANDBY
+            && captureSession.getStatus() != RecordingStatus.RECORDING) {
             throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
                                                     captureSessionId.toString(),
                                                     captureSession.getStatus().name(),
                                                     RecordingStatus.STANDBY.name());
         }
-
-        if (!azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
+        var container = captureSession.getBookingId().toString();
+        if (!azureIngestStorageService.doesIsmFileExist(container)
+            && !azureIngestStorageService.doesBlobExist(container, "gc_state")) {
             throw new AssetFilesNotFoundException(captureSessionId);
         }
 
@@ -248,29 +251,30 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (captureSession.getFinishedAt() != null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                         + captureSessionId
                                                         + ") has already finished.");
         }
 
         if (captureSession.getStartedAt() == null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                           + captureSessionId
                                                           + ") has not been started.");
         }
 
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {
-            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
-                                                    captureSessionId.toString(),
-                                                    captureSession.getStatus().name(),
-                                                    RecordingStatus.STANDBY.name());
+            throw new UnprocessableContentException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") is in a "
+                                                        + captureSession.getStatus()
+                                                        + " state. Expected state is STANDBY.");
         }
 
         if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
-            captureSession = captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+            return ResponseEntity.ok(captureSessionService
+                                         .setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING));
         }
-
-        return ResponseEntity.ok(captureSession);
+        throw new NotFoundException("No stream found");
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")
@@ -326,6 +330,12 @@ public class MediaServiceController extends PreApiController {
         if (!legacyAzureFunctionKey.equals(code)) {
             throw new ForbiddenException("Invalid code parameter provided");
         }
+
+        if (!azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())) {
+            throw new NotFoundException("Source Container: " + generateAssetDTO.getSourceContainer());
+        }
+
+        log.info("Attempting to generate asset: {}", generateAssetDTO);
 
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {

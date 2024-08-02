@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
@@ -82,7 +83,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
     @DisplayName("Undelete a recording should cascade to associated capture sessions, bookings and cases")
     @Test
-    void shouldUndeleteRecording() throws JsonProcessingException {
+    void shouldUndeleteRecording() {
         // create recording
         var recordingDetails = createRecording();
         assertRecordingExists(recordingDetails.recordingId, true);
@@ -112,6 +113,59 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(recordingDetails.captureSessionId, true);
         assertBookingExists(recordingDetails.bookingId, true);
         assertCaseExists(recordingDetails.caseId, true);
+    }
+
+    @DisplayName("Should sort by created at desc when sort param not set and by sort param otherwise")
+    @Test
+    void getRecordingsSortBy() throws JsonProcessingException {
+        var details = createRecording();
+        assertRecordingExists(details.recordingId, true);
+        assertCaptureSessionExists(details.captureSessionId, true);
+        assertBookingExists(details.bookingId, true);
+        assertCaseExists(details.caseId, true);
+
+        var recording2 = createRecording(details.captureSessionId);
+        recording2.setParentRecordingId(details.recordingId);
+        recording2.setVersion(2);
+        var putRecording2 = putRecording(recording2);
+        assertResponseCode(putRecording2, 201);
+        assertRecordingExists(recording2.getId(), true);
+
+        var getRecordings1 = doGetRequest(RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId, true);
+        assertResponseCode(getRecordings1, 200);
+        var recordings1 = getRecordings1.jsonPath().getList("_embedded.recordingDTOList", RecordingDTO.class);
+
+        // default sort by createdAt desc
+        assertThat(recordings1.size()).isEqualTo(2);
+        assertThat(recordings1.getFirst().getId()).isEqualTo(recording2.getId());
+        assertThat(recordings1.getLast().getId()).isEqualTo(details.recordingId);
+        assertThat(recordings1.getFirst().getCreatedAt()).isAfter(recordings1.getLast().getCreatedAt());
+
+        var getRecordings2 = doGetRequest(
+            RECORDINGS_ENDPOINT + "?sort=createdAt,asc&captureSessionId=" + details.captureSessionId,
+            true
+        );
+        assertResponseCode(getRecordings2, 200);
+        var recordings2 = getRecordings2.jsonPath().getList("_embedded.recordingDTOList", RecordingDTO.class);
+
+        // sort in opposite direction (createdAt asc)
+        assertThat(recordings2.size()).isEqualTo(2);
+        assertThat(recordings2.getFirst().getId()).isEqualTo(details.recordingId);
+        assertThat(recordings2.getLast().getId()).isEqualTo(recording2.getId());
+        assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
+    }
+
+    @DisplayName("Should throw 400 error when sort param is invalid")
+    @Test
+    void getRecordingsSortInvalidParam() {
+        var getRecordings = doGetRequest(
+            RECORDINGS_ENDPOINT + "?sort=invalidParam,asc",
+            true
+        );
+        assertResponseCode(getRecordings, 400);
+
+        assertThat(getRecordings.body().jsonPath().getString("message"))
+            .isEqualTo("Invalid sort parameter 'invalidParam' for 'uk.gov.hmcts.reform.preapi.entities.Recording'");
     }
 
     private CreateRecordingDTO createRecording(UUID captureSessionId) {
