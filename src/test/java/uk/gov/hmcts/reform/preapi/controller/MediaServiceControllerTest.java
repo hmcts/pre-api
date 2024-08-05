@@ -717,7 +717,7 @@ public class MediaServiceControllerTest {
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(dto.getId().toString()))
             .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
 
@@ -737,10 +737,11 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Resource: Capture Session(" + dto.getId() + ") has already finished."));
+                           .value("Unprocessable Content: Resource: Capture Session("
+                                      + dto.getId() + ") has already finished."));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, never()).doesIsmFileExist(any());
@@ -757,10 +758,11 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Resource: Capture Session(" + dto.getId() + ") has not been started."));
+                           .value("Unprocessable Content: Resource: Capture Session("
+                                      + dto.getId() + ") has not been started."));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, never()).doesIsmFileExist(any());
@@ -778,10 +780,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Resource CaptureSessionDTO("
+                           .value("Unprocessable Content: Resource: Capture Session("
                                       + dto.getId()
                                       + ") is in a FAILURE state. Expected state is STANDBY."));
 
@@ -809,7 +811,7 @@ public class MediaServiceControllerTest {
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(dto.getId().toString()))
             .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
 
@@ -831,10 +833,9 @@ public class MediaServiceControllerTest {
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isOk())
+            .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
-            .andExpect(jsonPath("$.status").value(RecordingStatus.STANDBY.toString()));
+            .andExpect(jsonPath("$.message").value("Not found: No stream found"));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());

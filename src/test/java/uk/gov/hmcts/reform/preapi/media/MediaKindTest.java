@@ -830,7 +830,7 @@ public class MediaKindTest {
                                      .resourceState(LiveEventResourceState.RUNNING.toString())
                                      .build()
             );
-        var endpointName = liveEventName.substring(0, 23);
+        var endpointName = liveEventName.substring(0, 24);
         when(mockClient.createStreamingEndpoint(eq(endpointName), any()))
             .thenThrow(new ConflictException("Conflict"));
 
@@ -868,7 +868,7 @@ public class MediaKindTest {
 
         assertThat(result).isEqualTo(
             "https://ep-"
-            + liveEventName.substring(0, 23)
+            + liveEventName.substring(0, 24)
             + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
             + liveEventName
             + "/index.qfm/manifest(format=m3u8-cmaf)");

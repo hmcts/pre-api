@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
@@ -250,29 +251,30 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (captureSession.getFinishedAt() != null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                         + captureSessionId
                                                         + ") has already finished.");
         }
 
         if (captureSession.getStartedAt() == null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                           + captureSessionId
                                                           + ") has not been started.");
         }
 
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {
-            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
-                                                    captureSessionId.toString(),
-                                                    captureSession.getStatus().name(),
-                                                    RecordingStatus.STANDBY.name());
+            throw new UnprocessableContentException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") is in a "
+                                                        + captureSession.getStatus()
+                                                        + " state. Expected state is STANDBY.");
         }
 
         if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
-            captureSession = captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+            return ResponseEntity.ok(captureSessionService
+                                         .setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING));
         }
-
-        return ResponseEntity.ok(captureSession);
+        throw new NotFoundException("No stream found");
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")

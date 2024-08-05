@@ -45,9 +45,9 @@ public class AzureFinalStorageServiceTest {
     @Test
     void doesIsmFileExistTrue() {
         var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
         when(blobItem.getName()).thenReturn("video.ism");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
-        when(blobContainerClient.exists()).thenReturn(true);
 
         assertTrue(azureFinalStorageService.doesIsmFileExist("test-container"));
     }
@@ -55,6 +55,7 @@ public class AzureFinalStorageServiceTest {
     @Test
     void doesIsmFileExistFalse() {
         var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
         when(blobItem.getName()).thenReturn("video.mp4");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
 
@@ -63,7 +64,15 @@ public class AzureFinalStorageServiceTest {
 
     @Test
     void doesIsmFileExistEmptyContainer() {
+        when(blobContainerClient.exists()).thenReturn(true);
         when(pagedIterable.stream()).thenReturn(Stream.of());
+
+        assertFalse(azureFinalStorageService.doesIsmFileExist("test-container"));
+    }
+
+    @Test
+    void doesIsmExistContainerNotFound() {
+        when(blobContainerClient.exists()).thenReturn(false);
 
         assertFalse(azureFinalStorageService.doesIsmFileExist("test-container"));
     }
@@ -71,6 +80,7 @@ public class AzureFinalStorageServiceTest {
     @Test
     void doesBlobExistsTrue() {
         var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
         when(blobItem.getName()).thenReturn("video.mp4");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
 
@@ -80,6 +90,7 @@ public class AzureFinalStorageServiceTest {
     @Test
     void doesBlobExistsTrueIgnoreCase() {
         var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
         when(blobItem.getName()).thenReturn("video.mp4");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
 
@@ -89,6 +100,7 @@ public class AzureFinalStorageServiceTest {
     @Test
     void doesBlobExistsFalse() {
         var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
         when(blobItem.getName()).thenReturn("video.mp4");
         when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
 
@@ -163,5 +175,12 @@ public class AzureFinalStorageServiceTest {
 
         assertThat(azureFinalStorageService.tryGetMp4FileName("test-container"))
             .isNull();
+    }
+
+    @Test
+    void doesBlobExistsContainerNotFound() {
+        when(blobContainerClient.exists()).thenReturn(false);
+
+        assertFalse(azureFinalStorageService.doesBlobExist("test-container", "video.mp4"));
     }
 }

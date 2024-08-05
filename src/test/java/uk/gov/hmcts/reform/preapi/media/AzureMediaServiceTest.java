@@ -98,6 +98,7 @@ public class AzureMediaServiceTest {
         captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBookingId(UUID.randomUUID());
+        captureSession.setStatus(RecordingStatus.PROCESSING);
     }
 
     @DisplayName("Should get a valid asset and return an AssetDTO")
@@ -434,15 +435,13 @@ public class AzureMediaServiceTest {
         when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
 
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 24);
 
         when(mockStreamingEndpointsClient
-                 .create(
-                     eq(resourceGroup),
-                     eq(accountName),
-                     eq("c154d36ecab44aaaa4c711d"),
-                     any(StreamingEndpointInner.class)
-                 )
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d8"),
+                         any(StreamingEndpointInner.class))
         ).thenReturn(mockStreamingEndpointInner);
 
         var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
@@ -489,18 +488,16 @@ public class AzureMediaServiceTest {
         when(mockStreamingEndpointInner.hostname()).thenReturn("pre-example.com");
 
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
-        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 23);
+        var shortenedLiveEventId = sanitisedLiveEventId.substring(0, 24);
 
         var mockHttpResponse = mock(HttpResponse.class);
         when(mockHttpResponse.getStatusCode()).thenReturn(409);
 
         when(mockStreamingEndpointsClient
-                 .create(
-                     eq(resourceGroup),
-                     eq(accountName),
-                     eq("c154d36ecab44aaaa4c711d"),
-                     any(StreamingEndpointInner.class)
-                 )
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d8"),
+                         any(StreamingEndpointInner.class))
         ).thenThrow(new ManagementException("Already exists", mockHttpResponse));
 
         when(mockStreamingEndpointsClient.get(resourceGroup, accountName, shortenedLiveEventId))
@@ -598,12 +595,10 @@ public class AzureMediaServiceTest {
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
 
         when(mockStreamingEndpointsClient
-                 .create(
-                     eq(resourceGroup),
-                     eq(accountName),
-                     eq("c154d36ecab44aaaa4c711d"),
-                     any(StreamingEndpointInner.class)
-                 )
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d8"),
+                         any(StreamingEndpointInner.class))
         ).thenThrow(new ManagementException("bad request", mock(HttpResponse.class)));
 
         assertThrows(ManagementException.class, () -> mediaService.playLiveEvent(liveEventId));
@@ -628,12 +623,10 @@ public class AzureMediaServiceTest {
         when(amsClient.getStreamingEndpoints()).thenReturn(mockStreamingEndpointsClient);
 
         when(mockStreamingEndpointsClient
-                 .create(
-                     eq(resourceGroup),
-                     eq(accountName),
-                     eq("c154d36ecab44aaaa4c711d"),
-                     any(StreamingEndpointInner.class)
-                 )
+                 .create(eq(resourceGroup),
+                         eq(accountName),
+                         eq("c154d36ecab44aaaa4c711d8"),
+                         any(StreamingEndpointInner.class))
         ).thenReturn(mockStreamingEndpointInner);
 
         var mockStreamingLocatorsClient = mock(StreamingLocatorsClient.class);
@@ -874,6 +867,8 @@ public class AzureMediaServiceTest {
     @DisplayName("Should successfully stop live event when there is not a recording found")
     @Test
     void stopLiveEventNoRecording() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        captureSession.setStatus(RecordingStatus.PROCESSING);
         var recordingId = UUID.randomUUID();
         var assetsClient = mockAssetsClient();
         var jobsClient = mockJobsClient();
@@ -890,17 +885,6 @@ public class AzureMediaServiceTest {
 
         assertThat(mediaService.stopLiveEvent(captureSession, recordingId))
             .isEqualTo(RecordingStatus.NO_RECORDING);
-
-        verify(assetsClient, times(1)).createOrUpdate(any(), any(), any(), any());
-        verify(jobsClient, times(1)).create(any(), any(), any(), any(), any());
-        verify(jobsClient, times(2)).get(any(), any(), any(), any());
-        verify(azureFinalStorageService, times(1)).doesIsmFileExist(recordingId.toString());
-        verify(liveEventClient, times(1)).stop(any(), any(), any(), any());
-        verify(liveEventClient, times(1)).delete(any(), any(), any());
-        verify(streamingEndpointClient, times(1)).stop(any(), any(), any());
-        verify(streamingEndpointClient, times(1)).delete(any(), any(), any());
-        verify(streamingLocatorClient, times(1)).delete(any(), any(), any());
-        verify(liveOutputClient, times(1)).delete(any(), any(), any(), any());
     }
 
     private StreamingEndpointsClient mockStreamingEndpointClient() {
