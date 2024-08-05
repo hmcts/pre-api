@@ -894,7 +894,7 @@ public class MediaServiceControllerTest {
         generateAssetDTO.setTempAsset("blobby");
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
-        when(mediaService.importAsset(any())).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container foo"));
+        when(azureFinalStorageService.doesContainerExist("foo")).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container foo"));
         mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))

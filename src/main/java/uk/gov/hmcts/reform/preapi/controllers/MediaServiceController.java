@@ -335,10 +335,15 @@ public class MediaServiceController extends PreApiController {
             throw new NotFoundException("Source Container: " + generateAssetDTO.getSourceContainer());
         }
 
+        // 404s of there are no mp4 files in the container
+        // this is called in the MK process anyway but AMS doesn't need the specific filename
+        azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
+
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
+            // add new version to recording etc
             return ResponseEntity.ok(result);
         }
 
