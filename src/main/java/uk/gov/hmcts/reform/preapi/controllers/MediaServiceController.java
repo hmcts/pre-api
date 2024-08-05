@@ -358,7 +358,7 @@ public class MediaServiceController extends PreApiController {
             search.setCaptureSessionId(parentRecording.getCaptureSession().getId());
             var numRecordingsForCaptureSession = recordingService.findAll(
                 search,
-                false,
+                true,
                 Pageable.unpaged()
             ).getSize();
             recording.setVersion(numRecordingsForCaptureSession + 1);

@@ -958,7 +958,7 @@ public class MediaServiceControllerTest {
         when(recordingService.findById(UUID.fromString(generateAssetDTO.getSourceContainer())))
             .thenReturn(parentRecording);
 
-        when(recordingService.findAll(any(SearchRecordings.class), eq(false), any(Pageable.class)))
+        when(recordingService.findAll(any(SearchRecordings.class), eq(true), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(parentRecording)));
 
         var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
