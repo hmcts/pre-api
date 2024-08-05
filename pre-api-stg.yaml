@@ -1134,12 +1134,20 @@ definitions:
         type: string
       destination_container:
         description: GenerateAssetDestinationContainer
+        format: uuid
         type: string
       final_asset:
         description: GenerateAssetFinalAsset
         type: string
+      new_recording_id:
+        format: uuid
+        type: string
+      original_recording_id:
+        format: uuid
+        type: string
       source_container:
         description: GenerateAssetSourceContainer
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-input$'
         type: string
       temp_asset:
         description: GenerateAssetTempAsset
