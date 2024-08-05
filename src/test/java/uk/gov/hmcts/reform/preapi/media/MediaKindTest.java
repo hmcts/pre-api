@@ -689,19 +689,20 @@ public class MediaKindTest {
     @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
     @Test
     void importAssetSuccess() throws InterruptedException {
-        var mockJob = mock(MkJob.class);
-        var mockProperties = mock(MkJob.MkJobProperties.class);
-        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
-        when(azureFinalStorageService.getMp4FileName("my-source-container")).thenReturn("video.mp4");
-        when(mockJob.getProperties()).thenReturn(mockProperties);
-        when(mockProperties.getState()).thenReturn(JobState.FINISHED);
-        when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
-        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
-                                                     "my-destination-container",
+        var generateAssetDTO  = new GenerateAssetDTO(UUID.randomUUID() + "-input",
+                                                     UUID.randomUUID(),
                                                      "tmp-asset",
                                                      "final-asset",
                                                      "unit test import asset");
+
+        var mockJob = mock(MkJob.class);
+        var mockProperties = mock(MkJob.MkJobProperties.class);
+        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
+        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("video.mp4");
+        when(mockJob.getProperties()).thenReturn(mockProperties);
+        when(mockProperties.getState()).thenReturn(JobState.FINISHED);
+        when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
         var result = mediaKind.importAsset(generateAssetDTO);
 
@@ -721,7 +722,7 @@ public class MediaKindTest {
             .putAsset(eq(generateAssetDTO.getFinalAsset()), destinationContainerArgument.capture());
 
         assertThat(destinationContainerArgument.getValue().getProperties().getContainer())
-            .isEqualTo(generateAssetDTO.getDestinationContainer());
+            .isEqualTo(generateAssetDTO.getDestinationContainer().toString());
 
         var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);
 
@@ -752,8 +753,8 @@ public class MediaKindTest {
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.ERROR);
 
-        var generateAssetDTO  = new GenerateAssetDTO("my-source-container",
-                                                     "my-destination-container",
+        var generateAssetDTO  = new GenerateAssetDTO(UUID.randomUUID() + "-input",
+                                                     UUID.randomUUID(),
                                                      "tmp-asset",
                                                      "final-asset",
                                                      "unit test import asset");
@@ -776,7 +777,7 @@ public class MediaKindTest {
             .putAsset(eq(generateAssetDTO.getFinalAsset()), destinationContainerArgument.capture());
 
         assertThat(destinationContainerArgument.getValue().getProperties().getContainer())
-            .isEqualTo(generateAssetDTO.getDestinationContainer());
+            .isEqualTo(generateAssetDTO.getDestinationContainer().toString());
 
         var jobName = ArgumentCaptor.forClass(String.class);
         var jobInnerArgument = ArgumentCaptor.forClass(MkJob.class);

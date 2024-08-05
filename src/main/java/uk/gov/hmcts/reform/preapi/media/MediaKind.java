@@ -251,7 +251,7 @@ public class MediaKind implements IMediaService {
 
         createAsset(generateAssetDTO.getFinalAsset(),
                     generateAssetDTO.getDescription(),
-                    generateAssetDTO.getDestinationContainer(),
+                    generateAssetDTO.getDestinationContainer().toString(),
                     true);
 
         var fileName = azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
@@ -261,7 +261,7 @@ public class MediaKind implements IMediaService {
 
         return new GenerateAssetResponseDTO(
             generateAssetDTO.getFinalAsset(),
-            generateAssetDTO.getDestinationContainer(),
+            generateAssetDTO.getDestinationContainer().toString(),
             generateAssetDTO.getDescription(),
             jobState.toString()
         );

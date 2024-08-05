@@ -347,10 +347,10 @@ public class MediaServiceController extends PreApiController {
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             // add new version to recording etc
-            var parentRecording = recordingService.findById(UUID.fromString(generateAssetDTO.getSourceContainer()));
+            var parentRecording = recordingService.findById(generateAssetDTO.getOriginalRecordingId());
 
             var recording = new CreateRecordingDTO();
-            recording.setId(UUID.fromString(generateAssetDTO.getDestinationContainer()));
+            recording.setId(generateAssetDTO.getNewRecordingId());
             recording.setParentRecordingId(parentRecording.getId());
             recording.setCaptureSessionId(parentRecording.getCaptureSession().getId());
 
