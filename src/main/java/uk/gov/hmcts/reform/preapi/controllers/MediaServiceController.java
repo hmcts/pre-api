@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,7 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -344,6 +347,23 @@ public class MediaServiceController extends PreApiController {
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             // add new version to recording etc
+            var parentRecording = recordingService.findById(UUID.fromString(generateAssetDTO.getSourceContainer()));
+
+            var recording = new CreateRecordingDTO();
+            recording.setId(UUID.fromString(generateAssetDTO.getDestinationContainer()));
+            recording.setParentRecordingId(parentRecording.getId());
+            recording.setCaptureSessionId(parentRecording.getCaptureSession().getId());
+
+            var search = new SearchRecordings();
+            search.setCaptureSessionId(parentRecording.getCaptureSession().getId());
+            var numRecordingsForCaptureSession = recordingService.findAll(
+                search,
+                false,
+                Pageable.unpaged()
+            ).getSize();
+            recording.setVersion(numRecordingsForCaptureSession + 1);
+            recording.setFilename(""); // Field is deprecated
+            recordingService.upsert(recording);
             return ResponseEntity.ok(result);
         }
 

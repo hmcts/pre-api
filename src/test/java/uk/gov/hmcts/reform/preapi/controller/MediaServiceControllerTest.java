@@ -7,15 +7,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
@@ -929,19 +935,31 @@ public class MediaServiceControllerTest {
 
     @DisplayName("Should return a GenerateAssetResponseDTO successfully")
     @Test
+    @SuppressWarnings("unchecked")
     void generateAssetTest200() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
-        generateAssetDTO.setSourceContainer("foo");
-        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setSourceContainer(UUID.randomUUID().toString());
+        generateAssetDTO.setDestinationContainer(UUID.randomUUID().toString());
         generateAssetDTO.setTempAsset("blobby");
-        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
-        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
-        when(azureFinalStorageService.getMp4FileName("foo")).thenReturn("blobby.mp4");
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getDestinationContainer())).thenReturn(true);
+        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("blobby.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(
             new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
         );
+
+        var parentRecording = new RecordingDTO();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        parentRecording.setCaptureSession(captureSession);
+
+        when(recordingService.findById(UUID.fromString(generateAssetDTO.getSourceContainer())))
+            .thenReturn(parentRecording);
+
+        when(recordingService.findAll(any(SearchRecordings.class), eq(false), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(parentRecording)));
 
         var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
                                            .with(csrf())
@@ -955,6 +973,11 @@ public class MediaServiceControllerTest {
             + "\"container\":\"container\","
             + "\"description\":\"description\","
             + "\"jobStatus\":\"Finished\"}");
+
+        var recordingArgument = ArgumentCaptor.forClass(CreateRecordingDTO.class);
+
+        verify(recordingService, times(1)).upsert(recordingArgument.capture());
+        assertThat(recordingArgument.getValue().getVersion()).isEqualTo(2);
     }
 
     protected static UserAuthentication mockAdminUser() {
