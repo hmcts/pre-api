@@ -39,7 +39,7 @@ public class CaseDTO {
     private boolean test;
 
     @Schema(description = "CaseState")
-    private CaseState state = CaseState.OPEN; 
+    private CaseState state;
 
     @Schema(description = "CaseClosedAt")
     private LocalDate closedAt;
