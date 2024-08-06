@@ -16,16 +16,14 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class RecordingControllerFT extends FunctionalTestBase {
-    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
-    }
-
     @DisplayName("Scenario: Restore recording")
     @Test
     void undeleteRecording() {
         var recordingDetails = createRecording();
         assertRecordingExists(recordingDetails.recordingId, true);
 
-        var deleteResponse = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
+        var deleteResponse =
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
         assertRecordingExists(recordingDetails.recordingId, false);
 
@@ -66,7 +64,8 @@ public class RecordingControllerFT extends FunctionalTestBase {
         var recording = createRecording();
         assertRecordingExists(recording.recordingId, true);
 
-        var deleteResponse = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recording.recordingId, TestingSupportRoles.SUPER_USER);
+        var deleteResponse =
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recording.recordingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
         assertRecordingExists(recording.recordingId, false);
     }
@@ -92,11 +91,13 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertCaseExists(recordingDetails.caseId, true);
 
         // must delete all recordings associated to case before deleting case
-        var deleteRecording = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
+        var deleteRecording =
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteRecording, 200);
 
         // delete case (deleting associated bookings + capture sessions)
-        var deleteCase = doDeleteRequest(CASES_ENDPOINT + "/" + recordingDetails.caseId, TestingSupportRoles.SUPER_USER);
+        var deleteCase =
+            doDeleteRequest(CASES_ENDPOINT + "/" + recordingDetails.caseId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCase, 200);
         assertRecordingExists(recordingDetails.recordingId, false);
         assertCaptureSessionExists(recordingDetails.captureSessionId, false);
@@ -146,10 +147,21 @@ public class RecordingControllerFT extends FunctionalTestBase {
     }
 
     private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
+        return doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 
     private Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
-        return doPutRequest(RECORDINGS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
+        return doPutRequest(
+            RECORDINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
     }
 }
