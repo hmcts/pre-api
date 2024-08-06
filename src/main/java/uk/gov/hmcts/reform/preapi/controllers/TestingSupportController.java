@@ -309,7 +309,10 @@ class TestingSupportController {
         var r = roleRepository.findFirstByName(roleName)
             .orElse(createRole(roleName));
         var appAccess = createAppAccess(r);
-        return ResponseEntity.ok(Map.of("accessId", appAccess.getId().toString()));
+        return ResponseEntity.ok(Map.of(
+            "accessId", appAccess.getId().toString(),
+            "courtId", appAccess.getCourt().getId().toString()
+        ));
     }
 
     private Court createTestCourt() {

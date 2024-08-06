@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -332,11 +333,117 @@ class CaseControllerFT extends FunctionalTestBase {
             .isEqualTo(dto.getReference());
     }
 
+    @DisplayName("Scenario: Update case status as SUPER USER, LEVEL 1 and LEVEL 2")
+    @Test
+    void updateCaseStatusSuccess() throws JsonProcessingException {
+        var roles = new TestingSupportRoles[] {
+            TestingSupportRoles.SUPER_USER,
+            TestingSupportRoles.LEVEL_1,
+            TestingSupportRoles.LEVEL_2
+        };
+
+        for (var role : roles) {
+            var dto = createCase();
+            dto.setCourtId(authenticatedUserIds.get(role).courtId());
+            var putResponse = putCase(dto, role);
+            assertResponseCode(putResponse, 201);
+            assertCaseExists(dto.getId(), true);
+            assertMatchesDto(dto);
+
+            // update OPEN -> PENDING_CLOSURE
+            dto.setState(CaseState.PENDING_CLOSURE);
+            var putResponse2 = putCase(dto, role);
+            assertResponseCode(putResponse2, 204);
+            assertCaseExists(dto.getId(), true);
+            assertMatchesDto(dto);
+
+            // update PENDING_CLOSURE -> CLOSED
+            dto.setState(CaseState.CLOSED);
+            var putResponse3 = putCase(dto, role);
+            assertResponseCode(putResponse3, 204);
+            assertCaseExists(dto.getId(), true);
+            assertMatchesDto(dto);
+
+            // update CLOSED -> OPEN
+            dto.setState(CaseState.OPEN);
+            var putResponse4 = putCase(dto, role);
+            assertResponseCode(putResponse4, 204);
+            assertCaseExists(dto.getId(), true);
+            assertMatchesDto(dto);
+
+            // update PENDING_CLOSURE -> OPEN
+            dto.setState(CaseState.PENDING_CLOSURE);
+            var putResponse5 = putCase(dto, role);
+            assertResponseCode(putResponse5, 204);
+            assertCaseExists(dto.getId(), true);
+            assertMatchesDto(dto);
+            dto.setState(CaseState.OPEN);
+            var putResponse6 = putCase(dto, role);
+            assertResponseCode(putResponse6, 204);
+            assertCaseExists(dto.getId(), true);
+            assertMatchesDto(dto);
+        }
+    }
+
+    @DisplayName("Scenario: Update case status as SUPER USER, LEVEL 1 and LEVEL 2")
+    @Test
+    void updateCaseStatusAuthError() throws JsonProcessingException {
+        var roles = new TestingSupportRoles[] {
+            TestingSupportRoles.LEVEL_3,
+            TestingSupportRoles.LEVEL_4
+        };
+
+        for (var role : roles) {
+            var dto = createCase();
+            dto.setCourtId(authenticatedUserIds.get(role).courtId());
+            var putResponse = putCase(dto);
+            assertResponseCode(putResponse, 201);
+            assertCaseExists(dto.getId(), true);
+            assertMatchesDto(dto);
+
+            // update OPEN -> PENDING_CLOSURE
+            dto.setState(CaseState.PENDING_CLOSURE);
+            var putResponse2 = putCase(dto, role);
+            assertResponseCode(putResponse2, 403);
+
+            // force the update the PENDING_CLOSURE
+            var forcedPut = putCase(dto);
+            assertResponseCode(forcedPut, 204);
+
+            // update PENDING_CLOSURE -> OPEN
+            dto.setState(CaseState.OPEN);
+            var putResponse6 = putCase(dto, role);
+            assertResponseCode(putResponse6, 403);
+
+            // update PENDING_CLOSURE -> CLOSED
+            dto.setState(CaseState.CLOSED);
+            var putResponse3 = putCase(dto, role);
+            assertResponseCode(putResponse3, 403);
+
+            // force the update the PENDING_CLOSURE
+            var forcedPut2 = putCase(dto);
+            assertResponseCode(forcedPut2, 204);
+
+            // update CLOSED -> OPEN
+            dto.setState(CaseState.OPEN);
+            var putResponse4 = putCase(dto, role);
+            assertResponseCode(putResponse4, 403);
+        }
+    }
+
     private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
         return doPutRequest(
             CASES_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    private Response putCase(CreateCaseDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {
+        return doPutRequest(
+            CASES_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            authenticatedAs
         );
     }
 

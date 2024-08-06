@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
@@ -47,8 +48,11 @@ public class FunctionalTestBase {
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
     protected static final String REPORTS_ENDPOINT = "/reports";
+
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    protected static Map<TestingSupportRoles, UUID> authenticatedUserIds;
+
+    protected static Map<TestingSupportRoles, AuthUserDetails> authenticatedUserIds;
+
     @Value("${TEST_URL:http://localhost:4550}")
     protected String testUrl;
 
@@ -66,7 +70,7 @@ public class FunctionalTestBase {
         );
 
         if (authenticatedAs != null && authenticatedUserIds.get(authenticatedAs) != null) {
-            headers.put(X_USER_ID_HEADER, authenticatedUserIds.get(authenticatedAs).toString());
+            headers.put(X_USER_ID_HEADER, authenticatedUserIds.get(authenticatedAs).accessId().toString());
         }
 
         if (!CollectionUtils.isEmpty(additionalHeaders)) {
@@ -87,11 +91,13 @@ public class FunctionalTestBase {
             authenticatedUserIds = new HashMap<>();
             Arrays.stream(TestingSupportRoles.values())
                 .forEach(role -> {
-                    var id = doPostRequest("/testing-support/create-authenticated-user/" + role, null)
-                        .body()
-                        .jsonPath()
-                        .getUUID("accessId");
-                    authenticatedUserIds.put(role, id);
+                    authenticatedUserIds.put(
+                        role,
+                        doPostRequest("/testing-support/create-authenticated-user/" + role, null)
+                            .body()
+                            .jsonPath()
+                            .getObject("", AuthUserDetails.class)
+                    );
                 });
         }
     }
@@ -184,6 +190,7 @@ public class FunctionalTestBase {
             createParticipant(ParticipantType.DEFENDANT)
         ));
         caseDTO.setTest(false);
+        caseDTO.setState(CaseState.OPEN);
 
         return caseDTO;
     }
@@ -276,5 +283,8 @@ public class FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );
+    }
+
+    protected record AuthUserDetails(UUID accessId, UUID courtId) {
     }
 }
