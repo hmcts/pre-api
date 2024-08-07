@@ -406,6 +406,100 @@ class BookingControllerFT extends FunctionalTestBase {
                     + ") is associated with a case in the state CLOSED. Must be in state OPEN or PENDING_CLOSURE.");
     }
 
+    @DisplayName("Scenario: Create/update a booking for a closed case")
+    @Test
+    void upsertBookingForClosedCase() throws JsonProcessingException {
+        // create booking
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase1 = putCase(caseEntity);
+        assertResponseCode(putCase1, 201);
+
+        var booking = createBooking(caseEntity.getId(), participants);
+        var putResponse = putBooking(booking);
+        assertResponseCode(putResponse, 201);
+        assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
+
+        // close case
+        caseEntity.setState(CaseState.CLOSED);
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        var putCase2 = putCase(caseEntity);
+        assertResponseCode(putCase2, 204);
+
+        // attempt update
+        booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
+        var putBooking2 = putBooking(booking);
+        assertResponseCode(putBooking2, 400);
+        assertThat(putBooking2.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN.");
+
+        // attempt create
+        var booking2 = createBooking(caseEntity.getId(), participants);
+        var putBooking3 = putBooking(booking2);
+        assertResponseCode(putBooking3, 400);
+        assertThat(putBooking3.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking2.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN.");
+    }
+
+    @DisplayName("Scenario: Create/update a booking for a case pending closure")
+    @Test
+    void upsertBookingForPendingClosureCase() throws JsonProcessingException {
+        // create booking
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase1 = putCase(caseEntity);
+        assertResponseCode(putCase1, 201);
+
+        var booking = createBooking(caseEntity.getId(), participants);
+        var putResponse = putBooking(booking);
+        assertResponseCode(putResponse, 201);
+        assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
+
+        // close case
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        var putCase2 = putCase(caseEntity);
+        assertResponseCode(putCase2, 204);
+
+        // attempt update
+        booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
+        var putBooking2 = putBooking(booking);
+        assertResponseCode(putBooking2, 400);
+        assertThat(putBooking2.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking.getId()
+                    + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
+
+        // attempt create
+        var booking2 = createBooking(caseEntity.getId(), participants);
+        var putBooking3 = putBooking(booking2);
+        assertResponseCode(putBooking3, 400);
+        assertThat(putBooking3.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking2.getId()
+                    + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
+    }
+
     private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
         var dto = new CreateBookingDTO();
         dto.setId(UUID.randomUUID());
