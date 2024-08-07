@@ -16,9 +16,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
@@ -378,10 +380,18 @@ public class MediaServiceControllerTest {
     @DisplayName("Should return 200 and playback information")
     @Test
     void getVodSuccess() throws Exception {
-        var user = mockAdminUser();
         var recordingId = UUID.randomUUID();
+        var recording = new RecordingDTO();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setCaseState(CaseState.OPEN);
+        recording.setCaptureSession(captureSession);
+
+        var user = mockAdminUser();
         var assetName = recordingId.toString().replace("-", "") + "_output";
         var playback = new PlaybackDTO("dash", "hls", "license", "token");
+
+        when(recordingService.findById(recordingId)).thenReturn(recording);
         when(mediaServiceBroker.getEnabledMediaService(null)).thenReturn(mediaService);
         when(mediaService.playAsset(assetName, user.getUserId().toString())).thenReturn(playback);
 
@@ -405,6 +415,27 @@ public class MediaServiceControllerTest {
                             .param("recordingId", recordingId.toString()))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Not found: Recording: " + recordingId));
+    }
+
+    @DisplayName("Should return 400 when recording's case has been closed")
+    @Test
+    void getVodRecordingClosedBadRequest() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new RecordingDTO();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setCaseState(CaseState.CLOSED);
+        recording.setCaptureSession(captureSession);
+
+        when(recordingService.findById(recordingId)).thenReturn(recording);
+
+        mockMvc.perform(get("/media-service/vod")
+                            .param("recordingId", recordingId.toString()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Case associated with Recording("
+                                      + recordingId
+                                      + ") is in state CLOSED. Cannot play recording."));
     }
 
     @DisplayName("Should return 200 with capture session once live event is started")
