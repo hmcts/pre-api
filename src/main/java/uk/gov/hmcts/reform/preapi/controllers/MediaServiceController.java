@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
