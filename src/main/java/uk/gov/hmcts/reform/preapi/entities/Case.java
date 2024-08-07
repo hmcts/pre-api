@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,10 +53,10 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
 
     @Column(name = "state", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private CaseState state;
+    private CaseState state = CaseState.OPEN;
 
     @Column(name = "closed_at")
-    private LocalDate closedAt;
+    private Timestamp closedAt;
 
     public boolean isDeleted() {
         return deletedAt != null;
@@ -76,6 +75,8 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
                                      .map(Participant::getDetailsForAudit))
                     .collect(Collectors.toSet()));
         details.put("test", test);
+        details.put("state", state);
+        details.put("closedAt", closedAt);
         return details;
     }
 
