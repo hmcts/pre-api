@@ -2752,12 +2752,6 @@ paths:
         - application/json
       operationId: generateAsset
       parameters:
-        - description: >-
-            Rudimentary security code to prevent unauthorised access to this
-            endpoint
-          in: query
-          name: code
-          type: string
         - description: The User Id of the User making the request
           format: uuid
           in: header
