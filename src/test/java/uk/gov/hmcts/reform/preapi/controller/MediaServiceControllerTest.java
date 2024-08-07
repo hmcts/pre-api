@@ -882,7 +882,7 @@ public class MediaServiceControllerTest {
         var generateAssetDTO = new GenerateAssetDTO();
         generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(false);
-        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+        mockMvc.perform(post("/media-service/generate-asset")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -902,7 +902,7 @@ public class MediaServiceControllerTest {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container " + generateAssetDTO.getSourceContainer()));
-        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+        mockMvc.perform(post("/media-service/generate-asset")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -911,24 +911,10 @@ public class MediaServiceControllerTest {
                .andExpect(jsonPath("$.message").value("Not found: No files ending .mp4 were found in the Source Container " + generateAssetDTO.getSourceContainer()));
     }
 
-    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
-    @Test
-    void generateAssetTest403Error() throws Exception {
-        var generateAssetDTO = new GenerateAssetDTO();
-        generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
-        generateAssetDTO.setDestinationContainer(UUID.randomUUID());
-        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isForbidden());
-    }
-
     @DisplayName("Should return a 400 when incorrect body provided")
     @Test
     void generateAssetTest400Error() throws Exception {
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
+        var response = mockMvc.perform(post("/media-service/generate-asset"))
                               .andExpect(status().is4xxClientError())
                               .andReturn().getResponse();
         assertThat(response.getContentAsString()).contains(
@@ -944,7 +930,7 @@ public class MediaServiceControllerTest {
         generateAssetDTO.setDestinationContainer(UUID.randomUUID());
         generateAssetDTO.setTempAsset("blobby");
 
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+        var response = mockMvc.perform(post("/media-service/generate-asset")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -984,7 +970,7 @@ public class MediaServiceControllerTest {
         when(recordingService.findAll(any(SearchRecordings.class), eq(true), any(Pageable.class)))
             .thenReturn(new PageImpl<>(List.of(parentRecording)));
 
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+        var response = mockMvc.perform(post("/media-service/generate-asset")
                                            .with(csrf())
                                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                                            .contentType(MediaType.APPLICATION_JSON_VALUE)

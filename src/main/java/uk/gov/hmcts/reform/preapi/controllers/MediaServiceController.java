@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,7 +31,6 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
-import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
@@ -58,22 +56,18 @@ public class MediaServiceController extends PreApiController {
     private final AzureIngestStorageService azureIngestStorageService;
     private final RecordingService recordingService;
 
-    private final String legacyAzureFunctionKey;
-
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
                                   RecordingService recordingService,
                                   AzureFinalStorageService azureFinalStorageService,
-                                  AzureIngestStorageService azureIngestStorageService,
-                                  @Value("${legacy-azure-function-key}") String legacyAzureFunctionKey) {
+                                  AzureIngestStorageService azureIngestStorageService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.recordingService = recordingService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
-        this.legacyAzureFunctionKey = legacyAzureFunctionKey;
     }
 
     @GetMapping("/health")
@@ -321,18 +315,10 @@ public class MediaServiceController extends PreApiController {
         operationId = "generateAsset",
         summary = "LEGACY - Given a source & destination, this endpoint will generate a streaming asset for a given mp4"
     )
-    @Parameter(
-        name = "code",
-        description = "Rudimentary security code to prevent unauthorised access to this endpoint",
-        schema = @Schema(implementation = String.class)
-    )
     public ResponseEntity<GenerateAssetResponseDTO> generateAsset(
         @Parameter(hidden = true) String code,
         @RequestBody @Valid GenerateAssetDTO generateAssetDTO
     ) throws InterruptedException {
-        if (!legacyAzureFunctionKey.equals(code)) {
-            throw new ForbiddenException("Invalid code parameter provided");
-        }
 
         if (!azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())) {
             throw new NotFoundException("Source Container: " + generateAssetDTO.getSourceContainer());
