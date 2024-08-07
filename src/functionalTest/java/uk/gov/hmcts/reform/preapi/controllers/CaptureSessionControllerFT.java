@@ -5,12 +5,20 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -112,6 +120,98 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE.toString());
     }
 
+    @DisplayName("Scenario: Create and update a capture session when case is closed")
+    @Test
+    void shouldCreateCaptureSessionCaseClosed() throws JsonProcessingException {
+        var res = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath();
+        var bookingId = res.getUUID("bookingId");
+        var caseId = res.getUUID("caseId");
+
+        // create capture session
+        var dto = createCaptureSession(bookingId);
+        var putResponse = putCaptureSession(dto);
+        assertResponseCode(putResponse, 201);
+        assertCaptureSessionExists(dto.getId(), true);
+
+        // update case to closed
+        var aCase = assertCaseExists(caseId, true)
+            .body().jsonPath().getObject("", CaseDTO.class);
+
+        var updateCaseDto = convertCaseDtoToCreate(aCase);
+        updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        updateCaseDto.setState(CaseState.CLOSED);
+        var putCase = putCase(updateCaseDto);
+        assertResponseCode(putCase, 204);
+
+        // attempt update capture session
+        dto.setStatus(RecordingStatus.FAILURE);
+        var putCaptureSession1 = putCaptureSession(dto);
+        assertResponseCode(putCaptureSession1, 400);
+        assertThat(putCaptureSession1.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource CaptureSession(" + dto.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN."
+            );
+
+        // attempt create capture session
+        var dto2 = createCaptureSession(bookingId);
+        var putCaptureSession2 = putCaptureSession(dto2);
+        assertResponseCode(putCaptureSession2, 400);
+        assertThat(putCaptureSession2.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource CaptureSession(" + dto2.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN."
+            );
+    }
+
+    @DisplayName("Scenario: Create and update a capture session when case is pending closure")
+    @Test
+    void shouldCreateCaptureSessionCasePendingClosure() throws JsonProcessingException {
+        var res = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath();
+        var bookingId = res.getUUID("bookingId");
+        var caseId = res.getUUID("caseId");
+
+        // create capture session
+        var dto = createCaptureSession(bookingId);
+        var putResponse = putCaptureSession(dto);
+        assertResponseCode(putResponse, 201);
+        assertCaptureSessionExists(dto.getId(), true);
+
+        // update case to pending closure
+        var aCase = assertCaseExists(caseId, true)
+            .body().jsonPath().getObject("", CaseDTO.class);
+
+        var updateCaseDto = convertCaseDtoToCreate(aCase);
+        updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        updateCaseDto.setState(CaseState.PENDING_CLOSURE);
+        var putCase = putCase(updateCaseDto);
+        assertResponseCode(putCase, 204);
+
+        // attempt update capture session
+        dto.setStatus(RecordingStatus.FAILURE);
+        var putCaptureSession1 = putCaptureSession(dto);
+        assertResponseCode(putCaptureSession1, 400);
+        assertThat(putCaptureSession1.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource CaptureSession(" + dto.getId()
+                    + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN."
+            );
+
+        // attempt create capture session
+        var dto2 = createCaptureSession(bookingId);
+        var putCaptureSession2 = putCaptureSession(dto2);
+        assertResponseCode(putCaptureSession2, 400);
+        assertThat(putCaptureSession2.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource CaptureSession(" + dto2.getId()
+                    + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN."
+            );
+    }
+
     @DisplayName("Scenario: Restore capture session")
     @Test
     void undeleteCaptureSession() throws JsonProcessingException {
@@ -163,5 +263,30 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
 
     private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
         return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+    }
+
+    private CreateCaseDTO convertCaseDtoToCreate(CaseDTO dto) {
+        var create = new CreateCaseDTO();
+        create.setId(dto.getId());
+        create.setCourtId(dto.getCourt().getId());
+        create.setReference(dto.getReference());
+        create.setTest(dto.isTest());
+        create.setState(dto.getState());
+        create.setClosedAt(dto.getClosedAt());
+        create.setParticipants(dto
+                                   .getParticipants()
+                                   .stream()
+                                   .map(this::convertParticipantDtoToCreate)
+                                   .collect(Collectors.toSet()));
+        return create;
+    }
+
+    private CreateParticipantDTO convertParticipantDtoToCreate(ParticipantDTO dto) {
+        var create = new CreateParticipantDTO();
+        create.setId(dto.getId());
+        create.setParticipantType(dto.getParticipantType());
+        create.setFirstName(dto.getFirstName());
+        create.setLastName(dto.getLastName());
+        return create;
     }
 }

@@ -170,6 +170,7 @@ class TestingSupportController {
             {
                 put("bookingId", booking.getId().toString());
                 put("courtId", court.getId().toString());
+                put("caseId", caseEntity.getId().toString());
             }
         };
 
