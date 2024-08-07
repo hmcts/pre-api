@@ -8,11 +8,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -55,7 +58,13 @@ public class ShareBookingServiceTest {
         shareBookingDTO.setSharedByUser(UUID.randomUUID());
         shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
         var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
+
         var sharedByUser = new User();
         var sharedWithUser = new User();
 
@@ -92,6 +101,36 @@ public class ShareBookingServiceTest {
             .withMessage("Not found: Booking: " + shareBookingDTO.getBookingId());
     }
 
+    @DisplayName("Share a booking by its id when booking's associated case has been closed")
+    @Test
+    void shareBookingFailureCaseClosed() {
+        var shareBookingDTO = new CreateShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.CLOSED);
+        var booking = new Booking();
+        booking.setId(shareBookingDTO.getBookingId());
+        booking.setCaseId(aCase);
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(booking));
+
+        assertThatExceptionOfType(ResourceInWrongStateException.class)
+            .isThrownBy(() -> {
+                shareBookingService.shareBookingById(shareBookingDTO);
+            })
+            .withMessage(
+                "Resource Booking("
+                    + shareBookingDTO.getBookingId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN or PENDING_CLOSURE.");
+    }
+
     @DisplayName("Share a booking by its id when shared by user doesn't exist")
     @Test
     void shareBookingFailureSharedByUserDoesntExist() {
@@ -101,7 +140,12 @@ public class ShareBookingServiceTest {
         shareBookingDTO.setSharedByUser(UUID.randomUUID());
         shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
         var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
 
         when(
             bookingRepository.findById(shareBookingDTO.getBookingId())
@@ -110,7 +154,7 @@ public class ShareBookingServiceTest {
             userRepository.findById(shareBookingDTO.getSharedByUser())
         ).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
+        assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> {
                 shareBookingService.shareBookingById(shareBookingDTO);
             })
@@ -126,7 +170,12 @@ public class ShareBookingServiceTest {
         shareBookingDTO.setSharedByUser(UUID.randomUUID());
         shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
         var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
         var sharedByUser = new User();
 
         when(

@@ -319,10 +319,6 @@ class CaseControllerFT extends FunctionalTestBase {
             .isEqualTo(dto.getReference());
     }
 
-    private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
-        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
-    }
-
     private void assertMatchesDto(CreateCaseDTO dto) {
         var getCase = assertCaseExists(dto.getId(), true);
         var res = getCase.body().as(CaseDTO.class);

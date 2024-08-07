@@ -12,10 +12,12 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -359,6 +361,49 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(undeleteResponse, 200);
         assertBookingExists(booking.getId(), true);
         assertCaseExists(caseEntity.getId(), true);
+    }
+
+    @DisplayName("Scenario: Share a booking for a closed case")
+    @Test
+    void shareBookingForClosedCase() throws JsonProcessingException {
+        // create booking
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase1 = putCase(caseEntity);
+        assertResponseCode(putCase1, 201);
+
+        var booking = createBooking(caseEntity.getId(), participants);
+        var putResponse = putBooking(booking);
+        assertResponseCode(putResponse, 201);
+        assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
+
+        // create share target
+        var user1 = createUser("AAA");
+        var putUser1 = putUser(user1);
+        assertResponseCode(putUser1, 201);
+        assertUserExists(user1.getId(), true);
+
+        // close case
+        caseEntity.setState(CaseState.CLOSED);
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        var putCase2 = putCase(caseEntity);
+        assertResponseCode(putCase2, 204);
+
+        // attempt share
+        var share = createShareBooking(booking.getId(), user1.getId());
+        var putShare = putShareBooking(share);
+        assertResponseCode(putShare, 400);
+        assertThat(putShare.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN or PENDING_CLOSURE.");
     }
 
     private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {

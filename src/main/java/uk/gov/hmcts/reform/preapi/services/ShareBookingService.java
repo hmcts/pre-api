@@ -11,9 +11,11 @@ import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -52,6 +54,16 @@ public class ShareBookingService {
 
         final var booking = bookingRepository.findById(createShareBookingDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + createShareBookingDTO.getBookingId()));
+
+        if (booking.getCaseId().getState() == CaseState.CLOSED) {
+            throw new ResourceInWrongStateException(
+                "Booking",
+                booking.getId(),
+                booking.getCaseId().getState(),
+                "OPEN or PENDING_CLOSURE"
+            );
+        }
+
         final var sharedByUser = userRepository.findById(createShareBookingDTO.getSharedByUser())
             .orElseThrow(() -> new NotFoundException("Shared by User: " + createShareBookingDTO.getSharedByUser()));
         final var sharedWithUser = userRepository.findById(createShareBookingDTO.getSharedWithUser())
