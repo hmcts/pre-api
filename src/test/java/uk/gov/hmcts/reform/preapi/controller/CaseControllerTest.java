@@ -513,15 +513,15 @@ class CaseControllerTest {
             .andExpect(jsonPath("$.message")
                            .value("Not found: Case: " + caseId));
     }
-    
-    @DisplayName("Should close pending cases and return a 200 response code")
+
+    @DisplayName("Should close pending cases and return a 204 response code")
     @Test
     void testClosePendingCases() throws Exception {
         doNothing().when(caseService).closePendingCases();
 
         mockMvc.perform(post("/cases/close-pending")
                             .with(csrf()))
-            .andExpect(status().isOk());
+            .andExpect(status().isNoContent());
     }
 
     private CreateParticipantDTO createParticipant(ParticipantType type) {
