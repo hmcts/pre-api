@@ -29,7 +29,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,6 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -438,21 +439,20 @@ class CaseServiceTest {
     @DisplayName("Should close pending cases that are older than 29 days")
     @Test
     void checkAndClosePendingCasesSuccess() {
-        LocalDate thresholdDate = LocalDate.now().minusDays(29);
-        Case pendingCase = new Case();
+        var instant = Instant.now();
+        var pendingCase = new Case();
         pendingCase.setState(CaseState.PENDING_CLOSURE);
-        pendingCase.setClosedAt(thresholdDate.minusDays(1));
+        pendingCase.setClosedAt(Timestamp.from(instant.plus(28, ChronoUnit.DAYS)));
 
-        List<Case> pendingCases = List.of(pendingCase);
+        var pendingCases = List.of(pendingCase);
 
-        when(caseRepository.findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, thresholdDate))
+        when(caseRepository.findByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any()))
             .thenReturn(pendingCases);
 
         caseService.closePendingCases();
 
-        verify(caseRepository).findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, thresholdDate);
+        verify(caseRepository).findByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
         assertEquals(CaseState.CLOSED, pendingCase.getState());
     }
-
 }

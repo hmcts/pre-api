@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
-import java.time.LocalDate;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +37,6 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
 
     List<Case> findAllByReferenceAndCourt_Id(String caseReference, UUID courtId);
 
-    List<Case> findByStateAndClosedAtBefore(CaseState state, LocalDate date);
+    List<Case> findByStateAndClosedAtBefore(CaseState state, Timestamp date);
 
 }
