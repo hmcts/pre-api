@@ -108,6 +108,10 @@ public class CaseService {
         if (!isUpdate) {
             newCase.setCreatedAt(Timestamp.from(Instant.now()));
         }
+
+        // todo update once CreateCaseDTO.state is made not null (currently breaking)
+        newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
+        newCase.setClosedAt(createCaseDTO.getClosedAt());
         caseRepository.saveAndFlush(newCase);
 
         Set<Participant> oldParticipants = (newCase.getParticipants() == null || newCase.getParticipants().isEmpty())
