@@ -101,6 +101,7 @@ public class CleanupLiveEventsTest {
         var mockCaptureSession = new CaptureSessionDTO();
         mockCaptureSession.setId(captureSessionId);
         mockCaptureSession.setBookingId(bookingId);
+        mockCaptureSession.setStatus(RecordingStatus.RECORDING);
 
         var mockRecording = new RecordingDTO();
         mockRecording.setId(UUID.randomUUID());
@@ -136,14 +137,21 @@ public class CleanupLiveEventsTest {
         ));
         mockBooking.setCaseDTO(mockCaseDTO);
 
-        when(captureSessionService.findByLiveEventId(liveEventDTO.getName())).thenReturn(mockCaptureSession);
+        var mockCaptureSessionProcessing = new CaptureSessionDTO();
+        mockCaptureSessionProcessing.setId(captureSessionId);
+        mockCaptureSessionProcessing.setBookingId(bookingId);
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.PROCESSING);
+
+        var mockCaptureSessionRecordingAvailable =  new CaptureSessionDTO();
+        mockCaptureSessionProcessing.setId(captureSessionId);
+        mockCaptureSessionProcessing.setBookingId(bookingId);
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        when(captureSessionService.findByLiveEventId(liveEventDTO.getName()))
+            .thenReturn(mockCaptureSession, mockCaptureSessionRecordingAvailable);
         when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
             .thenReturn(new PageImpl<>(List.of(mockRecording, mockRecording2)));
 
-        var mockCaptureSessionProcessing = mockCaptureSession;
-        mockCaptureSessionProcessing.setStatus(RecordingStatus.PROCESSING);
-        var mockCaptureSessionRecordingAvailable = mockCaptureSession;
-        mockCaptureSessionProcessing.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         when(captureSessionService.stopCaptureSession(captureSessionId,
                                                       RecordingStatus.PROCESSING,
                                                       mockRecording.getId()))
@@ -167,10 +175,7 @@ public class CleanupLiveEventsTest {
                                                       mockRecording2.getId()))
             .thenReturn(mockCaptureSessionProcessing);
 
-        when(captureSessionService.findByLiveEventId(liveEventDTO.getId()))
-            .thenReturn(mockCaptureSessionRecordingAvailable);
-
-        when(bookingService.findById(mockCaptureSessionRecordingAvailable.getBookingId())).thenReturn(mockBooking);
+        when(bookingService.findById(bookingId)).thenReturn(mockBooking);
 
         when(userService.findById(mockShareBooking.getSharedWithUser().getId())).thenReturn(mockUser);
 
@@ -187,8 +192,15 @@ public class CleanupLiveEventsTest {
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(mediaService, times(1)).getLiveEvents();
-        verify(mediaService, times(1)).stopLiveEvent(mockCaptureSession, mockRecording.getId());
-        verify(mediaService, times(1)).stopLiveEvent(mockCaptureSession, mockRecording2.getId());
+
+        ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor = ArgumentCaptor.forClass(CaptureSessionDTO.class);
+        ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor2 = ArgumentCaptor.forClass(CaptureSessionDTO.class);
+
+        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor.capture(), eq(mockRecording.getId()));
+        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor2.capture(), eq(mockRecording2.getId()));
+
+        Assertions.assertEquals(captureSessionId, captureSessionCaptor.getValue().getId());
+        Assertions.assertEquals(captureSessionId, captureSessionCaptor2.getValue().getId());
 
         Class<List<StoppedLiveEventsNotificationDTO>> listClass =
             (Class<List<StoppedLiveEventsNotificationDTO>>)(Class)List.class;
