@@ -235,7 +235,7 @@ public class CleanupLiveEventsTest {
         var mockCaptureSession = new CaptureSessionDTO();
         mockCaptureSession.setId(captureSessionId);
         mockCaptureSession.setBookingId(bookingId);
-        mockCaptureSession.setStatus(RecordingStatus.RECORDING);
+        mockCaptureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
 
         var mockRecording = new RecordingDTO();
         mockRecording.setId(UUID.randomUUID());
