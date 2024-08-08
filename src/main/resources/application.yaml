@@ -99,11 +99,10 @@ flow:
   workflow: ${FLOW_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
   sig: ${FLOW_SIG:123}
   key: ${FLOW_KEY:123}
-logging:
-  level:
-    org.springframework.orm.jpa: DEBUG
-    org.springframework.transaction: DEBUG
-
+#logging:
+#  level:
+#    org.springframework.orm.jpa: DEBUG
+#    org.springframework.transaction: DEBUG
 #logging:
 #  level:
 #    uk:

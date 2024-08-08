@@ -216,6 +216,104 @@ public class CleanupLiveEventsTest {
             om.writeValueAsString(captor.getValue()));
     }
 
+    @DisplayName("Test CleanupLiveEvents with Capture Session in wrong state to encode")
+    @Test
+    @SuppressWarnings({"checkstyle:VariableDeclarationUsageDistance"})
+    public void testCaptureSessionInUnexpectedState() throws InterruptedException {
+        var captureSessionId = UUID.randomUUID();
+        var liveEventDTO = new LiveEventDTO();
+        liveEventDTO.setId(captureSessionId.toString().replace("-", ""));
+        liveEventDTO.setName(liveEventDTO.getId());
+        liveEventDTO.setResourceState("Running");
+        List<LiveEventDTO> liveEventDTOList = new ArrayList<>();
+        liveEventDTOList.add(liveEventDTO);
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(liveEventDTOList);
+
+        var bookingId = UUID.randomUUID();
+
+        var mockCaptureSession = new CaptureSessionDTO();
+        mockCaptureSession.setId(captureSessionId);
+        mockCaptureSession.setBookingId(bookingId);
+        mockCaptureSession.setStatus(RecordingStatus.RECORDING);
+
+        var mockRecording = new RecordingDTO();
+        mockRecording.setId(UUID.randomUUID());
+
+        var mockRecording2 = new RecordingDTO();
+        mockRecording2.setId(UUID.randomUUID());
+
+        var mockBaseUser = new BaseUserDTO();
+        mockBaseUser.setId(UUID.randomUUID());
+        mockBaseUser.setFirstName("Foo");
+        mockBaseUser.setEmail("foo@bar.org");
+
+        var mockUser = new UserDTO();
+        mockUser.setId(UUID.randomUUID());
+        mockUser.setFirstName("Foo");
+        mockUser.setEmail("foo@bar.org");
+
+        var mockShareBooking = new ShareBookingDTO();
+        mockShareBooking.setId(UUID.randomUUID());
+        mockShareBooking.setSharedWithUser(mockBaseUser);
+
+        var mockCourt = new CourtDTO();
+        mockCourt.setName("Test Court");
+
+        var mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setReference("123456");
+        mockCaseDTO.setCourt(mockCourt);
+
+        var mockBooking = new BookingDTO();
+        mockBooking.setId(bookingId);
+        mockBooking.setShares(List.of(
+            mockShareBooking
+        ));
+        mockBooking.setCaseDTO(mockCaseDTO);
+
+        var mockCaptureSessionProcessing = new CaptureSessionDTO();
+        mockCaptureSessionProcessing.setId(captureSessionId);
+        mockCaptureSessionProcessing.setBookingId(bookingId);
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.PROCESSING);
+
+        var mockCaptureSessionRecordingAvailable =  new CaptureSessionDTO();
+        mockCaptureSessionProcessing.setId(captureSessionId);
+        mockCaptureSessionProcessing.setBookingId(bookingId);
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        when(captureSessionService.findByLiveEventId(liveEventDTO.getName()))
+            .thenReturn(mockCaptureSession, mockCaptureSessionRecordingAvailable);
+        when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
+            .thenReturn(new PageImpl<>(List.of(mockRecording, mockRecording2)));
+
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.PROCESSING,
+                                                      mockRecording.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.PROCESSING,
+                                                      mockRecording2.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+
+        when(bookingService.findById(bookingId)).thenReturn(mockBooking);
+
+        when(userService.findById(mockShareBooking.getSharedWithUser().getId())).thenReturn(mockUser);
+
+        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
+                                                                    captureSessionService,
+                                                                    bookingService,
+                                                                    recordingService,
+                                                                    userService,
+                                                                    userAuthenticationService,
+                                                                    CRON_USER_EMAIL,
+                                                                    flowHttpClient);
+
+        cleanupLiveEvents.run();
+
+        verify(flowHttpClient, times(0)).emailAfterStoppingLiveEvents(any());
+
+    }
+
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     @DisplayName("Test CleanupLiveEvents run method when InterruptedException is thrown")
     @Test
