@@ -238,7 +238,7 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(participantRepository, times(2)).save(any(Participant.class));
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any(Case.class));
+        verify(caseRepository, times(1)).saveAndFlush(any(Case.class));
     }
 
     @Test
@@ -254,7 +254,7 @@ class CaseServiceTest {
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
     }
 
     @Test
@@ -338,13 +338,13 @@ class CaseServiceTest {
         when(courtRepository.findById(caseDTOModel.getCourtId())).thenReturn(Optional.of(testingCase.getCourt()));
         when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());
 
-        doThrow(DataIntegrityViolationException.class).when(caseRepository).save(any());
+        doThrow(DataIntegrityViolationException.class).when(caseRepository).saveAndFlush(any());
 
         assertThrows(DataIntegrityViolationException.class, () -> caseService.upsert(caseDTOModel));
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
     }
 
     Case createTestingCase() {
