@@ -9,7 +9,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
+import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,13 +41,21 @@ public class CreateCaseDTO {
     @Schema(description = "CreateCaseIsTest")
     private boolean test;
 
+    @Schema(description = "CreateCaseState")
+    private CaseState state;
+
+    @Schema(description = "CreateCaseClosedAt")
+    private LocalDate closedAt;
+
     public CreateCaseDTO(Case caseEntity) {
-        this.id = caseEntity.getId();
-        this.courtId = caseEntity.getCourt().getId();
-        this.reference = caseEntity.getReference();
-        this.participants = Stream.ofNullable(caseEntity.getParticipants())
+        id = caseEntity.getId();
+        courtId = caseEntity.getCourt().getId();
+        reference = caseEntity.getReference();
+        participants = Stream.ofNullable(caseEntity.getParticipants())
             .flatMap(participants -> participants.stream().map(CreateParticipantDTO::new))
             .collect(Collectors.toSet());
-        this.test = caseEntity.isTest();
+        test = caseEntity.isTest();
+        state = caseEntity.getState();
+        closedAt = caseEntity.getClosedAt();
     }
 }

@@ -126,10 +126,19 @@ public class AuthorisationService {
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateCaseDTO dto) {
         return hasCaseAccess(authentication, dto.getId())
             && hasCourtAccess(authentication, dto.getCourtId())
-            && hasUpsertAccess(authentication, dto.getParticipants());
+            && hasUpsertAccess(authentication, dto.getParticipants())
+            && canUpdateCaseState(authentication, dto);
     }
 
     public boolean canViewDeleted(UserAuthentication authentication) {
         return authentication.isAdmin();
+    }
+
+    public boolean canUpdateCaseState(UserAuthentication authentication, CreateCaseDTO dto) {
+        return caseRepository.findById(dto.getId())
+            .map(c -> c.getState() == dto.getState())
+            .orElse(false)
+            || authentication.isAdmin()
+            || authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_LEVEL_2"));
     }
 }
