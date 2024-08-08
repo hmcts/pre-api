@@ -4,12 +4,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,6 +61,92 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertResponseCode(putRecording2, 204);
         var response2 = assertRecordingExists(recording.getId(), true);
         assertThat(response2.body().jsonPath().getString("filename")).isEqualTo("updated.file");
+    }
+
+    @DisplayName("Scenario: Create and update a recording in closed case")
+    @Test
+    void upsertRecordingCaseClosed() throws JsonProcessingException {
+        // create case, booking and capture session
+        var captureSession = createCaptureSession();
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
+        assertCaptureSessionExists(captureSession.getId(), true);
+
+        // create recording (to be updated)
+        var recording1 = createRecording(captureSession.getId());
+        var putRecording1 = putRecording(recording1);
+        assertResponseCode(putRecording1, 201);
+        var response = assertRecordingExists(recording1.getId(), true);
+        assertThat(response.body().jsonPath().getString("filename")).isEqualTo("example.file");
+
+        // update case to closed
+        var aCase = convertDtoToCreateDto(assertBookingExists(captureSession.getBookingId(), true)
+                                              .jsonPath().getObject("", BookingDTO.class).getCaseDTO());
+        aCase.setState(CaseState.CLOSED);
+        aCase.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        var putCase = putCase(aCase);
+        assertResponseCode(putCase, 204);
+
+        // attempt to update recording
+        recording1.setFilename("updated.file");
+        var putRecording2 = putRecording(recording1);
+        assertResponseCode(putRecording2, 400);
+        assertThat(putRecording2.body().jsonPath().getString("message"))
+            .isEqualTo("Resource Recording("
+                           + recording1.getId()
+                           + ") is associated with a case in the state CLOSED. Must be in state OPEN.");
+
+        // attempt to create recording
+        var recording2 = createRecording(captureSession.getId());
+        var putRecording3 = putRecording(recording2);
+        assertResponseCode(putRecording3, 400);
+        assertThat(putRecording3.body().jsonPath().getString("message"))
+            .isEqualTo("Resource Recording("
+                           + recording2.getId()
+                           + ") is associated with a case in the state CLOSED. Must be in state OPEN.");
+    }
+
+    @DisplayName("Scenario: Create and update a recording in case pending closure")
+    @Test
+    void upsertRecordingCasePendingClosure() throws JsonProcessingException {
+        // create case, booking and capture session
+        var captureSession = createCaptureSession();
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
+        assertCaptureSessionExists(captureSession.getId(), true);
+
+        // create recording (to be updated)
+        var recording1 = createRecording(captureSession.getId());
+        var putRecording1 = putRecording(recording1);
+        assertResponseCode(putRecording1, 201);
+        var response = assertRecordingExists(recording1.getId(), true);
+        assertThat(response.body().jsonPath().getString("filename")).isEqualTo("example.file");
+
+        // update case to pending closure
+        var aCase = convertDtoToCreateDto(assertBookingExists(captureSession.getBookingId(), true)
+                                              .jsonPath().getObject("", BookingDTO.class).getCaseDTO());
+        aCase.setState(CaseState.PENDING_CLOSURE);
+        aCase.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        var putCase = putCase(aCase);
+        assertResponseCode(putCase, 204);
+
+        // attempt to update recording
+        recording1.setFilename("updated.file");
+        var putRecording2 = putRecording(recording1);
+        assertResponseCode(putRecording2, 400);
+        assertThat(putRecording2.body().jsonPath().getString("message"))
+            .isEqualTo("Resource Recording("
+                           + recording1.getId()
+                           + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
+
+        // attempt to create recording
+        var recording2 = createRecording(captureSession.getId());
+        var putRecording3 = putRecording(recording2);
+        assertResponseCode(putRecording3, 400);
+        assertThat(putRecording3.body().jsonPath().getString("message"))
+            .isEqualTo("Resource Recording("
+                           + recording2.getId()
+                           + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
     }
 
     @DisplayName("Delete a recording")

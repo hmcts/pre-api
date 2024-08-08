@@ -10,10 +10,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
@@ -24,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -263,5 +266,30 @@ public class FunctionalTestBase {
 
     protected Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
         return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+    }
+
+    protected CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO dto) {
+        var create = new CreateParticipantDTO();
+        create.setId(dto.getId());
+        create.setParticipantType(dto.getParticipantType());
+        create.setFirstName(dto.getFirstName());
+        create.setLastName(dto.getLastName());
+        return create;
+    }
+
+    protected CreateCaseDTO convertDtoToCreateDto(CaseDTO dto) {
+        var create = new CreateCaseDTO();
+        create.setId(dto.getId());
+        create.setCourtId(dto.getCourt().getId());
+        create.setReference(dto.getReference());
+        create.setTest(dto.isTest());
+        create.setState(dto.getState());
+        create.setClosedAt(dto.getClosedAt());
+        create.setParticipants(dto
+                                   .getParticipants()
+                                   .stream()
+                                   .map(this::convertDtoToCreateDto)
+                                   .collect(Collectors.toSet()));
+        return create;
     }
 }

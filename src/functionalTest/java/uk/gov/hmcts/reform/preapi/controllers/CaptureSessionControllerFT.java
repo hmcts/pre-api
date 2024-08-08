@@ -7,9 +7,6 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
-import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -18,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -139,7 +135,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var aCase = assertCaseExists(caseId, true)
             .body().jsonPath().getObject("", CaseDTO.class);
 
-        var updateCaseDto = convertCaseDtoToCreate(aCase);
+        var updateCaseDto = convertDtoToCreateDto(aCase);
         updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
         updateCaseDto.setState(CaseState.CLOSED);
         var putCase = putCase(updateCaseDto);
@@ -185,7 +181,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         var aCase = assertCaseExists(caseId, true)
             .body().jsonPath().getObject("", CaseDTO.class);
 
-        var updateCaseDto = convertCaseDtoToCreate(aCase);
+        var updateCaseDto = convertDtoToCreateDto(aCase);
         updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
         updateCaseDto.setState(CaseState.PENDING_CLOSURE);
         var putCase = putCase(updateCaseDto);
@@ -263,30 +259,5 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
 
     private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
         return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
-    }
-
-    private CreateCaseDTO convertCaseDtoToCreate(CaseDTO dto) {
-        var create = new CreateCaseDTO();
-        create.setId(dto.getId());
-        create.setCourtId(dto.getCourt().getId());
-        create.setReference(dto.getReference());
-        create.setTest(dto.isTest());
-        create.setState(dto.getState());
-        create.setClosedAt(dto.getClosedAt());
-        create.setParticipants(dto
-                                   .getParticipants()
-                                   .stream()
-                                   .map(this::convertParticipantDtoToCreate)
-                                   .collect(Collectors.toSet()));
-        return create;
-    }
-
-    private CreateParticipantDTO convertParticipantDtoToCreate(ParticipantDTO dto) {
-        var create = new CreateParticipantDTO();
-        create.setId(dto.getId());
-        create.setParticipantType(dto.getParticipantType());
-        create.setFirstName(dto.getFirstName());
-        create.setLastName(dto.getLastName());
-        return create;
     }
 }
