@@ -290,6 +290,15 @@ public class MediaServiceController extends PreApiController {
     public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
         var dto = captureSessionService.findById(captureSessionId);
 
+        if (dto.getCaseState() != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "Capture Session",
+                dto.getId(),
+                dto.getCaseState(),
+                "OPEN"
+            );
+        }
+
         if (dto.getStatus() == RecordingStatus.FAILURE) {
             throw new ResourceInWrongStateException(
                 "Capture Session",
