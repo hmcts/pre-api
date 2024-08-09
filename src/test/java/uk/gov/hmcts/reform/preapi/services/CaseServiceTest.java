@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -36,7 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -433,28 +431,4 @@ class CaseServiceTest {
         verify(caseRepository, times(1)).findById(caseId);
         verify(caseRepository, never()).save(any());
     }
-
-//    @DisplayName("Should close pending cases that are older than 29 days")
-//    @Test
-//    void checkAndClosePendingCasesSuccess() {
-//        Instant fixedInstant = Instant.parse("2024-07-09T12:00:00.000Z");
-//        Timestamp thresholdTimestamp = Timestamp.from(fixedInstant.minusSeconds(29L * 24 * 60 * 60));
-//        Timestamp closedAtTimestamp = Timestamp.from(fixedInstant.minusSeconds(30L * 24 * 60 * 60));
-//
-//        Case pendingCase = new Case();
-//        pendingCase.setState(CaseState.PENDING_CLOSURE);
-//        pendingCase.setClosedAt(closedAtTimestamp);
-//
-//        List<Case> pendingCases = List.of(pendingCase);
-//
-//        when(caseRepository.findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, thresholdTimestamp))
-//            .thenReturn(pendingCases);
-//
-//        caseService.closePendingCases();
-//
-//        verify(caseRepository).findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, thresholdTimestamp);
-//        verify(caseRepository).save(pendingCase);
-//        assertEquals(CaseState.CLOSED, pendingCase.getState());
-//    }
-
 }

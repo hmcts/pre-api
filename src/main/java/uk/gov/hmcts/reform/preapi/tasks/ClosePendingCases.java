@@ -1,39 +1,32 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
-import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.services.CaseService;
 
 @Component
 @Slf4j
-public class CleanupLiveEvents implements Runnable {
+public class ClosePendingCases implements Runnable {
 
-    private final MediaServiceBroker mediaServiceBroker;
+    private final CaseService caseService;
 
     @Autowired
-    CleanupLiveEvents(MediaServiceBroker mediaServiceBroker) {
-        this.mediaServiceBroker = mediaServiceBroker;
+    public ClosePendingCases(CaseService caseService) {
+        this.caseService = caseService;
     }
 
     @Override
     public void run() {
-        log.info("Running CleanupLiveEvents task");
+        log.info("Running ClosePendingCases task");
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        try {
+            caseService.closePendingCases();
+            log.info("Successfully closed pending cases");
+        } catch (Exception e) {
+            log.error("Failed to close pending cases", e);
+        }
 
-        // Find all Live events currently running and stop and delete them along with their streaming endpoints and
-        // locators
-        mediaService.getLiveEvents().stream()
-                    .filter(liveEventDTO -> liveEventDTO
-                        .getResourceState().equals(LiveEventResourceState.RUNNING.toString())
-                    ).forEach(liveEventDTO -> {
-                        log.info("Stopping live event {}", liveEventDTO.getId());
-                        // @todo uncomment this line when https://github.com/hmcts/pre-api/pull/579/ is merged
-                        // mediaService.stopLiveEvent(liveEventDTO.getId());
-                    });
-
-        log.info("Completed CleanupLiveEvents task");
+        log.info("Completed ClosePendingCases task");
     }
 }
