@@ -226,7 +226,7 @@ definitions:
     properties:
       closed_at:
         description: CaseClosedAt
-        format: date
+        format: date-time
         type: string
       court:
         $ref: '#/definitions/CourtDTO'
@@ -920,7 +920,7 @@ definitions:
         $ref: '#/definitions/Links'
       closed_at:
         description: CaseClosedAt
-        format: date
+        format: date-time
         type: string
       court:
         $ref: '#/definitions/CourtDTO'
