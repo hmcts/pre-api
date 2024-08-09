@@ -514,6 +514,16 @@ class CaseControllerTest {
                            .value("Not found: Case: " + caseId));
     }
 
+    @DisplayName("Should close pending cases and return a 204 response code")
+    @Test
+    void testClosePendingCases() throws Exception {
+        mockMvc.perform(post("/cases/close-pending")
+                            .with(csrf()))
+            .andExpect(status().isNoContent());
+
+        verify(caseService, times(1)).closePendingCases();
+    }
+
     private CreateParticipantDTO createParticipant(ParticipantType type) {
         var dto = new CreateParticipantDTO();
         dto.setId(UUID.randomUUID());
