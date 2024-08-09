@@ -329,6 +329,8 @@ public class MediaKind implements IMediaService {
         var recordingAssetName = recordingNoHyphen + "_output";
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
 
+        cleanupStoppedLiveEvent(captureSessionNoHyphen);
+
         createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
 
@@ -350,8 +352,6 @@ public class MediaKind implements IMediaService {
                 ? RecordingStatus.RECORDING_AVAILABLE
                 : RecordingStatus.NO_RECORDING;
         }
-
-        cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
         return status;
     }
