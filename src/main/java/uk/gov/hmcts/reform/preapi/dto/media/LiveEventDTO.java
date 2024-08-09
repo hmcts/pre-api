@@ -58,10 +58,9 @@ public class LiveEventDTO {
         inputRtmp = Stream.ofNullable(liveEvent
                 .getProperties()
                 .getInput()
-                .endpoints())
+                .getEndpoints())
             .flatMap(Collection::stream)
-            // todo uncomment once added by mk
-            // .filter(e -> e.url().startsWith("rtmps://"))
+            .filter(e -> e.url().startsWith("rtmps://"))
             .findFirst()
             .map(LiveEventEndpoint::url)
             .orElse(null);
