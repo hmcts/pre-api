@@ -90,8 +90,6 @@ media-service: ${MEDIA_SERVICE:AzureMediaService}
 
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
-legacy-azure-function-key: ${LEGACY_AZURE_FUNCTION_KEY:SecureKey}
-
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
 
 flow:

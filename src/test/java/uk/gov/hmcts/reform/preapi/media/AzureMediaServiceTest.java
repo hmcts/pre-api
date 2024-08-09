@@ -197,8 +197,8 @@ public class AzureMediaServiceTest {
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
         var generateAssetDTO = new GenerateAssetDTO(
-            "my-source-container",
-            "my-destination-container",
+            UUID.randomUUID() + "-input",
+            UUID.randomUUID(),
             "tmp-asset",
             "final-asset",
             "unit test import asset"
@@ -231,7 +231,7 @@ public class AzureMediaServiceTest {
             );
 
         assertThat(destinationContainerArgument.getValue().container())
-            .isEqualTo(generateAssetDTO.getDestinationContainer());
+            .isEqualTo(generateAssetDTO.getDestinationContainer().toString());
 
         ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
 
@@ -267,8 +267,8 @@ public class AzureMediaServiceTest {
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
         var generateAssetDTO = new GenerateAssetDTO(
-            "my-source-container",
-            "my-destination-container",
+            UUID.randomUUID() + "-input",
+            UUID.randomUUID(),
             "tmp-asset",
             "final-asset",
             "unit test import asset"
@@ -301,7 +301,7 @@ public class AzureMediaServiceTest {
             );
 
         assertThat(destinationContainerArgument.getValue().container())
-            .isEqualTo(generateAssetDTO.getDestinationContainer());
+            .isEqualTo(generateAssetDTO.getDestinationContainer().toString());
 
         ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
 

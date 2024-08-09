@@ -287,7 +287,7 @@ public class AzureMediaService implements IMediaService {
         createAsset(
             generateAssetDTO.getFinalAsset(),
             generateAssetDTO.getDescription(),
-            generateAssetDTO.getDestinationContainer(),
+            generateAssetDTO.getDestinationContainer().toString(),
             true
         );
 
@@ -297,7 +297,7 @@ public class AzureMediaService implements IMediaService {
 
         return new GenerateAssetResponseDTO(
             generateAssetDTO.getFinalAsset(),
-            generateAssetDTO.getDestinationContainer(),
+            generateAssetDTO.getDestinationContainer().toString(),
             generateAssetDTO.getDescription(),
             jobState.toString()
         );
