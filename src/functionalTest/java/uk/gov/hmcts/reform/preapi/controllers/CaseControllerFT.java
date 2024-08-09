@@ -7,6 +7,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -28,6 +29,43 @@ class CaseControllerFT extends FunctionalTestBase {
 
         // update a case
         dto.setTest(true);
+        var putCase2 = putCase(dto);
+        assertResponseCode(putCase2, 204);
+        assertMatchesDto(dto);
+    }
+
+    @DisplayName("Scenario: Update a case when case is closed (not updating state)")
+    @Test
+    void updateCaseClosedBadRequest() throws JsonProcessingException {
+        // create a closed case
+        var dto = createCase();
+        dto.setState(CaseState.CLOSED);
+        var putCase1 = putCase(dto);
+        assertResponseCode(putCase1, 201);
+        assertMatchesDto(dto);
+
+        // attempt update case
+        dto.setTest(true);
+        var putCase2 = putCase(dto);
+        assertResponseCode(putCase2, 400);
+        assertThat(putCase2.body().jsonPath().getString("message"))
+            .isEqualTo("Resource Case("
+                           + dto.getId()
+                           + ") is in state CLOSED. Cannot update case unless in state OPEN.");
+    }
+
+    @DisplayName("Scenario: Update case's state when case is closed")
+    @Test
+    void updateCaseClosedToOpenSuccess() throws JsonProcessingException {
+        // create a closed case
+        var dto = createCase();
+        dto.setState(CaseState.CLOSED);
+        var putCase1 = putCase(dto);
+        assertResponseCode(putCase1, 201);
+        assertMatchesDto(dto);
+
+        // update case state
+        dto.setState(CaseState.OPEN);
         var putCase2 = putCase(dto);
         assertResponseCode(putCase2, 204);
         assertMatchesDto(dto);

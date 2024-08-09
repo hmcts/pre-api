@@ -19,9 +19,11 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
@@ -87,8 +89,9 @@ class CaseServiceTest {
     }
 
     @BeforeEach
-    void resetDelete() {
+    void reset() {
         caseEntity.setDeletedAt(null);
+        caseEntity.setState(CaseState.OPEN);
     }
 
     @DisplayName("Find a case by it's id and return a model")
@@ -262,6 +265,28 @@ class CaseServiceTest {
     }
 
     @Test
+    @DisplayName("Should update case when attempting to change the case's state")
+    void updateCaseChangeStateSuccess() {
+        caseEntity.setState(CaseState.CLOSED);
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setState(CaseState.OPEN);
+
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(caseEntity));
+
+        when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
+            Optional.of(testingCase.getCourt()));
+        when(caseRepository.findById(testingCase.getId())).thenReturn(Optional.of(caseEntity));
+
+        var result = caseService.upsert(caseDTOModel);
+        assertThat(result).isEqualTo(UpsertResult.UPDATED);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
     void updateBadRequest() {
         caseEntity.setDeletedAt(Timestamp.from(Instant.now()));
         Case testingCase = createTestingCase();
@@ -275,6 +300,30 @@ class CaseServiceTest {
             ResourceInDeletedStateException.class,
             () -> caseService.upsert(caseDTOModel)
         );
+
+        verify(courtRepository, never()).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(caseRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceInWrongStateException when attempting to update a case in wrong state")
+    void updateCaseNotOpenBadRequest() {
+        caseEntity.setState(CaseState.CLOSED);
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setState(CaseState.CLOSED);
+
+        when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.of(caseEntity));
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> caseService.upsert(caseDTOModel)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Resource Case("
+                                          + caseDTOModel.getId()
+                                          + ") is in state CLOSED. Cannot update case unless in state OPEN.");
 
         verify(courtRepository, never()).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());

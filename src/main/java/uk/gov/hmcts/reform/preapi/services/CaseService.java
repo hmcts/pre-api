@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
@@ -82,12 +83,24 @@ public class CaseService {
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #createCaseDTO)")
     public UpsertResult upsert(CreateCaseDTO createCaseDTO) {
         var foundCase = caseRepository.findById(createCaseDTO.getId());
+        var isUpdate = foundCase.isPresent();
 
-        if (foundCase.isPresent() && foundCase.get().isDeleted()) {
-            throw new ResourceInDeletedStateException("CaseDTO", createCaseDTO.getId().toString());
+        if (isUpdate) {
+            if (foundCase.get().isDeleted()) {
+                throw new ResourceInDeletedStateException("CaseDTO", createCaseDTO.getId().toString());
+            }
+            if (foundCase.get().getState() != CaseState.OPEN
+                && foundCase.get().getState() == createCaseDTO.getState()
+            ) {
+                throw new ResourceInWrongStateException(
+                    "Resource Case("
+                        + createCaseDTO.getId()
+                        + ") is in state "
+                        + foundCase.get().getState()
+                        + ". Cannot update case unless in state OPEN.");
+            }
         }
 
-        var isUpdate = foundCase.isPresent();
         if (!isCaseReferenceValid(isUpdate, createCaseDTO))  {
             throw new ConflictException("Case reference is already in use for this court");
         }
