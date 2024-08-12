@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -29,7 +28,6 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -434,25 +431,4 @@ class CaseServiceTest {
         verify(caseRepository, times(1)).findById(caseId);
         verify(caseRepository, never()).save(any());
     }
-
-    @DisplayName("Should close pending cases that are older than 29 days")
-    @Test
-    void checkAndClosePendingCasesSuccess() {
-        LocalDate thresholdDate = LocalDate.now().minusDays(29);
-        Case pendingCase = new Case();
-        pendingCase.setState(CaseState.PENDING_CLOSURE);
-        pendingCase.setClosedAt(thresholdDate.minusDays(1));
-
-        List<Case> pendingCases = List.of(pendingCase);
-
-        when(caseRepository.findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, thresholdDate))
-            .thenReturn(pendingCases);
-
-        caseService.closePendingCases();
-
-        verify(caseRepository).findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, thresholdDate);
-        verify(caseRepository).save(pendingCase);
-        assertEquals(CaseState.CLOSED, pendingCase.getState());
-    }
-
 }

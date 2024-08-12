@@ -10,7 +10,6 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -42,7 +41,7 @@ public class CaseDTO {
     private CaseState state;
 
     @Schema(description = "CaseClosedAt")
-    private LocalDate closedAt;
+    private Timestamp closedAt;
 
     @Schema(description = "CaseDeletedAt")
     private Timestamp deletedAt;
@@ -66,6 +65,8 @@ public class CaseDTO {
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
         this.test = caseEntity.isTest();
+        this.state = caseEntity.getState();
+        this.closedAt = caseEntity.getClosedAt();
         this.deletedAt = caseEntity.getDeletedAt();
         this.createdAt = caseEntity.getCreatedAt();
         this.modifiedAt = caseEntity.getModifiedAt();

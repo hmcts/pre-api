@@ -59,6 +59,9 @@ public interface MediaKindClient {
     @GetMapping("/streamingLocators/{streamingLocatorName}")
     MkStreamingLocator getStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName);
 
+    @GetMapping("/streamingLocators")
+    MkGetListResponse<MkStreamingLocator> getStreamingLocators(@RequestParam("$skipToken") int skipToken);
+
     @DeleteMapping("/streamingLocators/{streamingLocatorName}")
     void deleteStreamingLocator(@PathVariable("streamingLocatorName") String streamingLocatorName);
 
@@ -117,6 +120,12 @@ public interface MediaKindClient {
 
     @PutMapping("/contentKeyPolicies/{policyName}")
     void putContentKeyPolicy(@PathVariable String policyName, @RequestBody MkContentKeyPolicy mkContentPolicy);
+
+    @GetMapping("/contentKeyPolicies")
+    MkGetListResponse<MkContentKeyPolicy> getContentKeyPolicies(@RequestParam("$skipToken") int skipToken);
+
+    @DeleteMapping("/contentKeyPolicies/{policyName}")
+    void deleteContentKeyPolicy(@PathVariable String policyName);
 
     @GetMapping("/streamingPolicies/{policyName}")
     MkStreamingPolicy getStreamingPolicy(@PathVariable String policyName);

@@ -700,5 +700,4 @@ public class CaptureSessionServiceTest {
 
         assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
     }
-
 }

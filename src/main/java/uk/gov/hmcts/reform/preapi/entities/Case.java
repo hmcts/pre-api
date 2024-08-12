@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -57,7 +56,7 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
     private CaseState state;
 
     @Column(name = "closed_at")
-    private LocalDate closedAt;
+    private Timestamp closedAt;
 
     public boolean isDeleted() {
         return deletedAt != null;
