@@ -38,6 +38,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicy;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -85,6 +87,21 @@ public class MediaKindTest {
         captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBookingId(UUID.randomUUID());
+    }
+
+    private MkStreamingLocator getExpiredStreamingLocator(String userId) {
+        return MkStreamingLocator
+            .builder()
+            .properties(MkStreamingLocatorProperties
+                            .builder()
+                            .streamingPolicyName("Predefined_ClearKey")
+                            .streamingLocatorId(userId)
+                            .endTime(Timestamp.valueOf(OffsetDateTime.now()
+                                                                     .minusDays(1)
+                                                                     .toLocalDateTime()))
+                            .build()
+            )
+            .build();
     }
 
     @DisplayName("Should get a list of assets")
@@ -948,6 +965,8 @@ public class MediaKindTest {
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
 
+        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
+
         var playback = mediaKind.playAsset(assetName, userId);
 
         assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
@@ -1007,6 +1026,8 @@ public class MediaKindTest {
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -1070,6 +1091,8 @@ public class MediaKindTest {
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
 
+        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
+
         var playback = mediaKind.playAsset(assetName, userId);
 
         assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
@@ -1080,8 +1103,8 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).putStreamingPolicy(eq("Predefined_ClearKey"), any(MkStreamingPolicy.class));
         verify(mockClient, times(1)).deleteStreamingLocator(userId);
+        verify(mockClient, times(1)).putStreamingPolicy(eq("Predefined_ClearKey"), any(MkStreamingPolicy.class));
         verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
@@ -1136,6 +1159,8 @@ public class MediaKindTest {
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -1202,6 +1227,8 @@ public class MediaKindTest {
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
 
+        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
+
         var playback = mediaKind.playAsset(assetName, userId);
 
         assertThat(playback.getDashUrl()).isEqualTo("https://example.com/playback/" + assetName);
@@ -1245,6 +1272,8 @@ public class MediaKindTest {
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
 
 
         var message = assertThrows(
