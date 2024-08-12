@@ -385,7 +385,7 @@ class CaseControllerFT extends FunctionalTestBase {
         }
     }
 
-    @DisplayName("Scenario: Update case status as SUPER USER, LEVEL 1 and LEVEL 2")
+    @DisplayName("Scenario: Update case status as LEVEL 3 and LEVEL 4")
     @Test
     void updateCaseStatusAuthError() throws JsonProcessingException {
         var roles = new TestingSupportRoles[] {
@@ -455,6 +455,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(res.getReference()).isEqualTo(dto.getReference());
         assertThat(res.getParticipants()).hasSize(dto.getParticipants().size());
         assertThat(res.isTest()).isEqualTo(dto.isTest());
+        assertThat(res.getState()).isEqualTo(dto.getState());
         assertThat(res.getCreatedAt()).isNotNull();
         assertThat(res.getModifiedAt()).isNotNull();
         assertThat(res.getDeletedAt()).isNull();

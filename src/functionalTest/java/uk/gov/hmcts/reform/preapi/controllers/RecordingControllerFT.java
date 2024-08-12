@@ -133,7 +133,10 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertResponseCode(putRecording2, 201);
         assertRecordingExists(recording2.getId(), true);
 
-        var getRecordings1 = doGetRequest(RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId, true);
+        var getRecordings1 = doGetRequest(
+            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId,
+            TestingSupportRoles.SUPER_USER
+        );
         assertResponseCode(getRecordings1, 200);
         var recordings1 = getRecordings1.jsonPath().getList("_embedded.recordingDTOList", RecordingDTO.class);
 
@@ -145,7 +148,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
         var getRecordings2 = doGetRequest(
             RECORDINGS_ENDPOINT + "?sort=createdAt,asc&captureSessionId=" + details.captureSessionId,
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(getRecordings2, 200);
         var recordings2 = getRecordings2.jsonPath().getList("_embedded.recordingDTOList", RecordingDTO.class);
@@ -162,7 +165,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void getRecordingsSortInvalidParam() {
         var getRecordings = doGetRequest(
             RECORDINGS_ENDPOINT + "?sort=invalidParam,asc",
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(getRecordings, 400);
 
