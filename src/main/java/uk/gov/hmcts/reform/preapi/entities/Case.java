@@ -53,7 +53,7 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
 
     @Column(name = "state", nullable = false)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    private CaseState state;
+    private CaseState state = CaseState.OPEN;
 
     @Column(name = "closed_at")
     private Timestamp closedAt;
