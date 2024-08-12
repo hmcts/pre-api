@@ -159,20 +159,21 @@ public class MediaKind implements IMediaService {
 
     private void refreshStreamingLocatorForUser(String userId, String assetName) {
         var now = OffsetDateTime.now();
+        var streamingLocatorName = userId + "_" + assetName;
 
         // check streaming locator is still valid
         try {
-            var locator = mediaKindClient.getStreamingLocator(userId);
+            var locator = mediaKindClient.getStreamingLocator(streamingLocatorName);
             if (locator.getProperties().getEndTime().toInstant().isAfter(now.toInstant())) {
                 return;
             }
-            mediaKindClient.deleteStreamingLocator(userId);
+            mediaKindClient.deleteStreamingLocator(streamingLocatorName);
         } catch (NotFoundException e) {
             // ignore
         }
 
         mediaKindClient.createStreamingLocator(
-            userId,
+            streamingLocatorName,
             MkStreamingLocator.builder()
                 .properties(
                     MkStreamingLocatorProperties.builder()
