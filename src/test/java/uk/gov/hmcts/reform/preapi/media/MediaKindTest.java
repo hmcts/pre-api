@@ -89,7 +89,7 @@ public class MediaKindTest {
         captureSession.setBookingId(UUID.randomUUID());
     }
 
-    private MkStreamingLocator getExpiredStreamingLocator(String userId) {
+    private MkStreamingLocator createStreamingLocator(String userId, int daysOffset) {
         return MkStreamingLocator
             .builder()
             .properties(MkStreamingLocatorProperties
@@ -97,11 +97,19 @@ public class MediaKindTest {
                             .streamingPolicyName("Predefined_ClearKey")
                             .streamingLocatorId(userId)
                             .endTime(Timestamp.valueOf(OffsetDateTime.now()
-                                                                     .minusDays(1)
+                                                                     .plusDays(daysOffset)
                                                                      .toLocalDateTime()))
                             .build()
             )
             .build();
+    }
+
+    private MkStreamingLocator getExpiredStreamingLocator(String userId) {
+        return createStreamingLocator(userId, -1);
+    }
+
+    private MkStreamingLocator getFutureStreamingLocator(String userId) {
+        return createStreamingLocator(userId, 1);
     }
 
     @DisplayName("Should get a list of assets")
@@ -1027,7 +1035,7 @@ public class MediaKindTest {
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
 
-        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
+        when(mockClient.getStreamingLocator(userId)).thenReturn(getFutureStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -1040,8 +1048,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), any(MkContentKeyPolicy.class));
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
-        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
     }
@@ -1273,8 +1279,7 @@ public class MediaKindTest {
             .thenReturn(streamingEndpoint);
         when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
 
-        when(mockClient.getStreamingLocator(userId)).thenReturn(getExpiredStreamingLocator(userId));
-
+        when(mockClient.getStreamingLocator(userId)).thenThrow(NotFoundException.class);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -1286,7 +1291,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
         verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
