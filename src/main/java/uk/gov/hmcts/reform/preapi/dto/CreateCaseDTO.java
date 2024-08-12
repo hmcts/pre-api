@@ -11,7 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
-import java.time.LocalDate;
+import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -45,7 +45,7 @@ public class CreateCaseDTO {
     private CaseState state;
 
     @Schema(description = "CreateCaseClosedAt")
-    private LocalDate closedAt;
+    private Timestamp closedAt;
 
     public CreateCaseDTO(Case caseEntity) {
         id = caseEntity.getId();
