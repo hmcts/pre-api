@@ -1,7 +1,8 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
 import com.azure.resourcemanager.mediaservices.models.LiveEventEncoding;
-import com.azure.resourcemanager.mediaservices.models.LiveEventInput;
+import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
+import com.azure.resourcemanager.mediaservices.models.LiveEventInputAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Builder;
@@ -18,7 +19,7 @@ public class MkLiveEventProperties {
     private String description;
     private LiveEventEncoding encoding;
     private String hostnamePrefix;
-    private LiveEventInput input;
+    private MkLiveEventInput input;
     private String lastModified;
     private LiveEventPreview preview;
     private String provisioningState;
@@ -32,5 +33,22 @@ public class MkLiveEventProperties {
     public static class CrossSiteAccessPolicies {
         private String clientAccessPolicy;
         private String crossDomainPolicy;
+    }
+
+    @Data
+    @Builder
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class MkLiveEventInput {
+        private StreamingProtocol streamingProtocol;
+        private String keyFrameIntervalDuration;
+        private String accessToken;
+        private LiveEventInputAccessControl accessControl;
+        private List<LiveEventEndpoint> endpoints;
+    }
+
+    public enum StreamingProtocol {
+        RTMP,
+        RTMPS,
+        SRT
     }
 }

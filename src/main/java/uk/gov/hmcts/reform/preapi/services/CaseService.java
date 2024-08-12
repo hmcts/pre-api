@@ -23,7 +23,6 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -186,13 +185,12 @@ public class CaseService {
                 && foundCases.isEmpty();
     }
 
+    @Transactional
     public void closePendingCases() {
-        var date = Timestamp.from(Instant.now().plus(29, ChronoUnit.DAYS));
-        caseRepository.findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, date)
-            .forEach(c -> {
-                c.setState(CaseState.CLOSED);
-                caseRepository.save(c);
-            });
+        var timestamp = Timestamp.from(Instant.now().minusSeconds(29L * 24 * 60 * 60));
+        caseRepository.findAllByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, timestamp).forEach(c -> {
+            c.setState(CaseState.CLOSED);
+            caseRepository.save(c);
+        });
     }
-
 }
