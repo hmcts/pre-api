@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -38,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -523,7 +525,7 @@ class CaseServiceTest {
         caseService.closePendingCases();
         assertEquals(CaseState.CLOSED, pendingCase.getState());
 
-        verify(caseRepository).findByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
+        verify(caseRepository).findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
         verify(shareBookingService).deleteCascade(pendingCase);
     }

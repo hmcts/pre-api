@@ -24,7 +24,6 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -211,6 +210,7 @@ public class CaseService {
         caseRepository.findAllByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, timestamp).forEach(c -> {
             c.setState(CaseState.CLOSED);
             caseRepository.save(c);
+            shareBookingService.deleteCascade(c);
         });
     }
 }
