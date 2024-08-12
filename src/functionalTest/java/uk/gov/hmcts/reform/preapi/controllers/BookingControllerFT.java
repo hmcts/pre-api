@@ -1,14 +1,12 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;

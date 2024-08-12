@@ -43,6 +43,7 @@ class CaseControllerFT extends FunctionalTestBase {
         // create a closed case
         var dto = createCase();
         dto.setState(CaseState.CLOSED);
+        dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase1 = putCase(dto);
         assertResponseCode(putCase1, 201);
         assertMatchesDto(dto);
@@ -63,13 +64,16 @@ class CaseControllerFT extends FunctionalTestBase {
         // create a closed case
         var dto = createCase();
         dto.setState(CaseState.CLOSED);
+        dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(86400)));
         var putCase1 = putCase(dto);
         assertResponseCode(putCase1, 201);
         assertMatchesDto(dto);
 
         // update case state
         dto.setState(CaseState.OPEN);
+        dto.setClosedAt(null);
         var putCase2 = putCase(dto);
+        putCase2.prettyPrint();
         assertResponseCode(putCase2, 204);
         assertMatchesDto(dto);
     }
@@ -388,7 +392,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(b1.getShares().getFirst().getDeletedAt()).isNull();
 
         // close case
-        dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(86400)));
         dto.setState(CaseState.CLOSED);
         var putCase2 = putCase(dto);
         assertResponseCode(putCase2, 204);
