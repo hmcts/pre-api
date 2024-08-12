@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,7 +63,6 @@ public class CleanupLiveEvents implements Runnable {
     }
 
     @Override
-    @Transactional(dontRollbackOn = Exception.class)
     public void run() throws RuntimeException {
         log.info("Sign in as robot user");
         var user = userService.findByEmail(cronUserEmail);
@@ -173,12 +171,13 @@ public class CleanupLiveEvents implements Runnable {
             if (captureSession.getStatus() != RecordingStatus.STANDBY
                 && captureSession.getStatus() != RecordingStatus.RECORDING
                 && captureSession.getStatus() != RecordingStatus.PROCESSING) {
-                log.info(
+                log.error(
                     "CaptureSession {} is in an unexpected state: {}",
                     captureSession.getId(),
                     captureSession.getStatus()
                 );
                 mediaService.cleanupStoppedLiveEvent(liveEventId);
+                return false;
             }
             var updatedCaptureSession = captureSessionService.stopCaptureSession(
                 captureSession.getId(),

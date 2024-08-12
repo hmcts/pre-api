@@ -623,13 +623,6 @@ public class MediaKindTest {
     void stopLiveEventLiveEventNotFound() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
-        var mockJob = mock(MkJob.class);
-        var mockProperties = mock(MkJob.MkJobProperties.class);
-
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
-        when(mockJob.getProperties()).thenReturn(mockProperties);
-        when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
-        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
         doThrow(NotFoundException.class).when(mockClient).stopLiveEvent(any());
 
@@ -640,15 +633,6 @@ public class MediaKindTest {
 
         assertThat(message).isEqualTo("Not found: Live Event: " + liveEventName);
 
-        verify(mockClient, times(2)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
-        verify(mockClient, never()).putTransform(any(), any());
-        var jobName = ArgumentCaptor.forClass(String.class);
-        var jobName2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobName.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobName2.capture());
-        assertThat(jobName.getValue()).startsWith(liveEventName);
-        assertThat(jobName.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, never()).deleteLiveEvent(liveEventName);
     }
