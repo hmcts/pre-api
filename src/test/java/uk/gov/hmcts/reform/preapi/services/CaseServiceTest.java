@@ -70,6 +70,9 @@ class CaseServiceTest {
     @MockBean
     private BookingService bookingService;
 
+    @MockBean
+    private ShareBookingService shareBookingService;
+
     @Autowired
     private CaseService caseService;
 
@@ -287,6 +290,27 @@ class CaseServiceTest {
     }
 
     @Test
+    @DisplayName("Should delete shares when updating case to closed")
+    void updateCaseClosedDeleteSharesSuccess() {
+        var testingCase = createTestingCase();
+        var caseDTOModel = new CreateCaseDTO(testingCase);
+        caseDTOModel.setState(CaseState.CLOSED);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
+
+        when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
+            Optional.of(testingCase.getCourt()));
+        when(caseRepository.findById(testingCase.getId())).thenReturn(Optional.of(caseEntity));
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
     void updateBadRequest() {
         caseEntity.setDeletedAt(Timestamp.from(Instant.now()));
         Case testingCase = createTestingCase();
@@ -499,9 +523,10 @@ class CaseServiceTest {
             .thenReturn(pendingCases);
 
         caseService.closePendingCases();
+        assertEquals(CaseState.CLOSED, pendingCase.getState());
 
         verify(caseRepository).findByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
-        assertEquals(CaseState.CLOSED, pendingCase.getState());
+        verify(shareBookingService).deleteCascade(pendingCase);
     }
 }

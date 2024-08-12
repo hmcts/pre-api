@@ -500,50 +500,6 @@ class BookingControllerFT extends FunctionalTestBase {
                     + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
     }
 
-    private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
-        var dto = new CreateBookingDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setCaseId(caseId);
-        dto.setParticipants(participants);
-        dto.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay()));
-        return dto;
-    }
-
-    private Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
-    }
-
-    private CreateUserDTO createUser(String firstName) {
-        var dto = new CreateUserDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setFirstName(firstName);
-        dto.setLastName("Example");
-        dto.setAppAccess(Set.of());
-        dto.setPortalAccess(Set.of());
-        dto.setEmail(dto.getId() + "@example.com");
-        return dto;
-    }
-
-    private CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
-        var dto = new CreateShareBookingDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setSharedWithUser(shareWithId);
-        return dto;
-    }
-
-    private Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
-            OBJECT_MAPPER.writeValueAsString(dto),
-            true
-        );
-    }
-
     /*
     @DisplayName("Scenario: Search for a booking by schedule date")
     @Test

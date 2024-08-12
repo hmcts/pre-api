@@ -11,15 +11,19 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -291,5 +295,49 @@ public class FunctionalTestBase {
                                    .map(this::convertDtoToCreateDto)
                                    .collect(Collectors.toSet()));
         return create;
+    }
+
+    protected CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
+        var dto = new CreateBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCaseId(caseId);
+        dto.setParticipants(participants);
+        dto.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay()));
+        return dto;
+    }
+
+    protected Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
+    }
+
+    protected CreateUserDTO createUser(String firstName) {
+        var dto = new CreateUserDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName(firstName);
+        dto.setLastName("Example");
+        dto.setAppAccess(Set.of());
+        dto.setPortalAccess(Set.of());
+        dto.setEmail(dto.getId() + "@example.com");
+        return dto;
+    }
+
+    protected CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
+        var dto = new CreateShareBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setSharedWithUser(shareWithId);
+        return dto;
+    }
+
+    protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
+            OBJECT_MAPPER.writeValueAsString(dto),
+            true
+        );
     }
 }

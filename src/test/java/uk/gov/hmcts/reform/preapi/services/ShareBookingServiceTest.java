@@ -29,6 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -420,5 +421,35 @@ public class ShareBookingServiceTest {
         assertThat(message).isEqualTo("Not found: Booking: " + bookingId);
 
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingId);
+    }
+
+    @DisplayName("Should delete all shares for a case")
+    @Test
+    void deleteCascadeForCase() {
+        var aCase = new Case();
+        var booking1 = new Booking();
+        booking1.setCaseId(aCase);
+        var booking2 = new Booking();
+        booking2.setCaseId(aCase);
+        var share1 = new ShareBooking();
+        share1.setBooking(booking1);
+        var share2 = new ShareBooking();
+        share2.setBooking(booking1);
+        var share3 = new ShareBooking();
+        share3.setBooking(booking2);
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(booking1, booking2));
+        when(shareBookingRepository.findAllByBookingAndDeletedAtIsNull(booking1)).thenReturn(List.of(share1, share2));
+        when(shareBookingRepository.findAllByBookingAndDeletedAtIsNull(booking2)).thenReturn(List.of(share3));
+
+        shareBookingService.deleteCascade(aCase);
+
+        assertThat(share1.isDeleted()).isTrue();
+        assertThat(share2.isDeleted()).isTrue();
+        assertThat(share3.isDeleted()).isTrue();
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(shareBookingRepository, times(2)).findAllByBookingAndDeletedAtIsNull(any(Booking.class));
+        verify(shareBookingRepository, times(3)).save(any(ShareBooking.class));
     }
 }

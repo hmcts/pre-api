@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -11,6 +12,8 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -354,6 +357,48 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(getCases2.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
         assertThat(getCases2.body().jsonPath().getString("_embedded.caseDTOList[0].reference"))
             .isEqualTo(dto.getReference());
+    }
+
+    @DisplayName("Scenario: Close case and delete shares")
+    @Test
+    void shouldCloseCaseAndDeleteShares() throws JsonProcessingException {
+        // setup
+        var dto = createCase();
+        var putCase = putCase(dto);
+        assertResponseCode(putCase, 201);
+        assertCaseExists(dto.getId(), true);
+
+        var booking = createBooking(dto.getId(), dto.getParticipants());
+        var putBooking = putBooking(booking);
+        assertResponseCode(putBooking, 201);
+        assertBookingExists(booking.getId(), true);
+
+        var user1 = createUser("aaa");
+        var putUser1 = putUser(user1);
+        assertResponseCode(putUser1, 201);
+
+        var share1 = createShareBooking(booking.getId(), user1.getId());
+        var putShare1 = putShareBooking(share1);
+        assertResponseCode(putShare1, 201);
+
+        var b1 = assertBookingExists(booking.getId(), true).body().jsonPath().getObject("", BookingDTO.class);
+        assertThat(b1.getShares()).isNotEmpty();
+        assertThat(b1.getShares()).hasSize(1);
+        assertThat(b1.getShares().getFirst().getId()).isEqualTo(share1.getId());
+        assertThat(b1.getShares().getFirst().getDeletedAt()).isNull();
+
+        // close case
+        dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        dto.setState(CaseState.CLOSED);
+        var putCase2 = putCase(dto);
+        assertResponseCode(putCase2, 204);
+        assertCaseExists(dto.getId(), true);
+
+        // check share
+        var b2 = assertBookingExists(booking.getId(), true).body().jsonPath().getObject("", BookingDTO.class);
+        assertThat(b2.getShares()).isNotEmpty();
+        assertThat(b2.getShares().getFirst().getId()).isEqualTo(share1.getId());
+        assertThat(b2.getShares().getFirst().getDeletedAt()).isNotNull();
     }
 
     private void assertMatchesDto(CreateCaseDTO dto) {

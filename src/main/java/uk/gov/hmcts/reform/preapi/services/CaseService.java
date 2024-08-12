@@ -35,22 +35,22 @@ import java.util.stream.Stream;
 public class CaseService {
 
     private final CaseRepository caseRepository;
-
     private final CourtRepository courtRepository;
-
     private final ParticipantRepository participantRepository;
-
     private final BookingService bookingService;
+    private final ShareBookingService shareBookingService;
 
     @Autowired
     public CaseService(CaseRepository caseRepository,
                        CourtRepository courtRepository,
                        ParticipantRepository participantRepository,
-                       BookingService bookingService) {
+                       BookingService bookingService,
+                       ShareBookingService shareBookingService) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
         this.bookingService = bookingService;
+        this.shareBookingService = shareBookingService;
     }
 
     @Transactional
@@ -118,11 +118,17 @@ public class CaseService {
             newCase.setReference(createCaseDTO.getReference());
         }
         newCase.setTest(createCaseDTO.isTest());
+
+        // if closing case then trigger deletion of shares
+        if (isUpdate && createCaseDTO.getState() == CaseState.CLOSED && newCase.getState() != CaseState.CLOSED) {
+            shareBookingService.deleteCascade(newCase);
+        }
+
         if (!isUpdate) {
             newCase.setCreatedAt(Timestamp.from(Instant.now()));
         }
 
-        // todo update once CreateCaseDTO.state is made not null (currently breaking)
+        // todo update once CreateCaseDTO.state is made not nullable (currently breaking)
         newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
         newCase.setClosedAt(createCaseDTO.getClosedAt());
         caseRepository.saveAndFlush(newCase);
@@ -199,13 +205,14 @@ public class CaseService {
                 && foundCases.isEmpty();
     }
 
+    @Transactional
     public void closePendingCases() {
         var date = Timestamp.from(Instant.now().plus(29, ChronoUnit.DAYS));
         caseRepository.findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, date)
             .forEach(c -> {
                 c.setState(CaseState.CLOSED);
                 caseRepository.save(c);
+                shareBookingService.deleteCascade(c);
             });
     }
-
 }

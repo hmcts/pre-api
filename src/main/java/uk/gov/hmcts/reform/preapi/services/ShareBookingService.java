@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -113,6 +114,12 @@ public class ShareBookingService {
                 share.setDeletedAt(Timestamp.from(Instant.now()));
                 shareBookingRepository.save(share);
             });
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void deleteCascade(Case aCase) {
+        bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)
+            .forEach(this::deleteCascade);
     }
 
     @Transactional
