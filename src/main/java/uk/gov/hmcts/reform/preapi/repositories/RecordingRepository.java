@@ -1,11 +1,9 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
 
-import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,8 +21,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     Optional<Recording> findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
         UUID recordingId
     );
-
-    List<Recording> findAllByCaptureSessionAndDeletedAtIsNullAndVersionOrderByCreatedAt(CaptureSession captureSession, int version);
 
     @Query(
         """
@@ -81,7 +77,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
                 AND p.deletedAt IS NULL
             )
         )
-        ORDER BY r.captureSession.booking.caseId.reference, r.version
         """
     )
     Page<Recording> searchAllBy(
@@ -97,17 +92,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
     List<Recording> findAllByParentRecordingIsNull();
 
     boolean existsByCaptureSessionAndDeletedAtIsNull(CaptureSession captureSession);
-
-    @Query("""
-        update #{#entityName} e
-        set e.deletedAt=CURRENT_TIMESTAMP
-        where e.captureSession=:captureSession
-        and e.deletedAt is null
-        """
-    )
-    @Modifying
-    @Transactional
-    void deleteAllByCaptureSession(CaptureSession captureSession);
 
     @Query("""
         SELECT c, COUNT(c)

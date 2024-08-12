@@ -207,12 +207,10 @@ public class CaseService {
 
     @Transactional
     public void closePendingCases() {
-        var date = Timestamp.from(Instant.now().plus(29, ChronoUnit.DAYS));
-        caseRepository.findByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, date)
-            .forEach(c -> {
-                c.setState(CaseState.CLOSED);
-                caseRepository.save(c);
-                shareBookingService.deleteCascade(c);
-            });
+        var timestamp = Timestamp.from(Instant.now().minusSeconds(29L * 24 * 60 * 60));
+        caseRepository.findAllByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, timestamp).forEach(c -> {
+            c.setState(CaseState.CLOSED);
+            caseRepository.save(c);
+        });
     }
 }

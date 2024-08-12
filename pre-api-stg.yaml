@@ -226,7 +226,7 @@ definitions:
     properties:
       closed_at:
         description: CaseClosedAt
-        format: date
+        format: date-time
         type: string
       court:
         $ref: '#/definitions/CourtDTO'
@@ -920,7 +920,7 @@ definitions:
         $ref: '#/definitions/Links'
       closed_at:
         description: CaseClosedAt
-        format: date
+        format: date-time
         type: string
       court:
         $ref: '#/definitions/CourtDTO'
@@ -3071,6 +3071,11 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
         - description: The page number of search result to return
           format: int32
           in: query

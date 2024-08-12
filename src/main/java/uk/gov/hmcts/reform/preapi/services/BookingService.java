@@ -59,6 +59,7 @@ public class BookingService {
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
+    @Transactional
     public BookingDTO findById(UUID id) {
         return bookingRepository.findByIdAndDeletedAtIsNull(id)
             .map(BookingDTO::new)

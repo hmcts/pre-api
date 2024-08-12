@@ -377,6 +377,30 @@ public class MediaServiceControllerTest {
         verify(mediaService, times(0)).playLiveEvent(any());
     }
 
+    @DisplayName("Should create endpoint and locator when capture session status = RECORDING but liveOutputUrl = null")
+    @Test
+    void playLiveEventRecordingButNoLiveOutputUrl() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(captureSessionId);
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        captureSession.setBookingId(UUID.randomUUID());
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
+        when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
+        when(mediaService.playLiveEvent(captureSessionId))
+            .thenReturn("https://example.com");
+
+        mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
+            .andExpect(jsonPath("$.status").value("RECORDING"))
+            .andExpect(jsonPath("$.live_output_url").value("https://example.com"));
+    }
+
     @DisplayName("Should return 200 and playback information")
     @Test
     void getVodSuccess() throws Exception {
@@ -750,7 +774,7 @@ public class MediaServiceControllerTest {
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(dto.getId().toString()))
             .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
 
@@ -770,10 +794,11 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Resource: Capture Session(" + dto.getId() + ") has already finished."));
+                           .value("Unprocessable Content: Resource: Capture Session("
+                                      + dto.getId() + ") has already finished."));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, never()).doesIsmFileExist(any());
@@ -790,10 +815,11 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Resource: Capture Session(" + dto.getId() + ") has not been started."));
+                           .value("Unprocessable Content: Resource: Capture Session("
+                                      + dto.getId() + ") has not been started."));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, never()).doesIsmFileExist(any());
@@ -811,10 +837,10 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
-                           .value("Resource CaptureSessionDTO("
+                           .value("Unprocessable Content: Resource: Capture Session("
                                       + dto.getId()
                                       + ") is in a FAILURE state. Expected state is STANDBY."));
 
@@ -842,7 +868,36 @@ public class MediaServiceControllerTest {
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
             .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
+            .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
+
+        verify(captureSessionService, times(1)).findById(dto.getId());
+        verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
+        verify(captureSessionService, times(1)).setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING);
+    }
+
+    @DisplayName("Should return 200 with updated capture session when gc_state exists")
+    @Test
+    void checkStreamCaptureSessionGcStateExists() throws Exception {
+        var dto = new CaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+        dto.setBookingId(UUID.randomUUID());
+
+        var dto2 = new CaptureSessionDTO();
+        dto2.setId(dto.getId());
+        dto2.setStatus(RecordingStatus.RECORDING);
+
+        when(captureSessionService.findById(dto.getId())).thenReturn(dto);
+        when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
+        when(azureIngestStorageService.doesBlobExist(dto.getBookingId().toString(), "gc_state")).thenReturn(true);
+        when(captureSessionService.setCaptureSessionStatus(dto.getId(), RecordingStatus.RECORDING)).thenReturn(dto2);
+
+        mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$.id").value(dto.getId().toString()))
             .andExpect(jsonPath("$.status").value(RecordingStatus.RECORDING.toString()));
 
@@ -862,19 +917,19 @@ public class MediaServiceControllerTest {
 
         when(captureSessionService.findById(dto.getId())).thenReturn(dto);
         when(azureIngestStorageService.doesIsmFileExist(dto.getBookingId().toString())).thenReturn(false);
+        when(azureIngestStorageService.doesBlobExist(dto.getBookingId().toString(), "gc_state")).thenReturn(false);
 
         mockMvc.perform(post("/media-service/live-event/check/" + dto.getId()))
-            .andExpect(status().isOk())
+            .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.id").value(dto.getId().toString()))
-            .andExpect(jsonPath("$.status").value(RecordingStatus.STANDBY.toString()));
+            .andExpect(jsonPath("$.message").value("Not found: No stream found"));
 
         verify(captureSessionService, times(1)).findById(dto.getId());
         verify(azureIngestStorageService, times(1)).doesIsmFileExist(dto.getBookingId().toString());
         verify(captureSessionService, never()).setCaptureSessionStatus(any(), any());
     }
 
-    @DisplayName("Should return 404 when .ism file does not exist (recording has not started)")
+    @DisplayName("Should return 404 when .ism file/gc_state does not exist (recording has not started)")
     @Test
     void createLiveEventStreamingLocatorIsmNotFound() throws Exception {
         var captureSessionId = UUID.randomUUID();
@@ -886,6 +941,8 @@ public class MediaServiceControllerTest {
         when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
         when(azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString()))
             .thenReturn(false);
+        when(azureIngestStorageService.doesBlobExist(captureSession.getBookingId().toString(), "gc_state"))
+            .thenReturn(false);
 
         mockMvc.perform(put("/media-service/streaming-locator/live-event/" + captureSessionId))
             .andExpect(status().isNotFound())
@@ -895,7 +952,43 @@ public class MediaServiceControllerTest {
 
         verify(azureIngestStorageService, times(1))
             .doesIsmFileExist(captureSession.getBookingId().toString());
+        verify(azureIngestStorageService, times(1)).doesBlobExist(captureSession.getBookingId().toString(), "gc_state");
         verify(mediaService, never()).playLiveEvent(any());
+    }
+
+    @DisplayName("Should return a 404 when the source container doesn't exist")
+    @Test
+    void generateAsset404NoSourceContainer() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(false);
+        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.message").value("Not found: Source Container: foo"));
+    }
+
+    @DisplayName("Should return a 404 when the source blob doesn't exist")
+    @Test
+    @SuppressWarnings("LineLength")
+    void generateAsset404NoSourceBlob() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setTempAsset("blobby");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
+        when(mediaService.importAsset(any())).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container foo"));
+        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+               .andExpect(status().isNotFound())
+               .andExpect(jsonPath("$.message").value("Not found: No files ending .mp4 were found in the Source Container foo"));
     }
 
     @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
@@ -925,6 +1018,12 @@ public class MediaServiceControllerTest {
     @Test
     void generateAssetTest200() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer("foo");
+        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setTempAsset("blobby");
+        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
+        when(azureFinalStorageService.getMp4FileName("foo")).thenReturn("blobby.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(

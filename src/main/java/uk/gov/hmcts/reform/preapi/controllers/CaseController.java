@@ -131,6 +131,6 @@ public class CaseController extends PreApiController {
     @Operation(operationId = "closePendingCases", summary = "Close cases in PENDING_CLOSURE state > 29 days")
     public ResponseEntity<Void> closePending() {
         caseService.closePendingCases();
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -33,6 +34,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
+@Slf4j
 public class CaptureSessionService {
 
     private final RecordingService recordingService;
@@ -52,6 +54,15 @@ public class CaptureSessionService {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
+    }
+
+    @Transactional
+    public CaptureSessionDTO findByLiveEventId(String liveEventId) {
+        var liveEventUUID = new UUID(
+            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
+            Long.parseUnsignedLong(liveEventId.substring(16), 16)
+        );
+        return this.findById(liveEventUUID);
     }
 
     @Transactional
@@ -213,6 +224,7 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
 
+        log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
 
         switch (status) {
@@ -246,14 +258,5 @@ public class CaptureSessionService {
         captureSession.setStatus(status);
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
-    }
-
-    @Transactional
-    public CaptureSessionDTO findByLiveEventId(String liveEventId) {
-        var liveEventUUID = new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
-        return findById(liveEventUUID);
     }
 }
