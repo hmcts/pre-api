@@ -1142,7 +1142,8 @@ definitions:
       new_recording_id:
         format: uuid
         type: string
-      original_recording_id:
+      parent_recording_id:
+        description: ParentRecordingId
         format: uuid
         type: string
       source_container:
