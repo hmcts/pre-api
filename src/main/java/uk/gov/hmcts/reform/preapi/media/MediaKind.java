@@ -604,7 +604,7 @@ public class MediaKind implements IMediaService {
                            ))
                            .properties(MkLiveEventProperties.builder()
                                         .encoding(new LiveEventEncoding()
-                                                      .withEncodingType(LiveEventEncodingType.STANDARD)
+                                                      .withEncodingType(LiveEventEncodingType.PASSTHROUGH_BASIC)
                                         )
                                         .description(captureSession.getBookingId().toString())
                                         .useStaticHostname(true)
