@@ -944,7 +944,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
 
         when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
@@ -962,7 +962,7 @@ public class MediaKindTest {
         verify(mockClient, times(1))
             .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when content key policy didn't exist")
@@ -1007,7 +1007,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
 
         when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getFutureStreamingLocator(userId));
 
@@ -1023,7 +1023,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), any(MkContentKeyPolicy.class));
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when streaming policy not found")
@@ -1069,7 +1069,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
 
         when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
@@ -1088,7 +1088,7 @@ public class MediaKindTest {
         verify(mockClient, times(1))
             .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when default endpoint not running")
@@ -1139,7 +1139,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
 
         when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
@@ -1157,7 +1157,7 @@ public class MediaKindTest {
         verify(mockClient, times(1))
             .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(3)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when default endpoint not created")
@@ -1207,7 +1207,7 @@ public class MediaKindTest {
             .thenReturn(streamingEndpoint);
         when(mockClient.createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class)))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
 
         when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
@@ -1226,7 +1226,7 @@ public class MediaKindTest {
             .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class));
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should throw not found error when both dash and hls are null")
@@ -1254,7 +1254,7 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
 
         when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenThrow(NotFoundException.class);
 
@@ -1271,7 +1271,7 @@ public class MediaKindTest {
         verify(mockClient, times(1))
             .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should Delete all streaming locators and Content Key Policies")
