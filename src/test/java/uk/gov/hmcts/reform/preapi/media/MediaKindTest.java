@@ -674,11 +674,14 @@ public class MediaKindTest {
     @Test
     void importAssetSuccess() throws InterruptedException {
 
-        var generateAssetDTO  = new GenerateAssetDTO(UUID.randomUUID() + "-input",
-                                                     UUID.randomUUID(),
+        var newRecordingId = UUID.randomUUID();
+
+        var generateAssetDTO  = new GenerateAssetDTO(newRecordingId + "-input",
+                                                     newRecordingId,
                                                      "tmp-asset",
                                                      "final-asset",
-                                                     "unit test import asset");
+                                                     "unit test import asset",
+                                                     UUID.randomUUID());
 
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
@@ -737,11 +740,14 @@ public class MediaKindTest {
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.ERROR);
 
-        var generateAssetDTO  = new GenerateAssetDTO(UUID.randomUUID() + "-input",
-                                                     UUID.randomUUID(),
+        var newRecordingId = UUID.randomUUID();
+
+        var generateAssetDTO  = new GenerateAssetDTO(newRecordingId + "-input",
+                                                     newRecordingId,
                                                      "tmp-asset",
                                                      "final-asset",
-                                                     "unit test import asset");
+                                                     "unit test import asset",
+                                                     UUID.randomUUID());
 
         var result = mediaKind.importAsset(generateAssetDTO);
 

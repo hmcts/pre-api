@@ -34,9 +34,8 @@ public class GenerateAssetDTO {
     @Schema(description = "GenerateAssetDescription")
     private String description;
 
-    public UUID getOriginalRecordingId() {
-        return UUID.fromString(sourceContainer.substring(0, 36));
-    }
+    @Schema(description = "ParentRecordingId")
+    private UUID parentRecordingId;
 
     public UUID getNewRecordingId() {
         return destinationContainer;

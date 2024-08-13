@@ -196,12 +196,14 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
+        var newRecordingId = UUID.randomUUID();
         var generateAssetDTO = new GenerateAssetDTO(
-            UUID.randomUUID() + "-input",
-            UUID.randomUUID(),
+            newRecordingId + "-input",
+            newRecordingId,
             "tmp-asset",
             "final-asset",
-            "unit test import asset"
+            "unit test import asset",
+            UUID.randomUUID()
         );
 
         var result = mediaService.importAsset(generateAssetDTO);
@@ -266,12 +268,15 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
+        var newRecordingId = UUID.randomUUID();
+
         var generateAssetDTO = new GenerateAssetDTO(
-            UUID.randomUUID() + "-input",
-            UUID.randomUUID(),
+            newRecordingId + "-input",
+            newRecordingId,
             "tmp-asset",
             "final-asset",
-            "unit test import asset"
+            "unit test import asset",
+            UUID.randomUUID()
         );
 
         var result = mediaService.importAsset(generateAssetDTO);

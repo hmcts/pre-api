@@ -994,7 +994,7 @@ public class MediaServiceControllerTest {
         captureSession.setId(UUID.randomUUID());
         parentRecording.setCaptureSession(captureSession);
 
-        when(recordingService.findById(generateAssetDTO.getOriginalRecordingId()))
+        when(recordingService.findById(generateAssetDTO.getParentRecordingId()))
             .thenReturn(parentRecording);
 
         when(recordingService.findAll(any(SearchRecordings.class), eq(true), any(Pageable.class)))
