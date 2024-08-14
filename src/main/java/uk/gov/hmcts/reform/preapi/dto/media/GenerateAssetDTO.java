@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.dto.media;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,6 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Schema(description = "GenerateAssetDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+@JsonIgnoreProperties(value = { "new_recording_id" })
 public class GenerateAssetDTO {
 
     @Schema(description = "GenerateAssetSourceContainer")
@@ -36,6 +38,7 @@ public class GenerateAssetDTO {
 
     @Schema(description = "ParentRecordingId")
     private UUID parentRecordingId;
+
 
     public UUID getNewRecordingId() {
         return destinationContainer;
