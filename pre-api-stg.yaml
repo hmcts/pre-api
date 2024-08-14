@@ -1139,9 +1139,6 @@ definitions:
       final_asset:
         description: GenerateAssetFinalAsset
         type: string
-      new_recording_id:
-        format: uuid
-        type: string
       parent_recording_id:
         description: ParentRecordingId
         format: uuid
