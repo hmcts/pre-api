@@ -315,6 +315,7 @@ public class MediaServiceController extends PreApiController {
         operationId = "generateAsset",
         summary = "LEGACY - Given a source & destination, this endpoint will generate a streaming asset for a given mp4"
     )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public ResponseEntity<GenerateAssetResponseDTO> generateAsset(
         @Parameter(hidden = true) String code,
         @RequestBody @Valid GenerateAssetDTO generateAssetDTO
