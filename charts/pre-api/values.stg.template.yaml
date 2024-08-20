@@ -9,8 +9,8 @@ java:
     PLATFORM_ENV_TAG: Staging
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
     AZURE_RESOURCE_GROUP: pre-stg
-    AZURE_INGEST_SA: preingestsatest
-    AZURE_FINAL_SA: prefinalsatest
+    AZURE_INGEST_SA: preingestsastg
+    AZURE_FINAL_SA: prefinalsastg
     MEDIA_SERVICE: MediaKind
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
