@@ -54,6 +54,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.media.MediaKind.DEFAULT_LIVE_STREAMING_ENDPOINT;
 import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_INGEST_TRANSFORM;
 import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFORM;
 
@@ -468,8 +469,6 @@ public class MediaKindTest {
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
-        verify(mockClient, times(1)).stopStreamingEndpoint(any());
-        verify(mockClient, times(1)).deleteStreamingEndpoint(any());
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
@@ -516,8 +515,6 @@ public class MediaKindTest {
         assertThat(jobArgument4.getValue()).startsWith(tempName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
-        verify(mockClient, times(1)).stopStreamingEndpoint(any());
-        verify(mockClient, times(1)).deleteStreamingEndpoint(any());
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
@@ -612,8 +609,6 @@ public class MediaKindTest {
         assertThat(jobArgument4.getValue()).startsWith(tempName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
-        verify(mockClient, times(1)).stopStreamingEndpoint(any());
-        verify(mockClient, times(1)).deleteStreamingEndpoint(any());
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
@@ -664,8 +659,6 @@ public class MediaKindTest {
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
-        verify(mockClient, times(1)).stopStreamingEndpoint(any());
-        verify(mockClient, never()).deleteStreamingEndpoint(any());
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
@@ -793,7 +786,6 @@ public class MediaKindTest {
                                      .build()
             );
 
-
         assertThrows(
             LiveEventNotRunningException.class,
             () -> mediaKind.playLiveEvent(captureSession.getId())
@@ -807,6 +799,8 @@ public class MediaKindTest {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
+        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+            .thenThrow(new NotFoundException("not found"));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
             .thenReturn(
@@ -814,26 +808,27 @@ public class MediaKindTest {
                                      .resourceState(LiveEventResourceState.RUNNING.toString())
                                      .build()
             );
-        var endpointName = liveEventName.substring(0, 24);
-        when(mockClient.createStreamingEndpoint(eq(endpointName), any()))
+        when(mockClient.createStreamingEndpoint(eq(DEFAULT_LIVE_STREAMING_ENDPOINT), any()))
             .thenThrow(new ConflictException("Conflict"));
 
-        doThrow(mock(FeignException.InternalServerError.class))
-            .when(mockClient).startStreamingEndpoint(endpointName);
-
         assertThrows(
-            FeignException.class,
+            ConflictException.class,
             () -> mediaKind.playLiveEvent(captureSession.getId())
         );
     }
 
     @DisplayName("Should play a live event successfully")
     @Test
-    @SuppressWarnings("checkstyle:linelength")
-    void playLiveEventSuccess() throws JsonProcessingException {
+    void playLiveEventSuccess() throws JsonProcessingException, InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
+        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockLiveEvent.getProperties())
             .thenReturn(
@@ -841,9 +836,6 @@ public class MediaKindTest {
                                      .resourceState(LiveEventResourceState.RUNNING.toString())
                                      .build()
             );
-
-        when(mockClient.createStreamingLocator(eq(liveEventName), any()))
-            .thenThrow(new ConflictException("Conflict"));
 
         when(mockClient.listStreamingLocatorPaths(liveEventName))
             .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
@@ -852,7 +844,7 @@ public class MediaKindTest {
 
         assertThat(result).isEqualTo(
             "https://ep-"
-            + liveEventName.substring(0, 24)
+            + DEFAULT_LIVE_STREAMING_ENDPOINT
             + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
             + liveEventName
             + "/index.qfm/manifest(format=m3u8-cmaf)");
