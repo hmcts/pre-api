@@ -306,7 +306,7 @@ dependencies {
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.4:all'
-  testImplementation 'org.springframework.security:spring-security-test:6.3.1'
+  testImplementation 'org.springframework.security:spring-security-test:6.3.2'
   testImplementation libraries.junit5
 
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
