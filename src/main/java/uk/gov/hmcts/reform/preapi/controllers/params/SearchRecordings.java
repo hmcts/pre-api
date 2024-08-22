@@ -41,7 +41,7 @@ public class SearchRecordings {
     public String getDefendantName() {
         return defendantName != null && !defendantName.isEmpty() ? defendantName : null;
     }
-  
+
     public String getId() {
         return id != null && !id.isEmpty() ? id : null;
     }
