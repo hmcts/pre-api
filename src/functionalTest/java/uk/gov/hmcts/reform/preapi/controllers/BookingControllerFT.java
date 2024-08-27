@@ -475,6 +475,7 @@ class BookingControllerFT extends FunctionalTestBase {
         caseEntity.setState(CaseState.PENDING_CLOSURE);
         caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase2 = putCase(caseEntity);
+        putCase2.prettyPrint();
         assertResponseCode(putCase2, 204);
 
         // attempt update

@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,7 +14,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO.EmailType;
-import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
+import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -45,7 +46,9 @@ public class CaseService {
     private final ParticipantRepository participantRepository;
     private final BookingService bookingService;
     private final ShareBookingService shareBookingService;
-    private final FlowHttpClient flowHttpClient;
+    private final CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
+
+    private final boolean notificationFlowEnabled;
 
     @Autowired
     public CaseService(CaseRepository caseRepository,
@@ -53,13 +56,16 @@ public class CaseService {
                        ParticipantRepository participantRepository,
                        BookingService bookingService,
                        ShareBookingService shareBookingService,
-                       FlowHttpClient flowHttpClient) {
+                       CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient,
+                       @Value("${flow.workflow.caseStateChangeNotifier.enabled:true}") boolean notificationFlowEnabled
+    ) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
         this.bookingService = bookingService;
         this.shareBookingService = shareBookingService;
-        this.flowHttpClient = flowHttpClient;
+        this.caseStateChangeNotifierFlowClient = caseStateChangeNotifierFlowClient;
+        this.notificationFlowEnabled = notificationFlowEnabled;
     }
 
     @Transactional
@@ -246,8 +252,11 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
             .toList();
+        if (!notificationFlowEnabled) {
+            return;
+        }
         try {
-            flowHttpClient.emailAfterCaseStateChange(notifications);
+            caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case closure: " + c.getId());
             throw new EmailNotifierException("Failed to notify users of case closure: Case(" + c.getId() + ")");
@@ -261,8 +270,11 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
             .toList();
+        if (!notificationFlowEnabled) {
+            return;
+        }
         try {
-            flowHttpClient.emailAfterCaseStateChange(notifications);
+            caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case closure cancellation: " + c.getId());
             throw new EmailNotifierException("Failed to notify users of case closure cancellation: Case("
@@ -278,8 +290,11 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
             .toList();
+        if (!notificationFlowEnabled) {
+            return;
+        }
         try {
-            flowHttpClient.emailAfterCaseStateChange(notifications);
+            caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: " + c.getId());
             throw new EmailNotifierException("Failed to notify users of case pending closure: Case(" + c.getId() + ")");
