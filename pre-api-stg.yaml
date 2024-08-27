@@ -1156,12 +1156,18 @@ definitions:
         type: string
       destination_container:
         description: GenerateAssetDestinationContainer
+        format: uuid
         type: string
       final_asset:
         description: GenerateAssetFinalAsset
         type: string
+      parent_recording_id:
+        description: ParentRecordingId
+        format: uuid
+        type: string
       source_container:
         description: GenerateAssetSourceContainer
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-input$'
         type: string
       temp_asset:
         description: GenerateAssetTempAsset
@@ -2783,12 +2789,6 @@ paths:
         - application/json
       operationId: generateAsset
       parameters:
-        - description: >-
-            Rudimentary security code to prevent unauthorised access to this
-            endpoint
-          in: query
-          name: code
-          type: string
         - description: The User Id of the User making the request
           format: uuid
           in: header

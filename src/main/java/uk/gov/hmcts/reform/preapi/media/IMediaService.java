@@ -14,7 +14,7 @@ import java.util.UUID;
 public interface IMediaService {
     PlaybackDTO playAsset(String assetId, String userId) throws InterruptedException;
 
-    String playLiveEvent(UUID liveEventId);
+    String playLiveEvent(UUID liveEventId) throws InterruptedException;
 
     GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException;
 
