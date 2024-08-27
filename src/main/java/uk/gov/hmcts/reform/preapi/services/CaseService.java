@@ -1,19 +1,25 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO.EmailType;
+import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
+import uk.gov.hmcts.reform.preapi.exception.EmailNotifierException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -30,6 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @Service
 public class CaseService {
 
@@ -38,18 +45,21 @@ public class CaseService {
     private final ParticipantRepository participantRepository;
     private final BookingService bookingService;
     private final ShareBookingService shareBookingService;
+    private final FlowHttpClient flowHttpClient;
 
     @Autowired
     public CaseService(CaseRepository caseRepository,
                        CourtRepository courtRepository,
                        ParticipantRepository participantRepository,
                        BookingService bookingService,
-                       ShareBookingService shareBookingService) {
+                       ShareBookingService shareBookingService,
+                       FlowHttpClient flowHttpClient) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
         this.bookingService = bookingService;
         this.shareBookingService = shareBookingService;
+        this.flowHttpClient = flowHttpClient;
     }
 
     @Transactional
@@ -84,6 +94,10 @@ public class CaseService {
         var foundCase = caseRepository.findById(createCaseDTO.getId());
         var isUpdate = foundCase.isPresent();
 
+        var isCaseClosure = false;
+        var isCaseClosureCancellation = false;
+        var isCasePendingClosure = false;
+
         if (isUpdate) {
             if (foundCase.get().isDeleted()) {
                 throw new ResourceInDeletedStateException("CaseDTO", createCaseDTO.getId().toString());
@@ -98,6 +112,12 @@ public class CaseService {
                         + foundCase.get().getState()
                         + ". Cannot update case unless in state OPEN.");
             }
+            isCaseClosure = foundCase.get().getState() != CaseState.CLOSED
+                && createCaseDTO.getState() == CaseState.CLOSED;
+            isCaseClosureCancellation = foundCase.get().getState() == CaseState.PENDING_CLOSURE
+                && createCaseDTO.getState() == CaseState.OPEN;
+            isCasePendingClosure = foundCase.get().getState() == CaseState.OPEN
+                && createCaseDTO.getState() == CaseState.PENDING_CLOSURE;
         }
 
         if (!isCaseReferenceValid(isUpdate, createCaseDTO))  {
@@ -118,18 +138,23 @@ public class CaseService {
         }
         newCase.setTest(createCaseDTO.isTest());
 
+        // todo update once CreateCaseDTO.state is made not nullable (currently breaking)
+        newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
+        newCase.setClosedAt(createCaseDTO.getClosedAt());
+
         // if closing case then trigger deletion of shares
-        if (isUpdate && createCaseDTO.getState() == CaseState.CLOSED && newCase.getState() != CaseState.CLOSED) {
-            shareBookingService.deleteCascade(newCase);
+        if (isCaseClosure) {
+            onCaseClosed(newCase);
+        } else if (isCaseClosureCancellation) {
+            onCaseClosureCancellation(newCase);
+        } else if (isCasePendingClosure) {
+            onCasePendingClosure(newCase);
         }
 
         if (!isUpdate) {
             newCase.setCreatedAt(Timestamp.from(Instant.now()));
         }
 
-        // todo update once CreateCaseDTO.state is made not nullable (currently breaking)
-        newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
-        newCase.setClosedAt(createCaseDTO.getClosedAt());
         caseRepository.saveAndFlush(newCase);
 
         Set<Participant> oldParticipants = (newCase.getParticipants() == null || newCase.getParticipants().isEmpty())
@@ -210,7 +235,54 @@ public class CaseService {
         caseRepository.findAllByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, timestamp).forEach(c -> {
             c.setState(CaseState.CLOSED);
             caseRepository.save(c);
-            shareBookingService.deleteCascade(c);
+            onCaseClosed(c);
         });
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void onCaseClosed(Case c) {
+        log.info("onCaseClosed: Case({})", c.getId());
+        var notifications = shareBookingService.deleteCascade(c)
+            .stream()
+            .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
+            .toList();
+        try {
+            flowHttpClient.emailAfterCaseStateChange(notifications);
+        } catch (Exception e) {
+            log.error("Failed to notify users of case closure: " + c.getId());
+            throw new EmailNotifierException("Failed to notify users of case closure: Case(" + c.getId() + ")");
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void onCaseClosureCancellation(Case c) {
+        log.info("onCaseClosureCancellation: Case({})", c.getId());
+        var notifications = shareBookingService.getSharesForCase(c)
+            .stream()
+            .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
+            .toList();
+        try {
+            flowHttpClient.emailAfterCaseStateChange(notifications);
+        } catch (Exception e) {
+            log.error("Failed to notify users of case closure cancellation: " + c.getId());
+            throw new EmailNotifierException("Failed to notify users of case closure cancellation: Case("
+                                                 + c.getId()
+                                                 + ")");
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void onCasePendingClosure(Case c) {
+        log.info("onCasePendingClosure: Case({})", c.getId());
+        var notifications = shareBookingService.getSharesForCase(c)
+            .stream()
+            .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
+            .toList();
+        try {
+            flowHttpClient.emailAfterCaseStateChange(notifications);
+        } catch (Exception e) {
+            log.error("Failed to notify users of case pending closure: " + c.getId());
+            throw new EmailNotifierException("Failed to notify users of case pending closure: Case(" + c.getId() + ")");
+        }
     }
 }
