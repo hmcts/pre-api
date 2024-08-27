@@ -136,7 +136,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .body().jsonPath().getObject("", CaseDTO.class);
 
         var updateCaseDto = convertDtoToCreateDto(aCase);
-        updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         updateCaseDto.setState(CaseState.CLOSED);
         var putCase = putCase(updateCaseDto);
         assertResponseCode(putCase, 204);
@@ -182,7 +182,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .body().jsonPath().getObject("", CaseDTO.class);
 
         var updateCaseDto = convertDtoToCreateDto(aCase);
-        updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         updateCaseDto.setState(CaseState.PENDING_CLOSURE);
         var putCase = putCase(updateCaseDto);
         assertResponseCode(putCase, 204);

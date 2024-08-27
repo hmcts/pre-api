@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -18,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
@@ -54,9 +56,12 @@ public class FunctionalTestBase {
     protected static UUID authenticatedUserId;
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-
     @Value("${TEST_URL:http://localhost:4550}")
     protected String testUrl;
+
+    // prevents flow calls for emails
+    @MockBean
+    private FlowHttpClient flowHttpClient;
 
     @BeforeAll
     static void beforeAll() {

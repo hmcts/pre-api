@@ -5,6 +5,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,6 +18,10 @@ class OpenAPISpecFunctionalTest {
 
     @Value("${TEST_URL:http://localhost:4550}")
     private String testUrl;
+
+    // prevents flow calls for emails
+    @MockBean
+    private FlowHttpClient flowHttpClient;
 
     @BeforeEach
     public void setUp() {
