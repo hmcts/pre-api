@@ -96,7 +96,9 @@ cron-user-email: ${CRON_USER_EMAIL:test@test.com}
 
 flow:
   api: ${FLOW_HTTP_API:https://prod-01.uksouth.logic.azure.com}
-  workflow: ${FLOW_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
+  workflow:
+    stopLiveEventNotifier: ${STOP_LIVE_EVENT_NOTIFIER_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
+    caseStateChangeNotifier: ${CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID:8b976c9fdc7749d3a4b8c9d6a6ef9d0c}
   sig: ${FLOW_SIG:123}
   key: ${FLOW_KEY:123}
 #logging:
@@ -110,6 +112,8 @@ flow:
 #        hmcts:
 #          reform:
 #            preapi:
+#              email:
+#                FlowHttpClient: DEBUG
 #              media:
 #                MediaKindClient: DEBUG
 #log4j:

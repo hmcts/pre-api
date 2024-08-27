@@ -9,7 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
