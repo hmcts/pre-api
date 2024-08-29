@@ -20,7 +20,6 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
-import uk.gov.hmcts.reform.preapi.exception.EmailNotifierException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
@@ -48,16 +47,13 @@ public class CaseService {
     private final ShareBookingService shareBookingService;
     private final CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
 
-    private final boolean notificationFlowEnabled;
-
     @Autowired
     public CaseService(CaseRepository caseRepository,
                        CourtRepository courtRepository,
                        ParticipantRepository participantRepository,
                        BookingService bookingService,
                        ShareBookingService shareBookingService,
-                       CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient,
-                       @Value("${flow.workflow.caseStateChangeNotifier.enabled:true}") boolean notificationFlowEnabled
+                       CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient
     ) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
@@ -65,7 +61,6 @@ public class CaseService {
         this.bookingService = bookingService;
         this.shareBookingService = shareBookingService;
         this.caseStateChangeNotifierFlowClient = caseStateChangeNotifierFlowClient;
-        this.notificationFlowEnabled = notificationFlowEnabled;
     }
 
     @Transactional
@@ -252,14 +247,10 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
             .toList();
-        if (!notificationFlowEnabled) {
-            return;
-        }
         try {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case closure: " + c.getId());
-            throw new EmailNotifierException("Failed to notify users of case closure: Case(" + c.getId() + ")");
         }
     }
 
@@ -270,16 +261,10 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
             .toList();
-        if (!notificationFlowEnabled) {
-            return;
-        }
         try {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case closure cancellation: " + c.getId());
-            throw new EmailNotifierException("Failed to notify users of case closure cancellation: Case("
-                                                 + c.getId()
-                                                 + ")");
         }
     }
 
@@ -290,14 +275,10 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
             .toList();
-        if (!notificationFlowEnabled) {
-            return;
-        }
         try {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: " + c.getId());
-            throw new EmailNotifierException("Failed to notify users of case pending closure: Case(" + c.getId() + ")");
         }
     }
 }

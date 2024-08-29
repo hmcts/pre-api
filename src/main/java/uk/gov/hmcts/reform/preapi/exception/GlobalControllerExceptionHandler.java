@@ -212,12 +212,6 @@ public class GlobalControllerExceptionHandler {
                                  HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(EmailNotifierException.class)
-    ResponseEntity<String> emailNotifierException(final EmailNotifierException e)
-        throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 
