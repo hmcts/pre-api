@@ -1,4 +1,5 @@
-java:
+java: &javavalues #This is an anchor to reuse settings in Job mode.
+  enabled: true
   applicationPort: 4550
   image: 'sdshmctspublic.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
@@ -50,3 +51,7 @@ java:
     PLATFORM_ENV_TAG: Production
     CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"
     ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
+job:
+  #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
+  <<: *javavalues
+  enabled: false
