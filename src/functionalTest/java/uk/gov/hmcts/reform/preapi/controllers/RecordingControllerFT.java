@@ -84,7 +84,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         var aCase = convertDtoToCreateDto(assertBookingExists(captureSession.getBookingId(), true)
                                               .jsonPath().getObject("", BookingDTO.class).getCaseDTO());
         aCase.setState(CaseState.CLOSED);
-        aCase.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        aCase.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase = putCase(aCase);
         assertResponseCode(putCase, 204);
 
@@ -127,7 +127,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         var aCase = convertDtoToCreateDto(assertBookingExists(captureSession.getBookingId(), true)
                                               .jsonPath().getObject("", BookingDTO.class).getCaseDTO());
         aCase.setState(CaseState.PENDING_CLOSURE);
-        aCase.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        aCase.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase = putCase(aCase);
         assertResponseCode(putCase, 204);
 

@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import feign.FeignException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,9 +15,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -42,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -72,6 +77,9 @@ class CaseServiceTest {
 
     @MockBean
     private ShareBookingService shareBookingService;
+
+    @MockBean
+    private CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
 
     @Autowired
     private CaseService caseService;
@@ -290,22 +298,152 @@ class CaseServiceTest {
     }
 
     @Test
-    @DisplayName("Should delete shares when updating case to closed")
+    @DisplayName("Should delete shares and send email notification when updating case to closed")
     void updateCaseClosedDeleteSharesSuccess() {
-        var testingCase = createTestingCase();
-        var caseDTOModel = new CreateCaseDTO(testingCase);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
         caseDTOModel.setState(CaseState.CLOSED);
         caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
 
-        when(courtRepository.findById(testingCase.getCourt().getId())).thenReturn(
-            Optional.of(testingCase.getCourt()));
-        when(caseRepository.findById(testingCase.getId())).thenReturn(Optional.of(caseEntity));
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should log when an error occurs attempting to send email notification when updating case to closed")
+    void updateCaseClosedDeleteSharesEmailNotificationError() {
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.CLOSED);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
+        doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should send email notifications to shares when updating case and cancelling closure")
+    void updateCaseCancelClosureSuccess() {
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.OPEN);
+        caseDTOModel.setClosedAt(null);
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should log when an error occurs attempting to send email notification when cancelling closure")
+    void updateCaseCancelClosureEmailNotificationError() {
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.OPEN);
+        caseDTOModel.setClosedAt(null);
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+        doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should send email notifications to shares when updating case to pending closure")
+    void updateCasePendingClosureSuccess() {
+        caseEntity.setState(CaseState.OPEN);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.PENDING_CLOSURE);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should log when occurs attempting to send email notification when updating case to pending closure")
+    void updateCasePendingClosureEmailNotificationError() {
+        caseEntity.setState(CaseState.OPEN);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.PENDING_CLOSURE);
+        caseDTOModel.setClosedAt(Timestamp.from(Instant.now()));
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
+        doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(1)).save(any());
     }
@@ -424,7 +562,7 @@ class CaseServiceTest {
         verify(caseRepository, times(1)).save(any());
     }
 
-    Case createTestingCase() {
+    private Case createTestingCase() {
         var testCase = new Case();
         testCase.setId(UUID.randomUUID());
         var court = new Court();
@@ -436,6 +574,19 @@ class CaseServiceTest {
         testCase.setCreatedAt(Timestamp.from(Instant.now()));
         testCase.setModifiedAt(Timestamp.from(Instant.now()));
         return testCase;
+    }
+
+    private ShareBooking createShare() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName(user.getId().toString());
+        user.setLastName(user.getId().toString());
+        user.setEmail(user.getId() + "@example.com");
+
+        var share = new ShareBooking();
+        share.setId(UUID.randomUUID());
+        share.setSharedWith(user);
+        return share;
     }
 
 
@@ -528,5 +679,6 @@ class CaseServiceTest {
         verify(caseRepository).findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
         verify(shareBookingService).deleteCascade(pendingCase);
+        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(any());
     }
 }

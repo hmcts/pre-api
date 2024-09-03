@@ -4,14 +4,18 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import uk.gov.hmcts.reform.preapi.config.FlowHttpClientConfiguration;
-import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
 
 import java.util.List;
 
-@FeignClient(name = "flowHttpClient", url = "${flow.api}", configuration = FlowHttpClientConfiguration.class)
-public interface FlowHttpClient {
+@FeignClient(
+    name = "stopLiveEventNotifierFlowClient",
+    url = "${flow.workflow.stopLiveEventNotifier.api}",
+    configuration = FlowHttpClientConfiguration.class
+)
+public interface StopLiveEventNotifierFlowClient {
 
-    @PostMapping("/workflows/${flow.workflow}/triggers/manual/paths/invoke")
+    @PostMapping("/workflows/${flow.workflow.stopLiveEventNotifier.id}/triggers/manual/paths/invoke")
     void emailAfterStoppingLiveEvents(
         @RequestBody List<StoppedLiveEventsNotificationDTO> stoppedLiveEventsNotification
     );

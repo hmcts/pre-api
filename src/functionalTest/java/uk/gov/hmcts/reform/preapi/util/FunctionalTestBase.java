@@ -54,7 +54,6 @@ public class FunctionalTestBase {
     protected static UUID authenticatedUserId;
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-
     @Value("${TEST_URL:http://localhost:4550}")
     protected String testUrl;
 

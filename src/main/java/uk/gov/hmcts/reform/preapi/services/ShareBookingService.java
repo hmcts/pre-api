@@ -23,7 +23,10 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ShareBookingService {
@@ -106,20 +109,34 @@ public class ShareBookingService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void deleteCascade(Booking booking) {
-        shareBookingRepository
+    public Set<ShareBooking> deleteCascade(Booking booking) {
+        return shareBookingRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
-            .forEach(share -> {
+            .stream()
+            .peek(share -> {
                 share.setSoftDeleteOperation(true);
                 share.setDeletedAt(Timestamp.from(Instant.now()));
                 shareBookingRepository.save(share);
-            });
+            })
+            .collect(Collectors.toSet());
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void deleteCascade(Case aCase) {
-        bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)
-            .forEach(this::deleteCascade);
+    public Set<ShareBooking> deleteCascade(Case aCase) {
+        return bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)
+            .stream()
+            .map(this::deleteCascade)
+            .flatMap(Collection::stream)
+            .collect(Collectors.toSet());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public Set<ShareBooking> getSharesForCase(Case c) {
+        return bookingRepository.findAllByCaseIdAndDeletedAtIsNull(c)
+            .stream()
+            .map(shareBookingRepository::findAllByBookingAndDeletedAtIsNull)
+            .flatMap(Collection::stream)
+            .collect(Collectors.toSet());
     }
 
     @Transactional

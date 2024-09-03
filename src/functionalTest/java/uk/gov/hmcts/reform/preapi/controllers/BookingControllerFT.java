@@ -389,7 +389,7 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // close case
         caseEntity.setState(CaseState.CLOSED);
-        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase2 = putCase(caseEntity);
         assertResponseCode(putCase2, 204);
 
@@ -426,7 +426,7 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // close case
         caseEntity.setState(CaseState.CLOSED);
-        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase2 = putCase(caseEntity);
         assertResponseCode(putCase2, 204);
 
@@ -473,8 +473,9 @@ class BookingControllerFT extends FunctionalTestBase {
 
         // close case
         caseEntity.setState(CaseState.PENDING_CLOSURE);
-        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase2 = putCase(caseEntity);
+        putCase2.prettyPrint();
         assertResponseCode(putCase2, 204);
 
         // attempt update
