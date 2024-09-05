@@ -1,4 +1,5 @@
-java:
+java: &javavalues #This is an anchor to reuse settings in Job mode.
+  enabled: true
   applicationPort: 4550
   image: 'sdshmctspublic.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
@@ -37,6 +38,12 @@ java:
           alias: SYMMETRIC_KEY
         - name: pp-authorization
           alias: FLOW_KEY
+        - name: flow-http-api
+          alias: FLOW_HTTP_API
+        - name: flow-close-live-event-email-workflow-id
+          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
+        - name: flow-close-live-event-email-sig
+          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
@@ -50,3 +57,7 @@ java:
     PLATFORM_ENV_TAG: Production
     CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"
     ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
+job:
+  #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
+  <<: *javavalues
+  enabled: false

@@ -1,6 +1,6 @@
 buildscript {
   dependencies {
-    classpath("org.flywaydb:flyway-database-postgresql:10.17.1")
+    classpath("org.flywaydb:flyway-database-postgresql:10.17.3")
   }
 }
 
@@ -10,12 +10,12 @@ plugins {
   id 'pmd'
   id 'jacoco'
   id 'io.spring.dependency-management' version '1.1.6'
-  id 'org.springframework.boot' version '3.3.2'
+  id 'org.springframework.boot' version '3.3.3'
   id 'org.owasp.dependencycheck' version '9.2.0'
   id 'com.github.ben-manes.versions' version '0.51.0'
   id 'org.sonarqube' version '5.1.0.4882'
   id "io.freefair.lombok" version "8.10"
-  id 'org.flywaydb.flyway' version '10.17.1'
+  id 'org.flywaydb.flyway' version '10.17.3'
   id "info.solidsoft.pitest" version '1.15.0'
 }
 
@@ -112,7 +112,7 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.17.0'
+  toolVersion = '10.18.1'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
@@ -278,9 +278,9 @@ dependencies {
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
 
-  implementation group: 'org.flywaydb', name: 'flyway-core', version: '10.17.1'
-  implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '10.17.1'
-  implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.3'
+  implementation group: 'org.flywaydb', name: 'flyway-core', version: '10.17.3'
+  implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '10.17.3'
+  implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.4'
   implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.8.2'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
@@ -295,7 +295,7 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
 
   implementation group: 'com.azure', name: 'azure-identity', version: '1.13.2'
-  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.27.0'
+  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.27.1'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.20.1'
@@ -306,7 +306,7 @@ dependencies {
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.4:all'
-  testImplementation 'org.springframework.security:spring-security-test:6.3.2'
+  testImplementation 'org.springframework.security:spring-security-test:6.3.3'
   testImplementation libraries.junit5
 
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {
