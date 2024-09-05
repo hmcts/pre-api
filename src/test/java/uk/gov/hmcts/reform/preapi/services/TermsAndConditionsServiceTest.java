@@ -63,7 +63,8 @@ public class TermsAndConditionsServiceTest {
         assertThat(model.getHtml()).isEqualTo(termsAndConditions.getContent());
         assertThat(model.getCreatedAt()).isEqualTo(termsAndConditions.getCreatedAt());
 
-        verify(termsAndConditionsRepository, times(1)).findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.PORTAL);
+        verify(termsAndConditionsRepository, times(1))
+            .findFirstByTypeOrderByCreatedAtDesc(TermsAndConditionsType.PORTAL);
     }
 
     @Test

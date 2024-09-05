@@ -25,7 +25,10 @@ public class TermsAndConditionsServiceIT extends IntegrationTestBase {
         termsAndConditionsApp = HelperFactory.createTermsAndConditions(TermsAndConditionsType.APP, "app content");
         entityManager.persist(termsAndConditionsApp);
 
-        termsAndConditionsPortal = HelperFactory.createTermsAndConditions(TermsAndConditionsType.PORTAL, "portal content");
+        termsAndConditionsPortal = HelperFactory.createTermsAndConditions(
+            TermsAndConditionsType.PORTAL,
+            "portal content"
+        );
         entityManager.persist(termsAndConditionsPortal);
     }
 
