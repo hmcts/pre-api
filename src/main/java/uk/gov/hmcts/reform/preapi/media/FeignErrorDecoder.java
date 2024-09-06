@@ -30,9 +30,9 @@ public class FeignErrorDecoder implements ErrorDecoder {
                                              ? errorResponse.getError().getDetail()
                                              : "Not found");
         }
-
-        if (response.status() == 400 && errorResponse.getError().getDetail().contains(" already exists.")) {
-            // MK API returns a 400 instead of a 409 when the live event already exists
+        // MK API sometimes returns a 400 instead of a 409 when the live event already exists
+        if ((response.status() == 400 && errorResponse.getError().getDetail().contains(" already exists."))
+            || response.status() == 409) {
             return new ConflictException(errorResponse.getError().getDetail());
         }
 
