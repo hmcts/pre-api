@@ -80,7 +80,10 @@ public class InviteControllerFT extends FunctionalTestBase {
         assertResponseCode(redeemResponse, 204);
         assertInviteExists(dto.getUserId(), false);
 
-        var getResponse = doGetRequest(INVITES_ENDPOINT + "?email=" + dto.getEmail() + "&accessStatus=ACTIVE", TestingSupportRoles.SUPER_USER);
+        var getResponse = doGetRequest(
+            INVITES_ENDPOINT + "?email=" + dto.getEmail() + "&accessStatus=ACTIVE",
+            TestingSupportRoles.SUPER_USER
+        );
         assertResponseCode(getResponse, 200);
         assertThat(getResponse.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
         assertThat(getResponse.body().jsonPath().getUUID("_embedded.inviteDTOList[0].user_id"))
@@ -191,7 +194,11 @@ public class InviteControllerFT extends FunctionalTestBase {
     }
 
     private Response putInvite(CreateInviteDTO dto) throws JsonProcessingException {
-        return doPutRequest(INVITES_ENDPOINT + "/" + dto.getUserId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
+        return doPutRequest(
+            INVITES_ENDPOINT + "/" + dto.getUserId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 
     private Response postRedeem(CreateInviteDTO dto) {

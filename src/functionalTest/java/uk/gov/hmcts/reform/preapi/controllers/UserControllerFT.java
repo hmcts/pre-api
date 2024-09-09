@@ -121,7 +121,8 @@ public class UserControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteResponse, 200);
         assertUserExists(dto.getId(), false);
 
-        var undeleteResponse = doPostRequest(USERS_ENDPOINT + "/" + dto.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
+        var undeleteResponse =
+            doPostRequest(USERS_ENDPOINT + "/" + dto.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
         assertResponseCode(undeleteResponse, 200);
         assertUserExists(dto.getId(), true);
     }
@@ -177,7 +178,8 @@ public class UserControllerFT extends FunctionalTestBase {
         assertUserExists(user.getId(), true);
 
         // has at least one active app access
-        var responseActiveTrue = doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
+        var responseActiveTrue =
+            doGetRequest(USERS_ENDPOINT + "?appActive=true&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveTrue, 200);
         assertThat(responseActiveTrue.body().jsonPath().getUUID("_embedded.userDTOList[0].id")).isEqualTo(user.getId());
 
@@ -200,7 +202,8 @@ public class UserControllerFT extends FunctionalTestBase {
             .isEqualTo(0);
 
         // has at least one inactive app access
-        var responseActiveFalse = doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
+        var responseActiveFalse =
+            doGetRequest(USERS_ENDPOINT + "?appActive=false&email=" + user.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(responseActiveFalse, 200);
         assertThat(responseActiveFalse.body().jsonPath().getUUID("_embedded.userDTOList[0].id"))
             .isEqualTo(user.getId());

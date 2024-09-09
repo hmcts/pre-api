@@ -27,7 +27,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(captureSessionId, true);
         assertRecordingExists(recordingId, true);
 
-        var deleteCaptureSessionResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, TestingSupportRoles.SUPER_USER);
+        var deleteCaptureSessionResponse =
+            doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCaptureSessionResponse, 400);
         assertThat(deleteCaptureSessionResponse.getBody().jsonPath().getString("message"))
             .isEqualTo("Cannot delete because and associated recording has not been deleted.");
@@ -46,11 +47,13 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(captureSessionId, true);
         assertRecordingExists(recordingId, true);
 
-        var deleteRecordingResponse = doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingId, TestingSupportRoles.SUPER_USER);
+        var deleteRecordingResponse =
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteRecordingResponse, 200);
         assertRecordingExists(recordingId, false);
 
-        var deleteCaptureSessionResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, TestingSupportRoles.SUPER_USER);
+        var deleteCaptureSessionResponse =
+            doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + captureSessionId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCaptureSessionResponse, 200);
         assertCaptureSessionExists(captureSessionId, false);
     }
@@ -70,7 +73,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(dto.getId(), true);
 
         // delete capture session
-        var deleteResponse = doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.SUPER_USER);
+        var deleteResponse =
+            doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
 
         // see it is no longer available after deletion
@@ -133,7 +137,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaseExists(caseId, false);
 
         // undelete capture session
-        var undeleteResponse = doPostRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
+        var undeleteResponse =
+            doPostRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
         assertResponseCode(undeleteResponse, 200);
         assertCaptureSessionExists(dto.getId(), true);
         assertBookingExists(dto.getBookingId(), true);
@@ -163,6 +168,10 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
     }
 
     private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
+        return doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 }

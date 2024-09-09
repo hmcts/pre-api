@@ -217,7 +217,8 @@ class CaseControllerFT extends FunctionalTestBase {
         assertResponseCode(deleteResponse, 200);
         assertCaseExists(dto.getId(), false);
 
-        var undeleteResponse = doPostRequest(CASES_ENDPOINT + "/" + dto.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
+        var undeleteResponse =
+            doPostRequest(CASES_ENDPOINT + "/" + dto.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
         assertResponseCode(undeleteResponse, 200);
         assertCaseExists(dto.getId(), true);
     }
@@ -248,7 +249,8 @@ class CaseControllerFT extends FunctionalTestBase {
         assertCaseExists(dto.getId(), true);
 
         // match
-        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), TestingSupportRoles.SUPER_USER);
+        var getCases1 =
+            doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases1, 200);
         assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases1.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
@@ -256,19 +258,28 @@ class CaseControllerFT extends FunctionalTestBase {
             .isEqualTo(dto.getReference());
 
         // match lowercase
-        var getCases2 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toLowerCase(), TestingSupportRoles.SUPER_USER);
+        var getCases2 = doGetRequest(
+            CASES_ENDPOINT + "?reference=" + dto.getReference().toLowerCase(),
+            TestingSupportRoles.SUPER_USER
+        );
         assertResponseCode(getCases2, 200);
         assertThat(getCases2.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases2.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
 
         // match uppercase
-        var getCases3 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toUpperCase(), TestingSupportRoles.SUPER_USER);
+        var getCases3 = doGetRequest(
+            CASES_ENDPOINT + "?reference=" + dto.getReference().toUpperCase(),
+            TestingSupportRoles.SUPER_USER
+        );
         assertResponseCode(getCases3, 200);
         assertThat(getCases3.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases3.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
 
         // match partial
-        var getCases4 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().substring(1, 12), TestingSupportRoles.SUPER_USER);
+        var getCases4 = doGetRequest(
+            CASES_ENDPOINT + "?reference=" + dto.getReference().substring(1, 12),
+            TestingSupportRoles.SUPER_USER
+        );
         assertResponseCode(getCases4, 200);
         assertThat(getCases4.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases4.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
@@ -304,7 +315,8 @@ class CaseControllerFT extends FunctionalTestBase {
         assertCaseExists(dto.getId(), false);
 
         // search without including deleted
-        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), TestingSupportRoles.SUPER_USER);
+        var getCases1 =
+            doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases1, 200);
         assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList")).isNullOrEmpty();
 
@@ -321,7 +333,11 @@ class CaseControllerFT extends FunctionalTestBase {
     }
 
     private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
-        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
+        return doPutRequest(
+            CASES_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 
     private void assertMatchesDto(CreateCaseDTO dto) {

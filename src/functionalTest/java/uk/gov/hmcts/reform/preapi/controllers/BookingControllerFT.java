@@ -124,7 +124,10 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Deleting a non-existent booking should return 404")
     void deletingNonExistentBookingShouldReturn404() {
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + "00000000-0000-0000-0000-000000000000", TestingSupportRoles.SUPER_USER);
+        var deleteResponse = doDeleteRequest(
+            BOOKINGS_ENDPOINT + "/00000000-0000-0000-0000-000000000000",
+            TestingSupportRoles.SUPER_USER
+        );
         assertResponseCode(deleteResponse, 404);
     }
 
@@ -209,7 +212,8 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(putShare1, 201);
 
         // see shares are sorted
-        var getShares = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/share", TestingSupportRoles.SUPER_USER);
+        var getShares =
+            doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/share", TestingSupportRoles.SUPER_USER);
         assertResponseCode(getShares, 200);
 
         var shares = getShares.getBody().jsonPath().getList("_embedded.shareBookingDTOList", ShareBookingDTO.class);
@@ -356,7 +360,8 @@ class BookingControllerFT extends FunctionalTestBase {
         assertCaseExists(caseEntity.getId(), false);
 
         // undelete booking
-        var undeleteResponse = doPostRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
+        var undeleteResponse =
+            doPostRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
         assertResponseCode(undeleteResponse, 200);
         assertBookingExists(booking.getId(), true);
         assertCaseExists(caseEntity.getId(), true);
