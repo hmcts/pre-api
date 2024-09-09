@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -75,20 +76,20 @@ class CaseControllerFT extends FunctionalTestBase {
     @DisplayName("Unauthorised use of endpoints should return 401")
     @Test
     void unauthorisedRequestsReturn401() throws JsonProcessingException {
-        var getCaseByIdResponse = doGetRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), false);
+        var getCaseByIdResponse = doGetRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), null);
         assertResponseCode(getCaseByIdResponse, 401);
 
-        var getCasesResponse = doGetRequest(CASES_ENDPOINT, false);
+        var getCasesResponse = doGetRequest(CASES_ENDPOINT, null);
         assertResponseCode(getCasesResponse, 401);
 
         var putCaseResponse = doPutRequest(
             CASES_ENDPOINT + "/" + UUID.randomUUID(),
             OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
-            false
+            null
         );
         assertResponseCode(putCaseResponse, 401);
 
-        var deleteCaseResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), false);
+        var deleteCaseResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), null);
         assertResponseCode(deleteCaseResponse, 401);
     }
 
@@ -102,7 +103,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertResponseCode(putCase, 201);
         assertCaseExists(caseDTO.getId(), true);
 
-        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
         assertCaseExists(caseDTO.getId(), false);
     }
@@ -114,17 +115,17 @@ class CaseControllerFT extends FunctionalTestBase {
         var putCase = putCase(caseDTO);
         assertResponseCode(putCase, 201);
 
-        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
 
-        var deleteResponse2 = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), true);
+        var deleteResponse2 = doDeleteRequest(CASES_ENDPOINT + "/" + caseDTO.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse2, 404);
     }
 
     @DisplayName("Should fail to delete a case that doesn't exist")
     @Test
     void shouldDeleteCaseWithNonExistingIdFail() {
-        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), true);
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + UUID.randomUUID(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 404);
     }
 
@@ -212,11 +213,11 @@ class CaseControllerFT extends FunctionalTestBase {
         assertResponseCode(putResponse, 201);
         assertCaseExists(dto.getId(), true);
 
-        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + dto.getId(), true);
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
         assertCaseExists(dto.getId(), false);
 
-        var undeleteResponse = doPostRequest(CASES_ENDPOINT + "/" + dto.getId() + "/undelete", true);
+        var undeleteResponse = doPostRequest(CASES_ENDPOINT + "/" + dto.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
         assertResponseCode(undeleteResponse, 200);
         assertCaseExists(dto.getId(), true);
     }
@@ -247,7 +248,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertCaseExists(dto.getId(), true);
 
         // match
-        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), true);
+        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases1, 200);
         assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases1.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
@@ -255,19 +256,19 @@ class CaseControllerFT extends FunctionalTestBase {
             .isEqualTo(dto.getReference());
 
         // match lowercase
-        var getCases2 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toLowerCase(), true);
+        var getCases2 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toLowerCase(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases2, 200);
         assertThat(getCases2.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases2.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
 
         // match uppercase
-        var getCases3 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toUpperCase(), true);
+        var getCases3 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().toUpperCase(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases3, 200);
         assertThat(getCases3.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases3.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
 
         // match partial
-        var getCases4 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().substring(1, 12), true);
+        var getCases4 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference().substring(1, 12), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases4, 200);
         assertThat(getCases4.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases4.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
@@ -281,7 +282,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertResponseCode(putResponse, 201);
         assertCaseExists(dto.getId(), true);
 
-        var getCases1 = doGetRequest(CASES_ENDPOINT + "?courtId=" + dto.getCourtId(), true);
+        var getCases1 = doGetRequest(CASES_ENDPOINT + "?courtId=" + dto.getCourtId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases1, 200);
         assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
         assertThat(getCases1.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
@@ -298,19 +299,19 @@ class CaseControllerFT extends FunctionalTestBase {
         assertCaseExists(dto.getId(), true);
 
         // delete the case
-        var deleteCase = doDeleteRequest(CASES_ENDPOINT + "/" + dto.getId(), true);
+        var deleteCase = doDeleteRequest(CASES_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCase, 200);
         assertCaseExists(dto.getId(), false);
 
         // search without including deleted
-        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), true);
+        var getCases1 = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCases1, 200);
         assertThat(getCases1.body().jsonPath().getList("_embedded.caseDTOList")).isNullOrEmpty();
 
         // search including deleted
         var getCases2 = doGetRequest(
             CASES_ENDPOINT + "?reference=" + dto.getReference() + "&includeDeleted=true",
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(getCases2, 200);
         assertThat(getCases2.body().jsonPath().getList("_embedded.caseDTOList").size()).isEqualTo(1);
@@ -320,7 +321,7 @@ class CaseControllerFT extends FunctionalTestBase {
     }
 
     private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
-        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
     }
 
     private void assertMatchesDto(CreateCaseDTO dto) {

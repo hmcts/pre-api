@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
@@ -79,7 +80,7 @@ public class InviteControllerFT extends FunctionalTestBase {
         assertResponseCode(redeemResponse, 204);
         assertInviteExists(dto.getUserId(), false);
 
-        var getResponse = doGetRequest(INVITES_ENDPOINT + "?email=" + dto.getEmail() + "&accessStatus=ACTIVE", true);
+        var getResponse = doGetRequest(INVITES_ENDPOINT + "?email=" + dto.getEmail() + "&accessStatus=ACTIVE", TestingSupportRoles.SUPER_USER);
         assertResponseCode(getResponse, 200);
         assertThat(getResponse.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
         assertThat(getResponse.body().jsonPath().getUUID("_embedded.inviteDTOList[0].user_id"))
@@ -136,7 +137,7 @@ public class InviteControllerFT extends FunctionalTestBase {
         assertInviteExists(dto.getUserId(), true);
         assertUserExists(dto.getUserId(), true);
 
-        var deleteResponse = doDeleteRequest(INVITES_ENDPOINT + "/" + dto.getUserId(), true);
+        var deleteResponse = doDeleteRequest(INVITES_ENDPOINT + "/" + dto.getUserId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
         assertInviteExists(dto.getUserId(), false);
     }
@@ -151,7 +152,7 @@ public class InviteControllerFT extends FunctionalTestBase {
 
         assertInviteExists(userDto.getId(), false);
 
-        var deleteResponse = doDeleteRequest(INVITES_ENDPOINT + "/" + userDto.getId(), true);
+        var deleteResponse = doDeleteRequest(INVITES_ENDPOINT + "/" + userDto.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 404);
     }
 
@@ -161,7 +162,7 @@ public class InviteControllerFT extends FunctionalTestBase {
         var userId = UUID.randomUUID();
         assertUserExists(userId, false);
 
-        var deleteResponse = doDeleteRequest(INVITES_ENDPOINT + "/" + userId, true);
+        var deleteResponse = doDeleteRequest(INVITES_ENDPOINT + "/" + userId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 404);
     }
 
@@ -190,10 +191,10 @@ public class InviteControllerFT extends FunctionalTestBase {
     }
 
     private Response putInvite(CreateInviteDTO dto) throws JsonProcessingException {
-        return doPutRequest(INVITES_ENDPOINT + "/" + dto.getUserId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(INVITES_ENDPOINT + "/" + dto.getUserId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
     }
 
     private Response postRedeem(CreateInviteDTO dto) {
-        return doPostRequest(INVITES_ENDPOINT + "/redeem?email=" + dto.getEmail(), false);
+        return doPostRequest(INVITES_ENDPOINT + "/redeem?email=" + dto.getEmail(), null);
     }
 }
