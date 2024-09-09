@@ -47,15 +47,19 @@ public class User extends CreatedModifiedAtEntity implements ISoftDeletable {
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
     private Set<PortalAccess> portalAccess;
 
-    @Transient
-    private boolean deleted;
+    @OneToMany
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private Set<UserTermsAccepted> userTermsAccepted;
 
     @Transient
-    private boolean isSoftDeleteOperation;
+    private boolean deleted;
 
     public boolean isDeleted() {
         return deletedAt != null;
     }
+
+    @Transient
+    private boolean isSoftDeleteOperation;
 
     @Transient
     private String fullName;
