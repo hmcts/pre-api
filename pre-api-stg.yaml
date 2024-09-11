@@ -1120,6 +1120,12 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
     required:
       - email
       - first_name
@@ -1778,6 +1784,12 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
     required:
       - email
       - first_name
@@ -1796,9 +1808,31 @@ info:
   title: PRE API
   version: v0.0.1
 paths:
+  '/accept-terms-and-conditions/{termsId}':
+    post:
+      operationId: acceptTermsAndConditions
+      parameters:
+        - format: uuid
+          in: path
+          name: termsId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Accept terms and conditions for a user
+      tags:
+        - terms-and-conditions-controller
   /api/app-terms-and-conditions/latest:
     get:
-      operationId: getLatestAppTermsAndConditions
+      operationId: getLatestTermsForApp
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -1814,11 +1848,12 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the app
       tags:
         - terms-and-conditions-controller
   /api/portal-terms-and-conditions/latest:
     get:
-      operationId: getLatestPortalTermsAndConditions
+      operationId: getLatestTermsForPortal
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -1834,6 +1869,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the portal
       tags:
         - terms-and-conditions-controller
   '/audit/{id}':
