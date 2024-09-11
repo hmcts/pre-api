@@ -15,15 +15,18 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 import uk.gov.hmcts.reform.preapi.services.TermsAndConditionsService;
+import uk.gov.hmcts.reform.preapi.services.UserTermsAcceptedService;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,6 +39,9 @@ public class TermsAndConditionsControllerTest {
 
     @MockBean
     private TermsAndConditionsService termsAndConditionsService;
+
+    @MockBean
+    private UserTermsAcceptedService userTermsAcceptedService;
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
@@ -117,5 +123,32 @@ public class TermsAndConditionsControllerTest {
                            .value("Not found: Terms and conditions of type: PORTAL"));
 
         verify(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
+    }
+
+    @Test
+    @DisplayName("Should return 204 when successfully accepting the terms and conditions")
+    void acceptTermsAndConditionsSuccess() throws Exception {
+        var id = UUID.randomUUID();
+
+        mockMvc.perform(post(TEST_URL + "/accept-terms-and-conditions/" + id))
+            .andExpect(status().isNoContent());
+
+        verify(userTermsAcceptedService, times(1)).acceptTermsAndConditions(id);
+    }
+
+    @Test
+    @DisplayName("Should return 404 when accepting terms and conditions encounters not found error")
+    void acceptTermsAndConditionsNotFound() throws Exception {
+        var id = UUID.randomUUID();
+
+        doThrow(new NotFoundException("TermsAndConditions: " + id))
+            .when(userTermsAcceptedService).acceptTermsAndConditions(id);
+
+        mockMvc.perform(post(TEST_URL + "/accept-terms-and-conditions/" + id))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message").value("Not found: TermsAndConditions: " + id));
+
+        verify(userTermsAcceptedService, times(1)).acceptTermsAndConditions(id);
     }
 }
