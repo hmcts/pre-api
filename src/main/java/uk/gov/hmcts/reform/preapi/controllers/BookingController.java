@@ -37,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -98,6 +99,11 @@ public class BookingController extends PreApiController {
         schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
+        name = "captureSessionStatus",
+        description = "Search bookings with at least one associated capture session with one of the statuses listed",
+        schema = @Schema(implementation = List.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -124,6 +130,9 @@ public class BookingController extends PreApiController {
                 : Optional.empty(),
             params.getParticipantId(),
             params.getHasRecordings(),
+            params.getCaptureSessionStatus() == null || params.getCaptureSessionStatus().isEmpty()
+                ? null
+                : params.getCaptureSessionStatus(),
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
