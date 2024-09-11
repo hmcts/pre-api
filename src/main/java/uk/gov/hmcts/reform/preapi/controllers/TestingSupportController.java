@@ -329,6 +329,17 @@ class TestingSupportController {
         return ResponseEntity.ok(Map.of("termsId", terms.getId().toString()));
     }
 
+    @PostMapping(value = "/outdate-all-user-acceptances", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> outdateAllUserAcceptances() {
+        userTermsAcceptedRepository.findAll()
+            .forEach(a -> {
+                a.setAcceptedAt(Timestamp.from(a.getAcceptedAt().toInstant().minusSeconds(31536000)));
+                userTermsAcceptedRepository.save(a);
+            });
+
+        return ResponseEntity.ok().build();
+    }
+
     private Court createTestCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());
