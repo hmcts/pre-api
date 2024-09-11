@@ -38,6 +38,12 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: SYMMETRIC_KEY
         - name: pp-authorization
           alias: FLOW_KEY
+        - name: flow-http-api
+          alias: FLOW_HTTP_API
+        - name: flow-close-live-event-email-workflow-id
+          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
+        - name: flow-close-live-event-email-sig
+          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true

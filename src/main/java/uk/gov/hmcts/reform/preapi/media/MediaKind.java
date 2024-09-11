@@ -132,10 +132,10 @@ public class MediaKind implements IMediaService {
         // todo check asset has files
         createContentKeyPolicy(userId, symmetricKey);
         assertStreamingPolicyExists(userId);
-        refreshStreamingLocatorForUser(userId, assetName);
+        var streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
         var hostName = "https://" + assertStreamingEndpointExists(DEFAULT_VOD_STREAMING_ENDPOINT).getProperties().getHostName();
-        var paths = mediaKindClient.getStreamingLocatorPaths(userId);
+        var paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
         var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol() == StreamingProtocol.Dash)
             .findFirst().map(p -> p.getPaths().getFirst()).orElse(null);
@@ -157,13 +157,23 @@ public class MediaKind implements IMediaService {
         );
     }
 
-    private void refreshStreamingLocatorForUser(String userId, String assetName) {
-        mediaKindClient.deleteStreamingLocator(userId);
-
+    private String refreshStreamingLocatorForUser(String userId, String assetName) {
         var now = OffsetDateTime.now();
+        var streamingLocatorName = userId + "_" + assetName;
+
+        // check streaming locator is still valid
+        try {
+            var locator = mediaKindClient.getStreamingLocator(streamingLocatorName);
+            if (locator.getProperties().getEndTime().toInstant().isAfter(now.toInstant())) {
+                return streamingLocatorName;
+            }
+            mediaKindClient.deleteStreamingLocator(streamingLocatorName);
+        } catch (NotFoundException e) {
+            // ignore
+        }
 
         mediaKindClient.createStreamingLocator(
-            userId,
+            streamingLocatorName,
             MkStreamingLocator.builder()
                 .properties(
                     MkStreamingLocatorProperties.builder()
@@ -180,6 +190,8 @@ public class MediaKind implements IMediaService {
                         .build())
                 .build()
         );
+
+        return streamingLocatorName;
     }
 
     private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
