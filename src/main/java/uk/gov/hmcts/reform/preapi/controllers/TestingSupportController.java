@@ -318,7 +318,9 @@ class TestingSupportController {
     }
 
     @PostMapping(value = "/create-terms-and-conditions/{termsType}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createTermsAndConditions(@PathVariable TermsAndConditionsType termsType) {
+    public ResponseEntity<Map<String, String>> createTermsAndConditions(
+        @PathVariable TermsAndConditionsType termsType
+    ) {
         var terms = new TermsAndConditions();
         terms.setId(UUID.randomUUID());
         terms.setType(termsType);
