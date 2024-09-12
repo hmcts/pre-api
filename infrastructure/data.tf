@@ -1,5 +1,5 @@
 data "azurerm_monitor_action_group" "action_group" {
-  count               = var.env == "prod" ? 1 : 0
+  count               = var.env == "prod" || var.env == "stg" ? 1 : 0
   name                = "CriticalAlertsAction"
   resource_group_name = "${var.product}-${var.env}"
 }
