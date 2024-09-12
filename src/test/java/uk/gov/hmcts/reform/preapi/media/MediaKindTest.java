@@ -340,7 +340,7 @@ public class MediaKindTest {
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.putLiveEvent(any(), any()))
-            .thenThrow(mock(FeignException.Conflict.class));
+            .thenThrow(mock(ConflictException.class));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
 
         mediaKind.startLiveEvent(captureSession);
@@ -378,7 +378,7 @@ public class MediaKindTest {
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putAsset(eq(liveEventName), any(MkAsset.class)))
-            .thenThrow(mock(FeignException.Conflict.class));
+            .thenThrow(mock(ConflictException.class));
 
         var message = assertThrows(
             ConflictException.class,
@@ -399,7 +399,7 @@ public class MediaKindTest {
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putLiveOutput(eq(liveEventName), eq(liveEventName), any()))
-            .thenThrow(mock(FeignException.Conflict.class));
+            .thenThrow(mock(ConflictException.class));
 
         var message = assertThrows(
             ConflictException.class,
