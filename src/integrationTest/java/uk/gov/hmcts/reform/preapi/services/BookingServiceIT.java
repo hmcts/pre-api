@@ -79,7 +79,17 @@ class BookingServiceIT extends IntegrationTestBase {
         when(mockAuth.getSharedBookings()).thenReturn(List.of(booking1.getId()));
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        var findAllSharedWithUser = bookingService.searchBy(null, null, null, Optional.empty(), null, null, null,null, null);
+        var findAllSharedWithUser = bookingService.searchBy(
+            null,
+            null,
+            null,
+            Optional.empty(),
+            null,
+            null,
+            null,
+            null,
+            null
+        );
         assertEquals(1, findAllSharedWithUser.toList().size(), "Should find 1 booking");
         assertEquals(booking1.getId(), findAllSharedWithUser.toList().getFirst().getId(), "Should find booking 1");
     }
@@ -171,7 +181,17 @@ class BookingServiceIT extends IntegrationTestBase {
         assertEquals(1, findByCaseResult2.toList().size(), "Should find 1 booking");
         assertEquals(booking2.getId(), findByCaseResult2.toList().getFirst().getId(), "Should find booking 2");
 
-        var findByCaseReferenceResult = bookingService.searchBy(null, "1234", null, Optional.empty(), null, null,null, null, null);
+        var findByCaseReferenceResult = bookingService.searchBy(
+            null,
+            "1234",
+            null,
+            Optional.empty(),
+            null,
+            null,
+            null,
+            null,
+            null
+        );
         assertEquals(2, findByCaseReferenceResult.getContent().size(), "Should find 2 bookings");
         assertEquals(booking1.getId(), findByCaseReferenceResult.getContent().get(0).getId(), "Should find booking 1");
         assertEquals(booking2.getId(), findByCaseReferenceResult.getContent().get(1).getId(), "Should find booking 2");
