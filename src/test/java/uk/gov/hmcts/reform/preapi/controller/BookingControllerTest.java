@@ -213,7 +213,7 @@ class BookingControllerTest {
         when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Page.empty());
 
-        mockMvc.perform(get("/bookings?captureSessionStatus=RECORDING,NO_RECORDING"))
+        mockMvc.perform(get("/bookings?captureSessionStatusIn=RECORDING,NO_RECORDING"))
             .andExpect(status().isOk());
 
         verify(bookingService, times(1))
@@ -236,7 +236,7 @@ class BookingControllerTest {
         when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Page.empty());
 
-        mockMvc.perform(get("/bookings?notCaptureSessionStatus=RECORDING,NO_RECORDING"))
+        mockMvc.perform(get("/bookings?captureSessionStatusNotIn=RECORDING,NO_RECORDING"))
             .andExpect(status().isOk());
 
         verify(bookingService, times(1))

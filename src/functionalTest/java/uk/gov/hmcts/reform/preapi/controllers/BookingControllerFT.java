@@ -159,7 +159,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings1 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&captureSessionStatus=STANDBY",
+                                            + "&captureSessionStatusIn=STANDBY",
                                         true);
         assertResponseCode(getBookings1, 200);
         var responseData1 = getBookings1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
@@ -170,7 +170,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings2 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&captureSessionStatus=PROCESSING",
+                                            + "&captureSessionStatusIn=PROCESSING",
                                         true);
         assertResponseCode(getBookings2, 200);
         var responseData2 = getBookings2.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
@@ -181,7 +181,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings3 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&captureSessionStatus=FAILURE",
+                                            + "&captureSessionStatusIn=FAILURE",
                                         true);
         assertResponseCode(getBookings3, 200);
         var responseData3 = getBookings3.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
@@ -191,7 +191,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings4 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&captureSessionStatus=STANDBY,PROCESSING",
+                                            + "&captureSessionStatusIn=STANDBY,PROCESSING",
                                         true);
         assertResponseCode(getBookings4, 200);
         var responseData4 = getBookings4.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
@@ -236,7 +236,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings1 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&notCaptureSessionStatus=STANDBY",
+                                            + "&captureSessionStatusNotIn=STANDBY",
                                         true);
         assertResponseCode(getBookings1, 200);
         var responseData1 = getBookings1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
@@ -247,7 +247,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings2 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&notCaptureSessionStatus=PROCESSING",
+                                            + "&captureSessionStatusNotIn=PROCESSING",
                                         true);
         assertResponseCode(getBookings2, 200);
         var responseData2 = getBookings2.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
@@ -258,7 +258,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings3 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&notCaptureSessionStatus=FAILURE",
+                                            + "&captureSessionStatusNotIn=FAILURE",
                                         true);
         assertResponseCode(getBookings3, 200);
         var responseData3 = getBookings3.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
@@ -271,7 +271,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var getBookings4 = doGetRequest(BOOKINGS_ENDPOINT
                                             + "?caseId="
                                             + booking1.getCaseId()
-                                            + "&notCaptureSessionStatus=STANDBY,PROCESSING",
+                                            + "&captureSessionStatusNotIn=STANDBY,PROCESSING",
                                         true);
         assertResponseCode(getBookings4, 200);
         var responseData4 = getBookings4.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);

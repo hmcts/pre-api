@@ -17,8 +17,8 @@ public class SearchBookings {
     private LocalDate scheduledFor;
     private UUID participantId;
     private Boolean hasRecordings;
-    private List<RecordingStatus> captureSessionStatus;
-    private List<RecordingStatus> notCaptureSessionStatus;
+    private List<RecordingStatus> captureSessionStatusIn;
+    private List<RecordingStatus> captureSessionStatusNotIn;
 
     public String getCaseReference() {
         return caseReference != null && !caseReference.isEmpty() ? caseReference : null;
