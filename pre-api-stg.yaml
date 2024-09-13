@@ -1846,6 +1846,18 @@ paths:
           in: query
           name: hasRecordings
           type: boolean
+        - description: >-
+            Search bookings with at least one associated capture session with
+            one of the statuses listed
+          in: query
+          name: captureSessionStatus
+          type: string
+        - description: >-
+            Bookings where the associated capture sessions do not match status
+            or bookings without sessions
+          in: query
+          name: notCaptureSessionStatus
+          type: string
         - description: The page number of search result to return
           format: int32
           in: query
