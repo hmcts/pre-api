@@ -72,6 +72,10 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                 SELECT 1 FROM b.captureSessions AS cs
                 WHERE cs.status in :statuses
             ))
+            AND (:notStatuses IS NULL OR NOT EXISTS (
+                SELECT 1 FROM b.captureSessions AS cs
+                WHERE cs.status in :notStatuses
+            ))
             AND (
                 :hasRecordings IS NULL
                 OR (:hasRecordings = TRUE AND EXISTS (
@@ -99,6 +103,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("authCourtId") UUID authCourtId,
         @Param("hasRecordings") Boolean hasRecordings,
         @Param("statuses") List<RecordingStatus> statuses,
+        @Param("notStatuses") List<RecordingStatus> notStatuses,
         Pageable pageable
     );
 

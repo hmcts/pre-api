@@ -80,6 +80,7 @@ public class BookingService {
         UUID participantId,
         Boolean hasRecordings,
         List<RecordingStatus> statuses,
+        List<RecordingStatus> notStatuses,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -103,6 +104,7 @@ public class BookingService {
                 authorisedCourt,
                 hasRecordings,
                 statuses,
+                notStatuses,
                 pageable
             )
             .map(BookingDTO::new);

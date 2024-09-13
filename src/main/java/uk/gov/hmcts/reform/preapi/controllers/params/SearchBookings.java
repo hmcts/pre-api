@@ -18,6 +18,7 @@ public class SearchBookings {
     private UUID participantId;
     private Boolean hasRecordings;
     private List<RecordingStatus> captureSessionStatus;
+    private List<RecordingStatus> notCaptureSessionStatus;
 
     public String getCaseReference() {
         return caseReference != null && !caseReference.isEmpty() ? caseReference : null;

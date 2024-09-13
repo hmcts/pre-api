@@ -104,6 +104,11 @@ public class BookingController extends PreApiController {
         schema = @Schema(implementation = List.class)
     )
     @Parameter(
+        name = "notCaptureSessionStatus",
+        description = "Bookings where the associated capture sessions do not match status or bookings without sessions",
+        schema = @Schema(implementation = List.class)
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -133,6 +138,9 @@ public class BookingController extends PreApiController {
             params.getCaptureSessionStatus() == null || params.getCaptureSessionStatus().isEmpty()
                 ? null
                 : params.getCaptureSessionStatus(),
+            params.getNotCaptureSessionStatus() == null || params.getNotCaptureSessionStatus().isEmpty()
+                ? null
+                : params.getNotCaptureSessionStatus(),
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
