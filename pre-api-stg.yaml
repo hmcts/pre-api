@@ -1850,13 +1850,13 @@ paths:
             Search bookings with at least one associated capture session with
             one of the statuses listed
           in: query
-          name: captureSessionStatus
+          name: captureSessionStatusIn
           type: string
         - description: >-
             Bookings where the associated capture sessions do not match status
             or bookings without sessions
           in: query
-          name: notCaptureSessionStatus
+          name: captureSessionStatusNotIn
           type: string
         - description: The page number of search result to return
           format: int32
