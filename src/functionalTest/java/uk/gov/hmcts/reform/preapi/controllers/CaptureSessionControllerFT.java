@@ -160,8 +160,4 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         dto.setOrigin(RecordingOrigin.PRE);
         return dto;
     }
-
-    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
-    }
 }

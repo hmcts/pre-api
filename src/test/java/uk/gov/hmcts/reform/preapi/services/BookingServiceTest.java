@@ -131,7 +131,7 @@ class BookingServiceTest {
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null, null,null, null, null, null, null))
+        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null, null,null, null, null, null, null, null,null))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
                 {
                     add(bookingEntity1);
@@ -140,7 +140,7 @@ class BookingServiceTest {
             }));
         assertThat(
             bookingService
-                .searchBy(null, "MyRef", null, Optional.empty(), null,null, null)
+                .searchBy(null, "MyRef", null, Optional.empty(), null,null, null, null,null)
                 .getContent()).isEqualTo(new ArrayList<>() {
                     {
                         add(bookingModel1);

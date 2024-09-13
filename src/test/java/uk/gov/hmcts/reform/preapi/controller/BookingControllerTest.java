@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
@@ -110,7 +111,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO2);
 
-        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), eq("MyRef"), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
         MvcResult response = mockMvc.perform(get("/bookings?caseReference=MyRef")
@@ -139,7 +140,7 @@ class BookingControllerTest {
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -169,7 +170,7 @@ class BookingControllerTest {
         var booking2 = new BookingDTO();
         booking2.setId(UUID.randomUUID());
         booking2.setCaseDTO(caseDTO);
-        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
 
 
@@ -191,7 +192,7 @@ class BookingControllerTest {
         var caseDTO = new CaseDTO();
         caseDTO.setId(UUID.randomUUID());
 
-        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any()))
+        when(bookingService.searchBy(eq(caseDTO.getId()), any(), any(), any(), any(), any(), any(), any(), any()))
             .thenReturn(Page.empty());
 
         MvcResult response = mockMvc.perform(get("/bookings?caseId=" + caseDTO.getId())
@@ -204,6 +205,52 @@ class BookingControllerTest {
         var rootNode = mapper.readTree(response.getResponse().getContentAsString());
 
         assertThat(rootNode.get("page").get("totalElements").asInt()).isEqualTo(0);
+    }
+
+    @DisplayName("Should get all bookings with a capture session one of the listed statuses")
+    @Test
+    void searchBookingsByStatusOk() throws Exception {
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Page.empty());
+
+        mockMvc.perform(get("/bookings?captureSessionStatus=RECORDING,NO_RECORDING"))
+            .andExpect(status().isOk());
+
+        verify(bookingService, times(1))
+            .searchBy(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                eq(List.of(RecordingStatus.RECORDING, RecordingStatus.NO_RECORDING)),
+                any(),
+                any()
+            );
+    }
+
+    @DisplayName("Should get all bookings with a capture session one of the listed statuses")
+    @Test
+    void searchBookingsByNotStatusOk() throws Exception {
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(Page.empty());
+
+        mockMvc.perform(get("/bookings?notCaptureSessionStatus=RECORDING,NO_RECORDING"))
+            .andExpect(status().isOk());
+
+        verify(bookingService, times(1))
+            .searchBy(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                eq(List.of(RecordingStatus.RECORDING, RecordingStatus.NO_RECORDING)),
+                any()
+            );
     }
 
     @DisplayName("Should get a booking with 200 response code")
