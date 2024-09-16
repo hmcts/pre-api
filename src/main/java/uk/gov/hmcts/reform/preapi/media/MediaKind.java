@@ -22,7 +22,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
-import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -132,10 +131,10 @@ public class MediaKind implements IMediaService {
         // todo check asset has files
         createContentKeyPolicy(userId, symmetricKey);
         assertStreamingPolicyExists(userId);
-        refreshStreamingLocatorForUser(userId, assetName);
+        var streamingLocatorName = refreshStreamingLocatorForUser(userId, assetName);
 
         var hostName = "https://" + assertStreamingEndpointExists(DEFAULT_VOD_STREAMING_ENDPOINT).getProperties().getHostName();
-        var paths = mediaKindClient.getStreamingLocatorPaths(userId);
+        var paths = mediaKindClient.getStreamingLocatorPaths(streamingLocatorName);
 
         var dash = paths.getStreamingPaths().stream().filter(p -> p.getStreamingProtocol() == StreamingProtocol.Dash)
             .findFirst().map(p -> p.getPaths().getFirst()).orElse(null);
@@ -157,13 +156,23 @@ public class MediaKind implements IMediaService {
         );
     }
 
-    private void refreshStreamingLocatorForUser(String userId, String assetName) {
-        mediaKindClient.deleteStreamingLocator(userId);
-
+    private String refreshStreamingLocatorForUser(String userId, String assetName) {
         var now = OffsetDateTime.now();
+        var streamingLocatorName = userId + "_" + assetName;
+
+        // check streaming locator is still valid
+        try {
+            var locator = mediaKindClient.getStreamingLocator(streamingLocatorName);
+            if (locator.getProperties().getEndTime().toInstant().isAfter(now.toInstant())) {
+                return streamingLocatorName;
+            }
+            mediaKindClient.deleteStreamingLocator(streamingLocatorName);
+        } catch (NotFoundException e) {
+            // ignore
+        }
 
         mediaKindClient.createStreamingLocator(
-            userId,
+            streamingLocatorName,
             MkStreamingLocator.builder()
                 .properties(
                     MkStreamingLocatorProperties.builder()
@@ -180,6 +189,8 @@ public class MediaKind implements IMediaService {
                         .build())
                 .build()
         );
+
+        return streamingLocatorName;
     }
 
     private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
@@ -542,7 +553,7 @@ public class MediaKind implements IMediaService {
                                                                            .build())
                             .build()
             );
-        } catch (FeignException.Conflict e) {
+        } catch (ConflictException e) {
             throw new ConflictException("Live Output: " + liveOutputName);
         } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
@@ -575,7 +586,7 @@ public class MediaKind implements IMediaService {
                                     .build())
                     .build()
             );
-        } catch (FeignException.Conflict e) {
+        } catch (ConflictException e) {
             throw new ConflictException("Asset: " + assetName);
         }
     }
@@ -634,7 +645,7 @@ public class MediaKind implements IMediaService {
                                         .build())
                            .build()
             );
-        } catch (FeignException.Conflict e) {
+        } catch (ConflictException e) {
             log.info("Live Event already exists. Continuing...");
         }
     }
