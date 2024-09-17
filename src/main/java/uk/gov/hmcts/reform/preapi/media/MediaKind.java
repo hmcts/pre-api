@@ -22,7 +22,6 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
-import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -554,7 +553,7 @@ public class MediaKind implements IMediaService {
                                                                            .build())
                             .build()
             );
-        } catch (FeignException.Conflict e) {
+        } catch (ConflictException e) {
             throw new ConflictException("Live Output: " + liveOutputName);
         } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
@@ -587,7 +586,7 @@ public class MediaKind implements IMediaService {
                                     .build())
                     .build()
             );
-        } catch (FeignException.Conflict e) {
+        } catch (ConflictException e) {
             throw new ConflictException("Asset: " + assetName);
         }
     }
@@ -646,7 +645,7 @@ public class MediaKind implements IMediaService {
                                         .build())
                            .build()
             );
-        } catch (FeignException.Conflict e) {
+        } catch (ConflictException e) {
             log.info("Live Event already exists. Continuing...");
         }
     }
