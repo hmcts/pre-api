@@ -13,7 +13,8 @@ public class ReportControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Should format Duration and date correctly")
     @Test
     void shouldFormatDurationAndDateCorrectly() throws JsonProcessingException {
-        var captureSessionId = doPostRequest("/testing-support/should-delete-recordings-for-booking", false)
+        var captureSessionId = doPostRequest("/testing-support/should-delete-recordings-for-booking",
+                                             TestingSupportRoles.SUPER_USER)
             .body().jsonPath().getUUID("captureSessionId");
 
         var response = doGetRequest(REPORTS_ENDPOINT + "/capture-sessions-concurrent", TestingSupportRoles.SUPER_USER);
