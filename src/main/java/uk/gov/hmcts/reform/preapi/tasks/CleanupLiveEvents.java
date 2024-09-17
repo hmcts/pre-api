@@ -41,6 +41,8 @@ public class CleanupLiveEvents implements Runnable {
 
     private final String cronUserEmail;
 
+    private final String platformEnv;
+
     private final FlowHttpClient flowHttpClient;
 
     @Autowired
@@ -51,6 +53,7 @@ public class CleanupLiveEvents implements Runnable {
                       UserService userService,
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
+                      @Value("${platform-env}") String platformEnv,
                       FlowHttpClient flowHttpClient) {
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
@@ -59,6 +62,7 @@ public class CleanupLiveEvents implements Runnable {
         this.userService = userService;
         this.userAuthenticationService = userAuthenticationService;
         this.cronUserEmail = cronUserEmail;
+        this.platformEnv = platformEnv;
         this.flowHttpClient = flowHttpClient;
     }
 
@@ -121,9 +125,9 @@ public class CleanupLiveEvents implements Runnable {
                                       liveEventDTO.getName()
                                   );
                               })
-                                                            .filter(b -> b)
-                                                            .toList()
-                                                            .isEmpty();
+                                  .filter(b -> b)
+                                  .toList()
+                                  .isEmpty();
                           }
 
                           if (sendNotification) {
@@ -152,12 +156,38 @@ public class CleanupLiveEvents implements Runnable {
                                   log.error(e.getMessage());
                               }
                           }
+                      } catch (NotFoundException e) {
+                          if (platformEnv.equals("Production")) {
+                              log.error("Error stopping live event {}", liveEventDTO.getName(), e);
+                              return;
+                          }
+                          stopLiveEventForMissingCaptureSession(mediaService, liveEventDTO.getName());
                       } catch (Exception e) {
                           log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                       }
                   });
 
         log.info("Completed CleanupLiveEvents task");
+    }
+
+    private void stopLiveEventForMissingCaptureSession(IMediaService mediaService, String liveEventId) {
+        log.info("Stopping live event without associated capture session: {}", liveEventId);
+        var id = generateUuidFromLiveEventName(liveEventId);
+        var bookingId = UUID.fromString(mediaService.getAsset(id.toString()).getDescription());
+
+        var dto = new CaptureSessionDTO();
+        dto.setId(id);
+        dto.setBookingId(bookingId);
+
+        try {
+            mediaService.stopLiveEvent(dto, UUID.randomUUID());
+            log.info("Stopped live event {}", liveEventId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Failed to stop live event {}", liveEventId, e);
+        } catch (Exception e) {
+            log.error("Failed to stop live event {}", liveEventId, e);
+        }
     }
 
     private boolean stopLiveEvent(IMediaService mediaService,
@@ -203,5 +233,12 @@ public class CleanupLiveEvents implements Runnable {
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             return false;
         }
+    }
+
+    private UUID generateUuidFromLiveEventName(String liveEventId) {
+        return new UUID(
+            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
+            Long.parseUnsignedLong(liveEventId.substring(16), 16)
+        );
     }
 }
