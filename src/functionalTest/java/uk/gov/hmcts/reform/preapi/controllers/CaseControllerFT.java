@@ -13,6 +13,8 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -352,6 +354,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update OPEN -> PENDING_CLOSURE
             dto.setState(CaseState.PENDING_CLOSURE);
+            dto.setClosedAt(Timestamp.from(Instant.now()));
             var putResponse2 = putCase(dto, role);
             assertResponseCode(putResponse2, 204);
             assertCaseExists(dto.getId(), true);
@@ -359,6 +362,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update PENDING_CLOSURE -> CLOSED
             dto.setState(CaseState.CLOSED);
+            dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
             var putResponse3 = putCase(dto, role);
             assertResponseCode(putResponse3, 204);
             assertCaseExists(dto.getId(), true);
@@ -366,6 +370,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update CLOSED -> OPEN
             dto.setState(CaseState.OPEN);
+            dto.setClosedAt(null);
             var putResponse4 = putCase(dto, role);
             assertResponseCode(putResponse4, 204);
             assertCaseExists(dto.getId(), true);
@@ -373,11 +378,13 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update PENDING_CLOSURE -> OPEN
             dto.setState(CaseState.PENDING_CLOSURE);
+            dto.setClosedAt(Timestamp.from(Instant.now()));
             var putResponse5 = putCase(dto, role);
             assertResponseCode(putResponse5, 204);
             assertCaseExists(dto.getId(), true);
             assertMatchesDto(dto);
             dto.setState(CaseState.OPEN);
+            dto.setClosedAt(null);
             var putResponse6 = putCase(dto, role);
             assertResponseCode(putResponse6, 204);
             assertCaseExists(dto.getId(), true);
@@ -403,6 +410,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update OPEN -> PENDING_CLOSURE
             dto.setState(CaseState.PENDING_CLOSURE);
+            dto.setClosedAt(Timestamp.from(Instant.now()));
             var putResponse2 = putCase(dto, role);
             assertResponseCode(putResponse2, 403);
 
@@ -412,11 +420,13 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update PENDING_CLOSURE -> OPEN
             dto.setState(CaseState.OPEN);
+            dto.setClosedAt(null);
             var putResponse6 = putCase(dto, role);
             assertResponseCode(putResponse6, 403);
 
             // update PENDING_CLOSURE -> CLOSED
             dto.setState(CaseState.CLOSED);
+            dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
             var putResponse3 = putCase(dto, role);
             assertResponseCode(putResponse3, 403);
 
@@ -426,6 +436,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update CLOSED -> OPEN
             dto.setState(CaseState.OPEN);
+            dto.setClosedAt(null);
             var putResponse4 = putCase(dto, role);
             assertResponseCode(putResponse4, 403);
         }
