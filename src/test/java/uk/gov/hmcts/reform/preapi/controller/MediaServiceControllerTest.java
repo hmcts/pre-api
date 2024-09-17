@@ -7,15 +7,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.aad.msal4j.MsalServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -59,6 +65,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(MediaServiceController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@SuppressWarnings("LineLength")
 public class MediaServiceControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -960,15 +967,15 @@ public class MediaServiceControllerTest {
     @Test
     void generateAsset404NoSourceContainer() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
-        generateAssetDTO.setSourceContainer("foo");
-        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(false);
-        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+        generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(false);
+        mockMvc.perform(post("/media-service/generate-asset")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message").value("Not found: Source Container: foo"));
+               .andExpect(jsonPath("$.message").value("Not found: Source Container: " + generateAssetDTO.getSourceContainer()));
     }
 
     @DisplayName("Should return a 404 when the source blob doesn't exist")
@@ -976,61 +983,81 @@ public class MediaServiceControllerTest {
     @SuppressWarnings("LineLength")
     void generateAsset404NoSourceBlob() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
-        generateAssetDTO.setSourceContainer("foo");
-        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
+        generateAssetDTO.setDestinationContainer(UUID.randomUUID());
         generateAssetDTO.setTempAsset("blobby");
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
-        when(mediaService.importAsset(any())).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container foo"));
-        mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenThrow(new NotFoundException("No files ending .mp4 were found in the Source Container " + generateAssetDTO.getSourceContainer()));
+        mockMvc.perform(post("/media-service/generate-asset")
                             .with(csrf())
                             .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
                .andExpect(status().isNotFound())
-               .andExpect(jsonPath("$.message").value("Not found: No files ending .mp4 were found in the Source Container foo"));
-    }
-
-    @DisplayName("Should return a 403 when incorrect value provided in the code parameter")
-    @Test
-    void generateAssetTest403Error() throws Exception {
-        var generateAssetDTO = new GenerateAssetDTO();
-        mockMvc.perform(post("/media-service/generate-asset?code=invalid")
-                            .with(csrf())
-                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isForbidden());
+               .andExpect(jsonPath("$.message").value("Not found: No files ending .mp4 were found in the Source Container " + generateAssetDTO.getSourceContainer()));
     }
 
     @DisplayName("Should return a 400 when incorrect body provided")
     @Test
     void generateAssetTest400Error() throws Exception {
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey"))
+        var response = mockMvc.perform(post("/media-service/generate-asset"))
                               .andExpect(status().is4xxClientError())
                               .andReturn().getResponse();
         assertThat(response.getContentAsString()).contains(
             "Required request body is missing: public org.springframework.http.ResponseEntity"
-            + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
+                + "<uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO>");
+    }
+
+    @DisplayName("Should return a 400 when incorrect source container name provided")
+    @Test
+    void generateAssetTest400SourceContainerNAme() throws Exception {
+        var generateAssetDTO = new GenerateAssetDTO();
+        generateAssetDTO.setSourceContainer(UUID.randomUUID().toString());
+        generateAssetDTO.setDestinationContainer(UUID.randomUUID());
+        generateAssetDTO.setTempAsset("blobby");
+
+        var response = mockMvc.perform(post("/media-service/generate-asset")
+                            .with(csrf())
+                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+                            .andExpect(status().is4xxClientError())
+                            .andReturn().getResponse();
+        assertThat(response.getContentAsString()).contains(
+            "{\"sourceContainer\":\"must match \\\"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-input$\\\"\"}"
+        );
     }
 
     @DisplayName("Should return a GenerateAssetResponseDTO successfully")
     @Test
+    @SuppressWarnings("unchecked")
     void generateAssetTest200() throws Exception {
         var generateAssetDTO = new GenerateAssetDTO();
-        generateAssetDTO.setSourceContainer("foo");
-        generateAssetDTO.setDestinationContainer("bar");
+        generateAssetDTO.setSourceContainer(UUID.randomUUID() + "-input");
+        generateAssetDTO.setDestinationContainer(UUID.randomUUID());
         generateAssetDTO.setTempAsset("blobby");
-        when(azureFinalStorageService.doesContainerExist("foo")).thenReturn(true);
-        when(azureFinalStorageService.doesContainerExist("bar")).thenReturn(true);
-        when(azureFinalStorageService.getMp4FileName("foo")).thenReturn("blobby.mp4");
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
+        when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getDestinationContainer().toString())).thenReturn(true);
+        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("blobby.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(
             new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
         );
 
-        var response = mockMvc.perform(post("/media-service/generate-asset?code=SecureKey")
+        var parentRecording = new RecordingDTO();
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+        parentRecording.setCaptureSession(captureSession);
+
+        when(recordingService.findById(generateAssetDTO.getParentRecordingId()))
+            .thenReturn(parentRecording);
+
+        when(recordingService.findAll(any(SearchRecordings.class), eq(true), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of(parentRecording)));
+
+        var response = mockMvc.perform(post("/media-service/generate-asset")
                                            .with(csrf())
                                            .content(OBJECT_MAPPER.writeValueAsString(generateAssetDTO))
                                            .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -1042,6 +1069,11 @@ public class MediaServiceControllerTest {
             + "\"container\":\"container\","
             + "\"description\":\"description\","
             + "\"jobStatus\":\"Finished\"}");
+
+        var recordingArgument = ArgumentCaptor.forClass(CreateRecordingDTO.class);
+
+        verify(recordingService, times(1)).upsert(recordingArgument.capture());
+        assertThat(recordingArgument.getValue().getVersion()).isEqualTo(2);
     }
 
     protected static UserAuthentication mockAdminUser() {
