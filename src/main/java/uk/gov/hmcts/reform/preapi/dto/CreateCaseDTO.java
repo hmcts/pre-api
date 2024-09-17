@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.validators.CaseStateConstraint;
 import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -19,6 +20,7 @@ import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
+@CaseStateConstraint
 @Schema(description = "CreateCaseDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @SuppressWarnings("PMD.ShortClassName")
@@ -42,6 +44,8 @@ public class CreateCaseDTO {
     private boolean test;
 
     @Schema(description = "CreateCaseState")
+    // todo breaking change until this is added in prod
+    // @NotNull
     private CaseState state;
 
     @Schema(description = "CreateCaseClosedAt")

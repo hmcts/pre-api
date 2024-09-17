@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.controllers.CaseController;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -27,7 +28,9 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -56,6 +59,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SuppressWarnings("PMD.AvoidDuplicateLiterals")
 class CaseControllerTest {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String TEST_URL = "http://localhost";
+    private static final String CASES_ID_PATH = "/cases/{id}";
+
     @Autowired
     private transient MockMvc mockMvc;
 
@@ -67,11 +74,6 @@ class CaseControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    private static final String TEST_URL = "http://localhost";
-
-    private static final String CASES_ID_PATH = "/cases/{id}";
 
     @BeforeAll
     static void setUp() {
@@ -132,8 +134,9 @@ class CaseControllerTest {
         caseDTO.setId(caseId);
         caseDTO.setReference("TestCase1");
         caseDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
         );
 
 
@@ -151,6 +154,93 @@ class CaseControllerTest {
         assertThat(response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + "/cases/" + caseId);
     }
 
+    @DisplayName("Should fail create/update case with 400 error message when state = OPEN and closedAt not null")
+    @Test
+    void createStateOpenClosedAtNotNullBadRequest() throws Exception {
+        var caseId = UUID.randomUUID();
+        var caseDTO = new CreateCaseDTO();
+        caseDTO.setId(caseId);
+        caseDTO.setReference("TestCase123");
+        caseDTO.setParticipants(Set.of(
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
+        );
+        caseDTO.setState(CaseState.OPEN);
+        caseDTO.setClosedAt(Timestamp.from(Instant.now()));
+
+        when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(caseDTO))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"closedAt\":\"must be null when case state is OPEN\"}");
+    }
+
+    @DisplayName("Should fail create/update case with 400 error message when state = CLOSED and closedAt null")
+    @Test
+    void createStateClosedClosedAtNullBadRequest() throws Exception {
+        var caseId = UUID.randomUUID();
+        var caseDTO = new CreateCaseDTO();
+        caseDTO.setId(caseId);
+        caseDTO.setReference("TestCase123");
+        caseDTO.setParticipants(Set.of(
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
+        );
+        caseDTO.setState(CaseState.CLOSED);
+        caseDTO.setClosedAt(null);
+
+        when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(caseDTO))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"closedAt\":\"must not be null when case state is CLOSED\"}");
+    }
+
+    @DisplayName("Should fail create/update case with 400 error message when state = CLOSED and closedAt null")
+    @Test
+    void createStateClosedClosedAtFutureBadRequest() throws Exception {
+        var caseId = UUID.randomUUID();
+        var caseDTO = new CreateCaseDTO();
+        caseDTO.setId(caseId);
+        caseDTO.setReference("TestCase123");
+        caseDTO.setParticipants(Set.of(
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
+        );
+        caseDTO.setState(CaseState.CLOSED);
+        caseDTO.setClosedAt(Timestamp.from(Instant.now().plusSeconds(86400)));
+
+        when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
+
+        MvcResult response = mockMvc.perform(put(CASES_ID_PATH, caseId)
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(caseDTO))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString())
+            .isEqualTo("{\"closedAt\":\"must not be in the future when case state is CLOSED\"}");
+    }
+
     @DisplayName("Should fail create/update case with 400 error message when case reference is too short")
     @Test
     void testCreateCaseReferenceTooShortBadRequest() throws Exception {
@@ -159,8 +249,9 @@ class CaseControllerTest {
         caseDTO.setId(caseId);
         caseDTO.setReference("TestCase");
         caseDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
         );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
@@ -185,8 +276,9 @@ class CaseControllerTest {
         caseDTO.setId(caseId);
         caseDTO.setReference("TestCase123456");
         caseDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
         );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
@@ -211,8 +303,9 @@ class CaseControllerTest {
         caseDTO.setId(caseId);
         caseDTO.setReference(null);
         caseDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
         );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.CREATED);
@@ -237,8 +330,9 @@ class CaseControllerTest {
         caseDTO.setId(caseId);
         caseDTO.setReference("EXAMPLE123");
         caseDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                    createParticipant(ParticipantType.WITNESS),
+                                    createParticipant(ParticipantType.DEFENDANT)
+                                )
         );
 
         when(caseService.upsert(caseDTO)).thenReturn(UpsertResult.UPDATED);
@@ -262,8 +356,9 @@ class CaseControllerTest {
         newCaseRequestDTO.setId(UUID.randomUUID());
         newCaseRequestDTO.setReference("EXAMPLE123");
         newCaseRequestDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                              createParticipant(ParticipantType.WITNESS),
+                                              createParticipant(ParticipantType.DEFENDANT)
+                                          )
         );
 
         mockMvc.perform(put(CASES_ID_PATH, UUID.randomUUID())
@@ -332,8 +427,9 @@ class CaseControllerTest {
         newCaseRequestDTO.setCourtId(courtId);
         newCaseRequestDTO.setReference("EXAMPLE123");
         newCaseRequestDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                              createParticipant(ParticipantType.WITNESS),
+                                              createParticipant(ParticipantType.DEFENDANT)
+                                          )
         );
 
         doThrow(new NotFoundException("Court: " + courtId)).when(caseService).upsert(newCaseRequestDTO);
@@ -359,8 +455,9 @@ class CaseControllerTest {
         newCaseRequestDTO.setCourtId(courtId);
         newCaseRequestDTO.setReference("EXAMPLE123");
         newCaseRequestDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                              createParticipant(ParticipantType.WITNESS),
+                                              createParticipant(ParticipantType.DEFENDANT)
+                                          )
         );
 
 
@@ -391,18 +488,19 @@ class CaseControllerTest {
         newCaseRequestDTO.setCourtId(courtId);
         newCaseRequestDTO.setReference("EXAMPLE123");
         newCaseRequestDTO.setParticipants(Set.of(
-            createParticipant(ParticipantType.WITNESS),
-            createParticipant(ParticipantType.DEFENDANT))
+                                              createParticipant(ParticipantType.WITNESS),
+                                              createParticipant(ParticipantType.DEFENDANT)
+                                          )
         );
 
         doThrow(new ConflictException("Case reference is already in use for this court"))
             .when(caseService).upsert(newCaseRequestDTO);
 
         var response = mockMvc.perform(put(CASES_ID_PATH, caseId)
-                                                 .with(csrf())
-                                                 .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+                                           .with(csrf())
+                                           .content(OBJECT_MAPPER.writeValueAsString(newCaseRequestDTO))
+                                           .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                           .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().isConflict())
             .andReturn();
 

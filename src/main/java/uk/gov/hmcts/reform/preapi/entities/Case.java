@@ -75,6 +75,8 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
                                      .map(Participant::getDetailsForAudit))
                     .collect(Collectors.toSet()));
         details.put("test", test);
+        details.put("state", state);
+        details.put("closedAt", closedAt);
         return details;
     }
 

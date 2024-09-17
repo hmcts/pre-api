@@ -108,7 +108,7 @@ public class CaseService {
             newCase.setCreatedAt(Timestamp.from(Instant.now()));
         }
 
-        // todo update once CreateCaseDTO.state is made not nullable (currently breaking)
+        // todo update once CreateCaseDTO.state is made not null (currently breaking)
         newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
         newCase.setClosedAt(createCaseDTO.getClosedAt());
         caseRepository.saveAndFlush(newCase);

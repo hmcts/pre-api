@@ -196,12 +196,14 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
+        var newRecordingId = UUID.randomUUID();
         var generateAssetDTO = new GenerateAssetDTO(
-            "my-source-container",
-            "my-destination-container",
+            newRecordingId + "-input",
+            newRecordingId,
             "tmp-asset",
             "final-asset",
-            "unit test import asset"
+            "unit test import asset",
+            UUID.randomUUID()
         );
 
         var result = mediaService.importAsset(generateAssetDTO);
@@ -231,7 +233,7 @@ public class AzureMediaServiceTest {
             );
 
         assertThat(destinationContainerArgument.getValue().container())
-            .isEqualTo(generateAssetDTO.getDestinationContainer());
+            .isEqualTo(generateAssetDTO.getDestinationContainer().toString());
 
         ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
 
@@ -266,12 +268,15 @@ public class AzureMediaServiceTest {
         var mockAssetsClient = mock(AssetsClient.class);
         when(amsClient.getAssets()).thenReturn(mockAssetsClient);
 
+        var newRecordingId = UUID.randomUUID();
+
         var generateAssetDTO = new GenerateAssetDTO(
-            "my-source-container",
-            "my-destination-container",
+            newRecordingId + "-input",
+            newRecordingId,
             "tmp-asset",
             "final-asset",
-            "unit test import asset"
+            "unit test import asset",
+            UUID.randomUUID()
         );
 
         var result = mediaService.importAsset(generateAssetDTO);
@@ -301,7 +306,7 @@ public class AzureMediaServiceTest {
             );
 
         assertThat(destinationContainerArgument.getValue().container())
-            .isEqualTo(generateAssetDTO.getDestinationContainer());
+            .isEqualTo(generateAssetDTO.getDestinationContainer().toString());
 
         ArgumentCaptor<JobInner> jobInnerArgument = ArgumentCaptor.forClass(JobInner.class);
 

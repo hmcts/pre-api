@@ -53,10 +53,10 @@ public class CaseDTO {
     private Timestamp modifiedAt;
 
     public CaseDTO(Case caseEntity) {
-        this.id = caseEntity.getId();
-        this.court = new CourtDTO(caseEntity.getCourt());
-        this.reference = caseEntity.getReference();
-        this.participants = Stream.ofNullable(caseEntity.getParticipants())
+        id = caseEntity.getId();
+        court = new CourtDTO(caseEntity.getCourt());
+        reference = caseEntity.getReference();
+        participants = Stream.ofNullable(caseEntity.getParticipants())
             .flatMap(participants ->
                          participants
                              .stream()
@@ -64,11 +64,11 @@ public class CaseDTO {
                              .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
-        this.test = caseEntity.isTest();
-        this.state = caseEntity.getState();
-        this.closedAt = caseEntity.getClosedAt();
-        this.deletedAt = caseEntity.getDeletedAt();
-        this.createdAt = caseEntity.getCreatedAt();
-        this.modifiedAt = caseEntity.getModifiedAt();
+        test = caseEntity.isTest();
+        state = caseEntity.getState();
+        closedAt = caseEntity.getClosedAt();
+        deletedAt = caseEntity.getDeletedAt();
+        createdAt = caseEntity.getCreatedAt();
+        modifiedAt = caseEntity.getModifiedAt();
     }
 }
