@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
+import com.azure.core.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -41,6 +44,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -303,6 +307,35 @@ class TestingSupportController {
             }
         };
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/create-ready-to-use-booking/{caseReference}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createReadyToUseBooking(@PathVariable String caseReference) {
+        var cases = caseRepository.findAllByReference(caseReference);
+        if (cases.isEmpty()) {
+            throw new NotFoundException("Only use this endpoint for cases that already exist");
+        }
+        var aCase = cases.getFirst();
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+        booking.setParticipants(aCase.getParticipants());
+        booking.setScheduledFor(Timestamp.from(Instant.now()));
+        bookingRepository.save(booking);
+
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
+        captureSession.setStatus(RecordingStatus.INITIALISING);
+        captureSessionRepository.save(captureSession);
+
+        return ResponseEntity.ok(Map.of(
+            "caseId", aCase.getId().toString(),
+            "bookingId", booking.getId().toString(),
+            "captureSessionId", captureSession.getId().toString())
+        );
     }
 
     private Court createTestCourt() {
