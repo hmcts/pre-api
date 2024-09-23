@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
@@ -381,6 +382,11 @@ class BookingControllerFT extends FunctionalTestBase {
         assertBookingExists(booking.getId(), true);
         assertCaseExists(caseEntity.getId(), true);
 
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
+
         // create share target
         var user1 = createUser("AAA");
         var putUser1 = putUser(user1);
@@ -423,6 +429,11 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(putResponse, 201);
         assertBookingExists(booking.getId(), true);
         assertCaseExists(caseEntity.getId(), true);
+
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
 
         // close case
         caseEntity.setState(CaseState.CLOSED);
@@ -471,11 +482,15 @@ class BookingControllerFT extends FunctionalTestBase {
         assertBookingExists(booking.getId(), true);
         assertCaseExists(caseEntity.getId(), true);
 
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
+
         // close case
         caseEntity.setState(CaseState.PENDING_CLOSURE);
         caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
         var putCase2 = putCase(caseEntity);
-        putCase2.prettyPrint();
         assertResponseCode(putCase2, 204);
 
         // attempt update

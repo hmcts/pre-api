@@ -123,14 +123,15 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .body()
             .jsonPath();
         var bookingId = res.getUUID("bookingId");
-        var caseId = res.getUUID("caseId");
 
         // create capture session
         var dto = createCaptureSession(bookingId);
+        dto.setStatus(RecordingStatus.NO_RECORDING);
         var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertCaptureSessionExists(dto.getId(), true);
 
+        var caseId = res.getUUID("caseId");
         // update case to closed
         var aCase = assertCaseExists(caseId, true)
             .body().jsonPath().getObject("", CaseDTO.class);
@@ -169,14 +170,15 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .body()
             .jsonPath();
         var bookingId = res.getUUID("bookingId");
-        var caseId = res.getUUID("caseId");
 
         // create capture session
         var dto = createCaptureSession(bookingId);
+        dto.setStatus(RecordingStatus.NO_RECORDING);
         var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertCaptureSessionExists(dto.getId(), true);
 
+        var caseId = res.getUUID("caseId");
         // update case to pending closure
         var aCase = assertCaseExists(caseId, true)
             .body().jsonPath().getObject("", CaseDTO.class);
@@ -233,31 +235,5 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(dto.getId(), true);
         assertBookingExists(dto.getBookingId(), true);
         assertCaseExists(caseId, true);
-    }
-
-    private CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
-        var dto = new CreateCaptureSessionDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setStatus(RecordingStatus.STANDBY);
-        dto.setOrigin(RecordingOrigin.PRE);
-        return dto;
-    }
-
-    private CreateCaptureSessionDTO createCaptureSession() {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
-            .body()
-            .jsonPath().getUUID("bookingId");
-
-        var dto = new CreateCaptureSessionDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setStatus(RecordingStatus.STANDBY);
-        dto.setOrigin(RecordingOrigin.PRE);
-        return dto;
-    }
-
-    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 }

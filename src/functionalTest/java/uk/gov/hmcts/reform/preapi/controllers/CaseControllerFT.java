@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
@@ -75,6 +76,218 @@ class CaseControllerFT extends FunctionalTestBase {
         var putCase2 = putCase(dto);
         putCase2.prettyPrint();
         assertResponseCode(putCase2, 204);
+        assertMatchesDto(dto);
+    }
+
+    @Test
+    @DisplayName("Scenario: Update case to pending closure with open bookings")
+    void updateCaseToPendingClosureWithOpenBookings() throws JsonProcessingException {
+        // create an open case
+        var dto = createCase();
+        dto.setState(CaseState.OPEN);
+        var putCase1 = putCase(dto);
+        assertResponseCode(putCase1, 201);
+        assertMatchesDto(dto);
+
+        // update case to PENDING_CLOSURE when there is a booking without a capture session
+        var booking = createBooking(dto.getId(), dto.getParticipants());
+        var putBooking = putBooking(booking);
+        assertResponseCode(putBooking, 201);
+        assertMatchesDto(dto);
+
+        dto.setState(CaseState.PENDING_CLOSURE);
+        dto.setClosedAt(Timestamp.from(Instant.now()));
+        var putCase2 = putCase(dto);
+        assertResponseCode(putCase2, 400);
+
+        var errorMessage = "Resource Case("
+            + dto.getId()
+            + ") has open bookings which must not be present when updating state to PENDING_CLOSURE";
+        assertThat(putCase2.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state STANDBY
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        var putCaptureSession1 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession1, 201);
+
+        var putCase3 = putCase(dto);
+        assertResponseCode(putCase3, 400);
+        assertThat(putCase2.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state INITIALISING
+        captureSession.setStatus(RecordingStatus.INITIALISING);
+        var putCaptureSession2 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession2, 204);
+
+        var putCase4 = putCase(dto);
+        assertResponseCode(putCase4, 400);
+        assertThat(putCase4.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state RECORDING
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        var putCaptureSession3 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession3, 204);
+
+        var putCase5 = putCase(dto);
+        assertResponseCode(putCase5, 400);
+        assertThat(putCase5.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state PROCESSING
+        captureSession.setStatus(RecordingStatus.PROCESSING);
+        var putCaptureSession4 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession4, 204);
+
+        var putCase6 = putCase(dto);
+        assertResponseCode(putCase6, 400);
+        assertThat(putCase6.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+    }
+
+    @Test
+    @DisplayName("Scenario: Update case to closed with open bookings")
+    void updateCaseToClosedWithOpenBookings() throws JsonProcessingException {
+        // create an open case
+        var dto = createCase();
+        dto.setState(CaseState.OPEN);
+        var putCase1 = putCase(dto);
+        assertResponseCode(putCase1, 201);
+        assertMatchesDto(dto);
+
+        // update case to CLOSED when there is a booking without a capture session
+        var booking = createBooking(dto.getId(), dto.getParticipants());
+        var putBooking = putBooking(booking);
+        assertResponseCode(putBooking, 201);
+        assertMatchesDto(dto);
+
+        dto.setState(CaseState.CLOSED);
+        dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(86400)));
+        var putCase2 = putCase(dto);
+        assertResponseCode(putCase2, 400);
+
+        var errorMessage = "Resource Case("
+            + dto.getId()
+            + ") has open bookings which must not be present when updating state to CLOSED";
+        assertThat(putCase2.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state STANDBY
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        var putCaptureSession1 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession1, 201);
+
+        var putCase3 = putCase(dto);
+        assertResponseCode(putCase3, 400);
+        assertThat(putCase2.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state INITIALISING
+        captureSession.setStatus(RecordingStatus.INITIALISING);
+        var putCaptureSession2 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession2, 204);
+
+        var putCase4 = putCase(dto);
+        assertResponseCode(putCase4, 400);
+        assertThat(putCase4.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state RECORDING
+        captureSession.setStatus(RecordingStatus.RECORDING);
+        var putCaptureSession3 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession3, 204);
+
+        var putCase5 = putCase(dto);
+        assertResponseCode(putCase5, 400);
+        assertThat(putCase5.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state PROCESSING
+        captureSession.setStatus(RecordingStatus.PROCESSING);
+        var putCaptureSession4 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession4, 204);
+
+        var putCase6 = putCase(dto);
+        assertResponseCode(putCase6, 400);
+        assertThat(putCase6.body().jsonPath().getString("message"))
+            .isEqualTo(errorMessage);
+    }
+
+    @Test
+    @DisplayName("Scenario: Update case to pending closure without open bookings")
+    void updateCaseToPendingClosureWithoutOpenBookings() throws JsonProcessingException {
+        // create an open case
+        var dto = createCase();
+        dto.setState(CaseState.OPEN);
+        var putCase1 = putCase(dto);
+        assertResponseCode(putCase1, 201);
+        assertMatchesDto(dto);
+
+        // update case to PENDING_CLOSURE when there are no associated bookings
+        dto.setState(CaseState.PENDING_CLOSURE);
+        dto.setClosedAt(Timestamp.from(Instant.now()));
+        var putCase2 = putCase(dto);
+        assertResponseCode(putCase2, 204);
+        assertMatchesDto(dto);
+
+        // reset
+        dto.setState(CaseState.OPEN);
+        dto.setClosedAt(null);
+        var putCase3 = putCase(dto);
+        assertResponseCode(putCase3, 204);
+        assertMatchesDto(dto);
+
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state FAILURE
+        var booking = createBooking(dto.getId(), dto.getParticipants());
+        var putBooking = putBooking(booking);
+        assertResponseCode(putBooking, 201);
+        assertMatchesDto(dto);
+
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.FAILURE);
+        var putCaptureSession1 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession1, 201);
+
+        dto.setState(CaseState.PENDING_CLOSURE);
+        dto.setClosedAt(Timestamp.from(Instant.now()));
+        var putCase4 = putCase(dto);
+        assertResponseCode(putCase4, 204);
+        assertMatchesDto(dto);
+
+        // reset
+        dto.setState(CaseState.OPEN);
+        dto.setClosedAt(null);
+        var putCase5 = putCase(dto);
+        assertResponseCode(putCase5, 204);
+        assertMatchesDto(dto);
+
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state NO_RECORDING
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession2 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession2, 204);
+
+        dto.setState(CaseState.PENDING_CLOSURE);
+        dto.setClosedAt(Timestamp.from(Instant.now()));
+        var putCase6 = putCase(dto);
+        assertResponseCode(putCase6, 204);
+        assertMatchesDto(dto);
+
+        // reset
+        dto.setState(CaseState.OPEN);
+        dto.setClosedAt(null);
+        var putCase7 = putCase(dto);
+        assertResponseCode(putCase7, 204);
+        assertMatchesDto(dto);
+
+        // update case to PENDING_CLOSURE when there is a booking with a capture session in state RECORDING_AVAILABLE
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        var putCaptureSession3 = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession3, 204);
+
+        dto.setState(CaseState.PENDING_CLOSURE);
+        dto.setClosedAt(Timestamp.from(Instant.now()));
+        var putCase8 = putCase(dto);
+        assertResponseCode(putCase8, 204);
         assertMatchesDto(dto);
     }
 
@@ -376,6 +589,11 @@ class CaseControllerFT extends FunctionalTestBase {
         var putBooking = putBooking(booking);
         assertResponseCode(putBooking, 201);
         assertBookingExists(booking.getId(), true);
+
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
 
         var user1 = createUser("aaa");
         var putUser1 = putUser(user1);

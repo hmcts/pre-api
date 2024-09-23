@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,14 +15,17 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO.EmailType;
 import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
@@ -45,6 +49,7 @@ public class CaseService {
     private final BookingService bookingService;
     private final ShareBookingService shareBookingService;
     private final CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
+    private final BookingRepository bookingRepository;
 
     @Autowired
     public CaseService(CaseRepository caseRepository,
@@ -52,14 +57,15 @@ public class CaseService {
                        ParticipantRepository participantRepository,
                        BookingService bookingService,
                        ShareBookingService shareBookingService,
-                       CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient
-    ) {
+                       CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient,
+                       @Lazy BookingRepository bookingRepository) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
         this.participantRepository = participantRepository;
         this.bookingService = bookingService;
         this.shareBookingService = shareBookingService;
         this.caseStateChangeNotifierFlowClient = caseStateChangeNotifierFlowClient;
+        this.bookingRepository = bookingRepository;
     }
 
     @Transactional
@@ -118,6 +124,25 @@ public class CaseService {
                 && createCaseDTO.getState() == CaseState.OPEN;
             isCasePendingClosure = foundCase.get().getState() == CaseState.OPEN
                 && createCaseDTO.getState() == CaseState.PENDING_CLOSURE;
+
+            if ((isCasePendingClosure || isCaseClosure) && bookingRepository
+                .findAllByCaseIdAndDeletedAtIsNull(foundCase.get())
+                .stream()
+                .anyMatch(b -> b.getCaptureSessions().isEmpty()
+                    || b.getCaptureSessions()
+                    .stream()
+                    .map(CaptureSession::getStatus)
+                    .anyMatch(s -> s != RecordingStatus.FAILURE
+                        && s != RecordingStatus.NO_RECORDING
+                        && s != RecordingStatus.RECORDING_AVAILABLE)
+                )
+            ) {
+                throw new ResourceInWrongStateException(
+                    "Resource Case("
+                        + createCaseDTO.getId()
+                        + ") has open bookings which must not be present when updating state to "
+                        + createCaseDTO.getState());
+            }
         }
 
         if (!isCaseReferenceValid(isUpdate, createCaseDTO))  {

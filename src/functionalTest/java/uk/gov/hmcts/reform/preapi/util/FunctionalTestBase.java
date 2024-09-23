@@ -12,6 +12,7 @@ import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -20,6 +21,8 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -271,6 +274,10 @@ public class FunctionalTestBase {
         return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 
+    protected Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
+        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+    }
+
     protected CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO dto) {
         var create = new CreateParticipantDTO();
         create.setId(dto.getId());
@@ -329,6 +336,28 @@ public class FunctionalTestBase {
         dto.setId(UUID.randomUUID());
         dto.setBookingId(bookingId);
         dto.setSharedWithUser(shareWithId);
+        return dto;
+    }
+
+    protected CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    protected CreateCaptureSessionDTO createCaptureSession() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+            .body()
+            .jsonPath().getUUID("bookingId");
+
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
         return dto;
     }
 

@@ -275,21 +275,11 @@ public class RecordingControllerFT extends FunctionalTestBase {
         return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
     }
 
-    private CreateCaptureSessionDTO createCaptureSession() {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
-            .body()
-            .jsonPath().getUUID("bookingId");
-
-        var dto = new CreateCaptureSessionDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
+    @Override
+    protected CreateCaptureSessionDTO createCaptureSession() {
+        var dto = super.createCaptureSession();
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
-        dto.setOrigin(RecordingOrigin.PRE);
         return dto;
-    }
-
-    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 
     private Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
