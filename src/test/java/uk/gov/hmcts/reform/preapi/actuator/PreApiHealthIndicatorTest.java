@@ -104,7 +104,7 @@ public class PreApiHealthIndicatorTest {
             .withDetail("mediakindConnections", Map.of(
                 "ingest-account", false,
                 "final-account", false
-            )));
+            )).build());
     }
 
     private MkStorageAccount createMkStorageAccount(String name, String linkStatus) {
