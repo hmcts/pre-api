@@ -328,36 +328,48 @@ public class MediaKind implements IMediaService {
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
     public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
-        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
-        var recordingTempAssetName = recordingNoHyphen + "_temp";
-        var recordingAssetName = recordingNoHyphen + "_output";
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
 
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
+
+        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
+            log.info("No valid asset files found for capture session [{}] in container named [{}]",
+                     captureSession.getId(),
+                     captureSession.getBookingId().toString()
+            );
+            return RecordingStatus.NO_RECORDING;
+        }
+
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        var recordingTempAssetName = recordingNoHyphen + "_temp";
+        var recordingAssetName = recordingNoHyphen + "_output";
 
         createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
 
         var jobName = encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
-        waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
-        var status = RecordingStatus.NO_RECORDING;
-
-        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
-
-        if (filename != null) {
-            var jobName2 = encodeFromMp4(
-                recordingTempAssetName,
-                recordingAssetName,
-                filename
-            );
-            waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
-
-            status =  azureFinalStorageService.doesIsmFileExist(recordingId.toString())
-                ? RecordingStatus.RECORDING_AVAILABLE
-                : RecordingStatus.NO_RECORDING;
+        var encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
+        if (encodeFromIngestJobState != JobState.FINISHED) {
+            return RecordingStatus.FAILURE;
         }
 
-        return status;
+        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
+        if (filename == null) {
+            log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
+            return RecordingStatus.FAILURE;
+        }
+
+        var jobName2 = encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
+        var encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
+        if (encodeFromMp4JobState != JobState.FINISHED) {
+            return RecordingStatus.FAILURE;
+        }
+        if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
+            log.error("Final asset .ism file not found for asset [{}] in container [{}]",
+                      recordingAssetName, recordingId);
+            return RecordingStatus.FAILURE;
+        }
+        return RecordingStatus.RECORDING_AVAILABLE;
     }
 
     @Override
@@ -514,6 +526,14 @@ public class MediaKind implements IMediaService {
         } while (!job.getProperties().getState().equals(JobState.FINISHED)
             && !job.getProperties().getState().equals(JobState.ERROR)
             && !job.getProperties().getState().equals(JobState.CANCELED));
+        var state = job.getProperties().getState();
+        if (state.equals(JobState.ERROR)) {
+            log.error("Job [{}] failed with error [{}]",
+                      jobName,
+                      job.getProperties().getOutputs().getLast().error().message());
+        } else if (state.equals(JobState.CANCELED)) {
+            log.error("Job [{}] was cancelled", jobName);
+        }
 
         return job.getProperties().getState();
     }
