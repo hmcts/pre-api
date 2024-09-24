@@ -529,6 +529,36 @@ public class MediaKindTest {
     }
 
     @Test
+    @DisplayName("Should throw error for stop live event when file cannot be found after first encode job")
+    void stopLiveEventRecordingEncodingJobNoFileNameFound() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var mockJob1 = mock(MkJob.class);
+        var mockProperties1 = mock(MkJob.MkJobProperties.class);
+
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
+
+        when(mockJob1.getProperties()).thenReturn(mockProperties1);
+        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
+
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
+        when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn(null);
+
+        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId)).isEqualTo(RecordingStatus.FAILURE);
+
+        verify(mockClient, times(1)).stopLiveEvent(liveEventName);
+        verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
+        verify(mockClient, times(1)).deleteStreamingLocator(any());
+        verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
+        verify(mockClient, times(2)).putAsset(any(), any());
+        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
+        verify(mockClient, never()).putTransform(any(), any());
+        verify(azureIngestStorageService, never()).doesIsmFileExist(recordingId.toString());
+    }
+
+    @Test
     @DisplayName("Should throw error when error occurs creating asset")
     void stopLiveEventAssetCreateError() {
         var recordingId = UUID.randomUUID();
