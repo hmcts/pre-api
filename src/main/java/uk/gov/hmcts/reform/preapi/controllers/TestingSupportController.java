@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -294,16 +295,24 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/create-authenticated-user/super-user",  produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createAuthenticatedUser() {
-        var appAccess = createAppAccess("Super User");
-
-        var response = new HashMap<String, String>() {
-            {
-                put("accessId", appAccess.getId().toString());
-            }
-        };
-        return ResponseEntity.ok(response);
+    @PostMapping("/create-authenticated-user/{role}")
+    public ResponseEntity<Map<String, String>> createAuthenticatedUser(@PathVariable TestingSupportRoles role) {
+        String roleName;
+        switch (role) {
+            case SUPER_USER -> roleName = "Super User";
+            case LEVEL_1 -> roleName = "Level 1";
+            case LEVEL_2 -> roleName = "Level 2";
+            case LEVEL_3 -> roleName = "Level 3";
+            case LEVEL_4 -> roleName = "Level 4";
+            default -> throw new IllegalArgumentException("Invalid role");
+        }
+        var r = roleRepository.findFirstByName(roleName)
+            .orElse(createRole(roleName));
+        var appAccess = createAppAccess(r);
+        return ResponseEntity.ok(Map.of(
+            "accessId", appAccess.getId().toString(),
+            "courtId", appAccess.getCourt().getId().toString()
+        ));
     }
 
     private Court createTestCourt() {
@@ -322,6 +331,18 @@ class TestingSupportController {
         access.setUser(createUser());
         access.setCourt(createTestCourt());
         access.setRole(createRole(role));
+        access.setActive(true);
+        access.setDefaultCourt(true);
+        appAccessRepository.save(access);
+
+        return access;
+    }
+
+    private AppAccess createAppAccess(Role role) {
+        var access = new AppAccess();
+        access.setUser(createUser());
+        access.setCourt(createTestCourt());
+        access.setRole(role);
         access.setActive(true);
         access.setDefaultCourt(true);
         appAccessRepository.save(access);
@@ -349,5 +370,14 @@ class TestingSupportController {
         roleRepository.save(role);
 
         return role;
+    }
+
+    public enum AuthLevel {
+        NONE,
+        SUPER_USER,
+        LEVEL_1,
+        LEVEL_2,
+        LEVEL_3,
+        LEVEL_4
     }
 }

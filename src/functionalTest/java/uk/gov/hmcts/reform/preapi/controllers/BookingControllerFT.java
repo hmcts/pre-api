@@ -1,8 +1,10 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -31,7 +33,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     void shouldNotDeleteRecordingsForBooking() {
 
-        var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking", false).body().jsonPath();
+        var testIds = doPostRequest("/testing-support/should-delete-recordings-for-booking", null).body().jsonPath();
 
         var bookingId = testIds.getUUID("bookingId");
         var recordingId = testIds.getUUID("recordingId");
@@ -40,7 +42,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var recordingResponse = assertRecordingExists(recordingId, true);
         assertThat(recordingResponse.body().jsonPath().getString("created_at")).isNotBlank();
 
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 400);
         assertThat(deleteResponse.getBody().jsonPath().getString("message"))
             .isEqualTo("Cannot delete because and associated recording has not been deleted.");
@@ -50,7 +52,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Delete booking")
     @Test
     void shouldDeleteRecordingsForBooking() {
-        var testIds = doPostRequest("/testing-support/create-well-formed-booking", false)
+        var testIds = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath();
         var bookingId = testIds.getUUID("bookingId");
@@ -59,20 +61,20 @@ class BookingControllerFT extends FunctionalTestBase {
         // see it is available before deletion
         assertBookingExists(bookingId, true);
 
-        var searchResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
+        var searchResponse1 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(searchResponse1, 200);
         var responseData1 = searchResponse1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
         assertThat(responseData1.size()).isEqualTo(1);
         assertThat(responseData1.getFirst().getId()).isEqualTo(bookingId);
 
         // delete booking
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + bookingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 204);
 
         // see it is no longer available after deletion
         assertBookingExists(bookingId, false);
 
-        var searchResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, true);
+        var searchResponse2 = doGetRequest(BOOKINGS_ENDPOINT + "?courtId=" + courtId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(searchResponse2, 200);
         assertThat(searchResponse2.jsonPath().getInt("page.totalElements"))
             .isEqualTo(0);
@@ -81,12 +83,12 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Scenario: The schedule date should not be amended to the past date")
     void recordingScheduleDateShouldNotBeAmendedToThePast() throws JsonProcessingException {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath()
             .getUUID("bookingId");
 
-        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, true);
+        var bookingResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + bookingId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(bookingResponse, 200);
 
         BookingDTO booking = bookingResponse.body().as(BookingDTO.class);
@@ -124,39 +126,42 @@ class BookingControllerFT extends FunctionalTestBase {
     @Test
     @DisplayName("Deleting a non-existent booking should return 404")
     void deletingNonExistentBookingShouldReturn404() {
-        var deleteResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + "00000000-0000-0000-0000-000000000000", true);
+        var deleteResponse = doDeleteRequest(
+            BOOKINGS_ENDPOINT + "/" + "00000000-0000-0000-0000-000000000000",
+            TestingSupportRoles.SUPER_USER
+        );
         assertResponseCode(deleteResponse, 404);
     }
 
     @DisplayName("Unauthorised use of endpoints should return 401")
     @Test
     void unauthorisedRequestsReturn401() throws JsonProcessingException {
-        var getBookingsResponse = doGetRequest("/bookings", false);
+        var getBookingsResponse = doGetRequest("/bookings", null);
         assertResponseCode(getBookingsResponse, 401);
 
-        var getBookingsByIdResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), false);
+        var getBookingsByIdResponse = doGetRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), null);
         assertResponseCode(getBookingsByIdResponse, 401);
 
         var putBookingResponse = doPutRequest(
             BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(),
             OBJECT_MAPPER.writeValueAsString(new CreateBookingDTO()),
-            false
+            null
         );
         assertResponseCode(putBookingResponse, 401);
 
-        var deleteBookingResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), false);
+        var deleteBookingResponse = doDeleteRequest(BOOKINGS_ENDPOINT + "/" + UUID.randomUUID(), null);
         assertResponseCode(deleteBookingResponse, 401);
 
         var putShareBookingResponse = doPutRequest(
             BOOKINGS_ENDPOINT + "/" + UUID.randomUUID() + "/share",
             OBJECT_MAPPER.writeValueAsString(new CreateShareBookingDTO()),
-            false
+            null
         );
         assertResponseCode(putShareBookingResponse, 401);
 
         var deleteShareBookingResponse = doDeleteRequest(
             BOOKINGS_ENDPOINT + "/" + UUID.randomUUID() + "/share",
-            false
+            null
         );
         assertResponseCode(deleteShareBookingResponse, 401);
     }
@@ -175,7 +180,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(putCase, 201);
 
@@ -209,7 +214,8 @@ class BookingControllerFT extends FunctionalTestBase {
         assertResponseCode(putShare1, 201);
 
         // see shares are sorted
-        var getShares = doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/share", true);
+        var getShares =
+            doGetRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/share", TestingSupportRoles.SUPER_USER);
         assertResponseCode(getShares, 200);
 
         var shares = getShares.getBody().jsonPath().getList("_embedded.shareBookingDTOList", ShareBookingDTO.class);
@@ -239,7 +245,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(putCase, 201);
 
@@ -257,7 +263,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase2 = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity2.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity2),
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(putCase2, 201);
         booking.setCaseId(caseEntity2.getId());
@@ -284,7 +290,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(putCase, 201);
 
@@ -309,7 +315,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(putCase, 201);
         var participant3 = createParticipant(ParticipantType.DEFENDANT);
@@ -339,7 +345,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var putCase = doPutRequest(
             CASES_ENDPOINT + "/" + caseEntity.getId(),
             OBJECT_MAPPER.writeValueAsString(caseEntity),
-            true
+            TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(putCase, 201);
 
@@ -350,13 +356,14 @@ class BookingControllerFT extends FunctionalTestBase {
         assertCaseExists(caseEntity.getId(), true);
 
         // delete case (and associated booking)
-        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseEntity.getId(), true);
+        var deleteResponse = doDeleteRequest(CASES_ENDPOINT + "/" + caseEntity.getId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
         assertBookingExists(booking.getId(), false);
         assertCaseExists(caseEntity.getId(), false);
 
         // undelete booking
-        var undeleteResponse = doPostRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/undelete", true);
+        var undeleteResponse =
+            doPostRequest(BOOKINGS_ENDPOINT + "/" + booking.getId() + "/undelete", TestingSupportRoles.SUPER_USER);
         assertResponseCode(undeleteResponse, 200);
         assertBookingExists(booking.getId(), true);
         assertCaseExists(caseEntity.getId(), true);

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -18,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -597,6 +599,68 @@ public class AuthorisationServiceTest {
         when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
         when(caseRepository.findById(dto.getId())).thenReturn(Optional.of(aCase));
 
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should grant upsert access when case attempting to update a case status as correct role")
+    @Test
+    void hasUpsertAccessCaseAccessGrantedForUpdateStatus() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        aCase.setState(CaseState.OPEN);
+
+        var dto = new CreateCaseDTO();
+        dto.setId(aCase.getId());
+        dto.setCourtId(court.getId());
+        dto.setState(CaseState.PENDING_CLOSURE);
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+        when(caseRepository.findById(dto.getId())).thenReturn(Optional.of(aCase));
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_2")));
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should not grant upsert access when case attempting to update a case status as invalid user")
+    @Test
+    void hasUpsertAccessCaseAccessNotGrantedForUpdateStatus() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        aCase.setState(CaseState.OPEN);
+
+        var dto = new CreateCaseDTO();
+        dto.setId(aCase.getId());
+        dto.setCourtId(court.getId());
+        dto.setState(CaseState.PENDING_CLOSURE);
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.isPortalUser()).thenReturn(false);
+        when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_3")));
+        when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
+        when(caseRepository.findById(dto.getId())).thenReturn(Optional.of(aCase));
+
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+
+        when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_4")));
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
