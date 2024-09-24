@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
-import com.azure.core.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;

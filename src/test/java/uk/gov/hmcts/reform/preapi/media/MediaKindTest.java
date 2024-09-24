@@ -672,7 +672,8 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
         verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
-        verify(mockClient, never()).putAsset(any(), any());    }
+        verify(mockClient, never()).putAsset(any(), any());
+    }
 
     @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
     @Test
