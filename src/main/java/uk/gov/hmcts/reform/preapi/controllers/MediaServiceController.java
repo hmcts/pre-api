@@ -186,10 +186,12 @@ public class MediaServiceController extends PreApiController {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
             var status = mediaService.stopLiveEvent(dto, recordingId);
-            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
             if (status == RecordingStatus.FAILURE) {
-                throw new UnknownServerException("Encountered an error during encoding process");
+                throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
+                                                     + captureSessionId
+                                                     + ")");
             }
+            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
         } catch (Exception e) {
             captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
             throw e;

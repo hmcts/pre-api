@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -45,6 +46,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -605,6 +607,37 @@ public class MediaServiceControllerTest {
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$.id").value(captureSessionId.toString()))
                .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
+    }
+
+    @Test
+    @DisplayName("Should throw 500 when encountering failure in encoding process")
+    void stopLiveEventFailureEncounteredInternalServerError() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStatus(RecordingStatus.RECORDING);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+        when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class)))
+            .thenReturn(dto);
+        when(mediaService.stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class))).thenReturn(RecordingStatus.FAILURE);
+
+        mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
+            .andExpect(status().isInternalServerError())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value(
+                               "Unknown Server Exception: Encountered an error during encoding process for CaptureSession("
+                                   + captureSessionId
+                                   + ")"));
+
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(captureSessionService, times(1)).findById(captureSessionId);
+        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
+        verify(mediaService, times(1)).stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class));
+        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), any(UUID.class));
     }
 
     @DisplayName("Should throw 400 when live event has not been started")
