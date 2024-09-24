@@ -53,7 +53,6 @@ public class PreApiHealthIndicator implements HealthIndicator {
     private Map<String, Boolean> checkMediaKindConnections() {
         var storageAccounts = mediaKindAccountsClient.getStorageAccounts();
         if (storageAccounts.getItems().isEmpty()) {
-            // maybe don't do this for now (will get this always in prod)
             log.error("MediaKind does not have any storage account connections");
             return Map.of(
                 ingestStorageAccountName, false,
