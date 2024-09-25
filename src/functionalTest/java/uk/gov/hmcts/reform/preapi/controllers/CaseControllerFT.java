@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -634,6 +635,8 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(b2.getShares()).isNotEmpty();
         assertThat(b2.getShares().getFirst().getId()).isEqualTo(share1.getId());
         assertThat(b2.getShares().getFirst().getDeletedAt()).isNotNull();
+    }
+
     @DisplayName("Scenario: Update case status as SUPER USER, LEVEL 1 and LEVEL 2")
     @Test
     void updateCaseStatusSuccess() throws JsonProcessingException {
@@ -661,7 +664,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update PENDING_CLOSURE -> CLOSED
             dto.setState(CaseState.CLOSED);
-            dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+            dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
             var putResponse3 = putCase(dto, role);
             assertResponseCode(putResponse3, 204);
             assertCaseExists(dto.getId(), true);
@@ -725,7 +728,7 @@ class CaseControllerFT extends FunctionalTestBase {
 
             // update PENDING_CLOSURE -> CLOSED
             dto.setState(CaseState.CLOSED);
-            dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(3600)));
+            dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
             var putResponse3 = putCase(dto, role);
             assertResponseCode(putResponse3, 403);
 
@@ -739,14 +742,6 @@ class CaseControllerFT extends FunctionalTestBase {
             var putResponse4 = putCase(dto, role);
             assertResponseCode(putResponse4, 403);
         }
-    }
-
-    private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            CASES_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
     }
 
     private Response putCase(CreateCaseDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {

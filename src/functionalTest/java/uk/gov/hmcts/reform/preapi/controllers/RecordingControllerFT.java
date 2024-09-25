@@ -286,14 +286,6 @@ public class RecordingControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
-    }
-
     private Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
         return doPutRequest(
             RECORDINGS_ENDPOINT + "/" + dto.getId(),

@@ -120,7 +120,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Create and update a capture session when case is closed")
     @Test
     void shouldCreateCaptureSessionCaseClosed() throws JsonProcessingException {
-        var res = doPostRequest("/testing-support/create-well-formed-booking", false)
+        var res = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath();
         var bookingId = res.getUUID("bookingId");
@@ -167,7 +167,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Create and update a capture session when case is pending closure")
     @Test
     void shouldCreateCaptureSessionCasePendingClosure() throws JsonProcessingException {
-        var res = doPostRequest("/testing-support/create-well-formed-booking", false)
+        var res = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath();
         var bookingId = res.getUUID("bookingId");

@@ -299,11 +299,11 @@ public class FunctionalTestBase {
     }
 
     protected Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
-        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
     }
 
     protected Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), TestingSupportRoles.SUPER_USER);
     }
 
     protected CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO dto) {
@@ -344,7 +344,7 @@ public class FunctionalTestBase {
         return doPutRequest(
             BOOKINGS_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
-            true
+            TestingSupportRoles.SUPER_USER
         );
     }
 
@@ -377,7 +377,7 @@ public class FunctionalTestBase {
     }
 
     protected CreateCaptureSessionDTO createCaptureSession() {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", false)
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
             .jsonPath().getUUID("bookingId");
 
@@ -393,7 +393,7 @@ public class FunctionalTestBase {
         return doPutRequest(
             BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
             OBJECT_MAPPER.writeValueAsString(dto),
-            true
+            TestingSupportRoles.SUPER_USER
         );
     }
 }
