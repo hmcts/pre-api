@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -317,10 +316,6 @@ class CaseControllerFT extends FunctionalTestBase {
         assertThat(getCases2.body().jsonPath().getUUID("_embedded.caseDTOList[0].id")).isEqualTo(dto.getId());
         assertThat(getCases2.body().jsonPath().getString("_embedded.caseDTOList[0].reference"))
             .isEqualTo(dto.getReference());
-    }
-
-    private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
-        return doPutRequest(CASES_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
     }
 
     private void assertMatchesDto(CreateCaseDTO dto) {
