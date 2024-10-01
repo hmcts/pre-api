@@ -681,10 +681,10 @@ class CaseServiceTest {
         verify(caseRepository, never()).save(any());
     }
 
-    @DisplayName("Should close pending cases that are older than 29 days")
+    @DisplayName("Should close pending cases that have closed_at value in the past")
     @Test
     void checkAndClosePendingCasesSuccess() {
-        var instant = Instant.now();
+        var instant = Instant.now().minusSeconds(1);
         var pendingCase = new Case();
         pendingCase.setState(CaseState.PENDING_CLOSURE);
         pendingCase.setClosedAt(Timestamp.from(instant.plus(28, ChronoUnit.DAYS)));

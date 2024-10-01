@@ -256,7 +256,7 @@ public class CaseService {
 
     @Transactional
     public void closePendingCases() {
-        var timestamp = Timestamp.from(Instant.now().minusSeconds(29L * 24 * 60 * 60));
+        var timestamp = Timestamp.from(Instant.now());
         caseRepository.findAllByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, timestamp).forEach(c -> {
             c.setState(CaseState.CLOSED);
             caseRepository.save(c);
