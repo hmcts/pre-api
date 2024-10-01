@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -12,10 +13,10 @@ public class ReportControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Should format Duration and date correctly")
     @Test
     void shouldFormatDurationAndDateCorrectly() throws JsonProcessingException {
-        var captureSessionId = doPostRequest("/testing-support/should-delete-recordings-for-booking", false)
+        var captureSessionId = doPostRequest("/testing-support/should-delete-recordings-for-booking", null)
             .body().jsonPath().getUUID("captureSessionId");
 
-        var response = doGetRequest(REPORTS_ENDPOINT + "/capture-sessions-concurrent", true);
+        var response = doGetRequest(REPORTS_ENDPOINT + "/capture-sessions-concurrent", TestingSupportRoles.SUPER_USER);
         var list = response.getBody().jsonPath().getList("", ConcurrentCaptureSessionReportDTO.class);
 
         int index = 0;
