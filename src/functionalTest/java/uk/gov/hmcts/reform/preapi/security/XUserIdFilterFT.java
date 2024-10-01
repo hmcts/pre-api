@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.security;
 
 
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.Map;
@@ -16,33 +17,33 @@ public class XUserIdFilterFT extends FunctionalTestBase {
 
     @Test
     void shouldAuthenticateUserExistsSuccess() {
-        assertThat(doGetRequest(ENDPOINT, true).getStatusCode()).isNotEqualTo(401);
+        assertThat(doGetRequest(ENDPOINT, TestingSupportRoles.SUPER_USER).getStatusCode()).isNotEqualTo(401);
     }
 
     @Test
     void shouldNotApplyAuthenticationOnSpecificEndpoints() {
-        assertThat(doGetRequest("/swagger-ui/index.html", false).getStatusCode()).isNotEqualTo(401);
-        assertThat(doGetRequest("/v3/api-docs", false).getStatusCode()).isNotEqualTo(401);
+        assertThat(doGetRequest("/swagger-ui/index.html", null).getStatusCode()).isNotEqualTo(401);
+        assertThat(doGetRequest("/v3/api-docs", null).getStatusCode()).isNotEqualTo(401);
     }
 
     @Test
     void shouldFailAuthWhenUserIdNotValid() {
-        assertThat(doGetRequest(ENDPOINT, false).getStatusCode()).isEqualTo(401);
+        assertThat(doGetRequest(ENDPOINT, null).getStatusCode()).isEqualTo(401);
 
         var headersIdEmpty = Map.of(
             X_USER_ID_HEADER, ""
         );
-        assertThat(doGetRequest(ENDPOINT, headersIdEmpty, false).getStatusCode()).isEqualTo(401);
+        assertThat(doGetRequest(ENDPOINT, headersIdEmpty, null).getStatusCode()).isEqualTo(401);
 
         var headersIdNotUserId = Map.of(
             X_USER_ID_HEADER, UUID.randomUUID().toString()
         );
-        assertThat(doGetRequest(ENDPOINT, headersIdNotUserId, false).getStatusCode()).isEqualTo(401);
+        assertThat(doGetRequest(ENDPOINT, headersIdNotUserId, null).getStatusCode()).isEqualTo(401);
 
         var headersIdNotUuid = Map.of(
             X_USER_ID_HEADER, "1234567890"
         );
-        assertThat(doGetRequest(ENDPOINT, headersIdNotUuid, false).getStatusCode()).isEqualTo(401);
+        assertThat(doGetRequest(ENDPOINT, headersIdNotUuid, null).getStatusCode()).isEqualTo(401);
 
     }
 }
