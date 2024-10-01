@@ -126,4 +126,12 @@ public class CaseController extends PreApiController {
         caseService.undelete(id);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/close-pending")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2')")
+    @Operation(operationId = "closePendingCases", summary = "Close cases in PENDING_CLOSURE state > 29 days")
+    public ResponseEntity<Void> closePending() {
+        caseService.closePendingCases();
+        return ResponseEntity.noContent().build();
+    }
 }

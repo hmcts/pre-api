@@ -224,6 +224,10 @@ definitions:
   CaseDTO:
     description: CaseDTO
     properties:
+      closed_at:
+        description: CaseClosedAt
+        format: date-time
+        type: string
       court:
         $ref: '#/definitions/CourtDTO'
       created_at:
@@ -249,6 +253,13 @@ definitions:
         type: array
       reference:
         description: CaseReference
+        type: string
+      state:
+        description: CaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
         type: string
       test:
         description: CaseIsTest
@@ -523,6 +534,10 @@ definitions:
   CreateCaseDTO:
     description: CreateCaseDTO
     properties:
+      closed_at:
+        description: CreateCaseClosedAt
+        format: date-time
+        type: string
       court_id:
         description: CreateCaseCourtId
         format: uuid
@@ -541,6 +556,13 @@ definitions:
         description: CreateCaseReference
         maxLength: 13
         minLength: 9
+        type: string
+      state:
+        description: CreateCaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
         type: string
       test:
         description: CreateCaseIsTest
@@ -907,6 +929,10 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      closed_at:
+        description: CaseClosedAt
+        format: date-time
+        type: string
       court:
         $ref: '#/definitions/CourtDTO'
       created_at:
@@ -932,6 +958,13 @@ definitions:
         type: array
       reference:
         description: CaseReference
+        type: string
+      state:
+        description: CaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
         type: string
       test:
         description: CaseIsTest
@@ -2281,6 +2314,23 @@ paths:
           schema:
             $ref: '#/definitions/PagedModelEntityModelCaseDTO'
       summary: Get a case by reference or court id
+      tags:
+        - case-controller
+  /cases/close-pending:
+    post:
+      operationId: closePendingCases
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Close cases in PENDING_CLOSURE state > 29 days
       tags:
         - case-controller
   '/cases/{id}':

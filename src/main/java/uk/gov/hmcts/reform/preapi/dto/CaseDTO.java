@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 import java.util.Comparator;
@@ -36,6 +37,12 @@ public class CaseDTO {
     @Schema(description = "CaseIsTest")
     private boolean test;
 
+    @Schema(description = "CaseState")
+    private CaseState state;
+
+    @Schema(description = "CaseClosedAt")
+    private Timestamp closedAt;
+
     @Schema(description = "CaseDeletedAt")
     private Timestamp deletedAt;
 
@@ -46,10 +53,10 @@ public class CaseDTO {
     private Timestamp modifiedAt;
 
     public CaseDTO(Case caseEntity) {
-        this.id = caseEntity.getId();
-        this.court = new CourtDTO(caseEntity.getCourt());
-        this.reference = caseEntity.getReference();
-        this.participants = Stream.ofNullable(caseEntity.getParticipants())
+        id = caseEntity.getId();
+        court = new CourtDTO(caseEntity.getCourt());
+        reference = caseEntity.getReference();
+        participants = Stream.ofNullable(caseEntity.getParticipants())
             .flatMap(participants ->
                          participants
                              .stream()
@@ -57,9 +64,11 @@ public class CaseDTO {
                              .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
-        this.test = caseEntity.isTest();
-        this.deletedAt = caseEntity.getDeletedAt();
-        this.createdAt = caseEntity.getCreatedAt();
-        this.modifiedAt = caseEntity.getModifiedAt();
+        test = caseEntity.isTest();
+        state = caseEntity.getState();
+        closedAt = caseEntity.getClosedAt();
+        deletedAt = caseEntity.getDeletedAt();
+        createdAt = caseEntity.getCreatedAt();
+        modifiedAt = caseEntity.getModifiedAt();
     }
 }

@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -106,6 +107,10 @@ public class CaseService {
         if (!isUpdate) {
             newCase.setCreatedAt(Timestamp.from(Instant.now()));
         }
+
+        // todo update once CreateCaseDTO.state is made not null (currently breaking)
+        newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
+        newCase.setClosedAt(createCaseDTO.getClosedAt());
         caseRepository.saveAndFlush(newCase);
 
         Set<Participant> oldParticipants = (newCase.getParticipants() == null || newCase.getParticipants().isEmpty())
@@ -178,5 +183,14 @@ public class CaseService {
                 || foundCases.getFirst().getId().equals(createCaseDTO.getId())
             : createCaseDTO.getReference() != null
                 && foundCases.isEmpty();
+    }
+
+    @Transactional
+    public void closePendingCases() {
+        var timestamp = Timestamp.from(Instant.now().minusSeconds(29L * 24 * 60 * 60));
+        caseRepository.findAllByStateAndClosedAtBefore(CaseState.PENDING_CLOSURE, timestamp).forEach(c -> {
+            c.setState(CaseState.CLOSED);
+            caseRepository.save(c);
+        });
     }
 }

@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.entities.UserTermsAccepted;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -111,6 +112,7 @@ public class HelperFactory {
         testCase.setReference(reference);
         testCase.setTest(test);
         testCase.setDeletedAt(deletedAt);
+        testCase.setState(CaseState.OPEN);
         return testCase;
     }
 

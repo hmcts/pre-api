@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -28,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +37,10 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -430,5 +434,25 @@ class CaseServiceTest {
 
         verify(caseRepository, times(1)).findById(caseId);
         verify(caseRepository, never()).save(any());
+    }
+
+    @DisplayName("Should close pending cases that are older than 29 days")
+    @Test
+    void checkAndClosePendingCasesSuccess() {
+        var instant = Instant.now();
+        var pendingCase = new Case();
+        pendingCase.setState(CaseState.PENDING_CLOSURE);
+        pendingCase.setClosedAt(Timestamp.from(instant.plus(28, ChronoUnit.DAYS)));
+
+        var pendingCases = List.of(pendingCase);
+
+        when(caseRepository.findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any()))
+            .thenReturn(pendingCases);
+
+        caseService.closePendingCases();
+        assertEquals(CaseState.CLOSED, pendingCase.getState());
+
+        verify(caseRepository).findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
+        verify(caseRepository).save(pendingCase);
     }
 }
