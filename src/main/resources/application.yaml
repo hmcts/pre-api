@@ -99,7 +99,7 @@ flow:
       id: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
       enabled: true
     caseStateChangeNotifier:
-      api: ${FLOW_HTTP_API:https://prod-17.uksouth.logic.azure.com:443}
+      api: ${FLOW_CLOSE_LIVE_EVENT_HTTP_API:https://prod-17.uksouth.logic.azure.com:443}
       id: ${CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID:8b976c9fdc7749d3a4b8c9d6a6ef9d0c}
       enabled: true
   sig: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG:123}
@@ -109,18 +109,18 @@ flow:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
 #    org.springframework.transaction: DEBUG
-#logging:
-#  level:
-#    uk:
-#      gov:
-#        hmcts:
-#          reform:
-#            preapi:
-#              email:
-#                StopLiveEventNotifierFlowClient: DEBUG
-#                CaseStateChangeNotifierFlowClient: DEBUG
-#              media:
-#                MediaKindClient: DEBUG
+logging:
+  level:
+    uk:
+      gov:
+        hmcts:
+          reform:
+            preapi:
+              email:
+                StopLiveEventNotifierFlowClient: DEBUG
+                CaseStateChangeNotifierFlowClient: DEBUG
+              media:
+                MediaKindClient: DEBUG
 #log4j:
 #  logger:
 #    org:
