@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -18,6 +19,8 @@ import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,9 +47,10 @@ public class FunctionalTestBase {
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
     protected static final String REPORTS_ENDPOINT = "/reports";
-    protected static UUID authenticatedUserId;
+
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    protected static Map<TestingSupportRoles, AuthUserDetails> authenticatedUserIds;
 
     @Value("${TEST_URL:http://localhost:4550}")
     protected String testUrl;
@@ -59,84 +63,91 @@ public class FunctionalTestBase {
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = testUrl;
-        if (authenticatedUserId == null) {
-            authenticatedUserId = doPostRequest("/testing-support/create-authenticated-user/super-user", false)
-                .body()
-                .jsonPath()
-                .getUUID("accessId");
+        if (authenticatedUserIds == null) {
+            authenticatedUserIds = new HashMap<>();
+            Arrays.stream(TestingSupportRoles.values())
+                .forEach(role -> {
+                    authenticatedUserIds.put(
+                        role,
+                        doPostRequest("/testing-support/create-authenticated-user/" + role, null)
+                            .body()
+                            .jsonPath()
+                            .getObject("", AuthUserDetails.class)
+                    );
+                });
         }
     }
 
-    protected Response doGetRequest(final String path, final boolean isAuthenticated) {
-        return doGetRequest(path, null, isAuthenticated);
+    protected Response doGetRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doGetRequest(path, null, authenticatedAs);
     }
 
     protected Response doGetRequest(
         final String path,
         final Map<String, String> additionalHeaders,
-        final boolean isAuthenticated
+        final TestingSupportRoles authenticatedAs
     ) {
         Logger.getAnonymousLogger().info("GET " + path);
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
             .when()
             .get(path)
             .thenReturn();
     }
 
-    protected Response doPutRequest(final String path, final String body, final boolean isAuthenticated) {
-        return doPutRequest(path, null, body, isAuthenticated);
+    protected Response doPutRequest(final String path, final String body, final TestingSupportRoles authenticatedAs) {
+        return doPutRequest(path, null, body, authenticatedAs);
     }
 
     protected Response doPutRequest(
         final String path,
         final Map<String, String> additionalHeaders,
         final String body,
-        final boolean isAuthenticated
+        final TestingSupportRoles authenticatedAs
     ) {
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
             .body(body)
             .when()
             .put(path)
             .thenReturn();
     }
 
-    protected Response doPostRequest(final String path, final boolean isAuthenticated) {
-        return doPostRequest(path, null, "", isAuthenticated);
+    protected Response doPostRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doPostRequest(path, null, "", authenticatedAs);
     }
 
-    protected Response doPostRequest(final String path, final String body, final boolean isAuthenticated) {
-        return doPostRequest(path, null, body, isAuthenticated);
+    protected Response doPostRequest(final String path, final String body, final TestingSupportRoles authenticatedAs) {
+        return doPostRequest(path, null, body, authenticatedAs);
     }
 
     protected Response doPostRequest(final String path,
                                      final Map<String, String> additionalHeaders,
                                      final String body,
-                                     final boolean isAuthenticated) {
+                                     final TestingSupportRoles authenticatedAs) {
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
             .body(body)
             .when()
             .post(path)
             .thenReturn();
     }
 
-    protected Response doDeleteRequest(final String path, final boolean isAuthenticated) {
-        return doDeleteRequest(path, null, isAuthenticated);
+    protected Response doDeleteRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doDeleteRequest(path, null, authenticatedAs);
     }
 
     protected Response doDeleteRequest(
         final String path,
         final Map<String, String> additionalHeaders,
-        final boolean isAuthenticated
+        final TestingSupportRoles authenticatedAs
     ) {
         return given()
             .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
             .when()
             .delete(path)
             .thenReturn();
@@ -144,14 +155,14 @@ public class FunctionalTestBase {
 
     private static Map<String, String> getRequestHeaders(
         final Map<String, String> additionalHeaders,
-        final boolean isAuthenticated
+        final TestingSupportRoles authenticatedAs
     ) {
         final Map<String, String> headers = new ConcurrentHashMap<>(
             Map.of(CONTENT_TYPE, CONTENT_TYPE_VALUE)
         );
 
-        if (isAuthenticated) {
-            headers.put(X_USER_ID_HEADER, authenticatedUserId.toString());
+        if (authenticatedAs != null && authenticatedUserIds.get(authenticatedAs) != null) {
+            headers.put(X_USER_ID_HEADER, authenticatedUserIds.get(authenticatedAs).accessId().toString());
         }
 
         if (!CollectionUtils.isEmpty(additionalHeaders)) {
@@ -161,7 +172,7 @@ public class FunctionalTestBase {
     }
 
     protected CreateCaseDTO createCase() {
-        var courtId = UUID.fromString(doPostRequest("/testing-support/create-court", false)
+        var courtId = UUID.fromString(doPostRequest("/testing-support/create-court", null)
                                           .body().jsonPath().get("courtId"));
 
         var caseDTO = new CreateCaseDTO();
@@ -187,8 +198,8 @@ public class FunctionalTestBase {
     }
 
     protected CreateCourtDTO createCourt() {
-        var roomId = doPostRequest("/testing-support/create-room", false).body().jsonPath().getUUID("roomId");
-        var regionId = doPostRequest("/testing-support/create-region", false).body().jsonPath().getUUID("regionId");
+        var roomId = doPostRequest("/testing-support/create-room", null).body().jsonPath().getUUID("roomId");
+        var regionId = doPostRequest("/testing-support/create-region", null).body().jsonPath().getUUID("regionId");
 
         var dto = new CreateCourtDTO();
         dto.setId(UUID.randomUUID());
@@ -212,7 +223,7 @@ public class FunctionalTestBase {
     }
 
     protected Response assertExists(String endpoint, UUID id, boolean shouldExist) {
-        var response = doGetRequest(endpoint + "/" + id, true);
+        var response = doGetRequest(endpoint + "/" + id, TestingSupportRoles.SUPER_USER);
         assertResponseCode(response, shouldExist ? 200 : 404);
         if (shouldExist) {
             assertThat(response.body().jsonPath().getUUID("id")).isEqualTo(id);
@@ -241,7 +252,7 @@ public class FunctionalTestBase {
     }
 
     protected Response assertInviteExists(UUID userId, boolean shouldExist) {
-        var response = doGetRequest(INVITES_ENDPOINT + "/" + userId, true);
+        var response = doGetRequest(INVITES_ENDPOINT + "/" + userId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(response, shouldExist ? 200 : 404);
         if (shouldExist) {
             assertThat(response.body().jsonPath().getUUID("user_id")).isEqualTo(userId);
@@ -254,10 +265,29 @@ public class FunctionalTestBase {
     }
 
     protected Response putUser(CreateUserDTO dto) throws JsonProcessingException {
-        return doPutRequest(USERS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(
+            USERS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected Response putUser(CreateUserDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {
+        return doPutRequest(
+            USERS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            authenticatedAs
+        );
     }
 
     protected Response putCourt(CreateCourtDTO dto) throws JsonProcessingException {
-        return doPutRequest(COURTS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(
+            COURTS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected record AuthUserDetails(UUID accessId, UUID courtId) {
     }
 }

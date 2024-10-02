@@ -149,7 +149,7 @@ public class UserController extends PreApiController {
 
     @PutMapping("/{userId}")
     @Operation(operationId = "putUser", summary = "Create or Update a User")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public ResponseEntity<Void> upsertUser(@PathVariable UUID userId, @RequestBody @Valid CreateUserDTO createUserDTO) {
         if (!userId.equals(createUserDTO.getId())) {
             throw new PathPayloadMismatchException("userId", "createUserDTO.id");
