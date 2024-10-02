@@ -31,6 +31,67 @@ public class UserControllerFT extends FunctionalTestBase {
         assertPutResponseMatchesDto(dto);
     }
 
+    @DisplayName("Scenario: Create/update user as 'Super User' role")
+    @Test
+    void shouldCreateUserAsSuperUser() throws JsonProcessingException {
+        var dto = createUserDto();
+
+        var createResponse = putUser(dto, TestingSupportRoles.SUPER_USER);
+        assertResponseCode(createResponse, 201);
+        assertThat(createResponse.header(LOCATION_HEADER)).isEqualTo(testUrl + USERS_ENDPOINT + "/" + dto.getId());
+        assertPutResponseMatchesDto(dto);
+
+        dto.setFirstName("Updated First Name");
+        var updateResponse = putUser(dto, TestingSupportRoles.SUPER_USER);
+        assertResponseCode(updateResponse, 204);
+        assertThat(updateResponse.header(LOCATION_HEADER)).isEqualTo(testUrl + USERS_ENDPOINT + "/" + dto.getId());
+        assertPutResponseMatchesDto(dto);
+    }
+
+    @DisplayName("Scenario: Create/update user as 'Level 1' role")
+    @Test
+    void shouldCreateUserAsLevel1() throws JsonProcessingException {
+        var dto = createUserDto();
+
+        var createResponse = putUser(dto, TestingSupportRoles.LEVEL_1);
+        assertResponseCode(createResponse, 201);
+        assertThat(createResponse.header(LOCATION_HEADER)).isEqualTo(testUrl + USERS_ENDPOINT + "/" + dto.getId());
+        assertPutResponseMatchesDto(dto);
+
+        dto.setFirstName("Updated First Name");
+        var updateResponse = putUser(dto, TestingSupportRoles.LEVEL_1);
+        assertResponseCode(updateResponse, 204);
+        assertThat(updateResponse.header(LOCATION_HEADER)).isEqualTo(testUrl + USERS_ENDPOINT + "/" + dto.getId());
+        assertPutResponseMatchesDto(dto);
+    }
+
+    @DisplayName("Scenario: Put user as 'Level 2' role")
+    @Test
+    void shouldCreateUserAsLevel2() throws JsonProcessingException {
+        var dto = createUserDto();
+
+        var createResponse = putUser(dto, TestingSupportRoles.LEVEL_2);
+        assertResponseCode(createResponse, 403);
+    }
+
+    @DisplayName("Scenario: Put user as 'Level 3' role")
+    @Test
+    void shouldCreateUserAsLevel3() throws JsonProcessingException {
+        var dto = createUserDto();
+
+        var createResponse = putUser(dto, TestingSupportRoles.LEVEL_3);
+        assertResponseCode(createResponse, 403);
+    }
+
+    @DisplayName("Scenario: Put user as 'Level 4' role")
+    @Test
+    void shouldCreateUserAsLevel4() throws JsonProcessingException {
+        var dto = createUserDto();
+
+        var createResponse = putUser(dto, TestingSupportRoles.LEVEL_4);
+        assertResponseCode(createResponse, 403);
+    }
+
     @DisplayName("Scenario: Duplicate email address should fail")
     @Test
     void shouldFailCreateUserWithDuplicateEmail() throws JsonProcessingException {

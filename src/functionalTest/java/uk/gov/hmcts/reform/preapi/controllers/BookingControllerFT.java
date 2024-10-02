@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -126,7 +127,7 @@ class BookingControllerFT extends FunctionalTestBase {
     @DisplayName("Deleting a non-existent booking should return 404")
     void deletingNonExistentBookingShouldReturn404() {
         var deleteResponse = doDeleteRequest(
-            BOOKINGS_ENDPOINT + "/" + "00000000-0000-0000-0000-000000000000",
+            BOOKINGS_ENDPOINT + "/00000000-0000-0000-0000-000000000000",
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(deleteResponse, 404);
@@ -518,6 +519,30 @@ class BookingControllerFT extends FunctionalTestBase {
                 "Resource Booking("
                     + booking2.getId()
                     + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
+    }
+
+    private Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    private CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
+        var dto = new CreateShareBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setSharedWithUser(shareWithId);
+        return dto;
+    }
+
+    private Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 
     /*

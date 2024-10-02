@@ -238,4 +238,34 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertBookingExists(dto.getBookingId(), true);
         assertCaseExists(caseId, true);
     }
+
+    private CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    private CreateCaptureSessionDTO createCaptureSession() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
+            .body()
+            .jsonPath().getUUID("bookingId");
+
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
 }

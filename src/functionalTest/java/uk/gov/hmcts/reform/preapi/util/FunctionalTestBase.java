@@ -28,8 +28,8 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -287,15 +287,20 @@ public class FunctionalTestBase {
         );
     }
 
+    protected Response putUser(CreateUserDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {
+        return doPutRequest(
+            USERS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            authenticatedAs
+        );
+    }
+
     protected Response putCourt(CreateCourtDTO dto) throws JsonProcessingException {
         return doPutRequest(
             COURTS_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );
-    }
-
-    protected record AuthUserDetails(UUID accessId, UUID courtId) {
     }
 
     protected Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
@@ -403,5 +408,8 @@ public class FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );
+    }
+
+    protected record AuthUserDetails(UUID accessId, UUID courtId) {
     }
 }
