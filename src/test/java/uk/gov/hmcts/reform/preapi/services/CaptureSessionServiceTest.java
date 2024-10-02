@@ -3,12 +3,14 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -21,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -635,16 +638,62 @@ public class CaptureSessionServiceTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
         var recordingId = UUID.randomUUID();
-        var model = captureSessionService.stopCaptureSession(
+
+        var captureSessionServiceAMS = new CaptureSessionService(recordingService,
+                                                                captureSessionRepository,
+                                                                bookingRepository,
+                                                                userRepository,
+                                                                bookingService,
+                                                                MediaServiceBroker.MEDIA_SERVICE_AMS);
+        var model = captureSessionServiceAMS.stopCaptureSession(
             captureSession.getId(),
             RecordingStatus.RECORDING_AVAILABLE,
             recordingId
         );
 
+        var createRecordingDTOArgument = ArgumentCaptor.forClass(CreateRecordingDTO.class);
+
         assertThat(model.getId()).isEqualTo(captureSession.getId());
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
-        verify(recordingService, times(1)).upsert(any());
+        verify(recordingService, times(1)).upsert(createRecordingDTOArgument.capture());
+        assertThat(createRecordingDTOArgument.getValue().getFilename()).isEqualTo("video_2000000_1280x720_4500.mp4");
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
+    }
+
+    @DisplayName("Should update capture session when status is RECORDING_AVAILABLE MK")
+    @Test
+    void stopCaptureSessionRecordingAvailableMk() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var recordingId = UUID.randomUUID();
+        var captureSessionServiceMk = new CaptureSessionService(recordingService,
+                                                                captureSessionRepository,
+                                                                bookingRepository,
+                                                                userRepository,
+                                                                bookingService,
+                                                                MediaServiceBroker.MEDIA_SERVICE_MK);
+
+        var model = captureSessionServiceMk.stopCaptureSession(
+            captureSession.getId(),
+            RecordingStatus.RECORDING_AVAILABLE,
+            recordingId
+        );
+
+        var createRecordingDTOArgument = ArgumentCaptor.forClass(CreateRecordingDTO.class);
+
+        assertThat(model.getId()).isEqualTo(captureSession.getId());
+        assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+
+        verify(recordingService, times(1)).upsert(createRecordingDTOArgument.capture());
+        assertThat(createRecordingDTOArgument.getValue().getFilename()).isEqualTo("index_1280x720_4500k.mp4");
         verify(captureSessionRepository, times(1)).saveAndFlush(any());
     }
 
