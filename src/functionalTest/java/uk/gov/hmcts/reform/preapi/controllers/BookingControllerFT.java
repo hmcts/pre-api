@@ -521,30 +521,6 @@ class BookingControllerFT extends FunctionalTestBase {
                     + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
     }
 
-    private Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
-    }
-
-    private CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
-        var dto = new CreateShareBookingDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setSharedWithUser(shareWithId);
-        return dto;
-    }
-
-    private Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
-    }
-
     /*
     @DisplayName("Scenario: Search for a booking by schedule date")
     @Test

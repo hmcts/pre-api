@@ -1,17 +1,21 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -237,35 +241,5 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(dto.getId(), true);
         assertBookingExists(dto.getBookingId(), true);
         assertCaseExists(caseId, true);
-    }
-
-    private CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
-        var dto = new CreateCaptureSessionDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setStatus(RecordingStatus.STANDBY);
-        dto.setOrigin(RecordingOrigin.PRE);
-        return dto;
-    }
-
-    private CreateCaptureSessionDTO createCaptureSession() {
-        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
-            .body()
-            .jsonPath().getUUID("bookingId");
-
-        var dto = new CreateCaptureSessionDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setStatus(RecordingStatus.STANDBY);
-        dto.setOrigin(RecordingOrigin.PRE);
-        return dto;
-    }
-
-    private Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
     }
 }

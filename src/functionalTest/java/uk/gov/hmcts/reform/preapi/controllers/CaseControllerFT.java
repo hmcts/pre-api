@@ -744,11 +744,11 @@ class CaseControllerFT extends FunctionalTestBase {
         }
     }
 
-    private Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
+    private Response putCase(CreateCaseDTO dto, TestingSupportRoles role) throws JsonProcessingException {
         return doPutRequest(
             CASES_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
+            role
         );
     }
 
