@@ -211,11 +211,6 @@ public class GlobalControllerExceptionHandler {
                                  HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(Exception.class)
-    ResponseEntity<String> exceptionHandler(final Exception e) throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 

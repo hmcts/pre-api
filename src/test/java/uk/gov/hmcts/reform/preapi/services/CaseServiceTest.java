@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -343,14 +344,14 @@ class CaseServiceTest {
         when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
         doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
 
-        assertThrows(Exception.class, () -> caseService.upsert(caseDTOModel));
+        caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
-        //        verify(caseRepository, times(1)).saveAndFlush(any());
-        //        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
     }
 
     @Test
@@ -394,14 +395,14 @@ class CaseServiceTest {
         when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
         doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
 
-        assertThrows(Exception.class, () -> caseService.upsert(caseDTOModel));
+        caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
-        //        verify(caseRepository, times(1)).saveAndFlush(any());
-        //        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
     }
 
     @Test
@@ -445,14 +446,14 @@ class CaseServiceTest {
         when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
         doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
 
-        assertThrows(Exception.class, () -> caseService.upsert(caseDTOModel));
+        caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
-        //        verify(caseRepository, times(1)).saveAndFlush(any());
-        //        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(1)).save(any());
     }
 
     @Test

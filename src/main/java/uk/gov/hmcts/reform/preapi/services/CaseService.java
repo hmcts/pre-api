@@ -275,7 +275,6 @@ public class CaseService {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case closure: " + c.getId());
-            throw e;
         }
     }
 
@@ -290,7 +289,6 @@ public class CaseService {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case closure cancellation: " + c.getId());
-            throw e;
         }
     }
 
@@ -305,7 +303,6 @@ public class CaseService {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: " + c.getId());
-            throw e;
         }
     }
 }
