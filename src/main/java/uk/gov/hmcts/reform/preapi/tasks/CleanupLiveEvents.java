@@ -54,7 +54,7 @@ public class CleanupLiveEvents implements Runnable {
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
-                      StopLiveEventNotifierFlowClient flowHttpClient) {
+                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient) {
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;

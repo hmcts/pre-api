@@ -419,7 +419,7 @@ public class CleanupLiveEventsTest {
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
-                                                                    flowHttpClient);
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
@@ -469,7 +469,7 @@ public class CleanupLiveEventsTest {
                                                       userAuthenticationService,
                                                       CRON_USER_EMAIL,
                                                       "Production",
-                                                      flowHttpClient);
+                                                      stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
