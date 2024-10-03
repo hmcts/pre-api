@@ -328,7 +328,7 @@ public class MediaServiceController extends PreApiController {
 
         // 404s of there are no mp4 files in the container
         // this is called in the MK process anyway but AMS doesn't need the specific filename
-        azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
+        var filename = azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
 
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
@@ -341,6 +341,7 @@ public class MediaServiceController extends PreApiController {
             recording.setId(generateAssetDTO.getNewRecordingId());
             recording.setParentRecordingId(parentRecording.getId());
             recording.setCaptureSessionId(parentRecording.getCaptureSession().getId());
+            recording.setFilename(filename);
 
             var search = new SearchRecordings();
             search.setCaptureSessionId(parentRecording.getCaptureSession().getId());
