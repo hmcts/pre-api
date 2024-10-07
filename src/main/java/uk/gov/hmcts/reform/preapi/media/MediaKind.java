@@ -22,6 +22,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
+import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -416,6 +417,9 @@ public class MediaKind implements IMediaService {
             mediaKindClient.stopLiveEvent(liveEventName);
         } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
+        } catch (FeignException.BadRequest e) {
+            // live output still exists (only occurs on manually created live events)
+            log.info("Skipped stopping live event. The live event will be cleaned up by deletion.");
         }
         mediaKindClient.deleteLiveEvent(liveEventName);
     }
