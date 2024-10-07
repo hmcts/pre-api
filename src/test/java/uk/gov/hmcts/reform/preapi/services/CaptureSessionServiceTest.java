@@ -747,7 +747,7 @@ public class CaptureSessionServiceTest {
             () -> captureSessionService.findByLiveEventId(liveEventId)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + liveEventId);
     }
 
     @Test
