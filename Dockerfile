@@ -1,7 +1,7 @@
  # renovate: datasource=github-releases depName=microsoft/ApplicationInsights-Java
 ARG APP_INSIGHTS_AGENT_VERSION=3.6.0
 FROM hmctspublic.azurecr.io/base/java:21-distroless
-
+RUN apt-get update && apt-get install -y ffmpeg
 COPY lib/applicationinsights.json /opt/app/
 COPY build/libs/pre-api.jar /opt/app/
 
