@@ -356,7 +356,10 @@ public class MediaServiceController extends PreApiController {
                 Pageable.unpaged()
             ).getSize();
             recording.setVersion(numRecordingsForCaptureSession + 1);
-            recording.setFilename(""); // Field is deprecated
+            // filename is used by editing process
+            recording.setFilename(
+                azureFinalStorageService.getMp4FileName(generateAssetDTO.getDestinationContainer().toString())
+            );
             recordingService.upsert(recording);
             return ResponseEntity.ok(result);
         }

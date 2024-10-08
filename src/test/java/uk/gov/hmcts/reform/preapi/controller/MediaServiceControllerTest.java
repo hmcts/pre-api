@@ -1014,6 +1014,7 @@ public class MediaServiceControllerTest {
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getDestinationContainer().toString())).thenReturn(true);
         when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("blobby.mp4");
+        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getDestinationContainer().toString())).thenReturn("something-else.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(
@@ -1048,6 +1049,7 @@ public class MediaServiceControllerTest {
 
         verify(recordingService, times(1)).upsert(recordingArgument.capture());
         assertThat(recordingArgument.getValue().getVersion()).isEqualTo(2);
+        assertThat(recordingArgument.getValue().getFilename()).isEqualTo("something-else.mp4");
     }
 
     protected static UserAuthentication mockAdminUser() {

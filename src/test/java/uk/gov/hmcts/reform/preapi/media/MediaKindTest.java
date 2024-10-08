@@ -1347,4 +1347,18 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getContentKeyPolicies(anyInt());
         verify(mockClient, times(3)).deleteContentKeyPolicy(anyString());
     }
+
+    @Test
+    @DisplayName("Should not error when stopping live event when live output has not been deleted")
+    void cleanupStoppedLiveEventLiveOutputNotDeletedSuccess() {
+        var liveEventId = UUID.randomUUID().toString().replace("-", "");
+
+        doThrow(FeignException.BadRequest.class).when(mockClient).stopLiveEvent(liveEventId);
+
+        mediaKind.cleanupStoppedLiveEvent(liveEventId);
+
+        verify(mockClient, times(1)).deleteLiveOutput(liveEventId, liveEventId);
+        verify(mockClient, times(1)).stopLiveEvent(liveEventId);
+        verify(mockClient, times(1)).deleteLiveEvent(liveEventId);
+    }
 }

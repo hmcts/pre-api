@@ -296,16 +296,24 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/create-authenticated-user/super-user",  produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createAuthenticatedUser() {
-        var appAccess = createAppAccess("Super User");
-
-        var response = new HashMap<String, String>() {
-            {
-                put("accessId", appAccess.getId().toString());
-            }
-        };
-        return ResponseEntity.ok(response);
+    @PostMapping("/create-authenticated-user/{role}")
+    public ResponseEntity<Map<String, String>> createAuthenticatedUser(@PathVariable TestingSupportRoles role) {
+        String roleName;
+        switch (role) {
+            case SUPER_USER -> roleName = "Super User";
+            case LEVEL_1 -> roleName = "Level 1";
+            case LEVEL_2 -> roleName = "Level 2";
+            case LEVEL_3 -> roleName = "Level 3";
+            case LEVEL_4 -> roleName = "Level 4";
+            default -> throw new IllegalArgumentException("Invalid role");
+        }
+        var r = roleRepository.findFirstByName(roleName)
+            .orElse(createRole(roleName));
+        var appAccess = createAppAccess(r);
+        return ResponseEntity.ok(Map.of(
+            "accessId", appAccess.getId().toString(),
+            "courtId", appAccess.getCourt().getId().toString()
+        ));
     }
 
     @PostMapping(value = "/create-ready-to-use-booking/{caseReference}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -360,6 +368,18 @@ class TestingSupportController {
         return access;
     }
 
+    private AppAccess createAppAccess(Role role) {
+        var access = new AppAccess();
+        access.setUser(createUser());
+        access.setCourt(createTestCourt());
+        access.setRole(role);
+        access.setActive(true);
+        access.setDefaultCourt(true);
+        appAccessRepository.save(access);
+
+        return access;
+    }
+
     private User createUser() {
         var user = new User();
         user.setId(UUID.randomUUID());
@@ -380,5 +400,14 @@ class TestingSupportController {
         roleRepository.save(role);
 
         return role;
+    }
+
+    public enum AuthLevel {
+        NONE,
+        SUPER_USER,
+        LEVEL_1,
+        LEVEL_2,
+        LEVEL_3,
+        LEVEL_4
     }
 }
