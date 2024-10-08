@@ -33,6 +33,7 @@ import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -192,6 +193,11 @@ public class MediaServiceController extends PreApiController {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
             var status = mediaService.stopLiveEvent(dto, recordingId);
+            if (status == RecordingStatus.FAILURE) {
+                throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
+                                                     + captureSessionId
+                                                     + ")");
+            }
             dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
         } catch (Exception e) {
             captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
@@ -368,7 +374,10 @@ public class MediaServiceController extends PreApiController {
                 Pageable.unpaged()
             ).getSize();
             recording.setVersion(numRecordingsForCaptureSession + 1);
-            recording.setFilename(""); // Field is deprecated
+            // filename is used by editing process
+            recording.setFilename(
+                azureFinalStorageService.getMp4FileName(generateAssetDTO.getDestinationContainer().toString())
+            );
             recordingService.upsert(recording);
             return ResponseEntity.ok(result);
         }

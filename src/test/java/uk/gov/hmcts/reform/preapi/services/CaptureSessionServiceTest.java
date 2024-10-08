@@ -789,6 +789,19 @@ public class CaptureSessionServiceTest {
             () -> captureSessionService.findByLiveEventId(liveEventId)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + liveEventId);
+    }
+
+    @Test
+    @DisplayName("Should throw not found when live event name cannot be turned into a UUID")
+    void findCaptureSessionByLiveEventIdNotFoundUnparseable() {
+        var liveEventId = "this-is-a-test";
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.findByLiveEventId(liveEventId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + liveEventId);
     }
 }

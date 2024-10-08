@@ -161,33 +161,15 @@ public class CleanupLiveEvents implements Runnable {
                               log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                               return;
                           }
-                          stopLiveEventForMissingCaptureSession(mediaService, liveEventDTO.getName());
+                          log.info("Stopping live event without associated capture session: {}",
+                                   liveEventDTO.getName());
+                          mediaService.cleanupStoppedLiveEvent(liveEventDTO.getName());
                       } catch (Exception e) {
                           log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                       }
                   });
 
         log.info("Completed CleanupLiveEvents task");
-    }
-
-    private void stopLiveEventForMissingCaptureSession(IMediaService mediaService, String liveEventId) {
-        log.info("Stopping live event without associated capture session: {}", liveEventId);
-        var id = generateUuidFromLiveEventName(liveEventId);
-        var bookingId = UUID.fromString(mediaService.getAsset(id.toString()).getDescription());
-
-        var dto = new CaptureSessionDTO();
-        dto.setId(id);
-        dto.setBookingId(bookingId);
-
-        try {
-            mediaService.stopLiveEvent(dto, UUID.randomUUID());
-            log.info("Stopped live event {}", liveEventId);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Failed to stop live event {}", liveEventId, e);
-        } catch (Exception e) {
-            log.error("Failed to stop live event {}", liveEventId, e);
-        }
     }
 
     private boolean stopLiveEvent(IMediaService mediaService,

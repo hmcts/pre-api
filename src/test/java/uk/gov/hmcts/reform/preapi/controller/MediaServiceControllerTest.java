@@ -662,6 +662,37 @@ public class MediaServiceControllerTest {
                .andExpect(jsonPath("$.status").value("RECORDING_AVAILABLE"));
     }
 
+    @Test
+    @DisplayName("Should throw 500 when encountering failure in encoding process")
+    void stopLiveEventFailureEncounteredInternalServerError() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto = new CaptureSessionDTO();
+        dto.setId(captureSessionId);
+        dto.setStatus(RecordingStatus.RECORDING);
+        dto.setStartedAt(Timestamp.from(Instant.now()));
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
+        when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class)))
+            .thenReturn(dto);
+        when(mediaService.stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class))).thenReturn(RecordingStatus.FAILURE);
+
+        mockMvc.perform(put("/media-service/live-event/end/" + captureSessionId))
+            .andExpect(status().isInternalServerError())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value(
+                               "Unknown Server Exception: Encountered an error during encoding process for CaptureSession("
+                                   + captureSessionId
+                                   + ")"));
+
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(captureSessionService, times(1)).findById(captureSessionId);
+        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
+        verify(mediaService, times(1)).stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class));
+        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), any(UUID.class));
+    }
+
     @DisplayName("Should throw 400 when live event has not been started")
     @Test
     void stopCaptureSessionNotStarted() throws Exception {
@@ -1039,6 +1070,7 @@ public class MediaServiceControllerTest {
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())).thenReturn(true);
         when(azureFinalStorageService.doesContainerExist(generateAssetDTO.getDestinationContainer().toString())).thenReturn(true);
         when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer())).thenReturn("blobby.mp4");
+        when(azureFinalStorageService.getMp4FileName(generateAssetDTO.getDestinationContainer().toString())).thenReturn("something-else.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(mediaService.importAsset(any())).thenReturn(
@@ -1073,6 +1105,7 @@ public class MediaServiceControllerTest {
 
         verify(recordingService, times(1)).upsert(recordingArgument.capture());
         assertThat(recordingArgument.getValue().getVersion()).isEqualTo(2);
+        assertThat(recordingArgument.getValue().getFilename()).isEqualTo("something-else.mp4");
     }
 
     protected static UserAuthentication mockAdminUser() {

@@ -37,6 +37,7 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
 
     List<Case> findAllByReferenceAndCourt_Id(String caseReference, UUID courtId);
 
-    List<Case> findAllByStateAndClosedAtBefore(CaseState state, Timestamp date);
+    List<Case> findAllByReference(String reference);
 
+    List<Case> findAllByStateAndClosedAtBefore(CaseState state, Timestamp date);
 }

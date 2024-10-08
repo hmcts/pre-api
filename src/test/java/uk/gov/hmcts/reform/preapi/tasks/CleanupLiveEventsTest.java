@@ -427,8 +427,7 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(1)).getLiveEvents();
         verify(captureSessionService, times(1)).findByLiveEventId(liveEventDTO.getName());
         verify(recordingService, never()).findAll(any(), eq(false), any());
-        verify(mediaService, times(1)).getAsset(captureSessionId.toString());
-        verify(mediaService, times(1)).stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class));
+        verify(mediaService, times(1)).cleanupStoppedLiveEvent(liveEventDTO.getName());
     }
 
     @DisplayName("Should not stop live event when capture session cannot be found (in prod)")
