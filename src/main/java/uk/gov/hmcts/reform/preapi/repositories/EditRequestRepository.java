@@ -4,6 +4,7 @@ import jakarta.persistence.LockModeType;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -20,7 +21,8 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
 
     @NotNull
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<EditRequest> findById(@NotNull UUID id);
+    @Query("select e from EditRequest e where e.id = ?1")
+    Optional<EditRequest> findByIdWithLock(@NotNull UUID id);
 
     List<EditRequest> findAllByStatusOrderByCreatedAtDesc(EditRequestStatus status);
 }
