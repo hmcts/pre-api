@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.dto;
+package uk.gov.hmcts.reform.preapi.dto.flow;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;

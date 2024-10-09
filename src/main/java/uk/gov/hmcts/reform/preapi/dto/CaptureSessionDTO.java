@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 
@@ -20,12 +21,20 @@ public class CaptureSessionDTO extends CreateCaptureSessionDTO {
     @Schema(description = "CaptureSessionDeletedAt")
     private Timestamp deletedAt;
 
-    @Schema(description = "RecordingParticipants")
+    @Schema(description = "RecordingParticipants") // todo change this (might be breaking)
     private String courtName;
+
+    @Schema(description = "CaptureSessionCaseState")
+    private CaseState caseState;
+
+    @Schema(description = "CaptureSessionCaseClosedAt")
+    private Timestamp caseClosedAt;
 
     public CaptureSessionDTO(CaptureSession captureSession) {
         super(captureSession);
         deletedAt = captureSession.getDeletedAt();
         courtName = captureSession.getBooking().getCaseId().getCourt().getName();
+        caseState = captureSession.getBooking().getCaseId().getState();
+        caseClosedAt = captureSession.getBooking().getCaseId().getClosedAt();
     }
 }
