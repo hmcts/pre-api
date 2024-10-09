@@ -10,17 +10,23 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ShareBookingService {
@@ -52,6 +58,16 @@ public class ShareBookingService {
 
         final var booking = bookingRepository.findById(createShareBookingDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + createShareBookingDTO.getBookingId()));
+
+        if (booking.getCaseId().getState() == CaseState.CLOSED) {
+            throw new ResourceInWrongStateException(
+                "Booking",
+                booking.getId(),
+                booking.getCaseId().getState(),
+                "OPEN or PENDING_CLOSURE"
+            );
+        }
+
         final var sharedByUser = userRepository.findById(createShareBookingDTO.getSharedByUser())
             .orElseThrow(() -> new NotFoundException("Shared by User: " + createShareBookingDTO.getSharedByUser()));
         final var sharedWithUser = userRepository.findById(createShareBookingDTO.getSharedWithUser())
@@ -93,14 +109,34 @@ public class ShareBookingService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void deleteCascade(Booking booking) {
-        shareBookingRepository
+    public Set<ShareBooking> deleteCascade(Booking booking) {
+        return shareBookingRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
-            .forEach(share -> {
+            .stream()
+            .peek(share -> {
                 share.setSoftDeleteOperation(true);
                 share.setDeletedAt(Timestamp.from(Instant.now()));
                 shareBookingRepository.save(share);
-            });
+            })
+            .collect(Collectors.toSet());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public Set<ShareBooking> deleteCascade(Case aCase) {
+        return bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)
+            .stream()
+            .map(this::deleteCascade)
+            .flatMap(Collection::stream)
+            .collect(Collectors.toSet());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public Set<ShareBooking> getSharesForCase(Case c) {
+        return bookingRepository.findAllByCaseIdAndDeletedAtIsNull(c)
+            .stream()
+            .map(shareBookingRepository::findAllByBookingAndDeletedAtIsNull)
+            .flatMap(Collection::stream)
+            .collect(Collectors.toSet());
     }
 
     @Transactional

@@ -15,13 +15,16 @@ import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -177,8 +180,13 @@ class RecordingServiceTest {
     @DisplayName("Create a recording")
     @Test
     void createRecordingSuccess() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
         var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setCaptureSessionId(captureSession.getId());
@@ -202,6 +210,13 @@ class RecordingServiceTest {
     @DisplayName("Update a recording")
     @Test
     void updateRecordingSuccess() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
         var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(recordingEntity.getId());
         recordingModel.setCaptureSessionId(UUID.randomUUID());
@@ -209,7 +224,8 @@ class RecordingServiceTest {
         when(
             recordingRepository.findById(recordingModel.getId())
         ).thenReturn(Optional.of(recordingEntity));
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(recordingModel.getCaptureSessionId())).thenReturn(Optional.of(new CaptureSession()));
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(recordingModel.getCaptureSessionId()))
+            .thenReturn(Optional.of(captureSession));
 
         when(recordingRepository.save(recordingEntity)).thenReturn(recordingEntity);
 
@@ -280,9 +296,50 @@ class RecordingServiceTest {
         assertThrows(NotFoundException.class, () -> recordingService.upsert(recordingModel));
     }
 
+    @DisplayName("Fail to create/update recording when case not open")
+    @Test
+    void upsertRecordingCaseNotOpenBadRequest() {
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        recordingModel.setParentRecordingId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setState(CaseState.CLOSED);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setBooking(booking);
+
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(false);
+        when(
+            captureSessionRepository.findByIdAndDeletedAtIsNull(
+                recordingModel.getCaptureSessionId()
+            )
+        ).thenReturn(Optional.of(captureSession));
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> recordingService.upsert(recordingModel)
+        ).getMessage();
+        assertThat(message)
+            .isEqualTo("Resource Recording("
+                           + recordingModel.getId()
+                           + ") is associated with a case in the state CLOSED. Must be in state OPEN.");
+    }
+
     @DisplayName("Fail to create recording - Parent Recording not found")
     @Test
     void createRecordingFailParentRecordingNotFound() {
+        var aCase = new Case();
+        aCase.setState(CaseState.OPEN);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
         var recordingModel = new CreateRecordingDTO();
         recordingModel.setId(UUID.randomUUID());
         recordingModel.setVersion(1);
@@ -296,14 +353,13 @@ class RecordingServiceTest {
             captureSessionRepository.findByIdAndDeletedAtIsNull(
                 recordingModel.getCaptureSessionId()
             )
-        ).thenReturn(Optional.of(new CaptureSession()));
+        ).thenReturn(Optional.of(captureSession));
         when(
             recordingRepository.findById(recordingModel.getParentRecordingId())
         ).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> recordingService.upsert(recordingModel));
     }
-
 
     @DisplayName("Find a list of recordings when recording has been deleted")
     @Test
