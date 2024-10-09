@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.security;
 
-
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;

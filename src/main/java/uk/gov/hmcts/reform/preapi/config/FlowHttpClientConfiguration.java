@@ -5,9 +5,11 @@ import feign.Logger;
 import feign.codec.Decoder;
 import feign.jackson.JacksonDecoder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import uk.gov.hmcts.reform.preapi.media.FeignErrorDecoder;
 
+@Configuration
 public class FlowHttpClientConfiguration {
 
     @Bean

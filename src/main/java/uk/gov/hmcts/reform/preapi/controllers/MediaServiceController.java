@@ -27,11 +27,13 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -141,7 +143,13 @@ public class MediaServiceController extends PreApiController {
         @RequestParam(required = false) String mediaService
     ) throws InterruptedException {
         // check recording exists + authed
-        recordingService.findById(recordingId);
+        var recording = recordingService.findById(recordingId);
+
+        if (recording.getCaptureSession().getCaseState() == CaseState.CLOSED) {
+            throw new ResourceInWrongStateException("Case associated with Recording("
+                                                        + recordingId
+                                                        + ") is in state CLOSED. Cannot play recording.");
+        }
 
         var service = mediaServiceBroker.getEnabledMediaService(mediaService);
 
@@ -185,6 +193,11 @@ public class MediaServiceController extends PreApiController {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
             var status = mediaService.stopLiveEvent(dto, recordingId);
+            if (status == RecordingStatus.FAILURE) {
+                throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
+                                                     + captureSessionId
+                                                     + ")");
+            }
             dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
         } catch (Exception e) {
             captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
@@ -281,11 +294,22 @@ public class MediaServiceController extends PreApiController {
     public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
         var dto = captureSessionService.findById(captureSessionId);
 
+        if (dto.getCaseState() != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "Capture Session",
+                dto.getId(),
+                dto.getCaseState(),
+                "OPEN"
+            );
+        }
+
         if (dto.getStatus() == RecordingStatus.FAILURE) {
-            throw new ResourceInWrongStateException("Capture Session",
-                                                    dto.getId().toString(),
-                                                    dto.getStatus().toString(),
-                                                    RecordingStatus.INITIALISING.toString());
+            throw new ResourceInWrongStateException(
+                "Capture Session",
+                dto.getId().toString(),
+                dto.getStatus().toString(),
+                RecordingStatus.INITIALISING.toString()
+            );
         }
 
         if (dto.getFinishedAt() != null) {

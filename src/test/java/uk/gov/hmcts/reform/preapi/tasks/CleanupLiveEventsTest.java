@@ -17,13 +17,13 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
+import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
@@ -59,7 +59,7 @@ public class CleanupLiveEventsTest {
     private static AzureMediaService mediaService;
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
-    private static FlowHttpClient flowHttpClient;
+    private static StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
     private static final String CRON_PLATFORM_ENV = "Staging";
@@ -73,7 +73,7 @@ public class CleanupLiveEventsTest {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
         bookingService = mock(BookingService.class);
-        flowHttpClient = mock(FlowHttpClient.class);
+        stopLiveEventNotifierFlowClient = mock(StopLiveEventNotifierFlowClient.class);
 
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
@@ -192,7 +192,7 @@ public class CleanupLiveEventsTest {
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
-                                                                    flowHttpClient);
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
@@ -212,7 +212,7 @@ public class CleanupLiveEventsTest {
             (Class<List<StoppedLiveEventsNotificationDTO>>)(Class)List.class;
         ArgumentCaptor<List<StoppedLiveEventsNotificationDTO>> captor = ArgumentCaptor.forClass(listClass);
 
-        verify(flowHttpClient, times(1)).emailAfterStoppingLiveEvents(captor.capture());
+        verify(stopLiveEventNotifierFlowClient, times(1)).emailAfterStoppingLiveEvents(captor.capture());
 
         Assertions.assertEquals(mockUser.getFirstName(), captor.getValue().getFirst().getFirstName());
 
@@ -313,11 +313,11 @@ public class CleanupLiveEventsTest {
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
-                                                                    flowHttpClient);
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
-        verify(flowHttpClient, times(0)).emailAfterStoppingLiveEvents(any());
+        verify(stopLiveEventNotifierFlowClient, times(0)).emailAfterStoppingLiveEvents(any());
 
     }
 
@@ -362,7 +362,7 @@ public class CleanupLiveEventsTest {
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
-                                                                    flowHttpClient);
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
@@ -419,7 +419,7 @@ public class CleanupLiveEventsTest {
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
-                                                                    flowHttpClient);
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
@@ -468,7 +468,7 @@ public class CleanupLiveEventsTest {
                                                       userAuthenticationService,
                                                       CRON_USER_EMAIL,
                                                       "Production",
-                                                      flowHttpClient);
+                                                      stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
