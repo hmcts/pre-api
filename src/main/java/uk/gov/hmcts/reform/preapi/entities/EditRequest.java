@@ -51,6 +51,7 @@ public class EditRequest extends CreatedModifiedAtEntity {
         var details = new HashMap<String, Object>();
         details.put("id", getId());
         details.put("sourceRecordingId", sourceRecording.getId());
+        details.put("status", status);
         details.put("editInstruction", editInstruction);
         details.put("startedAt", startedAt);
         details.put("finishedAt", finishedAt);
