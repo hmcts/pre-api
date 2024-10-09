@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -9,14 +8,16 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -367,48 +368,156 @@ class BookingControllerFT extends FunctionalTestBase {
         assertCaseExists(caseEntity.getId(), true);
     }
 
-    private CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
-        var dto = new CreateBookingDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setCaseId(caseId);
-        dto.setParticipants(participants);
-        dto.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay()));
-        return dto;
-    }
-
-    private Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
+    @DisplayName("Scenario: Share a booking for a closed case")
+    @Test
+    void shareBookingForClosedCase() throws JsonProcessingException {
+        // create booking
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
         );
+        caseEntity.setParticipants(participants);
+
+        var putCase1 = putCase(caseEntity);
+        assertResponseCode(putCase1, 201);
+
+        var booking = createBooking(caseEntity.getId(), participants);
+        var putResponse = putBooking(booking);
+        assertResponseCode(putResponse, 201);
+        assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
+
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
+
+        // create share target
+        var user1 = createUser("AAA");
+        var putUser1 = putUser(user1);
+        assertResponseCode(putUser1, 201);
+        assertUserExists(user1.getId(), true);
+
+        // close case
+        caseEntity.setState(CaseState.CLOSED);
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+        var putCase2 = putCase(caseEntity);
+        assertResponseCode(putCase2, 204);
+
+        // attempt share
+        var share = createShareBooking(booking.getId(), user1.getId());
+        var putShare = putShareBooking(share);
+        assertResponseCode(putShare, 400);
+        assertThat(putShare.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN or PENDING_CLOSURE.");
     }
 
-    private CreateUserDTO createUser(String firstName) {
-        var dto = new CreateUserDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setFirstName(firstName);
-        dto.setLastName("Example");
-        dto.setAppAccess(Set.of());
-        dto.setPortalAccess(Set.of());
-        dto.setEmail(dto.getId() + "@example.com");
-        return dto;
-    }
-
-    private CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
-        var dto = new CreateShareBookingDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setBookingId(bookingId);
-        dto.setSharedWithUser(shareWithId);
-        return dto;
-    }
-
-    private Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
+    @DisplayName("Scenario: Create/update a booking for a closed case")
+    @Test
+    void upsertBookingForClosedCase() throws JsonProcessingException {
+        // create booking
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
         );
+        caseEntity.setParticipants(participants);
+
+        var putCase1 = putCase(caseEntity);
+        assertResponseCode(putCase1, 201);
+
+        var booking = createBooking(caseEntity.getId(), participants);
+        var putResponse = putBooking(booking);
+        assertResponseCode(putResponse, 201);
+        assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
+
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
+
+        // close case
+        caseEntity.setState(CaseState.CLOSED);
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+        var putCase2 = putCase(caseEntity);
+        assertResponseCode(putCase2, 204);
+
+        // attempt update
+        booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
+        var putBooking2 = putBooking(booking);
+        assertResponseCode(putBooking2, 400);
+        assertThat(putBooking2.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN.");
+
+        // attempt create
+        var booking2 = createBooking(caseEntity.getId(), participants);
+        var putBooking3 = putBooking(booking2);
+        assertResponseCode(putBooking3, 400);
+        assertThat(putBooking3.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking2.getId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN.");
+    }
+
+    @DisplayName("Scenario: Create/update a booking for a case pending closure")
+    @Test
+    void upsertBookingForPendingClosureCase() throws JsonProcessingException {
+        // create booking
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase1 = putCase(caseEntity);
+        assertResponseCode(putCase1, 201);
+
+        var booking = createBooking(caseEntity.getId(), participants);
+        var putResponse = putBooking(booking);
+        assertResponseCode(putResponse, 201);
+        assertBookingExists(booking.getId(), true);
+        assertCaseExists(caseEntity.getId(), true);
+
+        var captureSession = createCaptureSession(booking.getId());
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        var putCaptureSession = putCaptureSession(captureSession);
+        assertResponseCode(putCaptureSession, 201);
+
+        // close case
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        caseEntity.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+        var putCase2 = putCase(caseEntity);
+        assertResponseCode(putCase2, 204);
+
+        // attempt update
+        booking.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay().plusDays(1)));
+        var putBooking2 = putBooking(booking);
+        assertResponseCode(putBooking2, 400);
+        assertThat(putBooking2.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking.getId()
+                    + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
+
+        // attempt create
+        var booking2 = createBooking(caseEntity.getId(), participants);
+        var putBooking3 = putBooking(booking2);
+        assertResponseCode(putBooking3, 400);
+        assertThat(putBooking3.body().jsonPath().getString("message"))
+            .isEqualTo(
+                "Resource Booking("
+                    + booking2.getId()
+                    + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
     }
 
     /*

@@ -9,8 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
-import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
+import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -43,7 +43,7 @@ public class CleanupLiveEvents implements Runnable {
 
     private final String platformEnv;
 
-    private final FlowHttpClient flowHttpClient;
+    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
@@ -54,7 +54,7 @@ public class CleanupLiveEvents implements Runnable {
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
-                      FlowHttpClient flowHttpClient) {
+                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient) {
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
@@ -63,7 +63,7 @@ public class CleanupLiveEvents implements Runnable {
         this.userAuthenticationService = userAuthenticationService;
         this.cronUserEmail = cronUserEmail;
         this.platformEnv = platformEnv;
-        this.flowHttpClient = flowHttpClient;
+        this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
     }
 
     @Override
@@ -148,7 +148,7 @@ public class CleanupLiveEvents implements Runnable {
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
                                       log.info("Sending email notifications to {} user(s)", toNotify.size());
-                                      flowHttpClient.emailAfterStoppingLiveEvents(toNotify);
+                                      stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
                                   } else {
                                       log.info("No users to notify for capture session {}", captureSession.getId());
                                   }

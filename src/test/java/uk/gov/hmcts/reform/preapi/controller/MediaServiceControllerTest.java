@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
@@ -409,10 +410,18 @@ public class MediaServiceControllerTest {
     @DisplayName("Should return 200 and playback information")
     @Test
     void getVodSuccess() throws Exception {
-        var user = mockAdminUser();
         var recordingId = UUID.randomUUID();
+        var recording = new RecordingDTO();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setCaseState(CaseState.OPEN);
+        recording.setCaptureSession(captureSession);
+
+        var user = mockAdminUser();
         var assetName = recordingId.toString().replace("-", "") + "_output";
         var playback = new PlaybackDTO("dash", "hls", "license", "token");
+
+        when(recordingService.findById(recordingId)).thenReturn(recording);
         when(mediaServiceBroker.getEnabledMediaService(null)).thenReturn(mediaService);
         when(mediaService.playAsset(assetName, user.getUserId().toString())).thenReturn(playback);
 
@@ -438,12 +447,34 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.message").value("Not found: Recording: " + recordingId));
     }
 
+    @DisplayName("Should return 400 when recording's case has been closed")
+    @Test
+    void getVodRecordingClosedBadRequest() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new RecordingDTO();
+        recording.setId(recordingId);
+        var captureSession = new CaptureSessionDTO();
+        captureSession.setCaseState(CaseState.CLOSED);
+        recording.setCaptureSession(captureSession);
+
+        when(recordingService.findById(recordingId)).thenReturn(recording);
+
+        mockMvc.perform(get("/media-service/vod")
+                            .param("recordingId", recordingId.toString()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Case associated with Recording("
+                                      + recordingId
+                                      + ") is in state CLOSED. Cannot play recording."));
+    }
+
     @DisplayName("Should return 200 with capture session once live event is started")
     @Test
     void startLiveEventSuccess() throws Exception {
         var captureSessionId = UUID.randomUUID();
         var dto1 = new CaptureSessionDTO();
         dto1.setId(captureSessionId);
+        dto1.setCaseState(CaseState.OPEN);
         var dto2 = new CaptureSessionDTO();
         dto2.setId(captureSessionId);
         dto2.setStartedAt(Timestamp.from(Instant.now()));
@@ -464,6 +495,27 @@ public class MediaServiceControllerTest {
             .andExpect(jsonPath("$.started_at").isNotEmpty());
 
         verify(mediaService, times(1)).startLiveEvent(dto1);
+    }
+
+    @DisplayName("Should return 400 when case associated with capture session is not open")
+    @Test
+    void startLiveEventCaseClosedBadRequest() throws Exception {
+        var captureSessionId = UUID.randomUUID();
+        var dto1 = new CaptureSessionDTO();
+        dto1.setId(captureSessionId);
+        dto1.setCaseState(CaseState.CLOSED);
+
+        when(captureSessionService.findById(captureSessionId)).thenReturn(dto1);
+
+        mockMvc.perform(put("/media-service/live-event/start/" + captureSessionId))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$.message")
+                           .value("Resource Capture Session("
+                                      + dto1.getId()
+                                      + ") is associated with a case in the state CLOSED. Must be in state OPEN."));
+
+        verify(mediaService, never()).startLiveEvent(dto1);
     }
 
     @DisplayName("Should return not found error when capture session does not exist")
@@ -488,6 +540,7 @@ public class MediaServiceControllerTest {
         var dto = new CaptureSessionDTO();
         dto.setId(captureSessionId);
         dto.setFinishedAt(Timestamp.from(Instant.now()));
+        dto.setCaseState(CaseState.OPEN);
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
@@ -506,6 +559,7 @@ public class MediaServiceControllerTest {
         dto.setId(captureSessionId);
         dto.setStartedAt(Timestamp.from(Instant.now()));
         dto.setStatus(RecordingStatus.STANDBY);
+        dto.setCaseState(CaseState.OPEN);
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
 
@@ -525,6 +579,7 @@ public class MediaServiceControllerTest {
         var captureSessionId = UUID.randomUUID();
         var dto = new CaptureSessionDTO();
         dto.setId(captureSessionId);
+        dto.setCaseState(CaseState.OPEN);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
@@ -708,6 +763,7 @@ public class MediaServiceControllerTest {
         var dto = new CaptureSessionDTO();
         dto.setId(captureSessionId);
         dto.setStatus(RecordingStatus.FAILURE);
+        dto.setCaseState(CaseState.OPEN);
 
         when(captureSessionService.findById(captureSessionId))
             .thenReturn(dto);
