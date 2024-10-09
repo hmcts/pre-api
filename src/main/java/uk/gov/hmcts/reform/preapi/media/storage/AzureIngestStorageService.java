@@ -10,4 +10,8 @@ public class AzureIngestStorageService extends AzureStorageService {
     public AzureIngestStorageService(BlobServiceClient ingestStorageClient) {
         super(ingestStorageClient);
     }
+
+    public boolean doesValidAssetExist(String containerName) {
+        return doesIsmFileExist(containerName) || doesBlobExist(containerName, "gc_state");
+    }
 }
