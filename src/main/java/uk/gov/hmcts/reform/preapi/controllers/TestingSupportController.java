@@ -23,11 +23,13 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
+import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -39,6 +41,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
+import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
@@ -66,6 +69,7 @@ class TestingSupportController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
+    private final TermsAndConditionsRepository termsAndConditionsRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -78,7 +82,8 @@ class TestingSupportController {
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
                              RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository) {
+                             AppAccessRepository appAccessRepository,
+                             TermsAndConditionsRepository termsAndConditionsRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -90,6 +95,7 @@ class TestingSupportController {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
+        this.termsAndConditionsRepository = termsAndConditionsRepository;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -344,6 +350,20 @@ class TestingSupportController {
             "bookingId", booking.getId().toString(),
             "captureSessionId", captureSession.getId().toString())
         );
+    }
+
+    @PostMapping(value = "/create-terms-and-conditions/{termsType}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createTermsAndConditions(
+        @PathVariable TermsAndConditionsType termsType
+    ) {
+        var terms = new TermsAndConditions();
+        terms.setId(UUID.randomUUID());
+        terms.setType(termsType);
+        terms.setContent("some terms and conditions content");
+        terms.setCreatedAt(Timestamp.from(Instant.now()));
+        termsAndConditionsRepository.save(terms);
+
+        return ResponseEntity.ok(Map.of("termsId", terms.getId().toString()));
     }
 
     private Court createTestCourt() {
