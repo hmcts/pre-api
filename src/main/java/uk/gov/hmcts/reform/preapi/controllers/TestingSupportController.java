@@ -43,6 +43,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -70,6 +71,7 @@ class TestingSupportController {
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
+    private final UserTermsAcceptedRepository userTermsAcceptedRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -83,7 +85,8 @@ class TestingSupportController {
                              final UserRepository userRepository,
                              RoleRepository roleRepository,
                              AppAccessRepository appAccessRepository,
-                             TermsAndConditionsRepository termsAndConditionsRepository) {
+                             TermsAndConditionsRepository termsAndConditionsRepository,
+                             UserTermsAcceptedRepository userTermsAcceptedRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -96,6 +99,7 @@ class TestingSupportController {
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
+        this.userTermsAcceptedRepository = userTermsAcceptedRepository;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -364,6 +368,17 @@ class TestingSupportController {
         termsAndConditionsRepository.save(terms);
 
         return ResponseEntity.ok(Map.of("termsId", terms.getId().toString()));
+    }
+
+    @PostMapping(value = "/outdate-all-user-acceptances", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> outdateAllUserAcceptances() {
+        userTermsAcceptedRepository.findAll()
+            .forEach(a -> {
+                a.setAcceptedAt(Timestamp.from(a.getAcceptedAt().toInstant().minusSeconds(31536000)));
+                userTermsAcceptedRepository.save(a);
+            });
+
+        return ResponseEntity.ok().build();
     }
 
     private Court createTestCourt() {
