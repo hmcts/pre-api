@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,11 +16,14 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -28,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,27 +45,34 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
+    private final String mediaService;
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
-                                 @Lazy BookingService bookingService) {
+                                 @Lazy BookingService bookingService,
+                                 @Value("${media-service}") String mediaService) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
+        this.mediaService = mediaService;
     }
 
     @Transactional
     public CaptureSessionDTO findByLiveEventId(String liveEventId) {
-        var liveEventUUID = new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
-        return this.findById(liveEventUUID);
+        try {
+            var liveEventUUID = new UUID(
+                Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
+                Long.parseUnsignedLong(liveEventId.substring(16), 16)
+            );
+            return this.findById(liveEventUUID);
+        } catch (Exception e) {
+            throw new NotFoundException("CaptureSession: " + liveEventId);
+        }
     }
 
     @Transactional
@@ -145,6 +157,14 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + createCaptureSessionDTO.getBookingId()));
 
+        if (booking.getCaseId().getState() != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "CaptureSession",
+                createCaptureSessionDTO.getId(),
+                booking.getCaseId().getState(),
+                "OPEN"
+            );
+        }
 
         var startedByUser = createCaptureSessionDTO.getStartedByUserId() != null
             ? userRepository
@@ -209,7 +229,9 @@ public class CaptureSessionService {
     }
 
     @Transactional
-    public CaptureSessionDTO stopCaptureSession(UUID captureSessionId, RecordingStatus status, UUID recordingId) {
+    public CaptureSessionDTO stopCaptureSession(UUID captureSessionId,
+                                                RecordingStatus status,
+                                                UUID recordingId) {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
@@ -230,7 +252,9 @@ public class CaptureSessionService {
                 recording.setId(recordingId);
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
-                recording.setFilename("video_2000000_1280x720_4500.mp4");
+                recording.setFilename(Objects.equals(mediaService, MediaServiceBroker.MEDIA_SERVICE_AMS)
+                                          ? "video_2000000_1280x720_4500.mp4"
+                                          : "index_1280x720_4500k.mp4");
                 recordingService.upsert(recording);
             }
             default -> {

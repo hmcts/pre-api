@@ -18,7 +18,6 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.logging.Logger;
 
 @ControllerAdvice
 @Slf4j
@@ -28,11 +27,9 @@ public class GlobalControllerExceptionHandler {
     private static final String CONTENT_TYPE = "Content-Type";
     private static final String APPLICATION_JSON = "application/json";
 
-    private static final Logger logger = Logger.getLogger(GlobalControllerExceptionHandler.class.getName());
-
     @ExceptionHandler(NotFoundException.class)
     ResponseEntity<String> notFoundExceptionHandler(final NotFoundException e) throws JsonProcessingException {
-        log.error("Not found exception: {}", e.getMessage());
+        log.info("Not found exception: {}", e.getMessage());
         return getResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
@@ -52,7 +49,7 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(UnknownServerException.class)
     ResponseEntity<String> unknownServerExceptionHandler(final UnknownServerException e)
         throws JsonProcessingException {
-
+        log.error("Unknown server exception: {}", e.getMessage());
         return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -133,6 +130,7 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(FeignException.class)
     ResponseEntity<String> onFeignException(final FeignException e)
         throws JsonProcessingException {
+        log.error("Feign Exception: {}", e.getMessage());
         return getResponseEntity(
             "Unable to connect to Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
@@ -142,8 +140,8 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(InterruptedException.class)
     ResponseEntity<String> onInterruptedException(final InterruptedException e)
         throws JsonProcessingException {
-        logger.severe("An error occurred when trying to communicate with Media Service. " + e.getMessage());
-        logger.severe(Arrays.toString(e.getStackTrace()));
+        log.error("An error occurred when trying to communicate with Media Service. {}", e.getMessage());
+        log.error(Arrays.toString(e.getStackTrace()));
         return getResponseEntity(
             "An error occurred when trying to communicate with Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
@@ -152,8 +150,8 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(ManagementException.class)
     ResponseEntity<String> onManagementException(final ManagementException e) throws JsonProcessingException {
-        logger.severe("An error occurred when trying to communicate with Azure Media Service. " + e.getMessage());
-        logger.severe(Arrays.toString(e.getStackTrace()));
+        log.error("An error occurred when trying to communicate with Azure Media Service. {}", e.getMessage());
+        log.error(Arrays.toString(e.getStackTrace()));
         return getResponseEntity(
             "An error occurred when trying to communicate with Azure Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
@@ -162,8 +160,8 @@ public class GlobalControllerExceptionHandler {
 
     @ExceptionHandler(MsalServiceException.class)
     ResponseEntity<String> onMsalServiceException(final MsalServiceException e) throws JsonProcessingException {
-        logger.severe("An error occurred when trying to communicate with Azure Media Service. " + e.getMessage());
-        logger.severe(Arrays.toString(e.getStackTrace()));
+        log.error("An error occurred when trying to communicate with Azure Media Service. {}", e.getMessage());
+        log.error(Arrays.toString(e.getStackTrace()));
         return getResponseEntity(
             "An error occurred when trying to communicate with Azure Media Service. " + e.getMessage(),
             HttpStatus.INTERNAL_SERVER_ERROR
@@ -198,6 +196,7 @@ public class GlobalControllerExceptionHandler {
     @ExceptionHandler(UnprocessableContentException.class)
     ResponseEntity<String> unprocessableContentException(final UnprocessableContentException e)
         throws JsonProcessingException {
+        log.error("Unprocessable content exception: {}", e.getMessage());
         return getResponseEntity(e.getMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
@@ -210,11 +209,6 @@ public class GlobalControllerExceptionHandler {
                                      .replace("' of '", "' for '")
                                      .trim(),
                                  HttpStatus.BAD_REQUEST);
-    }
-
-    @ExceptionHandler(Exception.class)
-    ResponseEntity<String> exceptionHandler(final Exception e) throws JsonProcessingException {
-        return getResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
