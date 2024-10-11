@@ -31,6 +31,7 @@ public class EditRequestService {
 
     @Transactional
     public EditRequestStatus performEdit(UUID editId) throws InterruptedException {
+        // retrieves locked edit request
         var request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
 
