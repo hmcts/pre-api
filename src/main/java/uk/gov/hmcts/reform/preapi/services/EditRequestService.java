@@ -30,7 +30,7 @@ public class EditRequestService {
     }
 
     @Transactional
-    public EditRequestStatus performEdit(UUID editId) throws InterruptedException {
+    public EditRequestStatus performEdit(UUID editId) {
         // retrieves locked edit request
         var request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
@@ -49,7 +49,7 @@ public class EditRequestService {
         editRequestRepository.save(request);
 
         // todo ffmpeg happens here
-        Thread.sleep(10000);
+        // Thread.sleep(10000);
 
         request.setFinishedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.COMPLETE);
