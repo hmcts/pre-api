@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 
 import static java.lang.Character.toLowerCase;
 
-@Service
 @Slf4j
+@Service
 public class ScheduledTaskRunner {
 
     @Autowired
