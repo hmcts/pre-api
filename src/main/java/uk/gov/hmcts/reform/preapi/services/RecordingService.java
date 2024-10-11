@@ -14,10 +14,12 @@ import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -101,6 +103,15 @@ public class RecordingService {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(createRecordingDTO.getCaptureSessionId())
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + createRecordingDTO.getCaptureSessionId()));
+
+        if (captureSession.getBooking().getCaseId().getState() != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "Recording",
+                createRecordingDTO.getId(),
+                captureSession.getBooking().getCaseId().getState(),
+                "OPEN"
+            );
+        }
 
         var recordingEntity = recording.orElse(new Recording());
         recordingEntity.setId(createRecordingDTO.getId());

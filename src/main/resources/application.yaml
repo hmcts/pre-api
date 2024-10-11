@@ -81,7 +81,9 @@ testing-support-endpoints:
 
 mediakind:
   subscription: ${MEDIA_KIND_SUBSCRIPTION:pre-mediakind-stg}
+  subscription-id: ${MEDIA_KIND_SUBSCRIPTION_ID:}
   api: https://api.mk.io/api/ams/${MEDIA_KIND_SUBSCRIPTION:}/
+  accountsApi: https://api.mk.io/api/accounts/${MEDIA_KIND_CUSTOMER_ID:}
   token: ${MEDIA_KIND_TOKEN:}
   issuer: ${ISSUER:https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/}
   symmetricKey: ${SYMMETRIC_KEY:}
@@ -93,10 +95,18 @@ platform-env: ${PLATFORM_ENV_TAG:Staging}
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
 
 flow:
-  api: ${FLOW_HTTP_API:https://prod-01.uksouth.logic.azure.com}
-  workflow: ${FLOW_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
-  sig: ${FLOW_SIG:123}
+  workflow:
+    stopLiveEventNotifier:
+      api: ${FLOW_HTTP_API:https://prod-01.uksouth.logic.azure.com}
+      id: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
+      enabled: true
+    caseStateChangeNotifier:
+      api: ${FLOW_CASE_STATE_NOTIFIER_HTTP_API:https://prod-17.uksouth.logic.azure.com:443}
+      id: ${CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID:8b976c9fdc7749d3a4b8c9d6a6ef9d0c}
+      enabled: true
+  sig: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG:123}
   key: ${FLOW_KEY:123}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
@@ -108,8 +118,14 @@ flow:
 #        hmcts:
 #          reform:
 #            preapi:
+#              actuator:
+#                PreApiHealthIndicator: DEBUG
+#              email:
+#                StopLiveEventNotifierFlowClient: DEBUG
+#                CaseStateChangeNotifierFlowClient: DEBUG
 #              media:
 #                MediaKindClient: DEBUG
+#                MediaKindAccountsClient: DEBUG
 #log4j:
 #  logger:
 #    org:

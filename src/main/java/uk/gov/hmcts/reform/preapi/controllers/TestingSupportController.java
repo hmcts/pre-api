@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,11 +23,14 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
+import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -37,10 +41,13 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
+import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -63,6 +70,8 @@ class TestingSupportController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
+    private final TermsAndConditionsRepository termsAndConditionsRepository;
+    private final UserTermsAcceptedRepository userTermsAcceptedRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -75,7 +84,9 @@ class TestingSupportController {
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
                              RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository) {
+                             AppAccessRepository appAccessRepository,
+                             TermsAndConditionsRepository termsAndConditionsRepository,
+                             UserTermsAcceptedRepository userTermsAcceptedRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -87,6 +98,8 @@ class TestingSupportController {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
+        this.termsAndConditionsRepository = termsAndConditionsRepository;
+        this.userTermsAcceptedRepository = userTermsAcceptedRepository;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -170,6 +183,7 @@ class TestingSupportController {
             {
                 put("bookingId", booking.getId().toString());
                 put("courtId", court.getId().toString());
+                put("caseId", caseEntity.getId().toString());
             }
         };
 
@@ -293,16 +307,78 @@ class TestingSupportController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/create-authenticated-user/super-user",  produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createAuthenticatedUser() {
-        var appAccess = createAppAccess("Super User");
+    @PostMapping("/create-authenticated-user/{role}")
+    public ResponseEntity<Map<String, String>> createAuthenticatedUser(@PathVariable TestingSupportRoles role) {
+        String roleName;
+        switch (role) {
+            case SUPER_USER -> roleName = "Super User";
+            case LEVEL_1 -> roleName = "Level 1";
+            case LEVEL_2 -> roleName = "Level 2";
+            case LEVEL_3 -> roleName = "Level 3";
+            case LEVEL_4 -> roleName = "Level 4";
+            default -> throw new IllegalArgumentException("Invalid role");
+        }
+        var r = roleRepository.findFirstByName(roleName)
+            .orElse(createRole(roleName));
+        var appAccess = createAppAccess(r);
+        return ResponseEntity.ok(Map.of(
+            "accessId", appAccess.getId().toString(),
+            "courtId", appAccess.getCourt().getId().toString()
+        ));
+    }
 
-        var response = new HashMap<String, String>() {
-            {
-                put("accessId", appAccess.getId().toString());
-            }
-        };
-        return ResponseEntity.ok(response);
+    @PostMapping(value = "/create-ready-to-use-booking/{caseReference}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createReadyToUseBooking(@PathVariable String caseReference) {
+        var cases = caseRepository.findAllByReference(caseReference);
+        if (cases.isEmpty()) {
+            throw new NotFoundException("Only use this endpoint for cases that already exist");
+        }
+        var aCase = cases.getFirst();
+
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+        booking.setParticipants(aCase.getParticipants());
+        booking.setScheduledFor(Timestamp.from(Instant.now()));
+        bookingRepository.save(booking);
+
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
+        captureSession.setStatus(RecordingStatus.INITIALISING);
+        captureSessionRepository.save(captureSession);
+
+        return ResponseEntity.ok(Map.of(
+            "caseId", aCase.getId().toString(),
+            "bookingId", booking.getId().toString(),
+            "captureSessionId", captureSession.getId().toString())
+        );
+    }
+
+    @PostMapping(value = "/create-terms-and-conditions/{termsType}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> createTermsAndConditions(
+        @PathVariable TermsAndConditionsType termsType
+    ) {
+        var terms = new TermsAndConditions();
+        terms.setId(UUID.randomUUID());
+        terms.setType(termsType);
+        terms.setContent("some terms and conditions content");
+        terms.setCreatedAt(Timestamp.from(Instant.now()));
+        termsAndConditionsRepository.save(terms);
+
+        return ResponseEntity.ok(Map.of("termsId", terms.getId().toString()));
+    }
+
+    @PostMapping(value = "/outdate-all-user-acceptances", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, String>> outdateAllUserAcceptances() {
+        userTermsAcceptedRepository.findAll()
+            .forEach(a -> {
+                a.setAcceptedAt(Timestamp.from(a.getAcceptedAt().toInstant().minusSeconds(31536000)));
+                userTermsAcceptedRepository.save(a);
+            });
+
+        return ResponseEntity.ok().build();
     }
 
     private Court createTestCourt() {
@@ -321,6 +397,18 @@ class TestingSupportController {
         access.setUser(createUser());
         access.setCourt(createTestCourt());
         access.setRole(createRole(role));
+        access.setActive(true);
+        access.setDefaultCourt(true);
+        appAccessRepository.save(access);
+
+        return access;
+    }
+
+    private AppAccess createAppAccess(Role role) {
+        var access = new AppAccess();
+        access.setUser(createUser());
+        access.setCourt(createTestCourt());
+        access.setRole(role);
         access.setActive(true);
         access.setDefaultCourt(true);
         appAccessRepository.save(access);
@@ -348,5 +436,14 @@ class TestingSupportController {
         roleRepository.save(role);
 
         return role;
+    }
+
+    public enum AuthLevel {
+        NONE,
+        SUPER_USER,
+        LEVEL_1,
+        LEVEL_2,
+        LEVEL_3,
+        LEVEL_4
     }
 }

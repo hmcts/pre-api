@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
+import com.azure.resourcemanager.mediaservices.models.JobError;
+import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
@@ -38,6 +40,8 @@ import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingPolicy;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,6 +90,29 @@ public class MediaKindTest {
         captureSession = new CaptureSessionDTO();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBookingId(UUID.randomUUID());
+    }
+
+    private MkStreamingLocator createStreamingLocator(String userId, int daysOffset) {
+        return MkStreamingLocator
+            .builder()
+            .properties(MkStreamingLocatorProperties
+                            .builder()
+                            .streamingPolicyName("Predefined_ClearKey")
+                            .streamingLocatorId(userId)
+                            .endTime(Timestamp.valueOf(OffsetDateTime.now()
+                                                                     .plusDays(daysOffset)
+                                                                     .toLocalDateTime()))
+                            .build()
+            )
+            .build();
+    }
+
+    private MkStreamingLocator getExpiredStreamingLocator(String userId) {
+        return createStreamingLocator(userId, -1);
+    }
+
+    private MkStreamingLocator getFutureStreamingLocator(String userId) {
+        return createStreamingLocator(userId, 1);
     }
 
     @DisplayName("Should get a list of assets")
@@ -291,17 +318,6 @@ public class MediaKindTest {
             .build();
     }
 
-    private MkStreamingLocator createMkStreamingLocator(String name) {
-        return MkStreamingLocator.builder()
-            .name(name)
-            .properties(MkStreamingLocatorProperties.builder()
-                            .assetName("asset name")
-                            .streamingPolicyName("streaming policy name")
-                            .streamingLocatorId("streaming locator id")
-                            .build())
-            .build();
-    }
-
     @DisplayName("Should return the capture session when successfully started the live event")
     @Test
     void startLiveEventSuccess() {
@@ -326,7 +342,7 @@ public class MediaKindTest {
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.putLiveEvent(any(), any()))
-            .thenThrow(mock(FeignException.Conflict.class));
+            .thenThrow(mock(ConflictException.class));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
 
         mediaKind.startLiveEvent(captureSession);
@@ -364,7 +380,7 @@ public class MediaKindTest {
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putAsset(eq(liveEventName), any(MkAsset.class)))
-            .thenThrow(mock(FeignException.Conflict.class));
+            .thenThrow(mock(ConflictException.class));
 
         var message = assertThrows(
             ConflictException.class,
@@ -385,7 +401,7 @@ public class MediaKindTest {
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
         when(mockClient.putLiveOutput(eq(liveEventName), eq(liveEventName), any()))
-            .thenThrow(mock(FeignException.Conflict.class));
+            .thenThrow(mock(ConflictException.class));
 
         var message = assertThrows(
             ConflictException.class,
@@ -443,39 +459,30 @@ public class MediaKindTest {
         verify(mockClient, times(1)).startLiveEvent(any());
     }
 
-    @DisplayName("Should successfully stop live event when there is not a recording found")
     @Test
+    @DisplayName("Should successfully stop live event when there is not a recording found")
     void stopLiveEventNoRecording() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
-        var mockJob1 = mock(MkJob.class);
-        var mockProperties1 = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
-        when(mockJob1.getProperties()).thenReturn(mockProperties1);
-        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
-        when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn(null);
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(false);
 
-        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
-            .isEqualTo(RecordingStatus.NO_RECORDING);
+        var res = mediaKind.stopLiveEvent(captureSession, recordingId);
+        assertThat(res).isEqualTo(RecordingStatus.NO_RECORDING);
 
-        verify(mockClient, times(2)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
-        var jobArgument = ArgumentCaptor.forClass(String.class);
-        var jobArgument2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
-        assertThat(jobArgument.getValue()).startsWith(liveEventName);
-        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
+        verify(mockClient, never()).putAsset(any(), any());
+
     }
 
-    @DisplayName("Should successfully stop live event when there is a recording found")
     @Test
-    void stopLiveEventRecordingFound() throws InterruptedException {
+    @DisplayName("Should successfully stop live event when there is a recording found")
+    void stopLiveEventRecordingAvailable() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var tempName = recordingId.toString().replace("-", "");
@@ -491,12 +498,18 @@ public class MediaKindTest {
         when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(mockProperties2.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
 
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
         when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
-        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
-            .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId)).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
+        verify(mockClient, times(1)).stopLiveEvent(liveEventName);
+        verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
+        verify(mockClient, times(1)).deleteStreamingLocator(any());
+        verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(mockClient, times(2)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_MP4_TRANSFORM);
@@ -513,16 +526,45 @@ public class MediaKindTest {
         verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
         assertThat(jobArgument3.getValue()).startsWith(tempName);
         assertThat(jobArgument4.getValue()).startsWith(tempName);
+    }
+
+    @Test
+    @DisplayName("Should throw error for stop live event when file cannot be found after first encode job")
+    void stopLiveEventRecordingEncodingJobNoFileNameFound() throws InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var recordingId = UUID.randomUUID();
+        var mockJob1 = mock(MkJob.class);
+        var mockProperties1 = mock(MkJob.MkJobProperties.class);
+
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
+
+        when(mockJob1.getProperties()).thenReturn(mockProperties1);
+        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
+
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
+        when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn(null);
+
+        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId)).isEqualTo(RecordingStatus.FAILURE);
+
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
+        verify(mockClient, times(2)).putAsset(any(), any());
+        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
+        verify(mockClient, never()).putTransform(any(), any());
+        verify(azureIngestStorageService, never()).doesIsmFileExist(recordingId.toString());
     }
 
-    @DisplayName("Should throw error when error occurs creating asset")
     @Test
+    @DisplayName("Should throw error when error occurs creating asset")
     void stopLiveEventAssetCreateError() {
         var recordingId = UUID.randomUUID();
+
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
 
         when(mockClient.putAsset(any(), any())).thenThrow(FeignException.class);
         assertThrows(
@@ -533,23 +575,34 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
     }
 
-    @DisplayName("Should create the EncodeFromIngest transform if it doesn't exist")
+
     @Test
+    @DisplayName("Should create the EncodeFromIngest transform if it doesn't exist")
     void stopLiveEventRecordingFoundRunEncodeTransform() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
-        var mockJob = mock(MkJob.class);
-        var mockProperties = mock(MkJob.MkJobProperties.class);
+        var tempName = recordingId.toString().replace("-", "");
+        var mockJob1 = mock(MkJob.class);
+        var mockProperties1 = mock(MkJob.MkJobProperties.class);
+        var mockJob2 = mock(MkJob.class);
+        var mockProperties2 = mock(MkJob.MkJobProperties.class);
 
         when(mockClient.getTransform(ENCODE_FROM_INGEST_TRANSFORM)).thenThrow(NotFoundException.class);
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
-        when(mockJob.getProperties()).thenReturn(mockProperties);
-        when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
+
+        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
+        when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), startsWith(tempName))).thenReturn(mockJob2);
+        when(mockJob1.getProperties()).thenReturn(mockProperties1);
+        when(mockJob2.getProperties()).thenReturn(mockProperties2);
+        when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
+        when(mockProperties2.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
+
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
+        when(azureIngestStorageService.tryGetMp4FileName(any())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
-        when(azureIngestStorageService.tryGetMp4FileName(any())).thenReturn(null);
 
         assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
-            .isEqualTo(RecordingStatus.NO_RECORDING);
+            .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
         verify(mockClient, times(2)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
@@ -566,8 +619,8 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
 
-    @DisplayName("Should create the EncodeFromMp4 transform if it doesn't exist")
     @Test
+    @DisplayName("Should create the EncodeFromMp4 transform if it doesn't exist")
     void stopLiveEventRecordingFoundRunEncodeTransform2() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
@@ -577,7 +630,9 @@ public class MediaKindTest {
         var mockJob2 = mock(MkJob.class);
         var mockProperties2 = mock(MkJob.MkJobProperties.class);
 
+        when(mockClient.getTransform(ENCODE_FROM_INGEST_TRANSFORM)).thenThrow(NotFoundException.class);
         when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
+
         when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob1);
         when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), startsWith(tempName))).thenReturn(mockJob2);
         when(mockJob1.getProperties()).thenReturn(mockProperties1);
@@ -585,7 +640,9 @@ public class MediaKindTest {
         when(mockProperties1.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
         when(mockProperties2.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.FINISHED);
 
-        when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn("index.mp4");
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(true);
+        when(azureIngestStorageService.tryGetMp4FileName(any())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
         assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
@@ -594,27 +651,22 @@ public class MediaKindTest {
         verify(mockClient, times(2)).putAsset(any(), any());
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
         verify(mockClient, times(1)).getTransform(ENCODE_FROM_MP4_TRANSFORM);
+        verify(mockClient, times(1)).putTransform(eq(ENCODE_FROM_INGEST_TRANSFORM), any());
         verify(mockClient, times(1)).putTransform(eq(ENCODE_FROM_MP4_TRANSFORM), any());
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
-        var jobArgument3 = ArgumentCaptor.forClass(String.class);
-        var jobArgument4 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
         verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument3.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
-        assertThat(jobArgument3.getValue()).startsWith(tempName);
-        assertThat(jobArgument4.getValue()).startsWith(tempName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
     }
 
-    @DisplayName("Should throw not found when live event cannot be found to stop")
     @Test
+    @DisplayName("Should throw not found when live event cannot be found to stop")
     void stopLiveEventLiveEventNotFound() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
@@ -632,35 +684,25 @@ public class MediaKindTest {
         verify(mockClient, never()).deleteLiveEvent(liveEventName);
     }
 
-    @DisplayName("Should successfully stop live event when there is not a streaming endpoint to stop/delete")
     @Test
+    @DisplayName("Should successfully stop live event when there is not a streaming endpoint to stop/delete")
     void stopLiveEventEndpointNotFound() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
-        var mockJob = mock(MkJob.class);
-        var mockProperties = mock(MkJob.MkJobProperties.class);
 
-        when(mockClient.getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), startsWith(liveEventName))).thenReturn(mockJob);
-        when(mockJob.getProperties()).thenReturn(mockProperties);
-        when(mockProperties.getState()).thenReturn(JobState.PROCESSING, JobState.PROCESSING, JobState.ERROR);
-        when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(false);
+        when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
+            .thenReturn(false);
         doThrow(NotFoundException.class).when(mockClient).stopStreamingEndpoint(any());
 
-        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
-            .isEqualTo(RecordingStatus.NO_RECORDING);
+        var res = mediaKind.stopLiveEvent(captureSession, recordingId);
+        assertThat(res).isEqualTo(RecordingStatus.NO_RECORDING);
 
-        verify(mockClient, times(2)).putAsset(any(), any());
-        verify(mockClient, times(1)).getTransform(ENCODE_FROM_INGEST_TRANSFORM);
-        var jobArgument = ArgumentCaptor.forClass(String.class);
-        var jobArgument2 = ArgumentCaptor.forClass(String.class);
-        verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
-        assertThat(jobArgument.getValue()).startsWith(liveEventName);
-        assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteStreamingLocator(any());
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
+        verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
+        verify(mockClient, never()).putAsset(any(), any());
     }
 
     @DisplayName("Should accept a request to import an asset and return a job response for encoding to mp4")
@@ -728,10 +770,15 @@ public class MediaKindTest {
     void importAssetJobFailed() throws InterruptedException {
         var mockJob = mock(MkJob.class);
         var mockProperties = mock(MkJob.MkJobProperties.class);
+        var output = mock(JobOutputAsset.class);
+        var jobError = mock(JobError.class);
         when(mockClient.getJob(eq(ENCODE_FROM_MP4_TRANSFORM), any())).thenReturn(mockJob);
         when(azureFinalStorageService.getMp4FileName(any())).thenReturn("my-source-container");
         when(mockJob.getProperties()).thenReturn(mockProperties);
         when(mockProperties.getState()).thenReturn(JobState.ERROR);
+        when(mockProperties.getOutputs()).thenReturn(List.of(output));
+        when(output.error()).thenReturn(jobError);
+        when(jobError.message()).thenReturn("something went wrong");
 
         var newRecordingId = UUID.randomUUID();
 
@@ -929,7 +976,9 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -941,10 +990,11 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
-        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1)).deleteStreamingLocator(userId + "_" + assetName);
+        verify(mockClient, times(1))
+            .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when content key policy didn't exist")
@@ -989,7 +1039,9 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getFutureStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -1002,10 +1054,8 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), any(MkContentKeyPolicy.class));
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
-        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when streaming policy not found")
@@ -1051,7 +1101,9 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -1063,11 +1115,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
+        verify(mockClient, times(1)).deleteStreamingLocator(userId + "_" + assetName);
         verify(mockClient, times(1)).putStreamingPolicy(eq("Predefined_ClearKey"), any(MkStreamingPolicy.class));
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
-        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1))
+            .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when default endpoint not running")
@@ -1118,7 +1171,9 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -1130,10 +1185,11 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
-        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1)).deleteStreamingLocator(userId + "_" + assetName);
+        verify(mockClient, times(1))
+            .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(3)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should return the playback urls for the asset when default endpoint not created")
@@ -1183,7 +1239,9 @@ public class MediaKindTest {
             .thenReturn(streamingEndpoint);
         when(mockClient.createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class)))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
+
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenReturn(getExpiredStreamingLocator(userId));
 
         var playback = mediaKind.playAsset(assetName, userId);
 
@@ -1195,11 +1253,12 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
-        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1)).deleteStreamingLocator(userId + "_" + assetName);
+        verify(mockClient, times(1))
+            .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).createStreamingEndpoint(eq("default"), any(MkStreamingEndpoint.class));
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should throw not found error when both dash and hls are null")
@@ -1227,8 +1286,9 @@ public class MediaKindTest {
         when(mockClient.getAsset(assetName)).thenReturn(asset);
         when(mockClient.getStreamingEndpointByName("default"))
             .thenReturn(streamingEndpoint);
-        when(mockClient.getStreamingLocatorPaths(userId)).thenReturn(streamingPaths);
+        when(mockClient.getStreamingLocatorPaths(userId + "_" + assetName)).thenReturn(streamingPaths);
 
+        when(mockClient.getStreamingLocator(userId + "_" + assetName)).thenThrow(NotFoundException.class);
 
         var message = assertThrows(
             NotFoundException.class,
@@ -1240,10 +1300,10 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
-        verify(mockClient, times(1)).deleteStreamingLocator(userId);
-        verify(mockClient, times(1)).createStreamingLocator(eq(userId), any(MkStreamingLocator.class));
+        verify(mockClient, times(1))
+            .createStreamingLocator(eq(userId + "_" + assetName), any(MkStreamingLocator.class));
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
-        verify(mockClient, times(1)).getStreamingLocatorPaths(userId);
+        verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
     }
 
     @DisplayName("Should Delete all streaming locators and Content Key Policies")
@@ -1286,5 +1346,19 @@ public class MediaKindTest {
         verify(mockClient, times(3)).deleteStreamingLocator(anyString());
         verify(mockClient, times(1)).getContentKeyPolicies(anyInt());
         verify(mockClient, times(3)).deleteContentKeyPolicy(anyString());
+    }
+
+    @Test
+    @DisplayName("Should not error when stopping live event when live output has not been deleted")
+    void cleanupStoppedLiveEventLiveOutputNotDeletedSuccess() {
+        var liveEventId = UUID.randomUUID().toString().replace("-", "");
+
+        doThrow(FeignException.BadRequest.class).when(mockClient).stopLiveEvent(liveEventId);
+
+        mediaKind.cleanupStoppedLiveEvent(liveEventId);
+
+        verify(mockClient, times(1)).deleteLiveOutput(liveEventId, liveEventId);
+        verify(mockClient, times(1)).stopLiveEvent(liveEventId);
+        verify(mockClient, times(1)).deleteLiveEvent(liveEventId);
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
@@ -12,7 +13,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AuditControllerFT  extends FunctionalTestBase {
+public class AuditControllerFT extends FunctionalTestBase {
 
     @DisplayName("Should fail to update an audit record as they are immutable")
     @Test
@@ -32,6 +33,10 @@ public class AuditControllerFT  extends FunctionalTestBase {
     }
 
     private Response putAudit(CreateAuditDTO dto) throws JsonProcessingException {
-        return doPutRequest(AUDIT_ENDPOINT + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(
+            AUDIT_ENDPOINT + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 }
