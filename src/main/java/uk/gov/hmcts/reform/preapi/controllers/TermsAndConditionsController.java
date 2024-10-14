@@ -28,7 +28,7 @@ public class TermsAndConditionsController {
         this.userTermsAcceptedService = userTermsAcceptedService;
     }
 
-    @GetMapping("/api/app-terms-and-conditions/latest")
+    @GetMapping("/app-terms-and-conditions/latest")
     @Operation(
         operationId = "getLatestTermsForApp",
         summary = "Get the latest terms and conditions for the app"
@@ -37,7 +37,7 @@ public class TermsAndConditionsController {
         return ResponseEntity.ok(termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP));
     }
 
-    @GetMapping("/api/portal-terms-and-conditions/latest")
+    @GetMapping("/portal-terms-and-conditions/latest")
     @Operation(
         operationId = "getLatestTermsForPortal",
         summary = "Get the latest terms and conditions for the portal"
