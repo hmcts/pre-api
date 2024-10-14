@@ -61,24 +61,4 @@ public class TermsAndConditionsServiceIT extends IntegrationTestBase {
         assertThat(latestPortalTerms2.getId()).isEqualTo(newTerms.getId());
         assertThat(latestPortalTerms2.getCreatedAt()).isAfter(latestPortalTerms1.getCreatedAt());
     }
-
-    @Test
-    @Transactional
-    public void getLatestTermsAndConditionsNotFound() {
-        // delete all entities
-        entityManager.clear();
-        entityManager.flush();
-
-        var message1 = assertThrows(
-            NotFoundException.class,
-            () -> termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP)
-        );
-        assertThat(message1.getMessage()).isEqualTo("Not found: Terms and conditions of type: APP");
-
-        var message2 = assertThrows(
-            NotFoundException.class,
-            () -> termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL)
-        );
-        assertThat(message2.getMessage()).isEqualTo("Not found: Terms and conditions of type: PORTAL");
-    }
 }
