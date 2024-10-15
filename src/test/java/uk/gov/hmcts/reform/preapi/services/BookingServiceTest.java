@@ -14,10 +14,12 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
@@ -228,10 +230,41 @@ class BookingServiceTest {
             () -> bookingService.upsert(bookingModel)
         );
 
-        verify(bookingRepository, times(1)).existsById(bookingModel.getId());
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(bookingModel.getId());
         verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseId);
-        verify(bookingRepository, never()).findById(bookingModel.getId());
+        verify(bookingRepository, times(1)).findById(bookingModel.getId());
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @DisplayName("Create/update a booking when case is not OPEN")
+    @Test
+    void upsertCreateBookingCaseNotOpen() {
+        var bookingModel = new CreateBookingDTO();
+        var caseId = UUID.randomUUID();
+        bookingModel.setId(UUID.randomUUID());
+        bookingModel.setCaseId(caseId);
+        bookingModel.setParticipants(Set.of());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.CLOSED);
+
+        when(caseRepository.findByIdAndDeletedAtIsNull(caseId)).thenReturn(Optional.of(aCase));
+        when(bookingRepository.findById(bookingModel.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.existsById(bookingModel.getId())).thenReturn(false);
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> bookingService.upsert(bookingModel)
+        ).getMessage();
+        assertThat(message).isEqualTo(
+            "Resource Booking(" + bookingModel.getId()
+                + ") is associated with a case in the state CLOSED. Must be in state OPEN."
+        );
+
+        verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(bookingModel.getId());
+        verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseId);
+        verify(bookingRepository, times(1)).findById(bookingModel.getId());
         verify(bookingRepository, never()).save(any());
     }
 
@@ -254,10 +287,9 @@ class BookingServiceTest {
             () -> bookingService.upsert(bookingModel)
         );
 
-        verify(bookingRepository, times(1)).existsById(bookingModel.getId());
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNotNull(bookingModel.getId());
         verify(caseRepository, times(1)).findByIdAndDeletedAtIsNull(caseId);
-        verify(bookingRepository, never()).findById(bookingModel.getId());
+        verify(bookingRepository, times(1)).findById(bookingModel.getId());
         verify(bookingRepository, never()).save(any());
     }
 

@@ -14,10 +14,12 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
@@ -61,7 +63,6 @@ public class BookingService {
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     @Transactional
     public BookingDTO findById(UUID id) {
-
         return bookingRepository.findByIdAndDeletedAtIsNull(id)
             .map(BookingDTO::new)
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
@@ -119,24 +120,26 @@ public class BookingService {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
 
+        var optBooking = bookingRepository.findById(createBookingDTO.getId());
+        var bookingEntity = optBooking.orElse(new Booking());
+
+        var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
+            .orElseThrow(() -> new NotFoundException("Case: " + createBookingDTO.getCaseId()));
+
+        if (caseEntity.getState() != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "Booking",
+                createBookingDTO.getId(),
+                caseEntity.getState(),
+                "OPEN"
+            );
+        }
+
         createBookingDTO.getParticipants().forEach(p -> {
             if (!participantRepository.existsByIdAndCaseId_Id(p.getId(), createBookingDTO.getCaseId())) {
                 throw new NotFoundException("Participant: " + p.getId() + " in case: " + createBookingDTO.getCaseId());
             }
         });
-
-        var isUpdate = bookingRepository.existsById(createBookingDTO.getId());
-
-        var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
-            .orElse(null);
-
-        if ((!isUpdate && caseEntity == null)
-            || (isUpdate && createBookingDTO.getCaseId() != null && caseEntity == null)
-        ) {
-            throw new NotFoundException("Case: " + createBookingDTO.getCaseId());
-        }
-
-        var bookingEntity = bookingRepository.findById(createBookingDTO.getId()).orElse(new Booking());
 
         bookingEntity.setId(createBookingDTO.getId());
         bookingEntity.setCaseId(caseEntity);
@@ -161,6 +164,7 @@ public class BookingService {
 
         bookingRepository.save(bookingEntity);
 
+        var isUpdate = optBooking.isPresent();
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
