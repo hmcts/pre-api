@@ -5,8 +5,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -31,7 +38,9 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
+import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -72,6 +81,7 @@ class TestingSupportController {
     private final AppAccessRepository appAccessRepository;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
+    private final AuditRepository auditRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -86,7 +96,7 @@ class TestingSupportController {
                              RoleRepository roleRepository,
                              AppAccessRepository appAccessRepository,
                              TermsAndConditionsRepository termsAndConditionsRepository,
-                             UserTermsAcceptedRepository userTermsAcceptedRepository) {
+                             UserTermsAcceptedRepository userTermsAcceptedRepository, AuditRepository auditRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -100,6 +110,7 @@ class TestingSupportController {
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
+        this.auditRepository = auditRepository;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -380,6 +391,33 @@ class TestingSupportController {
 
         return ResponseEntity.ok().build();
     }
+
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "0"
+    )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
+    @GetMapping("/latest-audits")
+    public HttpEntity<PagedModel<EntityModel<Audit>>> getLatestAudits(
+        @Parameter(hidden = true) Pageable pageable,
+        @Parameter(hidden = true) PagedResourcesAssembler<Audit> assembler
+    ) {
+        var resultPage = auditRepository.findLatest(pageable);
+
+        if (pageable.getPageNumber() > resultPage.getTotalPages()) {
+            throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
+        }
+
+        return ResponseEntity.ok(assembler.toModel(resultPage));
+    }
+
 
     private Court createTestCourt() {
         var court = new Court();
