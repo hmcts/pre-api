@@ -36,8 +36,7 @@ class MigrationTracker:
         return table_counts
 
     def _count_join_tables(self):
-        db_tables = ['court_region', 'courtrooms',
-                     'booking_participant', 'regions']
+        db_tables = ['court_region','booking_participant', 'regions']
         table_counts = {}
         for table in db_tables:
             count_query = f"SELECT COUNT(*) FROM public.{table}"
@@ -117,8 +116,8 @@ class MigrationTracker:
                 destination_table, source_records, destination_records, failed_records)
 
     def _print_table_row(self, table_name, source_records, destination_records, failed_records):
-        print(f"| {table_name.ljust(20)} | {str(source_records).ljust(18)} | {str(destination_records).ljust(26)} | {str(failed_records).ljust(18)}")
+        print(f"| {table_name.ljust(25)} | {str(source_records).ljust(18)} | {str(destination_records).ljust(26)} | {str(failed_records).ljust(18)}")
 
     def _print_table_header(self):
-        print(f"| {'Table Name'.ljust(20)} | {'Source DB Records'.ljust(18)} | {'Destination DB Records'.ljust(26)} | {'Failed Imports Logs'.ljust(19)}  ")
-        print(f"| {'------------'.ljust(20)} | {'------------------'.ljust(18)} | {'------------------'.ljust(26)} | {'---------------'.ljust(19)}  ")
+        print(f"| {'Table Name'.ljust(25)} | {'Source DB Records'.ljust(18)} | {'Destination DB Records'.ljust(26)} | {'Failed Imports Logs'.ljust(19)}  ")
+        print(f"| {'------------'.ljust(25)} | {'------------------'.ljust(18)} | {'------------------'.ljust(26)} | {'---------------'.ljust(19)}  ")
