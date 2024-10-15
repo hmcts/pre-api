@@ -7,7 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
@@ -38,7 +37,6 @@ public class PortalAccessServiceTest {
     public void updateSuccess() {
         var model = new CreatePortalAccessDTO();
         model.setId(UUID.randomUUID());
-        model.setStatus(AccessStatus.ACTIVE);
         model.setLastAccess(Timestamp.from(Instant.now()));
         model.setInvitedAt(Timestamp.from(Instant.now()));
 
@@ -59,7 +57,6 @@ public class PortalAccessServiceTest {
     public void updateNotFound() {
         var model = new CreatePortalAccessDTO();
         model.setId(UUID.randomUUID());
-        model.setStatus(AccessStatus.ACTIVE);
         model.setLastAccess(Timestamp.from(Instant.now()));
         model.setInvitedAt(Timestamp.from(Instant.now()));
 

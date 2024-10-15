@@ -50,6 +50,7 @@ class PortalAccessManager:
 
             if not check_existing_record(destination_cursor,'portal_access', 'user_id', user_id):
                 id = str(uuid.uuid4())
+
                 status = 'INVITATION_SENT'
 
                 login_enabled = str(user[2]).lower() == 'true'
@@ -73,17 +74,24 @@ class PortalAccessManager:
                 elif login_enabled_and_invited:
                     status = "INVITATION_SENT"
 
+
                 invited_at, registered_at = dataverse_info.get(user_id, (None, None))
+
+                terms_accepted_at = registered_at
+
                 invited_at = datetime.now() if invited_at is None else invited_at
                 
+
                 last_access = parse_to_timestamp(self.get_last_access_date(user_email))
 
                 created_by = get_user_id(destination_cursor, user[6])
 
                 created_at = parse_to_timestamp(user[5])
                 modified_at = created_at
+                
 
                 batch_portal_user_data.append((
+
                     id, user_id, last_access, status, created_at, registered_at, invited_at, modified_at, created_by
                 ))
 
@@ -92,8 +100,10 @@ class PortalAccessManager:
                 destination_cursor.executemany(
                     """
                     INSERT INTO public.portal_access
+
                         (id, user_id, last_access, status, created_at, registered_at, invited_at, modified_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+
                     """,
                     [entry[:-1] for entry in batch_portal_user_data],
                 )
@@ -108,6 +118,7 @@ class PortalAccessManager:
                         record=entry[1],
                         created_at=entry[4],
                         created_by= entry[8]
+
                     )
         except Exception as e:
             self.failed_imports.append({'table_name': 'portal_access','table_id': id,'details': str(e)})
