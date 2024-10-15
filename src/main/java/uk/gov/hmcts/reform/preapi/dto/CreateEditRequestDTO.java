@@ -38,5 +38,5 @@ public class CreateEditRequestDTO {
     @Min(1)
     @NotNull
     @Schema(description = "CreateEditRequestInstructions")
-    private List<EditInstructionDTO> editInstructions;
+    private List<EditCutInstructionDTO> editInstructions;
 }

@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
@@ -11,14 +10,17 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
-import uk.gov.hmcts.reform.preapi.dto.EditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -29,6 +31,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -38,6 +41,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@Validated
 public class EditRequestService {
 
     private final EditRequestRepository editRequestRepository;
@@ -87,9 +91,10 @@ public class EditRequestService {
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
         var sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
-            .orElseThrow(() -> new NotFoundException("Recording: " + dto.getSourceRecordingId()));
+            .orElseThrow(() -> new NotFoundException("Source Recording: " + dto.getSourceRecordingId()));
 
         if (sourceRecording.getDuration() == null) {
+            // todo try get the duration (code for this not merged yet)
             throw new ResourceInWrongStateException("Source Recording ("
                                                         + dto.getSourceRecordingId()
                                                         + ") does not have a valid duration");
@@ -103,19 +108,23 @@ public class EditRequestService {
         request.setStatus(dto.getStatus());
 
         var editInstructions = invertInstructions(dto.getEditInstructions(), sourceRecording);
-        request.setEditInstruction(toJson(editInstructions));
+        request.setEditInstruction(toJson(new EditInstructions(dto.getEditInstructions(), editInstructions)));
 
-        var user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
-            .getAppAccess().getUser();
-        request.setCreatedBy(user);
+        var isUpdate = req.isPresent();
+        if (!isUpdate) {
+            var user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
+                .getAppAccess().getUser();
+
+            request.setCreatedBy(user);
+        }
 
         editRequestRepository.save(request);
-        var isUpdate = req.isPresent();
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
+    // todo change return type
     public Object upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         var id = UUID.randomUUID();
@@ -131,11 +140,11 @@ public class EditRequestService {
             .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
     }
 
-    private List<EditInstructionDTO> parseCsv(MultipartFile file) {
+    private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
             @Cleanup var reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
-            return new CsvToBeanBuilder<EditInstructionDTO>(reader)
-                .withType(EditInstructionDTO.class)
+            return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
+                .withType(EditCutInstructionDTO.class)
                 .build()
                 .parse();
         } catch (Exception e) {
@@ -144,49 +153,72 @@ public class EditRequestService {
         }
     }
 
-    private List<EditInstructionDTO> invertInstructions(List<EditInstructionDTO> instructions, Recording recording) {
-        instructions.sort(Comparator.comparing(EditInstructionDTO::getStart));
+    public List<FfmpegEditInstructionDTO> invertInstructions(List<EditCutInstructionDTO> instructions,
+                                                          Recording recording) {
+        var recordingDuration = recording.getDuration().toSeconds();
+        if (instructions.size() == 1) {
+            var i = instructions.getFirst();
+            if (i.getStart() == 0 && i.getEnd() == recordingDuration) {
+                throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
+                                                  + i.getStart()
+                                                  + "), End("
+                                                  + i.getEnd()
+                                                  + "), Recording Duration("
+                                                  + recordingDuration
+                                                  + ")");
+            }
+        }
+
+        instructions.sort(Comparator.comparing(EditCutInstructionDTO::getStart).thenComparing(EditCutInstructionDTO::getEnd));
 
         var currentTime = 0L;
-        var invertedInstructions = new ArrayList<EditInstructionDTO>();
+        var invertedInstructions = new ArrayList<FfmpegEditInstructionDTO>();
 
         // invert
         for (var instruction : instructions) {
-            if (currentTime < instruction.getStart()) {
-                invertedInstructions.add(new EditInstructionDTO(currentTime, instruction.getStart()));
+            if (instruction.getStart() == instruction.getEnd()) {
+                throw new BadRequestException("Invalid instruction: Instruction with 0 second duration invalid: Start("
+                                                  + instruction.getStart()
+                                                  + "), End("
+                                                  + instruction.getEnd()
+                                                  + ")");
             }
-            currentTime = instruction.getEnd();
-        }
-        invertedInstructions.add(new EditInstructionDTO(currentTime,  recording.getDuration().toSeconds()));
+            if (instruction.getEnd() < instruction.getStart()) {
+                throw new BadRequestException("Invalid instruction: Instruction with end time before start time: Start("
+                                                  + instruction.getStart()
+                                                  + "), End("
+                                                  + instruction.getEnd()
+                                                  + ")");
+            }
+            if (instruction.getEnd() > recordingDuration) {
+                throw new BadRequestException("Invalid instruction: Instruction end time exceeding duration: Start("
+                                                  + instruction.getStart()
+                                                  + "), End("
+                                                  + instruction.getEnd()
+                                                  + "), Recording Duration("
+                                                  + recordingDuration
+                                                  + ")");
 
-        // verify
-        for (int i = 0; i < invertedInstructions.size() - 1; i++) {
-            if (invertedInstructions.get(i).getEnd() > invertedInstructions.get(i + 1).getStart()) {
-                // todo not this
-                log.error("CONFLICT");
-                break;
             }
+            if (currentTime < instruction.getStart()) {
+                invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, instruction.getStart()));
+            }
+            currentTime = currentTime < instruction.getEnd() ? instruction.getEnd() : currentTime;
         }
+        invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
 
         return invertedInstructions;
     }
 
-    private String toJson(List<EditInstructionDTO> instructions) {
-        var obj = Map.of("instructions", instructions);
+    private String toJson(EditInstructions instructions) {
         try {
-            return new ObjectMapper().writeValueAsString(obj);
+            return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Something went wrong: " + e.getMessage());
         }
     }
 
-    private List<EditInstructionDTO> fromJson(String json) {
-        try {
-            var objectMapper = new ObjectMapper();
-            return objectMapper.readValue(objectMapper.readTree(json).get("instructions").toString(),
-                                          new TypeReference<>() {});
-        } catch (JsonProcessingException e) {
-            throw new UnknownServerException("Something went wrong: " + e.getMessage());
-        }
+    protected record EditInstructions(List<EditCutInstructionDTO> requestedInstructions,
+                                      List<FfmpegEditInstructionDTO> ffmpegInstructions) {
     }
 }
