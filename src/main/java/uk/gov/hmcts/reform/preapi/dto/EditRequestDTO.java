@@ -20,13 +20,13 @@ import java.util.UUID;
 public class EditRequestDTO {
     private UUID id;
     private RecordingDTO sourceRecording;
-    private Timestamp createdAt;
-    private Timestamp modifiedAt;
     private String editInstruction;
     private EditRequestStatus status;
     private Timestamp startedAt;
     private Timestamp finishedAt;
     private UUID createdById;
+    private Timestamp createdAt;
+    private Timestamp modifiedAt;
 
     public EditRequestDTO(EditRequest editRequest) {
         this.id = editRequest.getId();
