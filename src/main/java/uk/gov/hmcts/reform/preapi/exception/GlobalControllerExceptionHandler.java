@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.exception;
 
-import com.azure.core.exception.ResourceNotFoundException;
 import com.azure.core.management.exception.ManagementException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -216,6 +215,12 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> badRequestExceptionHandler(final BadRequestException e)
         throws JsonProcessingException {
         return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UnsupportedMediaTypeException.class)
+    ResponseEntity<String> unsupportedMediaTypeException(final UnsupportedMediaTypeException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
