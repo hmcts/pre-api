@@ -5,12 +5,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.opencsv.bean.CsvBindByName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 
 @Data
 @Builder
@@ -24,13 +23,11 @@ public class EditCutInstructionDTO {
     // - Total time removed
 
     @NotNull
-    @PositiveOrZero
     @CsvBindByName(column = "Start time of cut")
     @Schema(description = "EditInstructionStart")
     private String startOfCut;
 
     @NotNull
-    @Positive
     @CsvBindByName(column = "End time of cut")
     @Schema(description = "EditInstructionEnd")
     private String endOfCut;
@@ -58,11 +55,15 @@ public class EditCutInstructionDTO {
     }
 
     private static long parseTime(String time) {
-        var units = time.split(":");
-        int hours = Integer.parseInt(units[0]);
-        int minutes = Integer.parseInt(units[1]);
-        int seconds = Integer.parseInt(units[2]);
+        try {
+            var units = time.split(":");
+            int hours = Integer.parseInt(units[0]);
+            int minutes = Integer.parseInt(units[1]);
+            int seconds = Integer.parseInt(units[2]);
 
-        return hours * 3600L + minutes * 60L + seconds;
+            return hours * 3600L + minutes * 60L + seconds;
+        } catch (IndexOutOfBoundsException | NumberFormatException e) {
+            throw new BadRequestException("Invalid time format: " + time + ". Must be in the form HH:MM:SS");
+        }
     }
 }
