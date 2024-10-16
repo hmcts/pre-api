@@ -144,7 +144,7 @@ public class EditRequestService {
                 .parse();
         } catch (Exception e) {
             log.error("Error when reading CSV file: {} ", e.getMessage());
-            throw new UnknownServerException("Ensure uploaded CSV file has columns named 'Start' and 'End'");
+            throw new UnknownServerException("Uploaded CSV file incorrectly formatted");
         }
     }
 
