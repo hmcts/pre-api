@@ -10,7 +10,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -31,17 +30,14 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
 @Service
-@Validated
 public class EditRequestService {
 
     private final EditRequestRepository editRequestRepository;
@@ -124,8 +120,7 @@ public class EditRequestService {
 
     @Transactional
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
-    // todo change return type
-    public Object upsert(UUID sourceRecordingId, MultipartFile file) {
+    public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         var id = UUID.randomUUID();
         upsert(CreateEditRequestDTO.builder()
@@ -169,7 +164,8 @@ public class EditRequestService {
             }
         }
 
-        instructions.sort(Comparator.comparing(EditCutInstructionDTO::getStart).thenComparing(EditCutInstructionDTO::getEnd));
+        instructions.sort(Comparator.comparing(EditCutInstructionDTO::getStart)
+                              .thenComparing(EditCutInstructionDTO::getEnd));
 
         var currentTime = 0L;
         var invertedInstructions = new ArrayList<FfmpegEditInstructionDTO>();
@@ -203,7 +199,7 @@ public class EditRequestService {
             if (currentTime < instruction.getStart()) {
                 invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, instruction.getStart()));
             }
-            currentTime = currentTime < instruction.getEnd() ? instruction.getEnd() : currentTime;
+            currentTime = Math.max(currentTime, instruction.getEnd());
         }
         invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
 
