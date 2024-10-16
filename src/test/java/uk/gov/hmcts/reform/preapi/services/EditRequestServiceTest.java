@@ -468,7 +468,8 @@ public class EditRequestServiceTest {
                                  editRequestService.invertInstructions(instructions3, recording));
     }
 
-    private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected, List<FfmpegEditInstructionDTO> actual) {
+    private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,
+                                          List<FfmpegEditInstructionDTO> actual) {
         assertThat(actual.size()).isEqualTo(expected.size());
 
         for (int i = 0; i < expected.size(); i++) {
