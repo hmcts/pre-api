@@ -73,7 +73,7 @@ public class EditControllerTest {
 
         when(editRequestService.upsert(sourceId, validFile)).thenReturn(dto);
 
-        mockMvc.perform(multipart(TEST_URL + "/edits/" + sourceId)
+        mockMvc.perform(multipart(TEST_URL + "/edits/from-csv/" + sourceId)
                             .file(validFile)
                             .contentType(MediaType.MULTIPART_FORM_DATA)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -94,7 +94,7 @@ public class EditControllerTest {
         );
 
         var sourceId = UUID.randomUUID();
-        mockMvc.perform(multipart(TEST_URL + "/edits/" + sourceId)
+        mockMvc.perform(multipart(TEST_URL + "/edits/from-csv/" + sourceId)
                             .file(notACsv)
                             .contentType(MediaType.MULTIPART_FORM_DATA)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -115,7 +115,7 @@ public class EditControllerTest {
         );
 
         var sourceId = UUID.randomUUID();
-        mockMvc.perform(multipart(TEST_URL + "/edits/" + sourceId)
+        mockMvc.perform(multipart(TEST_URL + "/edits/from-csv/" + sourceId)
                             .file(notACsv)
                             .contentType(MediaType.MULTIPART_FORM_DATA)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
@@ -131,7 +131,7 @@ public class EditControllerTest {
         var emptyCsv = new MockMultipartFile("file", "test.txt", "text/csv", new byte[0]);
 
         var sourceId = UUID.randomUUID();
-        mockMvc.perform(multipart(TEST_URL + "/edits/" + sourceId)
+        mockMvc.perform(multipart(TEST_URL + "/edits/from-csv/" + sourceId)
                             .file(emptyCsv)
                             .contentType(MediaType.MULTIPART_FORM_DATA)
                             .accept(MediaType.APPLICATION_JSON_VALUE))

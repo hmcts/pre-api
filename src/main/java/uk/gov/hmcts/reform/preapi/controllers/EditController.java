@@ -32,7 +32,7 @@ public class EditController {
     }
 
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
-    @PostMapping(value = "/{sourceRecordingId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/from-csv/{sourceRecordingId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<EditRequestDTO> createEditFromCsv(@PathVariable UUID sourceRecordingId,
                                                      @RequestParam("file") MultipartFile file) {
         var fileType = file.getContentType();
