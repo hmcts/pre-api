@@ -49,16 +49,18 @@ public class AccessDTOTest {
             latestPortalTerms,
             Timestamp.from(Instant.now())
         );
-        user.setUserTermsAccepted(Set.of(acceptance1, acceptance2));
+        when(user.getUserTermsAccepted()).thenReturn(Set.of(acceptance1, acceptance2));
 
         when(user.getAppAccess()).thenReturn(Set.of());
         when(user.getPortalAccess()).thenReturn(Set.of());
 
-        var accessDTO = new AccessDTO(user, null);
+        var accessDTO = new AccessDTO(user, Set.of(latestAppTerms, latestPortalTerms));
 
         assertEquals(0, accessDTO.getAppAccess().size());
         assertEquals(0, accessDTO.getPortalAccess().size());
         assertEquals(2, accessDTO.getTermsAccepted().size());
+        assertEquals(true, accessDTO.getTermsAccepted().get(TermsAndConditionsType.APP));
+        assertEquals(true, accessDTO.getTermsAccepted().get(TermsAndConditionsType.PORTAL));
     }
 
     @Test
@@ -82,5 +84,8 @@ public class AccessDTOTest {
 
         assertEquals(1, accessDTO.getAppAccess().size());
         assertEquals(1, accessDTO.getPortalAccess().size());
+        assertEquals(2, accessDTO.getTermsAccepted().size());
+        assertEquals(false, accessDTO.getTermsAccepted().get(TermsAndConditionsType.APP));
+        assertEquals(false, accessDTO.getTermsAccepted().get(TermsAndConditionsType.PORTAL));
     }
 }
