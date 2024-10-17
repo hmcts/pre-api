@@ -83,7 +83,11 @@ public class UserService {
     @Transactional
     public AccessDTO findByEmail(String email) {
         return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
-            .map(AccessDTO::new)
+            .map(access ->
+                     new AccessDTO(
+                            access,
+                            getAllLatestTermsAndConditions()
+                     ))
             .orElseThrow(() -> new NotFoundException("User: " + email));
     }
 
