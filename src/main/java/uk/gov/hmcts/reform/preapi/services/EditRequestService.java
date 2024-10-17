@@ -214,7 +214,7 @@ public class EditRequestService {
         }
     }
 
-    protected record EditInstructions(List<EditCutInstructionDTO> requestedInstructions,
+    public record EditInstructions(List<EditCutInstructionDTO> requestedInstructions,
                                       List<FfmpegEditInstructionDTO> ffmpegInstructions) {
     }
 }
