@@ -73,9 +73,9 @@ tasks.withType(JavaCompile) {
 }
 
 // https://github.com/gradle/gradle/issues/16791
-tasks.withType(JavaExec).configureEach {
-  javaLauncher.set(javaToolchains.launcherFor(java.toolchain))
-}
+//tasks.withType(JavaExec).configureEach {
+//  javaLauncher.set(javaToolchains.launcherFor(java.toolchain))
+//}
 
 tasks.withType(Test) {
   useJUnitPlatform()
@@ -272,6 +272,7 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.3.3'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-batch'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.6'
 
@@ -303,7 +304,7 @@ dependencies {
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.4.0'
 
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.1.Final')
-
+  developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.4:all'
   testImplementation 'org.springframework.security:spring-security-test:6.3.3'
