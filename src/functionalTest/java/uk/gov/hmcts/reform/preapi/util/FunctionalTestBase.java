@@ -10,20 +10,35 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,9 +59,10 @@ public class FunctionalTestBase {
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
     protected static final String REPORTS_ENDPOINT = "/reports";
-    protected static UUID authenticatedUserId;
+
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    protected static Map<TestingSupportRoles, AuthUserDetails> authenticatedUserIds;
 
     @Value("${TEST_URL:http://localhost:4550}")
     protected String testUrl;
@@ -56,102 +72,16 @@ public class FunctionalTestBase {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
     }
 
-    @BeforeEach
-    void setUp() {
-        RestAssured.baseURI = testUrl;
-        if (authenticatedUserId == null) {
-            authenticatedUserId = doPostRequest("/testing-support/create-authenticated-user/super-user", false)
-                .body()
-                .jsonPath()
-                .getUUID("accessId");
-        }
-    }
-
-    protected Response doGetRequest(final String path, final boolean isAuthenticated) {
-        return doGetRequest(path, null, isAuthenticated);
-    }
-
-    protected Response doGetRequest(
-        final String path,
-        final Map<String, String> additionalHeaders,
-        final boolean isAuthenticated
-    ) {
-        Logger.getAnonymousLogger().info("GET " + path);
-        return given()
-            .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
-            .when()
-            .get(path)
-            .thenReturn();
-    }
-
-    protected Response doPutRequest(final String path, final String body, final boolean isAuthenticated) {
-        return doPutRequest(path, null, body, isAuthenticated);
-    }
-
-    protected Response doPutRequest(
-        final String path,
-        final Map<String, String> additionalHeaders,
-        final String body,
-        final boolean isAuthenticated
-    ) {
-        return given()
-            .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
-            .body(body)
-            .when()
-            .put(path)
-            .thenReturn();
-    }
-
-    protected Response doPostRequest(final String path, final boolean isAuthenticated) {
-        return doPostRequest(path, null, "", isAuthenticated);
-    }
-
-    protected Response doPostRequest(final String path, final String body, final boolean isAuthenticated) {
-        return doPostRequest(path, null, body, isAuthenticated);
-    }
-
-    protected Response doPostRequest(final String path,
-                                     final Map<String, String> additionalHeaders,
-                                     final String body,
-                                     final boolean isAuthenticated) {
-        return given()
-            .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
-            .body(body)
-            .when()
-            .post(path)
-            .thenReturn();
-    }
-
-    protected Response doDeleteRequest(final String path, final boolean isAuthenticated) {
-        return doDeleteRequest(path, null, isAuthenticated);
-    }
-
-    protected Response doDeleteRequest(
-        final String path,
-        final Map<String, String> additionalHeaders,
-        final boolean isAuthenticated
-    ) {
-        return given()
-            .relaxedHTTPSValidation()
-            .headers(getRequestHeaders(additionalHeaders, isAuthenticated))
-            .when()
-            .delete(path)
-            .thenReturn();
-    }
-
     private static Map<String, String> getRequestHeaders(
         final Map<String, String> additionalHeaders,
-        final boolean isAuthenticated
+        final TestingSupportRoles authenticatedAs
     ) {
         final Map<String, String> headers = new ConcurrentHashMap<>(
             Map.of(CONTENT_TYPE, CONTENT_TYPE_VALUE)
         );
 
-        if (isAuthenticated) {
-            headers.put(X_USER_ID_HEADER, authenticatedUserId.toString());
+        if (authenticatedAs != null && authenticatedUserIds.get(authenticatedAs) != null) {
+            headers.put(X_USER_ID_HEADER, authenticatedUserIds.get(authenticatedAs).accessId().toString());
         }
 
         if (!CollectionUtils.isEmpty(additionalHeaders)) {
@@ -160,8 +90,106 @@ public class FunctionalTestBase {
         return headers;
     }
 
+    protected static void assertResponseCode(Response response, int expectedStatusCode) {
+        assertThat(response.statusCode()).isEqualTo(expectedStatusCode);
+    }
+
+    @BeforeEach
+    void setUp() {
+        RestAssured.baseURI = testUrl;
+
+        if (authenticatedUserIds == null) {
+            authenticatedUserIds = new HashMap<>();
+            Arrays.stream(TestingSupportRoles.values())
+                .forEach(role -> {
+                    authenticatedUserIds.put(
+                        role,
+                        doPostRequest("/testing-support/create-authenticated-user/" + role, null)
+                            .body()
+                            .jsonPath()
+                            .getObject("", AuthUserDetails.class)
+                    );
+                });
+        }
+    }
+
+    protected Response doGetRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doGetRequest(path, null, authenticatedAs);
+    }
+
+    protected Response doGetRequest(
+        final String path,
+        final Map<String, String> additionalHeaders,
+        final TestingSupportRoles authenticatedAs
+    ) {
+        Logger.getAnonymousLogger().info("GET " + path);
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
+            .when()
+            .get(path)
+            .thenReturn();
+    }
+
+    protected Response doPutRequest(final String path, final String body, final TestingSupportRoles authenticatedAs) {
+        return doPutRequest(path, null, body, authenticatedAs);
+    }
+
+    protected Response doPutRequest(
+        final String path,
+        final Map<String, String> additionalHeaders,
+        final String body,
+        final TestingSupportRoles authenticatedAs
+    ) {
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
+            .body(body)
+            .when()
+            .put(path)
+            .thenReturn();
+    }
+
+    protected Response doPostRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doPostRequest(path, null, "", authenticatedAs);
+    }
+
+    protected Response doPostRequest(final String path, final String body, final TestingSupportRoles authenticatedAs) {
+        return doPostRequest(path, null, body, authenticatedAs);
+    }
+
+    protected Response doPostRequest(final String path,
+                                     final Map<String, String> additionalHeaders,
+                                     final String body,
+                                     final TestingSupportRoles authenticatedAs) {
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
+            .body(body)
+            .when()
+            .post(path)
+            .thenReturn();
+    }
+
+    protected Response doDeleteRequest(final String path, final TestingSupportRoles authenticatedAs) {
+        return doDeleteRequest(path, null, authenticatedAs);
+    }
+
+    protected Response doDeleteRequest(
+        final String path,
+        final Map<String, String> additionalHeaders,
+        final TestingSupportRoles authenticatedAs
+    ) {
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
+            .when()
+            .delete(path)
+            .thenReturn();
+    }
+
     protected CreateCaseDTO createCase() {
-        var courtId = UUID.fromString(doPostRequest("/testing-support/create-court", false)
+        var courtId = UUID.fromString(doPostRequest("/testing-support/create-court", null)
                                           .body().jsonPath().get("courtId"));
 
         var caseDTO = new CreateCaseDTO();
@@ -173,6 +201,7 @@ public class FunctionalTestBase {
             createParticipant(ParticipantType.DEFENDANT)
         ));
         caseDTO.setTest(false);
+        caseDTO.setState(CaseState.OPEN);
 
         return caseDTO;
     }
@@ -187,8 +216,10 @@ public class FunctionalTestBase {
     }
 
     protected CreateCourtDTO createCourt() {
-        var roomId = doPostRequest("/testing-support/create-room", false).body().jsonPath().getUUID("roomId");
-        var regionId = doPostRequest("/testing-support/create-region", false).body().jsonPath().getUUID("regionId");
+        var roomId = doPostRequest("/testing-support/create-room", null)
+            .body().jsonPath().getUUID("roomId");
+        var regionId = doPostRequest("/testing-support/create-region", null)
+            .body().jsonPath().getUUID("regionId");
 
         var dto = new CreateCourtDTO();
         dto.setId(UUID.randomUUID());
@@ -207,12 +238,8 @@ public class FunctionalTestBase {
             .substring(0, 13);
     }
 
-    protected static void assertResponseCode(Response response, int expectedStatusCode) {
-        assertThat(response.statusCode()).isEqualTo(expectedStatusCode);
-    }
-
     protected Response assertExists(String endpoint, UUID id, boolean shouldExist) {
-        var response = doGetRequest(endpoint + "/" + id, true);
+        var response = doGetRequest(endpoint + "/" + id, TestingSupportRoles.SUPER_USER);
         assertResponseCode(response, shouldExist ? 200 : 404);
         if (shouldExist) {
             assertThat(response.body().jsonPath().getUUID("id")).isEqualTo(id);
@@ -241,7 +268,7 @@ public class FunctionalTestBase {
     }
 
     protected Response assertInviteExists(UUID userId, boolean shouldExist) {
-        var response = doGetRequest(INVITES_ENDPOINT + "/" + userId, true);
+        var response = doGetRequest(INVITES_ENDPOINT + "/" + userId, TestingSupportRoles.SUPER_USER);
         assertResponseCode(response, shouldExist ? 200 : 404);
         if (shouldExist) {
             assertThat(response.body().jsonPath().getUUID("user_id")).isEqualTo(userId);
@@ -254,10 +281,136 @@ public class FunctionalTestBase {
     }
 
     protected Response putUser(CreateUserDTO dto) throws JsonProcessingException {
-        return doPutRequest(USERS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(
+            USERS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected Response putUser(CreateUserDTO dto, TestingSupportRoles authenticatedAs) throws JsonProcessingException {
+        return doPutRequest(
+            USERS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            authenticatedAs
+        );
     }
 
     protected Response putCourt(CreateCourtDTO dto) throws JsonProcessingException {
-        return doPutRequest(COURTS_ENDPOINT + "/" + dto.getId(), OBJECT_MAPPER.writeValueAsString(dto), true);
+        return doPutRequest(
+            COURTS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            CASES_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO dto) {
+        var create = new CreateParticipantDTO();
+        create.setId(dto.getId());
+        create.setParticipantType(dto.getParticipantType());
+        create.setFirstName(dto.getFirstName());
+        create.setLastName(dto.getLastName());
+        return create;
+    }
+
+    protected CreateCaseDTO convertDtoToCreateDto(CaseDTO dto) {
+        var create = new CreateCaseDTO();
+        create.setId(dto.getId());
+        create.setCourtId(dto.getCourt().getId());
+        create.setReference(dto.getReference());
+        create.setTest(dto.isTest());
+        create.setState(dto.getState());
+        create.setClosedAt(dto.getClosedAt());
+        create.setParticipants(dto
+                                   .getParticipants()
+                                   .stream()
+                                   .map(this::convertDtoToCreateDto)
+                                   .collect(Collectors.toSet()));
+        return create;
+    }
+
+    protected CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
+        var dto = new CreateBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCaseId(caseId);
+        dto.setParticipants(participants);
+        dto.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay()));
+        return dto;
+    }
+
+    protected Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected CreateUserDTO createUser(String firstName) {
+        var dto = new CreateUserDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName(firstName);
+        dto.setLastName("Example");
+        dto.setAppAccess(Set.of());
+        dto.setPortalAccess(Set.of());
+        dto.setEmail(dto.getId() + "@example.com");
+        return dto;
+    }
+
+    protected CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
+        var dto = new CreateShareBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setSharedWithUser(shareWithId);
+        return dto;
+    }
+
+    protected CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    protected CreateCaptureSessionDTO createCaptureSession() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
+            .body()
+            .jsonPath().getUUID("bookingId");
+
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected record AuthUserDetails(UUID accessId, UUID courtId) {
     }
 }

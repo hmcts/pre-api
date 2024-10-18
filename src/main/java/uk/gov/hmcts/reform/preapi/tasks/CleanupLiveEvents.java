@@ -9,8 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
-import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
+import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -41,7 +41,9 @@ public class CleanupLiveEvents implements Runnable {
 
     private final String cronUserEmail;
 
-    private final FlowHttpClient flowHttpClient;
+    private final String platformEnv;
+
+    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
@@ -51,7 +53,8 @@ public class CleanupLiveEvents implements Runnable {
                       UserService userService,
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
-                      FlowHttpClient flowHttpClient) {
+                      @Value("${platform-env}") String platformEnv,
+                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient) {
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
@@ -59,7 +62,8 @@ public class CleanupLiveEvents implements Runnable {
         this.userService = userService;
         this.userAuthenticationService = userAuthenticationService;
         this.cronUserEmail = cronUserEmail;
-        this.flowHttpClient = flowHttpClient;
+        this.platformEnv = platformEnv;
+        this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
     }
 
     @Override
@@ -121,9 +125,9 @@ public class CleanupLiveEvents implements Runnable {
                                       liveEventDTO.getName()
                                   );
                               })
-                                                            .filter(b -> b)
-                                                            .toList()
-                                                            .isEmpty();
+                                  .filter(b -> b)
+                                  .toList()
+                                  .isEmpty();
                           }
 
                           if (sendNotification) {
@@ -144,7 +148,7 @@ public class CleanupLiveEvents implements Runnable {
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
                                       log.info("Sending email notifications to {} user(s)", toNotify.size());
-                                      flowHttpClient.emailAfterStoppingLiveEvents(toNotify);
+                                      stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
                                   } else {
                                       log.info("No users to notify for capture session {}", captureSession.getId());
                                   }
@@ -152,6 +156,14 @@ public class CleanupLiveEvents implements Runnable {
                                   log.error(e.getMessage());
                               }
                           }
+                      } catch (NotFoundException e) {
+                          if (platformEnv.equals("Production")) {
+                              log.error("Error stopping live event {}", liveEventDTO.getName(), e);
+                              return;
+                          }
+                          log.info("Stopping live event without associated capture session: {}",
+                                   liveEventDTO.getName());
+                          mediaService.cleanupStoppedLiveEvent(liveEventDTO.getName());
                       } catch (Exception e) {
                           log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                       }
@@ -203,5 +215,12 @@ public class CleanupLiveEvents implements Runnable {
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             return false;
         }
+    }
+
+    private UUID generateUuidFromLiveEventName(String liveEventId) {
+        return new UUID(
+            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
+            Long.parseUnsignedLong(liveEventId.substring(16), 16)
+        );
     }
 }

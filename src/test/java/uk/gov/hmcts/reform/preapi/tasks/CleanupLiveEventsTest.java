@@ -17,13 +17,15 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.email.FlowHttpClient;
+import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -41,7 +43,9 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,9 +59,10 @@ public class CleanupLiveEventsTest {
     private static AzureMediaService mediaService;
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
-    private static FlowHttpClient flowHttpClient;
+    private static StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
+    private static final String CRON_PLATFORM_ENV = "Staging";
 
     @BeforeEach
     void beforeEach() {
@@ -68,7 +73,7 @@ public class CleanupLiveEventsTest {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
         bookingService = mock(BookingService.class);
-        flowHttpClient = mock(FlowHttpClient.class);
+        stopLiveEventNotifierFlowClient = mock(StopLiveEventNotifierFlowClient.class);
 
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
@@ -186,7 +191,8 @@ public class CleanupLiveEventsTest {
                                                                     userService,
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
-                                                                    flowHttpClient);
+                                                                    CRON_PLATFORM_ENV,
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
@@ -206,7 +212,7 @@ public class CleanupLiveEventsTest {
             (Class<List<StoppedLiveEventsNotificationDTO>>)(Class)List.class;
         ArgumentCaptor<List<StoppedLiveEventsNotificationDTO>> captor = ArgumentCaptor.forClass(listClass);
 
-        verify(flowHttpClient, times(1)).emailAfterStoppingLiveEvents(captor.capture());
+        verify(stopLiveEventNotifierFlowClient, times(1)).emailAfterStoppingLiveEvents(captor.capture());
 
         Assertions.assertEquals(mockUser.getFirstName(), captor.getValue().getFirst().getFirstName());
 
@@ -306,11 +312,12 @@ public class CleanupLiveEventsTest {
                                                                     userService,
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
-                                                                    flowHttpClient);
+                                                                    CRON_PLATFORM_ENV,
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
-        verify(flowHttpClient, times(0)).emailAfterStoppingLiveEvents(any());
+        verify(stopLiveEventNotifierFlowClient, times(0)).emailAfterStoppingLiveEvents(any());
 
     }
 
@@ -354,7 +361,8 @@ public class CleanupLiveEventsTest {
                                                                     userService,
                                                                     userAuthenticationService,
                                                                     CRON_USER_EMAIL,
-                                                                    flowHttpClient);
+                                                                    CRON_PLATFORM_ENV,
+                                                                    stopLiveEventNotifierFlowClient);
 
         cleanupLiveEvents.run();
 
@@ -362,5 +370,113 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(1)).getLiveEvents();
         verify(captureSessionService, times(1))
             .stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, mockRecording.getId());
+    }
+
+    @DisplayName("Should stop live event when capture session cannot be found (only in non-prod)")
+    @Test
+    void runStopLiveEventForMissingCaptureSession() throws InterruptedException {
+        var captureSessionId = UUID.randomUUID();
+        var liveEventDTO = new LiveEventDTO();
+        liveEventDTO.setId(captureSessionId.toString().replace("-", ""));
+        liveEventDTO.setName(liveEventDTO.getId());
+        liveEventDTO.setResourceState("Running");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(List.of(liveEventDTO));
+
+        var mockBaseUser = new BaseUserDTO();
+        mockBaseUser.setId(UUID.randomUUID());
+        mockBaseUser.setFirstName("Foo");
+        mockBaseUser.setEmail("foo@bar.org");
+
+        var mockUser = new UserDTO();
+        mockUser.setId(UUID.randomUUID());
+        mockUser.setFirstName("Foo");
+        mockUser.setEmail("foo@bar.org");
+
+
+        var mockCourt = new CourtDTO();
+        mockCourt.setName("Test Court");
+
+        var mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setReference("123456");
+        mockCaseDTO.setCourt(mockCourt);
+
+        var bookingId = UUID.randomUUID();
+
+        var mockAsset = new AssetDTO();
+        mockAsset.setName(captureSessionId.toString());
+        mockAsset.setDescription(bookingId.toString());
+
+        when(mediaService.getAsset(captureSessionId.toString())).thenReturn(mockAsset);
+
+        doThrow(NotFoundException.class).when(captureSessionService).findByLiveEventId(liveEventDTO.getName());
+
+        var cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
+                                                                    captureSessionService,
+                                                                    bookingService,
+                                                                    recordingService,
+                                                                    userService,
+                                                                    userAuthenticationService,
+                                                                    CRON_USER_EMAIL,
+                                                                    CRON_PLATFORM_ENV,
+                                                                    stopLiveEventNotifierFlowClient);
+
+        cleanupLiveEvents.run();
+
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(mediaService, times(1)).getLiveEvents();
+        verify(captureSessionService, times(1)).findByLiveEventId(liveEventDTO.getName());
+        verify(recordingService, never()).findAll(any(), eq(false), any());
+        verify(mediaService, times(1)).cleanupStoppedLiveEvent(liveEventDTO.getName());
+    }
+
+    @DisplayName("Should not stop live event when capture session cannot be found (in prod)")
+    @Test
+    void runStopLiveEventForMissingCaptureSessionInProduction() throws InterruptedException {
+        var captureSessionId = UUID.randomUUID();
+        var liveEventDTO = new LiveEventDTO();
+        liveEventDTO.setId(captureSessionId.toString().replace("-", ""));
+        liveEventDTO.setName(liveEventDTO.getId());
+        liveEventDTO.setResourceState("Running");
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(List.of(liveEventDTO));
+
+        var mockBaseUser = new BaseUserDTO();
+        mockBaseUser.setId(UUID.randomUUID());
+        mockBaseUser.setFirstName("Foo");
+        mockBaseUser.setEmail("foo@bar.org");
+
+        var mockUser = new UserDTO();
+        mockUser.setId(UUID.randomUUID());
+        mockUser.setFirstName("Foo");
+        mockUser.setEmail("foo@bar.org");
+
+        var mockCourt = new CourtDTO();
+        mockCourt.setName("Test Court");
+
+        var mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setReference("123456");
+        mockCaseDTO.setCourt(mockCourt);
+
+        doThrow(NotFoundException.class).when(captureSessionService).findByLiveEventId(liveEventDTO.getName());
+
+        var cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
+                                                      captureSessionService,
+                                                      bookingService,
+                                                      recordingService,
+                                                      userService,
+                                                      userAuthenticationService,
+                                                      CRON_USER_EMAIL,
+                                                      "Production",
+                                                      stopLiveEventNotifierFlowClient);
+
+        cleanupLiveEvents.run();
+
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(mediaService, times(1)).getLiveEvents();
+        verify(captureSessionService, times(1)).findByLiveEventId(liveEventDTO.getName());
+        verify(recordingService, never()).findAll(any(), eq(false), any());
+        verify(mediaService, never()).getAsset(any());
+        verify(mediaService, never()).stopLiveEvent(any(), any());
     }
 }

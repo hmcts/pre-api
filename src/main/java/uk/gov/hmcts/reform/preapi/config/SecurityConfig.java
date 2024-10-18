@@ -36,6 +36,8 @@ public class SecurityConfig {
         new AntPathRequestMatcher("/error"),
         new AntPathRequestMatcher("/invites", "GET"),
         new AntPathRequestMatcher("/invites/redeem", "POST"),
+        new AntPathRequestMatcher("/app-terms-and-conditions/latest"),
+        new AntPathRequestMatcher("/portal-terms-and-conditions/latest"),
         new AntPathRequestMatcher("/batch", "POST"),
         new AntPathRequestMatcher("/batch/start", "POST"),
     };
