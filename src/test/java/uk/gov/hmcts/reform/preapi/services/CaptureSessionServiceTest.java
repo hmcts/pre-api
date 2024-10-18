@@ -11,15 +11,19 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -382,6 +386,45 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, never()).save(any(CaptureSession.class));
     }
 
+    @DisplayName("Create/update a capture session associated case is not open")
+    @Test
+    void createCaptureSessionBookingCaseNotOpen() {
+        var model = new CreateCaptureSessionDTO();
+        model.setId(UUID.randomUUID());
+        model.setBookingId(UUID.randomUUID());
+        model.setOrigin(RecordingOrigin.PRE);
+        model.setIngestAddress("example ingest address");
+        model.setLiveOutputUrl("url");
+        model.setStartedAt(Timestamp.from(Instant.now()));
+        model.setStartedByUserId(user.getId());
+        model.setFinishedAt(Timestamp.from(Instant.now()));
+        model.setFinishedByUserId(user.getId());
+        model.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.CLOSED);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+
+        when(captureSessionRepository.findById(model.getId())).thenReturn(Optional.empty());
+        when(bookingRepository.findByIdAndDeletedAtIsNull(model.getBookingId())).thenReturn(Optional.of(booking));
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> captureSessionService.upsert(model)
+        ).getMessage();
+
+        assertThat(message).isEqualTo(
+            "Resource CaptureSession(" + model.getId()
+                + ") is associated with a case in the state CLOSED. Must be in state OPEN."
+        );
+        verify(captureSessionRepository, times(1)).findById(model.getId());
+        verify(bookingRepository, times(1)).findByIdAndDeletedAtIsNull(model.getBookingId());
+        verify(captureSessionRepository, never()).save(any(CaptureSession.class));
+    }
+
     @DisplayName("Create a capture session when started by user is not found")
     @Test
     void createCaptureSessionStartedByNotFound() {
@@ -533,8 +576,11 @@ public class CaptureSessionServiceTest {
         captureSession.setStartedAt(null);
         captureSession.setStartedByUser(null);
         var mockAuth = mock(UserAuthentication.class);
+        var mockAppAccess = mock(AppAccess.class);
 
-        when(mockAuth.getUserId()).thenReturn(user.getId());
+        when(mockAuth.getAppAccess()).thenReturn(mockAppAccess);
+        when(mockAppAccess.getUser()).thenReturn(user);
+
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
@@ -747,6 +793,19 @@ public class CaptureSessionServiceTest {
             () -> captureSessionService.findByLiveEventId(liveEventId)
         ).getMessage();
 
-        assertThat(message).isEqualTo("Not found: CaptureSession: " + captureSessionId);
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + liveEventId);
+    }
+
+    @Test
+    @DisplayName("Should throw not found when live event name cannot be turned into a UUID")
+    void findCaptureSessionByLiveEventIdNotFoundUnparseable() {
+        var liveEventId = "this-is-a-test";
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> captureSessionService.findByLiveEventId(liveEventId)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Not found: CaptureSession: " + liveEventId);
     }
 }

@@ -11,15 +11,26 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,9 +72,32 @@ public class FunctionalTestBase {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
     }
 
+    private static Map<String, String> getRequestHeaders(
+        final Map<String, String> additionalHeaders,
+        final TestingSupportRoles authenticatedAs
+    ) {
+        final Map<String, String> headers = new ConcurrentHashMap<>(
+            Map.of(CONTENT_TYPE, CONTENT_TYPE_VALUE)
+        );
+
+        if (authenticatedAs != null && authenticatedUserIds.get(authenticatedAs) != null) {
+            headers.put(X_USER_ID_HEADER, authenticatedUserIds.get(authenticatedAs).accessId().toString());
+        }
+
+        if (!CollectionUtils.isEmpty(additionalHeaders)) {
+            headers.putAll(additionalHeaders);
+        }
+        return headers;
+    }
+
+    protected static void assertResponseCode(Response response, int expectedStatusCode) {
+        assertThat(response.statusCode()).isEqualTo(expectedStatusCode);
+    }
+
     @BeforeEach
     void setUp() {
         RestAssured.baseURI = testUrl;
+
         if (authenticatedUserIds == null) {
             authenticatedUserIds = new HashMap<>();
             Arrays.stream(TestingSupportRoles.values())
@@ -153,24 +188,6 @@ public class FunctionalTestBase {
             .thenReturn();
     }
 
-    private static Map<String, String> getRequestHeaders(
-        final Map<String, String> additionalHeaders,
-        final TestingSupportRoles authenticatedAs
-    ) {
-        final Map<String, String> headers = new ConcurrentHashMap<>(
-            Map.of(CONTENT_TYPE, CONTENT_TYPE_VALUE)
-        );
-
-        if (authenticatedAs != null && authenticatedUserIds.get(authenticatedAs) != null) {
-            headers.put(X_USER_ID_HEADER, authenticatedUserIds.get(authenticatedAs).accessId().toString());
-        }
-
-        if (!CollectionUtils.isEmpty(additionalHeaders)) {
-            headers.putAll(additionalHeaders);
-        }
-        return headers;
-    }
-
     protected CreateCaseDTO createCase() {
         var courtId = UUID.fromString(doPostRequest("/testing-support/create-court", null)
                                           .body().jsonPath().get("courtId"));
@@ -184,6 +201,7 @@ public class FunctionalTestBase {
             createParticipant(ParticipantType.DEFENDANT)
         ));
         caseDTO.setTest(false);
+        caseDTO.setState(CaseState.OPEN);
 
         return caseDTO;
     }
@@ -198,8 +216,10 @@ public class FunctionalTestBase {
     }
 
     protected CreateCourtDTO createCourt() {
-        var roomId = doPostRequest("/testing-support/create-room", null).body().jsonPath().getUUID("roomId");
-        var regionId = doPostRequest("/testing-support/create-region", null).body().jsonPath().getUUID("regionId");
+        var roomId = doPostRequest("/testing-support/create-room", null)
+            .body().jsonPath().getUUID("roomId");
+        var regionId = doPostRequest("/testing-support/create-region", null)
+            .body().jsonPath().getUUID("regionId");
 
         var dto = new CreateCourtDTO();
         dto.setId(UUID.randomUUID());
@@ -216,10 +236,6 @@ public class FunctionalTestBase {
             .toString()
             .replace("-", "")
             .substring(0, 13);
-    }
-
-    protected static void assertResponseCode(Response response, int expectedStatusCode) {
-        assertThat(response.statusCode()).isEqualTo(expectedStatusCode);
     }
 
     protected Response assertExists(String endpoint, UUID id, boolean shouldExist) {
@@ -283,6 +299,113 @@ public class FunctionalTestBase {
     protected Response putCourt(CreateCourtDTO dto) throws JsonProcessingException {
         return doPutRequest(
             COURTS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected Response putCase(CreateCaseDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            CASES_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected Response putCaptureSession(CreateCaptureSessionDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            CAPTURE_SESSIONS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO dto) {
+        var create = new CreateParticipantDTO();
+        create.setId(dto.getId());
+        create.setParticipantType(dto.getParticipantType());
+        create.setFirstName(dto.getFirstName());
+        create.setLastName(dto.getLastName());
+        return create;
+    }
+
+    protected CreateCaseDTO convertDtoToCreateDto(CaseDTO dto) {
+        var create = new CreateCaseDTO();
+        create.setId(dto.getId());
+        create.setCourtId(dto.getCourt().getId());
+        create.setReference(dto.getReference());
+        create.setTest(dto.isTest());
+        create.setState(dto.getState());
+        create.setClosedAt(dto.getClosedAt());
+        create.setParticipants(dto
+                                   .getParticipants()
+                                   .stream()
+                                   .map(this::convertDtoToCreateDto)
+                                   .collect(Collectors.toSet()));
+        return create;
+    }
+
+    protected CreateBookingDTO createBooking(UUID caseId, Set<CreateParticipantDTO> participants) {
+        var dto = new CreateBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCaseId(caseId);
+        dto.setParticipants(participants);
+        dto.setScheduledFor(Timestamp.valueOf(LocalDate.now().atStartOfDay()));
+        return dto;
+    }
+
+    protected Response putBooking(CreateBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected CreateUserDTO createUser(String firstName) {
+        var dto = new CreateUserDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setFirstName(firstName);
+        dto.setLastName("Example");
+        dto.setAppAccess(Set.of());
+        dto.setPortalAccess(Set.of());
+        dto.setEmail(dto.getId() + "@example.com");
+        return dto;
+    }
+
+    protected CreateShareBookingDTO createShareBooking(UUID bookingId, UUID shareWithId) {
+        var dto = new CreateShareBookingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setSharedWithUser(shareWithId);
+        return dto;
+    }
+
+    protected CreateCaptureSessionDTO createCaptureSession(UUID bookingId) {
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    protected CreateCaptureSessionDTO createCaptureSession() {
+        var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
+            .body()
+            .jsonPath().getUUID("bookingId");
+
+        var dto = new CreateCaptureSessionDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setBookingId(bookingId);
+        dto.setStatus(RecordingStatus.STANDBY);
+        dto.setOrigin(RecordingOrigin.PRE);
+        return dto;
+    }
+
+    protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );

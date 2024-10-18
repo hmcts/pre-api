@@ -8,11 +8,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -26,6 +29,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,7 +59,13 @@ public class ShareBookingServiceTest {
         shareBookingDTO.setSharedByUser(UUID.randomUUID());
         shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
         var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
+
         var sharedByUser = new User();
         var sharedWithUser = new User();
 
@@ -92,6 +102,36 @@ public class ShareBookingServiceTest {
             .withMessage("Not found: Booking: " + shareBookingDTO.getBookingId());
     }
 
+    @DisplayName("Share a booking by its id when booking's associated case has been closed")
+    @Test
+    void shareBookingFailureCaseClosed() {
+        var shareBookingDTO = new CreateShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.CLOSED);
+        var booking = new Booking();
+        booking.setId(shareBookingDTO.getBookingId());
+        booking.setCaseId(aCase);
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(booking));
+
+        assertThatExceptionOfType(ResourceInWrongStateException.class)
+            .isThrownBy(() -> {
+                shareBookingService.shareBookingById(shareBookingDTO);
+            })
+            .withMessage(
+                "Resource Booking("
+                    + shareBookingDTO.getBookingId()
+                    + ") is associated with a case in the state CLOSED. Must be in state OPEN or PENDING_CLOSURE.");
+    }
+
     @DisplayName("Share a booking by its id when shared by user doesn't exist")
     @Test
     void shareBookingFailureSharedByUserDoesntExist() {
@@ -101,7 +141,12 @@ public class ShareBookingServiceTest {
         shareBookingDTO.setSharedByUser(UUID.randomUUID());
         shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
         var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
 
         when(
             bookingRepository.findById(shareBookingDTO.getBookingId())
@@ -110,7 +155,7 @@ public class ShareBookingServiceTest {
             userRepository.findById(shareBookingDTO.getSharedByUser())
         ).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(uk.gov.hmcts.reform.preapi.exception.NotFoundException.class)
+        assertThatExceptionOfType(NotFoundException.class)
             .isThrownBy(() -> {
                 shareBookingService.shareBookingById(shareBookingDTO);
             })
@@ -126,7 +171,12 @@ public class ShareBookingServiceTest {
         shareBookingDTO.setSharedByUser(UUID.randomUUID());
         shareBookingDTO.setSharedWithUser(UUID.randomUUID());
 
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
         var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
         var sharedByUser = new User();
 
         when(
@@ -371,5 +421,35 @@ public class ShareBookingServiceTest {
         assertThat(message).isEqualTo("Not found: Booking: " + bookingId);
 
         verify(bookingRepository, times(1)).existsByIdAndDeletedAtIsNull(bookingId);
+    }
+
+    @DisplayName("Should delete all shares for a case")
+    @Test
+    void deleteCascadeForCase() {
+        var aCase = new Case();
+        var booking1 = new Booking();
+        booking1.setCaseId(aCase);
+        var booking2 = new Booking();
+        booking2.setCaseId(aCase);
+        var share1 = new ShareBooking();
+        share1.setBooking(booking1);
+        var share2 = new ShareBooking();
+        share2.setBooking(booking1);
+        var share3 = new ShareBooking();
+        share3.setBooking(booking2);
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(booking1, booking2));
+        when(shareBookingRepository.findAllByBookingAndDeletedAtIsNull(booking1)).thenReturn(List.of(share1, share2));
+        when(shareBookingRepository.findAllByBookingAndDeletedAtIsNull(booking2)).thenReturn(List.of(share3));
+
+        shareBookingService.deleteCascade(aCase);
+
+        assertThat(share1.isDeleted()).isTrue();
+        assertThat(share2.isDeleted()).isTrue();
+        assertThat(share3.isDeleted()).isTrue();
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(shareBookingRepository, times(2)).findAllByBookingAndDeletedAtIsNull(any(Booking.class));
+        verify(shareBookingRepository, times(3)).save(any(ShareBooking.class));
     }
 }

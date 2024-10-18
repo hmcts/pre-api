@@ -16,11 +16,13 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -62,11 +64,15 @@ public class CaptureSessionService {
 
     @Transactional
     public CaptureSessionDTO findByLiveEventId(String liveEventId) {
-        var liveEventUUID = new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
-        return this.findById(liveEventUUID);
+        try {
+            var liveEventUUID = new UUID(
+                Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
+                Long.parseUnsignedLong(liveEventId.substring(16), 16)
+            );
+            return this.findById(liveEventUUID);
+        } catch (Exception e) {
+            throw new NotFoundException("CaptureSession: " + liveEventId);
+        }
     }
 
     @Transactional
@@ -151,6 +157,14 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(createCaptureSessionDTO.getBookingId())
             .orElseThrow(() -> new NotFoundException("Booking: " + createCaptureSessionDTO.getBookingId()));
 
+        if (booking.getCaseId().getState() != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "CaptureSession",
+                createCaptureSessionDTO.getId(),
+                booking.getCaseId().getState(),
+                "OPEN"
+            );
+        }
 
         var startedByUser = createCaptureSessionDTO.getStartedByUserId() != null
             ? userRepository
@@ -201,10 +215,9 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
 
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
-        var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
-
-        captureSession.setStartedByUser(user);
+        captureSession.setStartedByUser(
+            ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getAppAccess().getUser()
+        );
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
         captureSession.setStatus(status);
