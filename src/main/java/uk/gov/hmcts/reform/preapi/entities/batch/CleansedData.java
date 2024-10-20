@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities.batch;
 
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -20,6 +21,7 @@ public class CleansedData {
     private boolean isTest;
     private TestItem testCheckResult;
     private Court court;
+    private CaseState state;
 
     public CleansedData() {
     }
@@ -36,7 +38,8 @@ public class CleansedData {
                         Duration duration,
                         boolean isTest, 
                         TestItem testCheckResult, 
-                        Court court
+                        Court court,
+                        CaseState state
     ) {
         this.courtReference = courtReference;
         this.fullCourtName = fullCourtName;
@@ -51,6 +54,7 @@ public class CleansedData {
         this.isTest = isTest;
         this.testCheckResult = testCheckResult;
         this.court = court;
+        this.state = state;
     }
 
     public String getCourtReference() { 
@@ -155,6 +159,14 @@ public class CleansedData {
 
     public void setCourt(Court court) { 
         this.court = court; 
+    }
+
+    public CaseState getState() { 
+        return state; 
+    }
+
+    public void setState(CaseState state) { 
+        this.state = state; 
     }
 
     @Override

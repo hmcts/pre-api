@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
@@ -21,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.services.batch.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
@@ -35,6 +37,7 @@ import java.util.regex.Matcher;
 @Component
 public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
+    private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final DataValidationService validationService;
     private final MigrationTrackerService migrationTrackerService;
@@ -43,16 +46,19 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
     private final Map<String, Case> caseCache = new HashMap<>();
     private final Map<String, UUID> courtCache = new HashMap<>();
     private final Map<String, String> sitesDataMap = new HashMap<>();
+    private final Map<String, String> channelUserDataMap = new HashMap<>();
     private final Map<String, Recording> origRecordingsMap = new HashMap<>();
 
     @Autowired
     public CSVProcessor(
+            DataExtractionService extractionService,
             DataTransformationService transformationService,
             DataValidationService validationService,
             CaseRepository caseRepository,
             CourtRepository courtRepository,
             ParticipantRepository participantRepository,
             MigrationTrackerService migrationTrackerService) {
+        this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.validationService = validationService;
         this.caseRepository = caseRepository;
@@ -72,6 +78,8 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             return processArchiveListData((CSVArchiveListData) item);
         } else if (item instanceof CSVSitesData) {
             processSitesData((CSVSitesData) item);
+        } else if (item instanceof CSVChannelData) {
+            processChannelUserData((CSVChannelData) item);
         } else {
             Logger.getAnonymousLogger().severe("Unsupported item type: " + item.getClass().getName());
         }
@@ -83,11 +91,13 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return sitesItem;
     }
 
+    private Object processChannelUserData(CSVChannelData channelDataItem) {
+        channelUserDataMap.put(channelDataItem.getChannelName(), channelDataItem.getChannelUser());
+        return channelDataItem;
+    }
+
     private MigratedItemGroup processArchiveListData(CSVArchiveListData archiveItem) {
         try {
-            Map.Entry<String, Matcher> patternMatch = getPatternMatch(archiveItem);
-            String pattern = patternMatch != null ? patternMatch.getKey() : null; 
-
             CleansedData cleansedData = transformationService.transformArchiveListData(
                     archiveItem, sitesDataMap, courtCache);
 
@@ -100,6 +110,9 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             if (!validationService.validateCleansedData(cleansedData, archiveItem)) {
                 return null;
             }
+
+            Map.Entry<String, Matcher> patternMatch = getPatternMatch(archiveItem);
+            String pattern = patternMatch != null ? patternMatch.getKey() : null; 
 
             MigratedItemGroup migratedItemGroup = createMigratedItemGroup(
                 pattern, archiveItem.getArchiveName(), cleansedData);
@@ -114,7 +127,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
 
     private Map.Entry<String, Matcher> getPatternMatch(CSVArchiveListData archiveItem) {
-        return transformationService.matchPattern(archiveItem.getArchiveName());
+        return extractionService.matchPattern(archiveItem.getArchiveName());
     }
 
     private MigratedItemGroup createMigratedItemGroup(String pattern, String archiveName, CleansedData cleansedData) {
@@ -166,6 +179,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         aCase.setReference(transformationService.buildCaseReference(cleansedItem));
         aCase.setTest(cleansedItem.isTest());
         aCase.setCreatedAt(cleansedItem.getRecordingTimestamp());
+        aCase.setState(cleansedItem.getState());
 
         return aCase;
     }

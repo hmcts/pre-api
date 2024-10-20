@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.batch.processor.CSVProcessor;
 import uk.gov.hmcts.reform.preapi.batch.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.writer.CSVWriter;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
@@ -67,7 +68,15 @@ public class BatchConfiguration implements StepExecutionListener {
                 CSVSitesData.class, 
                 ",", 
                 false
-            ))  
+            ))
+            .next(createStep(
+                "channelUserStep",
+                new ClassPathResource("batch/Channel_User_Report.csv"),
+                new String[]{"channel_name","channel_user"},
+                CSVChannelData.class,
+                ",",
+                false 
+            ))
             .next(createStep(
                 "archiveListDataStep", 
                 new ClassPathResource("batch/Archive_List.csv"), 

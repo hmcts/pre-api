@@ -6,47 +6,28 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
-import uk.gov.hmcts.reform.preapi.util.batch.RegexPatterns;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 @Service
 public class DataTransformationService {
 
+    private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
     
     @Autowired
-    public DataTransformationService(CourtRepository courtRepository) {
+    public DataTransformationService(DataExtractionService extractionService,CourtRepository courtRepository) {
+        this.extractionService = extractionService;
         this.courtRepository = courtRepository;
-    }
-
-    private static final Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
-
-    static {
-        namedPatterns.put("1", RegexPatterns.PATTERN_1);
-        namedPatterns.put("4", RegexPatterns.PATTERN_4);
-        namedPatterns.put("8", RegexPatterns.PATTERN_8);
-    }
-
-    public Map.Entry<String, Matcher> matchPattern(String fileName) {
-        for (Map.Entry<String, Pattern> entry : namedPatterns.entrySet()) {
-            Matcher matcher = entry.getValue().matcher(fileName);
-            if (matcher.matches()) {
-                return Map.entry(entry.getKey(), matcher); 
-            }
-        }
-        return null; 
     }
 
     private boolean containsTestKeyWord(String value, String criteria) {
@@ -66,48 +47,6 @@ public class DataTransformationService {
         }
         return new TestItem(false, "No test related criteria met.");
     }
-
-
-    private String extractField(String fileName, String groupName) {
-        Map.Entry<String, Matcher> patternMatch = matchPattern(fileName);
-        if (patternMatch != null) {
-            return patternMatch.getValue().group(groupName);
-        }
-        return "";
-    }
-
-    public String extractCourtReference(String fileName) {
-        return extractField(fileName, "court");
-    }
-
-    public String extractDate(String fileName) {
-        return extractField(fileName, "date");
-    }
-
-    public String extractURN(String fileName) {
-        return extractField(fileName, "urn");
-    }
-
-    public String extractExhibitReference(String fileName) {
-        return extractField(fileName, "exhibitRef");
-    }
-
-    public String extractDefendantLastName(String fileName) {
-        return extractField(fileName, "defendantLastName");
-    }
-
-    public String extractWitnessFirstName(String fileName) {
-        return extractField(fileName, "witnessFirstName");
-    }
-
-    public String extractRecordingVersion(String fileName) {
-        return extractField(fileName, "versionType");
-    }
-
-    public String extractRecordingVersionNumber(String fileName) {
-        return extractField(fileName, "versionNumber");
-    }
-
     
     public LocalDateTime parseDate(String dateString) {
         String[] formats = {
@@ -125,7 +64,6 @@ public class DataTransformationService {
                 return null;
             }
         }
-
         throw new IllegalArgumentException("Date format not supported: " + dateString);
     }
 
@@ -156,7 +94,7 @@ public class DataTransformationService {
         
         String archiveName = archiveItem.getArchiveName();
 
-        String courtReference = extractCourtReference(archiveName);
+        String courtReference = extractionService.extractCourtReference(archiveName);
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
 
         Court court = courtCache.containsKey(fullCourtName) 
@@ -172,15 +110,16 @@ public class DataTransformationService {
         cleansedData.setCourtReference(courtReference);
         cleansedData.setFullCourtName(fullCourtName);
         cleansedData.setRecordingTimestamp(recordingTimestamp);
-        cleansedData.setUrn(extractURN(archiveName));
-        cleansedData.setExhibitReference(extractExhibitReference(archiveName));
-        cleansedData.setDefendantLastName(extractDefendantLastName(archiveName));
-        cleansedData.setWitnessFirstName(extractWitnessFirstName(archiveName));
+        cleansedData.setUrn(extractionService.extractURN(archiveName));
+        cleansedData.setExhibitReference(extractionService.extractExhibitReference(archiveName));
+        cleansedData.setDefendantLastName(extractionService.extractDefendantLastName(archiveName));
+        cleansedData.setWitnessFirstName(extractionService.extractWitnessFirstName(archiveName));
         cleansedData.setTest(checkIsTest(archiveItem).isTest());
         cleansedData.setTestCheckResult(checkIsTest(archiveItem));
+        cleansedData.setState(CaseState.CLOSED);
 
-        cleansedData.setRecordingVersion(extractRecordingVersion(archiveName));
-        String recordingVersionNumber = extractRecordingVersionNumber(archiveName);
+        cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveName));
+        String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveName);
         if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
             cleansedData.setRecordingVersionNumber(Integer.parseInt(recordingVersionNumber));
         } else {
@@ -191,19 +130,23 @@ public class DataTransformationService {
 
 
     public String buildCaseReference(CleansedData cleansedItem) {
-        String reference = "";
+        StringBuilder referenceBuilder = new StringBuilder();
+        
         if (cleansedItem.getUrn() != null && !cleansedItem.getUrn().isEmpty()) {
-            reference = cleansedItem.getUrn();
+            referenceBuilder.append(cleansedItem.getUrn());
         }
+        
         if (cleansedItem.getExhibitReference() != null && !cleansedItem.getExhibitReference().isEmpty()) {
-            if (!reference.isEmpty()) {
-                reference += "-" + cleansedItem.getExhibitReference();  
-            } else {
-                reference = cleansedItem.getExhibitReference(); 
+            if (referenceBuilder.length() > 0) {
+                referenceBuilder.append("-");
             }
+            referenceBuilder.append(cleansedItem.getExhibitReference());
         }
-        return reference;
+        
+        return referenceBuilder.toString();
     }
+
+   
 }
 
    
