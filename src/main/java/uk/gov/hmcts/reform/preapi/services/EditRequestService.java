@@ -23,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -212,9 +213,5 @@ public class EditRequestService {
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Something went wrong: " + e.getMessage());
         }
-    }
-
-    public record EditInstructions(List<EditCutInstructionDTO> requestedInstructions,
-                                      List<FfmpegEditInstructionDTO> ffmpegInstructions) {
     }
 }
