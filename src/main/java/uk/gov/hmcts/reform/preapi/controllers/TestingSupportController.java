@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
+import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -40,6 +41,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -66,6 +68,7 @@ class TestingSupportController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
+    private final EditRequestService editRequestService;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -78,7 +81,7 @@ class TestingSupportController {
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
                              RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository) {
+                             AppAccessRepository appAccessRepository, EditRequestService editRequestService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -90,6 +93,7 @@ class TestingSupportController {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
+        this.editRequestService = editRequestService;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -344,6 +348,17 @@ class TestingSupportController {
             "bookingId", booking.getId().toString(),
             "captureSessionId", captureSession.getId().toString())
         );
+    }
+
+    @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
+        var recording = editRequestService.performEdit(editId);
+        var request = editRequestService.findById(recording.getId());
+
+        return ResponseEntity.ok(Map.of(
+            "request", request,
+            "recording", recording
+        ));
     }
 
     private Court createTestCourt() {
