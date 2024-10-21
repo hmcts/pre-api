@@ -48,7 +48,7 @@ public class DataValidationService {
         CleansedData cleansedData, 
         CSVArchiveListData archiveItem) {
         if (cleansedData.isTest()) {
-            handleFailure(archiveItem, "Data is marked as test.");
+            handleFailure(archiveItem, cleansedData.getTestCheckResult().getReason());
             return false;
         }
         return true;

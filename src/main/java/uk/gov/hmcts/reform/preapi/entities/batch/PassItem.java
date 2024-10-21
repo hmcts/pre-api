@@ -3,9 +3,7 @@ package uk.gov.hmcts.reform.preapi.entities.batch;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -35,14 +33,6 @@ public class PassItem {
     private Integer version;
     private String fileName;
     private Duration duration;
-    
-    private UUID witnessId;
-    private String witnessFirstName;
-    private String witnessLastName;
-
-    private UUID defendantId;
-    private String defendantFirstName;
-    private String defendantLastName;
 
     public PassItem(
         String regexPattern,
@@ -90,25 +80,25 @@ public class PassItem {
         this.fileName = recording != null ? recording.getFilename() : null;
         this.duration = recording != null ? recording.getDuration() : null;
 
-        Participant witness = acase.getParticipants().stream()
-            .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-            .findFirst().orElse(null);
+        // Participant witness = acase.getParticipants().stream()
+        //     .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+        //     .findFirst().orElse(null);
 
-        if (witness != null) {
-            this.witnessId = witness.getId();
-            this.witnessFirstName = witness.getFirstName();
-            this.witnessLastName = witness.getLastName();
-        }
+        // if (witness != null) {
+        //     this.witnessId = witness.getId();
+        //     this.witnessFirstName = witness.getFirstName();
+        //     this.witnessLastName = witness.getLastName();
+        // }
 
-        Participant defendant = acase.getParticipants().stream()
-            .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-            .findFirst().orElse(null);
+        // Participant defendant = acase.getParticipants().stream()
+        //     .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+        //     .findFirst().orElse(null);
 
-        if (defendant != null) {
-            this.defendantId = defendant.getId();
-            this.defendantFirstName = defendant.getFirstName();
-            this.defendantLastName = defendant.getLastName();
-        }
+        // if (defendant != null) {
+        //     this.defendantId = defendant.getId();
+        //     this.defendantFirstName = defendant.getFirstName();
+        //     this.defendantLastName = defendant.getLastName();
+        // }
     }
 
     public String getRegexPattern() {
@@ -199,27 +189,62 @@ public class PassItem {
         return duration;
     }
 
-    public UUID getWitnessId() {
-        return witnessId;
-    }
+    // public UUID getWitnessId() {
+    //     return witnessId;
+    // }
 
-    public String getWitnessFirstName() {
-        return witnessFirstName;
-    }
+    // public String getWitnessFirstName() {
+    //     return witnessFirstName;
+    // }
 
-    public String getWitnessLastName() {
-        return witnessLastName;
-    }
+    // public String getWitnessLastName() {
+    //     return witnessLastName;
+    // }
 
-    public UUID getDefendantId() {
-        return defendantId;
-    }
+    // public UUID getDefendantId() {
+    //     return defendantId;
+    // }
 
-    public String getDefendantFirstName() {
-        return defendantFirstName;
-    }
+    // public String getDefendantFirstName() {
+    //     return defendantFirstName;
+    // }
 
-    public String getDefendantLastName() {
-        return defendantLastName;
+    // public String getDefendantLastName() {
+    //     return defendantLastName;
+    // }
+
+    @Override
+    public String toString() {
+        return "PassItem{" 
+                + "regexPattern='" + regexPattern 
+                + ", archiveName='" + archiveName  
+                +  ", caseId=" + caseId 
+                + ", courtId=" + courtId 
+                + ", caseReference='" + caseReference  
+                + ", isTest=" + isTest 
+                + ", bookingId=" + bookingId 
+                + ", scheduledFor=" + scheduledFor 
+                + ", captureSessionId=" + captureSessionId 
+                + ", origin='" + origin  
+                + ", ingestAddress='" + ingestAddress  
+                + ", liveOutputURL='" + liveOutputURL  
+                + ", startedAt=" + startedAt 
+                + ", startedByUserId=" + (startedByUserId != null ? "****" : null) 
+                + ", finishedAt=" + finishedAt 
+                + ", finishedByUserId=" + (finishedByUserId != null ? "****" : null) 
+                + ", status='" + status  
+                + ", recordingId=" + recordingId 
+                + ", parentRecordingId=" + parentRecordingId 
+                + ", version=" + version 
+                + ", fileName='" + fileName  
+                + ", duration=" + duration 
+            // ", witnessId=" + witnessId +
+            // ", witnessFirstName='" + witnessFirstName + '\'' +
+            // ", witnessLastName='" + witnessLastName + '\'' +
+            // ", defendantId=" + defendantId +
+            // ", defendantFirstName='" + defendantFirstName + '\'' +
+            // ", defendantLastName='" + defendantLastName + '\'' +
+        
+            + '}';   
     }
 }

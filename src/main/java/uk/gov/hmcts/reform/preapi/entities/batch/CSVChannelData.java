@@ -35,17 +35,4 @@ public class CSVChannelData {
         return caseReference;
     }
 
-    public void extractCaseReferenceFromChannelName() {
-        if (channelName != null && !channelName.isEmpty()) {
-            int origIndex = channelName.indexOf("-ORIG=");
-            if (origIndex != -1) {
-                this.caseReference = channelName.substring(0, origIndex).trim();
-            } else {
-                // Fallback: Use entire channelName as caseReference if '-ORIG=' not found
-                this.caseReference = channelName.trim();
-            }
-        } else {
-            this.caseReference = "";
-        }
-    }
 }

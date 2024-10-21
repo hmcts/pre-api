@@ -169,19 +169,40 @@ public class CleansedData {
         this.state = state; 
     }
 
+    // @Override
+    // public String toString() {
+    //     return "CleansedData{" 
+    //             + "courtReference='" + courtReference + '\'' 
+    //             + ", fullCourtName='" + fullCourtName + '\'' 
+    //             + ", recordingTimestamp='" + recordingTimestamp + '\'' 
+    //             + ", urn='" + urn + '\'' 
+    //             + ", exhibitReference='" + exhibitReference + '\'' 
+    //             + ", defendantLastName='" + defendantLastName + '\'' 
+    //             + ", witnessFirstName='" + witnessFirstName + '\'' 
+    //             + ", recordingVersion='" + recordingVersion + '\'' 
+    //             + ", duration='" + duration + '\'' 
+    //             + ", isTest=" + isTest 
+    //             + ", courtId=" + court 
+    //             + '}';
+    // }
+
     @Override
     public String toString() {
         return "CleansedData{" 
-                + "courtReference='" + courtReference + '\'' 
-                + ", fullCourtName='" + fullCourtName + '\'' 
-                + ", recordingTimestamp='" + recordingTimestamp + '\'' 
-                + ", urn='" + urn + '\'' 
-                + ", exhibitReference='" + exhibitReference + '\'' 
-                + ", defendantLastName='" + defendantLastName + '\'' 
-                + ", witnessFirstName='" + witnessFirstName + '\'' 
-                + ", recordingVersion='" + recordingVersion + '\'' 
+                + "courtReference='" + (courtReference != null ? courtReference : "null")
+                + ", fullCourtName='" + (fullCourtName != null ? fullCourtName : "null")
+                + ", recordingTimestamp=" + (recordingTimestamp != null ? recordingTimestamp : "null") 
+                + ", urn='" + (urn != null ? urn : "null")
+                + ", exhibitReference='" + (exhibitReference != null ? exhibitReference : "null")
+                + ", defendantLastName='" + (defendantLastName != null ? defendantLastName : "null")
+                + ", witnessFirstName='" + (witnessFirstName != null ? witnessFirstName : "null")
+                + ", recordingVersion='" + (recordingVersion != null ? recordingVersion : "null")
+                + ", recordingVersionNumber=" + recordingVersionNumber 
+                + ", duration=" + (duration != null ? duration : "null") 
                 + ", isTest=" + isTest 
-                + ", courtId=" + court 
+                + ", testCheckResult=" + (testCheckResult != null ? testCheckResult : "null") 
+                + ", court=" + (court != null ? court : "null") 
+                + ", state=" + (state != null ? state : "null") 
                 + '}';
     }
 

@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
@@ -17,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -30,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -101,12 +104,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             CleansedData cleansedData = transformationService.transformArchiveListData(
                     archiveItem, sitesDataMap, courtCache);
 
-            if (cleansedData.isTest()) {
-                migrationTrackerService.addFailedItem(new FailedItem(
-                    archiveItem, cleansedData.getTestCheckResult().getReason()));
-                return null;
-            }
-
             if (!validationService.validateCleansedData(cleansedData, archiveItem)) {
                 return null;
             }
@@ -127,7 +124,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
 
     private Map.Entry<String, Matcher> getPatternMatch(CSVArchiveListData archiveItem) {
-        return extractionService.matchPattern(archiveItem.getArchiveName());
+        return extractionService.matchPattern(archiveItem);
     }
 
     private MigratedItemGroup createMigratedItemGroup(String pattern, String archiveName, CleansedData cleansedData) {
@@ -135,16 +132,16 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         
         Case acase = createCaseIfOrig(cleansedData);
         if (acase != null) {
-            
             Booking booking = createBooking(cleansedData, acase);
             CaptureSession captureSession = createCaptureSession(cleansedData, booking);
             Recording recording = createRecording(cleansedData, captureSession);
+            Set<Participant> participants = createParticipants(cleansedData, acase);
+
+            PassItem passItem = new PassItem(pattern, archiveName, acase, booking, captureSession, recording);
 
             try {
-                migratedItemGroup = new MigratedItemGroup(acase, booking, captureSession, recording);
-                migrationTrackerService.addMigratedItem(new PassItem(
-                    pattern, archiveName, acase, booking, captureSession, recording));
-
+                migratedItemGroup = new MigratedItemGroup(acase, booking, captureSession, recording, participants, passItem);
+                migrationTrackerService.addMigratedItem(passItem);
             } catch (Exception e) {
                 Logger.getAnonymousLogger().info("ERROR: " + e.getMessage()); 
             }
@@ -159,7 +156,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         String caseReference = transformationService.buildCaseReference(cleansedData);
 
         if (caseCache.containsKey(caseReference)) {
-            Logger.getAnonymousLogger().info("Using cached case for reference: " + caseReference);
             return caseCache.get(caseReference);
         }
 
@@ -180,7 +176,9 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         aCase.setTest(cleansedItem.isTest());
         aCase.setCreatedAt(cleansedItem.getRecordingTimestamp());
         aCase.setState(cleansedItem.getState());
-
+        // aCase.setParticipants(new HashSet<>());
+        // aCase.setParticipants(createParticipants(cleansedItem,aCase));
+        
         return aCase;
     }
 
@@ -190,6 +188,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         booking.setCaseId(acase);
         booking.setScheduledFor(cleansedItem.getRecordingTimestamp());
         booking.setCreatedAt(cleansedItem.getRecordingTimestamp());
+        // booking.setParticipants(acase.getParticipants());
 
         return booking;
     }
@@ -225,6 +224,26 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
         return recording;
+    }
+
+    private Set<Participant> createParticipants(CleansedData cleansedItem, Case acase) {
+        Participant witness = new Participant();
+        witness.setId(UUID.randomUUID());
+        witness.setParticipantType(ParticipantType.WITNESS);
+        witness.setCaseId(acase); 
+        witness.setFirstName(cleansedItem.getWitnessFirstName());
+        witness.setLastName(""); 
+
+        Participant defendant = new Participant();
+        defendant.setId(UUID.randomUUID());
+        defendant.setParticipantType(ParticipantType.DEFENDANT);
+        defendant.setCaseId(acase); 
+        defendant.setFirstName(""); 
+        defendant.setLastName(cleansedItem.getDefendantLastName());
+
+        var participants = Set.of(witness, defendant);
+        // acase.setParticipants(participants);
+        return participants;
     }
 
     private void loadCourtCache() {

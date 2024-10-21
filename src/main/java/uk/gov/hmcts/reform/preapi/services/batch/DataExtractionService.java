@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.util.batch.RegexPatterns;
 
 import java.util.LinkedHashMap;
@@ -14,59 +15,61 @@ public class DataExtractionService {
     private final Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
 
     public DataExtractionService() {
-        namedPatterns.put("1", RegexPatterns.PATTERN_1);
+        namedPatterns.put("GENERIC_NAME_PATTERN_Tref", RegexPatterns.PATTERN_1);
+        namedPatterns.put("GENERIC_NAME_PATTERN", RegexPatterns.PATTERN_2);
+        namedPatterns.put("GENERIC_NAME_PATTERN_CP", RegexPatterns.PATTERN_3);
         namedPatterns.put("4", RegexPatterns.PATTERN_4);
-        namedPatterns.put("8", RegexPatterns.PATTERN_8);
+        namedPatterns.put("5", RegexPatterns.PATTERN_5);
     }
 
-    public Map.Entry<String, Matcher> matchPattern(String fileName) {
+    public Map.Entry<String, Matcher> matchPattern(CSVArchiveListData archiveItem) {
         for (Map.Entry<String, Pattern> entry : namedPatterns.entrySet()) {
-            Matcher matcher = entry.getValue().matcher(fileName);
+            Matcher matcher = entry.getValue().matcher(archiveItem.getArchiveName());
             if (matcher.matches()) {
                 return Map.entry(entry.getKey(), matcher);
-            }
+            } 
         }
         return null;
     }
 
-    private String extractField(String fileName, String groupName) {
-        Map.Entry<String, Matcher> patternMatch = matchPattern(fileName);
+    private String extractField(CSVArchiveListData archiveItem, String groupName) {
+        Map.Entry<String, Matcher> patternMatch = matchPattern(archiveItem);
         if (patternMatch != null) {
             return patternMatch.getValue().group(groupName);
         }
         return "";
     }
 
-    public String extractCourtReference(String fileName) {
-        return extractField(fileName, "court");
+    public String extractCourtReference(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "court");
     }
 
-    public String extractDate(String fileName) {
-        return extractField(fileName, "date");
+    public String extractDate(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "date");
     }
 
-    public String extractURN(String fileName) {
-        return extractField(fileName, "urn");
+    public String extractURN(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "urn");
     }
 
-    public String extractExhibitReference(String fileName) {
-        return extractField(fileName, "exhibitRef");
+    public String extractExhibitReference(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "exhibitRef");
     }
 
-    public String extractDefendantLastName(String fileName) {
-        return extractField(fileName, "defendantLastName");
+    public String extractDefendantLastName(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "defendantLastName");
     }
 
-    public String extractWitnessFirstName(String fileName) {
-        return extractField(fileName, "witnessFirstName");
+    public String extractWitnessFirstName(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "witnessFirstName");
     }
 
-    public String extractRecordingVersion(String fileName) {
-        return extractField(fileName, "versionType");
+    public String extractRecordingVersion(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "versionType");
     }
 
-    public String extractRecordingVersionNumber(String fileName) {
-        return extractField(fileName, "versionNumber");
+    public String extractRecordingVersionNumber(CSVArchiveListData archiveItem) {
+        return extractField(archiveItem, "versionNumber");
     }
-
+    
 }

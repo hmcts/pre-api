@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.UUID;
@@ -29,22 +30,79 @@ public class DataTransformationService {
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
     }
+    
+    public CleansedData transformArchiveListData(
+            CSVArchiveListData archiveItem,
+            Map<String, String> sitesDataMap,
+            Map<String, UUID> courtCache) {
+        
+        String courtReference = extractionService.extractCourtReference(archiveItem);
+        String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
+
+        Court court = courtCache.containsKey(fullCourtName) 
+                ? courtRepository.findById(courtCache.get(fullCourtName)).orElse(null)
+                : null;
+
+        String recordingDate = archiveItem.getCreateTime();
+        Timestamp recordingTimestamp = convertToTimestamp(recordingDate);
+
+        int durationInSeconds = archiveItem.getDuration();
+        Duration duration = Duration.ofSeconds(durationInSeconds);
+
+        CleansedData cleansedData = new CleansedData();
+        cleansedData.setCourt(court);
+        cleansedData.setDuration(duration);
+        cleansedData.setCourtReference(courtReference);
+        cleansedData.setFullCourtName(fullCourtName);
+        cleansedData.setRecordingTimestamp(recordingTimestamp);
+        cleansedData.setUrn(extractionService.extractURN(archiveItem));
+        cleansedData.setExhibitReference(extractionService.extractExhibitReference(archiveItem));
+        cleansedData.setDefendantLastName(extractionService.extractDefendantLastName(archiveItem));
+        cleansedData.setWitnessFirstName(extractionService.extractWitnessFirstName(archiveItem));
+        cleansedData.setTest(checkIsTest(archiveItem).isTest());
+        cleansedData.setTestCheckResult(checkIsTest(archiveItem));
+        cleansedData.setState(CaseState.CLOSED);
+
+        cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
+        String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveItem);
+        if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
+            cleansedData.setRecordingVersionNumber(Integer.parseInt(recordingVersionNumber));
+        } else {
+            cleansedData.setRecordingVersionNumber(0); 
+        }
+        return cleansedData;
+    }
 
     private boolean containsTestKeyWord(String value, String criteria) {
         return value != null && value.toLowerCase().contains(criteria);
     }
 
     public TestItem checkIsTest(CSVArchiveListData archiveItem) {
-        if (containsTestKeyWord(archiveItem.getArchiveName(), "test") 
-            || containsTestKeyWord(archiveItem.getArchiveName(), "demo") 
-            || containsTestKeyWord(archiveItem.getFarEndAddress(), "test")  
-            || containsTestKeyWord(archiveItem.getDescription(), "test")  
-            || containsTestKeyWord(archiveItem.getVideoType(), "test") 
-            || containsTestKeyWord(archiveItem.getContentType(), "test") 
-            || containsTestKeyWord(archiveItem.getOwner(), "test") 
-            || archiveItem.getDuration() < 10) {
-            return new TestItem(true, "TEST - Test related criteria met.");
+        StringBuilder reasons = new StringBuilder();
+
+        if (containsTestKeyWord(archiveItem.getArchiveName(), "test")) {
+            reasons.append("Archive name contains 'test'. ");
+        } else if (containsTestKeyWord(archiveItem.getArchiveName(), "demo")) {
+            reasons.append("Archive name contains 'demo'. ");
+        } else if (containsTestKeyWord(archiveItem.getFarEndAddress(), "test")) {
+            reasons.append("Far end address contains 'test'. ");
+        } else if (containsTestKeyWord(archiveItem.getDescription(), "test")) {
+            reasons.append("Description contains 'test'. ");
+        } else if (containsTestKeyWord(archiveItem.getVideoType(), "test")) {
+            reasons.append("Video type contains 'test'. ");
+        } else if (containsTestKeyWord(archiveItem.getContentType(), "test")) {
+            reasons.append("Content type contains 'test'. ");
+        } else if (containsTestKeyWord(archiveItem.getOwner(), "test")) {
+            reasons.append("Owner contains 'test'. ");
+        } else if (archiveItem.getDuration() < 10) {
+            reasons.append("Duration is less than 10 minutes. ");
         }
+
+        if (reasons.length() > 0) {
+            String reasonString = "Test: " + reasons.toString().trim();
+            return new TestItem(true, reasonString);
+        }
+
         return new TestItem(false, "No test related criteria met.");
     }
     
@@ -87,48 +145,6 @@ public class DataTransformationService {
         return "ORIG".equalsIgnoreCase(cleansedItem.getRecordingVersion());
     }
 
-    public CleansedData transformArchiveListData(
-            CSVArchiveListData archiveItem,
-            Map<String, String> sitesDataMap,
-            Map<String, UUID> courtCache) {
-        
-        String archiveName = archiveItem.getArchiveName();
-
-        String courtReference = extractionService.extractCourtReference(archiveName);
-        String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
-
-        Court court = courtCache.containsKey(fullCourtName) 
-                ? courtRepository.findById(courtCache.get(fullCourtName)).orElse(null)
-                : null;
-
-        String recordingDate = archiveItem.getCreateTime();
-        Timestamp recordingTimestamp = convertToTimestamp(recordingDate);
-
-
-        CleansedData cleansedData = new CleansedData();
-        cleansedData.setCourt(court);
-        cleansedData.setCourtReference(courtReference);
-        cleansedData.setFullCourtName(fullCourtName);
-        cleansedData.setRecordingTimestamp(recordingTimestamp);
-        cleansedData.setUrn(extractionService.extractURN(archiveName));
-        cleansedData.setExhibitReference(extractionService.extractExhibitReference(archiveName));
-        cleansedData.setDefendantLastName(extractionService.extractDefendantLastName(archiveName));
-        cleansedData.setWitnessFirstName(extractionService.extractWitnessFirstName(archiveName));
-        cleansedData.setTest(checkIsTest(archiveItem).isTest());
-        cleansedData.setTestCheckResult(checkIsTest(archiveItem));
-        cleansedData.setState(CaseState.CLOSED);
-
-        cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveName));
-        String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveName);
-        if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
-            cleansedData.setRecordingVersionNumber(Integer.parseInt(recordingVersionNumber));
-        } else {
-            cleansedData.setRecordingVersionNumber(0); 
-        }
-        return cleansedData;
-    }
-
-
     public String buildCaseReference(CleansedData cleansedItem) {
         StringBuilder referenceBuilder = new StringBuilder();
         
@@ -145,7 +161,6 @@ public class DataTransformationService {
         
         return referenceBuilder.toString();
     }
-
    
 }
 
