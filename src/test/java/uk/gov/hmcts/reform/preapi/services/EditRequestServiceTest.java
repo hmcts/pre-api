@@ -11,6 +11,10 @@ import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -19,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -48,9 +53,11 @@ public class EditRequestServiceTest {
     @MockBean
     private RecordingRepository recordingRepository;
 
+    @MockBean
+    private FfmpegService ffmpegService;
+
     @Autowired
     private EditRequestService editRequestService;
-
 
     @Test
     @DisplayName("Should return all pending edit requests")
@@ -466,6 +473,59 @@ public class EditRequestServiceTest {
                                  editRequestService.invertInstructions(instructions2, recording));
         assertEditInstructionsEq(expectedInvertedInstructions,
                                  editRequestService.invertInstructions(instructions3, recording));
+    }
+
+    @Test
+    @DisplayName("Should return edit request when it exists")
+    void findByIdSuccess() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setVersion(1);
+        recording.setCaptureSession(captureSession);
+        recording.setDuration(Duration.ofMinutes(3));
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        editRequest.setCreatedBy(user);
+        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setEditInstruction("{}");
+
+        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
+
+        var res = editRequestService.findById(editRequest.getId());
+        assertThat(res).isNotNull();
+        assertThat(res.getId()).isEqualTo(editRequest.getId());
+        assertThat(res.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+
+        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
+    }
+
+    @Test
+    @DisplayName("Should throw error when requested request does not exist")
+    void findByIdNotFound() {
+        var id = UUID.randomUUID();
+        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> editRequestService.findById(id)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Edit Request: " + id);
+
+        verify(editRequestRepository, times(1)).findByIdNotLocked(id);
     }
 
     private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,

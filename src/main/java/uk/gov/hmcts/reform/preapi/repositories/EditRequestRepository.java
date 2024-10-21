@@ -24,4 +24,7 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
     Optional<EditRequest> findById(@NotNull UUID id);
 
     List<EditRequest> findAllByStatusIsOrderByCreatedAt(EditRequestStatus status);
+
+    @Query("select e from EditRequest e where e.id = ?1")
+    Optional<EditRequest> findByIdNotLocked(@NotNull UUID id);
 }

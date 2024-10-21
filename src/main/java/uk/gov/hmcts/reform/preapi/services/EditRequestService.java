@@ -43,11 +43,27 @@ public class EditRequestService {
 
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
+    private final FfmpegService ffmpegService;
+    private final RecordingService recordingService;
 
     @Autowired
-    public EditRequestService(EditRequestRepository editRequestRepository, RecordingRepository recordingRepository) {
+    public EditRequestService(EditRequestRepository editRequestRepository,
+                              RecordingRepository recordingRepository,
+                              FfmpegService ffmpegService,
+                              RecordingService recordingService) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
+        this.ffmpegService = ffmpegService;
+        this.recordingService = recordingService;
+    }
+
+    @Transactional
+    @PreAuthorize("@authorisationService.hasEditRequestAccess(authentication, #id)")
+    public EditRequestDTO findById(UUID id) {
+        return editRequestRepository
+            .findByIdNotLocked(id)
+            .map(EditRequestDTO::new)
+            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
     @Transactional
