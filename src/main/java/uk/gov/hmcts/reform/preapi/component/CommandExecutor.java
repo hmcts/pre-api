@@ -20,7 +20,10 @@ public class CommandExecutor {
             var future = executor.submit(new CommandRunner(commandLine));
             future.get();
             return true;
-        } catch (ExecutionException | InterruptedException | CommandExecutionException e) {
+        } catch (InterruptedException e) {
+            log.error("Failed to execute system command {} due to {}", commandLine, e.getMessage());
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | CommandExecutionException e) {
             log.error("Failed to execute system command {} due to {}", commandLine, e.getMessage());
         }
         return false;
