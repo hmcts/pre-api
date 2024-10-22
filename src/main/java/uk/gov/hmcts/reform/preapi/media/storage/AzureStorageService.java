@@ -4,7 +4,6 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobServiceClient;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.io.File;
 import java.io.FileInputStream;

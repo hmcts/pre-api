@@ -40,7 +40,8 @@ public class FfmpegService implements EditingService {
         var command = generateCommand(request, inputFileName, outputFileName);
 
         // download from final storage
-        if (!azureFinalStorageService.downloadBlob(request.getSourceRecording().getId().toString(), inputFileName, inputFileName)) {
+        if (!azureFinalStorageService
+            .downloadBlob(request.getSourceRecording().getId().toString(), inputFileName, inputFileName)) {
             throw new UnknownServerException("Error occurred when attempting to download file: " + inputFileName);
         }
 

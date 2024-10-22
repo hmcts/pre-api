@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.media.edit;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.exec.CommandLine;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,13 +18,8 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
-import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
@@ -55,11 +49,8 @@ public class FfmpegServiceTest {
     private Recording recording;
     private EditRequest editRequest;
 
-//    private List<Path> tempFiles;
-
     @BeforeEach
     void setUp() {
-//        tempFiles = new ArrayList<>();
         recording = new Recording();
         recording.setId(UUID.randomUUID());
         recording.setFilename("input.mp4");
@@ -71,17 +62,6 @@ public class FfmpegServiceTest {
         editRequest.setEditInstruction("{}");
         editRequest.setStatus(EditRequestStatus.PENDING);
     }
-
-//    @AfterEach
-//    void afterEach() {
-//        tempFiles.forEach((f) ->  {
-//            try {
-//                Files.deleteIfExists(f);
-//            } catch (IOException e) {
-//                // ignore
-//            }
-//        });
-//    }
 
     @Test
     @DisplayName("Should throw error when unable to read edit instructions")
