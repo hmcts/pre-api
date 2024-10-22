@@ -113,6 +113,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
             MigratedItemGroup migratedItemGroup = createMigratedItemGroup(
                 pattern, archiveItem.getArchiveName(), cleansedData);
+
             return migratedItemGroup;
            
         } catch (Exception e) {
@@ -146,8 +147,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             }
             
             return migratedItemGroup; 
-        }
-        
+        } 
         return null;
     }
 

@@ -64,13 +64,8 @@ public class DataTransformationService {
         cleansedData.setState(CaseState.CLOSED);
 
         cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
-        Logger.getAnonymousLogger().info("RECORDING VERSION : " +extractionService.extractRecordingVersion(archiveItem));
-        String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveItem);
-        if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
-            cleansedData.setRecordingVersionNumber(Integer.parseInt(recordingVersionNumber));
-        } else {
-            cleansedData.setRecordingVersionNumber(0); 
-        }
+        cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData) );
+
         return cleansedData;
     }
 
@@ -162,7 +157,27 @@ public class DataTransformationService {
         
         return referenceBuilder.toString();
     }
-   
+
+    private int determineRecordingVersion(CSVArchiveListData archiveItem, CleansedData cleansedItem) {
+        String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveItem);
+        String recordingVersion = cleansedItem.getRecordingVersion();
+        
+        int versionNumber;
+        
+        if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
+            versionNumber = Integer.parseInt(recordingVersionNumber);
+        } else {
+            versionNumber = 1;  
+        }
+
+        if ("COPY".equalsIgnoreCase(recordingVersion)) {
+            return versionNumber + 1;
+        }
+        
+        return versionNumber;
+    }
+
+    
 }
 
    
