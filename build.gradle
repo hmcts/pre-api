@@ -277,6 +277,7 @@ dependencies {
 
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
+  implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.4.0'
 
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '10.19.0'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '10.19.0'
@@ -295,6 +296,8 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
+
+  implementation group: 'com.opencsv', name: 'opencsv', version: '5.9'
 
   implementation group: 'com.azure', name: 'azure-identity', version: '1.14.0'
   implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.28.1'

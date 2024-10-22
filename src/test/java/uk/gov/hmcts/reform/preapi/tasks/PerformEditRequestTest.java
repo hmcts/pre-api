@@ -7,11 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
@@ -66,7 +68,7 @@ public class PerformEditRequestTest {
 
     @Test
     @DisplayName("PerformEditRequest run")
-    public void testRun() throws InterruptedException {
+    public void testRun() {
         var editRequest1 = createPendingEditRequest();
         var editRequest2 = createPendingEditRequest();
         var editRequest3 = createPendingEditRequest();
@@ -76,9 +78,9 @@ public class PerformEditRequestTest {
         when(editRequestService.getPendingEditRequests())
             .thenReturn(List.of(editRequest1, editRequest2, editRequest3, editRequest4, editRequest5));
         // when request is successful
-        when(editRequestService.performEdit(editRequest1.getId())).thenReturn(EditRequestStatus.COMPLETE);
-        // todo (for the future) when request errors in ffmpeg stage
-        when(editRequestService.performEdit(editRequest2.getId())).thenReturn(EditRequestStatus.ERROR);
+        when(editRequestService.performEdit(editRequest1.getId())).thenReturn(new RecordingDTO());
+        // when request errors in ffmpeg stage
+        doThrow(UnknownServerException.class).when(editRequestService).performEdit(editRequest2.getId());
         // when edit request is locked it should skip
         doThrow(PessimisticEntityLockException.class).when(editRequestService)
             .performEdit(editRequest3.getId());

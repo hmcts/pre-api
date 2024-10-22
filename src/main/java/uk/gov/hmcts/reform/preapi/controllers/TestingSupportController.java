@@ -40,6 +40,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -66,6 +67,7 @@ class TestingSupportController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
+    private final EditRequestService editRequestService;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -77,8 +79,9 @@ class TestingSupportController {
                              final RegionRepository regionRepository,
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
-                             RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository) {
+                             final RoleRepository roleRepository,
+                             final AppAccessRepository appAccessRepository,
+                             final EditRequestService editRequestService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -90,6 +93,7 @@ class TestingSupportController {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
+        this.editRequestService = editRequestService;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -257,7 +261,7 @@ class TestingSupportController {
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
         recording.setFilename("recording.mp4");
-        recording.setDuration(Duration.ofMinutes(30));
+        recording.setDuration(Duration.ofMinutes(3));
         recording.setEditInstruction("{\"foo\": \"bar\"}");
 
         recordingRepository.save(recording);
@@ -344,6 +348,17 @@ class TestingSupportController {
             "bookingId", booking.getId().toString(),
             "captureSessionId", captureSession.getId().toString())
         );
+    }
+
+    @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
+        var recording = editRequestService.performEdit(editId);
+        var request = editRequestService.findById(recording.getId());
+
+        return ResponseEntity.ok(Map.of(
+            "request", request,
+            "recording", recording
+        ));
     }
 
     private Court createTestCourt() {

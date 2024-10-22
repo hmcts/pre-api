@@ -173,4 +173,9 @@ public class RecordingService {
         entity.setDeletedAt(null);
         recordingRepository.save(entity);
     }
+
+    @Transactional
+    public int getNextVersionNumber(UUID parentRecordingId) {
+        return recordingRepository.countByParentRecording_Id(parentRecordingId) + 2;
+    }
 }
