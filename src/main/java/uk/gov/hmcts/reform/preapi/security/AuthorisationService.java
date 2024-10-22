@@ -32,7 +32,8 @@ public class AuthorisationService {
                                 CaseRepository caseRepository,
                                 ParticipantRepository participantRepository,
                                 CaptureSessionRepository captureSessionRepository,
-                                RecordingRepository recordingRepository, EditRequestRepository editRequestRepository) {
+                                RecordingRepository recordingRepository,
+                                EditRequestRepository editRequestRepository) {
         this.bookingRepository = bookingRepository;
         this.caseRepository = caseRepository;
         this.participantRepository = participantRepository;

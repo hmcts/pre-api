@@ -79,8 +79,9 @@ class TestingSupportController {
                              final RegionRepository regionRepository,
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
-                             RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository, EditRequestService editRequestService) {
+                             final RoleRepository roleRepository,
+                             final AppAccessRepository appAccessRepository,
+                             final EditRequestService editRequestService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;

@@ -46,7 +46,6 @@ public class AzureIngestStorageServiceTest {
     void setUp() {
         when(ingestStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
-
     }
 
     @Test

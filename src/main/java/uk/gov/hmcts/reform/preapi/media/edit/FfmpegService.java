@@ -64,8 +64,7 @@ public class FfmpegService implements EditingService {
 
     @Override
     public void cleanup(String inputFile, String outputFile) {
-        // todo
-        // deleteFile(inputFile);
+        deleteFile(inputFile);
         deleteFile(outputFile);
     }
 
