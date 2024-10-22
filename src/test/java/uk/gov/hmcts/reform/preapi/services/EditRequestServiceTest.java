@@ -8,8 +8,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -23,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
@@ -37,6 +40,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -55,6 +59,9 @@ public class EditRequestServiceTest {
 
     @MockBean
     private FfmpegService ffmpegService;
+
+    @MockBean
+    private RecordingService recordingService;
 
     @Autowired
     private EditRequestService editRequestService;
@@ -80,20 +87,62 @@ public class EditRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Should perform edit request and return COMPLETE status")
-    void performEditSuccess() throws InterruptedException {
+    @DisplayName("Should attempt to perform edit request and return error on ffmpeg service error")
+    void performEditFfmpegError() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setSourceRecording(recording);
 
         when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
+        doThrow(UnknownServerException.class)
+            .when(ffmpegService).performEdit(any(UUID.class), eq(editRequest));
 
-        var res = editRequestService.performEdit(editRequest.getId());
-
-        assertThat(res).isEqualTo(EditRequestStatus.COMPLETE);
+        assertThrows(
+            Exception.class,
+            () -> editRequestService.performEdit(editRequest.getId())
+        );
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
         verify(editRequestRepository, times(2)).save(any(EditRequest.class));
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(recordingService, never()).upsert(any());
+    }
+
+    @Test
+    @DisplayName("Should perform edit request and return created recording")
+    void performEditSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setSourceRecording(recording);
+
+        when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
+        when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
+        when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
+        var newRecordingDto = new RecordingDTO();
+        newRecordingDto.setParentRecordingId(recording.getId());
+        when(recordingService.findById(any(UUID.class))).thenReturn(newRecordingDto);
+
+        var res = editRequestService.performEdit(editRequest.getId());
+        assertThat(res).isNotNull();
+        assertThat(res.getParentRecordingId()).isEqualTo(recording.getId());
+
+        verify(editRequestRepository, times(1)).findById(editRequest.getId());
+        verify(editRequestRepository, times(2)).save(any(EditRequest.class));
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, times(1)).findById(any(UUID.class));
     }
 
     @Test
@@ -112,6 +161,9 @@ public class EditRequestServiceTest {
 
         verify(editRequestRepository, times(1)).findById(id);
         verify(editRequestRepository, never()).save(any(EditRequest.class));
+        verify(ffmpegService, never()).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, never()).findById(any(UUID.class));
     }
 
     @Test
@@ -135,6 +187,9 @@ public class EditRequestServiceTest {
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
         verify(editRequestRepository, never()).save(any(EditRequest.class));
+        verify(ffmpegService, never()).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, never()).findById(any(UUID.class));
     }
 
     @Test
@@ -526,6 +581,40 @@ public class EditRequestServiceTest {
         assertThat(message).isEqualTo("Not found: Edit Request: " + id);
 
         verify(editRequestRepository, times(1)).findByIdNotLocked(id);
+    }
+
+    @Test
+    @DisplayName("Should return new create recording dto for the edit request")
+    void createRecordingSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setVersion(1);
+        recording.setCaptureSession(captureSession);
+        recording.setFilename("index.mp4");
+
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.COMPLETE);
+        editRequest.setEditInstruction("{}");
+        editRequest.setSourceRecording(recording);
+
+        var newRecordingId = UUID.randomUUID();
+
+        when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
+
+        var dto = editRequestService.createRecordingDto(newRecordingId, editRequest);
+        assertThat(dto).isNotNull();
+        assertThat(dto.getId()).isEqualTo(newRecordingId);
+        assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
+        assertThat(dto.getVersion()).isEqualTo(2);
+        assertThat(dto.getEditInstructions()).isEqualTo("{}");
+        assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
+        assertThat(dto.getFilename()).isEqualTo("index.mp4");
+
+        verify(recordingService, times(1)).getNextVersionNumber(recording.getId());
     }
 
     private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,

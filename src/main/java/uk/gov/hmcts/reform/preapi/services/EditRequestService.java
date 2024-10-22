@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -12,9 +13,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -24,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -72,7 +76,7 @@ public class EditRequestService {
     }
 
     @Transactional
-    public EditRequestStatus performEdit(UUID editId) {
+    public RecordingDTO performEdit(UUID editId) {
         // retrieves locked edit request
         var request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
@@ -90,14 +94,40 @@ public class EditRequestService {
         request.setStatus(EditRequestStatus.PROCESSING);
         editRequestRepository.save(request);
 
-        // todo ffmpeg happens here
-        // Thread.sleep(10000);
+        // ffmpeg
+        var newRecordingId = UUID.randomUUID();
+        try {
+            ffmpegService.performEdit(newRecordingId, request);
+        } catch (Exception e) {
+            request.setFinishedAt(Timestamp.from(Instant.now()));
+            request.setStatus(EditRequestStatus.ERROR);
+            editRequestRepository.save(request);
+            throw e;
+        }
 
         request.setFinishedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.COMPLETE);
         editRequestRepository.save(request);
 
-        return request.getStatus();
+        // todo generate asset
+
+        // create db entry for recording
+        var createDto = createRecordingDto(newRecordingId, request);
+        recordingService.upsert(createDto);
+        return recordingService.findById(newRecordingId);
+    }
+
+    @Transactional
+    public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, EditRequest request) {
+        var createDto = new CreateRecordingDTO();
+        createDto.setId(newRecordingId);
+        createDto.setParentRecordingId(request.getSourceRecording().getId());
+        createDto.setEditInstructions(request.getEditInstruction());
+        createDto.setVersion(recordingService.getNextVersionNumber(request.getSourceRecording().getId()));
+        createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
+        // todo get filename from generated asset (not implemented)
+        createDto.setFilename("index.mp4");
+        return createDto;
     }
 
     @Transactional
