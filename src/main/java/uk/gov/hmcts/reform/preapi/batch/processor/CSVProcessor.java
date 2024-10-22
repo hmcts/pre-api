@@ -141,7 +141,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
             try {
                 migratedItemGroup = new MigratedItemGroup(acase, booking, captureSession, recording, participants, passItem);
-                migrationTrackerService.addMigratedItem(passItem);
             } catch (Exception e) {
                 Logger.getAnonymousLogger().info("ERROR: " + e.getMessage()); 
             }

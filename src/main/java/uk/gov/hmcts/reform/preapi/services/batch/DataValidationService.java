@@ -6,10 +6,14 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Service    
 public class DataValidationService {
 
     private final MigrationTrackerService migrationTrackerService;
+    private final Set<String> archiveCache = new HashSet<>();
     
     @Autowired
     public DataValidationService(MigrationTrackerService migrationTrackerService) {
@@ -19,6 +23,10 @@ public class DataValidationService {
     public boolean validateCleansedData(
         CleansedData cleansedData, 
         CSVArchiveListData archiveItem) {
+
+        if (isDuplicateArchiveName(archiveItem)) {
+            return false;  
+        }
 
         if (!validateDate(cleansedData, archiveItem)) {
             return false;
@@ -33,6 +41,25 @@ public class DataValidationService {
         }
 
         return validateCaseReference(cleansedData, archiveItem);
+    }
+
+    private boolean isDuplicateArchiveName(CSVArchiveListData archiveItem) {
+        String archiveName = getBaseArchiveName(archiveItem.getArchiveName());
+
+        if (archiveCache.contains(archiveName)) {
+            handleFailure(archiveItem, "Duplicate archive name: " + archiveName);
+            return true;  
+        }
+
+        archiveCache.add(archiveName);
+        return false;
+    }
+
+    private String getBaseArchiveName(String archiveName) {
+        if (archiveName.contains(".")) {
+            return archiveName.substring(0, archiveName.indexOf('.'));
+        } 
+        return archiveName;  
     }
 
     private boolean validateDate(CleansedData cleansedData, CSVArchiveListData archiveItem) {

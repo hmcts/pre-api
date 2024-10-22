@@ -64,6 +64,7 @@ public class DataTransformationService {
         cleansedData.setState(CaseState.CLOSED);
 
         cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
+        Logger.getAnonymousLogger().info("RECORDING VERSION : " +extractionService.extractRecordingVersion(archiveItem));
         String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveItem);
         if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
             cleansedData.setRecordingVersionNumber(Integer.parseInt(recordingVersionNumber));

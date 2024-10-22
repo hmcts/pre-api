@@ -10,6 +10,8 @@ public class CleansedData {
 
     private String courtReference;
     private String fullCourtName;
+    private Court court;
+    private CaseState state;
     private Timestamp recordingTimestamp;
     private String urn;
     private String exhibitReference;
@@ -20,14 +22,14 @@ public class CleansedData {
     private Duration duration;
     private boolean isTest;
     private TestItem testCheckResult;
-    private Court court;
-    private CaseState state;
-
+    
     public CleansedData() {
     }
 
     public CleansedData(String courtReference, 
                         String fullCourtName, 
+                        Court court,
+                        CaseState state,
                         Timestamp recordingTimestamp,
                         String urn, 
                         String exhibitReference, 
@@ -37,9 +39,7 @@ public class CleansedData {
                         int recordingVersionNumber,
                         Duration duration,
                         boolean isTest, 
-                        TestItem testCheckResult, 
-                        Court court,
-                        CaseState state
+                        TestItem testCheckResult
     ) {
         this.courtReference = courtReference;
         this.fullCourtName = fullCourtName;
@@ -169,22 +169,6 @@ public class CleansedData {
         this.state = state; 
     }
 
-    // @Override
-    // public String toString() {
-    //     return "CleansedData{" 
-    //             + "courtReference='" + courtReference + '\'' 
-    //             + ", fullCourtName='" + fullCourtName + '\'' 
-    //             + ", recordingTimestamp='" + recordingTimestamp + '\'' 
-    //             + ", urn='" + urn + '\'' 
-    //             + ", exhibitReference='" + exhibitReference + '\'' 
-    //             + ", defendantLastName='" + defendantLastName + '\'' 
-    //             + ", witnessFirstName='" + witnessFirstName + '\'' 
-    //             + ", recordingVersion='" + recordingVersion + '\'' 
-    //             + ", duration='" + duration + '\'' 
-    //             + ", isTest=" + isTest 
-    //             + ", courtId=" + court 
-    //             + '}';
-    // }
 
     @Override
     public String toString() {
