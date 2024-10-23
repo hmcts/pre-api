@@ -1,9 +1,8 @@
 table_mapping = {
-    'rooms': 'rooms',
+    'rooms': 'virtual_conference_rooms',
     'users': 'users',
     'roles': 'roles',
     'courts': 'courts',
-    'courtrooms': 'courtrooms',
     'regions': 'regions',
     'court_region': 'court_region',
     'portal_access': 'portal_access',
