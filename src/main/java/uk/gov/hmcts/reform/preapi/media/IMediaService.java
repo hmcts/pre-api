@@ -5,15 +5,16 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface IMediaService {
-    String playAsset(String assetId);
+    PlaybackDTO playAsset(String assetId, String userId) throws InterruptedException;
 
-    String playLiveEvent(UUID liveEventId);
+    String playLiveEvent(UUID liveEventId) throws InterruptedException;
 
     GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException;
 
@@ -28,4 +29,8 @@ public interface IMediaService {
     void startLiveEvent(CaptureSessionDTO captureSession);
 
     RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
+
+    void cleanupStoppedLiveEvent(String liveEventId);
+
+    void deleteAllStreamingLocatorsAndContentKeyPolicies();
 }

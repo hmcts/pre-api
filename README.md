@@ -1,6 +1,5 @@
 # pre-api
 
-
 # Pre-Recorded Evidence API
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api)
@@ -44,6 +43,10 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
 
       }
 
+      Enterprise_Boundary(a1, "Media Kinda Azure Tenant",) {
+        System(mk, "Media Kind")
+      }
+
       BiRel(judicialUser, Portal, "")
       BiRel(adminUser, Portal, "")
       BiRel(adminUser, PowerApps, "")
@@ -59,6 +62,12 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
       Rel(api, db, "")
       Rel(ams, blob, "")
       Rel(function, ams, "")
+
+      Rel(Portal, mk, "")
+      Rel(PowerApps, mk, "")
+      Rel(PowerFlows, mk, "")
+      Rel(api, mk, "")
+      Rel(mk, blob, "")
       UpdateElementStyle(api,  $bgColor="green", $borderColor="black")
       UpdateElementStyle(PowerPlatform)
       UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")

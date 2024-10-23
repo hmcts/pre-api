@@ -1,4 +1,5 @@
-java:
+java: &javavalues #This is an anchor to reuse settings in Job mode.
+  enabled: true
   applicationPort: 4550
   image: 'sdshmctspublic.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
@@ -33,6 +34,22 @@ java:
           alias: AZURE_FINAL_SA_CONNECTION_STRING
         - name: ingestsa-storage-account-connection-string
           alias: AZURE_INGEST_SA_CONNECTION_STRING
+        - name: symmetrickey
+          alias: SYMMETRIC_KEY
+        - name: pp-authorization
+          alias: FLOW_KEY
+        - name: flow-http-api
+          alias: FLOW_HTTP_API
+        - name: flow-case-state-notifier-http-api
+          alias: FLOW_CASE_STATE_NOTIFIER_HTTP_API
+        - name: flow-close-live-event-email-workflow-id
+          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
+        - name: flow-close-live-event-email-sig
+          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG
+        - name: api-MK-SUBSCRIPTION-ID
+          alias: MEDIA_KIND_SUBSCRIPTION_ID
+        - name: api-MK-CUSTOMER-ID
+          alias: MEDIA_KIND_CUSTOMER_ID
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
@@ -44,3 +61,9 @@ java:
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"
     PLATFORM_ENV_TAG: Production
+    CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"
+    ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
+job:
+  #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
+  <<: *javavalues
+  enabled: false

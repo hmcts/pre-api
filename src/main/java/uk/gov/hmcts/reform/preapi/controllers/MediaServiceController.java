@@ -3,34 +3,44 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
+import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
-import uk.gov.hmcts.reform.preapi.exception.ForbiddenException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
 import java.util.UUID;
@@ -43,20 +53,22 @@ public class MediaServiceController extends PreApiController {
 
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
+    private final AzureFinalStorageService azureFinalStorageService;
     private final AzureIngestStorageService azureIngestStorageService;
-
-    private final String legacyAzureFunctionKey;
+    private final RecordingService recordingService;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
-                                  AzureIngestStorageService azureIngestStorageService,
-                                  @Value("${legacy-azure-function-key}") String legacyAzureFunctionKey) {
+                                  RecordingService recordingService,
+                                  AzureFinalStorageService azureFinalStorageService,
+                                  AzureIngestStorageService azureIngestStorageService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
+        this.recordingService = recordingService;
+        this.azureFinalStorageService = azureFinalStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
-        this.legacyAzureFunctionKey = legacyAzureFunctionKey;
     }
 
     @GetMapping("/health")
@@ -124,6 +136,30 @@ public class MediaServiceController extends PreApiController {
         return ResponseEntity.ok(data);
     }
 
+    @GetMapping("/vod")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<PlaybackDTO> getVod(
+        @RequestParam UUID recordingId,
+        @RequestParam(required = false) String mediaService
+    ) throws InterruptedException {
+        // check recording exists + authed
+        var recording = recordingService.findById(recordingId);
+
+        if (recording.getCaptureSession().getCaseState() == CaseState.CLOSED) {
+            throw new ResourceInWrongStateException("Case associated with Recording("
+                                                        + recordingId
+                                                        + ") is in state CLOSED. Cannot play recording.");
+        }
+
+        var service = mediaServiceBroker.getEnabledMediaService(mediaService);
+
+        // TODO dont rely on naming convention, link asset name in db
+        var assetName = recordingId.toString().replace("-", "") + "_output";
+        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+
+        return ResponseEntity.ok(service.playAsset(assetName, userId.toString()));
+    }
+
     @PutMapping("/live-event/end/{captureSessionId}")
     @Operation(operationId = "stopLiveEvent", summary = "Stop a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2')")
@@ -157,6 +193,11 @@ public class MediaServiceController extends PreApiController {
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
             var status = mediaService.stopLiveEvent(dto, recordingId);
+            if (status == RecordingStatus.FAILURE) {
+                throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
+                                                     + captureSessionId
+                                                     + ")");
+            }
             dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
         } catch (Exception e) {
             captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
@@ -169,7 +210,8 @@ public class MediaServiceController extends PreApiController {
     @PutMapping("/streaming-locator/live-event/{captureSessionId}")
     @Operation(operationId = "playLiveEvent", summary = "Play a live event")
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId) {
+    public ResponseEntity<CaptureSessionDTO> createLiveEventStreamingLocator(@PathVariable UUID captureSessionId)
+        throws InterruptedException {
         // load captureSession
         var captureSession = captureSessionService.findById(captureSessionId);
         Logger.getAnonymousLogger().info("createLiveEventStreamingLocator: " + captureSession);
@@ -182,11 +224,17 @@ public class MediaServiceController extends PreApiController {
         Logger.getAnonymousLogger().info("captureSession getLiveOutputUrl: " + captureSession.getLiveOutputUrl());
 
         // check if captureSession is in correct state
-        if (captureSession.getStatus() != RecordingStatus.STANDBY) {
+        if (captureSession.getStatus() != RecordingStatus.STANDBY
+            && captureSession.getStatus() != RecordingStatus.RECORDING) {
             throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
                                                     captureSessionId.toString(),
                                                     captureSession.getStatus().name(),
                                                     RecordingStatus.STANDBY.name());
+        }
+        var container = captureSession.getBookingId().toString();
+        if (!azureIngestStorageService.doesIsmFileExist(container)
+            && !azureIngestStorageService.doesBlobExist(container, "gc_state")) {
+            throw new AssetFilesNotFoundException(captureSessionId);
         }
 
         // play live event
@@ -213,29 +261,31 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (captureSession.getFinishedAt() != null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                         + captureSessionId
                                                         + ") has already finished.");
         }
 
         if (captureSession.getStartedAt() == null) {
-            throw new ResourceInWrongStateException("Resource: Capture Session("
+            throw new UnprocessableContentException("Resource: Capture Session("
                                                           + captureSessionId
                                                           + ") has not been started.");
         }
 
         if (captureSession.getStatus() != RecordingStatus.STANDBY) {
-            throw new ResourceInWrongStateException(captureSession.getClass().getSimpleName(),
-                                                    captureSessionId.toString(),
-                                                    captureSession.getStatus().name(),
-                                                    RecordingStatus.STANDBY.name());
+            throw new UnprocessableContentException("Resource: Capture Session("
+                                                        + captureSessionId
+                                                        + ") is in a "
+                                                        + captureSession.getStatus()
+                                                        + " state. Expected state is STANDBY.");
         }
 
-        if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())) {
-            captureSession = captureSessionService.setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING);
+        if (azureIngestStorageService.doesIsmFileExist(captureSession.getBookingId().toString())
+            || azureIngestStorageService.doesBlobExist(captureSession.getBookingId().toString(), "gc_state")) {
+            return ResponseEntity.ok(captureSessionService
+                                         .setCaptureSessionStatus(captureSessionId, RecordingStatus.RECORDING));
         }
-
-        return ResponseEntity.ok(captureSession);
+        throw new NotFoundException("No stream found");
     }
 
     @PutMapping("/live-event/start/{captureSessionId}")
@@ -244,11 +294,22 @@ public class MediaServiceController extends PreApiController {
     public ResponseEntity<CaptureSessionDTO> startLiveEvent(@PathVariable UUID captureSessionId) {
         var dto = captureSessionService.findById(captureSessionId);
 
+        if (dto.getCaseState() != CaseState.OPEN) {
+            throw new ResourceInWrongStateException(
+                "Capture Session",
+                dto.getId(),
+                dto.getCaseState(),
+                "OPEN"
+            );
+        }
+
         if (dto.getStatus() == RecordingStatus.FAILURE) {
-            throw new ResourceInWrongStateException("Capture Session",
-                                                    dto.getId().toString(),
-                                                    dto.getStatus().toString(),
-                                                    RecordingStatus.INITIALISING.toString());
+            throw new ResourceInWrongStateException(
+                "Capture Session",
+                dto.getId().toString(),
+                dto.getStatus().toString(),
+                RecordingStatus.INITIALISING.toString()
+            );
         }
 
         if (dto.getFinishedAt() != null) {
@@ -279,24 +340,60 @@ public class MediaServiceController extends PreApiController {
         operationId = "generateAsset",
         summary = "LEGACY - Given a source & destination, this endpoint will generate a streaming asset for a given mp4"
     )
-    @Parameter(
-        name = "code",
-        description = "Rudimentary security code to prevent unauthorised access to this endpoint",
-        schema = @Schema(implementation = String.class)
-    )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1')")
     public ResponseEntity<GenerateAssetResponseDTO> generateAsset(
         @Parameter(hidden = true) String code,
         @RequestBody @Valid GenerateAssetDTO generateAssetDTO
     ) throws InterruptedException {
-        if (!legacyAzureFunctionKey.equals(code)) {
-            throw new ForbiddenException("Invalid code parameter provided");
+
+        if (!azureFinalStorageService.doesContainerExist(generateAssetDTO.getSourceContainer())) {
+            throw new NotFoundException("Source Container: " + generateAssetDTO.getSourceContainer());
         }
+
+        // 404s of there are no mp4 files in the container
+        // this is called in the MK process anyway but AMS doesn't need the specific filename
+        azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
+
+        log.info("Attempting to generate asset: {}", generateAssetDTO);
 
         var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
+            // add new version to recording etc
+            var parentRecording = recordingService.findById(generateAssetDTO.getParentRecordingId());
+
+            var recording = new CreateRecordingDTO();
+            recording.setId(generateAssetDTO.getNewRecordingId());
+            recording.setParentRecordingId(parentRecording.getId());
+            recording.setCaptureSessionId(parentRecording.getCaptureSession().getId());
+
+            var search = new SearchRecordings();
+            search.setCaptureSessionId(parentRecording.getCaptureSession().getId());
+            var numRecordingsForCaptureSession = recordingService.findAll(
+                search,
+                true,
+                Pageable.unpaged()
+            ).getSize();
+            recording.setVersion(numRecordingsForCaptureSession + 1);
+            // filename is used by editing process
+            recording.setFilename(
+                azureFinalStorageService.getMp4FileName(generateAssetDTO.getDestinationContainer().toString())
+            );
+            recordingService.upsert(recording);
             return ResponseEntity.ok(result);
         }
 
         return ResponseEntity.internalServerError().body(result);
+    }
+
+    @GetMapping("/blob/{containerName}")
+    @Operation(
+        operationId = "checkBlobExists",
+        summary = "Checks if a container contains the .ism file. 204 on success, 404 on failure."
+    )
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<Boolean> checkBlobExists(@PathVariable String containerName) {
+        return azureFinalStorageService.doesIsmFileExist(containerName)
+            ? ResponseEntity.noContent().build()
+            : ResponseEntity.notFound().build();
     }
 }

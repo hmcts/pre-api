@@ -10,6 +10,7 @@ import java.util.Map;
 @Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class MkStreamingEndpoint {
+    private String name;
     private String location;
     private Map<String, String> tags;
     private MkStreamingEndpointProperties properties;

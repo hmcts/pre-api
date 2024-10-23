@@ -15,6 +15,12 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
       user:
         $ref: '#/definitions/BaseUserDTO'
     type: object
@@ -165,6 +171,17 @@ definitions:
         description: CreateCaptureSessionBookingId
         format: uuid
         type: string
+      case_closed_at:
+        description: CaptureSessionCaseClosedAt
+        format: date-time
+        type: string
+      case_state:
+        description: CaptureSessionCaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
+        type: string
       court_name:
         description: RecordingParticipants
         type: string
@@ -224,6 +241,10 @@ definitions:
   CaseDTO:
     description: CaseDTO
     properties:
+      closed_at:
+        description: CaseClosedAt
+        format: date-time
+        type: string
       court:
         $ref: '#/definitions/CourtDTO'
       created_at:
@@ -249,6 +270,13 @@ definitions:
         type: array
       reference:
         description: CaseReference
+        type: string
+      state:
+        description: CaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
         type: string
       test:
         description: CaseIsTest
@@ -523,6 +551,10 @@ definitions:
   CreateCaseDTO:
     description: CreateCaseDTO
     properties:
+      closed_at:
+        description: CreateCaseClosedAt
+        format: date-time
+        type: string
       court_id:
         description: CreateCaseCourtId
         format: uuid
@@ -541,6 +573,13 @@ definitions:
         description: CreateCaseReference
         maxLength: 13
         minLength: 9
+        type: string
+      state:
+        description: CreateCaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
         type: string
       test:
         description: CreateCaseIsTest
@@ -847,6 +886,17 @@ definitions:
         description: CreateCaptureSessionBookingId
         format: uuid
         type: string
+      case_closed_at:
+        description: CaptureSessionCaseClosedAt
+        format: date-time
+        type: string
+      case_state:
+        description: CaptureSessionCaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
+        type: string
       court_name:
         description: RecordingParticipants
         type: string
@@ -907,6 +957,10 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      closed_at:
+        description: CaseClosedAt
+        format: date-time
+        type: string
       court:
         $ref: '#/definitions/CourtDTO'
       created_at:
@@ -932,6 +986,13 @@ definitions:
         type: array
       reference:
         description: CaseReference
+        type: string
+      state:
+        description: CaseState
+        enum:
+          - OPEN
+          - PENDING_CLOSURE
+          - CLOSED
         type: string
       test:
         description: CaseIsTest
@@ -1120,6 +1181,12 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
     required:
       - email
       - first_name
@@ -1134,12 +1201,18 @@ definitions:
         type: string
       destination_container:
         description: GenerateAssetDestinationContainer
+        format: uuid
         type: string
       final_asset:
         description: GenerateAssetFinalAsset
         type: string
+      parent_recording_id:
+        description: ParentRecordingId
+        format: uuid
+        type: string
       source_container:
         description: GenerateAssetSourceContainer
+        pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-input$'
         type: string
       temp_asset:
         description: GenerateAssetTempAsset
@@ -1398,6 +1471,22 @@ definitions:
         type: string
       name:
         description: PermissionName
+        type: string
+    type: object
+  PlaybackDTO:
+    description: PlaybackDTO
+    properties:
+      dash_url:
+        description: PlaybackDashUrl
+        type: string
+      hls_url:
+        description: PlaybackHlsUrl
+        type: string
+      license_url:
+        description: PlaybackLicenseUrl
+        type: string
+      token:
+        description: PlaybackToken
         type: string
     type: object
   PlaybackReportDTO:
@@ -1696,6 +1785,22 @@ definitions:
         format: date-time
         type: string
     type: object
+  TermsAndConditionsDTO:
+    properties:
+      created_at:
+        format: date-time
+        type: string
+      html:
+        type: string
+      id:
+        format: uuid
+        type: string
+      type:
+        enum:
+          - APP
+          - PORTAL
+        type: string
+    type: object
   UserDTO:
     description: UserDTO
     properties:
@@ -1740,6 +1845,12 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
     required:
       - email
       - first_name
@@ -1758,6 +1869,49 @@ info:
   title: PRE API
   version: v0.0.1
 paths:
+  '/accept-terms-and-conditions/{termsId}':
+    post:
+      operationId: acceptTermsAndConditions
+      parameters:
+        - format: uuid
+          in: path
+          name: termsId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Accept terms and conditions for a user
+      tags:
+        - terms-and-conditions-controller
+  /app-terms-and-conditions/latest:
+    get:
+      operationId: getLatestTermsForApp
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the app
+      tags:
+        - terms-and-conditions-controller
   '/audit/{id}':
     put:
       consumes:
@@ -2261,6 +2415,23 @@ paths:
       summary: Get a case by reference or court id
       tags:
         - case-controller
+  /cases/close-pending:
+    post:
+      operationId: closePendingCases
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Close cases in PENDING_CLOSURE state > 29 days
+      tags:
+        - case-controller
   '/cases/{id}':
     delete:
       operationId: deleteCase
@@ -2695,18 +2866,39 @@ paths:
       summary: Get a media service asset by name
       tags:
         - media-service-controller
+  '/media-service/blob/{containerName}':
+    get:
+      operationId: checkBlobExists
+      parameters:
+        - in: path
+          name: containerName
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: boolean
+      summary: >-
+        Checks if a container contains the .ism file. 204 on success, 404 on
+        failure.
+      tags:
+        - media-service-controller
   /media-service/generate-asset:
     post:
       consumes:
         - application/json
       operationId: generateAsset
       parameters:
-        - description: >-
-            Rudimentary security code to prevent unauthorised access to this
-            endpoint
-          in: query
-          name: code
-          type: string
         - description: The User Id of the User making the request
           format: uuid
           in: header
@@ -2904,6 +3096,56 @@ paths:
       summary: Play a live event
       tags:
         - media-service-controller
+  /media-service/vod:
+    get:
+      operationId: getVod
+      parameters:
+        - format: uuid
+          in: query
+          name: recordingId
+          required: true
+          type: string
+        - in: query
+          name: mediaService
+          required: false
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PlaybackDTO'
+      tags:
+        - media-service-controller
+  /portal-terms-and-conditions/latest:
+    get:
+      operationId: getLatestTermsForPortal
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the portal
+      tags:
+        - terms-and-conditions-controller
   /recordings:
     get:
       operationId: getRecordings
@@ -2960,6 +3202,11 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
         - description: The page number of search result to return
           format: int32
           in: query

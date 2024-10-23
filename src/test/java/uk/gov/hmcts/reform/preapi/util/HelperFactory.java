@@ -19,12 +19,16 @@ import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.entities.UserTermsAccepted;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 
 import java.sql.Timestamp;
 import java.util.Set;
@@ -108,6 +112,7 @@ public class HelperFactory {
         testCase.setReference(reference);
         testCase.setTest(test);
         testCase.setDeletedAt(deletedAt);
+        testCase.setState(CaseState.OPEN);
         return testCase;
     }
 
@@ -204,6 +209,25 @@ public class HelperFactory {
         share.setBooking(booking);
         share.setDeletedAt(deletedAt);
         return share;
+    }
+
+    public static TermsAndConditions createTermsAndConditions(TermsAndConditionsType type, String content) {
+        var termsAndConditions = new TermsAndConditions();
+        termsAndConditions.setId(UUID.randomUUID());
+        termsAndConditions.setType(type);
+        termsAndConditions.setContent(content);
+        return termsAndConditions;
+    }
+
+    public static UserTermsAccepted createUserTermsAccepted(User user,
+                                                            TermsAndConditions termsAndConditions,
+                                                            Timestamp acceptedAt) {
+        var termsAccepted = new UserTermsAccepted();
+        termsAccepted.setId(UUID.randomUUID());
+        termsAccepted.setUser(user);
+        termsAccepted.setTermsAndConditions(termsAndConditions);
+        termsAccepted.setAcceptedAt(acceptedAt);
+        return termsAccepted;
     }
 
     public static CreateParticipantDTO createParticipantDTO(String firstName,

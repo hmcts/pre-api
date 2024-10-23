@@ -77,6 +77,22 @@ public class FeignErrorDecoderTest {
             .hasMessage("Conflict: something something already exists.");
     }
 
+    @DisplayName("Test for 409")
+    @Test
+    void test409() throws JsonProcessingException {
+        var response = Response.builder()
+            .request(REQUEST)
+            .headers(Collections.singletonMap("AcceptTest", Collections.singletonList("Yes")))
+            .status(HttpStatus.CONFLICT.value())
+            .reason("Conflict")
+            .body(getMkErrorResponseString(getMkErrorResponse(409)).getBytes())
+            .build();
+
+        assertThat(decode(response))
+            .isInstanceOf(ConflictException.class)
+            .hasMessage("Conflict: something something already exists.");
+    }
+
     private Exception decode(Response response) {
         return DECODER.decode("methodKey", response);
     }
