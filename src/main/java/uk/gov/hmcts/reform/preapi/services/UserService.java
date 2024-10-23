@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
