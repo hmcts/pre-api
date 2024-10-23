@@ -98,7 +98,7 @@ class BookingServiceTest {
             }));
         assertThat(bookingService.findAllByCaseId(caseEntity.getId(), null).getContent())
             .isEqualTo(new ArrayList<>() {
-                    {
+                {
                     add(bookingModel1);
                     add(bookingModel2);
                 }
@@ -133,7 +133,20 @@ class BookingServiceTest {
 
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
-        when(bookingRepository.searchBookingsBy(null, "MyRef", null, null, null,null, null, null, null, null))
+        when(bookingRepository.searchBookingsBy(
+            null,
+            "MyRef",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        ))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
                 {
                     add(bookingEntity1);
@@ -142,13 +155,8 @@ class BookingServiceTest {
             }));
         assertThat(
             bookingService
-                .searchBy(null, "MyRef", null, Optional.empty(), null,null, null)
-                .getContent()).isEqualTo(new ArrayList<>() {
-                    {
-                        add(bookingModel1);
-                        add(bookingModel2);
-                    }
-                });
+                .searchBy(null, "MyRef", null, Optional.empty(), null, null, null, null, null)
+                .getContent()).isEqualTo(List.of(bookingModel1, bookingModel2));
     }
 
     @DisplayName("Get a booking")
@@ -506,7 +514,7 @@ class BookingServiceTest {
 
         verify(bookingRepository, times(1)).findById(booking.getId());
         verify(caseService, times(1)).undelete(aCase.getId());
-        verify(bookingRepository,never()).save(booking);
+        verify(bookingRepository, never()).save(booking);
     }
 
     @DisplayName("Should throw not found exception when booking cannot be found")

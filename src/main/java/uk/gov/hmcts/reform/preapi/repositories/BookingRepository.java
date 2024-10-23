@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -67,6 +68,14 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             AND (CAST(:authCourtId as uuid) IS NULL OR
                 b.caseId.court.id = :authCourtId
             )
+            AND (:statuses IS NULL OR EXISTS (
+                SELECT 1 FROM b.captureSessions AS cs
+                WHERE cs.status in :statuses
+            ))
+            AND (:notStatuses IS NULL OR NOT EXISTS (
+                SELECT 1 FROM b.captureSessions AS cs
+                WHERE cs.status in :notStatuses
+            ))
             AND (
                 :hasRecordings IS NULL
                 OR (:hasRecordings = TRUE AND EXISTS (
@@ -93,6 +102,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("authorisedBookings") List<UUID> authorisedBookings,
         @Param("authCourtId") UUID authCourtId,
         @Param("hasRecordings") Boolean hasRecordings,
+        @Param("statuses") List<RecordingStatus> statuses,
+        @Param("notStatuses") List<RecordingStatus> notStatuses,
         Pageable pageable
     );
 
