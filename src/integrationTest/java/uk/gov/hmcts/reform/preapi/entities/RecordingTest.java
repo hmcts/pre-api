@@ -17,7 +17,7 @@ import java.time.Duration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
-class CreateRecordingDTOTest {
+class RecordingTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -44,7 +44,7 @@ class CreateRecordingDTOTest {
         CaptureSession captureSession = HelperFactory.createCaptureSession(
             booking,
             RecordingOrigin.PRE,
-            "TestIngrestAddress",
+            "TestIngressAddress",
             "TestLiveOutputAddress",
             new Timestamp(System.currentTimeMillis()),
             user,
