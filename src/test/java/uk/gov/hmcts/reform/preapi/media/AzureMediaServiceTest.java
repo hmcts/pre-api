@@ -206,7 +206,7 @@ public class AzureMediaServiceTest {
             UUID.randomUUID()
         );
 
-        var result = mediaService.importAsset(generateAssetDTO);
+        var result = mediaService.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Finished");
 
@@ -279,7 +279,7 @@ public class AzureMediaServiceTest {
             UUID.randomUUID()
         );
 
-        var result = mediaService.importAsset(generateAssetDTO);
+        var result = mediaService.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Error");
 

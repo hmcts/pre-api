@@ -276,12 +276,13 @@ public class AzureMediaService implements IMediaService {
     }
 
     @Override
-    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO, boolean sourceIsFinalStorage)
+        throws InterruptedException {
         createAsset(
             generateAssetDTO.getTempAsset(),
             generateAssetDTO.getDescription(),
             generateAssetDTO.getSourceContainer(),
-            true
+            sourceIsFinalStorage
         );
 
         createAsset(
