@@ -16,7 +16,8 @@ public interface IMediaService {
 
     String playLiveEvent(UUID liveEventId) throws InterruptedException;
 
-    GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException;
+    GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO, boolean sourceIsFinalStorage)
+        throws InterruptedException;
 
     AssetDTO getAsset(String assetId);
 
