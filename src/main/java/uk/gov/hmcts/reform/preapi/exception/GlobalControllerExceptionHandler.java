@@ -223,7 +223,7 @@ public class GlobalControllerExceptionHandler {
         return getResponseEntity(e.getMessage(), HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
-    private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
+    public static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 
         HashMap<String, String> error = new HashMap<>();
