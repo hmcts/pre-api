@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -77,8 +78,8 @@ public class UserDTO extends BaseUserDTO {
                     termsAccepted.put(type, latestTermsAndConditions
                         .stream()
                         .filter(t -> t != null && t.getType() == type)
-                        .anyMatch(t -> user.getUserTermsAccepted()
-                            .stream()
+                        .anyMatch(t -> Stream.ofNullable(user.getUserTermsAccepted())
+                            .flatMap(Collection::stream)
                             .anyMatch(userAcceptedTsCs -> userAcceptedTsCs.isValid()
                                 && userAcceptedTsCs.getTermsAndConditions().getId() == t.getId())));
                 });

@@ -15,6 +15,12 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
       user:
         $ref: '#/definitions/BaseUserDTO'
     type: object
@@ -1885,7 +1891,7 @@ paths:
       summary: Accept terms and conditions for a user
       tags:
         - terms-and-conditions-controller
-  /api/app-terms-and-conditions/latest:
+  /app-terms-and-conditions/latest:
     get:
       operationId: getLatestTermsForApp
       parameters:
@@ -1904,27 +1910,6 @@ paths:
           schema:
             $ref: '#/definitions/TermsAndConditionsDTO'
       summary: Get the latest terms and conditions for the app
-      tags:
-        - terms-and-conditions-controller
-  /api/portal-terms-and-conditions/latest:
-    get:
-      operationId: getLatestTermsForPortal
-      parameters:
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/TermsAndConditionsDTO'
-      summary: Get the latest terms and conditions for the portal
       tags:
         - terms-and-conditions-controller
   '/audit/{id}':
@@ -3140,6 +3125,27 @@ paths:
             $ref: '#/definitions/PlaybackDTO'
       tags:
         - media-service-controller
+  /portal-terms-and-conditions/latest:
+    get:
+      operationId: getLatestTermsForPortal
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the portal
+      tags:
+        - terms-and-conditions-controller
   /recordings:
     get:
       operationId: getRecordings
