@@ -17,13 +17,7 @@ public abstract class BaseTemplate {
         this.variables = variables;
     }
 
-    public String getTemplateId() {
-        if (!templateId.isEmpty()) {
-            return templateId;
-        }
-
-        throw new IllegalStateException("Template ID is empty, set it in the child class");
-    }
+    public abstract String getTemplateId();
 
     private String generateReference() {
         return "ref";

@@ -60,7 +60,19 @@ public class GovNotifyFT {
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – New Video", response.getSubject());
         compareBody("""
-                        """, response);
+Hello John,
+
+A new Pre-recorded Evidence video has been captured for case 123456 at court Court Name.
+
+Please [login](http://localhost:8080) to the HMCTS Pre-recorded Evidence Portal to review the recording.
+
+If the link does not work in your email client, copy and paste the following link into your browser:
+
+http://localhost:8080
+
+If you have any issues with accessing or playing the recording and require technical support, please phone 0300 323 0194 between the hours of 08:00 and 18:00 weekdays, or 08:30 and 14:00 Saturday.
+
+Thank you.""", response);
     }
 
     @DisplayName("Should send recording edited email")
@@ -73,7 +85,19 @@ public class GovNotifyFT {
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – Edited Video", response.getSubject());
         compareBody("""
-                        """, response);
+Hello John,
+
+A new Pre-recorded Evidence video has been edited for case 123456 at court Court Name.
+
+Please [login](http://localhost:8080) to the HMCTS Pre-recorded Evidence Portal to review the recording.
+
+If the link does not work in your email client, copy and paste the following link into your browser:
+
+http://localhost:8080
+
+If you have any issues with accessing or playing the recording and require technical support, please phone 0300 323 0194 between the hours of 08:00 and 18:00 weekdays, or 08:30 and 14:00 Saturday.
+
+Thank you.""", response);
     }
 
     @DisplayName("Should send portal invite email")
@@ -88,7 +112,35 @@ public class GovNotifyFT {
         assertEquals(FROM_EMAIL_ADDRESS, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal Invitation", response.getSubject());
         compareBody("""
-                        """, response);
+Hello John,
+
+This is an invitation to the HMCTS Pre-recorded Evidence Portal where you can view recorded evidence. \s
+
+Please use the following [link](http://localhost:8080) to complete your registration. \s
+
+If the link does not work in your email client, copy and paste the following link into your browser: http://localhost:8080
+
+## Registration Instructions
+
+*   Click 'Sign up now'
+*   Enter your email address and click 'Send verification code'
+*   Check your incoming emails for a verification code, input the verification code and click 'verify code'
+*   Enter your password
+*   Passwords must be at least 8 characters, and must contain characters from at least three of the following four classes: uppercase, lowercase, digit, and non-alphanumeric (special)
+*   Read and agree to the Terms and Conditions to continue.
+
+Subsequent logins will require Two Factor Authentication (2FA) where you will receive a code via your email address to use as part of your login process. \s
+If you have any issues with accessing or playing the recording and require technical support, please phone 0300 323 0194 between the hours of 08:00 and 18:00 weekdays, or 08:30 and 14:00 Saturday. \s
+
+Thank you.
+
+---
+
+[Counsel and Judiciary User Guide.docx](http://localhost:8080/user-guide)
+
+[PRE Editing Recording Process Quick Guide.pdf](http://localhost:8080/process-guide)
+
+[PRE FAQs - External.pdf](http://localhost:8080/faqs)""", response);
     }
 
     @DisplayName("Should send case pending closure email")
@@ -105,7 +157,12 @@ public class GovNotifyFT {
             response.getSubject()
         );
         compareBody("""
-                        """, response);
+Dear John Doe,
+
+Case 123456 has been set to close on 2021-01-01. Once the case has been closed, access to recordings will be removed.
+
+Kind regards,
+Pre-Recorded Evidence Team""", response);
     }
 
     @DisplayName("Should send case closed email")
@@ -121,7 +178,12 @@ public class GovNotifyFT {
             response.getSubject()
         );
         compareBody("""
-                        """, response);
+Dear John Doe,
+
+Case 123456 has now been closed and access to recordings is no longer available.
+
+Kind regards,
+Pre-Recorded Evidence Team""", response);
     }
 
     @DisplayName("Should send case closure cancelled email")
@@ -137,6 +199,11 @@ public class GovNotifyFT {
             response.getSubject()
         );
         compareBody("""
-                        """, response);
+Dear John Doe,
+
+Case 123456 will no longer be closed and access to recordings will remain available.
+
+Kind regards,
+Pre-Recorded Evidence Team""", response);
     }
 }
