@@ -111,6 +111,7 @@ email:
   service: ${EMAIL_SERVICE:govnotify}
   govNotify:
     key: ${GOV_NOTIFY_API_KEY:}
+  enable: ${ENABLE_NEW_EMAIL_SERVICE:false}
 
 portal:
   url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}

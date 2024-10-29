@@ -15,9 +15,12 @@ public class EmailServiceBroker {
     IEmailService emailService;
     GovNotify govNotify;
 
+    public final Boolean enable;
+
     @Autowired
     public EmailServiceBroker(
         @Value("${email.service}") String emailServiceEnabled,
+        @Value("${email.enable}") Boolean enable,
         GovNotify govNotify) {
         this.govNotify = govNotify;
 
@@ -26,6 +29,8 @@ public class EmailServiceBroker {
         } else {
             throw new IllegalArgumentException("Unknown email service: " + emailServiceEnabled);
         }
+
+        this.enable = enable;
     }
 
     public IEmailService getEnabledEmailService() {
