@@ -15,6 +15,12 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
       user:
         $ref: '#/definitions/BaseUserDTO'
     type: object
