@@ -91,7 +91,7 @@ public class EditRequestService {
         return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
         var request = editRequestRepository.findById(id)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
@@ -107,7 +107,7 @@ public class EditRequestService {
     }
 
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = {Exception.class, RuntimeException.class})
+    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class})
     public RecordingDTO performEdit(UUID editId) throws InterruptedException {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
