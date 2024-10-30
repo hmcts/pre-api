@@ -3,10 +3,13 @@ package uk.gov.hmcts.reform.preapi.entities.batch;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.util.Set;
+import java.util.List;
 
 
 public class MigratedItemGroup {
@@ -16,6 +19,8 @@ public class MigratedItemGroup {
     private Recording recording;
     private Set<Participant> participants;
     private PassItem passItem;
+    private List<ShareBooking> shareBookings;
+    private List<User> users; 
 
     public MigratedItemGroup(
         Case aCase, 
@@ -23,14 +28,18 @@ public class MigratedItemGroup {
         CaptureSession captureSession, 
         Recording recording, 
         Set<Participant> participants,
-        PassItem passItem
-        ) {
+        PassItem passItem,
+        List<ShareBooking> shareBookings,
+        List<User> users 
+    ) {
         this.acase = aCase;
         this.booking = booking;
         this.captureSession = captureSession;
         this.recording = recording;
         this.participants = participants;
         this.passItem = passItem;
+        this.shareBookings = shareBookings;
+        this.users = users;
     }
 
     public Case getCase() {
@@ -53,7 +62,15 @@ public class MigratedItemGroup {
         return participants;
     }
 
-    public PassItem getPassItem(){
+    public PassItem getPassItem() {
         return passItem;
+    }
+
+    public List<ShareBooking> getShareBookings() {
+        return shareBookings;
+    }
+
+    public List<User> getUsers() {
+        return users;
     }
 }

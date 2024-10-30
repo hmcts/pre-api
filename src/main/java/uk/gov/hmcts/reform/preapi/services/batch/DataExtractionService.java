@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 @Service
 public class DataExtractionService {
 
@@ -17,9 +18,10 @@ public class DataExtractionService {
     public DataExtractionService() {
         namedPatterns.put("GENERIC_NAME_PATTERN_Tref", RegexPatterns.PATTERN_1);
         namedPatterns.put("GENERIC_NAME_PATTERN", RegexPatterns.PATTERN_2);
-        // namedPatterns.put("GENERIC_NAME_PATTERN_CP", RegexPatterns.PATTERN_3);
+        namedPatterns.put("3", RegexPatterns.PATTERN_3);
         namedPatterns.put("4", RegexPatterns.PATTERN_4);
         namedPatterns.put("5", RegexPatterns.PATTERN_5);
+        namedPatterns.put("6", RegexPatterns.PATTERN_6);
     }
 
     public Map.Entry<String, Matcher> matchPattern(CSVArchiveListData archiveItem) {

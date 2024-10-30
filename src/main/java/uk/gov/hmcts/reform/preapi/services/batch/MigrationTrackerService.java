@@ -51,13 +51,7 @@ public class MigrationTrackerService {
             "parentRecordingId",
             "version",
             "fileName",
-            "duration"
-            // "witnessId",            
-            // "witnessFirstName",      
-            // "witnessLastName",       
-            // "defendantId",           
-            // "defendantFirstName",    
-            // "defendantLastName"    
+            "duration"   
         );
         List<List<String>> rows = new ArrayList<>();
 
@@ -86,12 +80,6 @@ public class MigrationTrackerService {
                 item.getVersion() != null ? item.getVersion().toString() : "",
                 item.getFileName() != null ? item.getFileName() : "",
                 item.getDuration() != null ? item.getDuration().toString() : ""
-                // item.getWitnessId() != null ? item.getWitnessId().toString() : "", 
-                // item.getWitnessFirstName() != null ? item.getWitnessFirstName() : "", 
-                // item.getWitnessLastName() != null ? item.getWitnessLastName() : "", 
-                // item.getDefendantId() != null ? item.getDefendantId().toString() : "",  
-                // item.getDefendantFirstName() != null ? item.getDefendantFirstName() : "",  
-                // item.getDefendantLastName() != null ? item.getDefendantLastName() : "" 
             );
             rows.add(row);
         }

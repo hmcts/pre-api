@@ -4,13 +4,15 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
@@ -24,12 +26,14 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.services.batch.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 
 import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,39 +43,40 @@ import java.util.regex.Matcher;
 
 @Component
 public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
-
+    private final RedisTemplate<String, Object> redisTemplate; 
     private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final DataValidationService validationService;
     private final MigrationTrackerService migrationTrackerService;
     private final CaseRepository caseRepository;
-    private final CourtRepository courtRepository;
+    private final UserRepository userRepository;
     private final Map<String, Case> caseCache = new HashMap<>();
-    private final Map<String, UUID> courtCache = new HashMap<>();
     private final Map<String, String> sitesDataMap = new HashMap<>();
-    private final Map<String, String> channelUserDataMap = new HashMap<>();
+    private final Map<String, List<String[]>> channelUserDataMap = new HashMap<>();
     private final Map<String, Recording> origRecordingsMap = new HashMap<>();
 
     @Autowired
     public CSVProcessor(
+            RedisTemplate<String, Object> redisTemplate,
             DataExtractionService extractionService,
             DataTransformationService transformationService,
             DataValidationService validationService,
             CaseRepository caseRepository,
             CourtRepository courtRepository,
+            UserRepository userRepository,
             ParticipantRepository participantRepository,
             MigrationTrackerService migrationTrackerService) {
+        this.redisTemplate = redisTemplate;
         this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.validationService = validationService;
         this.caseRepository = caseRepository;
-        this.courtRepository = courtRepository;
+        this.userRepository = userRepository;
         this.migrationTrackerService = migrationTrackerService;
     }
 
     @EventListener(ContextRefreshedEvent.class)
     public void init() {
-        loadCourtCache();
         loadCaseCache();
     }
 
@@ -84,7 +89,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         } else if (item instanceof CSVChannelData) {
             processChannelUserData((CSVChannelData) item);
         } else {
-            Logger.getAnonymousLogger().severe("Unsupported item type: " + item.getClass().getName());
+            Logger.getAnonymousLogger().severe("Unsuported item type: " + item.getClass().getName());
         }
         return null;
     }
@@ -95,22 +100,29 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private Object processChannelUserData(CSVChannelData channelDataItem) {
-        channelUserDataMap.put(channelDataItem.getChannelName(), channelDataItem.getChannelUser());
+        channelUserDataMap
+            .computeIfAbsent(channelDataItem.getChannelName(), k -> new ArrayList<>())
+            .add(new String[]{channelDataItem.getChannelUser(), channelDataItem.getChannelUserEmail()});
         return channelDataItem;
     }
+
 
     private MigratedItemGroup processArchiveListData(CSVArchiveListData archiveItem) {
         try {
             CleansedData cleansedData = transformationService.transformArchiveListData(
-                    archiveItem, sitesDataMap, courtCache);
+                    archiveItem, sitesDataMap, channelUserDataMap);
 
+            String pattern = "";
+            try {
+                Map.Entry<String, Matcher> patternMatch = getPatternMatch(archiveItem);
+                pattern = patternMatch != null ? patternMatch.getKey() : null; 
+            } catch (Exception e) {
+                migrationTrackerService.addFailedItem(new FailedItem(archiveItem, e.getMessage()));
+            }
+            
             if (!validationService.validateCleansedData(cleansedData, archiveItem)) {
                 return null;
             }
-
-            Map.Entry<String, Matcher> patternMatch = getPatternMatch(archiveItem);
-            String pattern = patternMatch != null ? patternMatch.getKey() : null; 
-
             MigratedItemGroup migratedItemGroup = createMigratedItemGroup(
                 pattern, archiveItem.getArchiveName(), cleansedData);
 
@@ -128,9 +140,10 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return extractionService.matchPattern(archiveItem);
     }
 
+    @SuppressWarnings("unchecked")
     private MigratedItemGroup createMigratedItemGroup(String pattern, String archiveName, CleansedData cleansedData) {
         MigratedItemGroup migratedItemGroup = null; 
-        
+
         Case acase = createCaseIfOrig(cleansedData);
         if (acase != null) {
             Booking booking = createBooking(cleansedData, acase);
@@ -138,10 +151,22 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             Recording recording = createRecording(cleansedData, captureSession);
             Set<Participant> participants = createParticipants(cleansedData, acase);
 
+            List<ShareBooking> shareBookings = new ArrayList<>();
+            List<User> users = new ArrayList<>();
+            List<Object> shareBookingResult = createShareBookings(cleansedData, booking);
+            try {
+                shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
+                users = (List<User>) shareBookingResult.get(1);
+            } catch (Exception e) {
+                Logger.getAnonymousLogger().severe("Error in createMigratedItemGroup: " + e.getMessage());
+                return null;
+            }
+
             PassItem passItem = new PassItem(pattern, archiveName, acase, booking, captureSession, recording);
 
             try {
-                migratedItemGroup = new MigratedItemGroup(acase, booking, captureSession, recording, participants, passItem);
+                migratedItemGroup = new MigratedItemGroup(acase, booking, 
+                    captureSession, recording, participants, passItem, shareBookings, users);
             } catch (Exception e) {
                 Logger.getAnonymousLogger().info("ERROR: " + e.getMessage()); 
             }
@@ -151,15 +176,18 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return null;
     }
 
+
     private Case createCaseIfOrig(CleansedData cleansedData) {
         String caseReference = transformationService.buildCaseReference(cleansedData);
 
         if (caseCache.containsKey(caseReference)) {
             return caseCache.get(caseReference);
+
         }
 
         if (transformationService.isOriginalVersion(cleansedData)) {
             Case newCase = createCase(cleansedData);
+            
             caseCache.put(caseReference, newCase);
             return newCase;
         }
@@ -175,9 +203,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         aCase.setTest(cleansedItem.isTest());
         aCase.setCreatedAt(cleansedItem.getRecordingTimestamp());
         aCase.setState(cleansedItem.getState());
-        // aCase.setParticipants(new HashSet<>());
-        // aCase.setParticipants(createParticipants(cleansedItem,aCase));
-        
+      
         return aCase;
     }
 
@@ -187,8 +213,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         booking.setCaseId(acase);
         booking.setScheduledFor(cleansedItem.getRecordingTimestamp());
         booking.setCreatedAt(cleansedItem.getRecordingTimestamp());
-        // booking.setParticipants(acase.getParticipants());
-
+      
         return booking;
     }
 
@@ -201,6 +226,59 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         return captureSession;
     }
+
+    private List<Object> createShareBookings(CleansedData cleansedItem, Booking booking) {
+        List<User> sharedWithUsers = new ArrayList<>();
+        List<ShareBooking> shareBookings = new ArrayList<>();
+
+        for (Map<String, String> contactInfo : cleansedItem.getShareBookingContacts()) {
+            User user = getOrCreateUser(contactInfo);
+            if (user != null) {
+                sharedWithUsers.add(user);
+
+                ShareBooking shareBooking = new ShareBooking();
+                shareBooking.setId(UUID.randomUUID());
+                shareBooking.setBooking(booking);
+                shareBooking.setSharedBy(user); 
+                shareBooking.setSharedWith(user); 
+
+                shareBookings.add(shareBooking);
+            } else {
+                Logger.getAnonymousLogger().info("Skiped null user for contact info: " + contactInfo);
+            }
+        }
+
+        if (shareBookings.isEmpty()) {
+            return List.of(null, null);
+        }
+
+        return List.of(shareBookings, sharedWithUsers);
+    }
+
+
+
+
+    private User getOrCreateUser(Map<String, String> contactInfo) {
+        String email = contactInfo.get("email");
+        String redisUserKey = "user:" + email;
+
+        String userId = (String) redisTemplate.opsForValue().get(redisUserKey);
+        
+        if (userId != null) {
+            return userRepository.findById(UUID.fromString(userId)).orElse(null);
+        } else {            
+            User newUser = new User();
+            newUser.setId(UUID.randomUUID());
+            newUser.setFirstName(titleize(contactInfo.get("firstName")));
+            newUser.setLastName(titleize(contactInfo.get("lastName")));
+            newUser.setEmail(email);
+
+            redisTemplate.opsForValue().set(redisUserKey, newUser.getId().toString());
+
+            return newUser;
+        }
+    }
+
 
     private Recording createRecording(CleansedData cleansedItem, CaptureSession captureSession) {
         Recording recording = new Recording();
@@ -241,15 +319,8 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         defendant.setLastName(cleansedItem.getDefendantLastName());
 
         var participants = Set.of(witness, defendant);
-        // acase.setParticipants(participants);
-        return participants;
-    }
 
-    private void loadCourtCache() {
-        List<Court> courts = courtRepository.findAll();
-        for (Court court : courts) {
-            courtCache.put(court.getName(), court.getId());
-        }
+        return participants;
     }
 
     private void loadCaseCache() {
@@ -258,4 +329,12 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             caseCache.put(acase.getReference(), acase);
         }
     }
+
+    private String titleize(String name) {
+        if (name == null || name.isEmpty()) {
+            return name;
+        }
+        return name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
+    }
+
 }

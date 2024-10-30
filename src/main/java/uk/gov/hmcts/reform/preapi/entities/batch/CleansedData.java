@@ -5,6 +5,8 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 public class CleansedData {
 
@@ -22,6 +24,8 @@ public class CleansedData {
     private Duration duration;
     private boolean isTest;
     private TestItem testCheckResult;
+    private String[] shareBookingEmails;
+    private List<Map<String, String>> shareBookingContacts;
     
     public CleansedData() {
     }
@@ -39,7 +43,10 @@ public class CleansedData {
                         int recordingVersionNumber,
                         Duration duration,
                         boolean isTest, 
-                        TestItem testCheckResult
+                        TestItem testCheckResult,
+                        String[] shareBookingEmails,
+                        List<Map<String, String>> shareBookingContacts
+
     ) {
         this.courtReference = courtReference;
         this.fullCourtName = fullCourtName;
@@ -55,6 +62,8 @@ public class CleansedData {
         this.testCheckResult = testCheckResult;
         this.court = court;
         this.state = state;
+        this.shareBookingEmails = shareBookingEmails;
+        this.shareBookingContacts = shareBookingContacts;
     }
 
     public String getCourtReference() { 
@@ -167,6 +176,22 @@ public class CleansedData {
 
     public void setState(CaseState state) { 
         this.state = state; 
+    }
+
+    public String[] getShareBookingEmails() {
+        return shareBookingEmails;
+    }
+
+    public void setShareBookingEmails(String[] emails) {
+        this.shareBookingEmails = emails;
+    }
+
+    public List<Map<String, String>> getShareBookingContacts() {
+        return shareBookingContacts;
+    }
+
+    public void setShareBookingContacts(List<Map<String, String>> shareBookingContacts) {
+        this.shareBookingContacts = shareBookingContacts;
     }
 
 

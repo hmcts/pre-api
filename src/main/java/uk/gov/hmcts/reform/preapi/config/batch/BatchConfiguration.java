@@ -19,6 +19,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.processor.CSVProcessor;
+import uk.gov.hmcts.reform.preapi.batch.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.writer.CSVWriter;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
@@ -37,6 +38,7 @@ public class BatchConfiguration implements StepExecutionListener {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final CSVReader csvReader;
+    private final PreProcessor preProcessor;
     private final CSVProcessor csvProcessor;
     private final CSVWriter csvWriter;
     private final MigrationTrackerService migrationTrackerService;
@@ -45,12 +47,14 @@ public class BatchConfiguration implements StepExecutionListener {
     public BatchConfiguration(JobRepository jobRepository,
                               PlatformTransactionManager transactionManager,
                               CSVReader csvReader,
+                              PreProcessor preProcessor,
                               CSVProcessor csvProcessor,
                               CSVWriter csvWriter,
                               MigrationTrackerService migrationTrackerService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.csvReader = csvReader;
+        this.preProcessor = preProcessor;
         this.csvProcessor = csvProcessor;
         this.csvWriter = csvWriter;
         this.migrationTrackerService = migrationTrackerService;
@@ -61,38 +65,41 @@ public class BatchConfiguration implements StepExecutionListener {
     public Job processCSVJob() {
         return new JobBuilder("importCsvJob", jobRepository)
             .incrementer(new RunIdIncrementer())
-            .start(createStep(
+            .start(preProcessStep())
+            .next(createReadStep(
                 "sitesDataStep", 
                 new ClassPathResource("batch/Sites.csv"), 
                 new String[]{"site_reference", "site_name", "location"}, 
                 CSVSitesData.class, 
-                ",", 
-                false
+                 false
             ))
-            .next(createStep(
+            .next(createReadStep(
                 "channelUserStep",
                 new ClassPathResource("batch/Channel_User_Report.csv"),
-                new String[]{"channel_name","channel_user"},
+                new String[]{"channel_name","channel_user", "channel_user_email"},
                 CSVChannelData.class,
-                ",",
                 false 
             ))
-            .next(createStep(
+            .next(createReadStep(
                 "archiveListDataStep", 
                 new ClassPathResource("batch/Archive_List.csv"), 
                 new String[]{"archive_name", "description", "create_time", "duration", "owner", 
                     "video_type", "audio_type", "content_type", "far_end_address"}, 
                 CSVArchiveListData.class, 
-                ",", 
                 true 
             ))  
-            .next(finalCsvWriteStep())
+            .next(writeToCSV())
             .build();
     }
 
-    public <T> Step createStep(String stepName, Resource inputFile, String[] fieldNames, Class<T> targetClass, 
-                            String delimiter, boolean writeToCsv) {
-        FlatFileItemReader<T> reader = createCsvReader(inputFile, fieldNames, targetClass, delimiter);
+    public <T> Step createReadStep(
+        String stepName, 
+        Resource filePath, 
+        String[] fieldNames, 
+        Class<T> targetClass, 
+        boolean writeToCsv
+    ) {
+        FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass, ",");
         StepBuilder stepBuilder = new StepBuilder(stepName, jobRepository);
         Logger.getAnonymousLogger().info("Starting step: " + stepName);
         
@@ -116,7 +123,11 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     private <T> FlatFileItemReader<T> createCsvReader(
-        Resource inputFile, String[] fieldNames, Class<T> targetClass, String delimiter) {
+        Resource inputFile, 
+        String[] fieldNames, 
+        Class<T> targetClass, 
+        String delimiter
+    ) {
         try {
             return csvReader.createReader(inputFile, fieldNames, targetClass, delimiter);
         } catch (IOException e) {
@@ -125,10 +136,28 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
-    public Step finalCsvWriteStep() {
-        return new StepBuilder("finalCsvWriteStep", jobRepository)
+    public Step preProcessStep() {
+        return new StepBuilder("preProcessStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
-                    Logger.getAnonymousLogger().info("Writing all migrated items to CSV...");
+                    preProcessor.initialize();
+                    return RepeatStatus.FINISHED;
+                }, transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Step processDataStep() {
+        return new StepBuilder("processDataStep", jobRepository)
+                .tasklet((contribution, chunkContext) -> {
+                    return RepeatStatus.FINISHED;
+                }, transactionManager)
+                .build();
+    }
+
+    @Bean
+    public Step writeToCSV() {
+        return new StepBuilder("writeToCSV", jobRepository)
+                .tasklet((contribution, chunkContext) -> {
                     migrationTrackerService.writeAllToCsv();
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
@@ -138,7 +167,7 @@ public class BatchConfiguration implements StepExecutionListener {
     @Bean
     public <T> ItemWriter<T> noOpWriter() {
         return items -> {
-            // No-op writer that does nothing
+            // no-op writer  does nothing
         };
     }
 }

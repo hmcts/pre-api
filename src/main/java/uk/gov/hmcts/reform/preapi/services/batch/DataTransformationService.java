@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
@@ -10,11 +11,14 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.Duration;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -22,11 +26,17 @@ import java.util.logging.Logger;
 @Service
 public class DataTransformationService {
 
+    private final RedisTemplate<String, Object> redisTemplate; 
     private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
     
     @Autowired
-    public DataTransformationService(DataExtractionService extractionService,CourtRepository courtRepository) {
+    public DataTransformationService(
+        RedisTemplate<String, Object> redisTemplate,
+        DataExtractionService extractionService,
+        CourtRepository courtRepository
+    ) {
+        this.redisTemplate = redisTemplate;
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
     }
@@ -34,14 +44,15 @@ public class DataTransformationService {
     public CleansedData transformArchiveListData(
             CSVArchiveListData archiveItem,
             Map<String, String> sitesDataMap,
-            Map<String, UUID> courtCache) {
+            Map<String, List<String[]>> channelUserDataMap
+        ) {
         
         String courtReference = extractionService.extractCourtReference(archiveItem);
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
-
-        Court court = courtCache.containsKey(fullCourtName) 
-                ? courtRepository.findById(courtCache.get(fullCourtName)).orElse(null)
-                : null;
+        
+        String courtIdString = (String) redisTemplate.opsForValue().get("court:" + fullCourtName);
+        UUID courtId = UUID.fromString(courtIdString);
+        Court fullcourt = courtId != null ? courtRepository.findById(courtId).orElse(null) : null;
 
         String recordingDate = archiveItem.getCreateTime();
         Timestamp recordingTimestamp = convertToTimestamp(recordingDate);
@@ -50,7 +61,7 @@ public class DataTransformationService {
         Duration duration = Duration.ofSeconds(durationInSeconds);
 
         CleansedData cleansedData = new CleansedData();
-        cleansedData.setCourt(court);
+        cleansedData.setCourt(fullcourt);
         cleansedData.setDuration(duration);
         cleansedData.setCourtReference(courtReference);
         cleansedData.setFullCourtName(fullCourtName);
@@ -64,7 +75,12 @@ public class DataTransformationService {
         cleansedData.setState(CaseState.CLOSED);
 
         cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
-        cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData) );
+        cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData));
+
+        String channelName = archiveItem.getArchiveName(); 
+        List<String[]> usersAndEmails = channelUserDataMap.get(channelName);
+        List<Map<String, String>> contactsList = populateShareBookingContacts(usersAndEmails);
+        cleansedData.setShareBookingContacts(contactsList);
 
         return cleansedData;
     }
@@ -91,7 +107,7 @@ public class DataTransformationService {
         } else if (containsTestKeyWord(archiveItem.getOwner(), "test")) {
             reasons.append("Owner contains 'test'. ");
         } else if (archiveItem.getDuration() < 10) {
-            reasons.append("Duration is less than 10 minutes. ");
+            reasons.append("Duration is less than 10 seconds. ");
         }
 
         if (reasons.length() > 0) {
@@ -177,7 +193,31 @@ public class DataTransformationService {
         return versionNumber;
     }
 
+    private List<Map<String, String>> populateShareBookingContacts(List<String[]> usersAndEmails) {
+        List<Map<String, String>> contactsList = new ArrayList<>();
+        
+        if (usersAndEmails != null) {
+            for (String[] userInfo : usersAndEmails) {
+                String fullName = userInfo[0];
+                String email = userInfo[1];
+                
+                String[] nameParts = fullName.split("\\.");
+                String firstName = nameParts.length > 0 ? nameParts[0] : "";
+                String lastName = nameParts.length > 1 ? nameParts[1] : "";
+                
+                Map<String, String> contact = new HashMap<>();
+                contact.put("firstName", firstName);
+                contact.put("lastName", lastName);
+                contact.put("email", email);
+                
+                contactsList.add(contact);
+            }
+        }
+        
+        return contactsList;
+    }
+
     
 }
 
-   
+
