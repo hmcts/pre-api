@@ -3,12 +3,8 @@ java:
   environment:
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_URI: https://sds-api-mgmt.staging.platform.hmcts.net
-    AZURE_SUBSCRIPTION_ID: 74dacd4f-a248-45bb-a2f0-af700dc4cf68
-    AZURE_TENANT_ID: 531ff96d-0ae9-462a-8d2d-bec7c0b42082
     MEDIA_KIND_SUBSCRIPTION: pre-mediakind-stg
     PLATFORM_ENV_TAG: Staging
-    AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
-    AZURE_RESOURCE_GROUP: pre-stg
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
     MEDIA_SERVICE: MediaKind
