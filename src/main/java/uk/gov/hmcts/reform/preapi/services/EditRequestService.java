@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
@@ -44,6 +45,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -85,28 +87,41 @@ public class EditRequestService {
     }
 
     @Transactional
-    public List<EditRequest> getPendingEditRequests() {
-        return editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    public Optional<EditRequest> getNextPendingEditRequest() {
+        return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
 
-    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class})
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
+        var request = editRequestRepository.findById(id)
+            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+
+        request.setStatus(status);
+        switch (status) {
+            case PROCESSING -> request.setStartedAt(Timestamp.from(Instant.now()));
+            case ERROR, COMPLETE -> request.setFinishedAt(Timestamp.from(Instant.now()));
+            default -> {
+            }
+        }
+        editRequestRepository.save(request);
+    }
+
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = {Exception.class, RuntimeException.class})
     public RecordingDTO performEdit(UUID editId) throws InterruptedException {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
-        var request = editRequestRepository.findById(editId)
+        var request = editRequestRepository.findByIdNotLocked(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
 
-        if (request.getStatus() != EditRequestStatus.PENDING) {
+        if (request.getStatus() != EditRequestStatus.PROCESSING) {
             throw new ResourceInWrongStateException(
                 EditRequest.class.getSimpleName(),
                 request.getId().toString(),
                 request.getStatus().toString(),
-                EditRequestStatus.PENDING.toString()
+                EditRequestStatus.PROCESSING.toString()
             );
         }
-        request.setStartedAt(Timestamp.from(Instant.now()));
-        request.setStatus(EditRequestStatus.PROCESSING);
-        editRequestRepository.save(request);
 
         var newRecordingId = UUID.randomUUID();
         String filename;
@@ -116,15 +131,11 @@ public class EditRequestService {
             // generate mk asset
             filename = generateAsset(newRecordingId, request);
         } catch (Exception e) {
-            request.setFinishedAt(Timestamp.from(Instant.now()));
-            request.setStatus(EditRequestStatus.ERROR);
-            editRequestRepository.save(request);
+            updateEditRequestStatus(editId, EditRequestStatus.ERROR);
             throw e;
         }
 
-        request.setFinishedAt(Timestamp.from(Instant.now()));
-        request.setStatus(EditRequestStatus.COMPLETE);
-        editRequestRepository.save(request);
+        updateEditRequestStatus(editId, EditRequestStatus.COMPLETE);
 
         // create db entry for recording
         var createDto = createRecordingDto(newRecordingId, filename, request);

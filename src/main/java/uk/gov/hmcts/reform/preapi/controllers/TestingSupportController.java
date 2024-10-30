@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -367,9 +368,11 @@ class TestingSupportController {
             .orElse(createRole("Super User"));
         var appAccess = createAppAccess(r);
         SecurityContextHolder.getContext()
-            .setAuthentication(new UserAuthentication(appAccess,
-                                                      List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
+            .setAuthentication(new UserAuthentication(
+                appAccess,
+                List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
 
+        editRequestService.updateEditRequestStatus(editId, EditRequestStatus.PROCESSING);
         var recording = editRequestService.performEdit(editId);
         var request = editRequestService.findById(editId);
 

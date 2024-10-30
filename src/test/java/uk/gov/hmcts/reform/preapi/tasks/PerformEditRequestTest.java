@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -75,8 +74,13 @@ public class PerformEditRequestTest {
         var editRequest4 = createPendingEditRequest();
         var editRequest5 = createPendingEditRequest();
 
-        when(editRequestService.getPendingEditRequests())
-            .thenReturn(List.of(editRequest1, editRequest2, editRequest3, editRequest4, editRequest5));
+        when(editRequestService.getNextPendingEditRequest())
+            .thenReturn(Optional.of(editRequest1))
+            .thenReturn(Optional.of(editRequest2))
+            .thenReturn(Optional.of(editRequest3))
+            .thenReturn(Optional.of(editRequest4))
+            .thenReturn(Optional.of(editRequest5));
+
         // when request is successful
         when(editRequestService.performEdit(editRequest1.getId())).thenReturn(new RecordingDTO());
         // when request errors in ffmpeg stage
@@ -92,12 +96,26 @@ public class PerformEditRequestTest {
             .performEdit(editRequest5.getId());
 
         performEditRequest.run();
+        performEditRequest.run();
+        performEditRequest.run();
+        performEditRequest.run();
+        performEditRequest.run();
 
-        verify(editRequestService, times(1)).getPendingEditRequests();
+        verify(editRequestService, times(5)).getNextPendingEditRequest();
+        verify(editRequestService, times(1))
+            .updateEditRequestStatus(editRequest1.getId(), EditRequestStatus.PROCESSING);
         verify(editRequestService, times(1)).performEdit(editRequest1.getId());
+        verify(editRequestService, times(1))
+            .updateEditRequestStatus(editRequest2.getId(), EditRequestStatus.PROCESSING);
         verify(editRequestService, times(1)).performEdit(editRequest2.getId());
+        verify(editRequestService, times(1))
+            .updateEditRequestStatus(editRequest3.getId(), EditRequestStatus.PROCESSING);
         verify(editRequestService, times(1)).performEdit(editRequest3.getId());
+        verify(editRequestService, times(1))
+            .updateEditRequestStatus(editRequest4.getId(), EditRequestStatus.PROCESSING);
         verify(editRequestService, times(1)).performEdit(editRequest4.getId());
+        verify(editRequestService, times(1))
+            .updateEditRequestStatus(editRequest5.getId(), EditRequestStatus.PROCESSING);
         verify(editRequestService, times(1)).performEdit(editRequest5.getId());
     }
 

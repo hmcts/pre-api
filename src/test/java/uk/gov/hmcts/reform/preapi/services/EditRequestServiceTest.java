@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
@@ -39,7 +38,9 @@ import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -98,17 +99,16 @@ public class EditRequestServiceTest {
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
 
-        when(editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
-            .thenReturn(List.of(editRequest));
+        when(editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
+            .thenReturn(Optional.of(editRequest));
 
-        var res = editRequestService.getPendingEditRequests();
+        var res = editRequestService.getNextPendingEditRequest();
 
-        assertThat(res).isNotNull();
-        assertThat(res.size()).isEqualTo(1);
-        assertThat(res.getFirst().getId()).isEqualTo(editRequest.getId());
-        assertThat(res.getFirst().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+        assertThat(res.isPresent()).isTrue();
+        assertThat(res.get().getId()).isEqualTo(editRequest.getId());
+        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
-        verify(editRequestRepository, times(1)).findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+        verify(editRequestRepository, times(1)).findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
 
     @Test
@@ -121,9 +121,10 @@ public class EditRequestServiceTest {
         recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setStatus(EditRequestStatus.PROCESSING);
         editRequest.setSourceRecording(recording);
 
+        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
         when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
         doThrow(UnknownServerException.class)
             .when(ffmpegService).performEdit(any(UUID.class), eq(editRequest));
@@ -134,7 +135,8 @@ public class EditRequestServiceTest {
         );
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(2)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
+        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any());
     }
@@ -149,10 +151,12 @@ public class EditRequestServiceTest {
         recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setStatus(EditRequestStatus.PROCESSING);
+        editRequest.setStartedAt(Timestamp.from(Instant.now()));
         editRequest.setSourceRecording(recording);
 
         when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
+        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
         when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
         when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
         var newRecordingDto = new RecordingDTO();
@@ -169,7 +173,8 @@ public class EditRequestServiceTest {
         assertThat(res.getParentRecordingId()).isEqualTo(recording.getId());
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(2)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
+        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
@@ -184,7 +189,7 @@ public class EditRequestServiceTest {
     void performEditNotFound() {
         var id = UUID.randomUUID();
 
-        when(editRequestRepository.findById(id)).thenReturn(Optional.empty());
+        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
@@ -193,7 +198,7 @@ public class EditRequestServiceTest {
 
         assertThat(message).isEqualTo("Not found: Edit Request: " + id);
 
-        verify(editRequestRepository, times(1)).findById(id);
+        verify(editRequestRepository, times(1)).findByIdNotLocked(id);
         verify(editRequestRepository, never()).save(any(EditRequest.class));
         verify(ffmpegService, never()).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
@@ -201,12 +206,13 @@ public class EditRequestServiceTest {
     }
 
     @Test
-    @DisplayName("Should not perform edit and return null when status of edit request is not PENDING")
-    void performEditStatusNotPending() {
+    @DisplayName("Should not perform edit and return null when status of edit request is not PROCESSING")
+    void performEditStatusNotProcessing() {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PROCESSING);
+        editRequest.setStatus(EditRequestStatus.PENDING);
 
+        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
         when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
 
         var message = assertThrows(
@@ -217,31 +223,13 @@ public class EditRequestServiceTest {
         assertThat(message)
             .isEqualTo("Resource EditRequest("
                            + editRequest.getId()
-                           + ") is in a PROCESSING state. Expected state is PENDING.");
+                           + ") is in a PENDING state. Expected state is PROCESSING.");
 
-        verify(editRequestRepository, times(1)).findById(editRequest.getId());
+        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
         verify(editRequestRepository, never()).save(any(EditRequest.class));
         verify(ffmpegService, never()).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, never()).findById(any(UUID.class));
-    }
-
-    @Test
-    @DisplayName("Should throw lock error when encounters locked edit request")
-    void performEditLocked() {
-        var editRequest = new EditRequest();
-        editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
-
-        doThrow(PessimisticLockingFailureException.class).when(editRequestRepository).findById(editRequest.getId());
-
-        assertThrows(
-            PessimisticLockingFailureException.class,
-            () -> editRequestService.performEdit(editRequest.getId())
-        );
-
-        verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
     }
 
     @Test
