@@ -47,6 +47,7 @@ function:
     MEDIA_SERVICE: MediaKind
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
+    TASK_NAME: PerformEditRequest
     DB_CONNECTION_STRING: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}"
   job:
     parallelism: 1
