@@ -22,8 +22,6 @@ java:
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
-
-
 function:
   scaleType: Job
   image: ${IMAGE_NAME}
@@ -32,42 +30,6 @@ function:
   minReplicaCount: 0
   maxReplicaCount: 2 # todo (more?) only runs up to 2 edits at once
   scalingStrategy: accurate
-  keyVaults:
-    pre-hmctskv:
-      secrets:
-        - name: AppInsightsInstrumentationKey
-          alias: APPINSIGHTS_INSTRUMENTATIONKEY
-        - name: apim-sub-smoketest-primary-key
-          alias: APIM_SUB_SMOKETEST_PRIMARY_KEY
-        - name: apim-sub-smoketest-secondary-key
-          alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
-        - name: app-insights-connection-string
-        - name: pp-clientid
-          alias: AZ_AMS_CLIENT_ID
-        - name: client-secret
-          alias: AZ_AMS_CLIENT_SECRET
-        - name: api-MKIO-TOKEN
-          alias: MEDIA_KIND_TOKEN
-        - name: finalsa-storage-account-connection-string
-          alias: AZURE_FINAL_SA_CONNECTION_STRING
-        - name: ingestsa-storage-account-connection-string
-          alias: AZURE_INGEST_SA_CONNECTION_STRING
-        - name: symmetrickey
-          alias: SYMMETRIC_KEY
-        - name: pp-authorization
-          alias: FLOW_KEY
-        - name: flow-http-api
-          alias: FLOW_HTTP_API
-        - name: flow-case-state-notifier-http-api
-          alias: FLOW_CASE_STATE_NOTIFIER_HTTP_API
-        - name: flow-close-live-event-email-workflow-id
-          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
-        - name: flow-close-live-event-email-sig
-          alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG
-        - name: api-MK-SUBSCRIPTION-ID
-          alias: MEDIA_KIND_SUBSCRIPTION_ID
-        - name: api-MK-CUSTOMER-ID
-          alias: MEDIA_KIND_CUSTOMER_ID
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
