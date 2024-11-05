@@ -4,7 +4,7 @@ java:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "pre-dev.postgres.database.azure.com"
     POSTGRES_DATABASE: "pr-${CHANGE_ID}-pre"
-    POSTGRES_USER: "hmcts"
+    POSTGRES_USER: "pre"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_ENABLED: false
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
@@ -35,10 +35,9 @@ function:
   scalingStrategy: accurate
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
-    POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
-    POSTGRES_DATABASE: "{{ .Values.postgresql.auth.database}}"
-    POSTGRES_USER: "{{ .Values.postgresql.auth.username}}"
-    POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
+    POSTGRES_HOST: "pre-dev.postgres.database.azure.com"
+    POSTGRES_DATABASE: "pr-${CHANGE_ID}-pre"
+    POSTGRES_USER: "pre"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_ENABLED: false
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
