@@ -199,7 +199,7 @@ public class GovNotifyFT {
 
     @DisplayName("Should send case closure cancelled email")
     @Test
-    @SuppressWarnings("LineLength")
+    @SuppressWarnings({"LineLength", "Indentation"})
     void caseClosureCancelled() {
         var user = createUser();
         var forCase = createCase();
