@@ -215,10 +215,9 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + id));
 
-        var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
-        var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
-
-        captureSession.setStartedByUser(user);
+        captureSession.setStartedByUser(
+            ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getAppAccess().getUser()
+        );
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
         captureSession.setStatus(status);

@@ -999,7 +999,7 @@ public class MediaKindTest {
 
     @DisplayName("Should return the playback urls for the asset when content key policy didn't exist")
     @Test
-    void playAssetContentKeyNotFoundSuccess() throws InterruptedException {
+    void playAssetContentKeyNotFoundSuccess() throws InterruptedException, JsonProcessingException {
         var assetName = UUID.randomUUID().toString();
         var userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
@@ -1052,7 +1052,14 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
-        verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), any(MkContentKeyPolicy.class));
+
+        var mkContentKeyPolicyArgument = ArgumentCaptor.forClass(MkContentKeyPolicy.class);
+        verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), mkContentKeyPolicyArgument.capture());
+        var om = new JacksonConfiguration().getMapper();
+
+        assertThat(om.writeValueAsString(mkContentKeyPolicyArgument.getValue())).isNotNull();
+
+
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);
