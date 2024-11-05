@@ -68,9 +68,6 @@ job:
   <<: *javavalues
   enabled: false
 
-postgresql:
-  enabled: false
-
 function:
   scaleType: Job
   image: 'sdshmctspublic.azurecr.io/pre/api:latest'

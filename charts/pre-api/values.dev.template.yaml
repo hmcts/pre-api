@@ -1,13 +1,13 @@
 java:
   devmemoryLimits: '2048Mi'
   postgresql:
-    enabled: false
+    enabled: true
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
-    POSTGRES_DATABASE: "{{ .globals.postgresql.auth.database}}"
-    POSTGRES_USER: "{{ .globals.postgresql.auth.username}}"
-    POSTGRES_PASSWORD: "{{ .globals.postgresql.auth.password}}"
+    POSTGRES_DATABASE: "{{ .Values.postgresql.auth.database}}"
+    POSTGRES_USER: "{{ .Values.postgresql.auth.username}}"
+    POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_ENABLED: false
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
@@ -22,16 +22,6 @@ java:
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
-
-global:
-  postgresql:
-    auth:
-      username: pre
-      password: testpass
-      database: api
-
-postgresql:
-  enabled: true
 
 function:
   scaleType: Job
@@ -59,7 +49,7 @@ function:
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
     TASK_NAME: PerformEditRequest
-    DB_CONNECTION_STRING: "postgresql://{{ .globals.postgresql.auth.username}}:{{ .globals.postgresql.auth.password}}@{{ .Release.Name }}-postgresql:5432/{{ .globals.postgresql.auth.database}}"
+    DB_CONNECTION_STRING: "postgresql://{{ .Values.java.postgresql.auth.username}}:{{ .Values.java.postgresql.auth.password}}@{{ .Release.Name }}-postgresql:5432/{{ .Values.java.postgresql.auth.database}}"
   job:
     parallelism: 1
     completions: 1
