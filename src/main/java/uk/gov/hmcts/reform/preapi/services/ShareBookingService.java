@@ -10,7 +10,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -172,7 +171,8 @@ public class ShareBookingService {
                 emailService.recordingReady(s.getSharedWith(), s.getBooking().getCaseId());
             }
         } catch (Exception e) {
-            log.error("Failed to notify user " + s.getSharedWith().getId() + " of shared booking: " + s.getBooking().getId());
+            log.error("Failed to notify user " + s.getSharedWith().getId()
+                          + " of shared booking: " + s.getBooking().getId());
         }
     }
 }

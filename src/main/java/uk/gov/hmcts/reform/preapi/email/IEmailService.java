@@ -6,9 +6,14 @@ import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
 
 public interface IEmailService {
     EmailResponse recordingReady(User to, Case forCase) throws EmailFailedToSendException;
+
     EmailResponse recordingEdited(User to, Case forCase) throws EmailFailedToSendException;
+
     EmailResponse portalInvite(User to) throws EmailFailedToSendException;
+
     EmailResponse casePendingClosure(User to, Case forCase, String date) throws EmailFailedToSendException;
+
     EmailResponse caseClosed(User to, Case forCase) throws EmailFailedToSendException;
+
     EmailResponse caseClosureCancelled(User to, Case forCase) throws EmailFailedToSendException;
 }

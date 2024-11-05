@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import uk.gov.service.notify.SendEmailResponse;
 
-import java.util.Objects;
-
 @AllArgsConstructor
 @Getter
 public class EmailResponse {

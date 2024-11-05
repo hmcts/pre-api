@@ -323,7 +323,8 @@ public class CaseService {
                 caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
             } else {
                 var emailService = emailServiceBroker.getEnabledEmailService();
-                shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c, c.getClosedAt().toString()));
+                shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c,
+                                                                        c.getClosedAt().toString()));
             }
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: " + c.getId());

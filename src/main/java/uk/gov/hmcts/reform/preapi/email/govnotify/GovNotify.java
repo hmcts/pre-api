@@ -6,7 +6,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.email.EmailResponse;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.*;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.BaseTemplate;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
@@ -31,7 +37,8 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingReady(User to, Case forCase) {
-        var template = new RecordingReady(to.getEmail(), to.getFirstName(), forCase.getReference(), forCase.getCourt().getName(), portalUrl);
+        var template = new RecordingReady(to.getEmail(), to.getFirstName(), forCase.getReference(),
+                                          forCase.getCourt().getName(), portalUrl);
         try {
             log.info("Recording ready email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -43,7 +50,8 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingEdited(User to, Case forCase) {
-        var template = new RecordingEdited(to.getEmail(), to.getFirstName(), forCase.getReference(), forCase.getCourt().getName(), portalUrl);
+        var template = new RecordingEdited(to.getEmail(), to.getFirstName(), forCase.getReference(),
+                                           forCase.getCourt().getName(), portalUrl);
         try {
             log.info("Recording edited email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -55,7 +63,10 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse portalInvite(User to) {
-        var template = new PortalInvite(to.getEmail(), to.getFirstName(), portalUrl, portalUrl + "/user-guide", portalUrl + "/process-guide", portalUrl + "/faqs");
+        var template = new PortalInvite(to.getEmail(), to.getFirstName(), portalUrl,
+                                        portalUrl + "/user-guide",
+                                        portalUrl + "/process-guide",
+                                        portalUrl + "/faqs");
         try {
             log.info("Portal invite email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -67,7 +78,8 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse casePendingClosure(User to, Case forCase, String date) {
-        var template = new CasePendingClosure(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference(), date);
+        var template = new CasePendingClosure(to.getEmail(), to.getFirstName(), to.getLastName(),
+                                              forCase.getReference(), date);
         try {
             log.info("Case pending closure email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -91,7 +103,8 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse caseClosureCancelled(User to, Case forCase) {
-        var template = new CaseClosureCancelled(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference());
+        var template = new CaseClosureCancelled(to.getEmail(), to.getFirstName(), to.getLastName(),
+                                                forCase.getReference());
         try {
             log.info("Case closure cancelled email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));

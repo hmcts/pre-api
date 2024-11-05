@@ -3,7 +3,8 @@ package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 import java.util.Map;
 
 public class PortalInvite extends BaseTemplate {
-    public PortalInvite(String to, String firstName, String portalUrl, String userGuideLink, String processGuideLink, String faqsLink) {
+    public PortalInvite(String to, String firstName, String portalUrl, String userGuideLink, String processGuideLink,
+                        String faqsLink) {
         super(
             to,
             Map.of(
