@@ -220,8 +220,6 @@ public class CaseService {
                 participantRepository.save(p);
             });
 
-        caseRepository.save(newCase);
-
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
