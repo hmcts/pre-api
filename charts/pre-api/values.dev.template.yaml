@@ -18,8 +18,8 @@ java:
     AZURE_FINAL_SA: prefinalsastg
   secrets:
     POSTGRES_PASSWORD:
-      secretRef: "postgres"
-      KEY: PASSWORD
+      secretRef: "api-POSTGRES_PASS"
+      KEY: api-POSTGRES_PASS
       disabled: false
   # Don't modify below here
   image: ${IMAGE_NAME}
