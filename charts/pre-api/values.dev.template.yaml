@@ -16,11 +16,6 @@ java:
     MEDIA_SERVICE: MediaKind
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
-  secrets:
-    POSTGRES_PASSWORD:
-      secretRef: "api-POSTGRES_PASS"
-      KEY: api-POSTGRES_PASS
-      disabled: false
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
