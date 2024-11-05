@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -575,8 +576,11 @@ public class CaptureSessionServiceTest {
         captureSession.setStartedAt(null);
         captureSession.setStartedByUser(null);
         var mockAuth = mock(UserAuthentication.class);
+        var mockAppAccess = mock(AppAccess.class);
 
-        when(mockAuth.getUserId()).thenReturn(user.getId());
+        when(mockAuth.getAppAccess()).thenReturn(mockAppAccess);
+        when(mockAppAccess.getUser()).thenReturn(user);
+
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))

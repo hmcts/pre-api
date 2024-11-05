@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -78,6 +80,8 @@ public class BookingService {
         Optional<Timestamp> scheduledFor,
         UUID participantId,
         Boolean hasRecordings,
+        List<RecordingStatus> statuses,
+        List<RecordingStatus> notStatuses,
         Pageable pageable
     ) {
         var until = scheduledFor.isEmpty()
@@ -100,6 +104,8 @@ public class BookingService {
                 authorisedBookings,
                 authorisedCourt,
                 hasRecordings,
+                statuses,
+                notStatuses,
                 pageable
             )
             .map(BookingDTO::new);

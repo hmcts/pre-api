@@ -6,11 +6,13 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.HashMap;
 
 @Getter
@@ -28,6 +30,16 @@ public class UserTermsAccepted extends BaseEntity {
 
     @Column(name = "accepted_at", nullable = false)
     private Timestamp acceptedAt;
+
+    @Transient
+    private boolean valid;
+
+    public boolean isValid() {
+        return acceptedAt.after(
+            Timestamp.from(
+                Instant.now().minusSeconds(31536000)) // 1 year ago
+        );
+    }
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
