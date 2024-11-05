@@ -61,7 +61,7 @@ public class GovNotifyFT {
         assertEquals(fromEmailAddress, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – New Video", response.getSubject());
         compareBody(
-"""
+            """
             Hello John,
 
             A new Pre-recorded Evidence video has been captured for case 123456 at court Court Name.
@@ -88,7 +88,7 @@ public class GovNotifyFT {
         assertEquals(fromEmailAddress, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – Edited Video", response.getSubject());
         compareBody(
-"""
+            """
             Hello John,
 
             A new Pre-recorded Evidence video has been edited for case 123456 at court Court Name.
@@ -117,7 +117,7 @@ public class GovNotifyFT {
         assertEquals(fromEmailAddress, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal Invitation", response.getSubject());
         compareBody(
-"""
+            """
             Hello John,
 
             This is an invitation to the HMCTS Pre-recorded Evidence Portal where you can view recorded evidence. \s
@@ -164,7 +164,7 @@ public class GovNotifyFT {
             response.getSubject()
         );
         compareBody(
-"""
+            """
             Dear John Doe,
 
             Case 123456 has been set to close on 2021-01-01. Once the case has been closed, access to recordings will be removed.
@@ -187,14 +187,13 @@ public class GovNotifyFT {
             response.getSubject()
         );
         compareBody(
-"""
+            """
             Dear John Doe,
 
             Case 123456 has now been closed and access to recordings is no longer available.
 
             Kind regards,
             Pre-Recorded Evidence Team""", response);
-        //CHECKSTYLE:ON
     }
 
     @DisplayName("Should send case closure cancelled email")
@@ -211,7 +210,7 @@ public class GovNotifyFT {
             response.getSubject()
         );
         compareBody(
-"""
+            """
             Dear John Doe,
 
             Case 123456 will no longer be closed and access to recordings will remain available.
