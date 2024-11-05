@@ -2,7 +2,6 @@ java:
   devmemoryLimits: '2048Mi'
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
-    POSTGRES_HOST: "pre-dev.postgres.database.azure.com"
     POSTGRES_DATABASE: "pr-${CHANGE_ID}-pre"
     POSTGRES_USER: "pre"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
@@ -35,7 +34,6 @@ function:
   scalingStrategy: accurate
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
-    POSTGRES_HOST: "pre-dev.postgres.database.azure.com"
     POSTGRES_DATABASE: "pr-${CHANGE_ID}-pre"
     POSTGRES_USER: "pre"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
