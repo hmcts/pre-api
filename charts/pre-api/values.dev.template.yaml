@@ -10,8 +10,8 @@ java:
     POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
 
     DB_HOST: "{{ .Release.Name }}-postgresql"
-    DB_USER_NAME: "{{ .Values.postgresql.auth.username}}"
-    DB_PASSWORD: "{{ .Values.postgresql.auth.password}}"
+    DB_USER_NAME: "pre"
+    DB_PASSWORD: "testpass"
 
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_ENABLED: false
@@ -54,7 +54,7 @@ function:
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
     TASK_NAME: PerformEditRequest
-    DB_CONNECTION_STRING: "postgresql://{{ .Values.postgresql.auth.username}}:{{ .Values.postgresql.auth.password}}@{{ .Release.Name }}-postgresql:5432/api"
+    DB_CONNECTION_STRING: "postgresql://pre:testpass@{{ .Release.Name }}-postgresql:5432/api"
   job:
     parallelism: 1
     completions: 1
