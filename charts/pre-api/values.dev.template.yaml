@@ -2,6 +2,10 @@ java:
   devmemoryLimits: '2048Mi'
   postgresql:
     enabled: true
+    auth:
+      username: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      database: ${POSTGRES_DATABASE}
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
@@ -24,15 +28,10 @@ java:
     MEDIA_SERVICE: MediaKind
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
-  postgresql:
-    enabled: true
-    auth:
-      username: ${POSTGRES_USER}
-      password: ${POSTGRES_PASSWORD}
-      database: ${POSTGRES_DATABASE}
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
+
 function:
   scaleType: Job
   image: ${IMAGE_NAME}
@@ -44,9 +43,9 @@ function:
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
-    POSTGRES_DATABASE: "{{ .Values.java.postgresql.auth.database}}"
-    POSTGRES_USER: "{{ .Values.java.postgresql.auth.username}}"
-    POSTGRES_PASSWORD: "{{ .Values.java.postgresql.auth.password}}"
+    POSTGRES_DATABASE: "api"
+    POSTGRES_USER: "pre"
+    POSTGRES_PASSWORD: "testpass"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_ENABLED: false
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
