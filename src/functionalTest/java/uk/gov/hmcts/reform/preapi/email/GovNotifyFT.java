@@ -52,6 +52,7 @@ public class GovNotifyFT {
 
     @DisplayName("Should send recording ready email")
     @Test
+    @SuppressWarnings("LineLength")
     void recordingReady() {
         var user = createUser();
         var forCase = createCase();
@@ -59,7 +60,6 @@ public class GovNotifyFT {
         var response = client.recordingReady(user, forCase);
         assertEquals(fromEmailAddress, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – New Video", response.getSubject());
-        //CHECKSTYLE:OFF
         compareBody(
 """
             Hello John,
@@ -75,11 +75,11 @@ public class GovNotifyFT {
             If you have any issues with accessing or playing the recording and require technical support, please phone 0300 323 0194 between the hours of 08:00 and 18:00 weekdays, or 08:30 and 14:00 Saturday.
 
             Thank you.""", response);
-        //CHECKSTYLE:ON
     }
 
     @DisplayName("Should send recording edited email")
     @Test
+    @SuppressWarnings("LineLength")
     void recordingEdited() {
         var user = createUser();
         var forCase = createCase();
@@ -87,7 +87,6 @@ public class GovNotifyFT {
         var response = client.recordingEdited(user, forCase);
         assertEquals(fromEmailAddress, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – Edited Video", response.getSubject());
-        //CHECKSTYLE:OFF
         compareBody(
 """
             Hello John,
@@ -103,11 +102,11 @@ public class GovNotifyFT {
             If you have any issues with accessing or playing the recording and require technical support, please phone 0300 323 0194 between the hours of 08:00 and 18:00 weekdays, or 08:30 and 14:00 Saturday.
 
             Thank you.""", response);
-        //CHECKSTYLE:ON
     }
 
     @DisplayName("Should send portal invite email")
     @Test
+    @SuppressWarnings("LineLength")
     void portalInvite() {
         var user = createUser();
         var userGuideLink = portalUrl + "/user-guide";
@@ -117,7 +116,6 @@ public class GovNotifyFT {
         var response = client.portalInvite(user);
         assertEquals(fromEmailAddress, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal Invitation", response.getSubject());
-        //CHECKSTYLE:OFF
         compareBody(
 """
             Hello John,
@@ -149,11 +147,11 @@ public class GovNotifyFT {
             [PRE Editing Recording Process Quick Guide.pdf](http://localhost:8080/process-guide)
 
             [PRE FAQs - External.pdf](http://localhost:8080/faqs)""", response);
-        //CHECKSTYLE:ON
     }
 
     @DisplayName("Should send case pending closure email")
     @Test
+    @SuppressWarnings("LineLength")
     void casePendingClosure() {
         var user = createUser();
         var forCase = createCase();
@@ -165,7 +163,6 @@ public class GovNotifyFT {
             "[Do Not Reply] Pre-recorded Evidence: Case reference " + caseReference + " access update",
             response.getSubject()
         );
-        //CHECKSTYLE:OFF
         compareBody(
 """
             Dear John Doe,
@@ -174,11 +171,11 @@ public class GovNotifyFT {
 
             Kind regards,
             Pre-Recorded Evidence Team""", response);
-        //CHECKSTYLE:ON
     }
 
     @DisplayName("Should send case closed email")
     @Test
+    @SuppressWarnings("LineLength")
     void caseClosed() {
         var user = createUser();
         var forCase = createCase();
@@ -189,7 +186,6 @@ public class GovNotifyFT {
             "[Do Not Reply] Pre-recorded Evidence: Case reference " + caseReference + " access update",
             response.getSubject()
         );
-        //CHECKSTYLE:OFF
         compareBody(
 """
             Dear John Doe,
@@ -203,6 +199,7 @@ public class GovNotifyFT {
 
     @DisplayName("Should send case closure cancelled email")
     @Test
+    @SuppressWarnings("LineLength")
     void caseClosureCancelled() {
         var user = createUser();
         var forCase = createCase();
@@ -213,7 +210,6 @@ public class GovNotifyFT {
             "[Do Not Reply] Pre-recorded Evidence: Case reference " + caseReference + " access update",
             response.getSubject()
         );
-        //CHECKSTYLE:OFF
         compareBody(
 """
             Dear John Doe,
@@ -222,6 +218,5 @@ public class GovNotifyFT {
 
             Kind regards,
             Pre-Recorded Evidence Team""", response);
-        //CHECKSTYLE:ON
     }
 }
