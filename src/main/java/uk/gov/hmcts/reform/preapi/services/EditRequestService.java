@@ -70,7 +70,8 @@ public class EditRequestService {
                               RecordingService recordingService,
                               AzureIngestStorageService azureIngestStorageService,
                               AzureFinalStorageService azureFinalStorageService,
-                              MediaServiceBroker mediaServiceBroker, EmailServiceBroker emailServiceBroker) {
+                              MediaServiceBroker mediaServiceBroker,
+                              EmailServiceBroker emailServiceBroker) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -152,7 +153,6 @@ public class EditRequestService {
 
     @Transactional
     public void sendNotifications(Booking booking) {
-        System.out.println("HERHEERE");
         booking.getShares()
             .stream()
             .map(ShareBooking::getSharedWith)
