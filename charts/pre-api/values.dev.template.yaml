@@ -8,12 +8,12 @@ java:
       database: ${POSTGRES_DATABASE}
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
-    POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
+    POSTGRES_HOST: "{{ .Release.Name }}-postgresql-0"
     POSTGRES_DATABASE: "{{ .Values.postgresql.auth.database}}"
     POSTGRES_USER: "{{ .Values.postgresql.auth.username}}"
     POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
 
-    DB_HOST: "{{ .Release.Name }}-postgresql"
+    DB_HOST: "{{ .Release.Name }}-postgresql-0"
     DB_USER_NAME: "pre"
     DB_PASSWORD: "testpass"
 
@@ -42,7 +42,7 @@ function:
   scalingStrategy: accurate
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
-    POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
+    POSTGRES_HOST: "{{ .Release.Name }}-postgresql-0"
     POSTGRES_DATABASE: "api"
     POSTGRES_USER: "pre"
     POSTGRES_PASSWORD: "testpass"
@@ -58,7 +58,7 @@ function:
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
     TASK_NAME: PerformEditRequest
-    DB_CONNECTION_STRING: "postgresql://pre:testpass@{{ .Release.Name }}-postgresql:5432/api"
+    DB_CONNECTION_STRING: "postgresql://pre:testpass@{{ .Release.Name }}-postgresql-0:5432/api"
   job:
     parallelism: 1
     completions: 1
