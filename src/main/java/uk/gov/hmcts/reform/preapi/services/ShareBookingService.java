@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
@@ -28,6 +30,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ShareBookingService {
 
@@ -37,12 +40,15 @@ public class ShareBookingService {
 
     private final UserRepository userRepository;
 
+    private final EmailServiceBroker emailServiceBroker;
+
     @Autowired
     public ShareBookingService(ShareBookingRepository shareBookingRepository, BookingRepository bookingRepository,
-                               UserRepository userRepository) {
+                               UserRepository userRepository, EmailServiceBroker emailServiceBroker) {
         this.shareBookingRepository = shareBookingRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.emailServiceBroker = emailServiceBroker;
     }
 
     @Transactional
@@ -79,6 +85,8 @@ public class ShareBookingService {
         shareBookingEntity.setSharedBy(sharedByUser);
         shareBookingEntity.setSharedWith(sharedWithUser);
         shareBookingRepository.save(shareBookingEntity);
+
+        onBookingShared(shareBookingEntity);
 
         return UpsertResult.CREATED;
     }
@@ -149,5 +157,22 @@ public class ShareBookingService {
         return shareBookingRepository
             .findByBooking_IdOrderBySharedWith_FirstNameAsc(bookingId, pageable)
             .map(ShareBookingDTO::new);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void onBookingShared(ShareBooking s) {
+        log.info("onBookingShared: Booking({})", s.getBooking().getId());
+
+        try {
+            if (!emailServiceBroker.enable) {
+                return;
+            } else {
+                var emailService = emailServiceBroker.getEnabledEmailService();
+                emailService.recordingReady(s.getSharedWith(), s.getBooking().getCaseId());
+            }
+        } catch (Exception e) {
+            log.error("Failed to notify user " + s.getSharedWith().getId()
+                          + " of shared booking: " + s.getBooking().getId());
+        }
     }
 }

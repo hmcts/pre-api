@@ -13,6 +13,7 @@ java:
     MEDIA_SERVICE: MediaKind
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
+    ENABLE_NEW_EMAIL_SERVICE: true
   postgresql:
     enabled: true
     auth:

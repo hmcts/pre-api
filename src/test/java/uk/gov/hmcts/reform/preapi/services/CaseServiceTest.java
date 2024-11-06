@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -87,6 +88,9 @@ class CaseServiceTest {
 
     @MockBean
     private BookingRepository bookingRepository;
+
+    @MockBean
+    private EmailServiceBroker emailServiceBroker;
 
     @Autowired
     private CaseService caseService;
