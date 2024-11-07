@@ -15,7 +15,7 @@ public class EmailServiceBroker {
     IEmailService emailService;
     GovNotify govNotify;
 
-    public final Boolean enable;
+    public final boolean enable;
 
     @Autowired
     public EmailServiceBroker(

@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -112,6 +113,12 @@ class CaseServiceTest {
 
     @BeforeEach
     void reset() {
+        emailServiceBroker = new EmailServiceBroker(
+            "govnotify",
+            false,
+            new GovNotify("", "")
+        );
+
         caseEntity.setDeletedAt(null);
         caseEntity.setState(CaseState.OPEN);
     }
