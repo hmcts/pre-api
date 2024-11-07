@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
@@ -82,6 +83,9 @@ class BookingControllerTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
+
+    @MockBean
+    private BookingRepository bookingRepository;
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
@@ -436,7 +440,7 @@ class BookingControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo(
-                "{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}"
+                "{\"scheduledFor\":\"must not be before today\"}"
             );
     }
 
