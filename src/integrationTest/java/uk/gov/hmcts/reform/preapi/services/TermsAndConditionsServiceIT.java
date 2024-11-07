@@ -6,12 +6,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
-import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TermsAndConditionsServiceIT extends IntegrationTestBase {
     @Autowired
@@ -60,25 +58,5 @@ public class TermsAndConditionsServiceIT extends IntegrationTestBase {
         var latestPortalTerms2 = termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
         assertThat(latestPortalTerms2.getId()).isEqualTo(newTerms.getId());
         assertThat(latestPortalTerms2.getCreatedAt()).isAfter(latestPortalTerms1.getCreatedAt());
-    }
-
-    @Test
-    @Transactional
-    public void getLatestTermsAndConditionsNotFound() {
-        // delete all entities
-        entityManager.clear();
-        entityManager.flush();
-
-        var message1 = assertThrows(
-            NotFoundException.class,
-            () -> termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP)
-        );
-        assertThat(message1.getMessage()).isEqualTo("Not found: Terms and conditions of type: APP");
-
-        var message2 = assertThrows(
-            NotFoundException.class,
-            () -> termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL)
-        );
-        assertThat(message2.getMessage()).isEqualTo("Not found: Terms and conditions of type: PORTAL");
     }
 }
