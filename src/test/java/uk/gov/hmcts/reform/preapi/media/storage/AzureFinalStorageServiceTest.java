@@ -6,23 +6,39 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.specialized.BlobInputStream;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
+import java.io.InputStream;
+import java.time.Duration;
+import java.util.UUID;
 import java.util.stream.Stream;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,6 +61,11 @@ public class AzureFinalStorageServiceTest {
     void setUp() {
         when(finalStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
+    }
+
+    @BeforeAll
+    static void setUpAll() {
+        mockStatic(DocumentBuilderFactory.class);
     }
 
     @Test
@@ -187,6 +208,92 @@ public class AzureFinalStorageServiceTest {
         when(blobContainerClient.exists()).thenReturn(false);
 
         assertFalse(azureFinalStorageService.doesBlobExist("test-container", "video.mp4"));
+    }
+
+    @Test
+    @DisplayName("Should get the recording's duration from .mpd file when it exists in storage")
+    void getRecordingDurationSuccess() throws Exception {
+        var id = UUID.randomUUID();
+        var containerName = id.toString();
+        var blobItem = mock(BlobItem.class);
+        when(blobItem.getName()).thenReturn("index.mpd");
+        var blobClient = mock(BlobClient.class);
+
+        when(finalStorageClient.getBlobContainerClient(containerName)).thenReturn(blobContainerClient);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        when(blobContainerClient.getBlobClient("index.mpd")).thenReturn(blobClient);
+        when(blobClient.openInputStream()).thenReturn(mock(BlobInputStream.class));
+
+        var element = mockDocumentElement("PT3M");
+        var result = azureFinalStorageService.getRecordingDuration(id);
+
+        assertThat(result).isNotNull();
+        assertThat(result).isEqualTo(Duration.ofMinutes(3));
+
+        verify(blobClient, times(1)).openInputStream();
+        verify(element, times(1)).getAttribute("mediaPresentationDuration");
+    }
+
+    @Test
+    @DisplayName("Should return null duration when there is no .mpd file")
+    void getRecordingDurationMpdNotFound() {
+        var id = UUID.randomUUID();
+        var containerName = id.toString();
+        var blobItem = mock(BlobItem.class);
+        when(blobItem.getName()).thenReturn("index.mp4");
+        var blobClient = mock(BlobClient.class);
+
+        when(finalStorageClient.getBlobContainerClient(containerName)).thenReturn(blobContainerClient);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+
+        var result = azureFinalStorageService.getRecordingDuration(id);
+
+        assertThat(result).isNull();
+
+        verify(blobClient, never()).openInputStream();
+    }
+
+    @Test
+    @DisplayName("Should return null duration when encountered and error")
+    void getRecordingDurationExceptionReturnsNull() throws Exception {
+        var id = UUID.randomUUID();
+        var containerName = id.toString();
+        var blobItem = mock(BlobItem.class);
+        when(blobItem.getName()).thenReturn("index.mpd");
+        var blobClient = mock(BlobClient.class);
+
+        when(finalStorageClient.getBlobContainerClient(containerName)).thenReturn(blobContainerClient);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        when(blobContainerClient.getBlobClient("index.mpd")).thenReturn(blobClient);
+        doThrow(RuntimeException.class).when(blobClient).openInputStream();
+
+        var element = mockDocumentElement("PT3M");
+        var result = azureFinalStorageService.getRecordingDuration(id);
+
+        assertThat(result).isNull();
+
+        verify(blobClient, times(1)).openInputStream();
+        verify(element, never()).getAttribute(any());
+    }
+
+    private Element mockDocumentElement(String duration) throws Exception {
+        var factory = mock(DocumentBuilderFactory.class);
+        var builder = mock(DocumentBuilder.class);
+
+        when(DocumentBuilderFactory.newInstance()).thenReturn(factory);
+        when(factory.newDocumentBuilder()).thenReturn(builder);
+
+        var element = mock(Element.class);
+        var document = mock(Document.class);
+
+        when(builder.parse(any(InputStream.class))).thenReturn(document);
+        when(document.getDocumentElement()).thenReturn(element);
+        when(element.getAttribute("mediaPresentationDuration")).thenReturn(duration);
+
+        return element;
     }
 
     @Test
