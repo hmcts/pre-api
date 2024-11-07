@@ -10,6 +10,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -20,8 +21,11 @@ import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.processor.CSVProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.PreProcessor;
+import uk.gov.hmcts.reform.preapi.batch.processor.XMLProcessor;
 import uk.gov.hmcts.reform.preapi.batch.reader.CSVReader;
+import uk.gov.hmcts.reform.preapi.batch.reader.XMLReader;
 import uk.gov.hmcts.reform.preapi.batch.writer.CSVWriter;
+import uk.gov.hmcts.reform.preapi.entities.batch.ArchiveFiles;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
@@ -38,8 +42,10 @@ public class BatchConfiguration implements StepExecutionListener {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final CSVReader csvReader;
+    private final XMLReader xmlReader;
     private final PreProcessor preProcessor;
     private final CSVProcessor csvProcessor;
+    private final XMLProcessor xmlProcessor;
     private final CSVWriter csvWriter;
     private final MigrationTrackerService migrationTrackerService;
 
@@ -47,15 +53,19 @@ public class BatchConfiguration implements StepExecutionListener {
     public BatchConfiguration(JobRepository jobRepository,
                               PlatformTransactionManager transactionManager,
                               CSVReader csvReader,
+                              XMLReader xmlReader,
                               PreProcessor preProcessor,
                               CSVProcessor csvProcessor,
+                              XMLProcessor xmlProcessor,
                               CSVWriter csvWriter,
                               MigrationTrackerService migrationTrackerService) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.csvReader = csvReader;
+        this.xmlReader = xmlReader;
         this.preProcessor = preProcessor;
         this.csvProcessor = csvProcessor;
+        this.xmlProcessor = xmlProcessor;
         this.csvWriter = csvWriter;
         this.migrationTrackerService = migrationTrackerService;
     }
@@ -71,7 +81,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 new ClassPathResource("batch/Sites.csv"), 
                 new String[]{"site_reference", "site_name", "location"}, 
                 CSVSitesData.class, 
-                 false
+                false
             ))
             .next(createReadStep(
                 "channelUserStep",
@@ -88,6 +98,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 CSVArchiveListData.class, 
                 true 
             ))  
+            // .next(createXmlReadStep())  
             .next(writeToCSV())
             .build();
     }
@@ -162,6 +173,22 @@ public class BatchConfiguration implements StepExecutionListener {
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
                 .build();
+    }
+
+    @Bean
+    public Step createXmlReadStep() {
+        Resource xmlFile = new ClassPathResource("batch/Ed033cd9b7a08449f9cd157f7eaff7577.xml");
+        StaxEventItemReader<ArchiveFiles> reader = xmlReader.createReader(xmlFile, ArchiveFiles.class);
+        
+        return new StepBuilder("xmlReadStep", jobRepository)
+            .<ArchiveFiles, ArchiveFiles>chunk(1, transactionManager)
+            .reader(reader)
+            .processor(xmlProcessor)
+            .writer(noOpWriter())  
+            .faultTolerant()
+            .skipLimit(5)
+            .skip(Exception.class)
+            .build();
     }
 
     @Bean

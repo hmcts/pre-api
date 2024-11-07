@@ -16,12 +16,16 @@ public class DataExtractionService {
     private final Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
 
     public DataExtractionService() {
+        namedPatterns.put("9", RegexPatterns.PATTERN_9);
+        namedPatterns.put("7", RegexPatterns.PATTERN_7);
+        namedPatterns.put("8", RegexPatterns.PATTERN_8);
         namedPatterns.put("GENERIC_NAME_PATTERN_Tref", RegexPatterns.PATTERN_1);
         namedPatterns.put("GENERIC_NAME_PATTERN", RegexPatterns.PATTERN_2);
         namedPatterns.put("3", RegexPatterns.PATTERN_3);
         namedPatterns.put("4", RegexPatterns.PATTERN_4);
         namedPatterns.put("5", RegexPatterns.PATTERN_5);
         namedPatterns.put("6", RegexPatterns.PATTERN_6);
+        
     }
 
     public Map.Entry<String, Matcher> matchPattern(CSVArchiveListData archiveItem) {

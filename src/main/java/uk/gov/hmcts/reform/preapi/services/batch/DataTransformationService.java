@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
+import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -15,10 +16,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Map;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -29,61 +30,102 @@ public class DataTransformationService {
     private final RedisTemplate<String, Object> redisTemplate; 
     private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
+    private final MigrationTrackerService migrationTrackerService;
+
     
     @Autowired
     public DataTransformationService(
         RedisTemplate<String, Object> redisTemplate,
         DataExtractionService extractionService,
-        CourtRepository courtRepository
+        CourtRepository courtRepository,
+        MigrationTrackerService migrationTrackerService
     ) {
         this.redisTemplate = redisTemplate;
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
+        this.migrationTrackerService = migrationTrackerService;
     }
     
-    public CleansedData transformArchiveListData(
-            CSVArchiveListData archiveItem,
-            Map<String, String> sitesDataMap,
-            Map<String, List<String[]>> channelUserDataMap
-        ) {
+    public Map<String, Object> transformArchiveListData(
+        CSVArchiveListData archiveItem,
+        Map<String, String> sitesDataMap,
+        Map<String, List<String[]>> channelUserDataMap
+    ) {
+        Map<String, Object> result = new HashMap<>();
         
-        String courtReference = extractionService.extractCourtReference(archiveItem);
-        String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
-        
-        String courtIdString = (String) redisTemplate.opsForValue().get("court:" + fullCourtName);
-        UUID courtId = UUID.fromString(courtIdString);
-        Court fullcourt = courtId != null ? courtRepository.findById(courtId).orElse(null) : null;
+        try {
+            String courtReference = extractionService.extractCourtReference(archiveItem);
+            if (courtReference.isEmpty()) {
+                result.put("cleansedData", null);
+                result.put("errorMessage", "FAIL: Court extraction failed");
+                return result;
+            }
 
-        String recordingDate = archiveItem.getCreateTime();
-        Timestamp recordingTimestamp = convertToTimestamp(recordingDate);
+            String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
+            String courtIdString = (String) redisTemplate.opsForValue().get("court:" + fullCourtName);
 
-        int durationInSeconds = archiveItem.getDuration();
-        Duration duration = Duration.ofSeconds(durationInSeconds);
+            UUID courtId = null;
+            if (courtIdString != null) {
+                try {
+                    courtId = UUID.fromString(courtIdString);
+                } catch (IllegalArgumentException e) {
+                    result.put("cleansedData", null);
+                    result.put("errorMessage", "FAIL: Court ID parsing failed for " + courtIdString);
+                    return result;
+                }
+            }
 
-        CleansedData cleansedData = new CleansedData();
-        cleansedData.setCourt(fullcourt);
-        cleansedData.setDuration(duration);
-        cleansedData.setCourtReference(courtReference);
-        cleansedData.setFullCourtName(fullCourtName);
-        cleansedData.setRecordingTimestamp(recordingTimestamp);
-        cleansedData.setUrn(extractionService.extractURN(archiveItem));
-        cleansedData.setExhibitReference(extractionService.extractExhibitReference(archiveItem));
-        cleansedData.setDefendantLastName(extractionService.extractDefendantLastName(archiveItem));
-        cleansedData.setWitnessFirstName(extractionService.extractWitnessFirstName(archiveItem));
-        cleansedData.setTest(checkIsTest(archiveItem).isTest());
-        cleansedData.setTestCheckResult(checkIsTest(archiveItem));
-        cleansedData.setState(CaseState.CLOSED);
+            Court fullcourt = courtId != null ? courtRepository.findById(courtId).orElse(null) : null;
 
-        cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
-        cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData));
+            Timestamp recordingTimestamp;
+            try {
+                String recordingDate = archiveItem.getCreateTime();
+                recordingTimestamp = convertToTimestamp(recordingDate);
+                if (recordingTimestamp == null) {
+                    result.put("cleansedData", null);
+                    result.put("errorMessage", "FAIL: Unable to convert recording date to timestamp: " + recordingDate);
+                    return result;
+                }
+            } catch (Exception e) {
+                result.put("cleansedData", null);
+                result.put("errorMessage", "FAIL: Exception while converting recording date to timestamp: " + e);
+                return result;
+            }
 
-        String channelName = archiveItem.getArchiveName(); 
-        List<String[]> usersAndEmails = channelUserDataMap.get(channelName);
-        List<Map<String, String>> contactsList = populateShareBookingContacts(usersAndEmails);
-        cleansedData.setShareBookingContacts(contactsList);
+            int durationInSeconds = archiveItem.getDuration();
+            Duration duration = Duration.ofSeconds(durationInSeconds);
 
-        return cleansedData;
+            CleansedData cleansedData = new CleansedData();
+            cleansedData.setCourt(fullcourt);
+            cleansedData.setDuration(duration);
+            cleansedData.setCourtReference(courtReference);
+            cleansedData.setFullCourtName(fullCourtName);
+            cleansedData.setRecordingTimestamp(recordingTimestamp);
+            cleansedData.setUrn(extractionService.extractURN(archiveItem));
+            cleansedData.setExhibitReference(extractionService.extractExhibitReference(archiveItem));
+            cleansedData.setDefendantLastName(extractionService.extractDefendantLastName(archiveItem));
+            cleansedData.setWitnessFirstName(extractionService.extractWitnessFirstName(archiveItem));
+            cleansedData.setTest(checkIsTest(archiveItem).isTest());
+            cleansedData.setTestCheckResult(checkIsTest(archiveItem));
+            cleansedData.setState(CaseState.CLOSED);
+            cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
+            cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData));
+
+            List<String[]> usersAndEmails = channelUserDataMap.get(archiveItem.getArchiveName());
+            List<Map<String, String>> contactsList = populateShareBookingContacts(usersAndEmails);
+            cleansedData.setShareBookingContacts(contactsList);
+
+            result.put("cleansedData", cleansedData);
+            result.put("errorMessage", null); 
+            return result;
+
+        } catch (Exception e) {
+            result.put("cleansedData", null);
+            result.put("errorMessage", "General error: " + e.getMessage());
+            return result;
+        }
     }
+
 
     private boolean containsTestKeyWord(String value, String criteria) {
         return value != null && value.toLowerCase().contains(criteria);
@@ -215,6 +257,10 @@ public class DataTransformationService {
         }
         
         return contactsList;
+    }
+
+    private void logFailedExtraction(CSVArchiveListData archiveItem, String errorMessage) {
+        migrationTrackerService.addFailedItem(new FailedItem(archiveItem, errorMessage));
     }
 
     

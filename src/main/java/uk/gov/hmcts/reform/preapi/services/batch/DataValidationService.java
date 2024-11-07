@@ -47,7 +47,7 @@ public class DataValidationService {
         String archiveName = getBaseArchiveName(archiveItem.getArchiveName());
 
         if (archiveCache.contains(archiveName)) {
-            handleFailure(archiveItem, "Duplicate archive name: " + archiveName);
+            handleFailure(archiveItem, "FAIL : Duplicate archive name");
             return true;  
         }
 

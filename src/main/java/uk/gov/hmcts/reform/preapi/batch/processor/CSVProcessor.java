@@ -32,8 +32,8 @@ import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 
-import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -108,10 +108,17 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
 
     private MigratedItemGroup processArchiveListData(CSVArchiveListData archiveItem) {
-        try {
-            CleansedData cleansedData = transformationService.transformArchiveListData(
-                    archiveItem, sitesDataMap, channelUserDataMap);
 
+        try {
+            Map<String, Object> transformationResult = transformationService.transformArchiveListData(
+                archiveItem, sitesDataMap, channelUserDataMap);
+            
+            String errorMessage = (String) transformationResult.get("errorMessage");
+            if (errorMessage != null) {
+                migrationTrackerService.addFailedItem(new FailedItem(archiveItem, errorMessage));
+                return null;  
+            }
+            
             String pattern = "";
             try {
                 Map.Entry<String, Matcher> patternMatch = getPatternMatch(archiveItem);
@@ -119,15 +126,14 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             } catch (Exception e) {
                 migrationTrackerService.addFailedItem(new FailedItem(archiveItem, e.getMessage()));
             }
-            
+
+            CleansedData cleansedData = (CleansedData) transformationResult.get("cleansedData");
             if (!validationService.validateCleansedData(cleansedData, archiveItem)) {
                 return null;
             }
-            MigratedItemGroup migratedItemGroup = createMigratedItemGroup(
-                pattern, archiveItem.getArchiveName(), cleansedData);
 
-            return migratedItemGroup;
-           
+            return createMigratedItemGroup(pattern, archiveItem.getArchiveName(), cleansedData);
+
         } catch (Exception e) {
             migrationTrackerService.addFailedItem(new FailedItem(
                 archiveItem, "Error processing item: " + e.getMessage()));
@@ -146,14 +152,21 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         Case acase = createCaseIfOrig(cleansedData);
         if (acase != null) {
+
             Booking booking = createBooking(cleansedData, acase);
+
             CaptureSession captureSession = createCaptureSession(cleansedData, booking);
+
             Recording recording = createRecording(cleansedData, captureSession);
+
             Set<Participant> participants = createParticipants(cleansedData, acase);
 
             List<ShareBooking> shareBookings = new ArrayList<>();
+
             List<User> users = new ArrayList<>();
+
             List<Object> shareBookingResult = createShareBookings(cleansedData, booking);
+
             try {
                 shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
                 users = (List<User>) shareBookingResult.get(1);
@@ -260,24 +273,28 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
     private User getOrCreateUser(Map<String, String> contactInfo) {
         String email = contactInfo.get("email");
-        String redisUserKey = "user:" + email;
+        if (email == null) {
+            Logger.getAnonymousLogger().info("Email is null in contact info, skipping user creation.");
+            return null;
+        }
 
+        String redisUserKey = "user:" + email;
         String userId = (String) redisTemplate.opsForValue().get(redisUserKey);
-        
+
         if (userId != null) {
             return userRepository.findById(UUID.fromString(userId)).orElse(null);
         } else {            
             User newUser = new User();
             newUser.setId(UUID.randomUUID());
-            newUser.setFirstName(titleize(contactInfo.get("firstName")));
-            newUser.setLastName(titleize(contactInfo.get("lastName")));
+            newUser.setFirstName(contactInfo.getOrDefault("firstName", "Unknown"));
+            newUser.setLastName(contactInfo.getOrDefault("lastName", "Unknown"));
             newUser.setEmail(email);
 
             redisTemplate.opsForValue().set(redisUserKey, newUser.getId().toString());
-
             return newUser;
         }
     }
+
 
 
     private Recording createRecording(CleansedData cleansedItem, CaptureSession captureSession) {
@@ -308,7 +325,9 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         witness.setId(UUID.randomUUID());
         witness.setParticipantType(ParticipantType.WITNESS);
         witness.setCaseId(acase); 
-        witness.setFirstName(cleansedItem.getWitnessFirstName());
+        witness.setFirstName(cleansedItem.getWitnessFirstName() != null 
+            ? cleansedItem.getWitnessFirstName() 
+            : "Unknown");
         witness.setLastName(""); 
 
         Participant defendant = new Participant();
@@ -316,12 +335,13 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         defendant.setParticipantType(ParticipantType.DEFENDANT);
         defendant.setCaseId(acase); 
         defendant.setFirstName(""); 
-        defendant.setLastName(cleansedItem.getDefendantLastName());
+        defendant.setLastName(cleansedItem.getDefendantLastName() != null 
+            ? cleansedItem.getDefendantLastName() 
+            : "Unknown");
 
-        var participants = Set.of(witness, defendant);
-
-        return participants;
+        return Set.of(witness, defendant);
     }
+
 
     private void loadCaseCache() {
         List<Case> cases = caseRepository.findAll();
@@ -332,9 +352,11 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
     private String titleize(String name) {
         if (name == null || name.isEmpty()) {
-            return name;
+            Logger.getAnonymousLogger().info("Name is null or empty.");
+            return ""; 
         }
         return name.substring(0, 1).toUpperCase() + name.substring(1).toLowerCase();
     }
+
 
 }

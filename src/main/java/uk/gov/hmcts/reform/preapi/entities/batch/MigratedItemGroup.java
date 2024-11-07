@@ -8,8 +8,8 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
-import java.util.Set;
 import java.util.List;
+import java.util.Set;
 
 
 public class MigratedItemGroup {

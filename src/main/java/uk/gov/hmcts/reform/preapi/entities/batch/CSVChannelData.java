@@ -52,12 +52,12 @@ public class CSVChannelData {
 
     @Override
     public String toString() {
-        return "CSVChannelData{" +
-                "channelName='" + channelName + '\'' +
-                ", channelUser='" + channelUser + '\'' +
-                ", channelUserEmail='" + channelUserEmail + '\'' +
-                ", caseReference='" + caseReference + '\'' +
-                '}';
+        return "CSVChannelData{" 
+                + "channelName='" + channelName + '\'' 
+                + ", channelUser='" + channelUser + '\'' 
+                + ", channelUserEmail='" + channelUserEmail + '\'' 
+                + ", caseReference='" + caseReference + '\'' 
+                + '}';
     }
 
 
