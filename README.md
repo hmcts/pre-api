@@ -1,6 +1,5 @@
 # pre-api
 
-
 # Pre-Recorded Evidence API
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api)
@@ -30,15 +29,12 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
       Enterprise_Boundary(a0, "SDS Azure Tenant",) {
         System(Portal, "Portal", "User Authentication via Azure B2C")
 
-        System(function, "pre-functions", "Function apps to control Azure Media Services")
-
         System_Boundary(api, "API") {
             System(api, "pre-api", "System Authentication via Azure APIm.<br/>User Authorisation via X-User-Id header")
             SystemDb(db, "API db")
         }
 
         System_Boundary(media, "Media") {
-            System(ams, "Azure Media Services")
             SystemDb(blob, "Azure Blob Storage")
         }
 
@@ -54,15 +50,11 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
       BiRel(professionalUser, Portal, "")
       BiRel(PowerApps, PowerFlows, "")
       Rel(Portal, PowerFlows, "")
-      Rel(Portal, ams, "")
       Rel(Portal, api, "")
       BiRel(PowerFlows, Dataverse, "")
       Rel(PowerApps, api, "")
-      Rel(PowerFlows, api, "")
-      Rel(PowerFlows, function, "")
+      BiRel(PowerFlows, api, "")
       Rel(api, db, "")
-      Rel(ams, blob, "")
-      Rel(function, ams, "")
 
       Rel(Portal, mk, "")
       Rel(PowerApps, mk, "")
