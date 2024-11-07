@@ -15,9 +15,11 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
+import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.AccessType;
+import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -26,11 +28,15 @@ import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
+import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -42,6 +48,7 @@ public class UserService {
     private final PortalAccessRepository portalAccessRepository;
     private final AppAccessService appAccessService;
     private final PortalAccessService portalAccessService;
+    private final TermsAndConditionsRepository termsAndConditionsRepository;
 
     @Autowired
     public UserService(AppAccessRepository appAccessRepository,
@@ -50,7 +57,8 @@ public class UserService {
                        UserRepository userRepository,
                        PortalAccessRepository portalAccessRepository,
                        AppAccessService appAccessService,
-                       PortalAccessService portalAccessService) {
+                       PortalAccessService portalAccessService,
+                       TermsAndConditionsRepository termsAndConditionsRepository) {
         this.appAccessRepository = appAccessRepository;
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
@@ -58,19 +66,28 @@ public class UserService {
         this.portalAccessRepository = portalAccessRepository;
         this.appAccessService = appAccessService;
         this.portalAccessService = portalAccessService;
+        this.termsAndConditionsRepository = termsAndConditionsRepository;
     }
 
     @Transactional()
     public UserDTO findById(UUID userId) {
         return userRepository.findByIdAndDeletedAtIsNull(userId)
-            .map(UserDTO::new)
+            .map(user ->
+                     new UserDTO(
+                         user,
+                         getAllLatestTermsAndConditions()
+                     ))
             .orElseThrow(() -> new NotFoundException("User: " + userId));
     }
 
     @Transactional
     public AccessDTO findByEmail(String email) {
         return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(email)
-            .map(AccessDTO::new)
+            .map(access ->
+                     new AccessDTO(
+                            access,
+                            getAllLatestTermsAndConditions()
+                     ))
             .orElseThrow(() -> new NotFoundException("User: " + email));
     }
 
@@ -96,6 +113,8 @@ public class UserService {
             throw new NotFoundException("Role: " + role);
         }
 
+        var allLatestTermsAndConditions = getAllLatestTermsAndConditions();
+
         return userRepository.searchAllBy(
             name,
             email,
@@ -107,7 +126,7 @@ public class UserService {
             includeDeleted,
             isAppActive,
             pageable
-        ).map(UserDTO::new);
+        ).map(user -> new UserDTO(user, allLatestTermsAndConditions));
     }
 
     @Transactional
@@ -245,5 +264,13 @@ public class UserService {
                 p.setDeletedAt(null);
                 portalAccessRepository.save(p);
             });
+    }
+
+    @Transactional
+    public Set<TermsAndConditions> getAllLatestTermsAndConditions() {
+        return Arrays.stream(TermsAndConditionsType.values())
+            .map(type -> termsAndConditionsRepository.findFirstByTypeOrderByCreatedAtDesc(type)
+                .orElse(null))
+            .collect(Collectors.toSet());
     }
 }
