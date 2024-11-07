@@ -1,7 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto.reports;
 
-
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -14,7 +12,6 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,13 +27,6 @@ public class PlaybackReportDTO {
 
     @Schema(description = "PlaybackReportPlaybackAt")
     private Timestamp playbackAt;
-
-    @Schema(description = "PlaybackReportFinishTime")
-    private Timestamp finishedAt;
-
-    @Schema(description = "PlaybackReportDuration", implementation = String.class)
-    @JsonFormat(shape = JsonFormat.Shape.STRING)
-    private Duration duration;
 
     @Schema(description = "PlaybackReportUserFullName")
     private String userFullName;
@@ -58,8 +48,6 @@ public class PlaybackReportDTO {
 
     public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
         playbackAt = audit.getCreatedAt();
-        finishedAt = null;
-        duration = null;
         if (user != null) {
             userFullName = user.getFullName();
             userEmail = user.getEmail();

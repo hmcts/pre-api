@@ -356,8 +356,6 @@ public class ReportServiceTest {
 
         assertThat(report.size()).isEqualTo(1);
         assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getFinishedAt()).isNull();
-        assertThat(report.getFirst().getDuration()).isNull();
         assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
         assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
@@ -403,8 +401,6 @@ public class ReportServiceTest {
 
         assertThat(report.size()).isEqualTo(1);
         assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getFinishedAt()).isNull();
-        assertThat(report.getFirst().getDuration()).isNull();
         assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
         assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
@@ -443,8 +439,6 @@ public class ReportServiceTest {
 
         assertThat(report.size()).isEqualTo(1);
         assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getFinishedAt()).isNull();
-        assertThat(report.getFirst().getDuration()).isNull();
         assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
         assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
