@@ -15,6 +15,12 @@ definitions:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
         uniqueItems: true
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
       user:
         $ref: '#/definitions/BaseUserDTO'
     type: object
@@ -1175,6 +1181,12 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
     required:
       - email
       - first_name
@@ -1773,6 +1785,22 @@ definitions:
         format: date-time
         type: string
     type: object
+  TermsAndConditionsDTO:
+    properties:
+      created_at:
+        format: date-time
+        type: string
+      html:
+        type: string
+      id:
+        format: uuid
+        type: string
+      type:
+        enum:
+          - APP
+          - PORTAL
+        type: string
+    type: object
   UserDTO:
     description: UserDTO
     properties:
@@ -1817,6 +1845,12 @@ definitions:
         items:
           $ref: '#/definitions/PortalAccessDTO'
         type: array
+      terms_accepted:
+        additionalProperties:
+          description: UserTermsAccepted
+          type: boolean
+        description: UserTermsAccepted
+        type: object
     required:
       - email
       - first_name
@@ -1835,6 +1869,49 @@ info:
   title: PRE API
   version: v0.0.1
 paths:
+  '/accept-terms-and-conditions/{termsId}':
+    post:
+      operationId: acceptTermsAndConditions
+      parameters:
+        - format: uuid
+          in: path
+          name: termsId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      responses:
+        '200':
+          description: OK
+      summary: Accept terms and conditions for a user
+      tags:
+        - terms-and-conditions-controller
+  /app-terms-and-conditions/latest:
+    get:
+      operationId: getLatestTermsForApp
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the app
+      tags:
+        - terms-and-conditions-controller
   '/audit/{id}':
     put:
       consumes:
@@ -1901,6 +1978,18 @@ paths:
           in: query
           name: hasRecordings
           type: boolean
+        - description: >-
+            Search bookings with at least one associated capture session with
+            one of the statuses listed
+          in: query
+          name: captureSessionStatusIn
+          type: string
+        - description: >-
+            Bookings where the associated capture sessions do not match status
+            or bookings without sessions
+          in: query
+          name: captureSessionStatusNotIn
+          type: string
         - description: The page number of search result to return
           format: int32
           in: query
@@ -3048,6 +3137,27 @@ paths:
             $ref: '#/definitions/PlaybackDTO'
       tags:
         - media-service-controller
+  /portal-terms-and-conditions/latest:
+    get:
+      operationId: getLatestTermsForPortal
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/TermsAndConditionsDTO'
+      summary: Get the latest terms and conditions for the portal
+      tags:
+        - terms-and-conditions-controller
   /recordings:
     get:
       operationId: getRecordings

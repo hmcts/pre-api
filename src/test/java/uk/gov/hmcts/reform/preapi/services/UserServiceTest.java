@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
+import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
@@ -78,6 +79,9 @@ public class UserServiceTest {
 
     @MockBean
     private PortalAccessService portalAccessService;
+
+    @MockBean
+    private TermsAndConditionsRepository termsAndConditionsRepository;
 
     @Autowired
     private UserService userService;

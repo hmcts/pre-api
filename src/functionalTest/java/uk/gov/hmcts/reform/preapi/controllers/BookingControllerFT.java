@@ -123,6 +123,161 @@ class BookingControllerFT extends FunctionalTestBase {
     }
 
     @Test
+    @DisplayName("Scenario: Search By Capture Session Status")
+    void searchByCaptureSessionStatus() throws JsonProcessingException {
+        // setup
+        var aCase = createCase();
+        aCase.setTest(true);
+        var putCase = putCase(aCase);
+        assertResponseCode(putCase, 201);
+        assertCaseExists(aCase.getId(), true);
+
+        var booking1 = createBooking(aCase.getId(), aCase.getParticipants());
+        var putBooking1 = putBooking(booking1);
+        assertResponseCode(putBooking1, 201);
+        assertBookingExists(booking1.getId(), true);
+
+        var booking2 = createBooking(aCase.getId(), aCase.getParticipants());
+        var putBooking2 = putBooking(booking2);
+        assertResponseCode(putBooking2, 201);
+        assertBookingExists(booking2.getId(), true);
+
+        var captureSession1 = createCaptureSession(booking1.getId());
+        captureSession1.setStatus(RecordingStatus.STANDBY);
+        var putCaptureSession1 = putCaptureSession(captureSession1);
+        assertResponseCode(putCaptureSession1, 201);
+        assertCaptureSessionExists(captureSession1.getId(), true);
+
+        var captureSession2 = createCaptureSession(booking2.getId());
+        captureSession2.setStatus(RecordingStatus.PROCESSING);
+        var putCaptureSession2 = putCaptureSession(captureSession2);
+        assertResponseCode(putCaptureSession2, 201);
+        assertCaptureSessionExists(captureSession2.getId(), true);
+
+        // search by standby
+        var getBookings1 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusIn=STANDBY",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings1, 200);
+        var responseData1 = getBookings1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData1.size()).isEqualTo(1);
+        assertThat(responseData1.getFirst().getId()).isEqualTo(booking1.getId());
+
+        // search by processing
+        var getBookings2 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusIn=PROCESSING",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings2, 200);
+        var responseData2 = getBookings2.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData2.size()).isEqualTo(1);
+        assertThat(responseData2.getFirst().getId()).isEqualTo(booking2.getId());
+
+        // search by failure
+        var getBookings3 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusIn=FAILURE",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings3, 200);
+        var responseData3 = getBookings3.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData3.size()).isEqualTo(0);
+
+        // search by standby OR processing
+        var getBookings4 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusIn=STANDBY,PROCESSING",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings4, 200);
+        var responseData4 = getBookings4.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData4.size()).isEqualTo(2);
+        assertThat(responseData4.stream().anyMatch(res -> res.getId().equals(booking1.getId()))).isTrue();
+        assertThat(responseData4.stream().anyMatch(res -> res.getId().equals(booking2.getId()))).isTrue();
+    }
+
+    @Test
+    @DisplayName("Scenario: Search By Not Capture Session Status")
+    void searchByNotCaptureSessionStatus() throws JsonProcessingException {
+        // setup
+        var aCase = createCase();
+        aCase.setTest(true);
+        var putCase = putCase(aCase);
+        assertResponseCode(putCase, 201);
+        assertCaseExists(aCase.getId(), true);
+
+        var booking1 = createBooking(aCase.getId(), aCase.getParticipants());
+        var putBooking1 = putBooking(booking1);
+        assertResponseCode(putBooking1, 201);
+        assertBookingExists(booking1.getId(), true);
+
+        var booking2 = createBooking(aCase.getId(), aCase.getParticipants());
+        var putBooking2 = putBooking(booking2);
+        assertResponseCode(putBooking2, 201);
+        assertBookingExists(booking2.getId(), true);
+
+        var captureSession1 = createCaptureSession(booking1.getId());
+        captureSession1.setStatus(RecordingStatus.STANDBY);
+        var putCaptureSession1 = putCaptureSession(captureSession1);
+        assertResponseCode(putCaptureSession1, 201);
+        assertCaptureSessionExists(captureSession1.getId(), true);
+
+        var captureSession2 = createCaptureSession(booking2.getId());
+        captureSession2.setStatus(RecordingStatus.PROCESSING);
+        var putCaptureSession2 = putCaptureSession(captureSession2);
+        assertResponseCode(putCaptureSession2, 201);
+        assertCaptureSessionExists(captureSession2.getId(), true);
+
+        // search by NOT standby
+        var getBookings1 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusNotIn=STANDBY",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings1, 200);
+        var responseData1 = getBookings1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData1.size()).isEqualTo(1);
+        assertThat(responseData1.getFirst().getId()).isEqualTo(booking2.getId());
+
+        // search by NOT processing
+        var getBookings2 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusNotIn=PROCESSING",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings2, 200);
+        var responseData2 = getBookings2.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData2.size()).isEqualTo(1);
+        assertThat(responseData2.getFirst().getId()).isEqualTo(booking1.getId());
+
+        // search by NOT failure
+        var getBookings3 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusNotIn=FAILURE",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings3, 200);
+        var responseData3 = getBookings3.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData3.size()).isEqualTo(2);
+        assertThat(responseData3.stream().anyMatch(res -> res.getId().equals(booking1.getId()))).isTrue();
+        assertThat(responseData3.stream().anyMatch(res -> res.getId().equals(booking2.getId()))).isTrue();
+
+
+        // search by NOT standby OR processing
+        var getBookings4 = doGetRequest(BOOKINGS_ENDPOINT
+                                            + "?caseId="
+                                            + booking1.getCaseId()
+                                            + "&captureSessionStatusNotIn=STANDBY,PROCESSING",
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings4, 200);
+        var responseData4 = getBookings4.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData4.size()).isEqualTo(0);
+    }
+
+    @Test
     @DisplayName("Deleting a non-existent booking should return 404")
     void deletingNonExistentBookingShouldReturn404() {
         var deleteResponse = doDeleteRequest(
