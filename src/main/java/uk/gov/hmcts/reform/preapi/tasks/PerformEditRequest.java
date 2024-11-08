@@ -29,8 +29,6 @@ public class PerformEditRequest extends RobotUserTask {
     }
 
     @Override
-    // todo remove
-    @Scheduled(cron = "0 */5 * * * *")
     public void run() {
         signInRobotUser();
         log.info("Running PerformEditRequest task");

@@ -52,6 +52,7 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -62,6 +63,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
@@ -83,6 +86,7 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final ScheduledTaskRunner scheduledTaskRunner;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -99,7 +103,8 @@ class TestingSupportController {
                              final TermsAndConditionsRepository termsAndConditionsRepository,
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final EditRequestService editRequestService,
-                             final AzureFinalStorageService azureFinalStorageService) {
+                             final AzureFinalStorageService azureFinalStorageService,
+                             final ScheduledTaskRunner scheduledTaskRunner) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -115,6 +120,7 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.scheduledTaskRunner = scheduledTaskRunner;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -415,6 +421,18 @@ class TestingSupportController {
             "request", request,
             "recording", recording
         ));
+    }
+
+    @PostMapping(value = "/trigger-task/{taskName}")
+    public ResponseEntity<Void> triggerTask(@PathVariable String taskName) {
+        final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
+        var task = scheduledTaskRunner.getTask(beanName);
+        if (task == null) {
+            throw new NotFoundException("Task: " + taskName);
+        }
+        task.run();
+
+        return ResponseEntity.noContent().build();
     }
 
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
