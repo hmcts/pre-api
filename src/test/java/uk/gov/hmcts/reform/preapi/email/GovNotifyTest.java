@@ -1,9 +1,14 @@
 package uk.gov.hmcts.reform.preapi.email;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.*;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
 import uk.gov.service.notify.SendEmailResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,7 +62,7 @@ public class GovNotifyTest {
     @Test
     void shouldCreateEmailResponseFromGovNotifyResponse() {
         var response = new SendEmailResponse(
-            """
+                                            """
             {
               "id": "740e5834-3a29-46b4-9a6f-16142fde533a",
               "reference": "STRING",
@@ -72,8 +77,7 @@ public class GovNotifyTest {
                 "version": 1,
                 "uri": "https://api.notifications.service.gov.uk/v2/template/f33517ff-2a88-4f6e-b855-c550268ce08a"
               }
-            }
-        """);
+            }""");
         var emailResponse = EmailResponse.fromGovNotifyResponse(response);
         assertThat(emailResponse.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(emailResponse.getSubject()).isEqualTo("SUBJECT TEXT");
