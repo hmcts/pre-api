@@ -269,7 +269,8 @@ public class GovNotifyTest {
             .thenThrow(mock(NotificationClientException.class));
 
         var message = assertThrows(EmailFailedToSendException.class,
-                                   () -> govNotify.casePendingClosure(getUser(), getCase(), "closureDate")).getMessage();
+                                   () -> govNotify.casePendingClosure(getUser(), getCase(), "closureDate"))
+            .getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());
     }
