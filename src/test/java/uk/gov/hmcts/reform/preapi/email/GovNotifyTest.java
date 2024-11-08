@@ -6,17 +6,23 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.*;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = GovNotify.class)
 @TestPropertySource(properties = {
@@ -26,7 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 public class GovNotifyTest {
 
     @MockBean
-    GovNotify mockGovNotify;
+    NotificationClient mockGovNotifyClient;
 
     private final String govNotifyEmailResponse = """
         {
@@ -100,7 +106,7 @@ public class GovNotifyTest {
     @DisplayName(("Email service broker"))
     @Test
     void shouldCreateEmailServiceBroker() {
-        var govNotify = new GovNotify("govnotify", "url");
+        var govNotify = new GovNotify("govnotify", mockGovNotifyClient);
         var emailServiceBroker = new EmailServiceBroker("govnotify", true, govNotify);
         assertThat(emailServiceBroker).isNotNull();
         assertThat(emailServiceBroker.getEnabledEmailService()).isEqualTo(govNotify);
@@ -129,9 +135,11 @@ public class GovNotifyTest {
 
         forCase.setCourt(court);
 
-        when(mockGovNotify.sendEmail(any())).thenReturn(new SendEmailResponse(govNotifyEmailResponse));
+        var govNotify = new GovNotify("http://localhost:8080", mockGovNotifyClient);
+        when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
+            .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
 
-        var response = mockGovNotify.recordingReady(user, forCase);
+        var response = govNotify.recordingReady(user, forCase);
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");

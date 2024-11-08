@@ -28,10 +28,10 @@ public class GovNotify implements IEmailService {
 
     @Autowired
     public GovNotify(
-        @Value("${email.govNotify.key}") String apikey,
-        @Value("${portal.url}") String portalUrl
+        @Value("${portal.url}") String portalUrl,
+        NotificationClient client
     ) {
-        this.client = new NotificationClient(apikey);
+        this.client = client;
         this.portalUrl = portalUrl;
     }
 
@@ -114,7 +114,7 @@ public class GovNotify implements IEmailService {
         }
     }
 
-    public SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {
+    private SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {
         return client.sendEmail(email.getTemplateId(), email.getTo(), email.getVariables(), email.getReference());
     }
 }
