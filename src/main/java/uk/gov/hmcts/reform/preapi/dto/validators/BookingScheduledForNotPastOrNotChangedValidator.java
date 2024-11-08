@@ -39,8 +39,7 @@ public class BookingScheduledForNotPastOrNotChangedValidator
             return false;
         }
 
-        var localDateField = LocalDateTime.ofInstant(booking.getScheduledFor().toInstant(), ZoneId.of("Europe/London"))
-            .toLocalDate();
+        var localDateField = toLocalDate(booking.getScheduledFor());
         var today = LocalDate.now();
 
         return !localDateField.isBefore(today)
