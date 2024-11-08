@@ -2,19 +2,48 @@ package uk.gov.hmcts.reform.preapi.email;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CasePendingClosure;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.PortalInvite;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingEdited;
-import uk.gov.hmcts.reform.preapi.email.govnotify.templates.RecordingReady;
+import uk.gov.hmcts.reform.preapi.email.govnotify.templates.*;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
+@SpringBootTest(classes = GovNotify.class)
+@TestPropertySource(properties = {
+    "email.govNotify.key=test",
+    "portal.url=http://localhost:8080"
+})
 public class GovNotifyTest {
+
+    @MockBean
+    GovNotify mockGovNotify;
+
+    private final String govNotifyEmailResponse = """
+        {
+          "id": "740e5834-3a29-46b4-9a6f-16142fde533a",
+          "reference": "STRING",
+          "content": {
+            "subject": "SUBJECT TEXT",
+            "body": "MESSAGE TEXT",
+            "from_email": "SENDER EMAIL"
+          },
+          "uri": "https://api.notifications.service.gov.uk/v2/notifications/740e5834-3a29-46b4-9a6f-16142fde533a",
+          "template": {
+            "id": "f33517ff-2a88-4f6e-b855-c550268ce08a",
+            "version": 1,
+            "uri": "https://api.notifications.service.gov.uk/v2/template/f33517ff-2a88-4f6e-b855-c550268ce08a"
+          }
+        }""";
 
     @DisplayName("Should create CaseClosed template")
     @Test
@@ -61,23 +90,7 @@ public class GovNotifyTest {
     @DisplayName("Should create EmailResponse from GovNotify response")
     @Test
     void shouldCreateEmailResponseFromGovNotifyResponse() {
-        var response = new SendEmailResponse(
-                                            """
-            {
-              "id": "740e5834-3a29-46b4-9a6f-16142fde533a",
-              "reference": "STRING",
-              "content": {
-                "subject": "SUBJECT TEXT",
-                "body": "MESSAGE TEXT",
-                "from_email": "SENDER EMAIL"
-              },
-              "uri": "https://api.notifications.service.gov.uk/v2/notifications/740e5834-3a29-46b4-9a6f-16142fde533a",
-              "template": {
-                "id": "f33517ff-2a88-4f6e-b855-c550268ce08a",
-                "version": 1,
-                "uri": "https://api.notifications.service.gov.uk/v2/template/f33517ff-2a88-4f6e-b855-c550268ce08a"
-              }
-            }""");
+        var response = new SendEmailResponse(govNotifyEmailResponse);
         var emailResponse = EmailResponse.fromGovNotifyResponse(response);
         assertThat(emailResponse.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(emailResponse.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -98,5 +111,30 @@ public class GovNotifyTest {
         assertThrows(IllegalArgumentException.class, () -> emailServiceBroker.getEnabledEmailService("nonexistent"));
 
         assertThrows(IllegalArgumentException.class, () -> new EmailServiceBroker("nonexistent", true, govNotify));
+    }
+
+    @DisplayName(("Should send recording ready email"))
+    @Test
+    void shouldSendRecordingReadyEmail() throws NotificationClientException {
+        var user = new User();
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setEmail("johndoe@example.com");
+
+        var forCase = new Case();
+        forCase.setReference("123456");
+
+        var court = new Court();
+        court.setName("Court Name");
+
+        forCase.setCourt(court);
+
+        when(mockGovNotify.sendEmail(any())).thenReturn(new SendEmailResponse(govNotifyEmailResponse));
+
+        var response = mockGovNotify.recordingReady(user, forCase);
+
+        assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
+        assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
+        assertThat(response.getBody()).isEqualTo("MESSAGE TEXT");
     }
 }

@@ -114,7 +114,7 @@ public class GovNotify implements IEmailService {
         }
     }
 
-    private SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {
+    public SendEmailResponse sendEmail(BaseTemplate email) throws NotificationClientException {
         return client.sendEmail(email.getTemplateId(), email.getTo(), email.getVariables(), email.getReference());
     }
 }
