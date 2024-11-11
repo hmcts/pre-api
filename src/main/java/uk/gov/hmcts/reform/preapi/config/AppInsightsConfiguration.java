@@ -10,9 +10,6 @@ public class AppInsightsConfiguration {
     @Bean
     public TelemetryClient telemetryClient(
         @Value("${azure.application-insights.connection-string:}") String connectionString) {
-        if (connectionString == null) {
-            return null;
-        }
         var client = new TelemetryClient();
         client.getContext().setConnectionString(connectionString);
         return client;
