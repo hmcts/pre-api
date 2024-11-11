@@ -254,13 +254,13 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void getRecordingTotalVersionCount() throws JsonProcessingException {
         // create parent recording
         var details = createRecording();
-        var getRecording1 = assertRecordingExists(details.recordingId, true);
+        var getRecording1 = assertRecordingExists(details.recordingId(), true);
         getRecording1.prettyPrint();
         assertThat(getRecording1.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(1);
 
         // create child recording
-        var recording2 = createRecording(details.captureSessionId);
-        recording2.setParentRecordingId(details.recordingId);
+        var recording2 = createRecording(details.captureSessionId());
+        recording2.setParentRecordingId(details.recordingId());
         recording2.setVersion(2);
         var putRecording2 = putRecording(recording2);
         assertResponseCode(putRecording2, 201);
@@ -268,7 +268,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(getRecording2.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
 
         // check parent recording
-        var getRecording3 = assertRecordingExists(details.recordingId, true);
+        var getRecording3 = assertRecordingExists(details.recordingId(), true);
         assertThat(getRecording3.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
     }
 
