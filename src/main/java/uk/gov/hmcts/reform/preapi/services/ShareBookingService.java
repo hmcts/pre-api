@@ -164,7 +164,7 @@ public class ShareBookingService {
         log.info("onBookingShared: Booking({})", s.getBooking().getId());
 
         try {
-            if (!emailServiceBroker.enable) {
+            if (!emailServiceBroker.isEnabled()) {
                 return;
             } else {
                 var emailService = emailServiceBroker.getEnabledEmailService();

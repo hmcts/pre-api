@@ -277,7 +277,7 @@ public class CaseService {
             .toList();
 
         try {
-            if (!emailServiceBroker.enable) {
+            if (!emailServiceBroker.isEnabled()) {
                 caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
             } else {
                 var emailService = emailServiceBroker.getEnabledEmailService();
@@ -297,7 +297,7 @@ public class CaseService {
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
             .toList();
         try {
-            if (!emailServiceBroker.enable) {
+            if (!emailServiceBroker.isEnabled()) {
                 caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
             } else {
                 var emailService = emailServiceBroker.getEnabledEmailService();
@@ -317,7 +317,7 @@ public class CaseService {
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
             .toList();
         try {
-            if (!emailServiceBroker.enable) {
+            if (!emailServiceBroker.isEnabled()) {
                 caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
             } else {
                 var emailService = emailServiceBroker.getEnabledEmailService();

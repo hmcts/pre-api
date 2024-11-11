@@ -112,7 +112,7 @@ public class GovNotifyTest {
         var emailServiceBroker = new EmailServiceBroker("govnotify", true, govNotify);
         assertThat(emailServiceBroker).isNotNull();
         assertThat(emailServiceBroker.getEnabledEmailService()).isEqualTo(govNotify);
-        assertThat(emailServiceBroker.enable).isTrue();
+        assertThat(emailServiceBroker.isEnabled()).isTrue();
 
         assertThat(emailServiceBroker.getEnabledEmailService(null)).isEqualTo(govNotify);
         assertThat(emailServiceBroker.getEnabledEmailService("govnotify")).isEqualTo(govNotify);
