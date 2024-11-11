@@ -64,7 +64,7 @@ public class PerformEditRequest extends RobotUserTask {
             telemetryClient.trackEvent("PerformEditRequest Failure",
                                        Map.of(
                                            "editRequestId", editRequest.getId().toString(),
-                                           "message", e.getMessage()
+                                           "message", e.getMessage().toString()
                                        ), Map.of());
         }
     }

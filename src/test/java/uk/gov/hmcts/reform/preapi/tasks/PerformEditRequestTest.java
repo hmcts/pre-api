@@ -89,15 +89,23 @@ public class PerformEditRequestTest {
         // when request is successful
         when(editRequestService.performEdit(editRequest1.getId())).thenReturn(new RecordingDTO());
         // when request errors in ffmpeg stage
-        doThrow(UnknownServerException.class).when(editRequestService).performEdit(editRequest2.getId());
+        var error1 = mock(UnknownServerException.class);
+        when(error1.getMessage()).thenReturn("Error");
+        doThrow(error1).when(editRequestService).performEdit(editRequest2.getId());
         // when edit request is locked it should skip
-        doThrow(PessimisticEntityLockException.class).when(editRequestService)
+        var error2 = mock(PessimisticEntityLockException.class);
+        when(error2.getMessage()).thenReturn("Error");
+        doThrow(error2).when(editRequestService)
             .performEdit(editRequest3.getId());
         // when edit request has already been updated to another state
-        doThrow(ResourceInDeletedStateException.class).when(editRequestService)
+        var error3 = mock(ResourceInDeletedStateException.class);
+        when(error3.getMessage()).thenReturn("Error");
+        doThrow(error3).when(editRequestService)
             .performEdit(editRequest4.getId());
         // something else went wrong
-        doThrow(NotFoundException.class).when(editRequestService)
+        var error4 = mock(NotFoundException.class);
+        when(error4.getMessage()).thenReturn("Error");
+        doThrow(error4).when(editRequestService)
             .performEdit(editRequest5.getId());
 
         performEditRequest.run();
