@@ -28,10 +28,10 @@ public class GovNotify implements IEmailService {
 
     @Autowired
     public GovNotify(
-        @Value("${email.govNotify.key}") String apikey,
-        @Value("${portal.url}") String portalUrl
+        @Value("${portal.url}") String portalUrl,
+        NotificationClient client
     ) {
-        this.client = new NotificationClient(apikey);
+        this.client = client;
         this.portalUrl = portalUrl;
     }
 

@@ -291,7 +291,7 @@ public class CaseService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void onCaseClosureCancellation(Case c) {
         log.info("onCaseClosureCancellation: Case({})", c.getId());
-        var shares = shareBookingService.deleteCascade(c);
+        var shares = shareBookingService.getSharesForCase(c);
         var notifications = shares
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
@@ -311,7 +311,7 @@ public class CaseService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void onCasePendingClosure(Case c) {
         log.info("onCasePendingClosure: Case({})", c.getId());
-        var shares = shareBookingService.deleteCascade(c);
+        var shares = shareBookingService.getSharesForCase(c);
         var notifications = shares
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))

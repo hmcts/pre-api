@@ -38,6 +38,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.service.notify.NotificationClient;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -93,6 +94,9 @@ class CaseServiceTest {
     @MockBean
     private EmailServiceBroker emailServiceBroker;
 
+    @MockBean
+    private NotificationClient notificationClient;
+
     @Autowired
     private CaseService caseService;
 
@@ -116,8 +120,9 @@ class CaseServiceTest {
         emailServiceBroker = new EmailServiceBroker(
             "govnotify",
             false,
-            new GovNotify("", "")
+            new GovNotify("", notificationClient)
         );
+
         caseEntity.setDeletedAt(null);
         caseEntity.setState(CaseState.OPEN);
     }
