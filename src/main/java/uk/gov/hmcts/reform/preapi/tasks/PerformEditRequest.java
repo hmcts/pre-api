@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import com.microsoft.applicationinsights.TelemetryClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,19 +13,24 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.Map;
+
 @Slf4j
 @Component
 public class PerformEditRequest extends RobotUserTask {
 
     private final EditRequestService editRequestService;
+    private final TelemetryClient telemetryClient;
 
     @Autowired
     public PerformEditRequest(EditRequestService editRequestService,
                               UserService userService,
                               UserAuthenticationService userAuthenticationService,
+                              TelemetryClient telemetryClient,
                               @Value("${cron-user-email}") String cronUserEmail) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.editRequestService = editRequestService;
+        this.telemetryClient = telemetryClient;
     }
 
     @Override
@@ -44,6 +50,9 @@ public class PerformEditRequest extends RobotUserTask {
         try {
             editRequestService.updateEditRequestStatus(editRequest.getId(), EditRequestStatus.PROCESSING);
             editRequestService.performEdit(editRequest.getId());
+            telemetryClient.trackEvent("PerformEditRequest Success",
+                                       Map.of("editRequestId", editRequest.getId().toString()),
+                                       Map.of());
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
             // edit request is locked or has already been updated to a different state so it is skipped
             log.info("Skipping EditRequest {}, already reserved by another process", editRequest.getId());
@@ -52,6 +61,11 @@ public class PerformEditRequest extends RobotUserTask {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             log.error("Error while performing EditRequest {}", editRequest.getId(), e);
+            telemetryClient.trackEvent("PerformEditRequest Failure",
+                                       Map.of(
+                                           "editRequestId", editRequest.getId().toString(),
+                                           "message", e.getMessage()
+                                       ), Map.of());
         }
     }
 }

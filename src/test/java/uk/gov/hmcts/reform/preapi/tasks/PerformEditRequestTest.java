@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import com.microsoft.applicationinsights.TelemetryClient;
 import org.hibernate.dialect.lock.PessimisticEntityLockException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +42,9 @@ public class PerformEditRequestTest {
     @MockBean
     private UserAuthenticationService userAuthenticationService;
 
+    @MockBean
+    private TelemetryClient telemetryClient;
+
     private static final String CRON_USER_EMAIL = "test@test.com";
 
     private PerformEditRequest performEditRequest;
@@ -51,6 +55,7 @@ public class PerformEditRequestTest {
             editRequestService,
             userService,
             userAuthenticationService,
+            telemetryClient,
             CRON_USER_EMAIL
         );
 
