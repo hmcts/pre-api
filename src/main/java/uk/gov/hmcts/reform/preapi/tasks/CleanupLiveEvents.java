@@ -10,7 +10,11 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -45,6 +49,8 @@ public class CleanupLiveEvents implements Runnable {
 
     private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
+    private final EmailServiceBroker emailServiceBroker;
+
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
                       CaptureSessionService captureSessionService,
@@ -54,7 +60,8 @@ public class CleanupLiveEvents implements Runnable {
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
-                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient) {
+                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
+                      EmailServiceBroker emailServiceBroker) {
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
@@ -64,6 +71,7 @@ public class CleanupLiveEvents implements Runnable {
         this.cronUserEmail = cronUserEmail;
         this.platformEnv = platformEnv;
         this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
+        this.emailServiceBroker = emailServiceBroker;
     }
 
     @Override
@@ -134,7 +142,8 @@ public class CleanupLiveEvents implements Runnable {
                               try {
                                   var booking = bookingService.findById(captureSession.getBookingId());
 
-                                  var toNotify = booking.getShares().stream()
+                                  var shares = booking.getShares();
+                                  var toNotify = shares.stream()
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
                                                         )
@@ -148,7 +157,23 @@ public class CleanupLiveEvents implements Runnable {
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
                                       log.info("Sending email notifications to {} user(s)", toNotify.size());
-                                      stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
+                                      if (!emailServiceBroker.isEnabled()) {
+                                          stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
+                                      } else {
+                                          var emailService = emailServiceBroker.getEnabledEmailService();
+                                          var forCase = new Case();
+                                          forCase.setReference(booking.getCaseDTO().getReference());
+                                          var court = new Court();
+                                          court.setName(booking.getCaseDTO().getCourt().getName());
+                                          forCase.setCourt(court);
+                                          shares.forEach(share -> {
+                                              var emailUser = new User();
+                                              emailUser.setEmail(share.getSharedWithUser().getEmail());
+                                              emailUser.setFirstName(share.getSharedWithUser().getFirstName());
+                                              emailUser.setLastName(share.getSharedWithUser().getLastName());
+                                              emailService.recordingReady(emailUser, forCase);
+                                          });
+                                      }
                                   } else {
                                       log.info("No users to notify for capture session {}", captureSession.getId());
                                   }
