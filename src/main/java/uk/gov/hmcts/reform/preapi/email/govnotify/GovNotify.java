@@ -64,9 +64,9 @@ public class GovNotify implements IEmailService {
     @Override
     public EmailResponse portalInvite(User to) {
         var template = new PortalInvite(to.getEmail(), to.getFirstName(), portalUrl,
-                                        portalUrl + "/user-guide",
-                                        portalUrl + "/process-guide",
-                                        portalUrl + "/faqs");
+                                        portalUrl + "/assets/files/user-guide.pdf",
+                                        portalUrl + "/assets/files/process-guide.pdf",
+                                        portalUrl + "/assets/files/faqs.pdf");
         try {
             log.info("Portal invite email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
