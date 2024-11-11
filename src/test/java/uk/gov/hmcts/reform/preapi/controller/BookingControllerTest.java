@@ -410,9 +410,7 @@ class BookingControllerTest {
                                     .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
-            .isEqualTo(
-                "{\"scheduledFor\":\"scheduled_for is required and must not be before today\"}"
-            );
+            .isEqualTo("{\"scheduledFor\":\"must not be null\"}");
     }
 
     @DisplayName("Should fail to create a booking with 400 response code as scheduledFor is before today")
