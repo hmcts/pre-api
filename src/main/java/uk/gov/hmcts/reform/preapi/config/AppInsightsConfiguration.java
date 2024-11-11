@@ -8,7 +8,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AppInsightsConfiguration {
     @Bean
-    public TelemetryClient telemetryClient(@Value("${azure.application-insights.connection-string:}") String connectionString) {
+    public TelemetryClient telemetryClient(
+        @Value("${azure.application-insights.connection-string:}") String connectionString) {
         if (connectionString == null) {
             return null;
         }
