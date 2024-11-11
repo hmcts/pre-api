@@ -96,7 +96,7 @@ public class InviteService {
         log.info("onUserInvitedToPortal: User({})", u.getId());
 
         try {
-            if (!emailServiceBroker.enable) {
+            if (!emailServiceBroker.isEnabled()) {
                 return;
             } else {
                 var emailService = emailServiceBroker.getEnabledEmailService();

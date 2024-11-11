@@ -15,7 +15,7 @@ public class EmailServiceBroker {
     IEmailService emailService;
     GovNotify govNotify;
 
-    public final boolean enable;
+    private final boolean enable;
 
     @Autowired
     public EmailServiceBroker(
@@ -46,5 +46,9 @@ public class EmailServiceBroker {
             }
             default -> throw new IllegalArgumentException("Unknown email service: " + overrideEmailService);
         }
+    }
+
+    public boolean isEnabled() {
+        return enable;
     }
 }
