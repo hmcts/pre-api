@@ -160,12 +160,12 @@ public class CleanupLiveEvents implements Runnable {
                                       if (!emailServiceBroker.isEnabled()) {
                                           stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
                                       } else {
-                                          var emailService = emailServiceBroker.getEnabledEmailService();
                                           var forCase = new Case();
                                           forCase.setReference(booking.getCaseDTO().getReference());
                                           var court = new Court();
                                           court.setName(booking.getCaseDTO().getCourt().getName());
                                           forCase.setCourt(court);
+                                          var emailService = emailServiceBroker.getEnabledEmailService();
                                           shares.forEach(share -> {
                                               var emailUser = new User();
                                               emailUser.setEmail(share.getSharedWithUser().getEmail());
