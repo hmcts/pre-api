@@ -9,7 +9,7 @@ data "azurerm_application_insights" "app_insights" {
   resource_group_name = "${var.product}-${var.env}"
 }
 
-data "azurerm_monitor_action_group" "pre-teams-webhook" {
+data "azurerm_monitor_action_group" "pre-teams-wh" {
   count               = var.env == "prod" || var.env == "stg" ? 1 : 0
   name                = "TeamsAlertAction"
   resource_group_name = "${var.product}-${var.env}"

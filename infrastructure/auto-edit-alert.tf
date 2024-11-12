@@ -13,7 +13,7 @@ module "pre-api-auto-edit-alert" {
   frequency_in_minutes       = "15"
   time_window_in_minutes     = "15"
   severity_level             = "3"
-  action_group_name          = data.azurerm_monitor_action_group.pre-teams-webhook[count.index].name
+  action_group_name          = data.azurerm_monitor_action_group.pre-teams-wh[count.index].name
   custom_email_subject       = "[${var.env}] PRE API Automated Edit"
   trigger_threshold_operator = "GreaterThan"
   trigger_threshold          = "0"
