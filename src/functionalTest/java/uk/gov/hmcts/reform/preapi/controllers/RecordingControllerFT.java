@@ -247,6 +247,29 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
     }
 
+    @Test
+    @DisplayName("Should show correct total version count")
+    void getRecordingTotalVersionCount() throws JsonProcessingException {
+        // create parent recording
+        var details = createRecording();
+        var getRecording1 = assertRecordingExists(details.recordingId, true);
+        getRecording1.prettyPrint();
+        assertThat(getRecording1.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(1);
+
+        // create child recording
+        var recording2 = createRecording(details.captureSessionId);
+        recording2.setParentRecordingId(details.recordingId);
+        recording2.setVersion(2);
+        var putRecording2 = putRecording(recording2);
+        assertResponseCode(putRecording2, 201);
+        var getRecording2 = assertRecordingExists(recording2.getId(), true);
+        assertThat(getRecording2.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
+
+        // check parent recording
+        var getRecording3 = assertRecordingExists(details.recordingId, true);
+        assertThat(getRecording3.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
+    }
+
     @DisplayName("Should throw 400 error when sort param is invalid")
     @Test
     void getRecordingsSortInvalidParam() {
