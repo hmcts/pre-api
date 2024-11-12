@@ -636,6 +636,42 @@ class RecordingServiceTest {
         verify(govNotify, times(1)).recordingReady(any(), any());
     }
 
+    @DisplayName("Should log error when email service fails")
+    @Test
+    void emailServiceFails() {
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        var captureSession = new CaptureSession();
+        captureSession.setId(recordingModel.getCaptureSessionId());
+        var booking = new Booking();
+        booking.setCaseId(new Case());
+        captureSession.setBooking(booking);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(false);
+        when(
+            captureSessionRepository.findByIdAndDeletedAtIsNull(
+                recordingModel.getCaptureSessionId()
+            )
+        ).thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(any())).thenReturn(Optional.empty());
+        when(recordingRepository.save(any())).thenReturn(new Recording());
+        when(emailServiceBroker.isEnabled()).thenReturn(true);
+        when(emailServiceBroker.getEnabledEmailService()).thenReturn(govNotify);
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+        doThrow(new RuntimeException("Test exception")).when(govNotify).recordingReady(any(), any());
+
+        recordingService.upsert(recordingModel);
+
+        verify(emailServiceBroker, times(1)).getEnabledEmailService();
+        verify(govNotify, times(1)).recordingReady(any(), any());
+    }
+
     private ShareBooking createShare() {
         var user = new User();
         user.setId(UUID.randomUUID());
