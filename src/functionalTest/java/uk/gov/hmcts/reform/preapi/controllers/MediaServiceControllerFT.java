@@ -32,7 +32,8 @@ public class MediaServiceControllerFT extends FunctionalTestBase {
         // check for presence of vod links
         var links = getVodLinks(recording.getId());
         // Asset won't be found as we just made the recording in the db not a real recording in MediaKind
-        assertThat(links.peek().jsonPath().getString("message")).isEqualTo("Not found: Not found.");
+        assertThat(links.peek().jsonPath().getString("message"))
+                .isEqualTo("Asset with name: " + recording.getId().toString().replace("-", "") + "_output not found");
         assertResponseCode(links.peek(), 404);
     }
 
