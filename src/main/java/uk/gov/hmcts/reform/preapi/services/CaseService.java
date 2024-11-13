@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -284,8 +285,19 @@ public class CaseService {
                 shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
             }
         } catch (Exception e) {
-            log.error("Failed to notify users of case closure: " + c.getId());
+            log.error("Failed to notify users of case closure: {}", c.getId());
         }
+
+        bookingRepository
+            .findAllByCaseIdAndDeletedAtIsNull(c)
+            .stream()
+            .filter(b -> !b.getCaptureSessions().isEmpty()
+                && b.getCaptureSessions()
+                .stream()
+                .map(CaptureSession::getStatus)
+                .anyMatch(s -> s == RecordingStatus.FAILURE || s == RecordingStatus.NO_RECORDING))
+            .map(BaseEntity::getId)
+            .forEach(bookingService::markAsDeleted);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
@@ -304,7 +316,7 @@ public class CaseService {
                 shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), c));
             }
         } catch (Exception e) {
-            log.error("Failed to notify users of case closure cancellation: " + c.getId());
+            log.error("Failed to notify users of case closure cancellation: {}", c.getId());
         }
     }
 
@@ -325,7 +337,7 @@ public class CaseService {
                                                                         c.getClosedAt().toString()));
             }
         } catch (Exception e) {
-            log.error("Failed to notify users of case pending closure: " + c.getId());
+            log.error("Failed to notify users of case pending closure: {}", c.getId());
         }
     }
 }
