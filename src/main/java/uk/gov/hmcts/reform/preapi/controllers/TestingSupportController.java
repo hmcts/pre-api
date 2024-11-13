@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
+import com.microsoft.applicationinsights.TelemetryClient;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.SneakyThrows;
@@ -83,6 +84,7 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final TelemetryClient telemetryClient;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -99,7 +101,8 @@ class TestingSupportController {
                              final TermsAndConditionsRepository termsAndConditionsRepository,
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final EditRequestService editRequestService,
-                             final AzureFinalStorageService azureFinalStorageService) {
+                             final AzureFinalStorageService azureFinalStorageService,
+                             final TelemetryClient telemetryClient) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -115,6 +118,7 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.telemetryClient = telemetryClient;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -415,6 +419,14 @@ class TestingSupportController {
             "request", request,
             "recording", recording
         ));
+    }
+
+    @PostMapping(value = "/test")
+    public ResponseEntity<?> test() {
+        telemetryClient.trackEvent("PerformEditRequest Success",
+                                   Map.of("editRequestId", UUID.randomUUID().toString()),
+                                   Map.of());
+        return ResponseEntity.ok().build();
     }
 
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
