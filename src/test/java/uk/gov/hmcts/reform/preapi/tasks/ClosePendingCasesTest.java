@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
-import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
