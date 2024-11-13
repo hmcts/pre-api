@@ -1,23 +1,39 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.services.UserService;
 
-@Component
 @Slf4j
-public class ClosePendingCases implements Runnable {
+@Component
+public class ClosePendingCases extends RobotUserTask {
 
     private final CaseService caseService;
+    private final UserService userService;
+    private final UserAuthenticationService userAuthenticationService;
+    private final String cronUserEmail;
 
     @Autowired
-    public ClosePendingCases(CaseService caseService) {
+    public ClosePendingCases(CaseService caseService,
+                             UserService userService,
+                             UserAuthenticationService userAuthenticationService,
+                             @Value("${cron-user-email}") String cronUserEmail) {
+        super(userService, userAuthenticationService, cronUserEmail);
         this.caseService = caseService;
+        this.userService = userService;
+        this.userAuthenticationService = userAuthenticationService;
+        this.cronUserEmail = cronUserEmail;
     }
 
     @Override
     public void run() {
+        signInRobotUser();
         log.info("Running ClosePendingCases task");
 
         try {

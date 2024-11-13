@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
@@ -25,25 +24,15 @@ import java.util.UUID;
 
 @Component
 @Slf4j
-public class CleanupLiveEvents implements Runnable {
+public class CleanupLiveEvents extends RobotUserTask {
 
     private final MediaServiceBroker mediaServiceBroker;
-
     private final CaptureSessionService captureSessionService;
-
     private final BookingService bookingService;
-
     private final RecordingService recordingService;
-
-    private final UserService userService;
-
-    private final UserAuthenticationService userAuthenticationService;
-
-    private final String cronUserEmail;
+    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
     private final String platformEnv;
-
-    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
@@ -55,33 +44,18 @@ public class CleanupLiveEvents implements Runnable {
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
                       StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient) {
+        super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
         this.recordingService = recordingService;
-        this.userService = userService;
-        this.userAuthenticationService = userAuthenticationService;
-        this.cronUserEmail = cronUserEmail;
         this.platformEnv = platformEnv;
         this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
     }
 
     @Override
     public void run() throws RuntimeException {
-        log.info("Sign in as robot user");
-        var user = userService.findByEmail(cronUserEmail);
-
-        var appAccess = user.getAppAccess().stream().findFirst()
-                            .orElseThrow(() -> new RuntimeException(
-                                "Failed to authenticate as cron user with email " + cronUserEmail)
-                            );
-        var userAuth = userAuthenticationService.validateUser(appAccess.getId().toString())
-                                                .orElseThrow(() -> new RuntimeException(
-                                                    "Failed to authenticate as cron user with email "
-                                                        + cronUserEmail)
-                                                );
-        SecurityContextHolder.getContext().setAuthentication(userAuth);
-
+        signInRobotUser();
         log.info("Running CleanupLiveEvents task");
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();
