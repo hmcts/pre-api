@@ -111,21 +111,21 @@ flow:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
 #    org.springframework.transaction: DEBUG
-logging:
-  level:
-    uk:
-      gov:
-        hmcts:
-          reform:
-            preapi:
-              actuator:
-                PreApiHealthIndicator: DEBUG
-              email:
-                StopLiveEventNotifierFlowClient: DEBUG
-                CaseStateChangeNotifierFlowClient: DEBUG
-              media:
-                MediaKindClient: DEBUG
-                MediaKindAccountsClient: DEBUG
+#logging:
+#  level:
+#    uk:
+#      gov:
+#        hmcts:
+#          reform:
+#            preapi:
+#              actuator:
+#                PreApiHealthIndicator: DEBUG
+#              email:
+#                StopLiveEventNotifierFlowClient: DEBUG
+#                CaseStateChangeNotifierFlowClient: DEBUG
+#              media:
+#                MediaKindClient: DEBUG
+#                MediaKindAccountsClient: DEBUG
 #log4j:
 #  logger:
 #    org:
