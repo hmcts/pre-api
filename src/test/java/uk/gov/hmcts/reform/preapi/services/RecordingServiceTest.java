@@ -13,10 +13,13 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -36,6 +39,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,7 +70,13 @@ class RecordingServiceTest {
     private CaptureSessionService captureSessionService;
 
     @MockBean
-    private AuditService auditService;
+    private ShareBookingService shareBookingService;
+
+    @MockBean
+    private EmailServiceBroker emailServiceBroker;
+
+    @MockBean
+    private GovNotify govNotify;
 
     @Autowired
     private RecordingService recordingService;
@@ -591,6 +601,77 @@ class RecordingServiceTest {
         verify(recordingRepository, never()).save(recording);
     }
 
+    @DisplayName("New email service should be used on recording created when enabled")
+    @Test
+    void newEmailServiceUsedOnRecordingCreated() {
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        var captureSession = new CaptureSession();
+        captureSession.setId(recordingModel.getCaptureSessionId());
+        var booking = new Booking();
+        booking.setCaseId(new Case());
+        captureSession.setBooking(booking);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(false);
+        when(
+            captureSessionRepository.findByIdAndDeletedAtIsNull(
+                recordingModel.getCaptureSessionId()
+            )
+        ).thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(any())).thenReturn(Optional.empty());
+        when(recordingRepository.save(any())).thenReturn(new Recording());
+        when(emailServiceBroker.isEnabled()).thenReturn(true);
+        when(emailServiceBroker.getEnabledEmailService()).thenReturn(govNotify);
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+
+        recordingService.upsert(recordingModel);
+
+        verify(emailServiceBroker, times(1)).getEnabledEmailService();
+        verify(govNotify, times(1)).recordingReady(any(), any());
+    }
+
+    @DisplayName("Should log error when email service fails")
+    @Test
+    void emailServiceFails() {
+        var recordingModel = new CreateRecordingDTO();
+        recordingModel.setId(UUID.randomUUID());
+        recordingModel.setCaptureSessionId(UUID.randomUUID());
+        recordingModel.setVersion(1);
+        var captureSession = new CaptureSession();
+        captureSession.setId(recordingModel.getCaptureSessionId());
+        var booking = new Booking();
+        booking.setCaseId(new Case());
+        captureSession.setBooking(booking);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+
+        when(
+            recordingRepository.existsByIdAndDeletedAtIsNull(recordingModel.getId())
+        ).thenReturn(false);
+        when(
+            captureSessionRepository.findByIdAndDeletedAtIsNull(
+                recordingModel.getCaptureSessionId()
+            )
+        ).thenReturn(Optional.of(captureSession));
+        when(recordingRepository.findById(any())).thenReturn(Optional.empty());
+        when(recordingRepository.save(any())).thenReturn(new Recording());
+        when(emailServiceBroker.isEnabled()).thenReturn(true);
+        when(emailServiceBroker.getEnabledEmailService()).thenReturn(govNotify);
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
+        doThrow(new RuntimeException("Test exception")).when(govNotify).recordingReady(any(), any());
+
+        recordingService.upsert(recordingModel);
+
+        verify(emailServiceBroker, times(1)).getEnabledEmailService();
+        verify(govNotify, times(1)).recordingReady(any(), any());
+    }
+
     @Test
     @DisplayName("Should return the next version number for recordings")
     void getNextVersionNumberSuccess() {
@@ -599,5 +680,18 @@ class RecordingServiceTest {
             .thenReturn(0);
 
         assertThat(recordingService.getNextVersionNumber(id)).isEqualTo(2);
+    }
+
+    private ShareBooking createShare() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName(user.getId().toString());
+        user.setLastName(user.getId().toString());
+        user.setEmail(user.getId() + "@example.com");
+
+        var share = new ShareBooking();
+        share.setId(UUID.randomUUID());
+        share.setSharedWith(user);
+        return share;
     }
 }
