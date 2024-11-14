@@ -1,7 +1,13 @@
 java:
   devmemoryLimits: '2048Mi'
+  postgresql:
+    enabled: true
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
+    POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
+    POSTGRES_DATABASE: "{{ .Values.postgresql.auth.database}}"
+    POSTGRES_USER: "{{ .Values.postgresql.auth.username}}"
+    POSTGRES_PASSWORD: "{{ .Values.postgresql.auth.password}}"
     TESTING_SUPPORT_ENDPOINTS_ENABLED: true
     APIM_ENABLED: false
     AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
@@ -14,44 +20,6 @@ java:
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
     ENABLE_NEW_EMAIL_SERVICE: true
-  postgresql:
-    enabled: true
-    auth:
-      username: ${POSTGRES_USER}
-      password: ${POSTGRES_PASSWORD}
-      database: ${POSTGRES_DATABASE}
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
-function:
-  scaleType: Job
-  image: ${IMAGE_NAME}
-  aadIdentityName: pre
-  pollingInterval: 60 # checks every min
-  minReplicaCount: 0
-  maxReplicaCount: 2 # todo (more?) only runs up to 2 edits at once
-  scalingStrategy: accurate
-  environment:
-    RUN_DB_MIGRATION_ON_STARTUP: true
-    TESTING_SUPPORT_ENDPOINTS_ENABLED: true
-    APIM_ENABLED: false
-    AZURE_MEDIA_SERVICES_ACCOUNT_NAME: preamsstg
-    AZURE_RESOURCE_GROUP: pre-stg
-    AZURE_SUBSCRIPTION_ID: 74dacd4f-a248-45bb-a2f0-af700dc4cf68
-    AZURE_TENANT_ID: 531ff96d-0ae9-462a-8d2d-bec7c0b42082
-    MEDIA_KIND_SUBSCRIPTION: pre-mediakind-stg
-    PLATFORM_ENV_TAG: Staging
-    MEDIA_SERVICE: MediaKind
-    AZURE_INGEST_SA: preingestsastg
-    AZURE_FINAL_SA: prefinalsastg
-    TASK_NAME: PerformEditRequest
-    DB_CONNECTION_STRING: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DATABASE}"
-  job:
-    parallelism: 1
-    completions: 1
-    activeDeadlineSeconds: 3600 # fails after one hour
-  triggers:
-    - type: postgres
-      connectionFromEnv: DB_CONNECTION_STRING
-      query: "SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS count FROM edit_requests WHERE status = 'PENDING'"
-      targetQueryValue: "0.9"
