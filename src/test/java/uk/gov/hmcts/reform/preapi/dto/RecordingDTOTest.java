@@ -1,6 +1,6 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -23,11 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RecordingDTOTest {
 
-    private static Recording recordingEntity;
-    private static Case caseEntity;
+    private Recording recordingEntity;
+    private Case caseEntity;
 
-    @BeforeAll
-    static void setUp() {
+    @BeforeEach
+    void setUp() {
         caseEntity = HelperFactory.createCase(
             HelperFactory.createCourt(CourtType.CROWN, "Foo Court", null),
             "1234567890",
@@ -53,6 +53,7 @@ public class RecordingDTOTest {
         recordingEntity.setVersion(1);
         recordingEntity.setFilename("test.mp4");
         recordingEntity.setCaptureSession(captureSession);
+        recordingEntity.setRecordings(Set.of());
     }
 
     @DisplayName("Should create a recording from entity")
@@ -72,6 +73,33 @@ public class RecordingDTOTest {
             .toList();
         assertThat(sortedList.get(0).getFirstName()).isEqualTo("Jane");
         assertThat(sortedList.get(1).getFirstName()).isEqualTo("John");
+    }
+
+    @Test
+    @DisplayName("RecordingDTO.totalVersionCount be the total number of edited versions + 1 for the original")
+    void createRecordingFromEntityTotalVersionCount() {
+        var model1 = new RecordingDTO(recordingEntity);
+
+        // no child recordings
+        assertThat(model1.getTotalVersionCount()).isEqualTo(1);
+
+        var recordingEntity2 = new Recording();
+        recordingEntity2.setId(UUID.randomUUID());
+        recordingEntity2.setVersion(2);
+        recordingEntity2.setFilename("test.mp4");
+        recordingEntity2.setCaptureSession(recordingEntity.getCaptureSession());
+        recordingEntity2.setParentRecording(recordingEntity);
+        recordingEntity2.setRecordings(Set.of());
+        recordingEntity.setRecordings(Set.of(recordingEntity2));
+
+        var model2 = new RecordingDTO(recordingEntity2);
+
+        // on child recording
+        assertThat(model2.getTotalVersionCount()).isEqualTo(2);
+
+        // on parent recording with child recording
+        var model3 = new RecordingDTO(recordingEntity);
+        assertThat(model3.getTotalVersionCount()).isEqualTo(2);
     }
 
     @DisplayName("RecordingDTO.participants should be sorted by participant first name")

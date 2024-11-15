@@ -1102,6 +1102,10 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
       url:
         description: RecordingURL
         type: string
@@ -1604,6 +1608,10 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
       url:
         description: RecordingURL
         type: string
