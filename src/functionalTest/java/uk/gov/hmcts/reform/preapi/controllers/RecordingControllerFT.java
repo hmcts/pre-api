@@ -1,13 +1,11 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -285,17 +283,6 @@ public class RecordingControllerFT extends FunctionalTestBase {
             .isEqualTo("Invalid sort parameter 'invalidParam' for 'uk.gov.hmcts.reform.preapi.entities.Recording'");
     }
 
-    private CreateRecordingDTO createRecording(UUID captureSessionId) {
-        var dto = new CreateRecordingDTO();
-        dto.setId(UUID.randomUUID());
-        dto.setCaptureSessionId(captureSessionId);
-        dto.setEditInstructions("{}");
-        dto.setVersion(1);
-        dto.setUrl("example url");
-        dto.setFilename("example.file");
-        return dto;
-    }
-
     private CreateRecordingResponse createRecording() {
         var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
         assertResponseCode(response, 200);
@@ -307,14 +294,6 @@ public class RecordingControllerFT extends FunctionalTestBase {
         var dto = super.createCaptureSession();
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         return dto;
-    }
-
-    private Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            RECORDINGS_ENDPOINT + "/" + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
     }
 
     private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
