@@ -63,7 +63,7 @@ public class TermsAndConditionsControllerTest {
         when(termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.APP))
             .thenReturn(model);
 
-        mockMvc.perform(get(TEST_URL + "/api/app-terms-and-conditions/latest"))
+        mockMvc.perform(get(TEST_URL + "/app-terms-and-conditions/latest"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(model.getId().toString()))
@@ -79,7 +79,7 @@ public class TermsAndConditionsControllerTest {
         doThrow(new NotFoundException("Terms and conditions of type: APP"))
             .when(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.APP);
 
-        mockMvc.perform(get(TEST_URL + "/api/app-terms-and-conditions/latest"))
+        mockMvc.perform(get(TEST_URL + "/app-terms-and-conditions/latest"))
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")
@@ -100,7 +100,7 @@ public class TermsAndConditionsControllerTest {
         when(termsAndConditionsService.getLatestTermsAndConditions(TermsAndConditionsType.PORTAL))
             .thenReturn(model);
 
-        mockMvc.perform(get(TEST_URL + "/api/portal-terms-and-conditions/latest"))
+        mockMvc.perform(get(TEST_URL + "/portal-terms-and-conditions/latest"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").value(model.getId().toString()))
@@ -116,7 +116,7 @@ public class TermsAndConditionsControllerTest {
         doThrow(new NotFoundException("Terms and conditions of type: PORTAL"))
             .when(termsAndConditionsService).getLatestTermsAndConditions(TermsAndConditionsType.PORTAL);
 
-        mockMvc.perform(get(TEST_URL + "/api/portal-terms-and-conditions/latest"))
+        mockMvc.perform(get(TEST_URL + "/portal-terms-and-conditions/latest"))
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.message")

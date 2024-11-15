@@ -150,11 +150,10 @@ public class AuditServiceIT extends IntegrationTestBase {
             .sorted(Comparator.comparing(Audit::getCreatedAt))
             .toList();
         Assertions.assertEquals(0, auditResultsEmpty.size());
-        Assertions.assertEquals(2, auditResultsCreated.size());
-        Assertions.assertEquals(3, auditResults.size());
+        Assertions.assertEquals(1, auditResultsCreated.size());
+        Assertions.assertEquals(2, auditResults.size());
         Assertions.assertEquals(AuditAction.CREATE.toString(), auditResults.get(0).getActivity());
-        Assertions.assertEquals(AuditAction.UPDATE.toString(), auditResults.get(1).getActivity());
-        Assertions.assertEquals(AuditAction.DELETE.toString(), auditResults.get(2).getActivity());
+        Assertions.assertEquals(AuditAction.DELETE.toString(), auditResults.get(1).getActivity());
     }
 
     @Transactional

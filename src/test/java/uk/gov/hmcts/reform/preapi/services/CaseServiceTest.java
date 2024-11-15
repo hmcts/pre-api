@@ -24,7 +24,6 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
-import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -264,7 +263,7 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(participantRepository, times(2)).save(any(Participant.class));
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any(Case.class));
+        verify(caseRepository, times(1)).saveAndFlush(any(Case.class));
     }
 
     @Test
@@ -280,7 +279,7 @@ class CaseServiceTest {
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
     }
 
     @Test
@@ -302,7 +301,8 @@ class CaseServiceTest {
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(0)).save(any());
     }
 
     @Test
@@ -326,7 +326,7 @@ class CaseServiceTest {
         verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(0)).save(any());
     }
 
     @Test
@@ -351,7 +351,7 @@ class CaseServiceTest {
         verify(shareBookingService, times(1)).deleteCascade(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(0)).save(any());
     }
 
     @Test
@@ -376,7 +376,7 @@ class CaseServiceTest {
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(0)).save(any());
     }
 
     @Test
@@ -402,7 +402,7 @@ class CaseServiceTest {
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(0)).save(any());
     }
 
     @Test
@@ -427,7 +427,7 @@ class CaseServiceTest {
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(0)).save(any());
     }
 
     @Test
@@ -453,7 +453,7 @@ class CaseServiceTest {
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(0)).save(any());
     }
 
     @Test
@@ -600,13 +600,13 @@ class CaseServiceTest {
         when(courtRepository.findById(caseDTOModel.getCourtId())).thenReturn(Optional.of(testingCase.getCourt()));
         when(caseRepository.findById(caseDTOModel.getId())).thenReturn(Optional.empty());
 
-        doThrow(DataIntegrityViolationException.class).when(caseRepository).save(any());
+        doThrow(DataIntegrityViolationException.class).when(caseRepository).saveAndFlush(any());
 
         assertThrows(DataIntegrityViolationException.class, () -> caseService.upsert(caseDTOModel));
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(caseRepository, times(1)).save(any());
+        verify(caseRepository, times(1)).saveAndFlush(any());
     }
 
     @Test
@@ -701,6 +701,61 @@ class CaseServiceTest {
         verify(caseRepository).save(pendingCase);
         verify(shareBookingService).deleteCascade(pendingCase);
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(any());
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(pendingCase);
+    }
+
+    @Test
+    @DisplayName("Should delete bookings on closed if associated capture session's status is NO_RECORDING")
+    void onCaseClosedDeleteBookingsNoRecording() {
+        var bookingNoRecording = new Booking();
+        bookingNoRecording.setId(UUID.randomUUID());
+        var captureSessionNoRecording = new CaptureSession();
+        captureSessionNoRecording.setStatus(RecordingStatus.NO_RECORDING);
+        bookingNoRecording.setCaptureSessions(Set.of(captureSessionNoRecording));
+        var aCase = new Case();
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(bookingNoRecording));
+
+        caseService.onCaseClosed(aCase);
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(bookingService, times(1)).markAsDeleted(bookingNoRecording.getId());
+    }
+
+    @Test
+    @DisplayName("Should delete bookings on closed if associated capture session's status is FAILURE")
+    void onCaseClosedDeleteBookingsFailure() {
+        var bookingFailure = new Booking();
+        bookingFailure.setId(UUID.randomUUID());
+        var captureSessionFailure = new CaptureSession();
+        captureSessionFailure.setStatus(RecordingStatus.FAILURE);
+        bookingFailure.setCaptureSessions(Set.of(captureSessionFailure));
+        var aCase = new Case();
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(bookingFailure));
+
+        caseService.onCaseClosed(aCase);
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(bookingService, times(1)).markAsDeleted(bookingFailure.getId());
+    }
+
+    @Test
+    @DisplayName("Should not delete bookings on closed if associated capture session's status is RECORDING_AVAILABLE")
+    void onCaseClosedDeleteBookingsRecordingAvailable() {
+        var bookingRecordingAvailable = new Booking();
+        bookingRecordingAvailable.setId(UUID.randomUUID());
+        var captureSessionRecordingAvailable = new CaptureSession();
+        captureSessionRecordingAvailable.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        bookingRecordingAvailable.setCaptureSessions(Set.of(captureSessionRecordingAvailable));
+        var aCase = new Case();
+
+        when(bookingRepository.findAllByCaseIdAndDeletedAtIsNull(aCase)).thenReturn(List.of(bookingRecordingAvailable));
+
+        caseService.onCaseClosed(aCase);
+
+        verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
+        verify(bookingService, never()).markAsDeleted(any());
     }
 
     private Case createTestingCase() {

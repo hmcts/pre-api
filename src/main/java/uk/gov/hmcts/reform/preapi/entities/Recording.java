@@ -1,12 +1,13 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-
 import io.hypersistence.utils.hibernate.type.interval.PostgreSQLIntervalType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -17,15 +18,18 @@ import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
+import uk.gov.hmcts.reform.preapi.entities.listeners.RecordingListener;
 
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Set;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "recordings")
+@EntityListeners(RecordingListener.class)
 public class Recording extends BaseEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "capture_session_id", referencedColumnName = "id")
@@ -34,6 +38,9 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_recording_id")
     private Recording parentRecording;
+
+    @OneToMany(mappedBy = "parentRecording")
+    private Set<Recording> recordings;
 
     @Column(name = "version", nullable = false)
     private int version;
