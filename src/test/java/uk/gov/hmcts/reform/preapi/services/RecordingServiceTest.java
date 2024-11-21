@@ -13,7 +13,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -73,7 +73,7 @@ class RecordingServiceTest {
     private ShareBookingService shareBookingService;
 
     @MockBean
-    private EmailServiceBroker emailServiceBroker;
+    private EmailServiceFactory emailServiceFactory;
 
     @MockBean
     private GovNotify govNotify;
@@ -626,13 +626,13 @@ class RecordingServiceTest {
         ).thenReturn(Optional.of(captureSession));
         when(recordingRepository.findById(any())).thenReturn(Optional.empty());
         when(recordingRepository.save(any())).thenReturn(new Recording());
-        when(emailServiceBroker.isEnabled()).thenReturn(true);
-        when(emailServiceBroker.getEnabledEmailService()).thenReturn(govNotify);
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
         when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
 
         recordingService.upsert(recordingModel);
 
-        verify(emailServiceBroker, times(1)).getEnabledEmailService();
+        verify(emailServiceFactory, times(1)).getEnabledEmailService();
         verify(govNotify, times(1)).recordingReady(any(), any());
     }
 
@@ -661,14 +661,14 @@ class RecordingServiceTest {
         ).thenReturn(Optional.of(captureSession));
         when(recordingRepository.findById(any())).thenReturn(Optional.empty());
         when(recordingRepository.save(any())).thenReturn(new Recording());
-        when(emailServiceBroker.isEnabled()).thenReturn(true);
-        when(emailServiceBroker.getEnabledEmailService()).thenReturn(govNotify);
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
         when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
         doThrow(new RuntimeException("Test exception")).when(govNotify).recordingReady(any(), any());
 
         recordingService.upsert(recordingModel);
 
-        verify(emailServiceBroker, times(1)).getEnabledEmailService();
+        verify(emailServiceFactory, times(1)).getEnabledEmailService();
         verify(govNotify, times(1)).recordingReady(any(), any());
     }
 

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
@@ -38,9 +38,7 @@ public class CleanupLiveEvents extends RobotUserTask {
 
     private final String platformEnv;
 
-    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
-
-    private final EmailServiceBroker emailServiceBroker;
+    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
@@ -52,7 +50,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
                       StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
-                      EmailServiceBroker emailServiceBroker) {
+                      EmailServiceFactory emailServiceFactory) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
@@ -60,7 +58,7 @@ public class CleanupLiveEvents extends RobotUserTask {
         this.recordingService = recordingService;
         this.platformEnv = platformEnv;
         this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
-        this.emailServiceBroker = emailServiceBroker;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Override
@@ -133,7 +131,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
                                       log.info("Sending email notifications to {} user(s)", toNotify.size());
-                                      if (!emailServiceBroker.isEnabled()) {
+                                      if (!emailServiceFactory.isEnabled()) {
                                           stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
                                       } else {
                                           var forCase = new Case();
@@ -141,7 +139,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                                           var court = new Court();
                                           court.setName(booking.getCaseDTO().getCourt().getName());
                                           forCase.setCourt(court);
-                                          var emailService = emailServiceBroker.getEnabledEmailService();
+                                          var emailService = emailServiceFactory.getEnabledEmailService();
                                           shares.forEach(share -> {
                                               var emailUser = new User();
                                               emailUser.setEmail(share.getSharedWithUser().getEmail());

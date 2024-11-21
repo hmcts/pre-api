@@ -11,7 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
@@ -48,7 +48,7 @@ public class InviteServiceTest {
     private UserService userService;
 
     @MockBean
-    private EmailServiceBroker emailServiceBroker;
+    private EmailServiceFactory emailServiceFactory;
 
     @Autowired
     private InviteService inviteService;

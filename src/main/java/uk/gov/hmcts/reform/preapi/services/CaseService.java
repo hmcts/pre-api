@@ -15,7 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO.EmailType;
 import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
@@ -52,7 +52,7 @@ public class CaseService {
     private final ShareBookingService shareBookingService;
     private final CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
     private final BookingRepository bookingRepository;
-    private final EmailServiceBroker emailServiceBroker;
+    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     public CaseService(CaseRepository caseRepository,
@@ -62,7 +62,7 @@ public class CaseService {
                        ShareBookingService shareBookingService,
                        CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient,
                        @Lazy BookingRepository bookingRepository,
-                       EmailServiceBroker emailServiceBroker
+                       EmailServiceFactory emailServiceFactory
     ) {
         this.caseRepository = caseRepository;
         this.courtRepository = courtRepository;
@@ -71,7 +71,7 @@ public class CaseService {
         this.shareBookingService = shareBookingService;
         this.caseStateChangeNotifierFlowClient = caseStateChangeNotifierFlowClient;
         this.bookingRepository = bookingRepository;
-        this.emailServiceBroker = emailServiceBroker;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Transactional
@@ -272,16 +272,16 @@ public class CaseService {
     public void onCaseClosed(Case c) {
         log.info("onCaseClosed: Case({})", c.getId());
         var shares = shareBookingService.deleteCascade(c);
-        var notifications = shares
-            .stream()
-            .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
-            .toList();
 
         try {
-            if (!emailServiceBroker.isEnabled()) {
-                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
+            if (!emailServiceFactory.isEnabled()) {
+                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
+                    shares
+                        .stream()
+                        .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
+                        .toList());
             } else {
-                var emailService = emailServiceBroker.getEnabledEmailService();
+                var emailService = emailServiceFactory.getEnabledEmailService();
                 shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
             }
         } catch (Exception e) {
@@ -304,15 +304,17 @@ public class CaseService {
     public void onCaseClosureCancellation(Case c) {
         log.info("onCaseClosureCancellation: Case({})", c.getId());
         var shares = shareBookingService.getSharesForCase(c);
-        var notifications = shares
-            .stream()
-            .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
-            .toList();
+
         try {
-            if (!emailServiceBroker.isEnabled()) {
-                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
+            if (!emailServiceFactory.isEnabled()) {
+                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
+                    shares
+                        .stream()
+                        .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
+                        .toList()
+                );
             } else {
-                var emailService = emailServiceBroker.getEnabledEmailService();
+                var emailService = emailServiceFactory.getEnabledEmailService();
                 shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), c));
             }
         } catch (Exception e) {
@@ -324,15 +326,17 @@ public class CaseService {
     public void onCasePendingClosure(Case c) {
         log.info("onCasePendingClosure: Case({})", c.getId());
         var shares = shareBookingService.getSharesForCase(c);
-        var notifications = shares
-            .stream()
-            .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
-            .toList();
+
         try {
-            if (!emailServiceBroker.isEnabled()) {
-                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
+            if (!emailServiceFactory.isEnabled()) {
+                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
+                    shares
+                        .stream()
+                        .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
+                        .toList()
+                );
             } else {
-                var emailService = emailServiceBroker.getEnabledEmailService();
+                var emailService = emailServiceFactory.getEnabledEmailService();
                 shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c,
                                                                         c.getClosedAt().toString()));
             }

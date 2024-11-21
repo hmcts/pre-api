@@ -23,7 +23,7 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -61,7 +61,7 @@ public class CleanupLiveEventsTest {
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
     private static StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
-    private static EmailServiceBroker emailServiceBroker;
+    private static EmailServiceFactory emailServiceFactory;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
     private static final String CRON_PLATFORM_ENV = "Staging";
@@ -76,7 +76,7 @@ public class CleanupLiveEventsTest {
         userAuthenticationService = mock(UserAuthenticationService.class);
         bookingService = mock(BookingService.class);
         stopLiveEventNotifierFlowClient = mock(StopLiveEventNotifierFlowClient.class);
-        emailServiceBroker = mock(EmailServiceBroker.class);
+        emailServiceFactory = mock(EmailServiceFactory.class);
 
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
@@ -196,7 +196,7 @@ public class CleanupLiveEventsTest {
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
                                                                     stopLiveEventNotifierFlowClient,
-                                                                    emailServiceBroker);
+                                                                    emailServiceFactory);
 
         cleanupLiveEvents.run();
 
@@ -318,7 +318,7 @@ public class CleanupLiveEventsTest {
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
                                                                     stopLiveEventNotifierFlowClient,
-                                                                    emailServiceBroker);
+                                                                    emailServiceFactory);
 
         cleanupLiveEvents.run();
 
@@ -368,7 +368,7 @@ public class CleanupLiveEventsTest {
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
                                                                     stopLiveEventNotifierFlowClient,
-                                                                    emailServiceBroker);
+                                                                    emailServiceFactory);
 
         cleanupLiveEvents.run();
 
@@ -426,7 +426,7 @@ public class CleanupLiveEventsTest {
                                                                     CRON_USER_EMAIL,
                                                                     CRON_PLATFORM_ENV,
                                                                     stopLiveEventNotifierFlowClient,
-                                                                    emailServiceBroker);
+                                                      emailServiceFactory);
 
         cleanupLiveEvents.run();
 
@@ -476,7 +476,7 @@ public class CleanupLiveEventsTest {
                                                       CRON_USER_EMAIL,
                                                       "Production",
                                                       stopLiveEventNotifierFlowClient,
-                                                      emailServiceBroker);
+                                                      emailServiceFactory);
 
         cleanupLiveEvents.run();
 

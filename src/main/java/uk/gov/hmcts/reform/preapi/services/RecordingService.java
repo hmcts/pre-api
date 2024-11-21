@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -40,7 +40,7 @@ public class RecordingService {
 
     private final CaptureSessionService captureSessionService;
 
-    private final EmailServiceBroker emailServiceBroker;
+    private final EmailServiceFactory emailServiceFactory;
 
     private final ShareBookingService shareBookingService;
 
@@ -48,12 +48,12 @@ public class RecordingService {
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
                             @Lazy CaptureSessionService captureSessionService,
-                            EmailServiceBroker emailServiceBroker,
+                            EmailServiceFactory emailServiceFactory,
                             ShareBookingService shareBookingService) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
-        this.emailServiceBroker = emailServiceBroker;
+        this.emailServiceFactory = emailServiceFactory;
         this.shareBookingService = shareBookingService;
     }
 
@@ -196,13 +196,13 @@ public class RecordingService {
         var shares = shareBookingService.getSharesForCase(r.getCaptureSession().getBooking().getCaseId());
 
         try {
-            if (!emailServiceBroker.isEnabled()) {
+            if (!emailServiceFactory.isEnabled()) {
                 return;
-            } else {
-                var emailService = emailServiceBroker.getEnabledEmailService();
-                shares.forEach(share -> emailService.recordingReady(
-                    share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId()));
             }
+            var emailService = emailServiceFactory.getEnabledEmailService();
+            shares.forEach(share -> emailService.recordingReady(
+                share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId())
+            );
         } catch (Exception e) {
             log.error("Failed to notify users of recording ready for recording: " + r.getId());
         }

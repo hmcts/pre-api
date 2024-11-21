@@ -20,6 +20,8 @@ import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -105,20 +107,21 @@ public class GovNotifyTest {
         assertThat(emailResponse.getBody()).isEqualTo("MESSAGE TEXT");
     }
 
-    @DisplayName(("Email service broker"))
+    @DisplayName(("Email service factory"))
     @Test
-    void shouldCreateEmailServiceBroker() {
-        var govNotify = new GovNotify("govnotify", mockGovNotifyClient);
-        var emailServiceBroker = new EmailServiceBroker("govnotify", true, govNotify);
-        assertThat(emailServiceBroker).isNotNull();
-        assertThat(emailServiceBroker.getEnabledEmailService()).isEqualTo(govNotify);
-        assertThat(emailServiceBroker.isEnabled()).isTrue();
+    void shouldCreateEmailServiceFactory() {
+        var govNotify = new GovNotify("GovNotify", mockGovNotifyClient);
+        var emailServiceFactory = new EmailServiceFactory("GovNotify", true, List.of(govNotify));
+        assertThat(emailServiceFactory).isNotNull();
+        assertThat(emailServiceFactory.getEnabledEmailService()).isEqualTo(govNotify);
+        assertThat(emailServiceFactory.isEnabled()).isTrue();
 
-        assertThat(emailServiceBroker.getEnabledEmailService(null)).isEqualTo(govNotify);
-        assertThat(emailServiceBroker.getEnabledEmailService("govnotify")).isEqualTo(govNotify);
-        assertThrows(IllegalArgumentException.class, () -> emailServiceBroker.getEnabledEmailService("nonexistent"));
+        assertThat(emailServiceFactory.getEnabledEmailService("GovNotify")).isEqualTo(govNotify);
+        assertThrows(IllegalArgumentException.class, () -> emailServiceFactory.getEnabledEmailService("nonexistent"));
 
-        assertThrows(IllegalArgumentException.class, () -> new EmailServiceBroker("nonexistent", true, govNotify));
+        assertThrows(IllegalArgumentException.class, () ->
+            new EmailServiceFactory("nonexistent", true, List.of(govNotify))
+        );
     }
 
     User getUser() {

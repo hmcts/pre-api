@@ -108,7 +108,7 @@ flow:
   key: ${FLOW_KEY:123}
 
 email:
-  service: ${EMAIL_SERVICE:govnotify}
+  service: ${EMAIL_SERVICE:GovNotify}
   govNotify:
     key: ${GOV_NOTIFY_API_KEY:}
   enable: ${ENABLE_NEW_EMAIL_SERVICE:false}
