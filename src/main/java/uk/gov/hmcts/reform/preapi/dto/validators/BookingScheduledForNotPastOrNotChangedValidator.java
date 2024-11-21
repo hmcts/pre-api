@@ -33,7 +33,7 @@ public class BookingScheduledForNotPastOrNotChangedValidator
 
         if (booking.getScheduledFor() == null) {
             cxt.disableDefaultConstraintViolation();
-            cxt.buildConstraintViolationWithTemplate("must not be null")
+            cxt.buildConstraintViolationWithTemplate("scheduled_for is required and must not be before today")
                 .addPropertyNode("scheduledFor")
                 .addConstraintViolation();
             return false;

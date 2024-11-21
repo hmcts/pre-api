@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 @NoArgsConstructor
 @Schema(description = "CreateBookingDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-@BookingScheduledForNotPastOrNotChangedConstraint(message = "scheduled_for is must not be before today")
+@BookingScheduledForNotPastOrNotChangedConstraint(message = "scheduled_for is required and must not be before today")
 public class CreateBookingDTO {
     @Schema(description = "CreateBookingId")
     @NotNull(message = "id is required")
