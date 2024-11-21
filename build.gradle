@@ -13,8 +13,8 @@ plugins {
   id 'org.springframework.boot' version '3.3.5'
   id 'org.owasp.dependencycheck' version '11.1.0'
   id 'com.github.ben-manes.versions' version '0.51.0'
-  id 'org.sonarqube' version '5.1.0.4882'
-  id "io.freefair.lombok" version "8.10.2"
+  id 'org.sonarqube' version '6.0.0.5145'
+  id "io.freefair.lombok" version "8.11"
   id 'org.flywaydb.flyway' version '10.21.0'
   id "info.solidsoft.pitest" version '1.15.0'
 }
@@ -270,7 +270,7 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation'
   implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.6.0'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
-  implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.3.3'
+  implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.4.0'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.7'
@@ -296,8 +296,8 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
 
-  implementation group: 'com.azure', name: 'azure-identity', version: '1.14.1'
-  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.28.1'
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.14.2'
+  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.29.0'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.20.3'
@@ -310,7 +310,7 @@ dependencies {
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.5:all'
-  testImplementation 'org.springframework.security:spring-security-test:6.3.4'
+  testImplementation 'org.springframework.security:spring-security-test:6.4.0'
   testImplementation libraries.junit5
 
   testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', {

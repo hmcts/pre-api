@@ -11,7 +11,7 @@ module "pre-api-exception-alert" {
   app_insights_query = <<EOF
 union exceptions, traces
 | where severityLevel >= 3
-| where cloud_RoleName == "pre-api"
+| where cloud_RoleInstance startswith "pre-api-java"
 EOF
 
   frequency_in_minutes       = "15"

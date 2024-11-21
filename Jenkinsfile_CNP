@@ -6,7 +6,8 @@ def component = "api"
 
 def secrets = [
   'pre-hmctskv-${env}': [
-    secret('govnotify-key-test', 'GOV_NOTIFY_API_KEY_TEST')
+    secret('govnotify-key-test', 'GOV_NOTIFY_API_KEY_TEST'),
+    secret('api-MKIO-TOKEN', 'MEDIA_KIND_TOKEN')
   ]
 ]
 
