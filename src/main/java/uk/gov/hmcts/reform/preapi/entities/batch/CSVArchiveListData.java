@@ -100,4 +100,16 @@ public class CSVArchiveListData {
     public void setFarEndAddress(String farEndAddress) {
         this.farEndAddress = farEndAddress;
     }
+
+    public String getArchiveNameNoExt() {
+        if (archiveName == null || archiveName.isEmpty()) {
+            return archiveName;
+        }
+        int lastDotIndex = archiveName.lastIndexOf('.');
+        if (lastDotIndex == -1) {
+            return archiveName;
+        }
+        return archiveName.substring(0, lastDotIndex);
+    }
+
 }

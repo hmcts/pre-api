@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.logging.Logger;
+
 @RestController
 @RequestMapping("/batch")
 public class BatchController {
@@ -25,12 +27,19 @@ public class BatchController {
     }
 
     @PostMapping("/start")
-    public ResponseEntity<String> startBatch() throws Exception {
-        JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
-        jobParametersBuilder.addLong("time", System.currentTimeMillis()); 
+    public ResponseEntity<String> startBatch() {
+        try {   
+            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
+            jobParametersBuilder.addLong("time", System.currentTimeMillis()); 
 
-        jobLauncher.run(importCsvJob, jobParametersBuilder.toJobParameters());
+            jobLauncher.run(importCsvJob, jobParametersBuilder.toJobParameters());
+            Logger.getAnonymousLogger().info("Batch job successfully started.");
+            return ResponseEntity.ok("Batch job has been started and processing data from all CSV files.");
 
-        return ResponseEntity.ok("Batch job has been started and processing data from all CSV files.");
+        } catch (Exception e) {
+            Logger.getAnonymousLogger().severe("Error starting batch job: " + e.getMessage());
+            return ResponseEntity.status(500).body("Failed to start batch job: " + e.getMessage());
+        }
     }
+
 }

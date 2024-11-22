@@ -77,7 +77,6 @@ public final class RegexPatterns {
         + "(?:\\.(?i)(mp4|raw))?$"              
     );
 
-    // KingUT-190207-S2812345-CASE12345-WALKER-EMMA-A_201902071143.RAW
     public static final Pattern PATTERN_7 = Pattern.compile(
            "^(?<court>[A-Za-z]+)[-_\\s]*"
          + "(?<date>(?:\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{6}))[-_\\s]*"
@@ -92,7 +91,7 @@ public final class RegexPatterns {
 
     public static final Pattern PATTERN_8 = Pattern.compile(
         "^(?<court>[A-Za-z]+)[-_\\s]*"  
-        +"(?:[0-9]+)[-_\\s]*"                         
+        + "(?:[0-9]+)[-_\\s]*"                         
         + "(?<urn>\\d{10})[-_\\s]*"                          
         + "(?<exhibitRef>\\d+)[-_\\s]*"                
         + "(?<witnessFirstName>[A-Za-z]+)[-_\\s]*"  
@@ -103,15 +102,26 @@ public final class RegexPatterns {
         );
 
     public static final Pattern PATTERN_9 = Pattern.compile(
-        "^(?<court>[A-Za-z]+)[-_\\s]*" +             
-        "(?<caseNumber>\\d+)[-_\\s]*" +             
-        "(?<urn>\\d+)[-_\\s]*" +                    
-        "(?<exhibitRef>\\d+)[-_\\s]*" +             
-        "(?<witnessFirstName>[A-Za-z]+)[-_\\s]*" +  
-        "(?<defendantLastName>[A-Za-z]+)[-_\\s]*" +  
-        "(?<versionType>ORIG)[-_\\s]*" +             
-        "_(?<timestamp>\\d{14})" +                  
-        "\\.(?i)(mp4|raw)$"                        
+        "^(?<court>[A-Za-z]+)[-_\\s]*"              
+        + "(?<caseNumber>\\d+)[-_\\s]*"             
+        + "(?<urn>\\d+)[-_\\s]*"                    
+        + "(?<exhibitRef>\\d+)[-_\\s]*"             
+        + "(?<witnessFirstName>[A-Za-z]+)[-_\\s]*"   
+        + "(?<defendantLastName>[A-Za-z]+)[-_\\s]*"   
+        + "(?<versionType>ORIG)[-_\\s]*"           
+        + "_(?<timestamp>\\d{14})"                 
+        + "\\.(?i)(mp4|raw)$"                        
     );
 
+    public static final Pattern PATTERN_10 = Pattern.compile(
+        "^(?<court>[A-Za-z]+)?[-_\\s]*"            
+        + "(?<date>\\d{6})?[-_\\s]*"               
+        + "(?<urn>[A-Za-z0-9]+)?[-_\\s]*"        
+        + "(?<exhibitRef>T\\d+)?[-_\\s]*"  
+        + "(?<defendantLastName>[A-Za-z]+)?[-_\\s]*" 
+        + "(?<witnessFirstName>[A-Za-z]+)?[-_\\s]*"
+        + "(?<versionType>ORIG|COPY|CPY|ORG)?[-_\\s]*" 
+        + "(?<versionNumber>\\d+(\\.\\d+)*)?" 
+        + "(?:\\.(?i)(mp4|raw|RAW))?$"             
+    );
 }

@@ -111,7 +111,7 @@ public class DataTransformationService {
             cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
             cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData));
 
-            List<String[]> usersAndEmails = channelUserDataMap.get(archiveItem.getArchiveName());
+            List<String[]> usersAndEmails = channelUserDataMap.get(archiveItem.getArchiveNameNoExt());
             List<Map<String, String>> contactsList = populateShareBookingContacts(usersAndEmails);
             cleansedData.setShareBookingContacts(contactsList);
 
@@ -125,7 +125,6 @@ public class DataTransformationService {
             return result;
         }
     }
-
 
     private boolean containsTestKeyWord(String value, String criteria) {
         return value != null && value.toLowerCase().contains(criteria);
@@ -216,24 +215,53 @@ public class DataTransformationService {
         return referenceBuilder.toString();
     }
 
+    private int getLastKnownVersion(String recordingKey) {
+        Integer lastVersion = (Integer) redisTemplate.opsForValue().get(recordingKey);
+        return (lastVersion != null) ? lastVersion : 0;
+    }
+
+    private void updateLastKnownVersion(String recordingKey, int version) {
+        redisTemplate.opsForValue().set(recordingKey, version);
+    }
+
+
     private int determineRecordingVersion(CSVArchiveListData archiveItem, CleansedData cleansedItem) {
+        String recordingKey = buildRecordingKey(cleansedItem);
+        int lastKnownVersion = getLastKnownVersion(recordingKey);
+
         String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveItem);
         String recordingVersion = cleansedItem.getRecordingVersion();
-        
+
         int versionNumber;
-        
+
         if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
-            versionNumber = Integer.parseInt(recordingVersionNumber);
+            try {
+                versionNumber = (int) Double.parseDouble(recordingVersionNumber);
+            } catch (NumberFormatException e) {
+                versionNumber = 1;
+            }
         } else {
-            versionNumber = 1;  
+            versionNumber = 1;
         }
 
         if ("COPY".equalsIgnoreCase(recordingVersion)) {
-            return versionNumber + 1;
+            versionNumber = lastKnownVersion + 1;
+        } else {
+            versionNumber = Math.max(versionNumber, lastKnownVersion + 1);
         }
-        
+
+        updateLastKnownVersion(recordingKey, versionNumber);
         return versionNumber;
     }
+
+    private String buildRecordingKey(CleansedData cleansedItem) {
+        return String.format("recording:%s:%s:%s:%s",
+            cleansedItem.getCourtReference(),
+            cleansedItem.getUrn(),
+            cleansedItem.getExhibitReference(),
+            cleansedItem.getDefendantLastName());
+    }
+
 
     private List<Map<String, String>> populateShareBookingContacts(List<String[]> usersAndEmails) {
         List<Map<String, String>> contactsList = new ArrayList<>();

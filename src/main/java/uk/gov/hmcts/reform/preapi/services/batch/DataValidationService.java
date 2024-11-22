@@ -6,14 +6,13 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.logging.Logger;
+
 
 @Service    
 public class DataValidationService {
 
     private final MigrationTrackerService migrationTrackerService;
-    private final Set<String> archiveCache = new HashSet<>();
     
     @Autowired
     public DataValidationService(MigrationTrackerService migrationTrackerService) {
@@ -24,42 +23,24 @@ public class DataValidationService {
         CleansedData cleansedData, 
         CSVArchiveListData archiveItem) {
 
-        if (isDuplicateArchiveName(archiveItem)) {
-            return false;  
-        }
 
         if (!validateDate(cleansedData, archiveItem)) {
+            Logger.getAnonymousLogger().info("failed validate date");
             return false;
         }
 
         if (!validateTestData(cleansedData, archiveItem)) {
+            Logger.getAnonymousLogger().info("failed validate test");
             return false;
         }
 
         if (!validateCourt(cleansedData, archiveItem)) {
+            Logger.getAnonymousLogger().info("failed validate court");
+
             return false;
         }
 
         return validateCaseReference(cleansedData, archiveItem);
-    }
-
-    private boolean isDuplicateArchiveName(CSVArchiveListData archiveItem) {
-        String archiveName = getBaseArchiveName(archiveItem.getArchiveName());
-
-        if (archiveCache.contains(archiveName)) {
-            handleFailure(archiveItem, "FAIL : Duplicate archive name");
-            return true;  
-        }
-
-        archiveCache.add(archiveName);
-        return false;
-    }
-
-    private String getBaseArchiveName(String archiveName) {
-        if (archiveName.contains(".")) {
-            return archiveName.substring(0, archiveName.indexOf('.'));
-        } 
-        return archiveName;  
     }
 
     private boolean validateDate(CleansedData cleansedData, CSVArchiveListData archiveItem) {

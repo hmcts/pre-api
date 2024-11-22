@@ -106,19 +106,18 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return channelDataItem;
     }
 
-
     private MigratedItemGroup processArchiveListData(CSVArchiveListData archiveItem) {
 
         try {
             Map<String, Object> transformationResult = transformationService.transformArchiveListData(
                 archiveItem, sitesDataMap, channelUserDataMap);
             
+            
             String errorMessage = (String) transformationResult.get("errorMessage");
             if (errorMessage != null) {
                 migrationTrackerService.addFailedItem(new FailedItem(archiveItem, errorMessage));
                 return null;  
             }
-            
             String pattern = "";
             try {
                 Map.Entry<String, Matcher> patternMatch = getPatternMatch(archiveItem);
@@ -141,7 +140,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return null;
     }
 
-
     private Map.Entry<String, Matcher> getPatternMatch(CSVArchiveListData archiveItem) {
         return extractionService.matchPattern(archiveItem);
     }
@@ -152,21 +150,13 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         Case acase = createCaseIfOrig(cleansedData);
         if (acase != null) {
-
             Booking booking = createBooking(cleansedData, acase);
-
             CaptureSession captureSession = createCaptureSession(cleansedData, booking);
-
             Recording recording = createRecording(cleansedData, captureSession);
-
             Set<Participant> participants = createParticipants(cleansedData, acase);
-
             List<ShareBooking> shareBookings = new ArrayList<>();
-
             List<User> users = new ArrayList<>();
-
             List<Object> shareBookingResult = createShareBookings(cleansedData, booking);
-
             try {
                 shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
                 users = (List<User>) shareBookingResult.get(1);
@@ -176,35 +166,32 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             }
 
             PassItem passItem = new PassItem(pattern, archiveName, acase, booking, captureSession, recording);
-
             try {
                 migratedItemGroup = new MigratedItemGroup(acase, booking, 
                     captureSession, recording, participants, passItem, shareBookings, users);
+                
             } catch (Exception e) {
                 Logger.getAnonymousLogger().info("ERROR: " + e.getMessage()); 
             }
-            
             return migratedItemGroup; 
         } 
         return null;
     }
 
-
     private Case createCaseIfOrig(CleansedData cleansedData) {
         String caseReference = transformationService.buildCaseReference(cleansedData);
-
         if (caseCache.containsKey(caseReference)) {
             return caseCache.get(caseReference);
 
         }
 
         if (transformationService.isOriginalVersion(cleansedData)) {
+
             Case newCase = createCase(cleansedData);
             
             caseCache.put(caseReference, newCase);
             return newCase;
         }
-
         return null;
     }
 
@@ -216,7 +203,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         aCase.setTest(cleansedItem.isTest());
         aCase.setCreatedAt(cleansedItem.getRecordingTimestamp());
         aCase.setState(cleansedItem.getState());
-      
         return aCase;
     }
 
@@ -244,11 +230,11 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         List<User> sharedWithUsers = new ArrayList<>();
         List<ShareBooking> shareBookings = new ArrayList<>();
 
+
         for (Map<String, String> contactInfo : cleansedItem.getShareBookingContacts()) {
             User user = getOrCreateUser(contactInfo);
             if (user != null) {
                 sharedWithUsers.add(user);
-
                 ShareBooking shareBooking = new ShareBooking();
                 shareBooking.setId(UUID.randomUUID());
                 shareBooking.setBooking(booking);
@@ -268,21 +254,19 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return List.of(shareBookings, sharedWithUsers);
     }
 
-
-
-
     private User getOrCreateUser(Map<String, String> contactInfo) {
         String email = contactInfo.get("email");
         if (email == null) {
             Logger.getAnonymousLogger().info("Email is null in contact info, skipping user creation.");
             return null;
         }
-
         String redisUserKey = "user:" + email;
         String userId = (String) redisTemplate.opsForValue().get(redisUserKey);
+    
 
+        User user = userRepository.findById(UUID.fromString(userId)).orElse(null);
         if (userId != null) {
-            return userRepository.findById(UUID.fromString(userId)).orElse(null);
+            return user;
         } else {            
             User newUser = new User();
             newUser.setId(UUID.randomUUID());
@@ -294,8 +278,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             return newUser;
         }
     }
-
-
 
     private Recording createRecording(CleansedData cleansedItem, CaptureSession captureSession) {
         Recording recording = new Recording();
@@ -341,7 +323,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         return Set.of(witness, defendant);
     }
-
 
     private void loadCaseCache() {
         List<Case> cases = caseRepository.findAll();

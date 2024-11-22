@@ -16,6 +16,7 @@ public class DataExtractionService {
     private final Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
 
     public DataExtractionService() {
+        namedPatterns.put("10", RegexPatterns.PATTERN_10);
         namedPatterns.put("9", RegexPatterns.PATTERN_9);
         namedPatterns.put("7", RegexPatterns.PATTERN_7);
         namedPatterns.put("8", RegexPatterns.PATTERN_8);
