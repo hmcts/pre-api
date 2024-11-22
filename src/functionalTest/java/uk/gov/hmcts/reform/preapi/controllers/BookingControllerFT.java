@@ -451,7 +451,7 @@ class BookingControllerFT extends FunctionalTestBase {
         var putBooking = putBooking(booking);
         assertResponseCode(putBooking, 400);
         assertThat(putBooking.body().jsonPath().getString("scheduledFor"))
-            .isEqualTo("scheduled_for is required and must not be before today");
+            .isEqualTo("must not be before today");
     }
 
     @DisplayName("Create a booking with a participant that is not part of the case")
@@ -592,7 +592,7 @@ class BookingControllerFT extends FunctionalTestBase {
         assertCaseExists(caseEntity.getId(), true);
 
         var captureSession = createCaptureSession(booking.getId());
-        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         var putCaptureSession = putCaptureSession(captureSession);
         assertResponseCode(putCaptureSession, 201);
 
