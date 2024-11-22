@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -40,21 +39,13 @@ public class RecordingService {
 
     private final CaptureSessionService captureSessionService;
 
-    private final EmailServiceFactory emailServiceFactory;
-
-    private final ShareBookingService shareBookingService;
-
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
-                            @Lazy CaptureSessionService captureSessionService,
-                            EmailServiceFactory emailServiceFactory,
-                            ShareBookingService shareBookingService) {
+                            @Lazy CaptureSessionService captureSessionService) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
-        this.emailServiceFactory = emailServiceFactory;
-        this.shareBookingService = shareBookingService;
     }
 
     @Transactional
@@ -143,13 +134,7 @@ public class RecordingService {
 
         recordingRepository.save(recordingEntity);
 
-        var isUpdate = recording.isPresent();
-
-        if (!isUpdate) {
-            onRecordingCreated(recordingEntity);
-        }
-
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional
@@ -188,23 +173,5 @@ public class RecordingService {
         }
         entity.setDeletedAt(null);
         recordingRepository.save(entity);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
-    public void onRecordingCreated(Recording r) {
-        log.info("onRecordingCreated: Recording({})", r.getId());
-        var shares = shareBookingService.getSharesForCase(r.getCaptureSession().getBooking().getCaseId());
-
-        try {
-            if (!emailServiceFactory.isEnabled()) {
-                return;
-            }
-            var emailService = emailServiceFactory.getEnabledEmailService();
-            shares.forEach(share -> emailService.recordingReady(
-                share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId())
-            );
-        } catch (Exception e) {
-            log.error("Failed to notify users of recording ready for recording: " + r.getId());
-        }
     }
 }
