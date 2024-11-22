@@ -8,6 +8,8 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -83,6 +85,14 @@ public class EditRequestService {
             .findByIdNotLocked(id)
             .map(EditRequestDTO::new)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
+    }
+
+    @Transactional
+    @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
+    public Page<EditRequestDTO> findAll(UUID sourceRecordingId, Pageable pageable) {
+        return editRequestRepository
+            .searchAllBy(sourceRecordingId, pageable)
+            .map(EditRequestDTO::new);
     }
 
     @Transactional
@@ -212,8 +222,8 @@ public class EditRequestService {
 
         var isUpdate = req.isPresent();
         if (!isUpdate) {
-            var user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
-                .getAppAccess().getUser();
+            var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+            var user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
         }
@@ -227,12 +237,13 @@ public class EditRequestService {
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         var id = UUID.randomUUID();
-        upsert(CreateEditRequestDTO.builder()
-                   .id(id)
-                   .sourceRecordingId(sourceRecordingId)
-                   .editInstructions(parseCsv(file))
-                   .status(EditRequestStatus.PENDING)
-                   .build());
+        var dto = new CreateEditRequestDTO();
+        dto.setId(id);
+        dto.setSourceRecordingId(sourceRecordingId);
+        dto.setEditInstructions(parseCsv(file));
+        dto.setStatus(EditRequestStatus.PENDING);
+
+        upsert(dto);
 
         return editRequestRepository.findById(id)
             .map(EditRequestDTO::new)

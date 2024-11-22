@@ -246,6 +246,7 @@ public class EditRequestServiceTest {
         appAccess.setUser(user);
 
         when(mockAuth.getAppAccess()).thenReturn(appAccess);
+        when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         List<EditCutInstructionDTO> instructions = new ArrayList<>();
@@ -254,12 +255,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(sourceRecording.getId())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
             .thenReturn(Optional.of(sourceRecording));
@@ -296,12 +296,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(sourceRecording.getId())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
@@ -343,12 +342,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(UUID.randomUUID())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId()))
             .thenReturn(Optional.empty());
@@ -386,12 +384,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(sourceRecording.getId())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
             .thenReturn(Optional.of(sourceRecording));
