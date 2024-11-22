@@ -121,7 +121,7 @@ class CaseServiceTest {
     @BeforeEach
     void reset() {
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
-        when(emailServiceFactory.getEnabledEmailService(eq("govnotify"))).thenReturn(govNotify);
+        when(emailServiceFactory.getEnabledEmailService(eq("GovNotify"))).thenReturn(govNotify);
         when(emailServiceFactory.isEnabled()).thenReturn(false);
 
         caseEntity.setDeletedAt(null);

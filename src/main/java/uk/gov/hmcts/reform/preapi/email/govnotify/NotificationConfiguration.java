@@ -9,9 +9,8 @@ import uk.gov.service.notify.NotificationClient;
 public class NotificationConfiguration {
     @Bean
     public NotificationClient notificationClient(
-        @Value("${email.govNotify.key}") String apiKey,
-        @Value("${portal.url}") String portalUrl
+        @Value("${email.govNotify.key}") String apiKey
     ) {
-        return new NotificationClient(apiKey, portalUrl);
+        return new NotificationClient(apiKey);
     }
 }
