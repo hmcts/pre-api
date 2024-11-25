@@ -23,7 +23,7 @@ public class EditRequestDTOTest {
     static void setUp() {
         editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setEditInstruction("{}");
+        editRequest.setEditInstruction("{\"requestedInstructions\": [], \"ffmpegInstructions\": []}");
         editRequest.setStatus(EditRequestStatus.COMPLETE);
         editRequest.setStartedAt(Timestamp.from(Instant.now()));
         editRequest.setFinishedAt(Timestamp.from(Instant.now()));
@@ -59,7 +59,8 @@ public class EditRequestDTOTest {
         var dto = new EditRequestDTO(editRequest);
 
         assertThat(dto.getId()).isEqualTo(editRequest.getId());
-        assertThat(dto.getEditInstruction()).isEqualTo(editRequest.getEditInstruction());
+        assertThat(dto.getEditInstruction().getRequestedInstructions()).isEmpty();
+        assertThat(dto.getEditInstruction().getFfmpegInstructions()).isEmpty();
         assertThat(dto.getStatus()).isEqualTo(editRequest.getStatus());
         assertThat(dto.getStartedAt()).isEqualTo(editRequest.getStartedAt());
         assertThat(dto.getFinishedAt()).isEqualTo(editRequest.getFinishedAt());
