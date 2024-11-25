@@ -1,14 +1,11 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.Map;
@@ -24,7 +21,7 @@ public class EditControllerFT extends FunctionalTestBase {
 
     @Test
     @DisplayName("Should create an edit request from a csv")
-    void editFromCsvSuccess() throws JsonProcessingException {
+    void editFromCsvSuccess() {
         var recordingDetails = createRecording();
         assertRecordingExists(recordingDetails.recordingId(), true);
 
@@ -40,8 +37,7 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(postResponse.getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
         assertThat(postResponse.getEditInstruction()).isNotNull();
-        var instructions = OBJECT_MAPPER.readValue(postResponse.getEditInstruction(),
-                                                   new TypeReference<EditInstructions>() {});
+        var instructions = postResponse.getEditInstruction();
         assertThat(instructions).isNotNull();
 
         var requestedInstructions = instructions.getRequestedInstructions();
