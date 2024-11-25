@@ -24,11 +24,11 @@ public class RecordingListener {
 
     @Autowired
     public RecordingListener(@Lazy AzureFinalStorageService azureFinalStorageService,
-                             EmailServiceFactory emailServiceFactory,
-                             ShareBookingService shareBookingService) {
+                             @Lazy ShareBookingService shareBookingService,
+                             EmailServiceFactory emailServiceFactory) {
         this.azureFinalStorageService = azureFinalStorageService;
-        this.emailServiceFactory = emailServiceFactory;
         this.shareBookingService = shareBookingService;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @PrePersist
