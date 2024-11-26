@@ -8,6 +8,7 @@ import jakarta.persistence.Table;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
@@ -17,11 +18,11 @@ import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.exception.UnauditableTableException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.util.UUID;
 
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
-
 
 @Component
 public class AuditListener {
@@ -74,6 +75,9 @@ public class AuditListener {
 
         audit.setAuditDetails(mapper.valueToTree(entity.getDetailsForAudit()));
         var userId = getUserIdFromRequestHeader();
+        if (userId == null) {
+            userId = getUserIdFromContext();
+        }
         if (userId != null) {
             audit.setCreatedBy(userId);
         }
@@ -97,5 +101,14 @@ public class AuditListener {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    protected UUID getUserIdFromContext() {
+        if (!(SecurityContextHolder.getContext().getAuthentication() instanceof UserAuthentication auth)) {
+            return null;
+        }
+        return auth.isAppUser()
+            ? (auth.getAppAccess() != null ? auth.getAppAccess().getId() : null)
+            : (auth.getPortalAccess() != null ? auth.getPortalAccess().getId() : null);
     }
 }

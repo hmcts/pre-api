@@ -14,10 +14,10 @@ import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
@@ -31,7 +31,6 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -413,5 +412,24 @@ public class FunctionalTestBase {
     }
 
     protected record AuthUserDetails(UUID accessId, UUID courtId) {
+    }
+
+    protected CreateRecordingDTO createRecording(UUID captureSessionId) {
+        var dto = new CreateRecordingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCaptureSessionId(captureSessionId);
+        dto.setEditInstructions("{}");
+        dto.setVersion(1);
+        dto.setUrl("example url");
+        dto.setFilename("example.file");
+        return dto;
+    }
+
+    protected Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            RECORDINGS_ENDPOINT + "/" + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 }
