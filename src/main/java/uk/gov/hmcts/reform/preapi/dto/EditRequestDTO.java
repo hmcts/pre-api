@@ -43,6 +43,9 @@ public class EditRequestDTO {
     @Schema(description = "EditRequestCreatedById")
     private UUID createdById;
 
+    @Schema(description = "EditRequestCreatedByName")
+    private String createdBy;
+
     @Schema(description = "EditRequestCreatedAt")
     private Timestamp createdAt;
 
@@ -69,6 +72,7 @@ public class EditRequestDTO {
         this.startedAt = editRequest.getStartedAt();
         this.finishedAt = editRequest.getFinishedAt();
         this.createdById = editRequest.getCreatedBy().getId();
+        this.createdBy = editRequest.getCreatedBy().getFullName();
         this.createdAt = editRequest.getCreatedAt();
         this.modifiedAt = editRequest.getModifiedAt();
         this.jointlyAgreed = editRequest.getJointlyAgreed();
@@ -86,6 +90,7 @@ public class EditRequestDTO {
         this.finishedAt = editRequest.getFinishedAt();
         this.createdById = editRequest.getCreatedBy().getId();
         this.createdAt = editRequest.getCreatedAt();
+        this.createdBy = editRequest.getCreatedBy().getFullName();
         this.modifiedAt = editRequest.getModifiedAt();
         this.jointlyAgreed = editRequest.getJointlyAgreed();
         this.rejectionReason = editRequest.getRejectionReason();
