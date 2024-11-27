@@ -12,7 +12,7 @@ public class XMLProcessor implements ItemProcessor<ArchiveFiles, ArchiveFiles> {
     @Override
     public ArchiveFiles process(ArchiveFiles archiveFiles) {
         String displayName = archiveFiles.getDisplayName();
-        int duration = archiveFiles.getMp4FileGrp().getMp4File().getDuration();
+        int duration = archiveFiles.getDuration();
         long creatTime = archiveFiles.getMp4FileGrp().getMp4File().getCreatTime();
         Logger.getAnonymousLogger().info("Display Name: " + displayName);
         Logger.getAnonymousLogger().info("Duration: " + duration);

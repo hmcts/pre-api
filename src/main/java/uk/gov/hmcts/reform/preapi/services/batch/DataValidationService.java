@@ -6,9 +6,6 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 
-import java.util.logging.Logger;
-
-
 @Service    
 public class DataValidationService {
 
@@ -23,28 +20,43 @@ public class DataValidationService {
         CleansedData cleansedData, 
         CSVArchiveListData archiveItem) {
 
+        if (!validateFileExtension(cleansedData, archiveItem)) {
+            return false;
+        }
 
         if (!validateDate(cleansedData, archiveItem)) {
-            Logger.getAnonymousLogger().info("failed validate date");
             return false;
         }
 
         if (!validateTestData(cleansedData, archiveItem)) {
-            Logger.getAnonymousLogger().info("failed validate test");
             return false;
         }
 
         if (!validateCourt(cleansedData, archiveItem)) {
-            Logger.getAnonymousLogger().info("failed validate court");
-
             return false;
         }
+
 
         return validateCaseReference(cleansedData, archiveItem);
     }
 
-    private boolean validateDate(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    private boolean validateFileExtension(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+        String fileExtension = cleansedData.getFileExtension();
+        fileExtension = (fileExtension == null || fileExtension.isBlank()) ? "" : fileExtension.toLowerCase();
 
+        if (fileExtension.isBlank()) {
+            handleFailure(archiveItem, "File not .mp4 file.");
+            return false;
+        }
+
+        if (".raw".equalsIgnoreCase(fileExtension) || ".ra".equalsIgnoreCase(fileExtension)) {
+            handleFailure(archiveItem, "File with .raw extension not to migrate");
+            return false;
+        }
+        return true;
+    }
+
+    private boolean validateDate(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         if (cleansedData.getRecordingTimestamp() == null) {
             handleFailure(archiveItem, "Invalid timestamp: Timestamp is null.");
             return false;

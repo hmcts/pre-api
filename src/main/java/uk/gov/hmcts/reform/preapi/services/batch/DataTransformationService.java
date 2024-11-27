@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -21,8 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Logger;
-
 
 @Service
 public class DataTransformationService {
@@ -30,20 +27,16 @@ public class DataTransformationService {
     private final RedisTemplate<String, Object> redisTemplate; 
     private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
-    private final MigrationTrackerService migrationTrackerService;
-
     
     @Autowired
     public DataTransformationService(
         RedisTemplate<String, Object> redisTemplate,
         DataExtractionService extractionService,
-        CourtRepository courtRepository,
-        MigrationTrackerService migrationTrackerService
+        CourtRepository courtRepository
     ) {
         this.redisTemplate = redisTemplate;
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
-        this.migrationTrackerService = migrationTrackerService;
     }
     
     public Map<String, Object> transformArchiveListData(
@@ -108,6 +101,7 @@ public class DataTransformationService {
             cleansedData.setTest(checkIsTest(archiveItem).isTest());
             cleansedData.setTestCheckResult(checkIsTest(archiveItem));
             cleansedData.setState(CaseState.CLOSED);
+            cleansedData.setFileExtension(extractionService.extractFileExtension(archiveItem));
             cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
             cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData));
 
@@ -137,6 +131,8 @@ public class DataTransformationService {
             reasons.append("Archive name contains 'test'. ");
         } else if (containsTestKeyWord(archiveItem.getArchiveName(), "demo")) {
             reasons.append("Archive name contains 'demo'. ");
+        } else if (containsTestKeyWord(archiveItem.getArchiveName(), "unknown")) {
+            reasons.append("Archive name contains 'unknown'. ");
         } else if (containsTestKeyWord(archiveItem.getFarEndAddress(), "test")) {
             reasons.append("Far end address contains 'test'. ");
         } else if (containsTestKeyWord(archiveItem.getDescription(), "test")) {
@@ -188,8 +184,6 @@ public class DataTransformationService {
 
             return Timestamp.valueOf(formattedDate);
         } catch (DateTimeParseException e) {
-            Logger.getAnonymousLogger().severe("Failed to parse date: "
-                + recordingDate + e.getMessage());
             return null; 
         }
     }
@@ -285,10 +279,6 @@ public class DataTransformationService {
         }
         
         return contactsList;
-    }
-
-    private void logFailedExtraction(CSVArchiveListData archiveItem, String errorMessage) {
-        migrationTrackerService.addFailedItem(new FailedItem(archiveItem, errorMessage));
     }
 
     

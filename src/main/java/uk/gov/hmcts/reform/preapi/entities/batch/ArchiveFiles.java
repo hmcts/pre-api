@@ -11,6 +11,9 @@ public class ArchiveFiles {
 
     @XmlElement(name = "DisplayName")
     private String displayName;
+    
+    @XmlElement(name = "Duration")
+    private int duration;
 
     @XmlElement(name = "MP4FileGrp")
     private MP4FileGrp mp4FileGrp;
@@ -21,6 +24,14 @@ public class ArchiveFiles {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
     }
 
     public MP4FileGrp getMp4FileGrp() {
@@ -49,19 +60,8 @@ public class ArchiveFiles {
     @XmlAccessorType(XmlAccessType.FIELD)
     public static class MP4File {
 
-        @XmlElement(name = "Duration")
-        private int duration;
-
         @XmlElement(name = "CreatTime")
         private long creatTime;
-
-        public int getDuration() {
-            return duration;
-        }
-
-        public void setDuration(int duration) {
-            this.duration = duration;
-        }
 
         public long getCreatTime() {
             return creatTime;

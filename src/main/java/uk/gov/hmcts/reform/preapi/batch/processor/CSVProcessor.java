@@ -112,8 +112,8 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             Map<String, Object> transformationResult = transformationService.transformArchiveListData(
                 archiveItem, sitesDataMap, channelUserDataMap);
             
-            
             String errorMessage = (String) transformationResult.get("errorMessage");
+
             if (errorMessage != null) {
                 migrationTrackerService.addFailedItem(new FailedItem(archiveItem, errorMessage));
                 return null;  
@@ -130,7 +130,6 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             if (!validationService.validateCleansedData(cleansedData, archiveItem)) {
                 return null;
             }
-
             return createMigratedItemGroup(pattern, archiveItem.getArchiveName(), cleansedData);
 
         } catch (Exception e) {
@@ -147,19 +146,20 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
     @SuppressWarnings("unchecked")
     private MigratedItemGroup createMigratedItemGroup(String pattern, String archiveName, CleansedData cleansedData) {
         MigratedItemGroup migratedItemGroup = null; 
-
         Case acase = createCaseIfOrig(cleansedData);
+     
         if (acase != null) {
-            Booking booking = createBooking(cleansedData, acase);
+            Booking booking = createBooking(cleansedData, acase);  
             CaptureSession captureSession = createCaptureSession(cleansedData, booking);
             Recording recording = createRecording(cleansedData, captureSession);
             Set<Participant> participants = createParticipants(cleansedData, acase);
             List<ShareBooking> shareBookings = new ArrayList<>();
             List<User> users = new ArrayList<>();
-            List<Object> shareBookingResult = createShareBookings(cleansedData, booking);
+
             try {
-                shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
-                users = (List<User>) shareBookingResult.get(1);
+                List<Object> shareBookingResult = createShareBookings(cleansedData, booking);
+                // shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
+                // users = (List<User>) shareBookingResult.get(1);
             } catch (Exception e) {
                 Logger.getAnonymousLogger().severe("Error in createMigratedItemGroup: " + e.getMessage());
                 return null;
@@ -226,38 +226,41 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return captureSession;
     }
 
-    private List<Object> createShareBookings(CleansedData cleansedItem, Booking booking) {
-        List<User> sharedWithUsers = new ArrayList<>();
-        List<ShareBooking> shareBookings = new ArrayList<>();
 
+    private List<Object> createShareBookings(CleansedData cleansedData, Booking booking) {
+        List<Object> results = new ArrayList<>();
+        try {
+            if (cleansedData == null || booking == null) {
+                return null;
+            }
 
-        for (Map<String, String> contactInfo : cleansedItem.getShareBookingContacts()) {
-            User user = getOrCreateUser(contactInfo);
-            if (user != null) {
-                sharedWithUsers.add(user);
+            List<ShareBooking> shareBookings = new ArrayList<>();
+            List<User> sharedWithUsers = new ArrayList<>();
+
+            for (Map<String, String> contactInfo : cleansedData.getShareBookingContacts()) {
+                User user = getOrCreateUser(contactInfo);
                 ShareBooking shareBooking = new ShareBooking();
                 shareBooking.setId(UUID.randomUUID());
                 shareBooking.setBooking(booking);
                 shareBooking.setSharedBy(user); 
                 shareBooking.setSharedWith(user); 
 
+                sharedWithUsers.add(user);
                 shareBookings.add(shareBooking);
-            } else {
-                Logger.getAnonymousLogger().info("Skiped null user for contact info: " + contactInfo);
             }
-        }
 
-        if (shareBookings.isEmpty()) {
-            return List.of(null, null);
-        }
+            results.add(shareBookings);
+            results.add(sharedWithUsers);
 
-        return List.of(shareBookings, sharedWithUsers);
+        } catch (Exception e) {
+            Logger.getAnonymousLogger().severe("Error in createShareBookings: " + e.getMessage());
+        }
+        return results.isEmpty() ? null : results;
     }
 
     private User getOrCreateUser(Map<String, String> contactInfo) {
         String email = contactInfo.get("email");
         if (email == null) {
-            Logger.getAnonymousLogger().info("Email is null in contact info, skipping user creation.");
             return null;
         }
         String redisUserKey = "user:" + email;

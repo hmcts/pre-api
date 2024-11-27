@@ -23,6 +23,7 @@ public class CleansedData {
     private int recordingVersionNumber;
     private Duration duration;
     private boolean isTest;
+    private String fileExtension;
     private TestItem testCheckResult;
     private String[] shareBookingEmails;
     private List<Map<String, String>> shareBookingContacts;
@@ -43,6 +44,7 @@ public class CleansedData {
                         int recordingVersionNumber,
                         Duration duration,
                         boolean isTest, 
+                        String fileExtension,
                         TestItem testCheckResult,
                         String[] shareBookingEmails,
                         List<Map<String, String>> shareBookingContacts
@@ -59,6 +61,7 @@ public class CleansedData {
         this.recordingVersionNumber = recordingVersionNumber;
         this.duration = duration;
         this.isTest = isTest;
+        this.fileExtension = fileExtension;
         this.testCheckResult = testCheckResult;
         this.court = court;
         this.state = state;
@@ -153,6 +156,7 @@ public class CleansedData {
     public void setTest(boolean test) { 
         isTest = test; 
     }
+    
 
     public TestItem getTestCheckResult() {
         return testCheckResult;
@@ -160,6 +164,14 @@ public class CleansedData {
 
     public void setTestCheckResult(TestItem testCheckResult) {
         this.testCheckResult = testCheckResult;
+    }
+
+    public String getFileExtension() { 
+        return fileExtension; 
+    }
+
+    public void setFileExtension(String extension) { 
+        fileExtension = extension; 
     }
 
     public Court getCourt() { 

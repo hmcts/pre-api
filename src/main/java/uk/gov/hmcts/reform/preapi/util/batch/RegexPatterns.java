@@ -18,7 +18,21 @@ public final class RegexPatterns {
         + "(?<defendantLastName>[A-Za-z]+)?[-_\\s]*"  
         + "(?<versionType>ORIG|COPY|CPY|ORG|ORI)?(?<versionNumber>\\d*)?[-_\\s]*"  
         + "(?:[A-Za-z0-9]+)?"
-        + "(?:\\.(?i)(mp4|raw))?$"  
+        + "(?<ext>\\.(mp4|raw|RAW))?$"  
+    );
+    
+    // Livrpl-191014-05E42881516-T20197346-ABLEWHITE-KATRINA-ORIG_QC.ra
+    public static final Pattern PATTERN_12 = Pattern.compile(
+        "^(?:S28[_\\s-]+)?(?<court>[A-Za-z]+(?:-[A-Za-z]+)*)?[-_\\s]*"
+        + "(?:\\d{5})?" 
+        + "(?:[A-Za-z]+[-_\\s]+)?"  
+        + "(?<date>(?:\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{6}))?(?:-\\d{4})?[-_\\s]*"  
+        + "(?<urn>[A-Za-z0-9]+)?[-_\\s]*"  
+        + "(?<exhibitRef>T\\d+)?[-_\\s]*"  
+        + "(?<witnessFirstName>[A-Za-z]+)?[-_\\s]*"  
+        + "(?<defendantLastName>[A-Za-z]+)?[-_\\s]*"  
+        + "(?<versionType>ORIG|COPY|CPY|ORG|ORI)?(?<versionNumber>\\d*)?(?:_QC)?"  
+        + "(?<ext>\\.(mp4|raw|RAW))?$"  
     );
     
     public static final Pattern PATTERN_2 = Pattern.compile(
@@ -29,7 +43,7 @@ public final class RegexPatterns {
         + "(?<defendantLastName>[A-Za-z]+)?[-_\\s]*" 
         + "(?<witnessFirstName>[A-Za-z]+)?[-_\\s]*"
         + "(?<versionType>ORIG|COPY|CPY|ORG)?-?(?<versionNumber>\\d*)?" 
-        + "(?:\\.(?i)(mp4|raw|RAW))?$"             
+        + "(?<ext>\\.(mp4|raw|RAW))?$"             
     );
 
     public static final Pattern PATTERN_3 = Pattern.compile(
@@ -41,7 +55,7 @@ public final class RegexPatterns {
         + "(?<witnessFirstName>[A-Za-z]+(?:-[A-Za-z]+)?)[-_\\s]*" 
         + "(?<versionType>ORIG|COPY|CPY|ORG)?[-_\\s]*" 
         + "(?<versionNumber>\\d*)?" 
-        + "(?:\\.(?i)(mp4|raw))?$" 
+        + "(?<ext>\\.(mp4|raw|RAW))?$" 
     );
     public static final Pattern PATTERN_4 = Pattern.compile(
         "^(?<court>[A-Za-z]+)[-_\\s]*" 
@@ -52,7 +66,7 @@ public final class RegexPatterns {
         + "(?<witnessFirstName>[A-Za-z]+)?[-_\\s]*"
         + "(?<versionType>ORIG|COPY|CPY|ORG)?[-_\\s]*" 
         + "(?<versionNumber>\\d*)?" 
-        + "(?:\\.(?i)(mp4|raw))?$" 
+        + "(?<ext>\\.(mp4|raw|RAW))?$" 
     );
 
     public static final Pattern PATTERN_5 = Pattern.compile(
@@ -65,7 +79,7 @@ public final class RegexPatterns {
         + "(?<witnessFirstName>[A-Za-z]+)?[-_\\s]*"
         + "(?<versionType>ORIG|COPY|CPY|ORG)?[-_\\s]*" 
         + "(?<versionNumber>\\d*)?" 
-        + "(?:\\.(?i)(mp4|raw))?$" 
+        + "(?<ext>\\.(mp4|raw|RAW))?$" 
     );
 
     public static final Pattern PATTERN_6 = Pattern.compile(
@@ -74,7 +88,7 @@ public final class RegexPatterns {
         + "(?<witnessFirstName>[A-Za-z-]+)?[-_\\s]*"  
         + "(?<defendantLastName>[A-Za-z]+)?[-_\\s]*"  
         + "(?<versionType>ORIG|COPY|CPY|ORG)?(?<versionNumber>\\d*)?[-_\\s]*"  
-        + "(?:\\.(?i)(mp4|raw))?$"              
+        + "(?<ext>\\.(mp4|raw|RAW))?$"            
     );
 
     public static final Pattern PATTERN_7 = Pattern.compile(
@@ -86,7 +100,7 @@ public final class RegexPatterns {
          + "(?<witnessFirstName>[A-Za-z]+)[-_\\s]*"
          + "(?:[A-Za-z0-9]+)?[-_\\s]*"
          + "(?:[0-9]+)?[-_\\s]*"
-         + "(?:\\.(?i)(mp4|raw))?$"
+         + "(?<ext>\\.(mp4|raw|RAW))?$" 
         );
 
     public static final Pattern PATTERN_8 = Pattern.compile(
@@ -98,7 +112,7 @@ public final class RegexPatterns {
         + "(?<defendantLastName>[A-Za-z]+)[-_\\s]*"         
         + "(?<version>ORIG)[-_\\s]*"                      
         + "_(?<timestamp>\\d{14})"                          
-        + "\\.(?i)(mp4|raw)$"                               
+        + "(?<ext>\\.(mp4|raw|RAW))?$"                           
         );
 
     public static final Pattern PATTERN_9 = Pattern.compile(
@@ -110,7 +124,7 @@ public final class RegexPatterns {
         + "(?<defendantLastName>[A-Za-z]+)[-_\\s]*"   
         + "(?<versionType>ORIG)[-_\\s]*"           
         + "_(?<timestamp>\\d{14})"                 
-        + "\\.(?i)(mp4|raw)$"                        
+        + "(?<ext>\\.(mp4|raw|RAW))?$"                        
     );
 
     public static final Pattern PATTERN_10 = Pattern.compile(
@@ -122,6 +136,18 @@ public final class RegexPatterns {
         + "(?<witnessFirstName>[A-Za-z]+)?[-_\\s]*"
         + "(?<versionType>ORIG|COPY|CPY|ORG)?[-_\\s]*" 
         + "(?<versionNumber>\\d+(\\.\\d+)*)?" 
-        + "(?:\\.(?i)(mp4|raw|RAW))?$"             
+        + "(?<ext>\\.(mp4|raw|RAW))?$"             
+    );
+
+    public static final Pattern PATTERN_11 = Pattern.compile(
+        "^(?:NEW[_\\s-]+)?(?<court>[A-Za-z]+(?:-[A-Za-z]+)*)?[-_\\s]*"
+        + "(?<date>(?:\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{6}))?(?:-\\d{4})?[-_\\s]*"  
+        + "(?<urn>[A-Za-z0-9]+)?[-_\\s]*"  
+        + "(?<exhibitRef>T\\d+)?[-_\\s]*"  
+        + "(?<defendantLastName>[A-Za-z]+)?[-_\\s]*"  
+        + "(?<witnessFirstName>[A-Za-z]+)?[-_\\s]*"  
+        + "(?<versionType>ORIG|COPY|CPY|ORG|ORI)?(?<versionNumber>\\d*)?[-_\\s]*"  
+        + "(?:[A-Za-z0-9]+)?"
+        + "(?<ext>\\.(mp4|raw|RAW))?$" 
     );
 }
