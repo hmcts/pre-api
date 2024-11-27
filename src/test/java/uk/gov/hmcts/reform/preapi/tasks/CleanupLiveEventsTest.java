@@ -27,7 +27,7 @@ import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
+import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -57,7 +57,7 @@ public class CleanupLiveEventsTest {
     private static CaptureSessionService captureSessionService;
     private static BookingService bookingService;
     private static RecordingService recordingService;
-    private static AzureMediaService mediaService;
+    private static MediaKind mediaService;
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
     private static StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
@@ -71,7 +71,7 @@ public class CleanupLiveEventsTest {
         mediaServiceBroker = mock(MediaServiceBroker.class);
         captureSessionService = mock(CaptureSessionService.class);
         recordingService = mock(RecordingService.class);
-        mediaService = mock(AzureMediaService.class);
+        mediaService = mock(MediaKind.class);
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
         bookingService = mock(BookingService.class);
@@ -229,7 +229,7 @@ public class CleanupLiveEventsTest {
     @DisplayName("Test CleanupLiveEvents with Capture Session in wrong state to encode")
     @Test
     @SuppressWarnings({"checkstyle:VariableDeclarationUsageDistance"})
-    public void testCaptureSessionInUnexpectedState() throws InterruptedException {
+    public void testCaptureSessionInUnexpectedState() {
         var captureSessionId = UUID.randomUUID();
         var liveEventDTO = new LiveEventDTO();
         liveEventDTO.setId(captureSessionId.toString().replace("-", ""));
@@ -380,7 +380,7 @@ public class CleanupLiveEventsTest {
 
     @DisplayName("Should stop live event when capture session cannot be found (only in non-prod)")
     @Test
-    void runStopLiveEventForMissingCaptureSession() throws InterruptedException {
+    void runStopLiveEventForMissingCaptureSession() {
         var captureSessionId = UUID.randomUUID();
         var liveEventDTO = new LiveEventDTO();
         liveEventDTO.setId(captureSessionId.toString().replace("-", ""));
