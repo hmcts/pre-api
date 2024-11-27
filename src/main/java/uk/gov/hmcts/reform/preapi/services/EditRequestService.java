@@ -216,6 +216,10 @@ public class EditRequestService {
         request.setId(dto.getId());
         request.setSourceRecording(sourceRecording);
         request.setStatus(dto.getStatus());
+        request.setJointlyAgreed(dto.getJointlyAgreed());
+        request.setApprovedAt(dto.getApprovedAt());
+        request.setApprovedBy(dto.getApprovedBy());
+        request.setRejectionReason(dto.getRejectionReason());
 
         var editInstructions = invertInstructions(dto.getEditInstructions(), sourceRecording);
         request.setEditInstruction(toJson(new EditInstructions(dto.getEditInstructions(), editInstructions)));
