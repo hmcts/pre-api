@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Arrays;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 
 @Configuration
 @Slf4j
@@ -22,7 +22,7 @@ public class AzureConfiguration {
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
         if (!managedIdentityClientId.isEmpty()) {
-            log.info("Using managed identity to authenticate with ingest storage account");
+            log.info("Using managed identity to authenticate with ingest storage account {}", ingestStorageAccountName);
             return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, ingestStorageAccountName);
         }
         log.info("Using connection string to authenticate with ingest storage account");
@@ -36,7 +36,7 @@ public class AzureConfiguration {
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
         if (!managedIdentityClientId.isEmpty()) {
-            log.info("Using managed identity to authenticate with final storage account");
+            log.info("Using managed identity to authenticate with final storage account {}", managedIdentityClientId);
             return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, finalStorageAccountName);
         }
         log.info("Using connection string to authenticate with final storage account");
