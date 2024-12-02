@@ -61,6 +61,7 @@ azure:
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
+  managedIdentityClientId: ${AZURE_CLIENT_ID:}
 
 hibernate:
   show_sql: true

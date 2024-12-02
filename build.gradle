@@ -296,6 +296,7 @@ dependencies {
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: versions.jackson
   implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: versions.jackson
 
+  implementation group: 'com.azure', name: 'azure-identity', version: '1.0.1'
   implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.29.0'
 
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
