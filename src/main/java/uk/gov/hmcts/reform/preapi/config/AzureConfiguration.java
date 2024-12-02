@@ -4,14 +4,16 @@ import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Arrays;
 import javax.annotation.Nullable;
+import java.util.Arrays;
 
 @Configuration
+@Slf4j
 public class AzureConfiguration {
     @Bean
     public BlobServiceClient ingestStorageClient(
@@ -20,8 +22,10 @@ public class AzureConfiguration {
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
         if (!managedIdentityClientId.isEmpty()) {
+            log.info("Using managed identity to authenticate with ingest storage account");
             return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, ingestStorageAccountName);
         }
+        log.info("Using connection string to authenticate with ingest storage account");
         return getBlobServiceClientUsingConnectionString(connectionString, ingestStorageAccountName);
     }
 
@@ -32,8 +36,10 @@ public class AzureConfiguration {
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
         if (!managedIdentityClientId.isEmpty()) {
+            log.info("Using managed identity to authenticate with final storage account");
             return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, finalStorageAccountName);
         }
+        log.info("Using connection string to authenticate with final storage account");
         return getBlobServiceClientUsingConnectionString(connectionString, finalStorageAccountName);
     }
 
