@@ -16,5 +16,10 @@ public class AzureConfigurationTest {
                                                             "ingestStorageAccountName",
                                                             "managedIdentityClientId");
         assertThat(client).isNotNull();
+
+        var client2 = azureConfiguration.finalStorageClient("connectionString",
+                                                            "ingestStorageAccountName",
+                                                            "managedIdentityClientId");
+        assertThat(client).isNotNull();
     }
 }
