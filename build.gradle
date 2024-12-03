@@ -112,12 +112,12 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.20.1'
+  toolVersion = '10.20.2'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
 pmd {
-  toolVersion = "7.7.0"
+  toolVersion = "7.8.0"
   sourceSets = [sourceSets.main]
   reportsDir = file("$project.buildDir/reports/pmd")
   // https://github.com/pmd/pmd/issues/876
@@ -243,7 +243,7 @@ ext {
 }
 
 def versions = [
-  jackson         : '2.18.1',
+  jackson         : '2.18.2',
   junit           : '5.11.3',
   junitPlatform   : '1.11.3',
   reformLogging   : '5.1.5',
