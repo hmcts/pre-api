@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
@@ -75,9 +76,12 @@ public class CleanupLiveEventsTest {
         bookingService = mock(BookingService.class);
         stopLiveEventNotifierFlowClient = mock(StopLiveEventNotifierFlowClient.class);
 
+        var role = new RoleDTO();
+        role.setName("Super User");
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
         when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+        when(baseAppAccessDTO.getRole()).thenReturn(role);
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
         when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));

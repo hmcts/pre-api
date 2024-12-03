@@ -154,6 +154,7 @@ public class EditRequestServiceTest {
         editRequest.setStatus(EditRequestStatus.PROCESSING);
         editRequest.setStartedAt(Timestamp.from(Instant.now()));
         editRequest.setSourceRecording(recording);
+        editRequest.setEditInstruction("{}");
 
         when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
         when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
@@ -629,7 +630,10 @@ public class EditRequestServiceTest {
         assertThat(dto.getId()).isEqualTo(newRecordingId);
         assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
         assertThat(dto.getVersion()).isEqualTo(2);
-        assertThat(dto.getEditInstructions()).isEqualTo("{}");
+        assertThat(dto.getEditInstructions())
+            .isEqualTo("{\"editRequestId\":\""
+                + editRequest.getId()
+                + "\",\"editInstructions\":{\"requestedInstructions\":null,\"ffmpegInstructions\":null}}");
         assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
         assertThat(dto.getFilename()).isEqualTo("index.mp4");
 
