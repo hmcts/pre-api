@@ -675,6 +675,73 @@ class BookingControllerFT extends FunctionalTestBase {
                     + ") is associated with a case in the state PENDING_CLOSURE. Must be in state OPEN.");
     }
 
+    @Test
+    @DisplayName("Scenario: Get bookings ordered by capture session's finishedAt")
+    void getBookingsSortByFinishedAt() throws JsonProcessingException {
+        // create booking
+        var caseEntity = createCase();
+        var participants = Set.of(
+            createParticipant(ParticipantType.WITNESS),
+            createParticipant(ParticipantType.DEFENDANT)
+        );
+        caseEntity.setParticipants(participants);
+
+        var putCase1 = putCase(caseEntity);
+        assertResponseCode(putCase1, 201);
+        assertCaseExists(caseEntity.getId(), true);
+
+        var booking1 = createBooking(caseEntity.getId(), participants);
+        var putBooking1 = putBooking(booking1);
+        assertResponseCode(putBooking1, 201);
+        assertBookingExists(booking1.getId(), true);
+
+        var captureSession1 = createCaptureSession(booking1.getId());
+        captureSession1.setFinishedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+        var putCaptureSession1 = putCaptureSession(captureSession1);
+        assertResponseCode(putCaptureSession1, 201);
+        assertCaptureSessionExists(captureSession1.getId(), true);
+
+        var booking2 = createBooking(caseEntity.getId(), participants);
+        var putBooking2 = putBooking(booking2);
+        assertResponseCode(putBooking2, 201);
+        assertBookingExists(booking2.getId(), true);
+
+        var captureSession2 = createCaptureSession(booking2.getId());
+        captureSession2.setFinishedAt(Timestamp.from(Instant.now()));
+        var putCaptureSession2 = putCaptureSession(captureSession2);
+        assertResponseCode(putCaptureSession2, 201);
+        assertCaptureSessionExists(captureSession2.getId(), true);
+
+        var booking3 = createBooking(caseEntity.getId(), participants);
+        var putBooking3 = putBooking(booking3);
+        assertResponseCode(putBooking3, 201);
+        assertBookingExists(booking3.getId(), true);
+
+        var captureSession3 = createCaptureSession(booking3.getId());
+        captureSession3.setFinishedAt(Timestamp.from(Instant.now().plusSeconds(36000)));
+        var putCaptureSession3 = putCaptureSession(captureSession3);
+        assertResponseCode(putCaptureSession3, 201);
+        assertCaptureSessionExists(captureSession3.getId(), true);
+
+        var getBookings1 = doGetRequest(BOOKINGS_ENDPOINT + "?sort=cs.finishedAt,asc&caseId=" + caseEntity.getId(),
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings1, 200);
+        var responseData1 = getBookings1.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData1.size()).isEqualTo(3);
+        assertThat(responseData1.get(0).getId()).isEqualTo(booking1.getId());
+        assertThat(responseData1.get(1).getId()).isEqualTo(booking2.getId());
+        assertThat(responseData1.get(2).getId()).isEqualTo(booking3.getId());
+
+        var getBookings2 = doGetRequest(BOOKINGS_ENDPOINT + "?sort=cs.finishedAt,desc&caseId=" + caseEntity.getId(),
+                                        TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getBookings2, 200);
+        var responseData2 = getBookings2.jsonPath().getList("_embedded.bookingDTOList", BookingDTO.class);
+        assertThat(responseData2.size()).isEqualTo(3);
+        assertThat(responseData2.get(0).getId()).isEqualTo(booking3.getId());
+        assertThat(responseData2.get(1).getId()).isEqualTo(booking2.getId());
+        assertThat(responseData2.get(2).getId()).isEqualTo(booking1.getId());
+    }
+
     /*
     @DisplayName("Scenario: Search for a booking by schedule date")
     @Test
