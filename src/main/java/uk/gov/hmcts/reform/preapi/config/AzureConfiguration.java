@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.config;
 
+import com.azure.core.http.policy.HttpLogDetailLevel;
+import com.azure.core.http.policy.HttpLogOptions;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
@@ -21,7 +23,6 @@ public class AzureConfiguration {
         @Value("${azure.ingestStorage.accountName}") String ingestStorageAccountName,
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
-        System.setProperty("com.azure.core.http.policy.HttpLogDetailLevel", "BODY_AND_HEADERS");
 
         if (!managedIdentityClientId.isEmpty()) {
             log.info("Using managed identity to authenticate with ingest storage account with clientId: {}",
@@ -60,6 +61,7 @@ public class AzureConfiguration {
             return new BlobServiceClientBuilder()
                 .credential(credential)
                 .endpoint(String.format("https://%s.blob.core.windows.net", storageAccountName))
+                .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {
             return null;
@@ -76,6 +78,7 @@ public class AzureConfiguration {
             return new BlobServiceClientBuilder()
                 .credential(credential)
                 .endpoint(String.format("https://%s.blob.core.windows.net", storageAccountName))
+                .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {
             return null;
