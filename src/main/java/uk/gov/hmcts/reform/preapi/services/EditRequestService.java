@@ -157,7 +157,10 @@ public class EditRequestService {
         var createDto = new CreateRecordingDTO();
         createDto.setId(newRecordingId);
         createDto.setParentRecordingId(request.getSourceRecording().getId());
-        createDto.setEditInstructions(request.getEditInstruction());
+
+        var dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
+        createDto.setEditInstructions(toJson(dump));
+
         createDto.setVersion(recordingService.getNextVersionNumber(request.getSourceRecording().getId()));
         createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
         createDto.setFilename(filename);
@@ -325,11 +328,23 @@ public class EditRequestService {
         return invertedInstructions;
     }
 
-    private String toJson(EditInstructions instructions) {
+    private <E> String toJson(E instructions) {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Something went wrong: " + e.getMessage());
         }
+    }
+
+    private EditInstructions fromJson(String editInstructions) {
+        try {
+            return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
+        } catch (Exception e) {
+            log.error("Error reading edit instructions: {} with message: {}", editInstructions, e.getMessage());
+            throw new UnknownServerException("Unable to read edit instructions");
+        }
+    }
+
+    private record EditInstructionDump(UUID editRequestId, EditInstructions editInstructions) {
     }
 }

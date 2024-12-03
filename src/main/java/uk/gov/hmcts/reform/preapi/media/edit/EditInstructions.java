@@ -10,6 +10,6 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public class EditInstructions {
-    private final List<EditCutInstructionDTO> requestedInstructions;
-    private final List<FfmpegEditInstructionDTO> ffmpegInstructions;
+    protected final List<EditCutInstructionDTO> requestedInstructions;
+    protected final List<FfmpegEditInstructionDTO> ffmpegInstructions;
 }
