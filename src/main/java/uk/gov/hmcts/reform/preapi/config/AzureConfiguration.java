@@ -21,6 +21,8 @@ public class AzureConfiguration {
         @Value("${azure.ingestStorage.accountName}") String ingestStorageAccountName,
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
+        System.setProperty("com.azure.core.http.policy.HttpLogDetailLevel", "BODY_AND_HEADERS");
+
         if (!managedIdentityClientId.isEmpty()) {
             log.info("Using managed identity to authenticate with ingest storage account with clientId: {}",
                      managedIdentityClientId);
