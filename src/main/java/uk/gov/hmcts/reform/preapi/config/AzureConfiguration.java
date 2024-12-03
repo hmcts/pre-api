@@ -21,35 +21,42 @@ public class AzureConfiguration {
     @Value("${azure.tenantId}")
     String tenantId;
 
+    @Value("${azure.finalStorage.connectionString}")
+    private String finalConnectionString;
+
+    @Value("${azure.ingestStorage.connectionString}")
+    private String ingestConnectionString;
+
+    @Value("${azure.finalStorage.accountName}")
+    private String finalStorageAccountName;
+
+    @Value("${azure.ingestStorage.accountName}")
+    private String ingestStorageAccountName;
+
+    @Value("${azure.managedIdentityClientId}")
+    private String managedIdentityClientId;
+
     @Bean
-    public BlobServiceClient ingestStorageClient(
-        @Value("${azure.ingestStorage.connectionString}") String connectionString,
-        @Value("${azure.ingestStorage.accountName}") String ingestStorageAccountName,
-        @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
-    ) {
+    public BlobServiceClient ingestStorageClient() {
 
         if (!managedIdentityClientId.isEmpty()) {
             log.info("Using managed identity to authenticate with ingest storage account with clientId: {}",
                      managedIdentityClientId);
-            return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, ingestStorageAccountName);
+            return getBlobServiceClientUsingManagedIdentity(ingestStorageAccountName);
         }
         log.info("Using connection string to authenticate with ingest storage account");
-        return getBlobServiceClientUsingConnectionString(connectionString, ingestStorageAccountName);
+        return getBlobServiceClientUsingConnectionString(ingestConnectionString, ingestStorageAccountName);
     }
 
     @Bean
-    public BlobServiceClient finalStorageClient(
-        @Value("${azure.finalStorage.connectionString}") String connectionString,
-        @Value("${azure.finalStorage.accountName}") String finalStorageAccountName,
-        @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
-    ) {
+    public BlobServiceClient finalStorageClient() {
         if (!managedIdentityClientId.isEmpty()) {
             log.info("Using managed identity to authenticate with final storage account with clientId: {}",
                      managedIdentityClientId);
-            return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, finalStorageAccountName);
+            return getBlobServiceClientUsingManagedIdentity(finalStorageAccountName);
         }
         log.info("Using connection string to authenticate with final storage account");
-        return getBlobServiceClientUsingConnectionString(connectionString, finalStorageAccountName);
+        return getBlobServiceClientUsingConnectionString(finalConnectionString, finalStorageAccountName);
     }
 
     @Nullable
@@ -73,8 +80,7 @@ public class AzureConfiguration {
     }
 
     @Nullable
-    private BlobServiceClient getBlobServiceClientUsingManagedIdentity(String managedIdentityClientId,
-                                                                       String storageAccountName) {
+    private BlobServiceClient getBlobServiceClientUsingManagedIdentity(String storageAccountName) {
         try {
             var credential = new DefaultAzureCredentialBuilder()
                 .tenantId(tenantId)
@@ -86,7 +92,6 @@ public class AzureConfiguration {
                 .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {
-            log.info(e.getMessage(), e);
             return null;
         }
     }
