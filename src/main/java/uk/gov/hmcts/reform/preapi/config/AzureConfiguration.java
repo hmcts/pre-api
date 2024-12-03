@@ -2,7 +2,7 @@ package uk.gov.hmcts.reform.preapi.config;
 
 import com.azure.core.http.policy.HttpLogDetailLevel;
 import com.azure.core.http.policy.HttpLogOptions;
-import com.azure.identity.ManagedIdentityCredentialBuilder;
+import com.azure.identity.DefaultAzureCredentialBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
@@ -17,6 +17,10 @@ import javax.annotation.Nullable;
 @Configuration
 @Slf4j
 public class AzureConfiguration {
+
+    @Value("${azure.tenantId}")
+    String tenantId;
+
     @Bean
     public BlobServiceClient ingestStorageClient(
         @Value("${azure.ingestStorage.connectionString}") String connectionString,
@@ -72,8 +76,9 @@ public class AzureConfiguration {
     private BlobServiceClient getBlobServiceClientUsingManagedIdentity(String managedIdentityClientId,
                                                                        String storageAccountName) {
         try {
-            var credential = new ManagedIdentityCredentialBuilder()
-                .clientId(managedIdentityClientId)
+            var credential = new DefaultAzureCredentialBuilder()
+                .tenantId(tenantId)
+                .managedIdentityClientId(managedIdentityClientId)
                 .build();
             return new BlobServiceClientBuilder()
                 .credential(credential)
