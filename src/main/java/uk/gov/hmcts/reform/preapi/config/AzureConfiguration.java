@@ -81,6 +81,7 @@ public class AzureConfiguration {
                 .httpLogOptions(new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS))
                 .buildClient();
         } catch (Exception e) {
+            log.info(e.getMessage(), e);
             return null;
         }
     }
