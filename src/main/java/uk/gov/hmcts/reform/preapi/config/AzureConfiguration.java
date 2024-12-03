@@ -22,7 +22,8 @@ public class AzureConfiguration {
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
         if (!managedIdentityClientId.isEmpty()) {
-            log.info("Using managed identity to authenticate with ingest storage account {}", ingestStorageAccountName);
+            log.info("Using managed identity to authenticate with ingest storage account with clientId: {}",
+                     managedIdentityClientId);
             return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, ingestStorageAccountName);
         }
         log.info("Using connection string to authenticate with ingest storage account");
@@ -36,7 +37,8 @@ public class AzureConfiguration {
         @Value("${azure.managedIdentityClientId}") String managedIdentityClientId
     ) {
         if (!managedIdentityClientId.isEmpty()) {
-            log.info("Using managed identity to authenticate with final storage account {}", managedIdentityClientId);
+            log.info("Using managed identity to authenticate with final storage account with clientId: {}",
+                     managedIdentityClientId);
             return getBlobServiceClientUsingManagedIdentity(managedIdentityClientId, finalStorageAccountName);
         }
         log.info("Using connection string to authenticate with final storage account");
