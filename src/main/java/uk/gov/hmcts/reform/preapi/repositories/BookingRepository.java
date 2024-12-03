@@ -29,7 +29,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Query(
         """
         SELECT b FROM Booking b
-        JOIN b.captureSessions cs
+        LEFT JOIN b.captureSessions cs
         INNER JOIN b.caseId
         WHERE
             (
