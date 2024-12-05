@@ -177,6 +177,7 @@ public class EditRequestServiceTest {
         editRequest.setStatus(EditRequestStatus.PROCESSING);
         editRequest.setStartedAt(Timestamp.from(Instant.now()));
         editRequest.setSourceRecording(recording);
+        editRequest.setEditInstruction("{}");
 
         when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
         when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
@@ -271,6 +272,7 @@ public class EditRequestServiceTest {
         appAccess.setUser(user);
 
         when(mockAuth.getAppAccess()).thenReturn(appAccess);
+        when(mockAuth.isAppUser()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         List<EditCutInstructionDTO> instructions = new ArrayList<>();
@@ -279,12 +281,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(sourceRecording.getId())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
             .thenReturn(Optional.of(sourceRecording));
@@ -321,12 +322,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(sourceRecording.getId())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
@@ -368,12 +368,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(UUID.randomUUID())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(UUID.randomUUID());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId()))
             .thenReturn(Optional.empty());
@@ -411,12 +410,11 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
 
-        var dto = CreateEditRequestDTO.builder()
-            .id(UUID.randomUUID())
-            .sourceRecordingId(sourceRecording.getId())
-            .status(EditRequestStatus.PENDING)
-            .editInstructions(instructions)
-            .build();
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.PENDING);
+        dto.setEditInstructions(instructions);
 
         when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
             .thenReturn(Optional.of(sourceRecording));
@@ -657,7 +655,10 @@ public class EditRequestServiceTest {
         assertThat(dto.getId()).isEqualTo(newRecordingId);
         assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
         assertThat(dto.getVersion()).isEqualTo(2);
-        assertThat(dto.getEditInstructions()).isEqualTo("{}");
+        assertThat(dto.getEditInstructions())
+            .isEqualTo("{\"editRequestId\":\""
+                + editRequest.getId()
+                + "\",\"editInstructions\":{\"requestedInstructions\":null,\"ffmpegInstructions\":null}}");
         assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
         assertThat(dto.getFilename()).isEqualTo("index.mp4");
 

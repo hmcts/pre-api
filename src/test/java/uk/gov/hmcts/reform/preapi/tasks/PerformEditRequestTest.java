@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.RoleDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -54,8 +55,11 @@ public class PerformEditRequestTest {
             CRON_USER_EMAIL
         );
 
+        var role = new RoleDTO();
+        role.setName("Super User");
         var appAccess = new BaseAppAccessDTO();
         appAccess.setId(UUID.randomUUID());
+        appAccess.setRole(role);
         var access = new AccessDTO();
         access.setAppAccess(Set.of(appAccess));
 

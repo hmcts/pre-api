@@ -8,6 +8,8 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -92,6 +94,14 @@ public class EditRequestService {
     }
 
     @Transactional
+    @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
+    public Page<EditRequestDTO> findAll(UUID sourceRecordingId, Pageable pageable) {
+        return editRequestRepository
+            .searchAllBy(sourceRecordingId, pageable)
+            .map(EditRequestDTO::new);
+    }
+
+    @Transactional
     public Optional<EditRequest> getNextPendingEditRequest() {
         return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
@@ -164,7 +174,10 @@ public class EditRequestService {
         var createDto = new CreateRecordingDTO();
         createDto.setId(newRecordingId);
         createDto.setParentRecordingId(request.getSourceRecording().getId());
-        createDto.setEditInstructions(request.getEditInstruction());
+
+        var dump = new EditInstructionDump(request.getId(), fromJson(request.getEditInstruction()));
+        createDto.setEditInstructions(toJson(dump));
+
         createDto.setVersion(recordingService.getNextVersionNumber(request.getSourceRecording().getId()));
         createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
         createDto.setFilename(filename);
@@ -223,14 +236,18 @@ public class EditRequestService {
         request.setId(dto.getId());
         request.setSourceRecording(sourceRecording);
         request.setStatus(dto.getStatus());
+        request.setJointlyAgreed(dto.getJointlyAgreed());
+        request.setApprovedAt(dto.getApprovedAt());
+        request.setApprovedBy(dto.getApprovedBy());
+        request.setRejectionReason(dto.getRejectionReason());
 
         var editInstructions = invertInstructions(dto.getEditInstructions(), sourceRecording);
         request.setEditInstruction(toJson(new EditInstructions(dto.getEditInstructions(), editInstructions)));
 
         var isUpdate = req.isPresent();
         if (!isUpdate) {
-            var user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
-                .getAppAccess().getUser();
+            var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
+            var user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
         }
@@ -244,12 +261,13 @@ public class EditRequestService {
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
         var id = UUID.randomUUID();
-        upsert(CreateEditRequestDTO.builder()
-                   .id(id)
-                   .sourceRecordingId(sourceRecordingId)
-                   .editInstructions(parseCsv(file))
-                   .status(EditRequestStatus.PENDING)
-                   .build());
+        var dto = new CreateEditRequestDTO();
+        dto.setId(id);
+        dto.setSourceRecordingId(sourceRecordingId);
+        dto.setEditInstructions(parseCsv(file));
+        dto.setStatus(EditRequestStatus.PENDING);
+
+        upsert(dto);
 
         return editRequestRepository.findById(id)
             .map(EditRequestDTO::new)
@@ -327,11 +345,23 @@ public class EditRequestService {
         return invertedInstructions;
     }
 
-    private String toJson(EditInstructions instructions) {
+    private <E> String toJson(E instructions) {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Something went wrong: " + e.getMessage());
         }
+    }
+
+    private EditInstructions fromJson(String editInstructions) {
+        try {
+            return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
+        } catch (Exception e) {
+            log.error("Error reading edit instructions: {} with message: {}", editInstructions, e.getMessage());
+            throw new UnknownServerException("Unable to read edit instructions");
+        }
+    }
+
+    private record EditInstructionDump(UUID editRequestId, EditInstructions editInstructions) {
     }
 }

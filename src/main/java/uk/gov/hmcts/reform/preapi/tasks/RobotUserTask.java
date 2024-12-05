@@ -24,7 +24,10 @@ public abstract class RobotUserTask implements Runnable {
         log.info("Sign in as robot user");
         var user = userService.findByEmail(cronUserEmail);
 
-        var appAccess = user.getAppAccess().stream().findFirst()
+        var appAccess = user.getAppAccess()
+            .stream()
+            .filter(access -> access.getRole().getName().equals("Super User"))
+            .findFirst()
             .orElseThrow(() -> new RuntimeException(
                 "Failed to authenticate as cron user with email " + cronUserEmail)
             );

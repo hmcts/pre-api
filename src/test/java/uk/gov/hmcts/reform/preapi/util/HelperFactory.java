@@ -237,7 +237,11 @@ public class HelperFactory {
                                                 EditRequestStatus status,
                                                 User createdBy,
                                                 @Nullable Timestamp startedAt,
-                                                @Nullable Timestamp finishedAt) {
+                                                @Nullable Timestamp finishedAt,
+                                                @Nullable Boolean jointlyAgreed,
+                                                @Nullable String rejectionReason,
+                                                @Nullable Timestamp approvedAt,
+                                                @Nullable String approvedBy) {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setSourceRecording(sourceRecording);
