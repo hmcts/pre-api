@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -15,7 +16,7 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = Application.class)
-public class UserTermsAcceptedTest {
+public class UserTermsAcceptedTest extends IntegrationTestBase {
 
     @Autowired
     private EntityManager entityManager;

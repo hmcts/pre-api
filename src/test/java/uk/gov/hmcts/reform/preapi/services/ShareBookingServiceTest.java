@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
@@ -46,6 +48,12 @@ public class ShareBookingServiceTest {
 
     @MockBean
     private ShareBookingRepository shareBookingRepository;
+
+    @MockBean
+    private EmailServiceFactory emailServiceFactory;
+
+    @MockBean
+    private GovNotify govNotify;
 
     @Autowired
     private ShareBookingService shareBookingService;
@@ -451,5 +459,42 @@ public class ShareBookingServiceTest {
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(aCase);
         verify(shareBookingRepository, times(2)).findAllByBookingAndDeletedAtIsNull(any(Booking.class));
         verify(shareBookingRepository, times(3)).save(any(ShareBooking.class));
+    }
+
+    @DisplayName(("Should notify user by email on booking shared when email service is enabled"))
+    @Test
+    void notifyUserByEmailOnBookingShared() {
+        var shareBookingDTO = new CreateShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
+        var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
+
+        var sharedByUser = new User();
+        var sharedWithUser = new User();
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(bookingEntity));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedByUser())
+        ).thenReturn(Optional.of(sharedByUser));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedWithUser())
+        ).thenReturn(Optional.of(sharedWithUser));
+
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+
+        shareBookingService.shareBookingById(shareBookingDTO);
+
+        verify(govNotify, times(1)).recordingReady(any(), any());
     }
 }
