@@ -24,6 +24,7 @@ import java.util.UUID;
 
 @Slf4j
 @Component
+=======
 public class CleanupLiveEvents extends RobotUserTask {
 
     private final MediaServiceBroker mediaServiceBroker;
@@ -56,7 +57,6 @@ public class CleanupLiveEvents extends RobotUserTask {
     @Override
     public void run() throws RuntimeException {
         signInRobotUser();
-
         log.info("Running CleanupLiveEvents task");
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();

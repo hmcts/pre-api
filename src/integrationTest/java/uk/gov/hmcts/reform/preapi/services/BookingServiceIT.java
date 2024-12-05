@@ -3,6 +3,8 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -88,7 +90,7 @@ class BookingServiceIT extends IntegrationTestBase {
             null,
             null,
             null,
-            null
+            Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         );
         assertEquals(1, findAllSharedWithUser.toList().size(), "Should find 1 booking");
         assertEquals(booking1.getId(), findAllSharedWithUser.toList().getFirst().getId(), "Should find booking 1");
@@ -190,7 +192,7 @@ class BookingServiceIT extends IntegrationTestBase {
             null,
             null,
             null,
-            null
+            Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         );
         assertEquals(2, findByCaseReferenceResult.getContent().size(), "Should find 2 bookings");
         assertEquals(booking1.getId(), findByCaseReferenceResult.getContent().get(0).getId(), "Should find booking 1");
@@ -205,7 +207,7 @@ class BookingServiceIT extends IntegrationTestBase {
             null,
             null,
             null,
-            null
+            Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         );
         assertEquals(1, findByScheduledForResult.getContent().size(), "Should find 1 bookings");
         assertEquals(
@@ -255,7 +257,7 @@ class BookingServiceIT extends IntegrationTestBase {
             false,
             null,
             null,
-            null
+            Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         ).toList();
         assertEquals(findByHasRecordingsFalse.size(), 1);
         assertEquals(
@@ -272,7 +274,7 @@ class BookingServiceIT extends IntegrationTestBase {
             true,
             null,
             null,
-            null
+            Pageable.unpaged(Sort.by(Sort.Order.asc("scheduledFor")))
         ).toList();
         assertEquals(findByHasRecordingsTrue.size(), 1);
         assertEquals(
