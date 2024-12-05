@@ -24,7 +24,6 @@ import java.util.UUID;
 
 @Slf4j
 @Component
-=======
 public class CleanupLiveEvents extends RobotUserTask {
 
     private final MediaServiceBroker mediaServiceBroker;
