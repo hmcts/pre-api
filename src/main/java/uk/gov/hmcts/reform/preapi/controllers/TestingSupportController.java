@@ -45,6 +45,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
+import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -73,6 +74,7 @@ class TestingSupportController {
     private final AppAccessRepository appAccessRepository;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
+    private final EditRequestService editRequestService;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -84,10 +86,11 @@ class TestingSupportController {
                              final RegionRepository regionRepository,
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
-                             RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository,
-                             TermsAndConditionsRepository termsAndConditionsRepository,
-                             UserTermsAcceptedRepository userTermsAcceptedRepository) {
+                             final RoleRepository roleRepository,
+                             final AppAccessRepository appAccessRepository,
+                             final TermsAndConditionsRepository termsAndConditionsRepository,
+                             final UserTermsAcceptedRepository userTermsAcceptedRepository,
+                             final EditRequestService editRequestService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -101,6 +104,7 @@ class TestingSupportController {
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
+        this.editRequestService = editRequestService;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -268,7 +272,7 @@ class TestingSupportController {
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
         recording.setFilename("recording.mp4");
-        recording.setDuration(Duration.ofMinutes(30));
+        recording.setDuration(Duration.ofMinutes(3));
         recording.setEditInstruction("{\"foo\": \"bar\"}");
 
         recordingRepository.save(recording);
@@ -393,6 +397,17 @@ class TestingSupportController {
         return ResponseEntity.ok(new BookingDTO(booking));
     }
 
+
+    @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
+        var recording = editRequestService.performEdit(editId);
+        var request = editRequestService.findById(recording.getId());
+
+        return ResponseEntity.ok(Map.of(
+            "request", request,
+            "recording", recording
+        ));
+    }
 
     private Court createTestCourt() {
         var court = new Court();
