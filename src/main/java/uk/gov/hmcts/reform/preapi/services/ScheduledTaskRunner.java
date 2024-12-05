@@ -28,7 +28,7 @@ public class ScheduledTaskRunner {
     }
 
     @Nullable
-    private Runnable getTask(String beanName) {
+    public Runnable getTask(String beanName) {
         try {
             return (Runnable) context.getBean(beanName);
         } catch (Exception e) {
