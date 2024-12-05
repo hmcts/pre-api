@@ -22,6 +22,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         UUID recordingId
     );
 
+    Optional<Recording> findByIdAndDeletedAtIsNull(UUID id);
+
     @Query(
         """
         SELECT r FROM Recording r
