@@ -15,6 +15,8 @@ import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
+import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -22,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -44,6 +47,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -84,12 +88,19 @@ public class EditRequestServiceTest {
     @MockBean
     private IMediaService mediaService;
 
+    @MockBean
+    private EmailServiceFactory emailServiceFactory;
+
+    @MockBean
+    private IEmailService emailService;
+
     @Autowired
     private EditRequestService editRequestService;
 
     @BeforeEach
     void setup() {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
     }
 
     @Test
@@ -144,8 +155,20 @@ public class EditRequestServiceTest {
     @Test
     @DisplayName("Should perform edit request and return created recording")
     void performEditSuccess() throws InterruptedException {
+        var user1 = new User();
+        var user2 = new User();
+        var share1 = new ShareBooking();
+        share1.setSharedWith(user1);
+        var share2 = new ShareBooking();
+        share2.setSharedWith(user2);
+        var aCase = new Case();
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+        booking.setShares(Set.of(share1, share2));
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
         var recording = new Recording();
         recording.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
@@ -183,6 +206,8 @@ public class EditRequestServiceTest {
         verify(azureIngestStorageService, times(1)).getMp4FileName(anyString());
         verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
         verify(azureFinalStorageService, times(1)).getMp4FileName(anyString());
+        verify(emailService, times(1)).recordingEdited(user1, aCase);
+        verify(emailService, times(1)).recordingEdited(user2, aCase);
     }
 
     @Test

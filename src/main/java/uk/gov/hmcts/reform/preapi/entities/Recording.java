@@ -39,6 +39,9 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @JoinColumn(name = "parent_recording_id")
     private Recording parentRecording;
 
+    @OneToMany(mappedBy = "parentRecording")
+    private Set<Recording> recordings;
+
     @Column(name = "version", nullable = false)
     private int version;
 
