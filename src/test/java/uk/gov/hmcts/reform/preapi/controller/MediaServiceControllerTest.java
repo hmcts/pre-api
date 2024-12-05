@@ -1,10 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
-import com.azure.core.http.HttpResponse;
-import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.microsoft.aad.msal4j.MsalServiceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -28,7 +25,6 @@ import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.media.AzureMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -73,16 +69,13 @@ public class MediaServiceControllerTest {
     private MediaServiceBroker mediaServiceBroker;
 
     @MockBean
-    private AzureMediaService mediaService;
-
-    @MockBean
     private CaptureSessionService captureSessionService;
 
     @MockBean
     private RecordingService recordingService;
 
     @MockBean
-    private MediaKind mediaKind;
+    private MediaKind mediaService;
 
     @MockBean
     private AzureIngestStorageService azureIngestStorageService;
@@ -108,40 +101,7 @@ public class MediaServiceControllerTest {
             .andExpect(status().isOk())
             .andReturn().getResponse();
 
-        assertThat(response.getContentAsString())
-            .isEqualTo("successfully connected to media service (AzureMediaService)");
-    }
-
-    // todo remove this test with switch to mk
-    @DisplayName("Should return 500 when cannot connect to media service")
-    @Test
-    void getMediaCannotConnect() throws Exception {
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        // credentials error
-        doThrow(new MsalServiceException("error", "something went wrong"))
-            .when(mediaService).getAssets();
-
-        var result = mockMvc.perform(get("/media-service/health"))
-                             .andExpect(status().isInternalServerError())
-                             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                             .andReturn();
-        assertThat(result
-                       .getResponse()
-                       .getContentAsString()
-        ).contains("An error occurred when trying to communicate with Azure Media Service.");
-
-        // resource manager issue
-        doThrow(new ManagementException("error", mock(HttpResponse.class)))
-            .when(mediaService).getAssets();
-
-        var result2 = mockMvc.perform(get("/media-service/health"))
-                             .andExpect(status().isInternalServerError())
-                             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                             .andReturn();
-        assertThat(result2
-                       .getResponse()
-                       .getContentAsString()
-        ).contains("An error occurred when trying to communicate with Azure Media Service.");
+        assertThat(response.getContentAsString()).isEqualTo("successfully connected to media service (MediaKind)");
     }
 
     @DisplayName("Should return 200 and an asset")
@@ -167,7 +127,7 @@ public class MediaServiceControllerTest {
     void getAssetNotFound() throws Exception {
         var name = UUID.randomUUID().toString();
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        doThrow((new NotFoundException("Asset: " + name))).when(mediaKind).getAsset(name);
+        doThrow((new NotFoundException("Asset: " + name))).when(mediaService).getAsset(name);
 
         mockMvc.perform(get("/media-service/assets/" + name))
             .andExpect(status().isNotFound())

@@ -1,13 +1,11 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -249,6 +247,29 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
     }
 
+    @Test
+    @DisplayName("Should show correct total version count")
+    void getRecordingTotalVersionCount() throws JsonProcessingException {
+        // create parent recording
+        var details = createRecording();
+        var getRecording1 = assertRecordingExists(details.recordingId, true);
+        getRecording1.prettyPrint();
+        assertThat(getRecording1.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(1);
+
+        // create child recording
+        var recording2 = createRecording(details.captureSessionId);
+        recording2.setParentRecordingId(details.recordingId);
+        recording2.setVersion(2);
+        var putRecording2 = putRecording(recording2);
+        assertResponseCode(putRecording2, 201);
+        var getRecording2 = assertRecordingExists(recording2.getId(), true);
+        assertThat(getRecording2.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
+
+        // check parent recording
+        var getRecording3 = assertRecordingExists(details.recordingId, true);
+        assertThat(getRecording3.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
+    }
+
     @DisplayName("Should throw 400 error when sort param is invalid")
     @Test
     void getRecordingsSortInvalidParam() {
@@ -286,5 +307,8 @@ public class RecordingControllerFT extends FunctionalTestBase {
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );
+    }
+
+    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
     }
 }
