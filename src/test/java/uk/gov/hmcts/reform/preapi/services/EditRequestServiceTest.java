@@ -15,7 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.IEmailService;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -89,7 +89,7 @@ public class EditRequestServiceTest {
     private IMediaService mediaService;
 
     @MockBean
-    private EmailServiceBroker emailServiceBroker;
+    private EmailServiceFactory emailServiceFactory;
 
     @MockBean
     private IEmailService emailService;
@@ -100,7 +100,7 @@ public class EditRequestServiceTest {
     @BeforeEach
     void setup() {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(emailServiceBroker.getEnabledEmailService()).thenReturn(emailService);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(emailService);
     }
 
     @Test

@@ -20,7 +20,7 @@ import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
@@ -61,7 +61,7 @@ public class EditRequestService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
     private final MediaServiceBroker mediaServiceBroker;
-    private final EmailServiceBroker emailServiceBroker;
+    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     public EditRequestService(EditRequestRepository editRequestRepository,
@@ -71,7 +71,7 @@ public class EditRequestService {
                               AzureIngestStorageService azureIngestStorageService,
                               AzureFinalStorageService azureFinalStorageService,
                               MediaServiceBroker mediaServiceBroker,
-                              EmailServiceBroker emailServiceBroker) {
+                              EmailServiceFactory emailServiceFactory) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
         this.ffmpegService = ffmpegService;
@@ -79,7 +79,7 @@ public class EditRequestService {
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.mediaServiceBroker = mediaServiceBroker;
-        this.emailServiceBroker = emailServiceBroker;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Transactional
@@ -156,7 +156,7 @@ public class EditRequestService {
         booking.getShares()
             .stream()
             .map(ShareBooking::getSharedWith)
-            .forEach(u -> emailServiceBroker.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
+            .forEach(u -> emailServiceFactory.getEnabledEmailService().recordingEdited(u, booking.getCaseId()));
     }
 
     @Transactional
