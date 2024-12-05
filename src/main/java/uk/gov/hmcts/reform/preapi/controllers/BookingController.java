@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.data.web.SortDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
@@ -109,6 +111,12 @@ public class BookingController extends PreApiController {
         schema = @Schema(implementation = List.class)
     )
     @Parameter(
+        name = "sort",
+        description = "Sort by",
+        schema = @Schema(implementation = String.class),
+        example = "createdAt,desc"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -123,7 +131,9 @@ public class BookingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<BookingDTO>>> searchByCaseId(
         @Parameter(hidden = true) @ModelAttribute SearchBookings params,
-        @Parameter(hidden = true) Pageable pageable,
+        @SortDefault.SortDefaults(
+            @SortDefault(sort = "scheduledFor", direction = Sort.Direction.ASC)
+        ) @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<BookingDTO> assembler) {
 
         final Page<BookingDTO> resultPage = bookingService.searchBy(
