@@ -29,6 +29,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Query(
         """
         SELECT b FROM Booking b
+        LEFT JOIN b.captureSessions cs
         INNER JOIN b.caseId
         WHERE
             (
@@ -89,7 +90,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                     AND c.status = 'RECORDING_AVAILABLE'
                 ))
             )
-        ORDER BY b.scheduledFor ASC
         """
     )
     Page<Booking> searchBookingsBy(

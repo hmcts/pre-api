@@ -46,12 +46,19 @@ public class RecordingDTO extends BaseRecordingDTO {
     @Schema(description = "RecordingParticipants")
     private List<ParticipantDTO> participants;
 
+    @Schema(description = "RecordingTotalVersionCount")
+    private int totalVersionCount;
+
     public RecordingDTO(Recording recording) {
         id = recording.getId();
         captureSession = new CaptureSessionDTO(recording.getCaptureSession());
         parentRecordingId = recording.getParentRecording() != null
             ? recording.getParentRecording().getId()
             : null;
+        var versions = recording.getParentRecording() != null
+            ? recording.getParentRecording().getRecordings()
+            : recording.getRecordings();
+        totalVersionCount = versions != null ? versions.size() + 1 : 1;
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
