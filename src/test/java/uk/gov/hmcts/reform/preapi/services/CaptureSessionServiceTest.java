@@ -24,7 +24,6 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -629,42 +628,6 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, times(1)).saveAndFlush(any());
     }
 
-    @DisplayName("Should update capture session when status is RECORDING_AVAILABLE")
-    @Test
-    void stopCaptureSessionRecordingAvailable() {
-        captureSession.setStatus(RecordingStatus.STANDBY);
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.getUserId()).thenReturn(user.getId());
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-
-        var recordingId = UUID.randomUUID();
-
-        var captureSessionServiceAMS = new CaptureSessionService(recordingService,
-                                                                captureSessionRepository,
-                                                                bookingRepository,
-                                                                userRepository,
-                                                                bookingService,
-                                                                MediaServiceBroker.MEDIA_SERVICE_AMS);
-        var model = captureSessionServiceAMS.stopCaptureSession(
-            captureSession.getId(),
-            RecordingStatus.RECORDING_AVAILABLE,
-            recordingId
-        );
-
-        var createRecordingDTOArgument = ArgumentCaptor.forClass(CreateRecordingDTO.class);
-
-        assertThat(model.getId()).isEqualTo(captureSession.getId());
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
-
-        verify(recordingService, times(1)).upsert(createRecordingDTOArgument.capture());
-        assertThat(createRecordingDTOArgument.getValue().getFilename()).isEqualTo("video_2000000_1280x720_4500.mp4");
-        verify(captureSessionRepository, times(1)).saveAndFlush(any());
-    }
-
     @DisplayName("Should update capture session when status is RECORDING_AVAILABLE MK")
     @Test
     void stopCaptureSessionRecordingAvailableMk() {
@@ -682,8 +645,7 @@ public class CaptureSessionServiceTest {
                                                                 captureSessionRepository,
                                                                 bookingRepository,
                                                                 userRepository,
-                                                                bookingService,
-                                                                MediaServiceBroker.MEDIA_SERVICE_MK);
+                                                                bookingService);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),

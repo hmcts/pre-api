@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -393,6 +394,17 @@ class TestingSupportController {
             });
 
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(value = "/booking-scheduled-for-past/{bookingId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<BookingDTO> bookingScheduledForPast(@PathVariable UUID bookingId) {
+        var booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
+            .orElseThrow(() -> new NotFoundException("Booking: " + bookingId));
+
+        booking.setScheduledFor(Timestamp.from(booking.getScheduledFor().toInstant().minusSeconds(31536000)));
+        bookingRepository.save(booking);
+
+        return ResponseEntity.ok(new BookingDTO(booking));
     }
 
     @SneakyThrows

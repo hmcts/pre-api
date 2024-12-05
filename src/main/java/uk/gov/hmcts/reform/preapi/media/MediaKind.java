@@ -35,6 +35,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.LiveEventNotRunningException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -128,7 +129,9 @@ public class MediaKind implements IMediaService {
 
     @Override
     public PlaybackDTO playAsset(String assetName, String userId) throws InterruptedException {
-        getAsset(assetName);
+        if (getAsset(assetName) == null) {
+            throw new AssetFilesNotFoundException(assetName);
+        }
         // todo check asset has files
         createContentKeyPolicy(userId, symmetricKey);
         assertStreamingPolicyExists(userId);

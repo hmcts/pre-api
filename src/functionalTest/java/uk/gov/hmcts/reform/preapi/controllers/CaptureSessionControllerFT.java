@@ -127,7 +127,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
 
         // create capture session
         var dto = createCaptureSession(bookingId);
-        dto.setStatus(RecordingStatus.NO_RECORDING);
+        dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertCaptureSessionExists(dto.getId(), true);
@@ -144,7 +144,7 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertResponseCode(putCase, 204);
 
         // attempt update capture session
-        dto.setStatus(RecordingStatus.FAILURE);
+        dto.setStatus(RecordingStatus.RECORDING);
         var putCaptureSession1 = putCaptureSession(dto);
         assertResponseCode(putCaptureSession1, 400);
         assertThat(putCaptureSession1.getBody().jsonPath().getString("message"))
