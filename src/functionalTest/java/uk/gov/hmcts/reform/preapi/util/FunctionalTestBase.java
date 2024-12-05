@@ -450,7 +450,6 @@ public class FunctionalTestBase {
         );
     }
 
-
     protected record AuthUserDetails(UUID accessId, UUID courtId) {
     }
 

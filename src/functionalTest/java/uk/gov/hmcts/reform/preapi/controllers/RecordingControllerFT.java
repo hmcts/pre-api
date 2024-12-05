@@ -252,13 +252,13 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void getRecordingTotalVersionCount() throws JsonProcessingException {
         // create parent recording
         var details = createRecording();
-        var getRecording1 = assertRecordingExists(details.recordingId, true);
+        var getRecording1 = assertRecordingExists(details.recordingId(), true);
         getRecording1.prettyPrint();
         assertThat(getRecording1.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(1);
 
         // create child recording
-        var recording2 = createRecording(details.captureSessionId);
-        recording2.setParentRecordingId(details.recordingId);
+        var recording2 = createRecording(details.captureSessionId());
+        recording2.setParentRecordingId(details.recordingId());
         recording2.setVersion(2);
         var putRecording2 = putRecording(recording2);
         assertResponseCode(putRecording2, 201);
@@ -266,7 +266,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(getRecording2.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
 
         // check parent recording
-        var getRecording3 = assertRecordingExists(details.recordingId, true);
+        var getRecording3 = assertRecordingExists(details.recordingId(), true);
         assertThat(getRecording3.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
     }
 
@@ -283,19 +283,10 @@ public class RecordingControllerFT extends FunctionalTestBase {
             .isEqualTo("Invalid sort parameter 'invalidParam' for 'uk.gov.hmcts.reform.preapi.entities.Recording'");
     }
 
-    private CreateRecordingResponse createRecording() {
-        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
-        assertResponseCode(response, 200);
-        return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
-    }
-
     @Override
     protected CreateCaptureSessionDTO createCaptureSession() {
         var dto = super.createCaptureSession();
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         return dto;
-    }
-
-    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
     }
 }
