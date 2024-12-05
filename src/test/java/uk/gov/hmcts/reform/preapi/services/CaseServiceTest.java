@@ -16,7 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -92,7 +92,7 @@ class CaseServiceTest {
     private BookingRepository bookingRepository;
 
     @MockBean
-    private EmailServiceBroker emailServiceBroker;
+    private EmailServiceFactory emailServiceFactory;
 
     @MockBean
     private NotificationClient notificationClient;
@@ -120,9 +120,9 @@ class CaseServiceTest {
 
     @BeforeEach
     void reset() {
-        when(emailServiceBroker.getEnabledEmailService()).thenReturn(govNotify);
-        when(emailServiceBroker.getEnabledEmailService(eq("govnotify"))).thenReturn(govNotify);
-        when(emailServiceBroker.isEnabled()).thenReturn(false);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+        when(emailServiceFactory.getEnabledEmailService(eq("GovNotify"))).thenReturn(govNotify);
+        when(emailServiceFactory.isEnabled()).thenReturn(false);
 
         caseEntity.setDeletedAt(null);
         caseEntity.setState(CaseState.OPEN);
@@ -781,7 +781,7 @@ class CaseServiceTest {
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
         when(shareBookingService.deleteCascade(any(Case.class))).thenReturn(Set.of(share));
-        when(emailServiceBroker.isEnabled()).thenReturn(true);
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
 
         caseService.upsert(caseDTOModel);
 
@@ -803,7 +803,7 @@ class CaseServiceTest {
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
         when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
-        when(emailServiceBroker.isEnabled()).thenReturn(true);
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
 
         caseService.upsert(caseDTOModel);
 
@@ -825,7 +825,7 @@ class CaseServiceTest {
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
         when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
-        when(emailServiceBroker.isEnabled()).thenReturn(true);
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
 
         caseService.upsert(caseDTOModel);
 

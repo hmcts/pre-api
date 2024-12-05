@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.InviteDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -25,15 +25,15 @@ import java.util.UUID;
 public class InviteService {
     private final UserService userService;
     private final PortalAccessRepository portalAccessRepository;
-    private final EmailServiceBroker emailServiceBroker;
+    private final EmailServiceFactory emailServiceFactory;
     private final UserRepository userRepository;
 
     @Autowired
     public InviteService(UserService userService, PortalAccessRepository portalAccessRepository,
-                         EmailServiceBroker emailServiceBroker, UserRepository userRepository) {
+                         EmailServiceFactory emailServiceFactory, UserRepository userRepository) {
         this.userService = userService;
         this.portalAccessRepository = portalAccessRepository;
-        this.emailServiceBroker = emailServiceBroker;
+        this.emailServiceFactory = emailServiceFactory;
         this.userRepository = userRepository;
     }
 
@@ -96,12 +96,10 @@ public class InviteService {
         log.info("onUserInvitedToPortal: User({})", u.getId());
 
         try {
-            if (!emailServiceBroker.isEnabled()) {
+            if (!emailServiceFactory.isEnabled()) {
                 return;
-            } else {
-                var emailService = emailServiceBroker.getEnabledEmailService();
-                emailService.portalInvite(u);
             }
+            emailServiceFactory.getEnabledEmailService().portalInvite(u);
         } catch (Exception e) {
             log.error("Failed to notify user of invite to portal: " + u.getId());
         }

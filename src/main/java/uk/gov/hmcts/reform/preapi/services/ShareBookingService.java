@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceBroker;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
@@ -40,15 +40,15 @@ public class ShareBookingService {
 
     private final UserRepository userRepository;
 
-    private final EmailServiceBroker emailServiceBroker;
+    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     public ShareBookingService(ShareBookingRepository shareBookingRepository, BookingRepository bookingRepository,
-                               UserRepository userRepository, EmailServiceBroker emailServiceBroker) {
+                               UserRepository userRepository, EmailServiceFactory emailServiceFactory) {
         this.shareBookingRepository = shareBookingRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
-        this.emailServiceBroker = emailServiceBroker;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Transactional
@@ -164,10 +164,10 @@ public class ShareBookingService {
         log.info("onBookingShared: Booking({})", s.getBooking().getId());
 
         try {
-            if (!emailServiceBroker.isEnabled()) {
+            if (!emailServiceFactory.isEnabled()) {
                 return;
             } else {
-                var emailService = emailServiceBroker.getEnabledEmailService();
+                var emailService = emailServiceFactory.getEnabledEmailService();
                 emailService.recordingReady(s.getSharedWith(), s.getBooking().getCaseId());
             }
         } catch (Exception e) {

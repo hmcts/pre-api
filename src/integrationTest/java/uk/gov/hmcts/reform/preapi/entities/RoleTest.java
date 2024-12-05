@@ -1,20 +1,16 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
 @SuppressWarnings("PMD - JUnit5TestShouldBePackagePrivate")
-class RoleTest {
-
-    @Autowired
-    private EntityManager entityManager;
+class RoleTest extends IntegrationTestBase {
 
     @Test
     @Transactional
