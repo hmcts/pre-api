@@ -14,10 +14,10 @@ import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
@@ -417,6 +417,17 @@ public class FunctionalTestBase {
         return dto;
     }
 
+    protected CreateRecordingDTO createRecording(UUID captureSessionId) {
+        var dto = new CreateRecordingDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCaptureSessionId(captureSessionId);
+        dto.setEditInstructions("{}");
+        dto.setVersion(1);
+        dto.setUrl("example url");
+        dto.setFilename("example.file");
+        return dto;
+    }
+
     protected CreateRecordingResponse createRecording() {
         var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
         assertResponseCode(response, 200);
@@ -426,6 +437,14 @@ public class FunctionalTestBase {
     protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
         return doPutRequest(
             BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
+    protected Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            RECORDINGS_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );

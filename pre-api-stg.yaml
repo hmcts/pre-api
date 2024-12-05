@@ -1134,6 +1134,10 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
       url:
         description: RecordingURL
         type: string
@@ -1636,6 +1640,10 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
       url:
         description: RecordingURL
         type: string
@@ -2022,6 +2030,11 @@ paths:
           in: query
           name: captureSessionStatusNotIn
           type: string
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
         - description: The page number of search result to return
           format: int32
           in: query
