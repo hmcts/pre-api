@@ -63,7 +63,6 @@ public class CleanupLiveEvents extends RobotUserTask {
     @Override
     public void run() throws RuntimeException {
         signInRobotUser();
-
         log.info("Running CleanupLiveEvents task");
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();
