@@ -1502,13 +1502,6 @@ definitions:
       court:
         description: PlaybackReportCourt
         type: string
-      duration:
-        description: PlaybackReportDuration
-        type: string
-      finished_at:
-        description: PlaybackReportFinishTime
-        format: date-time
-        type: string
       playback_at:
         description: PlaybackReportPlaybackAt
         format: date-time

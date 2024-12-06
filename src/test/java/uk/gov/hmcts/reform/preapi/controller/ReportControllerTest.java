@@ -423,8 +423,6 @@ public class ReportControllerTest {
     private PlaybackReportDTO createPlaybackReport() {
         return new PlaybackReportDTO(
             Timestamp.from(Instant.now()),
-            Timestamp.from(Instant.now()),
-            Duration.ofMinutes(3),
             "Example Person",
             "example@example.com",
             "CASE123456",
