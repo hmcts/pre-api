@@ -32,6 +32,7 @@ import uk.gov.hmcts.reform.preapi.services.batch.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,8 +45,8 @@ import java.util.regex.Matcher;
 
 @Component
 public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
-    private final RedisTemplate<String, Object> redisTemplate; 
     private final DataExtractionService extractionService;
+    private final RedisService redisService;
     private final DataTransformationService transformationService;
     private final DataValidationService validationService;
     private final MigrationTrackerService migrationTrackerService;
@@ -58,15 +59,15 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
     @Autowired
     public CSVProcessor(
-            RedisTemplate<String, Object> redisTemplate,
             DataExtractionService extractionService,
             DataTransformationService transformationService,
             DataValidationService validationService,
+            RedisService redisService,
             CaseRepository caseRepository,
             CourtRepository courtRepository,
             UserRepository userRepository,
             MigrationTrackerService migrationTrackerService) {
-        this.redisTemplate = redisTemplate;
+        this.redisService = redisService;
         this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.validationService = validationService;
@@ -158,30 +159,21 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             Booking booking = null;
             CaptureSession captureSession = null; 
 
-            if (redisTemplate.opsForHash().hasKey(baseKey, "participantPairField")) {
-                if (redisTemplate.opsForHash().hasKey(baseKey, "bookingField")) {
-                    Object bookingObj = redisTemplate.opsForHash().get(baseKey, "bookingField");
-                    if (bookingObj instanceof BookingDTO) {
-                        BookingDTO bookingDTO = (BookingDTO) bookingObj;
-                        booking = convertToBooking(bookingDTO); 
-                    } else {
-                        return null;
-                    }
+            if(redisService.hashKeyExists(baseKey, "participantPairField")){
+                if (redisService.hashKeyExists(baseKey, "bookingField")) {
+                    BookingDTO bookingDTO = redisService.getHashValue(baseKey, "bookingField", BookingDTO.class);
+                    booking = convertToBooking(bookingDTO); 
                 } else {
                     booking = createBooking(cleansedData, baseKey, acase);
                 }
 
-                if (redisTemplate.opsForHash().hasKey(baseKey, "captureSessionField")) {
-                    Object captureSessionObj = redisTemplate.opsForHash().get(baseKey, "captureSessionField");
-                    if (captureSessionObj instanceof CaptureSessionDTO) {
-                        CaptureSessionDTO captureSessionDTO = (CaptureSessionDTO) captureSessionObj;
-                        captureSession = convertToCaptureSession(captureSessionDTO, booking);
-                    } else {
-                        return null;
-                    }
+                if (redisService.hashKeyExists(baseKey, "captureSessionField")) {
+                    CaptureSessionDTO captureSessionDTO = redisService.getHashValue(baseKey, "captureSessionField", CaptureSessionDTO.class);
+                    captureSession = convertToCaptureSession(captureSessionDTO, booking);
                 } else {
                     captureSession = createCaptureSession(cleansedData, baseKey, booking);
                 }
+                
             }
 
             Set<Participant> participants = createParticipants(cleansedData, acase);
@@ -245,7 +237,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         BookingDTO bookingDTO = new BookingDTO(booking);
 
-        redisTemplate.opsForHash().put(redisKey, "bookingField", bookingDTO);
+        redisService.saveHashValue(redisKey, "bookingField", bookingDTO);
 
         return booking;
     }
@@ -259,7 +251,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO(captureSession);
 
-        redisTemplate.opsForHash().put(redisKey, "captureSessionField", captureSessionDTO);
+        redisService.saveHashValue(redisKey, "captureSessionField", captureSessionDTO);
 
         return captureSession;
     }
@@ -302,8 +294,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
         String redisUserKey = "user:" + email;
-        String userId = (String) redisTemplate.opsForValue().get(redisUserKey);
-    
+        String userId = redisService.getValue(redisUserKey, String.class);
 
         User user = userRepository.findById(UUID.fromString(userId)).orElse(null);
         if (userId != null) {
@@ -315,7 +306,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
             newUser.setLastName(contactInfo.getOrDefault("lastName", "Unknown"));
             newUser.setEmail(email);
 
-            redisTemplate.opsForValue().set(redisUserKey, newUser.getId().toString());
+            redisService.saveValue(redisUserKey, newUser.getId().toString());
             return newUser;
         }
     }
@@ -333,12 +324,14 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         if (transformationService.isOriginalVersion(cleansedItem)) {
             recording.setParentRecording(recording);
+            recording.setVersion(1);
             origRecordingsMap.put(cleansedItem.getUrn(), recording);
         } else {
             Recording parentRecording = origRecordingsMap.get(cleansedItem.getUrn());
             if (parentRecording != null) {
                 recording.setParentRecording(parentRecording);
             }
+            recording.setVersion(2);
         }
 
         return recording;
@@ -383,7 +376,7 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
         Map<String, String> redisKeys = new HashMap<>();
 
-        redisTemplate.opsForHash().put(baseKey, "participantPairField", participantPair);
+        redisService.saveHashValue(baseKey, "participantPairField", participantPair);
         redisKeys.put("participantPairField", participantPair);
         redisKeys.put("bookingField", "booking");
         redisKeys.put("captureSessionField", "captureSession");
