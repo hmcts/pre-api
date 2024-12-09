@@ -91,6 +91,7 @@ public class CourtService {
         courtEntity.setName(createCourtDTO.getName());
         courtEntity.setCourtType(createCourtDTO.getCourtType());
         courtEntity.setLocationCode(createCourtDTO.getLocationCode());
+        courtEntity.setGroupEmail(createCourtDTO.getGroupEmail());
         courtEntity.setRegions(regions);
         courtEntity.setRooms(rooms);
 

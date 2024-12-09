@@ -31,6 +31,9 @@ public class CourtDTO {
     @Schema(description = "CourtLocationCode")
     private String locationCode;
 
+    @Schema(description = "CourtGroupEmail")
+    private String groupEmail;
+
     @Schema(description = "CourtRegions")
     private List<RegionDTO> regions; // this was removed??
 

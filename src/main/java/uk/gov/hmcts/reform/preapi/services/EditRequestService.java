@@ -230,8 +230,20 @@ public class EditRequestService {
                                                         + ") does not have a valid duration");
         }
 
+        boolean isRequestSubmitted;
+        boolean isRequestRejected;
+
         var req = editRequestRepository.findById(dto.getId());
+        var isUpdate = req.isPresent();
         var request = req.orElse(new EditRequest());
+
+        isRequestSubmitted = isUpdate
+            && dto.getStatus() == EditRequestStatus.SUBMITTED
+            && request.getStatus() != dto.getStatus();
+
+        isRequestRejected = isUpdate
+            && dto.getStatus() == EditRequestStatus.REJECTED
+            && request.getStatus() != dto.getStatus();
 
         request.setId(dto.getId());
         request.setSourceRecording(sourceRecording);
@@ -244,12 +256,19 @@ public class EditRequestService {
         var editInstructions = invertInstructions(dto.getEditInstructions(), sourceRecording);
         request.setEditInstruction(toJson(new EditInstructions(dto.getEditInstructions(), editInstructions)));
 
-        var isUpdate = req.isPresent();
         if (!isUpdate) {
             var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
             var user = auth.isAppUser() ? auth.getAppAccess().getUser() : auth.getPortalAccess().getUser();
 
             request.setCreatedBy(user);
+        }
+
+        if (isRequestSubmitted) {
+            onEditRequestSubmitted(request);
+        }
+
+        if (isRequestRejected) {
+            onEditRequestRejected(request);
         }
 
         editRequestRepository.save(request);
@@ -272,6 +291,42 @@ public class EditRequestService {
         return editRequestRepository.findById(id)
             .map(EditRequestDTO::new)
             .orElseThrow(() -> new UnknownServerException("Edit Request failed to create"));
+    }
+
+    @Transactional
+    public void onEditRequestSubmitted(EditRequest request) {
+        var court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
+        if (court.getGroupEmail() == null) {
+            log.error("Court {} does not have a group email for sending edit request submission email for request: {}",
+                      court.getId(), request.getId());
+            return;
+        }
+
+        try {
+            if (request.getJointlyAgreed()) {
+                emailServiceFactory.getEnabledEmailService().editingJointlyAgreed(court.getGroupEmail(), request);
+            } else {
+                emailServiceFactory.getEnabledEmailService().editingNotJointlyAgreed(court.getGroupEmail(), request);
+            }
+        } catch (Exception e) {
+            log.error("Error sending email on edit request submission: {}", e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void onEditRequestRejected(EditRequest request) {
+        var court = request.getSourceRecording().getCaptureSession().getBooking().getCaseId().getCourt();
+        if (court.getGroupEmail() == null) {
+            log.error("Court {} does not have a group email for sending edit request rejection email for request: {}",
+                      court.getId(), request.getId());
+            return;
+        }
+
+        try {
+            emailServiceFactory.getEnabledEmailService().editingRejected(court.getGroupEmail(), request);
+        } catch (Exception e) {
+            log.error("Error sending email on edit request rejection: {}", e.getMessage());
+        }
     }
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
@@ -353,7 +408,7 @@ public class EditRequestService {
         }
     }
 
-    private EditInstructions fromJson(String editInstructions) {
+    public static EditInstructions fromJson(String editInstructions) {
         try {
             return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
         } catch (Exception e) {

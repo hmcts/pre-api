@@ -34,6 +34,9 @@ public class CreateCourtDTO {
     @NotNull(message = "location_code is required")
     private String locationCode;
 
+    @Schema(description = "CreateCourtGroupEmail")
+    private String groupEmail;
+
     @Schema(description = "CreateCourtRegionIds")
     @Size(min = 1, message = "must contain at least 1")
     @NotNull(message = "regions is required and must contain at least 1")

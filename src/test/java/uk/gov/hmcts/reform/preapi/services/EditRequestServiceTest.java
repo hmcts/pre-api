@@ -795,6 +795,186 @@ public class EditRequestServiceTest {
         verify(azureFinalStorageService, times(1)).getMp4FileName(any());
     }
 
+    @Test
+    @DisplayName("Should trigger request submission jointly agreed email on submission")
+    void upsertOnSubmittedJointlyAgreed() {
+        var court = new Court();
+        court.setGroupEmail("group-email@example.com");
+        var aCase = new Case();
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setBooking(booking);
+
+        var sourceRecording = new Recording();
+        sourceRecording.setId(UUID.randomUUID());
+        sourceRecording.setDuration(Duration.ofMinutes(3));
+        sourceRecording.setCaptureSession(captureSession);
+
+        var mockAuth = mock(UserAuthentication.class);
+        var appAccess = new AppAccess();
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        appAccess.setUser(user);
+
+        when(mockAuth.getAppAccess()).thenReturn(appAccess);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(60L)
+                             .end(120L)
+                             .build());
+
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.SUBMITTED);
+        dto.setEditInstructions(instructions);
+        dto.setJointlyAgreed(true);
+
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.DRAFT);
+
+        var mockEmailService = mock(IEmailService.class);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(mockEmailService);
+
+        var response = editRequestService.upsert(dto);
+        assertThat(response).isEqualTo(UpsertResult.UPDATED);
+
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(sourceRecording.getId());
+        verify(editRequestRepository, times(1)).findById(dto.getId());
+        verify(mockAuth, never()).getAppAccess();
+        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(mockEmailService, times(1)).editingJointlyAgreed(court.getGroupEmail(), editRequest);
+    }
+
+    @Test
+    @DisplayName("Should trigger request submission not jointly agreed email on submission")
+    void upsertOnSubmittedNotJointlyAgreed() {
+        var court = new Court();
+        court.setGroupEmail("group-email@example.com");
+        var aCase = new Case();
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setBooking(booking);
+
+        var sourceRecording = new Recording();
+        sourceRecording.setId(UUID.randomUUID());
+        sourceRecording.setDuration(Duration.ofMinutes(3));
+        sourceRecording.setCaptureSession(captureSession);
+
+        var mockAuth = mock(UserAuthentication.class);
+        var appAccess = new AppAccess();
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        appAccess.setUser(user);
+
+        when(mockAuth.getAppAccess()).thenReturn(appAccess);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(60L)
+                             .end(120L)
+                             .build());
+
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.SUBMITTED);
+        dto.setEditInstructions(instructions);
+        dto.setJointlyAgreed(false);
+
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.DRAFT);
+
+        var mockEmailService = mock(IEmailService.class);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(mockEmailService);
+
+        var response = editRequestService.upsert(dto);
+        assertThat(response).isEqualTo(UpsertResult.UPDATED);
+
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(sourceRecording.getId());
+        verify(editRequestRepository, times(1)).findById(dto.getId());
+        verify(mockAuth, never()).getAppAccess();
+        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(mockEmailService, times(1)).editingNotJointlyAgreed(court.getGroupEmail(), editRequest);
+    }
+
+    @Test
+    @DisplayName("Should trigger request rejection email on edit requesst rejection")
+    void upsertOnRejected() {
+        var court = new Court();
+        court.setGroupEmail("group-email@example.com");
+        var aCase = new Case();
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setBooking(booking);
+
+        var sourceRecording = new Recording();
+        sourceRecording.setId(UUID.randomUUID());
+        sourceRecording.setDuration(Duration.ofMinutes(3));
+        sourceRecording.setCaptureSession(captureSession);
+
+        var mockAuth = mock(UserAuthentication.class);
+        var appAccess = new AppAccess();
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        appAccess.setUser(user);
+
+        when(mockAuth.getAppAccess()).thenReturn(appAccess);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(60L)
+                             .end(120L)
+                             .build());
+
+        var dto = new CreateEditRequestDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setSourceRecordingId(sourceRecording.getId());
+        dto.setStatus(EditRequestStatus.REJECTED);
+        dto.setEditInstructions(instructions);
+        dto.setJointlyAgreed(false);
+
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.SUBMITTED);
+
+        var mockEmailService = mock(IEmailService.class);
+
+        when(recordingRepository.findByIdAndDeletedAtIsNull(sourceRecording.getId()))
+            .thenReturn(Optional.of(sourceRecording));
+        when(editRequestRepository.findById(dto.getId())).thenReturn(Optional.of(editRequest));
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(mockEmailService);
+
+        var response = editRequestService.upsert(dto);
+        assertThat(response).isEqualTo(UpsertResult.UPDATED);
+
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(sourceRecording.getId());
+        verify(editRequestRepository, times(1)).findById(dto.getId());
+        verify(mockAuth, never()).getAppAccess();
+        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(mockEmailService, times(1)).editingRejected(court.getGroupEmail(), editRequest);
+    }
+
     private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,
                                           List<FfmpegEditInstructionDTO> actual) {
         assertThat(actual.size()).isEqualTo(expected.size());
