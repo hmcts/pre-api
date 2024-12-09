@@ -3,23 +3,26 @@ package uk.gov.hmcts.reform.preapi.entities.batch;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class PassItem {
 
     private String regexPattern;
     private String archiveName;
-    private UUID caseId;
-    private UUID courtId;
     private String caseReference;
     private Boolean isTest;
-    private UUID bookingId;
     private Timestamp scheduledFor;
-    private UUID captureSessionId;
     private String origin;
     private String ingestAddress;
     private String liveOutputURL;
@@ -27,12 +30,23 @@ public class PassItem {
     private UUID startedByUserId;
     private Timestamp finishedAt;
     private UUID finishedByUserId;
-    private String status;
-    private UUID recordingId;
-    private UUID parentRecordingId;
     private Integer version;
     private String fileName;
+    private String status;
     private Duration duration;
+    private List<Map<String, Map<String, String>>> participants; //participant type: firstname, last name
+    private List<Map<String, Map<String, String>>> users; //email : first name, last name
+    private List<Map<UUID, UUID>> shareBookings;
+
+    private UUID caseId;
+    private UUID courtId;
+    private UUID bookingId;
+    private UUID recordingId;
+    private UUID captureSessionId;
+    private UUID parentRecordingId;
+    private List<UUID> participantIds;
+    private List<UUID> shareBookingIds;
+    private List<UUID> userIds;
 
     public PassItem(
         String regexPattern,
@@ -40,7 +54,10 @@ public class PassItem {
         Case acase, 
         Booking booking, 
         CaptureSession captureSession, 
-        Recording recording
+        Recording recording,
+        Set<Participant> participants,
+        List<ShareBooking> shareBookings,
+        List<User> users
     ) {
         this.regexPattern = regexPattern;
         this.archiveName = archiveName;
@@ -80,25 +97,12 @@ public class PassItem {
         this.fileName = recording != null ? recording.getFilename() : null;
         this.duration = recording != null ? recording.getDuration() : null;
 
-        // Participant witness = acase.getParticipants().stream()
-        //     .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-        //     .findFirst().orElse(null);
-
-        // if (witness != null) {
-        //     this.witnessId = witness.getId();
-        //     this.witnessFirstName = witness.getFirstName();
-        //     this.witnessLastName = witness.getLastName();
-        // }
-
-        // Participant defendant = acase.getParticipants().stream()
-        //     .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-        //     .findFirst().orElse(null);
-
-        // if (defendant != null) {
-        //     this.defendantId = defendant.getId();
-        //     this.defendantFirstName = defendant.getFirstName();
-        //     this.defendantLastName = defendant.getLastName();
-        // }
+        this.participants = new ArrayList<>();
+        this.users = new ArrayList<>();
+        this.shareBookings = new ArrayList<>();
+        this.participantIds = null;
+        this.shareBookingIds = null;
+        this.userIds = null;
     }
 
     public String getRegexPattern() {
@@ -188,30 +192,31 @@ public class PassItem {
     public Duration getDuration() {
         return duration;
     }
+  
+    
+    public List<Map<String, Map<String, String>>> getParticipants() {
+        return participants;
+    }
 
-    // public UUID getWitnessId() {
-    //     return witnessId;
-    // }
+    public List<Map<String, Map<String, String>>> getUsers() {
+        return users;
+    }
 
-    // public String getWitnessFirstName() {
-    //     return witnessFirstName;
-    // }
+    public List<Map<UUID, UUID>> getShareBookings() {
+        return shareBookings;
+    }
 
-    // public String getWitnessLastName() {
-    //     return witnessLastName;
-    // }
+    public List<UUID> getParticipantIds() {
+        return participantIds;
+    }
 
-    // public UUID getDefendantId() {
-    //     return defendantId;
-    // }
+    public List<UUID> getShareBookingIds() {
+        return shareBookingIds;
+    }
 
-    // public String getDefendantFirstName() {
-    //     return defendantFirstName;
-    // }
-
-    // public String getDefendantLastName() {
-    //     return defendantLastName;
-    // }
+    public List<UUID> getUserIds() {
+        return userIds;
+    }
 
     @Override
     public String toString() {
@@ -238,13 +243,6 @@ public class PassItem {
                 + ", version=" + version 
                 + ", fileName='" + fileName  
                 + ", duration=" + duration 
-            // ", witnessId=" + witnessId +
-            // ", witnessFirstName='" + witnessFirstName + '\'' +
-            // ", witnessLastName='" + witnessLastName + '\'' +
-            // ", defendantId=" + defendantId +
-            // ", defendantFirstName='" + defendantFirstName + '\'' +
-            // ", defendantLastName='" + defendantLastName + '\'' +
-        
             + '}';   
     }
 }

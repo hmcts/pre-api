@@ -141,6 +141,15 @@ public class CleansedData {
         this.recordingVersionNumber = recordingVersionNumber; 
     }
 
+    public boolean isOrig() {
+        return "ORIG".equalsIgnoreCase(this.getRecordingVersion());
+    }
+
+    public boolean isCopy() {
+        return "COPY".equalsIgnoreCase(this.getRecordingVersion());
+    }
+
+
     public Duration getDuration() { 
         return duration; 
     }

@@ -64,9 +64,7 @@ public class DataValidationService {
         return true;
     }
 
-    private boolean validateTestData(
-        CleansedData cleansedData, 
-        CSVArchiveListData archiveItem) {
+    private boolean validateTestData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         if (cleansedData.isTest()) {
             handleFailure(archiveItem, cleansedData.getTestCheckResult().getReason());
             return false;

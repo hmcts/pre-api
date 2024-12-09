@@ -103,7 +103,10 @@ public class DataTransformationService {
             cleansedData.setState(CaseState.CLOSED);
             cleansedData.setFileExtension(extractionService.extractFileExtension(archiveItem));
             cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
-            cleansedData.setRecordingVersionNumber(determineRecordingVersion(archiveItem, cleansedData));
+            String extractedVersionStr = extractionService.extractRecordingVersionNumber(archiveItem);
+            if (extractedVersionStr != null && !extractedVersionStr.isEmpty()) {
+                cleansedData.setRecordingVersionNumber(convertToInt(extractedVersionStr));
+            }
 
             List<String[]> usersAndEmails = channelUserDataMap.get(archiveItem.getArchiveNameNoExt());
             List<Map<String, String>> contactsList = populateShareBookingContacts(usersAndEmails);
@@ -120,8 +123,29 @@ public class DataTransformationService {
         }
     }
 
+
+    public boolean isHighestOrigVersion(CleansedData cleansedItem, String redisKey, String caseReference) {
+        Integer currentVersion = cleansedItem.getRecordingVersionNumber();
+
+        String versionKey = redisKey + ":recordingVersion:" + caseReference + "-ORIG";
+        Integer highestVersion = (Integer) redisTemplate.opsForValue().get(versionKey);
+
+        if (highestVersion == null || currentVersion > highestVersion) {
+            redisTemplate.opsForValue().set(versionKey, currentVersion);
+            return true; 
+        }
+
+        return currentVersion.equals(highestVersion);
+    }
+
+
+
     private boolean containsTestKeyWord(String value, String criteria) {
         return value != null && value.toLowerCase().contains(criteria);
+    }
+
+    private int convertToInt(String str) {
+        return Integer.parseInt(str);
     }
 
     public TestItem checkIsTest(CSVArchiveListData archiveItem) {
@@ -208,54 +232,6 @@ public class DataTransformationService {
         
         return referenceBuilder.toString();
     }
-
-    private int getLastKnownVersion(String recordingKey) {
-        Integer lastVersion = (Integer) redisTemplate.opsForValue().get(recordingKey);
-        return (lastVersion != null) ? lastVersion : 0;
-    }
-
-    private void updateLastKnownVersion(String recordingKey, int version) {
-        redisTemplate.opsForValue().set(recordingKey, version);
-    }
-
-
-    private int determineRecordingVersion(CSVArchiveListData archiveItem, CleansedData cleansedItem) {
-        String recordingKey = buildRecordingKey(cleansedItem);
-        int lastKnownVersion = getLastKnownVersion(recordingKey);
-
-        String recordingVersionNumber = extractionService.extractRecordingVersionNumber(archiveItem);
-        String recordingVersion = cleansedItem.getRecordingVersion();
-
-        int versionNumber;
-
-        if (recordingVersionNumber != null && !recordingVersionNumber.isEmpty()) {
-            try {
-                versionNumber = (int) Double.parseDouble(recordingVersionNumber);
-            } catch (NumberFormatException e) {
-                versionNumber = 1;
-            }
-        } else {
-            versionNumber = 1;
-        }
-
-        if ("COPY".equalsIgnoreCase(recordingVersion)) {
-            versionNumber = lastKnownVersion + 1;
-        } else {
-            versionNumber = Math.max(versionNumber, lastKnownVersion + 1);
-        }
-
-        updateLastKnownVersion(recordingKey, versionNumber);
-        return versionNumber;
-    }
-
-    private String buildRecordingKey(CleansedData cleansedItem) {
-        return String.format("recording:%s:%s:%s:%s",
-            cleansedItem.getCourtReference(),
-            cleansedItem.getUrn(),
-            cleansedItem.getExhibitReference(),
-            cleansedItem.getDefendantLastName());
-    }
-
 
     private List<Map<String, String>> populateShareBookingContacts(List<String[]> usersAndEmails) {
         List<Map<String, String>> contactsList = new ArrayList<>();
