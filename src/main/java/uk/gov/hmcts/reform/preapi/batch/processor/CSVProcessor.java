@@ -4,7 +4,6 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
@@ -22,15 +21,12 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
-import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
-import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
-import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.services.batch.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
+import uk.gov.hmcts.reform.preapi.services.batch.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
@@ -43,10 +39,14 @@ import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 
+/**
+ * Processes various CSV data types and transforms them into MigratedItemGroup for further processing.
+ */
 @Component
 public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
     private final DataExtractionService extractionService;
     private final RedisService redisService;
+    private final EntityCreationService entityCreationService;
     private final DataTransformationService transformationService;
     private final DataValidationService validationService;
     private final MigrationTrackerService migrationTrackerService;
@@ -59,16 +59,17 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
 
     @Autowired
     public CSVProcessor(
-            DataExtractionService extractionService,
-            DataTransformationService transformationService,
-            DataValidationService validationService,
-            RedisService redisService,
-            CaseRepository caseRepository,
-            CourtRepository courtRepository,
-            UserRepository userRepository,
-            MigrationTrackerService migrationTrackerService) {
-        this.redisService = redisService;
+        DataExtractionService extractionService,
+        EntityCreationService entityCreationService,
+        DataTransformationService transformationService,
+        DataValidationService validationService,
+        RedisService redisService,
+        CaseRepository caseRepository,
+        UserRepository userRepository,
+        MigrationTrackerService migrationTrackerService) {
         this.extractionService = extractionService;
+        this.redisService = redisService;
+        this.entityCreationService = entityCreationService;
         this.transformationService = transformationService;
         this.validationService = validationService;
         this.caseRepository = caseRepository;
@@ -76,11 +77,24 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         this.migrationTrackerService = migrationTrackerService;
     }
 
+    // =========================
+    // Initialization
+    // =========================
     @EventListener(ContextRefreshedEvent.class)
     public void init() {
         loadCaseCache();
     }
 
+    private void loadCaseCache() {
+        List<Case> cases = caseRepository.findAll();
+        for (Case acase : cases) {
+            caseCache.put(acase.getReference(), acase);
+        }
+    }
+
+    // =========================
+    // Main Processor Logic
+    // =========================
     @Override
     public MigratedItemGroup process(Object item) throws Exception {
         if (item instanceof CSVArchiveListData) {
@@ -95,112 +109,92 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         return null;
     }
 
-    private Object processSitesData(CSVSitesData sitesItem) {
+    private void processSitesData(CSVSitesData sitesItem) {
         sitesDataMap.put(sitesItem.getSiteReference(), sitesItem.getSiteName());
-        return sitesItem;
+        // return sitesItem;
     }
 
-    private Object processChannelUserData(CSVChannelData channelDataItem) {
+    private void processChannelUserData(CSVChannelData channelDataItem) {
         channelUserDataMap
             .computeIfAbsent(channelDataItem.getChannelName(), k -> new ArrayList<>())
             .add(new String[]{channelDataItem.getChannelUser(), channelDataItem.getChannelUserEmail()});
-        return channelDataItem;
+        // return channelDataItem;
     }
 
     private MigratedItemGroup processArchiveListData(CSVArchiveListData archiveItem) {
         try {
-            Map<String, Object> transformationResult = transformationService.transformArchiveListData(
-                archiveItem, sitesDataMap, channelUserDataMap);
+            Map<String, Object> transformationResult = transformData(archiveItem);
 
             String errorMessage = (String) transformationResult.get("errorMessage");
-
             if (errorMessage != null) {
                 migrationTrackerService.addFailedItem(new FailedItem(archiveItem, errorMessage));
                 return null;  
             }   
 
-            String pattern = "";
-            try {
-                Map.Entry<String, Matcher> patternMatch = getPatternMatch(archiveItem);
-                pattern = patternMatch != null ? patternMatch.getKey() : null; 
-            } catch (Exception e) {
-                migrationTrackerService.addFailedItem(new FailedItem(archiveItem, e.getMessage()));
-            }
-
             CleansedData cleansedData = (CleansedData) transformationResult.get("cleansedData");
-            if (!validationService.validateCleansedData(cleansedData, archiveItem)) {
+            if (!validateData(cleansedData, archiveItem)) {
                 return null;
             }
-            return createMigratedItemGroup(pattern, archiveItem, cleansedData);
 
+            String pattern = extractPattern(archiveItem);
+            return createMigratedItemGroup(pattern, archiveItem, cleansedData);
         } catch (Exception e) {
             migrationTrackerService.addFailedItem(new FailedItem(
                 archiveItem, "Error processing item: " + e.getMessage()));
         }
-
         return null;
     }
 
-    private Map.Entry<String, Matcher> getPatternMatch(CSVArchiveListData archiveItem) {
-        return extractionService.matchPattern(archiveItem);
+    // =========================
+    // Transformation and Validation
+    // =========================
+    private Map<String, Object> transformData(CSVArchiveListData archiveItem) {
+        return transformationService.transformArchiveListData(archiveItem, sitesDataMap, channelUserDataMap);
     }
 
+    private boolean validateData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+        return validationService.validateCleansedData(cleansedData, archiveItem);
+    }
+
+    private String extractPattern(CSVArchiveListData archiveItem) {
+        try {
+            Map.Entry<String, Matcher> patternMatch = extractionService.matchPattern(archiveItem);
+            return patternMatch != null ? patternMatch.getKey() : null; 
+        } catch (Exception e) {
+            migrationTrackerService.addFailedItem(new FailedItem(archiveItem, e.getMessage()));
+            return null;
+        }
+    }
+
+    // =========================
+    // Entity Creation Logic
+    // =========================
     private MigratedItemGroup createMigratedItemGroup(String pattern, 
         CSVArchiveListData archiveItem, CleansedData cleansedData) {
-        MigratedItemGroup migratedItemGroup = null; 
 
         Case acase = createCaseIfOrig(cleansedData);
+        if (acase == null) {
+            return null;
+        }
         
-        if (acase != null) {            
-            String participantPair =  cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
-            String baseKey = generateRedisBaseKey(acase, participantPair); 
-            Map<String, String> redisKeys = generateRedisKeys(baseKey, acase,  participantPair, cleansedData);
-            
-            Booking booking = null;
-            CaptureSession captureSession = null; 
+        String participantPair =  cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
+        String baseKey = redisService.generateBaseKey(acase.getReference(), participantPair);
+        Booking booking = processBooking(baseKey, cleansedData, acase);
+        CaptureSession captureSession = processCaptureSession(baseKey, cleansedData, booking);
+        Recording recording = createRecording(archiveItem, cleansedData, baseKey, captureSession);
+        
+        Set<Participant> participants = entityCreationService.createParticipants(cleansedData, acase);
 
-            if(redisService.hashKeyExists(baseKey, "participantPairField")){
-                if (redisService.hashKeyExists(baseKey, "bookingField")) {
-                    BookingDTO bookingDTO = redisService.getHashValue(baseKey, "bookingField", BookingDTO.class);
-                    booking = convertToBooking(bookingDTO); 
-                } else {
-                    booking = createBooking(cleansedData, baseKey, acase);
-                }
-
-                if (redisService.hashKeyExists(baseKey, "captureSessionField")) {
-                    CaptureSessionDTO captureSessionDTO = redisService.getHashValue(baseKey, "captureSessionField", CaptureSessionDTO.class);
-                    captureSession = convertToCaptureSession(captureSessionDTO, booking);
-                } else {
-                    captureSession = createCaptureSession(cleansedData, baseKey, booking);
-                }
-                
-            }
-
-            Set<Participant> participants = createParticipants(cleansedData, acase);
-
-            Recording recording = createRecording(archiveItem, cleansedData, baseKey, captureSession);
-            List<ShareBooking> shareBookings = new ArrayList<>();
-            List<User> users = new ArrayList<>();
-            try {
-                List<Object> shareBookingResult = createShareBookings(cleansedData, booking);
-                // shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
-                // users = (List<User>) shareBookingResult.get(1);
-            } catch (Exception e) {
-                Logger.getAnonymousLogger().severe("Error in createMigratedItemGroup: " + e.getMessage());
-                return null;
-            }
-            PassItem passItem = new PassItem(pattern, archiveItem.getArchiveName(), acase, 
-                booking, captureSession, recording, participants, shareBookings, users);
-            try {
-                migratedItemGroup = new MigratedItemGroup(acase, booking, 
-                    captureSession, recording, participants, passItem, shareBookings, users);
-                
-            } catch (Exception e) {
-                Logger.getAnonymousLogger().info("ERROR: " + e.getMessage()); 
-            }
-            return migratedItemGroup; 
-        } 
-        return null;
+        List<ShareBooking> shareBookings = new ArrayList<>();
+        List<User> users = new ArrayList<>();
+        List<Object> shareBookingResult = entityCreationService.createShareBookings(cleansedData, booking);
+        // shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
+        // users = (List<User>) shareBookingResult.get(1);
+        
+        PassItem passItem = new PassItem(pattern, archiveItem.getArchiveName(), acase, 
+            booking, captureSession, recording, participants, shareBookings, users);
+        return  new MigratedItemGroup(acase, booking, captureSession, recording, participants, 
+            passItem, shareBookings, users);
     }
 
     private Case createCaseIfOrig(CleansedData cleansedData) {
@@ -210,105 +204,42 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
         if (transformationService.isOriginalVersion(cleansedData)) {
-            Case newCase = createCase(cleansedData);
+            Case newCase = entityCreationService.createCase(cleansedData);
             caseCache.put(caseReference, newCase);
             return newCase;
         }
         return null;
     }
 
-    private Case createCase(CleansedData cleansedItem) {
-        Case aCase = new Case();
-        aCase.setId(UUID.randomUUID());
-        aCase.setCourt(cleansedItem.getCourt());
-        aCase.setReference(transformationService.buildCaseReference(cleansedItem));
-        aCase.setTest(cleansedItem.isTest());
-        aCase.setCreatedAt(cleansedItem.getRecordingTimestamp());
-        aCase.setState(cleansedItem.getState());
-        return aCase;
+    private Booking processBooking(String baseKey, CleansedData cleansedData, Case acase) {
+        if (redisService.hashKeyExists(baseKey, "bookingField")) {
+            BookingDTO bookingDTO = redisService.getHashValue(baseKey, "bookingField", BookingDTO.class);
+            return convertToBooking(bookingDTO);
+        }
+        return createBooking(cleansedData, baseKey, acase);
+    }
+
+    private CaptureSession processCaptureSession(String baseKey, CleansedData cleansedData, Booking booking) {
+        if (redisService.hashKeyExists(baseKey, "captureSessionField")) {
+            CaptureSessionDTO captureSessionDTO = redisService.getHashValue(baseKey,
+                "captureSessionField", CaptureSessionDTO.class);
+            return convertToCaptureSession(captureSessionDTO, booking);
+        }
+        return createCaptureSession(cleansedData, baseKey, booking);
     }
 
     private Booking createBooking(CleansedData cleansedItem, String redisKey, Case acase) {
-        Booking booking = new Booking();
-        booking.setId(UUID.randomUUID());
-        booking.setCaseId(acase);
-        booking.setScheduledFor(cleansedItem.getRecordingTimestamp());
-        booking.setCreatedAt(cleansedItem.getRecordingTimestamp());
-
+        Booking booking = entityCreationService.createBooking(cleansedItem,acase);
         BookingDTO bookingDTO = new BookingDTO(booking);
-
         redisService.saveHashValue(redisKey, "bookingField", bookingDTO);
-
         return booking;
     }
 
     private CaptureSession createCaptureSession(CleansedData cleansedItem, String redisKey,  Booking booking) {       
-        CaptureSession captureSession = new CaptureSession();
-        captureSession.setId(UUID.randomUUID());
-        captureSession.setBooking(booking);
-        captureSession.setOrigin(RecordingOrigin.VODAFONE);
-        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
-
+        CaptureSession captureSession = entityCreationService.createCaptureSession(cleansedItem, booking);
         CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO(captureSession);
-
         redisService.saveHashValue(redisKey, "captureSessionField", captureSessionDTO);
-
         return captureSession;
-    }
-
-
-    private List<Object> createShareBookings(CleansedData cleansedData, Booking booking) {
-        List<Object> results = new ArrayList<>();
-        try {
-            if (cleansedData == null || booking == null) {
-                return null;
-            }
-
-            List<ShareBooking> shareBookings = new ArrayList<>();
-            List<User> sharedWithUsers = new ArrayList<>();
-
-            for (Map<String, String> contactInfo : cleansedData.getShareBookingContacts()) {
-                User user = getOrCreateUser(contactInfo);
-                ShareBooking shareBooking = new ShareBooking();
-                shareBooking.setId(UUID.randomUUID());
-                shareBooking.setBooking(booking);
-                shareBooking.setSharedBy(user); 
-                shareBooking.setSharedWith(user); 
-
-                sharedWithUsers.add(user);
-                shareBookings.add(shareBooking);
-            }
-
-            results.add(shareBookings);
-            results.add(sharedWithUsers);
-
-        } catch (Exception e) {
-            Logger.getAnonymousLogger().severe("Error in createShareBookings: " + e.getMessage());
-        }
-        return results.isEmpty() ? null : results;
-    }
-
-    private User getOrCreateUser(Map<String, String> contactInfo) {
-        String email = contactInfo.get("email");
-        if (email == null) {
-            return null;
-        }
-        String redisUserKey = "user:" + email;
-        String userId = redisService.getValue(redisUserKey, String.class);
-
-        User user = userRepository.findById(UUID.fromString(userId)).orElse(null);
-        if (userId != null) {
-            return user;
-        } else {            
-            User newUser = new User();
-            newUser.setId(UUID.randomUUID());
-            newUser.setFirstName(contactInfo.getOrDefault("firstName", "Unknown"));
-            newUser.setLastName(contactInfo.getOrDefault("lastName", "Unknown"));
-            newUser.setEmail(email);
-
-            redisService.saveValue(redisUserKey, newUser.getId().toString());
-            return newUser;
-        }
     }
 
     private Recording createRecording(CSVArchiveListData archiveItem, CleansedData cleansedItem, 
@@ -322,85 +253,33 @@ public class CSVProcessor implements ItemProcessor<Object, MigratedItemGroup> {
         recording.setCreatedAt(cleansedItem.getRecordingTimestamp());
         recording.setVersion(cleansedItem.getRecordingVersionNumber());
 
+        return determineParentRecording(cleansedItem, recording);
+    }
+
+    private Recording determineParentRecording(CleansedData cleansedItem, Recording currentRecording) {
         if (transformationService.isOriginalVersion(cleansedItem)) {
-            recording.setParentRecording(recording);
-            recording.setVersion(1);
-            origRecordingsMap.put(cleansedItem.getUrn(), recording);
+            currentRecording.setParentRecording(currentRecording);
+            currentRecording.setVersion(1);
+            origRecordingsMap.put(cleansedItem.getUrn(), currentRecording);
         } else {
             Recording parentRecording = origRecordingsMap.get(cleansedItem.getUrn());
             if (parentRecording != null) {
-                recording.setParentRecording(parentRecording);
+                currentRecording.setParentRecording(parentRecording);
+                currentRecording.setVersion(2);
             }
-            recording.setVersion(2);
         }
-
-        return recording;
+        return currentRecording;
     }
 
-    private Set<Participant> createParticipants(CleansedData cleansedItem, Case acase) {
-        Participant witness = new Participant();
-        witness.setId(UUID.randomUUID());
-        witness.setParticipantType(ParticipantType.WITNESS);
-        witness.setCaseId(acase); 
-        witness.setFirstName(cleansedItem.getWitnessFirstName() != null 
-            ? cleansedItem.getWitnessFirstName() 
-            : "Unknown");
-        witness.setLastName(""); 
-
-        Participant defendant = new Participant();
-        defendant.setId(UUID.randomUUID());
-        defendant.setParticipantType(ParticipantType.DEFENDANT);
-        defendant.setCaseId(acase); 
-        defendant.setFirstName(""); 
-        defendant.setLastName(cleansedItem.getDefendantLastName() != null 
-            ? cleansedItem.getDefendantLastName() 
-            : "Unknown");
-
-        return Set.of(witness, defendant);
-    }
-
-
-    private void loadCaseCache() {
-        List<Case> cases = caseRepository.findAll();
-        for (Case acase : cases) {
-            caseCache.put(acase.getReference(), acase);
-        }
-    }
-
-
-    private Map<String, String> generateRedisKeys(String baseKey, Case acase, String participantPair, 
-        CleansedData cleansedData) {
-        if (participantPair == null || participantPair.isBlank()) {
-            throw new IllegalArgumentException("Participant pair key cannot be null or blank");
-        }
-
-        Map<String, String> redisKeys = new HashMap<>();
-
-        redisService.saveHashValue(baseKey, "participantPairField", participantPair);
-        redisKeys.put("participantPairField", participantPair);
-        redisKeys.put("bookingField", "booking");
-        redisKeys.put("captureSessionField", "captureSession");
-        redisKeys.put("highestOrigVersion", "ORIG");
-        redisKeys.put("highestCopyVersion", "COPY");
-
-        return redisKeys;
-    }
-
-
-    private String generateRedisBaseKey(Case acase, String participantPair) {
-        if (acase == null || acase.getReference() == null || acase.getReference().isBlank()) {
-            throw new IllegalArgumentException("Case reference cannot be null or blank");
-        }
-
-        return "caseParticipants:" + acase.getReference() + "--" + participantPair;
-    }
-
+    
+    //======================
+    // Conversion Methods
+    //======================
     private Booking convertToBooking(BookingDTO bookingDTO) {
-        
         if (bookingDTO == null) {
             return null;
         }
-    
+        
         Booking booking = new Booking();
         booking.setId(bookingDTO.getId());
     

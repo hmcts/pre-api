@@ -39,115 +39,137 @@ public class DataTransformationService {
         this.courtRepository = courtRepository;
     }
     
+    /**
+     * Main method for transforming archive list data.
+     *
+     * @param archiveItem The archive list data to transform.
+     * @param sitesDataMap Mapping of court references to full court names.
+     * @param channelUserDataMap Mapping of archive names to user data.
+     * @return A map containing cleansed data or an error message.
+     */
     public Map<String, Object> transformArchiveListData(
         CSVArchiveListData archiveItem,
         Map<String, String> sitesDataMap,
         Map<String, List<String[]>> channelUserDataMap
     ) {
-        Map<String, Object> result = new HashMap<>();
         
         try {
-            String courtReference = extractionService.extractCourtReference(archiveItem);
-            if (courtReference.isEmpty()) {
-                result.put("cleansedData", null);
-                result.put("errorMessage", "FAIL: Court extraction failed");
-                return result;
-            }
+            // Extract court ID and fetch the Court object
+            UUID courtId = extractCourtId(archiveItem, sitesDataMap);
+            Court fullCourt = fetchCourt(courtId);
+        
+            // Parse recording timestamp
+            Timestamp recordingTimestamp = getRecordingTimestamp(archiveItem);
 
-            String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
-            String courtIdString = (String) redisTemplate.opsForValue().get("court:" + fullCourtName);
-
-            UUID courtId = null;
-            if (courtIdString != null) {
-                try {
-                    courtId = UUID.fromString(courtIdString);
-                } catch (IllegalArgumentException e) {
-                    result.put("cleansedData", null);
-                    result.put("errorMessage", "FAIL: Court ID parsing failed for " + courtIdString);
-                    return result;
-                }
-            }
-
-            Court fullcourt = courtId != null ? courtRepository.findById(courtId).orElse(null) : null;
-
-            Timestamp recordingTimestamp;
-            try {
-                String recordingDate = archiveItem.getCreateTime();
-                recordingTimestamp = convertToTimestamp(recordingDate);
-                if (recordingTimestamp == null) {
-                    result.put("cleansedData", null);
-                    result.put("errorMessage", "FAIL: Unable to convert recording date to timestamp: " + recordingDate);
-                    return result;
-                }
-            } catch (Exception e) {
-                result.put("cleansedData", null);
-                result.put("errorMessage", "FAIL: Exception while converting recording date to timestamp: " + e);
-                return result;
-            }
-
-            int durationInSeconds = archiveItem.getDuration();
-            Duration duration = Duration.ofSeconds(durationInSeconds);
-
-            CleansedData cleansedData = new CleansedData();
-            cleansedData.setCourt(fullcourt);
-            cleansedData.setDuration(duration);
-            cleansedData.setCourtReference(courtReference);
-            cleansedData.setFullCourtName(fullCourtName);
-            cleansedData.setRecordingTimestamp(recordingTimestamp);
-            cleansedData.setUrn(extractionService.extractURN(archiveItem));
-            cleansedData.setExhibitReference(extractionService.extractExhibitReference(archiveItem));
-            cleansedData.setDefendantLastName(extractionService.extractDefendantLastName(archiveItem));
-            cleansedData.setWitnessFirstName(extractionService.extractWitnessFirstName(archiveItem));
-            cleansedData.setTest(checkIsTest(archiveItem).isTest());
-            cleansedData.setTestCheckResult(checkIsTest(archiveItem));
-            cleansedData.setState(CaseState.CLOSED);
-            cleansedData.setFileExtension(extractionService.extractFileExtension(archiveItem));
-            cleansedData.setRecordingVersion(extractionService.extractRecordingVersion(archiveItem));
-            String extractedVersionStr = extractionService.extractRecordingVersionNumber(archiveItem);
-            if (extractedVersionStr != null && !extractedVersionStr.isEmpty()) {
-                cleansedData.setRecordingVersionNumber(convertToInt(extractedVersionStr));
-            }
-
-            List<String[]> usersAndEmails = channelUserDataMap.get(archiveItem.getArchiveNameNoExt());
-            List<Map<String, String>> contactsList = populateShareBookingContacts(usersAndEmails);
-            cleansedData.setShareBookingContacts(contactsList);
-
-            result.put("cleansedData", cleansedData);
-            result.put("errorMessage", null); 
-            return result;
+            // Build CleansedData
+            CleansedData cleansedData = buildCleansedData(archiveItem, fullCourt, 
+                channelUserDataMap, recordingTimestamp);
+            
+            return createSuccessResponse(cleansedData);
 
         } catch (Exception e) {
-            result.put("cleansedData", null);
-            result.put("errorMessage", "General error: " + e.getMessage());
-            return result;
+            return createErrorResponse("General error: " + e.getMessage());
         }
     }
 
+    // ==========================
+    // Cleansed Data Construction
+    // ==========================
+    private CleansedData buildCleansedData(
+        CSVArchiveListData archiveItem,
+        Court court,
+        Map<String, List<String[]>> channelUserDataMap,
+        Timestamp recordingTimestamp
+    ) {
+        List<Map<String, String>> shareBookingContacts = populateShareBookingContacts(
+            channelUserDataMap.get(archiveItem.getArchiveNameNoExt())
+        );
+        
+        int recordingVersionNumber = 
+            parseRecordingVersionNumber(extractionService.extractRecordingVersionNumber(archiveItem));
 
-    public boolean isHighestOrigVersion(CleansedData cleansedItem, String redisKey, String caseReference) {
-        Integer currentVersion = cleansedItem.getRecordingVersionNumber();
+        return new CleansedData.Builder()
+            .setCourt(court)
+            .setRecordingTimestamp(recordingTimestamp)
+            .setDuration(Duration.ofSeconds(archiveItem.getDuration()))
+            .setCourtReference(extractionService.extractCourtReference(archiveItem))
+            .setUrn(extractionService.extractURN(archiveItem))
+            .setExhibitReference(extractionService.extractExhibitReference(archiveItem))
+            .setDefendantLastName(extractionService.extractDefendantLastName(archiveItem))
+            .setWitnessFirstName(extractionService.extractWitnessFirstName(archiveItem))
+            .setIsTest(checkIsTest(archiveItem).isTest())
+            .setTestCheckResult(checkIsTest(archiveItem))
+            .setState(CaseState.CLOSED)
+            .setFileExtension(extractionService.extractFileExtension(archiveItem))
+            .setRecordingVersion(extractionService.extractRecordingVersion(archiveItem))
+            .setRecordingVersionNumber(recordingVersionNumber)
+            .setShareBookingContacts(shareBookingContacts)
+            .build();
+    }
 
-        String versionKey = redisKey + ":recordingVersion:" + caseReference + "-ORIG";
-        Integer highestVersion = (Integer) redisTemplate.opsForValue().get(versionKey);
-
-        if (highestVersion == null || currentVersion > highestVersion) {
-            redisTemplate.opsForValue().set(versionKey, currentVersion);
-            return true; 
+    // ======================
+    // Court Handling Methods
+    // ======================
+    private UUID extractCourtId(CSVArchiveListData archiveItem, Map<String, String> sitesDataMap) {
+        String courtReference = extractionService.extractCourtReference(archiveItem);
+        if (courtReference.isEmpty()) {
+            throw new IllegalArgumentException("FAIL: Court extraction failed");
         }
 
-        return currentVersion.equals(highestVersion);
+        String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
+        String courtIdString = (String) redisTemplate.opsForValue().get("court:" + fullCourtName);
+
+        if (courtIdString != null) {
+            try {
+                return UUID.fromString(courtIdString);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("FAIL: Court ID parsing failed for " + courtIdString, e);
+            }
+        }
+        return null;
     }
 
-
-
-    private boolean containsTestKeyWord(String value, String criteria) {
-        return value != null && value.toLowerCase().contains(criteria);
+    private Court fetchCourt(UUID courtId) {
+        return courtId != null ? courtRepository.findById(courtId).orElse(null) : null;
     }
 
-    private int convertToInt(String str) {
-        return Integer.parseInt(str);
+    // ============================
+    // Timestamp and Version Parsing
+    // ============================
+    private Timestamp getRecordingTimestamp(CSVArchiveListData archiveItem) {
+        String recordingDate = archiveItem.getCreateTime();
+        Timestamp timestamp = convertToTimestamp(recordingDate);
+        if (timestamp == null) {
+            throw new IllegalArgumentException("FAIL: Unable to convert recording date to timestamp: " + recordingDate);
+        }
+        return timestamp;
     }
 
+    private Timestamp convertToTimestamp(String recordingDate) {
+        try {
+            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            LocalDateTime dateTime = LocalDateTime.parse(recordingDate, inputFormatter);
+
+            return Timestamp.valueOf(dateTime);
+        } catch (DateTimeParseException e) {
+            return null; 
+        }
+    }
+
+    private int parseRecordingVersionNumber(String versionStr) {
+        if (versionStr != null && !versionStr.isEmpty()) {
+            try {
+                return Integer.parseInt(versionStr);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid recording version number: " + versionStr, e);
+            }
+        }
+        return 0;
+    }
+
+    // ============================
+    // Data Validation and Contacts
+    // ============================
     public TestItem checkIsTest(CSVArchiveListData archiveItem) {
         StringBuilder reasons = new StringBuilder();
 
@@ -171,47 +193,54 @@ public class DataTransformationService {
             reasons.append("Duration is less than 10 seconds. ");
         }
 
-        if (reasons.length() > 0) {
-            String reasonString = "Test: " + reasons.toString().trim();
-            return new TestItem(true, reasonString);
-        }
-
-        return new TestItem(false, "No test related criteria met.");
+        return reasons.length() > 0 
+            ? new TestItem(true, reasons.toString().trim())
+            : new TestItem(false, "No test related criteria met.");
     }
-    
-    public LocalDateTime parseDate(String dateString) {
-        String[] formats = {
-            "dd/MM/yyyy HH:mm",
-            "yyyy-MM-dd",
-            "yyMMdd",
-            "ddMMyy" 
-        };
 
-        for (String format : formats) {
-            try {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(format);
-                return LocalDateTime.parse(dateString, formatter);
-            } catch (DateTimeParseException e) {
-                return null;
+    private List<Map<String, String>> populateShareBookingContacts(List<String[]> usersAndEmails) {
+        List<Map<String, String>> contactsList = new ArrayList<>();
+        
+        if (usersAndEmails != null) {
+            for (String[] userInfo : usersAndEmails) {
+                String[] nameParts = userInfo[0].split("\\.");
+                Map<String, String> contact = new HashMap<>();
+                contact.put("firstName", nameParts.length > 0 ? nameParts[0] : "");
+                contact.put("lastName", nameParts.length > 1 ? nameParts[1] : "");
+                contact.put("email", userInfo[1]);
+
+                contactsList.add(contact);
             }
         }
-        throw new IllegalArgumentException("Date format not supported: " + dateString);
+        
+        return contactsList;
     }
 
-    public Timestamp convertToTimestamp(String recordingDate) {
-        try {
-            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            LocalDateTime dateTime = LocalDateTime.parse(recordingDate, inputFormatter);
-
-            DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            String formattedDate = dateTime.format(outputFormatter);
-
-            return Timestamp.valueOf(formattedDate);
-        } catch (DateTimeParseException e) {
-            return null; 
-        }
+    private boolean containsTestKeyWord(String value, String criteria) {
+        return value != null && value.toLowerCase().contains(criteria);
     }
 
+    // =========================
+    // Response Creation Methods
+    // =========================
+    private Map<String, Object> createErrorResponse(String errorMessage) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("cleansedData", null);
+        errorResponse.put("errorMessage", errorMessage);
+        return errorResponse;
+    }
+
+    private Map<String, Object> createSuccessResponse(CleansedData cleansedData) {
+        Map<String, Object> successResponse = new HashMap<>();
+        successResponse.put("cleansedData", cleansedData);
+        successResponse.put("errorMessage", null);
+        return successResponse;
+    }
+
+    
+    // =========================
+    // Utility Methods
+    // =========================
     public boolean isOriginalVersion(CleansedData cleansedItem) {
         return "ORIG".equalsIgnoreCase(cleansedItem.getRecordingVersion());
     }
@@ -232,31 +261,6 @@ public class DataTransformationService {
         
         return referenceBuilder.toString();
     }
-
-    private List<Map<String, String>> populateShareBookingContacts(List<String[]> usersAndEmails) {
-        List<Map<String, String>> contactsList = new ArrayList<>();
-        
-        if (usersAndEmails != null) {
-            for (String[] userInfo : usersAndEmails) {
-                String fullName = userInfo[0];
-                String email = userInfo[1];
-                
-                String[] nameParts = fullName.split("\\.");
-                String firstName = nameParts.length > 0 ? nameParts[0] : "";
-                String lastName = nameParts.length > 1 ? nameParts[1] : "";
-                
-                Map<String, String> contact = new HashMap<>();
-                contact.put("firstName", firstName);
-                contact.put("lastName", lastName);
-                contact.put("email", email);
-                
-                contactsList.add(contact);
-            }
-        }
-        
-        return contactsList;
-    }
-
     
 }
 

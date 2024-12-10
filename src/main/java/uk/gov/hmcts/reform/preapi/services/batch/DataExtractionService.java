@@ -12,27 +12,22 @@ import java.util.regex.Pattern;
 @Service
 public class DataExtractionService {
 
-    private final Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
-
     public DataExtractionService() {
-        
+    }
+
+    private Map<String, Pattern> getNamedPatterns() {
+        Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
         namedPatterns.put("11", RegexPatterns.PATTERN_11);
         namedPatterns.put("10", RegexPatterns.PATTERN_10);
-        // namedPatterns.put("9", RegexPatterns.PATTERN_9);
-        // namedPatterns.put("7", RegexPatterns.PATTERN_7);
-        // namedPatterns.put("8", RegexPatterns.PATTERN_8);
-        namedPatterns.put("1", RegexPatterns.PATTERN_1); //GENERIC_NAME_PATTERN_Tref
-        namedPatterns.put("2", RegexPatterns.PATTERN_2); //GENERIC_NAME_PATTERN
-        // namedPatterns.put("3", RegexPatterns.PATTERN_3);
+        namedPatterns.put("1", RegexPatterns.PATTERN_1); // GENERIC_NAME_PATTERN_Tref
+        namedPatterns.put("2", RegexPatterns.PATTERN_2); // GENERIC_NAME_PATTERN
         namedPatterns.put("4", RegexPatterns.PATTERN_4);
         namedPatterns.put("5", RegexPatterns.PATTERN_5);
-        // namedPatterns.put("6", RegexPatterns.PATTERN_6);
-        // namedPatterns.put("12", RegexPatterns.PATTERN_12);
-        
+        return namedPatterns;
     }
 
     public Map.Entry<String, Matcher> matchPattern(CSVArchiveListData archiveItem) {
-        for (Map.Entry<String, Pattern> entry : namedPatterns.entrySet()) {
+        for (Map.Entry<String, Pattern> entry : getNamedPatterns().entrySet()) {
             Matcher matcher = entry.getValue().matcher(archiveItem.getArchiveName());
             if (matcher.matches()) {
                 return Map.entry(entry.getKey(), matcher);
@@ -44,7 +39,12 @@ public class DataExtractionService {
     private String extractField(CSVArchiveListData archiveItem, String groupName) {
         Map.Entry<String, Matcher> patternMatch = matchPattern(archiveItem);
         if (patternMatch != null) {
-            return patternMatch.getValue().group(groupName);
+            try {
+                return patternMatch.getValue().group(groupName);
+            } catch (Exception e) {
+                throw new IllegalStateException("Group '" + groupName + "' not found in pattern '" 
+                    + patternMatch.getKey() + "'", e);
+            }
         }
         return "";
     }
