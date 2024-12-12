@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -66,7 +67,7 @@ class RecordingServiceTest {
     private CaptureSessionService captureSessionService;
 
     @MockBean
-    private AuditService auditService;
+    private GovNotify govNotify;
 
     @Autowired
     private RecordingService recordingService;
