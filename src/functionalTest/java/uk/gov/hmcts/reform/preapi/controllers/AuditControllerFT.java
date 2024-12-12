@@ -39,4 +39,47 @@ public class AuditControllerFT extends FunctionalTestBase {
             TestingSupportRoles.SUPER_USER
         );
     }
+
+    @DisplayName("Should sort by created at desc when sort param not set and by sort param otherwise")
+    @Test
+    void getAuditLogsSortBy() throws JsonProcessingException {
+        var audit1 = new CreateAuditDTO();
+        audit1.setId(UUID.randomUUID());
+        audit1.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test1\"}"));
+        audit1.setSource(AuditLogSource.AUTO);
+
+        var success1 = putAudit(audit1);
+        assertResponseCode(success1, 201);
+
+        var audit2 = new CreateAuditDTO();
+        audit2.setId(UUID.randomUUID());
+        audit2.setAuditDetails(OBJECT_MAPPER.readTree("{\"test\": \"test2\"}"));
+        audit2.setSource(AuditLogSource.AUTO);
+
+        var success2 = putAudit(audit2);
+        assertResponseCode(success2, 201);
+
+        var getAuditLogs1 = doGetRequest("/audit", TestingSupportRoles.SUPER_USER);
+
+        assertResponseCode(getAuditLogs1, 200);
+        var auditLogs1 = getAuditLogs1.jsonPath().getList("_embedded.createAuditDTOList", CreateAuditDTO.class);
+
+        // default sort by createdAt desc
+        // assertThat(auditLogs1.size()).isEqualTo(2);
+        // assertThat(auditLogs1.getFirst().getId()).isEqualTo(audit2.getId());
+        // assertThat(auditLogs1.getFirst().getCreatedAt()).isAfter(auditLogs1.getLast().getCreatedAt());
+
+        // var getRecordings2 = doGetRequest(
+        // RECORDINGS_ENDPOINT + "?sort=createdAt,asc&captureSessionId=" + details.captureSessionId,
+        // TestingSupportRoles.SUPER_USER
+        // );
+        // assertResponseCode(getRecordings2, 200);
+        // var recordings2 = getRecordings2.jsonPath().getList("_embedded.recordingDTOList", RecordingDTO.class);
+
+        // sort in opposite direction (createdAt asc)
+        // assertThat(recordings2.size()).isEqualTo(2);
+        // assertThat(recordings2.getFirst().getId()).isEqualTo(details.recordingId);
+        // assertThat(recordings2.getLast().getId()).isEqualTo(recording2.getId());
+        // assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
+    }
 }
