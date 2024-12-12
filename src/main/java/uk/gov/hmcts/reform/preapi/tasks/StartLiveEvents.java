@@ -123,6 +123,9 @@ public class StartLiveEvents extends RobotUserTask {
             log.info("Ingest address found for capture session {}", captureSessionId);
             captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.STANDBY, inputRtmp);
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             log.error("Failed to await ingest address for capture session {}", captureSessionId, e);
             captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
         }
