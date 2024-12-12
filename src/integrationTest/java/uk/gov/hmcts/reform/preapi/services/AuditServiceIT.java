@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -23,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.UUID;
 
 public class AuditServiceIT extends IntegrationTestBase {
@@ -143,7 +145,10 @@ public class AuditServiceIT extends IntegrationTestBase {
         var auditResultsCreated = auditService.getAuditsByTableRecordId(caseDTO.getId());
         caseService.deleteById(caseDTO.getId());
 
-        var auditResults = auditService.getAuditsByTableRecordId(caseDTO.getId());
+        var auditResults = auditService.getAuditsByTableRecordId(caseDTO.getId())
+            .stream()
+            .sorted(Comparator.comparing(Audit::getCreatedAt))
+            .toList();
         Assertions.assertEquals(0, auditResultsEmpty.size());
         Assertions.assertEquals(1, auditResultsCreated.size());
         Assertions.assertEquals(2, auditResults.size());
