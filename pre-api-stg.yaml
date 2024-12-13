@@ -1030,6 +1030,44 @@ definitions:
           $ref: '#/definitions/RoomDTO'
         type: array
     type: object
+  EntityModelCreateAuditDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - id
+      - source
+    type: object
   EntityModelInviteDTO:
     properties:
       _links:
@@ -1371,6 +1409,20 @@ definitions:
           courtDTOList:
             items:
               $ref: '#/definitions/EntityModelCourtDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
+  PagedModelEntityModelCreateAuditDTO:
+    properties:
+      _embedded:
+        properties:
+          createAuditDTOList:
+            items:
+              $ref: '#/definitions/EntityModelCreateAuditDTO'
             type: array
         type: object
       _links:
@@ -1920,6 +1972,27 @@ paths:
       summary: Get the latest terms and conditions for the app
       tags:
         - terms-and-conditions-controller
+  /audit:
+    get:
+      operationId: getAuditLogs
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/PagedModelEntityModelCreateAuditDTO'
+      summary: Search all Audits
+      tags:
+        - audit-controller
   '/audit/{id}':
     put:
       consumes:
