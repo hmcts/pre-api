@@ -10,6 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
@@ -17,6 +18,8 @@ import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -95,7 +98,10 @@ class AuditServiceTest {
     @DisplayName("Find a list of audit logs and return a list of models")
     @Test
     void findAllAuditsSuccess() {
-        new PageImpl<>(List.of(auditEntity));
+        auditEntity = new Audit();
+        auditEntity.setId(UUID.randomUUID());
+        auditEntity.setCreatedAt(Timestamp.from(Instant.now()));
+
         when(
             auditRepository.searchAll(any())
         ).thenReturn(new PageImpl<>(List.of(auditEntity)));
