@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
@@ -13,16 +15,22 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AuditService.class)
 class AuditServiceTest {
+
+    private static Audit auditEntity;
 
     @MockBean
     private AuditRepository auditRepository;
@@ -82,5 +90,21 @@ class AuditServiceTest {
             ImmutableDataException.class,
             () -> auditService.upsert(auditModel, UUID.randomUUID())
         );
+    }
+
+    @DisplayName("Find a list of audit logs and return a list of models")
+    @Test
+    void findAllAuditsSuccess() {
+        new PageImpl<>(List.of(auditEntity));
+        when(
+            auditRepository.searchAll(any())
+        ).thenReturn(new PageImpl<>(List.of(auditEntity)));
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.isAdmin()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        var modelList = auditService.findAll(null).get().toList();
+        assertThat(modelList.size()).isEqualTo(1);
+        assertThat(modelList.getFirst().getId()).isEqualTo(auditEntity.getId());
     }
 }
