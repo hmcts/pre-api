@@ -836,6 +836,54 @@ definitions:
         format: int32
         type: integer
     type: object
+  EntityModelAuditDTO:
+    properties:
+      _links:
+        $ref: '#/definitions/Links'
+      activity:
+        description: AuditActivity
+        type: string
+      audit_details:
+        $ref: '#/definitions/JsonNode'
+      category:
+        description: AuditCategory
+        type: string
+      created_at:
+        description: AuditCreatedAt
+        format: date-time
+        type: string
+      created_by:
+        description: AuditCreatedBy
+        format: uuid
+        type: string
+      functional_area:
+        description: AuditFunctionalArea
+        type: string
+      id:
+        description: AuditId
+        format: uuid
+        type: string
+      source:
+        description: AuditLogSource
+        enum:
+          - APPLICATION
+          - PORTAL
+          - ADMIN
+          - AUTO
+        type: string
+      table_name:
+        description: AuditTableName
+        type: string
+      table_record_id:
+        description: AuditTableNameRecordId
+        format: uuid
+        type: string
+    required:
+      - created_at
+      - created_by
+      - id
+      - source
+    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -1029,44 +1077,6 @@ definitions:
         items:
           $ref: '#/definitions/RoomDTO'
         type: array
-    type: object
-  EntityModelCreateAuditDTO:
-    properties:
-      _links:
-        $ref: '#/definitions/Links'
-      activity:
-        description: AuditActivity
-        type: string
-      audit_details:
-        $ref: '#/definitions/JsonNode'
-      category:
-        description: AuditCategory
-        type: string
-      functional_area:
-        description: AuditFunctionalArea
-        type: string
-      id:
-        description: AuditId
-        format: uuid
-        type: string
-      source:
-        description: AuditLogSource
-        enum:
-          - APPLICATION
-          - PORTAL
-          - ADMIN
-          - AUTO
-        type: string
-      table_name:
-        description: AuditTableName
-        type: string
-      table_record_id:
-        description: AuditTableNameRecordId
-        format: uuid
-        type: string
-    required:
-      - id
-      - source
     type: object
   EntityModelInviteDTO:
     properties:
@@ -1360,6 +1370,20 @@ definitions:
         format: int64
         type: integer
     type: object
+  PagedModelEntityModelAuditDTO:
+    properties:
+      _embedded:
+        properties:
+          auditDTOList:
+            items:
+              $ref: '#/definitions/EntityModelAuditDTO'
+            type: array
+        type: object
+      _links:
+        $ref: '#/definitions/Links'
+      page:
+        $ref: '#/definitions/PageMetadata'
+    type: object
   PagedModelEntityModelBookingDTO:
     properties:
       _embedded:
@@ -1409,20 +1433,6 @@ definitions:
           courtDTOList:
             items:
               $ref: '#/definitions/EntityModelCourtDTO'
-            type: array
-        type: object
-      _links:
-        $ref: '#/definitions/Links'
-      page:
-        $ref: '#/definitions/PageMetadata'
-    type: object
-  PagedModelEntityModelCreateAuditDTO:
-    properties:
-      _embedded:
-        properties:
-          createAuditDTOList:
-            items:
-              $ref: '#/definitions/EntityModelCreateAuditDTO'
             type: array
         type: object
       _links:
@@ -1982,7 +1992,7 @@ paths:
         '200':
           description: OK
           schema:
-            $ref: '#/definitions/PagedModelEntityModelCreateAuditDTO'
+            $ref: '#/definitions/PagedModelEntityModelAuditDTO'
       summary: Search all Audits
       tags:
         - audit-controller
