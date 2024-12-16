@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.gov.hmcts.reform.preapi.dto.AuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.exception.PathPayloadMismatchException;
 import uk.gov.hmcts.reform.preapi.exception.RequestedPageOutOfRangeException;
@@ -61,13 +62,13 @@ public class AuditController {
 
     @GetMapping
     @Operation(operationId = "getAuditLogs", summary = "Search all Audits")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
-    public HttpEntity<PagedModel<EntityModel<CreateAuditDTO>>> searchAuditLogs(
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public HttpEntity<PagedModel<EntityModel<AuditDTO>>> searchAuditLogs(
         @SortDefault.SortDefaults(
             @SortDefault(sort = "createdAt", direction = Sort.Direction.DESC)
         )
         @Parameter(hidden = true) Pageable pageable,
-        @Parameter(hidden = true) PagedResourcesAssembler<CreateAuditDTO> assembler
+        @Parameter(hidden = true) PagedResourcesAssembler<AuditDTO> assembler
     ) {
         var resultPage = auditService.findAll(
             pageable
