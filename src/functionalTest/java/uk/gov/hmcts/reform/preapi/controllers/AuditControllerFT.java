@@ -41,7 +41,7 @@ public class AuditControllerFT extends FunctionalTestBase {
         );
     }
 
-    @DisplayName("Should sort by created at desc when sort param not set and by sort param otherwise")
+    @DisplayName("Should sort by created at desc")
     @Test
     void getAuditLogsSortBy() throws JsonProcessingException {
         var audit1 = new CreateAuditDTO();
