@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.AuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
@@ -76,10 +77,16 @@ public class AuditControllerFT extends FunctionalTestBase {
     }
 
     @ParameterizedTest
+    @NullSource
     @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE )
-    @DisplayName("Unauthorised use of endpoints should return 403")
+    @DisplayName("Unauthorised use of endpoints should return 403 (or 401 for null authorisation)")
     void unauthorisedRequestsReturn403(TestingSupportRoles testingSupportRole) throws JsonProcessingException {
         var getAuditLogsResponse = doGetRequest("/audit", testingSupportRole);
-        assertResponseCode(getAuditLogsResponse, 403);
+        if (testingSupportRole == null) {
+            assertResponseCode(getAuditLogsResponse, 401);
+        }
+        else {
+            assertResponseCode(getAuditLogsResponse, 403);
+        }
     }
 }
