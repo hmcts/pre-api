@@ -5,6 +5,7 @@ import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
+import uk.gov.hmcts.reform.preapi.dto.AuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
@@ -62,10 +63,10 @@ public class AuditControllerFT extends FunctionalTestBase {
         var getAuditLogs1 = doGetRequest("/audit", TestingSupportRoles.SUPER_USER);
 
         assertResponseCode(getAuditLogs1, 200);
-        var auditLogs1 = getAuditLogs1.jsonPath().getList("_embedded.createAuditDTOList", CreateAuditDTO.class);
+        var auditLogs1 = getAuditLogs1.jsonPath().getList("_embedded.auditDTOList", AuditDTO.class);
 
         // default sort by createdAt desc
-        // assertThat(auditLogs1.size()).isEqualTo(2);
+        assertThat(auditLogs1.size()).isEqualTo(20);
         // assertThat(auditLogs1.getFirst().getId()).isEqualTo(audit2.getId());
         // assertThat(auditLogs1.getFirst().getCreatedAt()).isAfter(auditLogs1.getLast().getCreatedAt());
 
