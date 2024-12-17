@@ -10,7 +10,6 @@ import org.junit.jupiter.params.provider.NullSource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.AuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
