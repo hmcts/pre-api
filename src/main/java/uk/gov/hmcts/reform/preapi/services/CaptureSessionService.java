@@ -118,6 +118,18 @@ public class CaptureSessionService {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + id));
+
+        if (captureSession.getStatus() != RecordingStatus.RECORDING_AVAILABLE
+            && captureSession.getStatus() != RecordingStatus.NO_RECORDING
+            && captureSession.getStatus() != RecordingStatus.FAILURE) {
+            throw new ResourceInWrongStateException(
+                "Capture Session ("
+                    + id
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                    + captureSession.getStatus()
+            );
+        }
+
         recordingService.deleteCascade(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
@@ -129,6 +141,16 @@ public class CaptureSessionService {
         captureSessionRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
             .forEach(captureSession -> {
+                if (captureSession.getStatus() != RecordingStatus.RECORDING_AVAILABLE
+                    && captureSession.getStatus() != RecordingStatus.NO_RECORDING
+                    && captureSession.getStatus() != RecordingStatus.FAILURE) {
+                    throw new ResourceInWrongStateException(
+                        "Capture Session ("
+                            + captureSession.getId()
+                            + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                            + captureSession.getStatus()
+                    );
+                }
                 recordingService.deleteCascade(captureSession);
                 captureSession.setDeleteOperation(true);
                 captureSession.setDeletedAt(Timestamp.from(Instant.now()));
