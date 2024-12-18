@@ -77,14 +77,13 @@ public class AuditControllerFT extends FunctionalTestBase {
 
     @ParameterizedTest
     @NullSource
-    @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE )
+    @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
     @DisplayName("Unauthorised use of endpoints should return 403 (or 401 for null authorisation)")
     void unauthorisedRequestsReturn403Or401(TestingSupportRoles testingSupportRole) throws JsonProcessingException {
         var getAuditLogsResponse = doGetRequest("/audit", testingSupportRole);
         if (testingSupportRole != null) {
             assertResponseCode(getAuditLogsResponse, 403);
-        }
-        else {
+        } else {
             assertResponseCode(getAuditLogsResponse, 401);
         }
     }
