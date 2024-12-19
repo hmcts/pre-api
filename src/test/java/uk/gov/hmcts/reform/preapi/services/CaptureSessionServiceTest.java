@@ -139,6 +139,7 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should delete all attached recordings before marking capture session as deleted")
     @Test
     void deleteCascadeSuccess() {
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
         when(captureSessionRepository.findAllByBookingAndDeletedAtIsNull(booking)).thenReturn(List.of(captureSession));
 
         captureSessionService.deleteCascade(booking);
@@ -235,6 +236,7 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should delete a capture session by id")
     @Test
     void deleteByIdSuccess() {
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
             .thenReturn(Optional.of(captureSession));
 
@@ -769,5 +771,52 @@ public class CaptureSessionServiceTest {
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: CaptureSession: " + liveEventId);
+    }
+
+    @Test
+    @DisplayName("Should throw resource wrong stage exception when attempting to delete capture session in wrong state")
+    void deleteCaptureSessionWrongState() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> captureSessionService.deleteById(captureSession.getId())
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo(
+                "Capture Session ("
+                    + captureSession.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+
+        verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
+        verify(captureSessionRepository, never()).deleteById(captureSession.getId());
+    }
+
+    @Test
+    @DisplayName("Should throw resource wrong stage exception when attempting to delete capture session in wrong state")
+    void deleteCascadeCaptureSessionWrongState() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(captureSessionRepository.findAllByBookingAndDeletedAtIsNull(booking)).thenReturn(List.of(captureSession));
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> captureSessionService.deleteCascade(booking)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo(
+                "Capture Session ("
+                    + captureSession.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+
+        verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
+        verify(captureSessionRepository, never()).deleteById(captureSession.getId());
     }
 }
