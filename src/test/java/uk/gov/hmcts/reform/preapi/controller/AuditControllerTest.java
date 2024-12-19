@@ -149,11 +149,11 @@ class AuditControllerTest {
         var xUserId = UUID.randomUUID();
 
         MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
-                            .with(csrf())
-                            .header(X_USER_ID_HEADER, xUserId)
-                            .content(OBJECT_MAPPER.writeValueAsString(audit))
-                            .contentType(MediaType.APPLICATION_JSON_VALUE)
-                            .accept(MediaType.APPLICATION_JSON_VALUE))
+                                                 .with(csrf())
+                                                 .header(X_USER_ID_HEADER, xUserId)
+                                                 .content(OBJECT_MAPPER.writeValueAsString(audit))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(status().is4xxClientError())
             .andReturn();
 
@@ -191,5 +191,21 @@ class AuditControllerTest {
             .andExpect(jsonPath("$._embedded.auditDTOList[0].id").value(auditLogId.toString()));
 
         verify(auditService, times(1)).findAll(any());
+    }
+
+    @DisplayName("Requested page out of range")
+    @Test
+    void getAuditLogsRequestedPageOutOfRange() throws Exception {
+        UUID auditLogId = UUID.randomUUID();
+        var mockAuditDTO = new AuditDTO();
+        mockAuditDTO.setId(auditLogId);
+        var auditDTOList = List.of(mockAuditDTO);
+        when(auditService.findAll(any()))
+            .thenReturn(new PageImpl<>(auditDTOList));
+
+        mockMvc.perform(get("/audit?page=5"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message").value("Requested page {5} is out of range. Max page is {1}"));
+
     }
 }
