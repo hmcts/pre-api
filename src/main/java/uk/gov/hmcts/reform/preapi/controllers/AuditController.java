@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
@@ -62,6 +63,18 @@ public class AuditController {
 
     @GetMapping
     @Operation(operationId = "getAuditLogs", summary = "Search all Audits")
+    @Parameter(
+        name = "page",
+        description = "The page number of search result to return",
+        schema = @Schema(implementation = Integer.class),
+        example = "0"
+    )
+    @Parameter(
+        name = "size",
+        description = "The number of search results to return per page",
+        schema = @Schema(implementation = Integer.class),
+        example = "10"
+    )
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
     public HttpEntity<PagedModel<EntityModel<AuditDTO>>> searchAuditLogs(
         @SortDefault.SortDefaults(
