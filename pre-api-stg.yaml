@@ -1979,7 +1979,7 @@ paths:
           in: query
           name: hasRecordings
           type: boolean
-        - description: Include recordings marked as deleted
+        - description: Include bookings marked as deleted
           in: query
           name: includeDeleted
           type: boolean
