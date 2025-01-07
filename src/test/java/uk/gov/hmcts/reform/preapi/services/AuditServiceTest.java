@@ -54,11 +54,11 @@ class AuditServiceTest {
         appAccess.setId(UUID.randomUUID());
         appAccess.setUser(user);
 
-        var auditEntity = new Audit();
+        var tempAuditEntity = new Audit();
 
         when(auditRepository.existsById(auditModel.getId())).thenReturn(false);
         when(appAccessRepository.findById(appAccess.getId())).thenReturn(Optional.of(appAccess));
-        when(auditRepository.save(auditEntity)).thenReturn(auditEntity);
+        when(auditRepository.save(tempAuditEntity)).thenReturn(tempAuditEntity);
 
         assertThat(auditService.upsert(auditModel, appAccess.getId())).isEqualTo(UpsertResult.CREATED);
     }
@@ -71,11 +71,11 @@ class AuditServiceTest {
 
         var id = UUID.randomUUID();
 
-        var auditEntity = new Audit();
+        var tempAuditEntity = new Audit();
 
         when(auditRepository.existsById(auditModel.getId())).thenReturn(false);
         when(appAccessRepository.findById(id)).thenReturn(Optional.empty());
-        when(auditRepository.save(auditEntity)).thenReturn(auditEntity);
+        when(auditRepository.save(tempAuditEntity)).thenReturn(tempAuditEntity);
 
         assertThat(auditService.upsert(auditModel, id)).isEqualTo(UpsertResult.CREATED);
     }
@@ -109,7 +109,7 @@ class AuditServiceTest {
         SecurityContextHolder.getContext().setAuthentication(mockAuth);
 
         var modelList = auditService.findAll(null).get().toList();
-        assertThat(modelList.size()).isEqualTo(1);
+        assertThat(modelList).hasSize(1);
         assertThat(modelList.getFirst().getId()).isEqualTo(auditEntity.getId());
     }
 }
