@@ -1979,6 +1979,10 @@ paths:
           in: query
           name: hasRecordings
           type: boolean
+        - description: Include recordings marked as deleted
+          in: query
+          name: includeDeleted
+          type: boolean
         - description: >-
             Search bookings with at least one associated capture session with
             one of the statuses listed
