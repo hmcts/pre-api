@@ -112,7 +112,7 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.21.0'
+  toolVersion = '10.21.1'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
@@ -305,10 +305,10 @@ dependencies {
 
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.4.0'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.3.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.4.Final')
 
 
-  testImplementation 'com.github.hmcts:fortify-client:1.4.5:all'
+  testImplementation 'com.github.hmcts:fortify-client:1.4.6:all'
   testImplementation 'org.springframework.security:spring-security-test:6.4.2'
   testImplementation libraries.junit5
 
