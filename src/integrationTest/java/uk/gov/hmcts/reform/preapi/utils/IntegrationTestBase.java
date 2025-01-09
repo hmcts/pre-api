@@ -49,6 +49,7 @@ public abstract class IntegrationTestBase {
             entityManager.clear();
             entityManager.flush();
         } catch (Exception ignored) {
+            // ignored
         }
     }
 }
