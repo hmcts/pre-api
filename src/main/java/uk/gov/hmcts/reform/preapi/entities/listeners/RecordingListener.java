@@ -43,12 +43,12 @@ public class RecordingListener {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void onRecordingCreated(Recording r) {
         log.info("onRecordingCreated: Recording({})", r.getId());
-        var shares = shareBookingService.getSharesForCase(r.getCaptureSession().getBooking().getCaseId());
+        if (!emailServiceFactory.isEnabled()) {
+            return;
+        }
 
         try {
-            if (!emailServiceFactory.isEnabled()) {
-                return;
-            }
+            var shares = shareBookingService.getSharesForCase(r.getCaptureSession().getBooking().getCaseId());
             var emailService = emailServiceFactory.getEnabledEmailService();
             shares.forEach(share -> emailService.recordingReady(
                 share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId())
