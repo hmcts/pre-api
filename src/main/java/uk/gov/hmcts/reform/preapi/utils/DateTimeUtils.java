@@ -6,15 +6,18 @@ import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Locale;
 
 @UtilityClass
 public class DateTimeUtils {
     public static final ZoneId TIME_ZONE = ZoneId.of("Europe/London");
 
     // Date Format DD/MM/YY
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)
+        .withLocale(Locale.UK);
     // Time Format HH:MM:SS
-    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM);
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM)
+        .withLocale(Locale.UK);
 
     public String formatDate(Timestamp timestamp) {
         if (timestamp == null) {
