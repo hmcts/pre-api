@@ -43,7 +43,6 @@ public abstract class IntegrationTestBase {
         return mockAuth;
     }
 
-    @SuppressWarnings("checkstyle:EmptyCatchBlock")
     @AfterEach
     void tearDown() {
         try {
