@@ -338,34 +338,40 @@ definitions:
       case_reference:
         description: CaptureSessionCaseReference
         type: string
+      county:
+        description: CaptureSessionCourtCounty
+        type: string
       court:
         description: CaptureSessionCourtName
+        type: string
+      date:
+        description: CaptureSessionStartDate
         type: string
       duration:
         description: CaptureSessionDuration
         type: string
       end_time:
         description: CaptureSessionEndTime
-        format: date-time
         type: string
-      id:
-        description: CaptureSessionId
-        format: uuid
+      postcode:
+        description: CaptureSessionCourtPostcode
         type: string
       region:
         description: CaptureSessionRegionName
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
+        type: string
       start_time:
         description: CaptureSessionStartTime
-        format: date-time
+        type: string
+      timezone:
+        description: CaptureSessionStartTimezone
         type: string
     type: object
   CourtDTO:
     description: CourtDTO
     properties:
+      county:
+        description: CourtCounty
+        type: string
       court_type:
         description: CourtType
         enum:
@@ -382,6 +388,9 @@ definitions:
         type: string
       name:
         description: CourtName
+        type: string
+      postcode:
+        description: CourtPostcode
         type: string
       regions:
         description: CourtRegions
@@ -590,6 +599,9 @@ definitions:
   CreateCourtDTO:
     description: CreateCourtDTO
     properties:
+      county:
+        description: CreateCourtCounty
+        type: string
       court_type:
         description: CreateCourtType
         enum:
@@ -606,6 +618,10 @@ definitions:
         type: string
       name:
         description: CreateCourtName
+        type: string
+      postcode:
+        description: CreateCourtPostcode
+        pattern: '^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$'
         type: string
       regions:
         description: CreateCourtRegionIds
@@ -1002,6 +1018,9 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      county:
+        description: CourtCounty
+        type: string
       court_type:
         description: CourtType
         enum:
@@ -1018,6 +1037,9 @@ definitions:
         type: string
       name:
         description: CourtName
+        type: string
+      postcode:
+        description: CourtPostcode
         type: string
       regions:
         description: CourtRegions
