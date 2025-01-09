@@ -1502,13 +1502,6 @@ definitions:
       court:
         description: PlaybackReportCourt
         type: string
-      duration:
-        description: PlaybackReportDuration
-        type: string
-      finished_at:
-        description: PlaybackReportFinishTime
-        format: date-time
-        type: string
       playback_at:
         description: PlaybackReportPlaybackAt
         format: date-time
@@ -1998,6 +1991,11 @@ paths:
           in: query
           name: captureSessionStatusNotIn
           type: string
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
         - description: The page number of search result to return
           format: int32
           in: query
