@@ -201,7 +201,7 @@ public class AuditServiceIT extends IntegrationTestBase {
                                                                 null,
                                                                 null,
                                                                 null,
-                                                                RecordingStatus.STANDBY,
+                                                                RecordingStatus.NO_RECORDING,
                                                                 null);
 
         captureSession.setId(UUID.randomUUID());

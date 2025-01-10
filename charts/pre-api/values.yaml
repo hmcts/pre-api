@@ -24,10 +24,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
         - name: apim-sub-smoketest-secondary-key
           alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
         - name: app-insights-connection-string
-        - name: pp-clientid
-          alias: AZ_AMS_CLIENT_ID
-        - name: client-secret
-          alias: AZ_AMS_CLIENT_SECRET
         - name: api-MKIO-TOKEN
           alias: MEDIA_KIND_TOKEN
         - name: finalsa-storage-account-connection-string
@@ -56,9 +52,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
     APIM_URI: https://sds-api-mgmt.platform.hmcts.net
-    AZURE_MEDIA_SERVICES_ACCOUNT_NAME: "preams{{ .Values.global.environment }}"
-    AZURE_RESOURCE_GROUP: "pre-{{ .Values.global.environment }}"
-    AZURE_SUBSCRIPTION_ID: 5ca62022-6aa2-4cee-aaa7-e7536c8d566c
     MEDIA_KIND_SUBSCRIPTION: "pre-mediakind-{{ .Values.global.environment }}"
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"

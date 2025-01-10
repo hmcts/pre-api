@@ -55,18 +55,15 @@ spring:
 azure:
   application-insights:
     instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:00000000-0000-0000-0000-000000000000}
-  tenant-id: ${AZURE_TENANT_ID:00000000-0000-0000-0000-000000000000}
-  account-name: ${AZURE_MEDIA_SERVICES_ACCOUNT_NAME:}
-  resource-group: ${AZURE_RESOURCE_GROUP:}
-  subscription-id: ${AZURE_SUBSCRIPTION_ID:00000000-0000-0000-0000-000000000000}
-  clientId: ${AZ_AMS_CLIENT_ID:00000000-0000-0000-0000-000000000000}
-  clientSecret: ${AZ_AMS_CLIENT_SECRET:}
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
+  managedIdentityClientId: ${AZURE_CLIENT_ID:}
+  tenantId: ${AZURE_TENANT_ID:}
+
 
 hibernate:
   show_sql: true
@@ -88,7 +85,7 @@ mediakind:
   issuer: ${ISSUER:https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/}
   symmetricKey: ${SYMMETRIC_KEY:}
 
-media-service: ${MEDIA_SERVICE:AzureMediaService}
+media-service: ${MEDIA_SERVICE:MediaKind}
 
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 

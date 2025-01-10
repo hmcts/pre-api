@@ -8,26 +8,17 @@ import java.util.Objects;
 
 @Service
 public class MediaServiceBroker {
-
-    public static final String MEDIA_SERVICE_AMS = "AzureMediaService";
     public static final String MEDIA_SERVICE_MK = "MediaKind";
 
-    IMediaService mediaService;
-    MediaKind mediaKind;
-    AzureMediaService azureMediaService;
+    private final IMediaService mediaService;
+    private final MediaKind mediaKind;
 
     @Autowired
-    public MediaServiceBroker(
-        @Value("${media-service}") String mediaServiceEnabled,
-        MediaKind mediaKind,
-        AzureMediaService azureMediaService) {
+    public MediaServiceBroker(@Value("${media-service}") String mediaServiceEnabled, MediaKind mediaKind) {
         this.mediaKind = mediaKind;
-        this.azureMediaService = azureMediaService;
 
         if (Objects.equals(mediaServiceEnabled, MEDIA_SERVICE_MK)) {
             this.mediaService = mediaKind;
-        } else if (Objects.equals(mediaServiceEnabled, MEDIA_SERVICE_AMS)) {
-            this.mediaService = azureMediaService;
         } else {
             throw new IllegalArgumentException("Unknown media service: " + mediaServiceEnabled);
         }
@@ -41,9 +32,6 @@ public class MediaServiceBroker {
         switch (overrideMediaService) {
             case MEDIA_SERVICE_MK -> {
                 return mediaKind;
-            }
-            case MEDIA_SERVICE_AMS -> {
-                return azureMediaService;
             }
             case null -> {
                 return getEnabledMediaService();
