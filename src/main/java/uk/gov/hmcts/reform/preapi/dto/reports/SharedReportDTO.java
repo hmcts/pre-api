@@ -5,15 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
-
-import java.sql.Timestamp;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 @Data
 @NoArgsConstructor
@@ -21,45 +15,62 @@ import java.util.stream.Stream;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class SharedReportDTO {
 
-    @Schema(description = "SharedReportSharedAt")
-    private Timestamp sharedAt;
+    @Schema(description = "SharedReportShareDate")
+    private String shareDate;
 
-    @Schema(description = "SharedReportAllocatedTo")
-    private String allocatedTo;
+    @Schema(description = "SharedReportShareTime")
+    private String shareTime;
 
-    @Schema(description = "SharedReportAllocatedToFullName")
-    private String allocatedToFullName;
+    @Schema(description = "SharedReportShareTimezone")
+    private String timezone;
 
-    @Schema(description = "SharedReportAllocatedBy")
-    private String allocatedBy;
+    @Schema(description = "SharedReportSharedWith")
+    private String sharedWith;
 
-    @Schema(description = "SharedReportAllocatedToFullName")
-    private String allocatedByFullName;
+    @Schema(description = "SharedReportSharedWithFullName")
+    private String sharedWithFullName;
+
+    @Schema(description = "SharedReportGrantedBy")
+    private String grantedBy;
+
+    @Schema(description = "SharedReportGrantedByFullName")
+    private String grantedByFullName;
 
     @Schema(description = "SharedReportCaseReference")
     private String caseReference;
 
     @Schema(description = "SharedReportCourtName")
-    private String court;
+    private String courtName;
+
+    @Schema(description = "SharedReportCourtCounty")
+    private String county;
+
+    @Schema(description = "SharedReportCourtPostcode")
+    private String postcode;
 
     @Schema(description = "SharedReportRegions")
-    private Set<RegionDTO> regions;
-
-    @Schema(description = "SharedReportBookingId")
-    private UUID bookingId;
+    private String region;
 
     public SharedReportDTO(ShareBooking shareBooking) {
-        sharedAt = shareBooking.getCreatedAt();
-        allocatedTo = shareBooking.getSharedWith().getEmail();
-        allocatedToFullName = shareBooking.getSharedWith().getFullName();
-        allocatedBy = shareBooking.getSharedBy().getEmail();
-        allocatedByFullName = shareBooking.getSharedBy().getFullName();
+        shareDate = DateTimeUtils.formatDate(shareBooking.getCreatedAt());
+        shareTime = DateTimeUtils.formatTime(shareBooking.getCreatedAt());
+        timezone = DateTimeUtils.getTimezoneAbbreviation(shareBooking.getCreatedAt());
+
+        sharedWith = shareBooking.getSharedWith().getEmail();
+        sharedWithFullName = shareBooking.getSharedWith().getFullName();
+        grantedBy = shareBooking.getSharedBy().getEmail();
+        grantedByFullName = shareBooking.getSharedBy().getFullName();
+
         var caseEntity = shareBooking.getBooking().getCaseId();
+        var courtEntity = caseEntity.getCourt();
         caseReference = caseEntity.getReference();
-        court = caseEntity.getCourt().getName();
-        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
-            .flatMap(regions -> regions.stream().map(RegionDTO::new))
-            .collect(Collectors.toSet());
-        bookingId = shareBooking.getBooking().getId();
+        courtName = courtEntity.getName();
+        county = courtEntity.getCounty();
+        postcode = courtEntity.getPostcode();
+        region = courtEntity.getRegions()
+            .stream()
+            .findFirst()
+            .map(Region::getName)
+            .orElse(null);
     }
 }
