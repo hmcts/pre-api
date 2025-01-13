@@ -230,21 +230,14 @@ public class ReportServiceTest {
 
         assertThat(report.size()).isEqualTo(2);
 
-        assertThat(report.getFirst().getCreatedAt()).isEqualTo(recordingEntity.getCreatedAt());
+        assertThat(report.getFirst().getEditDate()).isEqualTo(DateTimeUtils.formatDate(recordingEntity.getCreatedAt()));
         assertThat(report.getFirst().getVersion()).isEqualTo(recordingEntity.getVersion());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
 
-        assertThat(report.getLast().getRecordingId()).isEqualTo(recording2.getId());
+        assertThat(report.getFirst().getVersion()).isEqualTo(2);
+        assertThat(report.getLast().getVersion()).isEqualTo(3);
     }
 
     @DisplayName("Find shared bookings and return report list")

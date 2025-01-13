@@ -5,15 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-
-import java.sql.Timestamp;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+import uk.gov.hmcts.reform.preapi.entities.Region;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 @Data
 @NoArgsConstructor
@@ -21,8 +15,14 @@ import java.util.stream.Stream;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class EditReportDTO {
 
-    @Schema(description = "EditReportEditCreatedAt")
-    private Timestamp createdAt;
+    @Schema(description = "EditReportEditDate")
+    private String editDate;
+
+    @Schema(description = "EditReportEditTime")
+    private String editTime;
+
+    @Schema(description = "EditReportEditTimezone")
+    private String timezone;
 
     @Schema(description = "EditReportRecordingVersion")
     private int version;
@@ -31,26 +31,35 @@ public class EditReportDTO {
     private String caseReference;
 
     @Schema(description = "EditReportCourtName")
-    private String court;
+    private String courtName;
+
+    @Schema(description = "EditReportCourtCounty")
+    private String county;
+
+    @Schema(description = "EditReportCourtPostcode")
+    private String postcode;
 
     @Schema(description = "EditReportRegions")
-    private Set<RegionDTO> regions;
-
-    @Schema(description = "EditReportRecordingId")
-    private UUID recordingId;
+    private String region;
 
     public EditReportDTO(Recording recordingEntity) {
-        createdAt = recordingEntity.getCreatedAt();
+        editDate = DateTimeUtils.formatDate(recordingEntity.getCreatedAt());
+        editTime = DateTimeUtils.formatTime(recordingEntity.getCreatedAt());
+        timezone = DateTimeUtils.getTimezoneAbbreviation(recordingEntity.getCreatedAt());
         version = recordingEntity.getVersion();
         var caseEntity = recordingEntity
             .getCaptureSession()
             .getBooking()
             .getCaseId();
         caseReference = caseEntity.getReference();
-        court = caseEntity.getCourt().getName();
-        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
-            .flatMap(regions -> regions.stream().map(RegionDTO::new))
-            .collect(Collectors.toSet());
-        recordingId = recordingEntity.getId();
+        var court = caseEntity.getCourt();
+        courtName = court.getName();
+        county = court.getCounty();
+        postcode = court.getPostcode();
+        region = court.getRegions()
+            .stream()
+            .findFirst()
+            .map(Region::getName)
+            .orElse(null);
     }
 }
