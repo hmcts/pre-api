@@ -139,6 +139,8 @@ WHERE (c.location_code = '409' AND c.name = 'Burnley Combined Court Centre')
    OR (c.location_code = '409' AND c.name = 'Lancaster Crown Court')
    OR (c.location_code = '431' AND c.name = 'Lewes Combined Court')
    OR (c.location_code = '431' AND c.name = 'Brighton Magistrates Court')
+   OR (c.name = 'Newcastle upon Tyne Combined Court Centre')
+   OR (c.name = 'Chichester Nightingale Crown Court')
    OR c.location_code IN (
     '401', '402', '406', '408', '410', '411', '412', '413',
 	'414', '415', '417', '418', '419', '420', '421', '424', '425', '426',
