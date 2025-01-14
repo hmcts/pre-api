@@ -233,7 +233,7 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getEditDate()).isEqualTo(DateTimeUtils.formatDate(recordingEntity.getCreatedAt()));
         assertThat(report.getFirst().getVersion()).isEqualTo(recordingEntity.getVersion());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
         assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
 
         assertThat(report.getFirst().getVersion()).isEqualTo(2);
