@@ -6,10 +6,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.time.Duration;
@@ -18,9 +18,10 @@ import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "ConcurrentCaptureSessionReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class ConcurrentCaptureSessionReportDTO {
+public class ConcurrentCaptureSessionReportDTO extends BaseReportDTO {
     @Schema(description = "CaptureSessionStartDate")
     private String date;
 
@@ -48,22 +49,8 @@ public class ConcurrentCaptureSessionReportDTO {
                              duration.toSecondsPart());
     }
 
-    @Schema(description = "CaptureSessionCaseReference")
-    private String caseReference;
-
-    @Schema(description = "CaptureSessionCourtName")
-    private String court;
-
-    @Schema(description = "CaptureSessionCourtCounty")
-    private String county;
-
-    @Schema(description = "CaptureSessionCourtPostcode")
-    private String postcode;
-
-    @Schema(description = "CaptureSessionRegionName")
-    private String region;
-
     public ConcurrentCaptureSessionReportDTO(CaptureSession entity) {
+        super(entity.getBooking().getCaseId());
         date = DateTimeUtils.formatDate(entity.getStartedAt());
         timezone = DateTimeUtils.getTimezoneAbbreviation(entity.getStartedAt());
         startTime = DateTimeUtils.formatTime(entity.getStartedAt());
@@ -72,19 +59,6 @@ public class ConcurrentCaptureSessionReportDTO {
             endTime = DateTimeUtils.formatTime(entity.getFinishedAt());
             duration = entity.getRecordings().stream().findFirst().map(Recording::getDuration).orElse(null);
         }
-
-        var caseEntity = entity.getBooking().getCaseId();
-        var courtEntity = caseEntity.getCourt();
-        court = courtEntity.getName();
-        caseReference = caseEntity.getReference();
-        county = courtEntity.getCounty();
-        postcode = courtEntity.getPostcode();
-        region = courtEntity
-            .getRegions()
-            .stream()
-            .findFirst()
-            .map(Region::getName)
-            .orElse(null);
 
         Stream.ofNullable(entity.getRecordings())
             .flatMap(Set::stream)
