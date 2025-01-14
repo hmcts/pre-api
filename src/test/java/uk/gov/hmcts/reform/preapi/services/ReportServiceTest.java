@@ -360,20 +360,20 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find audits relating to playbacks from the application and return a report")
@@ -404,21 +404,20 @@ public class ReportServiceTest {
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
 
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find audits relating to all playback attempts and return a report")
@@ -442,21 +441,20 @@ public class ReportServiceTest {
 
         var report = reportService.reportPlayback(null);
 
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
 
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
