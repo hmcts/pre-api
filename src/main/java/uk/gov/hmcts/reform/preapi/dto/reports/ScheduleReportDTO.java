@@ -5,13 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-
-import java.sql.Timestamp;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import uk.gov.hmcts.reform.preapi.entities.Region;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 @Data
 @NoArgsConstructor
@@ -19,36 +15,45 @@ import java.util.stream.Stream;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ScheduleReportDTO {
 
-    @Schema(description = "ScheduleReportStartedAt")
-    private Timestamp scheduledFor;
-
-    @Schema(description = "ScheduleReportBookingCreatedAt")
-    private Timestamp bookingCreatedAt;
+    @Schema(description = "ScheduleReportStartedDate")
+    private String scheduledDate;
 
     @Schema(description = "ScheduleReportCaseReference")
     private String caseReference;
 
-    @Schema(description = "ScheduleReportUserEmail")
-    private String captureSessionUser;
-
     @Schema(description = "ScheduleReportCourtName")
     private String court;
 
-    @Schema(description = "ScheduleReportCourtRegions")
-    private Set<RegionDTO> regions;
+    @Schema(description = "ScheduleReportCourtCounty")
+    private String county;
+
+    @Schema(description = "ScheduleReportCourtPostcode")
+    private String postcode;
+
+    @Schema(description = "ScheduleReportCourtRegion")
+    private String region;
+
+    @Schema(description = "ScheduleReportBookingCreatedAt")
+    private String dateOfBooking;
+
+    @Schema(description = "ScheduleReportUserEmail")
+    private String user;
 
     public ScheduleReportDTO(CaptureSession captureSession) {
-        var bookingEntity = captureSession.getBooking();
-        var caseEntity = bookingEntity.getCaseId();
-        scheduledFor = bookingEntity.getScheduledFor();
-        bookingCreatedAt = bookingEntity.getCreatedAt();
+        var booking = captureSession.getBooking();
+        var caseEntity = booking.getCaseId();
+        scheduledDate = DateTimeUtils.formatDate(booking.getScheduledFor());
         caseReference = caseEntity.getReference();
+
+        var courtEntity = caseEntity.getCourt();
+        court = courtEntity.getName();
+        county = courtEntity.getCounty();
+        postcode = courtEntity.getPostcode();
+        region = courtEntity.getRegions().stream().findFirst().map(Region::getName).orElse(null);
+
+        dateOfBooking = DateTimeUtils.formatDate(booking.getCreatedAt());
         if (captureSession.getStartedByUser() != null) {
-            captureSessionUser = captureSession.getStartedByUser().getEmail();
+            user = captureSession.getStartedByUser().getEmail();
         }
-        court = caseEntity.getCourt().getName();
-        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
-            .flatMap(regions -> regions.stream().map(RegionDTO::new))
-            .collect(Collectors.toSet());
     }
 }
