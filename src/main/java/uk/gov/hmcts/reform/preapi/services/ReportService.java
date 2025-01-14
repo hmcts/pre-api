@@ -143,8 +143,8 @@ public class ReportService {
         return recordingRepository
             .findAllByParentRecordingIsNull()
             .stream()
+            .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
             .map(CompletedCaptureSessionReportDTO::new)
-            .sorted(Comparator.comparing(CompletedCaptureSessionReportDTO::getScheduledFor))
             .collect(Collectors.toList());
     }
 

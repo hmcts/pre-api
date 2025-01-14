@@ -295,28 +295,43 @@ public class ReportControllerTest {
     @Test
     void reportCompletedCaptureSessions() throws Exception {
         var reportItem = new CompletedCaptureSessionReportDTO();
-        reportItem.setStartedAt(Timestamp.from(Instant.now()));
-        reportItem.setFinishedAt(Timestamp.from(Instant.now()));
-        reportItem.setDuration(Duration.ofMinutes(3L));
-        reportItem.setScheduledFor(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setRecordingDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setRecordingTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setFinishTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
+        reportItem.setScheduledDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setCaseReference("ABC123");
-        reportItem.setCountDefendants(1);
-        reportItem.setCountWitnesses(5);
-        reportItem.setRecordingStatus(RecordingStatus.RECORDING_AVAILABLE);
+        reportItem.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        reportItem.setDefendantNames("Defendant Name");
+        reportItem.setDefendant(1);
+        reportItem.setWitnessNames("Witness Name");
+        reportItem.setWitness(1);
         reportItem.setCourt("Example Court");
-        reportItem.setRegions(Set.of());
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Example Region");
 
         when(reportService.reportCompletedCaptureSessions()).thenReturn(List.of(reportItem));
 
         mockMvc.perform(get("/reports/completed-capture-sessions"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].duration").value(reportItem.getDuration().toString()))
+            .andExpect(jsonPath("$[0].recording_date").value(reportItem.getRecordingDate()))
+            .andExpect(jsonPath("$[0].recording_time").value(reportItem.getRecordingTime()))
+            .andExpect(jsonPath("$[0].finish_time").value(reportItem.getFinishTime()))
+            .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
+            .andExpect(jsonPath("$[0].scheduled_date").value(reportItem.getScheduledDate()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].count_defendants").value(reportItem.getCountDefendants()))
-            .andExpect(jsonPath("$[0].count_witnesses").value(reportItem.getCountWitnesses()))
-            .andExpect(jsonPath("$[0].recording_status").value(reportItem.getRecordingStatus().toString()))
-            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()));
+            .andExpect(jsonPath("$[0].status").value(reportItem.getStatus().toString()))
+            .andExpect(jsonPath("$[0].defendant_names").value(reportItem.getDefendantNames()))
+            .andExpect(jsonPath("$[0].defendant").value(reportItem.getDefendant()))
+            .andExpect(jsonPath("$[0].witness_names").value(reportItem.getWitnessNames()))
+            .andExpect(jsonPath("$[0].witness").value(reportItem.getWitness()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
     }
 
     @DisplayName("Should get a report containing a list of share booking removals with case and user details")
