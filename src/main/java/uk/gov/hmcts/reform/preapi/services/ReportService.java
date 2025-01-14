@@ -79,8 +79,8 @@ public class ReportService {
         return recordingRepository
             .findAllByParentRecordingIsNotNull()
             .stream()
+            .sorted(Comparator.comparing(Recording::getCreatedAt))
             .map(EditReportDTO::new)
-            .sorted(Comparator.comparing(EditReportDTO::getCreatedAt))
             .collect(Collectors.toList());
     }
 
