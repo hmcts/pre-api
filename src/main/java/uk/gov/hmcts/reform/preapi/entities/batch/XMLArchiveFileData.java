@@ -5,10 +5,15 @@ import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlElement;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
+import java.util.List;
+
 @XmlRootElement(name = "ArchiveFiles")
 @XmlAccessorType(XmlAccessType.FIELD)
-public class ArchiveFiles {
+public class XMLArchiveFileData {
 
+    @XmlElement(name = "ArchiveID")
+    private String id;
+    
     @XmlElement(name = "DisplayName")
     private String displayName;
     
@@ -17,6 +22,15 @@ public class ArchiveFiles {
 
     @XmlElement(name = "MP4FileGrp")
     private MP4FileGrp mp4FileGrp;
+
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getDisplayName() {
         return displayName;
@@ -46,16 +60,17 @@ public class ArchiveFiles {
     public static class MP4FileGrp {
 
         @XmlElement(name = "MP4File")
-        private MP4File mp4File;
+        private List<MP4File> mp4Files;
 
-        public MP4File getMp4File() {
-            return mp4File;
+        public List<MP4File> getMp4Files() {
+            return mp4Files;
         }
 
-        public void setMp4File(MP4File mp4File) {
-            this.mp4File = mp4File;
+        public void setMp4Files(List<MP4File> mp4Files) {
+            this.mp4Files = mp4Files;
         }
     }
+
 
     @XmlAccessorType(XmlAccessType.FIELD)
     public static class MP4File {
@@ -63,12 +78,34 @@ public class ArchiveFiles {
         @XmlElement(name = "CreatTime")
         private long creatTime;
 
+        @XmlElement(name = "Name")
+        private String name;
+
+        @XmlElement(name = "Duration")
+        private int duration;
+
         public long getCreatTime() {
             return creatTime;
         }
 
         public void setCreatTime(long creatTime) {
             this.creatTime = creatTime;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public int getDuration() {
+            return duration;
+        }
+
+        public void setDuration(int duration) {
+            this.duration = duration;
         }
     }
 }

@@ -6,8 +6,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-
-
+import java.util.Set;
 
 @Service
 public class RedisService {
@@ -48,6 +47,22 @@ public class RedisService {
         return "caseParticipants:" + caseReference + "--" + participantPair;
     }
 
+    public <K, V> Map<K, V> getHashAll(String key, Class<K> keyType, Class<V> valueType) {
+        Map<Object, Object> redisMap = redisTemplate.opsForHash().entries(key);
+        Map<K, V> result = new HashMap<>();
+
+        for (Map.Entry<Object, Object> entry : redisMap.entrySet()) {
+            K redisKey = keyType.cast(entry.getKey());
+            V redisValue = valueType.cast(entry.getValue());
+            result.put(redisKey, redisValue);
+        }
+        return result;
+    }
+
+    public Set<String> getKeys(String pattern) {
+        return redisTemplate.keys(pattern);
+    }
+
     public void generateHashKeys(String baseKey, String participantPair) {
         Map<String, String> hashKeys = new HashMap<>();
         saveHashValue(baseKey, "participantPairField", participantPair);
@@ -58,6 +73,15 @@ public class RedisService {
         hashKeys.put("highestCopyVersion", "COPY");
     }
 
+    public void removeValue(String key) {
+        redisTemplate.delete(key);
+    }
+
+    public void removeHashValue(String key, String hashKey) {
+        redisTemplate.opsForHash().delete(key, hashKey);
+    }
+
+    
 
 
 }

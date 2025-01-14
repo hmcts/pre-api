@@ -7,6 +7,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
+import uk.gov.hmcts.reform.preapi.entities.batch.UnifiedArchiveData;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
@@ -20,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Service
 public class DataTransformationService {
@@ -72,6 +74,31 @@ public class DataTransformationService {
         }
     }
 
+
+    public Map<String, Object> transformArchiveListDataXML(
+        UnifiedArchiveData archiveItem,
+        Map<String, String> sitesDataMap,
+        Map<String, List<String[]>> channelUserDataMap
+    ) {
+        
+        try {
+            // Extract court ID and fetch the Court object
+            UUID courtId = extractCourtIdXML(archiveItem, sitesDataMap);
+            Court fullCourt = fetchCourt(courtId);
+
+            // Parse recording timestamp
+            Timestamp recordingTimestamp = getRecordingTimestampXML(archiveItem);
+
+            // Build CleansedData
+            CleansedData cleansedData = buildCleansedDataXML(archiveItem, fullCourt, 
+                channelUserDataMap, recordingTimestamp);
+            return createSuccessResponse(cleansedData);
+
+        } catch (Exception e) {
+            return createErrorResponse("General error: " + e.getMessage());
+        }
+    }
+
     // ==========================
     // Cleansed Data Construction
     // ==========================
@@ -107,6 +134,37 @@ public class DataTransformationService {
             .build();
     }
 
+    private CleansedData buildCleansedDataXML(
+        UnifiedArchiveData archiveItem,
+        Court court,
+        Map<String, List<String[]>> channelUserDataMap,
+        Timestamp recordingTimestamp
+    ) {
+        List<Map<String, String>> shareBookingContacts = populateShareBookingContacts(
+            channelUserDataMap.get(archiveItem.getArchiveNameNoExt())
+        );
+        int recordingVersionNumber = 
+            parseRecordingVersionNumber(extractionService.extractRecordingVersionNumberXML(archiveItem));
+
+        return new CleansedData.Builder()
+            .setCourt(court)
+            .setRecordingTimestamp(recordingTimestamp)
+            .setDuration(Duration.ofSeconds(archiveItem.getDuration()))
+            .setCourtReference(extractionService.extractCourtReferenceXML(archiveItem))
+            .setUrn(extractionService.extractUrnXML(archiveItem))
+            .setExhibitReference(extractionService.extractExhibitReferenceXML(archiveItem))
+            .setDefendantLastName(extractionService.extractDefendantLastNameXML(archiveItem))
+            .setWitnessFirstName(extractionService.extractWitnessFirstNameXML(archiveItem))
+            .setIsTest(checkIsTestXML(archiveItem).isTest())
+            .setTestCheckResult(checkIsTestXML(archiveItem))
+            .setState(CaseState.CLOSED)
+            .setFileExtension(extractionService.extractFileExtensionXML(archiveItem))
+            .setRecordingVersion(extractionService.extractRecordingVersionXML(archiveItem))
+            .setRecordingVersionNumber(recordingVersionNumber)
+            .setShareBookingContacts(shareBookingContacts)
+            .build();
+    }
+
     // ======================
     // Court Handling Methods
     // ======================
@@ -117,7 +175,26 @@ public class DataTransformationService {
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
-        String courtIdString = (String) redisTemplate.opsForValue().get("court:" + fullCourtName);
+        String courtIdString = (String) redisTemplate.opsForValue().get("batch-preprocessor:court:" + fullCourtName);
+
+        if (courtIdString != null) {
+            try {
+                return UUID.fromString(courtIdString);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("FAIL: Court ID parsing failed for " + courtIdString, e);
+            }
+        }
+        return null;
+    }
+
+    private UUID extractCourtIdXML(UnifiedArchiveData archiveItem, Map<String, String> sitesDataMap) {
+        String courtReference = extractionService.extractCourtReferenceXML(archiveItem);
+        if (courtReference.isEmpty()) {
+            throw new IllegalArgumentException("FAIL: Court extraction failed");
+        }
+
+        String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
+        String courtIdString = (String) redisTemplate.opsForValue().get("batch-preprocessor:court:" + fullCourtName);
 
         if (courtIdString != null) {
             try {
@@ -145,6 +222,16 @@ public class DataTransformationService {
         return timestamp;
     }
 
+    private Timestamp getRecordingTimestampXML(UnifiedArchiveData archiveItem) {
+        String recordingDate = archiveItem.getCreateTime();
+        Timestamp timestamp = convertToTimestampXML(recordingDate);
+
+        if (timestamp == null) {
+            throw new IllegalArgumentException("FAIL: Unable to convert recording date to timestamp: " + recordingDate);
+        }
+        return timestamp;
+    }
+
     private Timestamp convertToTimestamp(String recordingDate) {
         try {
             DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -152,6 +239,15 @@ public class DataTransformationService {
 
             return Timestamp.valueOf(dateTime);
         } catch (DateTimeParseException e) {
+            return null; 
+        }
+    }
+
+    private Timestamp convertToTimestampXML(String recordingDate) {
+        try {
+            long millis = Long.parseLong(recordingDate);
+            return new Timestamp(millis);
+        } catch (NumberFormatException e) {
             return null; 
         }
     }
@@ -189,6 +285,34 @@ public class DataTransformationService {
             reasons.append("Content type contains 'test'. ");
         } else if (containsTestKeyWord(archiveItem.getOwner(), "test")) {
             reasons.append("Owner contains 'test'. ");
+        } else if (archiveItem.getDuration() < 10) {
+            reasons.append("Duration is less than 10 seconds. ");
+        }
+
+        return reasons.length() > 0 
+            ? new TestItem(true, reasons.toString().trim())
+            : new TestItem(false, "No test related criteria met.");
+    }
+
+    public TestItem checkIsTestXML(UnifiedArchiveData archiveItem) {
+        StringBuilder reasons = new StringBuilder();
+
+        if (containsTestKeyWord(archiveItem.getArchiveName(), "test")) {
+            reasons.append("Archive name contains 'test'. ");
+        } else if (containsTestKeyWord(archiveItem.getArchiveName(), "demo")) {
+            reasons.append("Archive name contains 'demo'. ");
+        } else if (containsTestKeyWord(archiveItem.getArchiveName(), "unknown")) {
+            reasons.append("Archive name contains 'unknown'. ");
+        // } else if (containsTestKeyWord(archiveItem.getFarEndAddress(), "test")) {
+        //     reasons.append("Far end address contains 'test'. ");
+        // } else if (containsTestKeyWord(archiveItem.getDescription(), "test")) {
+        //     reasons.append("Description contains 'test'. ");
+        // } else if (containsTestKeyWord(archiveItem.getVideoType(), "test")) {
+        //     reasons.append("Video type contains 'test'. ");
+        // } else if (containsTestKeyWord(archiveItem.getContentType(), "test")) {
+        //     reasons.append("Content type contains 'test'. ");
+        // } else if (containsTestKeyWord(archiveItem.getOwner(), "test")) {
+        //     reasons.append("Owner contains 'test'. ");
         } else if (archiveItem.getDuration() < 10) {
             reasons.append("Duration is less than 10 seconds. ");
         }

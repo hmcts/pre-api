@@ -7,7 +7,7 @@ import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.xml.StaxEventItemReader;
 import org.springframework.core.io.ClassPathResource;
-import uk.gov.hmcts.reform.preapi.entities.batch.ArchiveFiles;
+import uk.gov.hmcts.reform.preapi.entities.batch.XMLArchiveFileData;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -30,12 +30,12 @@ class XMLReaderTest {
     void createReader_successfullyReadsXml() throws Exception {
         ClassPathResource resource = new ClassPathResource("batch/sample-archive.xml");
         
-        StaxEventItemReader<ArchiveFiles> reader = xmlReader.createReader(resource, ArchiveFiles.class);
+        StaxEventItemReader<XMLArchiveFileData> reader = xmlReader.createReader(resource, XMLArchiveFileData.class);
 
         ExecutionContext executionContext = new ExecutionContext();
         reader.open(executionContext);
 
-        ArchiveFiles archiveFiles = reader.read();
+        XMLArchiveFileData archiveFiles = reader.read();
 
         assertTrue(resource.exists(), "The resource file should exist.");
         assertNotNull(archiveFiles, "The reader should return a valid ArchiveFile object.");
@@ -56,7 +56,7 @@ class XMLReaderTest {
 
         assertFalse(resource.exists(), "The resource file should not exist.");
         Exception exception = assertThrows(ItemStreamException.class, () -> {
-            StaxEventItemReader<ArchiveFiles> reader = xmlReader.createReader(resource, ArchiveFiles.class);
+            StaxEventItemReader<XMLArchiveFileData> reader = xmlReader.createReader(resource, XMLArchiveFileData.class);
             ExecutionContext executionContext = new ExecutionContext();
             reader.open(executionContext);
         });

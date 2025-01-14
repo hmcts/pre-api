@@ -1,13 +1,17 @@
 package uk.gov.hmcts.reform.preapi.config.batch;
 
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.item.ExecutionContext;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.xml.StaxEventItemReader;
@@ -17,57 +21,64 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
-import uk.gov.hmcts.reform.preapi.batch.processor.CSVProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.PreProcessor;
-import uk.gov.hmcts.reform.preapi.batch.processor.XMLProcessor;
+import uk.gov.hmcts.reform.preapi.batch.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.reader.XMLReader;
-import uk.gov.hmcts.reform.preapi.batch.writer.CSVWriter;
-import uk.gov.hmcts.reform.preapi.entities.batch.ArchiveFiles;
+import uk.gov.hmcts.reform.preapi.batch.writer.Writer;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.entities.batch.XMLArchiveFileData;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerServiceXML;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 @Configuration
 @EnableBatchProcessing
 public class BatchConfiguration implements StepExecutionListener {
 
+
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final CSVReader csvReader;
     private final XMLReader xmlReader;
     private final PreProcessor preProcessor;
-    private final CSVProcessor csvProcessor;
-    private final XMLProcessor xmlProcessor;
-    private final CSVWriter csvWriter;
+    private final Processor itemProcessor;
+    private final Writer itemWriter;
     private final MigrationTrackerService migrationTrackerService;
+    private final MigrationTrackerServiceXML migrationTrackerServiceXML;
 
     @Autowired
-    public BatchConfiguration(JobRepository jobRepository,
-                              PlatformTransactionManager transactionManager,
-                              CSVReader csvReader,
-                              XMLReader xmlReader,
-                              PreProcessor preProcessor,
-                              CSVProcessor csvProcessor,
-                              XMLProcessor xmlProcessor,
-                              CSVWriter csvWriter,
-                              MigrationTrackerService migrationTrackerService) {
+    public BatchConfiguration(
+        JobRepository jobRepository,
+        PlatformTransactionManager transactionManager,
+        CSVReader csvReader,
+        XMLReader xmlReader,
+        PreProcessor preProcessor,
+        Processor itemProcessor,
+        Writer itemWriter,
+        MigrationTrackerService migrationTrackerService,
+        MigrationTrackerServiceXML migrationTrackerServiceXML
+    ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.csvReader = csvReader;
         this.xmlReader = xmlReader;
         this.preProcessor = preProcessor;
-        this.csvProcessor = csvProcessor;
-        this.xmlProcessor = xmlProcessor;
-        this.csvWriter = csvWriter;
+        this.itemProcessor = itemProcessor;
+        this.itemWriter = itemWriter;
         this.migrationTrackerService = migrationTrackerService;
+        this.migrationTrackerServiceXML = migrationTrackerServiceXML;
+
     }
 
     @Bean
@@ -90,6 +101,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 CSVChannelData.class,
                 false 
             ))
+            // .next(processXmlFilesStep())
             .next(createReadStep(
                 "archiveListDataStep", 
                 new ClassPathResource("batch/Archive_List.csv"), 
@@ -98,11 +110,12 @@ public class BatchConfiguration implements StepExecutionListener {
                 CSVArchiveListData.class, 
                 true 
             ))  
-            // .next(createXmlReadStep())  
+            // .next(writeToCsvXML())
             .next(writeToCSV())
             .build();
     }
 
+    // Defines a generic step for reading, processing, and optionally writing CSV data
     public <T> Step createReadStep(
         String stepName, 
         Resource filePath, 
@@ -112,17 +125,14 @@ public class BatchConfiguration implements StepExecutionListener {
     ) {
         FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass, ",");
         StepBuilder stepBuilder = new StepBuilder(stepName, jobRepository);
-        Logger.getAnonymousLogger().info("Starting step: " + stepName);
         
         var simpleStepBuilder = stepBuilder.<T, MigratedItemGroup>chunk(10, transactionManager)
                 .reader(reader)
-                .processor(csvProcessor);
+                .processor(itemProcessor);
 
         if (writeToCsv) {
-            Logger.getAnonymousLogger().info("Using CSV Writer for step: " + stepName);
-            simpleStepBuilder = simpleStepBuilder.writer(csvWriter);
+            simpleStepBuilder = simpleStepBuilder.writer(itemWriter);
         } else {
-            Logger.getAnonymousLogger().info("Using No-Op Writer for step: " + stepName);
             simpleStepBuilder = simpleStepBuilder.writer(noOpWriter()); 
         }
 
@@ -133,6 +143,9 @@ public class BatchConfiguration implements StepExecutionListener {
                 .build();  
     }
 
+
+        
+    // Utility method to create a CSV reader
     private <T> FlatFileItemReader<T> createCsvReader(
         Resource inputFile, 
         String[] fieldNames, 
@@ -146,6 +159,8 @@ public class BatchConfiguration implements StepExecutionListener {
         }
     }
 
+
+    // Initialisation step to set up necessary prerequisites for processing
     @Bean
     public Step preProcessStep() {
         return new StepBuilder("preProcessStep", jobRepository)
@@ -156,15 +171,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 .build();
     }
 
-    @Bean
-    public Step processDataStep() {
-        return new StepBuilder("processDataStep", jobRepository)
-                .tasklet((contribution, chunkContext) -> {
-                    return RepeatStatus.FINISHED;
-                }, transactionManager)
-                .build();
-    }
-
+    // Step to write data to CSV
     @Bean
     public Step writeToCSV() {
         return new StepBuilder("writeToCSV", jobRepository)
@@ -175,26 +182,78 @@ public class BatchConfiguration implements StepExecutionListener {
                 .build();
     }
 
+    // Step to write data to CSV - testing for XML
     @Bean
-    public Step createXmlReadStep() {
-        Resource xmlFile = new ClassPathResource("batch/Ed033cd9b7a08449f9cd157f7eaff7577.xml");
-        StaxEventItemReader<ArchiveFiles> reader = xmlReader.createReader(xmlFile, ArchiveFiles.class);
-        
-        return new StepBuilder("xmlReadStep", jobRepository)
-            .<ArchiveFiles, ArchiveFiles>chunk(1, transactionManager)
-            .reader(reader)
-            .processor(xmlProcessor)
-            .writer(noOpWriter())  
-            .faultTolerant()
-            .skipLimit(5)
-            .skip(Exception.class)
-            .build();
+    public Step writeToCsvXML() {
+        return new StepBuilder("writeToCSV", jobRepository)
+                .tasklet((contribution, chunkContext) -> {
+                    migrationTrackerServiceXML.writeAllToCsv();
+                    return RepeatStatus.FINISHED;
+                }, transactionManager)
+                .build();
     }
 
+    // A utility no-operation writer for steps that do not require actual writing
     @Bean
     public <T> ItemWriter<T> noOpWriter() {
         return items -> {
             // no-op writer  does nothing
         };
     }
+
+    @Bean
+    public Step processXmlFilesStep() {
+        return new StepBuilder("processXmlFilesStep", jobRepository)
+                .<XMLArchiveFileData, MigratedItemGroup>chunk(10, transactionManager)
+                .reader(xmlItemReader())
+                .processor(itemProcessor)
+                .writer(itemWriter)
+                .faultTolerant()
+                .skip(Exception.class)
+                .skipLimit(100) 
+                .listener(new StepExecutionListener() {
+                    @Override
+                    public void beforeStep(StepExecution stepExecution) {
+                        Logger.getAnonymousLogger().info("Starting XML file processing step.");
+                    }
+
+                    @Override
+                    public ExitStatus afterStep(StepExecution stepExecution) {
+                        Logger.getAnonymousLogger().info("Completed XML file processing step.");
+                        return stepExecution.getExitStatus();
+                    }
+                })
+                .build();
+    }
+
+
+    @Bean
+    public ItemReader<XMLArchiveFileData> xmlItemReader() {
+        return new ItemReader<>() {
+            private List<InputStreamResource> currentBatch = new ArrayList<>();
+            private int currentIndex = 0;
+            private StaxEventItemReader<XMLArchiveFileData> currentReader = null;
+
+            @Override
+            public XMLArchiveFileData read() throws Exception {
+                if (currentReader == null || currentReader.read() == null) {
+                    if (currentIndex >= currentBatch.size()) {
+                        currentBatch = preProcessor.fetchAndProcessNextBatch("pre-vodafone-spike", 10);
+                        currentIndex = 0;
+
+                        if (currentBatch.isEmpty()) {
+                            return null; 
+                        }
+                    }
+
+                    Resource currentResource = currentBatch.get(currentIndex++);
+                    currentReader = xmlReader.createReader(currentResource, XMLArchiveFileData.class);
+                    currentReader.open(new ExecutionContext());
+                }
+
+                return currentReader.read();
+            }
+        };
+    }
+
 }

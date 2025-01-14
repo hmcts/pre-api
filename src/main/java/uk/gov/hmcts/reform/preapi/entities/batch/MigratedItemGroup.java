@@ -73,4 +73,18 @@ public class MigratedItemGroup {
     public List<User> getUsers() {
         return users;
     }
+
+    @Override
+    public String toString() {
+        return "MigratedItemGroup{" 
+            + "case=" + (acase != null ? acase.toString() : "null") 
+            + ", booking=" + (booking != null ? booking.toString() : "null") 
+            + ", captureSession=" + (captureSession != null ? captureSession.toString() : "null") 
+            + ", recording=" + (recording != null ? recording.toString() : "null") 
+            + ", participants=" + (participants != null ? participants.toString() : "null") 
+            + ", passItem=" + (passItem != null ? passItem.toString() : "null") 
+            + ", shareBookings=" + (shareBookings != null ? shareBookings.toString() : "null") 
+            + ", users=" + (users != null ? users.toString() : "null") 
+            + '}';
+    }
 }
