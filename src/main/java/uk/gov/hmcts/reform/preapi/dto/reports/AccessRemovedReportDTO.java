@@ -4,55 +4,41 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
-
-import java.sql.Timestamp;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "AccessRemovedReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AccessRemovedReportDTO {
+public class AccessRemovedReportDTO extends BaseReportDTO {
 
-    @Schema(description = "AccessRemovedReportRemovedAt")
-    private Timestamp removedAt;
+    @Schema(description = "AccessRemovedReportRemovedDate")
+    private String removedDate;
 
-    @Schema(description = "AccessRemovedReportCaseReference")
-    private String caseReference;
+    @Schema(description = "AccessRemovedReportRemovedTime")
+    private String removedTime;
 
-    @Schema(description = "AccessRemovedReportCourtName")
-    private String court;
-
-    @Schema(description = "AccessRemovedReportRegions")
-    private Set<RegionDTO> regions;
+    @Schema(description = "AccessRemovedReportRemovedTimezone")
+    private String removedTimezone;
 
     @Schema(description = "AccessRemovedReportUserFullName")
-    private String userFullName;
+    private String fullName;
 
     @Schema(description = "AccessRemovedReportUserEmail")
     private String userEmail;
 
-    @Schema(description = "AccessRemovedReportRemovalReason")
-    private String removalReason;
-
     public AccessRemovedReportDTO(ShareBooking shareBooking) {
-        var booking = shareBooking.getBooking();
-        var courtEntity = booking.getCaseId().getCourt();
-
-        removedAt = shareBooking.getDeletedAt();
-        caseReference = booking.getCaseId().getReference();
-        court = courtEntity.getName();
-        regions = Stream.ofNullable(courtEntity.getRegions())
-            .flatMap(regions -> regions.stream().map(RegionDTO::new))
-            .collect(Collectors.toSet());
+        super(shareBooking.getBooking().getCaseId());
+        removedDate = DateTimeUtils.formatDate(shareBooking.getDeletedAt());
+        removedTime = DateTimeUtils.formatTime(shareBooking.getDeletedAt());
+        removedTimezone = DateTimeUtils.getTimezoneAbbreviation(shareBooking.getDeletedAt());
 
         var user = shareBooking.getSharedWith();
-        userFullName = user.getFullName();
+        fullName = user.getFullName();
         userEmail = user.getEmail();
     }
 }

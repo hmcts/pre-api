@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -153,8 +154,8 @@ public class ReportService {
         return shareBookingRepository
             .findAllByDeletedAtIsNotNull()
             .stream()
+            .sorted(Comparator.comparing(ShareBooking::getDeletedAt))
             .map(AccessRemovedReportDTO::new)
-            .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
             .collect(Collectors.toList());
     }
 
