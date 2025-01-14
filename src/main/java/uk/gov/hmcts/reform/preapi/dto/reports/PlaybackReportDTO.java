@@ -6,16 +6,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
-import java.sql.Timestamp;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 @Data
@@ -25,8 +24,23 @@ import javax.annotation.Nullable;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class PlaybackReportDTO {
 
-    @Schema(description = "PlaybackReportPlaybackAt")
-    private Timestamp playbackAt;
+    @Schema(description = "PlaybackReportPlaybackDate")
+    private String playbackDate;
+
+    @Schema(description = "PlaybackReportPlaybackTime")
+    private String playbackTime;
+
+    @Schema(description = "PlaybackReportCaseReference")
+    private String caseReference;
+
+    @Schema(description = "PlaybackReportRecordingVersion")
+    private Integer recordingVersion;
+
+    @Schema(description = "PlaybackReportDefendants")
+    private String defendants;
+
+    @Schema(description = "PlaybackReportWitness")
+    private String witness;
 
     @Schema(description = "PlaybackReportUserFullName")
     private String userFullName;
@@ -34,33 +48,49 @@ public class PlaybackReportDTO {
     @Schema(description = "PlaybackReportUserEmail")
     private String userEmail;
 
-    @Schema(description = "PlaybackReportCaseReference")
-    private String caseReference;
-
     @Schema(description = "PlaybackReportCourt")
     private String court;
 
-    @Schema(description = "PlaybackReportRegions")
-    private Set<RegionDTO> regions;
+    @Schema(description = "PlaybackReportCounty")
+    private String county;
 
-    @Schema(description = "PlaybackReportRecordingId")
-    private UUID recordingId;
+    @Schema(description = "PlaybackReportPostcode")
+    private String postcode;
+
+    @Schema(description = "PlaybackReportRegion")
+    private String region;
 
     public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
-        playbackAt = audit.getCreatedAt();
+        playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());
+        playbackTime = DateTimeUtils.formatTime(audit.getCreatedAt());
+        if (recording != null) {
+            var booking = recording.getCaptureSession().getBooking();
+            var caseEntity = booking.getCaseId();
+            caseReference = caseEntity.getReference();
+            recordingVersion = recording.getVersion();
+
+            witness = booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+                .findFirst()
+                .map(Participant::getFullName)
+                .orElse(null);
+            defendants = booking.getParticipants()
+                .stream()
+                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+                .map(Participant::getFullName)
+                .collect(Collectors.joining(", "));
+
+            var courtEntity = caseEntity.getCourt();
+            court = courtEntity.getName();
+            county = courtEntity.getCounty();
+            postcode = courtEntity.getPostcode();
+            region = courtEntity.getRegions().stream().findFirst().map(Region::getName).orElse(null);
+        }
+
         if (user != null) {
             userFullName = user.getFullName();
             userEmail = user.getEmail();
-        }
-        if (recording != null) {
-            var caseEntity = recording.getCaptureSession().getBooking().getCaseId();
-            var courtEntity = caseEntity.getCourt();
-            court = courtEntity.getName();
-            caseReference = caseEntity.getReference();
-            regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
-                .flatMap(regions -> regions.stream().map(RegionDTO::new))
-                .collect(Collectors.toSet());
-            recordingId = recording.getId();
         }
     }
 }

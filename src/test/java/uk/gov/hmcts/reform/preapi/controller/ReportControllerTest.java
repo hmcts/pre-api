@@ -357,8 +357,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
             .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()));
 
         verify(reportService, times(1)).reportPlayback(AuditLogSource.PORTAL);
     }
@@ -377,8 +376,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
             .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()));
 
         verify(reportService, times(1)).reportPlayback(AuditLogSource.APPLICATION);
     }
@@ -389,15 +387,21 @@ public class ReportControllerTest {
         var reportItem = createPlaybackReport();
 
         when(reportService.reportPlayback(null)).thenReturn(List.of(reportItem));
-
         mockMvc.perform(get("/reports/playback"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].playback_date").value(reportItem.getPlaybackDate()))
+            .andExpect(jsonPath("$[0].playback_time").value(reportItem.getPlaybackTime()))
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].recording_version").value(reportItem.getRecordingVersion()))
+            .andExpect(jsonPath("$[0].defendants").value(reportItem.getDefendants()))
+            .andExpect(jsonPath("$[0].witness").value(reportItem.getWitness()))
             .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
             .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
-            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
 
         verify(reportService, times(1)).reportPlayback(null);
     }
@@ -426,14 +430,20 @@ public class ReportControllerTest {
     }
 
     private PlaybackReportDTO createPlaybackReport() {
+        var timestamp = Timestamp.from(Instant.now());
         return new PlaybackReportDTO(
-            Timestamp.from(Instant.now()),
+            DateTimeUtils.formatDate(timestamp),
+            DateTimeUtils.formatTime(timestamp),
+            "CASE123456",
+            1,
+            "Defendant One, Defendant Two",
+            "Witness One",
             "Example Person",
             "example@example.com",
-            "CASE123456",
             "Example Court",
-            Set.of(),
-            UUID.randomUUID()
+            "Example County",
+            "AB1 2CD",
+            "Example Region"
         );
     }
 }

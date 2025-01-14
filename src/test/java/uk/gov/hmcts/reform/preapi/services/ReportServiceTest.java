@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -28,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
@@ -347,6 +349,16 @@ public class ReportServiceTest {
         objectNode.put("recordingId", recordingEntity.getId().toString());
         auditEntity.setAuditDetails(objectNode);
 
+        var witness = HelperFactory.createParticipant(caseEntity, ParticipantType.WITNESS, "Example", "Witness", null);
+        var defendant = HelperFactory.createParticipant(
+            caseEntity,
+            ParticipantType.DEFENDANT,
+            "Example",
+            "Defendant",
+            null
+        );
+        bookingEntity.setParticipants(Set.of(witness, defendant));
+
         when(auditRepository
                  .findBySourceAndFunctionalAreaAndActivity(
                      AuditLogSource.PORTAL,
@@ -359,21 +371,7 @@ public class ReportServiceTest {
 
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
-        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertPlaybackReportMatches(report, defendant, witness, user);
     }
 
     @DisplayName("Find audits relating to playbacks from the application and return a report")
@@ -386,6 +384,16 @@ public class ReportServiceTest {
         user.setLastName("Person");
         auditEntity.setCreatedBy(user.getId());
         auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        var witness = HelperFactory.createParticipant(caseEntity, ParticipantType.WITNESS, "Example", "Witness", null);
+        var defendant = HelperFactory.createParticipant(
+            caseEntity,
+            ParticipantType.DEFENDANT,
+            "Example",
+            "Defendant",
+            null
+        );
+        bookingEntity.setParticipants(Set.of(witness, defendant));
 
         var objectMapper = new ObjectMapper();
         var objectNode = objectMapper.createObjectNode();
@@ -404,21 +412,8 @@ public class ReportServiceTest {
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
 
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
-        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertPlaybackReportMatches(report, defendant, witness, user);
+
     }
 
     @DisplayName("Find audits relating to all playback attempts and return a report")
@@ -436,27 +431,23 @@ public class ReportServiceTest {
         objectNode.put("recordingId", recordingEntity.getId().toString());
         auditEntity.setAuditDetails(objectNode);
 
+        var witness = HelperFactory.createParticipant(caseEntity, ParticipantType.WITNESS, "Example", "Witness", null);
+        var defendant = HelperFactory.createParticipant(
+            caseEntity,
+            ParticipantType.DEFENDANT,
+            "Example",
+            "Defendant",
+            null
+        );
+        bookingEntity.setParticipants(Set.of(witness, defendant));
+
         when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
 
         var report = reportService.reportPlayback(null);
 
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
-        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertPlaybackReportMatches(report, defendant, witness, user);
 
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
@@ -591,5 +582,25 @@ public class ReportServiceTest {
         assertThat(result.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
         assertThat(result.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(result.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+    }
+
+    private static void assertPlaybackReportMatches(List<PlaybackReportDTO> report,
+                                                    Participant defendant,
+                                                    Participant witness,
+                                                    User user) {
+        assertThat(report.size()).isEqualTo(1);
+        var first = report.getFirst();
+        assertThat(first.getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(first.getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(first.getRecordingVersion()).isEqualTo(recordingEntity.getVersion());
+        assertThat(first.getDefendants()).isEqualTo(defendant.getFullName());
+        assertThat(first.getWitness()).isEqualTo(witness.getFullName());
+        assertThat(first.getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(first.getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
     }
 }
