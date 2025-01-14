@@ -5,12 +5,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import uk.gov.hmcts.reform.preapi.entities.Region;
 
 @Data
 @NoArgsConstructor
@@ -24,18 +20,29 @@ public class RecordingsPerCaseReportDTO {
     @Schema(description = "RecordingsPerCaseCourt")
     private String court;
 
-    @Schema(description = "RecordingsPerCaseRegions")
-    private Set<RegionDTO> regions;
+    @Schema(description = "RecordingsPerCaseCourtCounty")
+    private String county;
+
+    @Schema(description = "RecordingsPerCaseCourtPostcode")
+    private String postcode;
+
+    @Schema(description = "RecordingsPerCaseRegion")
+    private String region;
 
     @Schema(description = "RecordingsPerCaseCount")
     private int count;
 
     public RecordingsPerCaseReportDTO(Case caseEntity, int count) {
         caseReference = caseEntity.getReference();
-        court = caseEntity.getCourt().getName();
-        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
-            .flatMap(regions -> regions.stream().map(RegionDTO::new))
-            .collect(Collectors.toSet());
+        var courtEntity = caseEntity.getCourt();
+        court = courtEntity.getName();
+        county = courtEntity.getCounty();
+        postcode = courtEntity.getPostcode();
+        region = courtEntity.getRegions()
+            .stream()
+            .findFirst()
+            .map(Region::getName)
+            .orElse(null);
         this.count = count;
     }
 }

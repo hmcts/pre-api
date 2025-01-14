@@ -86,7 +86,9 @@ public class ReportControllerTest {
         var reportItem = new RecordingsPerCaseReportDTO();
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example Court");
-        reportItem.setRegions(Set.of());
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Example Region");
         reportItem.setCount(2);
 
         when(reportService.reportRecordingsPerCase()).thenReturn(List.of(reportItem));
@@ -94,6 +96,10 @@ public class ReportControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()))
             .andExpect(jsonPath("$[0].count").value(reportItem.getCount()));
     }
 
