@@ -547,7 +547,7 @@ public class ReportServiceTest {
 
         assertThat(report.getFirst().getRemovedDate()).isEqualTo(DateTimeUtils.formatDate(shareBooking.getDeletedAt()));
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
         assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
         assertThat(report.getFirst().getFullName()).isEqualTo(user.getFirstName() + " " + user.getLastName());
         assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());

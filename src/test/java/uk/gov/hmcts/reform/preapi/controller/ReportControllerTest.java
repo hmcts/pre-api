@@ -328,7 +328,7 @@ public class ReportControllerTest {
         reportItem.setRemovedTime(DateTimeUtils.formatTime(timestamp));
         reportItem.setRemovedTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setCaseReference("ABC123");
-        reportItem.setCourtName("Example court");
+        reportItem.setCourt("Example court");
         reportItem.setCounty("Kent");
         reportItem.setPostcode("AB1 2CD");
         reportItem.setRegion("Somewhere");
@@ -344,7 +344,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].removed_time").value(reportItem.getRemovedTime()))
             .andExpect(jsonPath("$[0].removed_timezone").value(reportItem.getRemovedTimezone()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
             .andExpect(jsonPath("$[0].full_name").value(reportItem.getFullName()))
