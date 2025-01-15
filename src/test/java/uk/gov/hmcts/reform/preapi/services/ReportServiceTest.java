@@ -193,7 +193,7 @@ public class ReportServiceTest {
         anotherCase.setReference("XYZ456");
 
         when(recordingRepository.countRecordingsPerCase())
-            .thenReturn(List.of(new Object[] { caseEntity, (long) 1 }, new Object[]{ anotherCase, (long) 0 }));
+            .thenReturn(List.of(new Object[] { caseEntity, 1L }, new Object[]{ anotherCase, (long) 0 }));
 
         var report = reportService.reportRecordingsPerCase();
 
@@ -204,14 +204,7 @@ public class ReportServiceTest {
         assertThat(report.get(1).getCount()).isEqualTo(0);
 
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find all edited recordings and return a report list")
