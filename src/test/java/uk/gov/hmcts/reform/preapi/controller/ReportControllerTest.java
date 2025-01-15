@@ -274,21 +274,28 @@ public class ReportControllerTest {
     @Test
     void reportScheduledSuccess() throws Exception {
         var reportItem = new ScheduleReportDTO();
-        reportItem.setScheduledFor(Timestamp.from(Instant.now()));
-        reportItem.setBookingCreatedAt(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setScheduledDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setCaseReference("ABC123");
-        reportItem.setCaptureSessionUser("example@example.com");
-        reportItem.setCourt("Example court");
-        reportItem.setRegions(Set.of());
+        reportItem.setCourt("Example Court");
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Example Region");
+        reportItem.setDateOfBooking(DateTimeUtils.formatDate(timestamp));
+        reportItem.setUser("example@example.com");
 
         when(reportService.reportScheduled()).thenReturn(List.of(reportItem));
-
         mockMvc.perform(get("/reports/schedules"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].scheduled_date").value(reportItem.getScheduledDate()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].capture_session_user").value(reportItem.getCaptureSessionUser()));
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()))
+            .andExpect(jsonPath("$[0].date_of_booking").value(reportItem.getDateOfBooking()))
+            .andExpect(jsonPath("$[0].user").value(reportItem.getUser()));
     }
 
     @DisplayName("Should get a report containing a list of completed capture sessions (with available recordings)")
