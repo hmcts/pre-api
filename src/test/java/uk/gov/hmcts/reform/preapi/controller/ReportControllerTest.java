@@ -431,19 +431,20 @@ public class ReportControllerTest {
 
     private PlaybackReportDTO createPlaybackReport() {
         var timestamp = Timestamp.from(Instant.now());
-        return new PlaybackReportDTO(
+        var dto =  new PlaybackReportDTO(
             DateTimeUtils.formatDate(timestamp),
             DateTimeUtils.formatTime(timestamp),
-            "CASE123456",
             1,
             "Defendant One, Defendant Two",
             "Witness One",
             "Example Person",
-            "example@example.com",
-            "Example Court",
-            "Example County",
-            "AB1 2CD",
-            "Example Region"
+            "example@example.com"
         );
+        dto.setCaseReference("CASE123456");
+        dto.setCourt("Example Court");
+        dto.setCounty("Example County");
+        dto.setPostcode("AB1 2CD");
+        dto.setRegion("Example Region");
+        return dto;
     }
 }

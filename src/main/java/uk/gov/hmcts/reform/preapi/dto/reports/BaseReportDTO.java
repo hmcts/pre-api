@@ -25,6 +25,10 @@ public abstract class BaseReportDTO {
     private String region;
 
     protected BaseReportDTO(Case c) {
+        if (c == null) {
+            return;
+        }
+
         caseReference = c.getReference();
         var courtEntity = c.getCourt();
         court = courtEntity.getName();
