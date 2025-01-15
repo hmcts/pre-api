@@ -134,7 +134,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
             .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
@@ -409,7 +409,7 @@ public class ReportControllerTest {
         reportItem.setGrantedBy("shared-by@example.com");
         reportItem.setGrantedByFullName("Example Two");
         reportItem.setCaseReference("ABC123");
-        reportItem.setCourtName("Example Court");
+        reportItem.setCourt("Example Court");
         reportItem.setCounty("Example County");
         reportItem.setPostcode("AB1 2CD");
         reportItem.setRegion("Example Region");

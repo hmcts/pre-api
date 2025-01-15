@@ -284,7 +284,7 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getSharedWith()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
         assertThat(report.getFirst().getGrantedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
         assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
 
         assertThat(report.getLast().getShareDate()).isEqualTo(DateTimeUtils.formatDate(sharedBooking1.getCreatedAt()));

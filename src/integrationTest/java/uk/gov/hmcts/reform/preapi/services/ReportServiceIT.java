@@ -423,7 +423,7 @@ public class ReportServiceIT extends IntegrationTestBase {
         assertThat(report.getFirst().getGrantedBy()).isEqualTo(user2.getEmail());
         assertThat(report.getFirst().getGrantedByFullName()).isEqualTo(user2.getFullName());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourtName()).isEqualTo(court.getName());
+        assertThat(report.getFirst().getCourt()).isEqualTo(court.getName());
         assertThat(report.getFirst().getCounty()).isEqualTo(court.getCounty());
         assertThat(report.getFirst().getPostcode()).isEqualTo(court.getPostcode());
         assertThat(report.getFirst().getRegion()).isEqualTo(court.getRegions().stream().findFirst().get().getName());
