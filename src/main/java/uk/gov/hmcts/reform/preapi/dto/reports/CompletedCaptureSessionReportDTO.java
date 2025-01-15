@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
@@ -16,9 +16,10 @@ import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "CompletedCaptureSessionReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class CompletedCaptureSessionReportDTO {
+public class CompletedCaptureSessionReportDTO extends BaseReportDTO {
 
     @Schema(description = "CompletedCaptureSessionReportRecordingDate")
     private String recordingDate;
@@ -35,9 +36,6 @@ public class CompletedCaptureSessionReportDTO {
     @Schema(description = "CompletedCaptureSessionReportScheduledDate")
     private String scheduledDate;
 
-    @Schema(description = "CompletedCaptureSessionReportCaseReference")
-    private String caseReference;
-
     @Schema(description = "CompletedCaptureSessionReportStatus")
     private RecordingStatus status;
 
@@ -53,19 +51,8 @@ public class CompletedCaptureSessionReportDTO {
     @Schema(description = "CompletedCaptureSessionReportWitnessCount")
     private int witness;
 
-    @Schema(description = "CompletedCaptureSessionReportCourtName")
-    private String court;
-
-    @Schema(description = "CompletedCaptureSessionReportCounty")
-    private String county;
-
-    @Schema(description = "CompletedCaptureSessionReportPostcode")
-    private String postcode;
-
-    @Schema(description = "CompletedCaptureSessionReportRegion")
-    private String region;
-
     public CompletedCaptureSessionReportDTO(Recording recording) {
+        super(recording.getCaptureSession().getBooking().getCaseId());
         var captureSession = recording.getCaptureSession();
         status = captureSession.getStatus();
 
@@ -75,9 +62,6 @@ public class CompletedCaptureSessionReportDTO {
         timezone = DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt());
         var booking = captureSession.getBooking();
         scheduledDate = DateTimeUtils.formatDate(captureSession.getBooking().getScheduledFor());
-
-        var caseEntity = booking.getCaseId();
-        caseReference = caseEntity.getReference();
 
         var defendants = booking.getParticipants()
             .stream()
@@ -96,11 +80,5 @@ public class CompletedCaptureSessionReportDTO {
             .map(Participant::getFullName)
             .collect(Collectors.joining(", "));
         witness = witnesses.size();
-
-        var courtEntity = caseEntity.getCourt();
-        court = courtEntity.getName();
-        county = courtEntity.getCounty();
-        postcode = courtEntity.getPostcode();
-        region = courtEntity.getRegions().stream().findFirst().map(Region::getName).orElse(null);
     }
 }
