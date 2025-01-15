@@ -136,7 +136,7 @@ public class ReportServiceIT extends IntegrationTestBase {
         var response = reportService.reportPlayback(null);
         assertThat(response).isNotNull();
         assertThat(response.size()).isEqualTo(1);
-        assertThat(response.getFirst().getRecordingId()).isNull();
+        assertThat(response.getFirst().getRecordingVersion()).isNull();
     }
 
     @Transactional
