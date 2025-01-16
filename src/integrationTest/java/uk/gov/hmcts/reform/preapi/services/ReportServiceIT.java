@@ -114,32 +114,41 @@ public class ReportServiceIT extends IntegrationTestBase {
         var share = HelperFactory.createShareBooking(user1, user2, booking, null);
         entityManager.persist(share);
 
-        var reportFilterNone = reportService.reportShared(null, null, null, null);
+        var reportFilterNone = reportService.reportShared(null, null, null, null, false);
         assertSharedReportSuccess(court, caseEntity, user1, user2, share, reportFilterNone);
 
-        var reportFilterCourt = reportService.reportShared(court.getId(), null, null, null);
+        var reportFilterCourt = reportService.reportShared(court.getId(), null, null, null, false);
         assertSharedReportSuccess(court, caseEntity, user1, user2, share, reportFilterCourt);
 
-        var reportFilterBooking = reportService.reportShared(null, booking.getId(), null, null);
+        var reportFilterBooking = reportService.reportShared(null, booking.getId(), null, null, false);
         assertSharedReportSuccess(court, caseEntity, user1, user2, share, reportFilterBooking);
 
-        var reportFilterUserId = reportService.reportShared(null, null, user1.getId(), null);
+        var reportFilterUserId = reportService.reportShared(null, null, user1.getId(), null, false);
         assertSharedReportSuccess(court, caseEntity, user1, user2, share, reportFilterUserId);
 
-        var reportFilterUserEmail = reportService.reportShared(null, null, null, user1.getEmail());
+        var reportFilterUserEmail = reportService.reportShared(null, null, null, user1.getEmail(), false);
         assertSharedReportSuccess(court, caseEntity, user1, user2, share, reportFilterUserEmail);
 
-        var reportFilterNotFound1 = reportService.reportShared(UUID.randomUUID(), null, null, null);
+        var reportFilterNotFound1 = reportService.reportShared(UUID.randomUUID(), null, null, null, false);
         assertThat(reportFilterNotFound1.isEmpty()).isTrue();
 
-        var reportFilterNotFound2 = reportService.reportShared(null, UUID.randomUUID(), null, null);
+        var reportFilterNotFound2 = reportService.reportShared(null, UUID.randomUUID(), null, null, false);
         assertThat(reportFilterNotFound2.isEmpty()).isTrue();
 
-        var reportFilterNotFound3 = reportService.reportShared(null, null, UUID.randomUUID(), null);
+        var reportFilterNotFound3 = reportService.reportShared(null, null, UUID.randomUUID(), null, false);
         assertThat(reportFilterNotFound3.isEmpty()).isTrue();
 
-        var reportFilterNotFound4 = reportService.reportShared(null, null, null, "test@test.com");
+        var reportFilterNotFound4 = reportService.reportShared(null, null, null, "test@test.com", false);
         assertThat(reportFilterNotFound4.isEmpty()).isTrue();
+
+        var reportFilterOnlyActiveFound = reportService.reportShared(null, null, null, null, true);
+        assertSharedReportSuccess(court, caseEntity, user1, user2, share, reportFilterOnlyActiveFound);
+
+        share.setDeletedAt(Timestamp.from(Instant.now()));
+        entityManager.persist(share);
+
+        var reportFilterOnlyActiveNotFound = reportService.reportShared(null, null, null, null, true);
+        assertThat(reportFilterOnlyActiveNotFound.isEmpty()).isTrue();
     }
 
     @Transactional

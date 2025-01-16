@@ -122,7 +122,7 @@ public class ReportControllerTest {
     void reportBookingsSharedSuccess() throws Exception {
         var reportItem = createSharedReport();
 
-        when(reportService.reportShared(null, null, null, null)).thenReturn(List.of(reportItem));
+        when(reportService.reportShared(null, null, null, null, false)).thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/shared-bookings"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -139,7 +139,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
             .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
 
-        verify(reportService, times(1)).reportShared(null, null, null, null);
+        verify(reportService, times(1)).reportShared(null, null, null, null, false);
     }
 
     @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by court")
@@ -148,7 +148,7 @@ public class ReportControllerTest {
         var reportItem = createSharedReport();
         var courtId = UUID.randomUUID();
 
-        when(reportService.reportShared(courtId, null, null, null)).thenReturn(List.of(reportItem));
+        when(reportService.reportShared(courtId, null, null, null, false)).thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/shared-bookings")
                             .param("courtId", courtId.toString()))
             .andExpect(status().isOk())
@@ -162,7 +162,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
 
 
-        verify(reportService, times(1)).reportShared(courtId, null, null, null);
+        verify(reportService, times(1)).reportShared(courtId, null, null, null, false);
     }
 
     @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by booking")
@@ -171,7 +171,8 @@ public class ReportControllerTest {
         var reportItem = createSharedReport();
         var searchId = UUID.randomUUID();
 
-        when(reportService.reportShared(null, searchId, null, null)).thenReturn(List.of(reportItem));
+        when(reportService.reportShared(null, searchId, null, null, false))
+            .thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/shared-bookings")
                             .param("bookingId", searchId.toString()))
             .andExpect(status().isOk())
@@ -184,7 +185,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
 
-        verify(reportService, times(1)).reportShared(null, searchId, null, null);
+        verify(reportService, times(1)).reportShared(null, searchId, null, null, false);
     }
 
     @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by user id")
@@ -194,7 +195,7 @@ public class ReportControllerTest {
 
         var userId = UUID.randomUUID();
 
-        when(reportService.reportShared(null, null, userId, null)).thenReturn(List.of(reportItem));
+        when(reportService.reportShared(null, null, userId, null, false)).thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/shared-bookings")
                             .param("sharedWithId", userId.toString()))
             .andExpect(status().isOk())
@@ -207,7 +208,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
 
-        verify(reportService, times(1)).reportShared(null, null, userId, null);
+        verify(reportService, times(1)).reportShared(null, null, userId, null, false);
     }
 
     @DisplayName("Should get a report containing a list of details relating to shared bookings filtered by user email")
@@ -215,7 +216,8 @@ public class ReportControllerTest {
     void reportBookingsSharedFilterUserEmailSuccess() throws Exception {
         var reportItem = createSharedReport();
 
-        when(reportService.reportShared(null, null, null, reportItem.getSharedWith())).thenReturn(List.of(reportItem));
+        when(reportService.reportShared(null, null, null, reportItem.getSharedWith(), false))
+            .thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/shared-bookings")
                             .param("sharedWithEmail", reportItem.getSharedWith()))
             .andExpect(status().isOk())
@@ -228,7 +230,30 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
 
-        verify(reportService, times(1)).reportShared(null, null, null, reportItem.getSharedWith());
+        verify(reportService, times(1)).reportShared(null, null, null, reportItem.getSharedWith(), false);
+    }
+
+    @Test
+    @DisplayName("Should get a report containing a list detailing to shared bookings filtered by only active shares")
+    void reportBookingsSharedFilterOnlyActiveSuccess() throws Exception {
+        var reportItem = createSharedReport();
+
+        when(reportService.reportShared(null, null, null, null, true))
+            .thenReturn(List.of(reportItem));
+        mockMvc.perform(get("/reports/shared-bookings")
+                            .param("onlyActive", "true"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].share_date").value(reportItem.getShareDate()))
+            .andExpect(jsonPath("$[0].share_time").value(reportItem.getShareTime()))
+            .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
+            .andExpect(jsonPath("$[0].shared_with").value(reportItem.getSharedWith()))
+            .andExpect(jsonPath("$[0].shared_with_full_name").value(reportItem.getSharedWithFullName()))
+            .andExpect(jsonPath("$[0].organisation_shared_with").value(reportItem.getOrganisationSharedWith()))
+            .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
+            .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
+
+        verify(reportService, times(1)).reportShared(null, null, null, null, true);
     }
 
     @DisplayName("Should get a report containing a list of bookings with an available recording")
@@ -406,6 +431,7 @@ public class ReportControllerTest {
         reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setSharedWith("shared-with@example.com");
         reportItem.setSharedWithFullName("Example One");
+        reportItem.setOrganisationSharedWith("Example Organisation");
         reportItem.setGrantedBy("shared-by@example.com");
         reportItem.setGrantedByFullName("Example Two");
         reportItem.setCaseReference("ABC123");
