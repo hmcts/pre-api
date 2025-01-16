@@ -1775,37 +1775,44 @@ definitions:
   SharedReportDTO:
     description: SharedReportDTO
     properties:
-      allocated_by:
-        description: SharedReportAllocatedBy
-        type: string
-      allocated_by_full_name:
-        description: SharedReportAllocatedToFullName
-        type: string
-      allocated_to:
-        description: SharedReportAllocatedTo
-        type: string
-      allocated_to_full_name:
-        description: SharedReportAllocatedToFullName
-        type: string
-      booking_id:
-        description: SharedReportBookingId
-        format: uuid
-        type: string
       case_reference:
-        description: SharedReportCaseReference
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
         type: string
       court:
-        description: SharedReportCourtName
+        description: ReportCourt
         type: string
-      regions:
-        description: SharedReportRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      shared_at:
-        description: SharedReportSharedAt
-        format: date-time
+      granted_by:
+        description: SharedReportGrantedBy
+        type: string
+      granted_by_full_name:
+        description: SharedReportGrantedByFullName
+        type: string
+      organisation_shared_with:
+        description: SharedReportOrganisationAllocatedTo
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      share_date:
+        description: SharedReportShareDate
+        type: string
+      share_time:
+        description: SharedReportShareTime
+        type: string
+      shared_with:
+        description: SharedReportSharedWith
+        type: string
+      shared_with_full_name:
+        description: SharedReportSharedWithFullName
+        type: string
+      timezone:
+        description: SharedReportShareTimezone
         type: string
     type: object
   TermsAndConditionsDTO:
@@ -3593,6 +3600,11 @@ paths:
           name: sharedWithEmail
           type: string
           x-example: example@example.com
+        - description: 'The shares must be active (not deleted) then true, otherwise false'
+          in: query
+          name: onlyActive
+          type: boolean
+          x-example: true
         - description: The User Id of the User making the request
           format: uuid
           in: header
