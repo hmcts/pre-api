@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -86,6 +87,8 @@ public class ReportServiceTest {
         courtEntity.setId(UUID.randomUUID());
         courtEntity.setName("Example Court");
         courtEntity.setRegions(Set.of(regionEntity));
+        courtEntity.setCounty("Kent");
+        courtEntity.setPostcode("AB1 2CD");
 
         recordingEntity = new Recording();
         recordingEntity.setId(UUID.randomUUID());
@@ -132,7 +135,7 @@ public class ReportServiceTest {
     @Test
     void captureSessionReportCaptureSessionIncompleteSuccess() {
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
-        captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
+        captureSessionEntity.setFinishedAt(null);
         captureSessionEntity.setRecordings(Set.of());
         when(captureSessionRepository.reportConcurrentCaptureSessions()).thenReturn(List.of(captureSessionEntity));
 
@@ -143,14 +146,15 @@ public class ReportServiceTest {
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
 
-        assertThat(first.getId()).isEqualTo(captureSessionEntity.getId());
-        assertThat(first.getStartTime()).isEqualTo(captureSessionEntity.getStartedAt());
-        assertThat(first.getEndTime()).isEqualTo(captureSessionEntity.getFinishedAt());
+        assertThat(first.getDate()).isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getStartedAt()));
+        assertThat(first.getStartTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getStartedAt()));
+        assertThat(first.getEndTime()).isNull();
         assertThat(first.getDuration()).isNull();
         assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(first.getRegion().stream().findFirst().isPresent()).isTrue();
-        assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
     }
 
     @DisplayName("Find all capture sessions and return a list of models as a report on concurrent capture sessions")
@@ -169,14 +173,15 @@ public class ReportServiceTest {
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
 
-        assertThat(first.getId()).isEqualTo(captureSessionEntity.getId());
-        assertThat(first.getStartTime()).isEqualTo(captureSessionEntity.getStartedAt());
-        assertThat(first.getEndTime()).isEqualTo(captureSessionEntity.getFinishedAt());
-        assertThat(first.getDuration()).isEqualTo(recordingEntity.getDuration());
+        assertThat(first.getDate()).isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getStartedAt()));
+        assertThat(first.getStartTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getStartedAt()));
+        assertThat(first.getEndTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getFinishedAt()));
+        assertThat(first.getDurationAsString()).isEqualTo("00:03:00");
         assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(first.getRegion().stream().findFirst().isPresent()).isTrue();
-        assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
     }
 
     @DisplayName("Find counts for recordings per case an return a report list")
@@ -265,29 +270,27 @@ public class ReportServiceTest {
         sharedBooking2.setSharedWith(shareWith);
         sharedBooking2.setSharedBy(shareBy);
 
-        when(shareBookingRepository.searchAll(null, null, null, null))
+        when(shareBookingRepository.searchAll(null, null, null, null, false))
             .thenReturn(List.of(sharedBooking1, sharedBooking2));
 
-        var report = reportService.reportShared(null, null, null, null);
+        var report = reportService.reportShared(null, null, null, null, false);
 
         assertThat(report.size()).isEqualTo(2);
 
-        assertThat(report.getFirst().getSharedAt()).isEqualTo(sharedBooking2.getCreatedAt());
-        assertThat(report.getFirst().getAllocatedTo()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
-        assertThat(report.getFirst().getAllocatedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
+        assertThat(report.getFirst().getShareDate()).isEqualTo(DateTimeUtils.formatDate(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getShareTime()).isEqualTo(DateTimeUtils.formatTime(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getSharedWith()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
+        assertThat(report.getFirst().getGrantedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
-        assertThat(report.getFirst().getBookingId()).isEqualTo(sharedBooking2.getBooking().getId());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
 
-        assertThat(report.getLast().getSharedAt()).isEqualTo(sharedBooking1.getCreatedAt());
+        assertThat(report.getLast().getShareDate()).isEqualTo(DateTimeUtils.formatDate(sharedBooking1.getCreatedAt()));
+        assertThat(report.getLast().getShareTime()).isEqualTo(DateTimeUtils.formatTime(sharedBooking1.getCreatedAt()));
+        assertThat(report.getLast().getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(sharedBooking1.getCreatedAt()));
     }
 
     @DisplayName("Find all capture sessions with recording available and get report on booking details")
