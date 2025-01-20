@@ -22,9 +22,11 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -342,7 +344,10 @@ public class ReportServiceIT extends IntegrationTestBase {
         entityManager.persist(captureSession3);
 
         var recording1 = HelperFactory.createRecording(captureSession1, null, 1, "example.file", null);
+        recording1.setDuration(Duration.ofMinutes(3));
+        captureSession1.setRecordings(Set.of(recording1));
         entityManager.persist(recording1);
+        entityManager.persist(captureSession1);
         var recording3 = HelperFactory.createRecording(
             captureSession3,
             null,
@@ -350,21 +355,24 @@ public class ReportServiceIT extends IntegrationTestBase {
             "example.file",
             Timestamp.from(Instant.now())
         );
+        recording3.setDuration(Duration.ofMinutes(30));
         entityManager.persist(recording3);
 
         var report = reportService.reportCaptureSessions();
         assertThat(report).isNotNull();
         assertThat(report.size()).isEqualTo(2);
 
-        var report1 = report.stream().filter(r -> r.getId().equals(captureSession1.getId())).findFirst();
+        var report1 = report.stream()
+            .filter(r -> r.getDuration() != null).findFirst();
         assertThat(report1).isPresent();
         assertConcurrentCaptureSessionsSuccess(report1.get(), court, region, aCase, captureSession1, recording1);
 
-        var report2 = report.stream().filter(r -> r.getId().equals(captureSession2.getId())).findFirst();
+        var report2 = report.stream().filter(r -> r.getDuration() == null).findFirst();
         assertThat(report2).isPresent();
         assertConcurrentCaptureSessionsSuccess(report2.get(), court, region, aCase, captureSession2, null);
 
-        assertThat(report.stream().anyMatch(r -> r.getId().equals(captureSession3.getId()))).isFalse();
+        assertThat(report.stream().anyMatch(r -> r.getDuration() != null && r.getDuration().toMinutes() == 30))
+            .isFalse();
     }
 
     private void assertConcurrentCaptureSessionsSuccess(ConcurrentCaptureSessionReportDTO report,
@@ -374,16 +382,16 @@ public class ReportServiceIT extends IntegrationTestBase {
                                                         CaptureSession captureSession,
                                                         Recording recording) {
         assertThat(report).isNotNull();
-        assertThat(report.getId()).isEqualTo(captureSession.getId());
-        assertThat(report.getStartTime()).isEqualTo(captureSession.getStartedAt());
-        assertThat(report.getEndTime()).isEqualTo(captureSession.getFinishedAt());
+        assertThat(report.getDate()).isEqualTo(DateTimeUtils.formatDate(captureSession.getStartedAt()));
+        assertThat(report.getStartTime()).isEqualTo(DateTimeUtils.formatTime(captureSession.getStartedAt()));
+        assertThat(report.getEndTime())
+            .isEqualTo(captureSession.getFinishedAt() != null
+                           ? DateTimeUtils.formatTime(captureSession.getFinishedAt())
+                           : null);
         assertThat(report.getDuration()).isEqualTo((recording == null ? null : recording.getDuration()));
         assertThat(report.getCaseReference()).isEqualTo(aCase.getReference());
         assertThat(report.getCourt()).isEqualTo(court.getName());
-        assertThat(report.getRegion().size()).isEqualTo(1);
-        assertThat(report.getRegion().stream().findFirst().get().getName())
-            .isEqualTo(region.getName());
-
+        assertThat(report.getRegion()).isEqualTo(region.getName());
     }
 
     private void assertRecordingPerCaseSuccess(RecordingsPerCaseReportDTO report,

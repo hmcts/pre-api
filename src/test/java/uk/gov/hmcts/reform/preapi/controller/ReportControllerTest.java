@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -59,9 +60,11 @@ public class ReportControllerTest {
     @Test
     void reportConcurrentCaptureSessionsSuccess() throws Exception {
         var reportItem = new ConcurrentCaptureSessionReportDTO();
-        reportItem.setId(UUID.randomUUID());
-        reportItem.setStartTime(Timestamp.from(Instant.now()));
-        reportItem.setEndTime(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        var timestampPlus1 = Timestamp.from(Instant.now().plusSeconds(3600));
+        reportItem.setDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setStartTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setEndTime(DateTimeUtils.formatTime(timestampPlus1));
         reportItem.setDuration(Duration.ofMinutes(3));
         reportItem.setCourt("Example Court");
         reportItem.setCaseReference("ABC123");
@@ -71,8 +74,10 @@ public class ReportControllerTest {
         mockMvc.perform(get("/reports/capture-sessions-concurrent"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].id").value(reportItem.getId().toString()))
-            .andExpect(jsonPath("$[0].duration").value("PT3M"));
+            .andExpect(jsonPath("$[0].date").value(reportItem.getDate()))
+            .andExpect(jsonPath("$[0].start_time").value(reportItem.getStartTime()))
+            .andExpect(jsonPath("$[0].end_time").value(reportItem.getEndTime()))
+            .andExpect(jsonPath("$[0].duration").value("00:03:00"));
     }
 
     @DisplayName("Should get a report containing a list of cases with the count of completed capture sessions")
