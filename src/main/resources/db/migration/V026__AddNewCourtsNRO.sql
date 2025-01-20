@@ -8,6 +8,9 @@ UPDATE public.courts
 SET location_code = '427'
 WHERE name = 'Kingston-upon-Thames Crown Court';
 
+-- Enable the pgcrypto extension to allow the generation of UUIDs across all dbs.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Insert new courts into the 'courts' table
 -- Each court has a unique UUID generated using gen_random_uuid()
 INSERT INTO public.courts (id, court_type, name, location_code)
