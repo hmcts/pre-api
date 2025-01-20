@@ -17,6 +17,7 @@ public class SearchBookings {
     private LocalDate scheduledFor;
     private UUID participantId;
     private Boolean hasRecordings;
+    private Boolean includeDeleted;
     private List<RecordingStatus> captureSessionStatusIn;
     private List<RecordingStatus> captureSessionStatusNotIn;
 
