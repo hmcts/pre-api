@@ -68,7 +68,7 @@ azure:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
   storage:
-    connectionString: ${AZURE_BLOB_STORAGE:}
+    connectionString: "${AZURE_BLOB_STORAGE}"
 
 hibernate:
   show_sql: true
