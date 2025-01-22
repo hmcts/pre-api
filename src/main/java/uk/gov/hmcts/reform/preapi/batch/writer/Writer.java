@@ -29,7 +29,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 
-
+/**
+ * Spring batch component responsible for writing migrated data to the database.
+ */
 @Component
 @Transactional(propagation = Propagation.REQUIRED)
 public class Writer implements ItemWriter<MigratedItemGroup> {
@@ -58,37 +60,44 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     @Autowired
     private MigrationTrackerService migrationTrackerService;
 
-
+    /**
+     * Writes a chunk of MigratedItemGroup items to the database.
+     * This method processes each item in the chunk, saves it to the appropriate
+     * repository, and tracks successful migrations.
+     * @param items The chunk of  MigratedItemGroup items to be written.
+     * @throws Exception If an error occurs during the write operation.
+     */
     @Override
     public void write(Chunk<? extends MigratedItemGroup> items) throws Exception {
-        Logger.getAnonymousLogger().info("WRITER: Starting to process chunk of MigratedItemGroups.");
         List<MigratedItemGroup> migratedItems = new ArrayList<>();
-        
+        Logger.getAnonymousLogger().info("13. Writer - in writer  ");
+
         for (MigratedItemGroup entity : items) {
             if (entity != null) {
-                Logger.getAnonymousLogger().info("WRITER: Adding MigratedItemGroup to the batch: " + entity);
                 migratedItems.add(entity);
-            } else {
-                Logger.getAnonymousLogger().warning("WRITER: Encountered a null entity in the chunk.");
-            }
+            } 
         }
-        
         saveMigratedItems(migratedItems);
     }
 
+    /**
+     * This method processes each item, saves its associated entities (e.g., cases,
+     * bookings, participants, etc.) to their respective repositories.
+     * @param migratedItems The list of MigratedItemGroup items to be saved.
+     */
     private void saveMigratedItems(List<MigratedItemGroup> migratedItems) {
         if (migratedItems.isEmpty()) {
-            Logger.getAnonymousLogger().info("WRITER: No items to migrate in this batch.");
             return;
         }
         for (MigratedItemGroup migratedItem : migratedItems) {
-            Logger.getAnonymousLogger().info("WRITER: Processing MigratedItemGroup: " + migratedItem);
 
+            // Save the case entity if it exists
             Case acase = migratedItem.getCase();
             if (acase != null) {
                 caseRepository.saveAndFlush(acase);
             }
 
+            // Save the participants if they exist
             Set<Participant> participants = migratedItem.getParticipants();
             if (participants != null) {
                 try {
@@ -98,16 +107,19 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 }
             }
 
+            // Save the booking entity if it exists
             Booking booking = migratedItem.getBooking();
             if (booking != null) {
                 bookingRepository.saveAndFlush(booking);
             }
 
+            // Save the capture session entity if it exists
             CaptureSession captureSession = migratedItem.getCaptureSession();
             if (captureSession != null) {
                 captureSessionRepository.saveAndFlush(captureSession);
             }
 
+            // Save the recording entity if it exists
             Recording recording = migratedItem.getRecording();
             if (recording != null) {
                 try {
@@ -116,27 +128,27 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                     Logger.getAnonymousLogger().info("WRITER: Issue with recording: " + e.getMessage());
                 }
             }
+            // Save the users if they exist
             List<User> users = migratedItem.getUsers();
-            List<ShareBooking> shareBookings = migratedItem.getShareBookings();
-
             if (users != null && !users.isEmpty()) {
                 for (User user : users) {
                     userRepository.saveAndFlush(user);
                 }
             }
-
+            
+            // Save the share bookings if they exist
+            List<ShareBooking> shareBookings = migratedItem.getShareBookings();
             if (shareBookings != null && !shareBookings.isEmpty()) {
                 for (ShareBooking shareBooking : shareBookings) {
                     shareBookingRepository.saveAndFlush(shareBooking);
                 }
             }
 
+            // Track the successful migration using the MigrationTrackerService
             PassItem passItem = migratedItem.getPassItem();
             if (passItem != null) {
                 migrationTrackerService.addMigratedItem(passItem);
             }    
         }
-        
     }
-
 }

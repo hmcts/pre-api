@@ -16,6 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
 
+/**
+ * Handles pre-processing tasks for batch jobs, including loading data into Redis
+ * and fetching XML metadata from Azure Blob Storage.
+ */
 @Component
 public class PreProcessor {
 
@@ -45,32 +49,39 @@ public class PreProcessor {
         this.azureBlobFetcher = azureBlobFetcher;
     }
 
+    // =========================
+    // Initialization Logic
+    // =========================
+
     /**
      * Initializes the temporary storage for the batch job.
      * Clears any stale data and loads required entities into Redis.
      */
     public void initialize() {
         clearTemporaryStorage();
-        Logger.getAnonymousLogger().info("PreProcessor: Starting initialisation of temporary storage.");
+        Logger.getAnonymousLogger().info("Starting initialization of temporary storage.");
         loadCourtData();
         loadCaseData();
         loadUserData();
-        fetchAndCacheXmlMetadata("pre-vodafone-spike");
-        Logger.getAnonymousLogger().info("PreProcessor: Initialisation completed.");
+        // fetchAndCacheXmlMetadata("pre-vodafone-spike");
+        Logger.getAnonymousLogger().info("Initialization completed.");
     }
 
     /**
      * Clears Redis entries for this batch process to ensure no stale data is used.
      */
     public void clearTemporaryStorage() {
-        Logger.getAnonymousLogger().info("PreProcessor: Clearing temporary storage...");
+        Logger.getAnonymousLogger().info("Clearing temporary storage...");
         redisTemplate.keys(NAMESPACE + "*").forEach(redisTemplate::delete);
-        Logger.getAnonymousLogger().info("PreProcessor: Temporary storage cleared.");
     }
+
+    // =========================
+    // Data Loading Logic
+    // =========================
 
     /**
      * Loads all courts from the database into Redis.
-    */
+     */
     @Transactional
     public void loadCourtData() {
         List<Court> courts = courtRepository.findAll();
@@ -78,6 +89,7 @@ public class PreProcessor {
             String courtKey = COURT_KEY_PREFIX + court.getName();
             redisTemplate.opsForValue().set(courtKey, court.getId().toString());
         }
+        Logger.getAnonymousLogger().info("Loaded "+ courts.size()+ " courts into Redis.");
     }
 
     /**
@@ -90,6 +102,7 @@ public class PreProcessor {
             String caseKey = CASE_KEY_PREFIX + acase.getReference();
             redisTemplate.opsForValue().set(caseKey, acase.getId().toString());
         }
+        Logger.getAnonymousLogger().info("Loaded "+ cases.size()+ " cases into Redis.");
     }
 
     /**
@@ -102,11 +115,15 @@ public class PreProcessor {
             String userKey = USER_KEY_PREFIX + user.getEmail();
             redisTemplate.opsForValue().set(userKey, user.getId().toString());
         }
+        Logger.getAnonymousLogger().info("Loaded "+ users.size()+ " users into Redis.");
     }
 
+    // =========================
+    // XML Metadata Handling
+    // =========================
+
     /**
-     * Fetches and caches metadata for XML blobs from Azure Blob Storage using AzureBlobFetcher.
-     *
+     * Fetches and caches metadata for XML blobs from Azure Blob Storage.
      * @param containerName Azure Blob Storage container name.
      */
     public void fetchAndCacheXmlMetadata(String containerName) {
@@ -129,8 +146,7 @@ public class PreProcessor {
 
 
     /**
-     * Stores XML resource references (blob names) in Redis for subsequent processing.
-     *
+     * Stores XML resource references (blob names) in Redis for processing.
      * @param xmlResources List of XML resource references to be stored.
      */
     public void storeXmlResources(List<String> xmlResources) {
@@ -141,8 +157,7 @@ public class PreProcessor {
     }
 
     /**
-     * Retrieves stored XML resource references (blob names) from Redis.
-     *
+     * Gets stored XML resource references (blob names) from Redis.
      * @return List of XML resource references.
      */
     @SuppressWarnings("unchecked")
@@ -161,7 +176,16 @@ public class PreProcessor {
 
     }
 
+    // =========================
+    // Batch Processing Logic
+    // =========================
 
+    /**
+     * Fetches and processes the next batch of XML blobs from Azure Blob Storage.
+     * @param containerName Azure Blob Storage container name.
+     * @param batchSize Number of blobs to fetch in this batch.
+     * @return List of InputStreamResource objects representing the XML blobs.
+     */
     public List<InputStreamResource> fetchAndProcessNextBatch(String containerName, int batchSize) {
         Logger.getAnonymousLogger().info("Fetching next batch of XML blobs for processing...");
 
@@ -192,7 +216,4 @@ public class PreProcessor {
         Logger.getAnonymousLogger().info("Processed and removed " + xmlBlobNames.size() + " blob names from Redis.");
         return xmlFiles;
     }
-
-
-
 }

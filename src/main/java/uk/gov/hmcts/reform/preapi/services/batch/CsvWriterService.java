@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -14,14 +16,36 @@ import java.util.stream.Collectors;
 @Service
 public class CsvWriterService {
 
-    public <T> void writeToCsv(List<String> headers, List<T> dataRows, String fileNamePrefix) {
-        String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+    /**
+     * Writes data to a CSV file.
+     * @param headers        The headers for the CSV file.
+     * @param dataRows       The data rows to write.
+     * @param fileNamePrefix The prefix for the CSV file name.
+     * @param outputDir      The directory to write the CSV file to.
+     */
+    public <T> void writeToCsv(
+        List<String> headers, 
+        List<T> dataRows, 
+        String fileNamePrefix,
+        String outputDir
+    ) {
+        // Generate the file name
+        Path outputPath = Paths.get(outputDir);
+        if (!outputPath.toFile().exists()) {
+            boolean dirCreated = outputPath.toFile().mkdirs();
+            if (!dirCreated) {
+                Logger.getAnonymousLogger().severe("Failed to create output directory: " + outputDir);
+                return; 
+            }
+        }
+
+        String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss"));
         String fileName = fileNamePrefix + "-" + timeStamp + ".csv";
+        Path filePath = outputPath.resolve(fileName);
 
+        // Write to the CSV file
         boolean fileExists = new File(fileName).exists();
-
-        try (FileWriter fileWriter = new FileWriter(fileName, true)) {
-
+        try (FileWriter fileWriter = new FileWriter(filePath.toFile(), true)) {
             if (!fileExists) {
                 fileWriter.write(String.join(",", headers) + "\n");
             }
@@ -30,7 +54,8 @@ public class CsvWriterService {
                 String line = formatDataRow(dataRow);
                 fileWriter.write(line + "\n");
             }
-
+            Logger.getAnonymousLogger().info("Successfully wrote " + dataRows.size() + " rows to CSV file: " +filePath );
+            
         } catch (IOException e) {
             Logger.getAnonymousLogger().severe("Error writing to CSV: " + e.getMessage());
         }

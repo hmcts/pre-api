@@ -25,6 +25,8 @@ import java.util.UUID;
 @Service
 public class EntityCreationService {
 
+    private static final String DEFAULT_NAME = "Unknown";
+    private static final String REDIS_USER_KEY_PREFIX = "user:";
     private final DataTransformationService transformationService;
     private final RedisService redisService;
     private final UserRepository userRepository;
@@ -40,6 +42,15 @@ public class EntityCreationService {
         this.userRepository = userRepository;
     }
 
+    // =========================
+    // Entity Creation Methods
+    // =========================
+
+    /**
+     * Creates a new Case entity from cleansed data.
+     * @param cleansedData The cleansed data containing case details.
+     * @return The created Case entity.
+     */
     public Case createCase(CleansedData cleansedData) {
         Case aCase = new Case();
         aCase.setId(UUID.randomUUID());
@@ -51,6 +62,12 @@ public class EntityCreationService {
         return aCase;
     }
 
+    /**
+     * Creates a new Booking entity from cleansed data and associates it with a Case.
+     * @param cleansedData The cleansed data containing booking details.
+     * @param acase The Case entity to associate with the booking.
+     * @return The created Booking entity.
+     */
     public Booking createBooking(CleansedData cleansedData, Case acase) {
         Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
@@ -60,6 +77,12 @@ public class EntityCreationService {
         return booking;
     }
 
+    /**
+     * Creates a new CaptureSession entity and associates it with a Booking.
+     * @param cleansedData The cleansed data containing session details.
+     * @param booking The Booking entity to associate with the session.
+     * @return The created CaptureSession entity.
+     */
     public CaptureSession createCaptureSession(CleansedData cleansedData, Booking booking) {
         CaptureSession captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
@@ -69,6 +92,13 @@ public class EntityCreationService {
         return captureSession;
     }
 
+    /**
+     * Creates a new Recording entity and associates it with a CaptureSession.
+     * @param cleansedData The cleansed data containing recording details.
+     * @param captureSession The CaptureSession entity to associate with the recording.
+     * @param filename The filename of the recording.
+     * @return The created Recording entity.
+     */
     public Recording createRecording(CleansedData cleansedData, CaptureSession captureSession, String filename) {
         Recording recording = new Recording();
         recording.setId(UUID.randomUUID());
@@ -80,6 +110,12 @@ public class EntityCreationService {
         return recording;
     }
 
+    /**
+     * Creates a set of Participant entities for a Case.
+     * @param cleansedData The cleansed data containing participant details.
+     * @param acase The Case entity to associate with the participants.
+     * @return A set of created Participant entities.
+     */
     public Set<Participant> createParticipants(CleansedData cleansedData, Case acase) {
         Set<Participant> participants = new HashSet<>();
         participants.add(createParticipant(ParticipantType.WITNESS, acase, cleansedData.getWitnessFirstName(), ""));
@@ -87,16 +123,30 @@ public class EntityCreationService {
         return participants;
     }
 
+    /**
+     * Creates a new Participant entity.
+     * @param type The type of participant (e.g., WITNESS, DEFENDANT).
+     * @param acase The Case entity to associate with the participant.
+     * @param firstName The first name of the participant.
+     * @param lastName The last name of the participant.
+     * @return The created Participant entity.
+     */
     private Participant createParticipant(ParticipantType type, Case acase, String firstName, String lastName) {
         Participant participant = new Participant();
         participant.setId(UUID.randomUUID());
         participant.setParticipantType(type);
         participant.setCaseId(acase);
-        participant.setFirstName(firstName != null ? firstName : "Unknown");
-        participant.setLastName(lastName != null ? lastName : "Unknown");
+        participant.setFirstName(firstName != null ? firstName : DEFAULT_NAME);
+        participant.setLastName(lastName != null ? lastName : DEFAULT_NAME);
         return participant;
     }
 
+    /**
+     * Creates ShareBooking entities and associated User entities from cleansed data.
+     * @param cleansedData The cleansed data containing sharing details.
+     * @param booking The Booking entity to associate with the share bookings.
+     * @return A list containing the created ShareBooking and User entities, or null if inputs are invalid.
+     */
     public List<Object> createShareBookings(CleansedData cleansedData, Booking booking) {
         List<Object> results = new ArrayList<>();
         if (cleansedData == null || booking == null) {
@@ -123,18 +173,22 @@ public class EntityCreationService {
         return results.isEmpty() ? null : results;
     }
 
+    /**
+     * Gets or creates a User entity based on email.
+     * @param contactInfo A map containing user contact info.
+     * @return The retrieved or created User entity, or null if the email is missing.
+     */
     public User getOrCreateUser(Map<String, String> contactInfo) {
         String email = contactInfo.get("email");
         if (email == null) {
             return null;
         }
 
-        String redisUserKey = "user:" + email;
+        String redisUserKey = REDIS_USER_KEY_PREFIX + email;
         String userId = redisService.getValue(redisUserKey, String.class);
 
-        User user = userRepository.findById(UUID.fromString(userId)).orElse(null);
         if (userId != null) {
-            return user;
+            return userRepository.findById(UUID.fromString(userId)).orElse(null);
         } else {
             User newUser = new User();
             newUser.setId(UUID.randomUUID());
@@ -146,6 +200,5 @@ public class EntityCreationService {
             return newUser;
         }
     }
-
 
 }

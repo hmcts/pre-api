@@ -7,20 +7,39 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 @Component
 public class CSVReader {
 
-
-    public <T> FlatFileItemReader<T> createReader(Resource resource, String[] fieldNames, 
-        Class<T> targetClass, String delimiter) throws IOException {
-
+    /**
+     * Creates a FlatFileItemReader for reading CSV files.
+     * @param resource    The CSV file resource.
+     * @param fieldNames  The names of the fields in the CSV file.
+     * @param targetClass The target class to map the CSV rows to.
+     * @return A configured FlatFileItemReader.
+     * @throws IOException If an error occurs while creating the reader.
+     */
+    public <T> FlatFileItemReader<T> createReader(
+        Resource resource,
+        String[] fieldNames, 
+        Class<T> targetClass
+    ) throws IOException {
+        if (resource == null || !resource.exists()) {
+            throw new IllegalArgumentException("Resource must not be null and must exist.");
+        }
+        if (fieldNames == null || fieldNames.length == 0) {
+            throw new IllegalArgumentException("Field names must not be null or empty.");
+        }
+        if (targetClass == null) {
+            throw new IllegalArgumentException("Target class must not be null.");
+        }
         try {
             return new FlatFileItemReaderBuilder<T>()
                     .name(targetClass.getSimpleName() + "Reader") 
                     .resource(resource) 
                     .linesToSkip(1) 
-                    .delimited().delimiter(delimiter)
+                    .delimited().delimiter(",")
                     .names(fieldNames) 
                     .fieldSetMapper(new BeanWrapperFieldSetMapper<T>() {{
                             setTargetType(targetClass);
@@ -28,6 +47,8 @@ public class CSVReader {
                     })
                     .build();
         } catch (Exception e) {
+            Logger.getAnonymousLogger().severe("Failed to create CSV reader for resource: "
+                +resource.getFilename() + " Reason: " + e.getMessage());
             throw new IOException("Error while reading the CSV file: " + e.getMessage(), e);
         }
     }

@@ -4,185 +4,146 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
-import uk.gov.hmcts.reform.preapi.entities.batch.FailedItemXML;
-import uk.gov.hmcts.reform.preapi.entities.batch.UnifiedArchiveData;
+// import uk.gov.hmcts.reform.preapi.entities.batch.UnifiedArchiveData;
 
-import java.util.logging.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service    
 public class DataValidationService {
-
-    private final MigrationTrackerService migrationTrackerService;
-    private final MigrationTrackerServiceXML migrationTrackerServiceXML;
     
+    private static final String ERROR_FILE_EXTENSION = "File not .mp4 file.";
+    private static final String ERROR_RAW_EXTENSION = "File with .raw extension not to migrate.";
+    private static final String ERROR_TIMESTAMP = "Invalid timestamp: Timestamp is null.";
+    private static final String ERROR_COURT = "No valid court associated.";
+    private static final String ERROR_MOST_RECENT_VERSION = "Recording is not the most recent version.";
+    private static final String ERROR_CASE_REFERENCE = "No valid case reference (URN).";
+
     @Autowired
-    public DataValidationService(
-        MigrationTrackerService migrationTrackerService, 
-        MigrationTrackerServiceXML migrationTrackerServiceXML
-    ) {
-        this.migrationTrackerService = migrationTrackerService;
-        this.migrationTrackerServiceXML = migrationTrackerServiceXML;
-    }
+    public DataValidationService() {}
 
-    public boolean validateCleansedData(
-        CleansedData cleansedData, 
-        CSVArchiveListData archiveItem) {
+    // =========================
+    // Main Validation Logic
+    // =========================
 
-        if (!validateFileExtension(cleansedData, archiveItem)) {
-            return false;
+    /**
+     * Validates the cleansed data against a series of checks.
+     * @param cleansedData The cleansed data to validate.
+     * @param archiveItem The original archive item for reference.
+     * @return A map containing the validation result, including the cleansed data and any error messages.
+     */
+    public Map<String, Object> validateCleansedData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+        Map<String, Object> validationResult;
+
+        validationResult = validateFileExtension(cleansedData, archiveItem);
+        if (validationResult.get("errorMessage") != null) {
+            return validationResult; 
         }
 
-        if (!validateDate(cleansedData, archiveItem)) {
-            return false;
+        validationResult = validateDate(cleansedData, archiveItem);
+        if (validationResult.get("errorMessage") != null) {
+            return validationResult;
         }
 
-        if (!validateTestData(cleansedData, archiveItem)) {
-            return false;
+        validationResult = validateTestData(cleansedData, archiveItem);
+        if (validationResult.get("errorMessage") != null) {
+            return validationResult; 
         }
 
-        if (!validateCourt(cleansedData, archiveItem)) {
-            return false;
+        validationResult = validateCourt(cleansedData, archiveItem);
+        if (validationResult.get("errorMessage") != null) {
+            return validationResult; 
         }
 
+        validationResult = validateMostRecentVersion(cleansedData, archiveItem);
+        if (validationResult.get("errorMessage") != null) {
+            return validationResult; 
+        }
 
         return validateCaseReference(cleansedData, archiveItem);
     }
 
-    public boolean validateCleansedDataXML(
-        CleansedData cleansedData, 
-        UnifiedArchiveData archiveItem) {
+    // =========================
+    // Specific Validation Methods
+    // =========================
 
-        if (!validateFileExtensionXML(cleansedData, archiveItem)) {
-            return false;
-        }
-
-        if (!validateDateXML(cleansedData, archiveItem)) {
-            return false;
-        }
-
-        if (!validateTestDataXML(cleansedData, archiveItem)) {
-            return false;
-        }
-
-        if (!validateCourtXML(cleansedData, archiveItem)) {
-            return false;
-        }
-
-
-        return validateCaseReferenceXML(cleansedData, archiveItem);
-    }
-
-    private boolean validateFileExtension(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    private Map<String, Object> validateFileExtension(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         String fileExtension = cleansedData.getFileExtension();
         fileExtension = (fileExtension == null || fileExtension.isBlank()) ? "" : fileExtension.toLowerCase();
 
         if (fileExtension.isBlank()) {
-            handleFailure(archiveItem, "File not .mp4 file.");
-            return false;
+            return createErrorResponse(ERROR_FILE_EXTENSION);
         }
 
         if (".raw".equalsIgnoreCase(fileExtension) || ".ra".equalsIgnoreCase(fileExtension)) {
-            handleFailure(archiveItem, "File with .raw extension not to migrate");
-            return false;
+            return createErrorResponse(ERROR_RAW_EXTENSION);
         }
-        return true;
+        return createSuccessResponse(cleansedData);
     }
 
-    private boolean validateFileExtensionXML(CleansedData cleansedData, UnifiedArchiveData archiveItem) {
-        String fileExtension = cleansedData.getFileExtension();
-        fileExtension = (fileExtension == null || fileExtension.isBlank()) ? "" : fileExtension.toLowerCase();
-        if ("From XML".equals(archiveItem.getAdditionalData())) {
-            return true;
-        }
-
-        if (fileExtension.isBlank()) {
-            handleFailureXML(archiveItem, "File not .mp4 file.");
-            return false;
-        }
-
-        if (".raw".equalsIgnoreCase(fileExtension) || ".ra".equalsIgnoreCase(fileExtension)) {
-            handleFailureXML(archiveItem, "File with .raw extension not to migrate");
-            return false;
-        }
-        return true;
-    }
-
-    private boolean validateDate(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    private Map<String, Object> validateDate(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         if (cleansedData.getRecordingTimestamp() == null) {
-            handleFailure(archiveItem, "Invalid timestamp: Timestamp is null.");
-            return false;
+            return createErrorResponse(ERROR_TIMESTAMP);
         }
-        return true;
+        return createSuccessResponse(cleansedData);
     }
 
-    private boolean validateDateXML(CleansedData cleansedData, UnifiedArchiveData archiveItem) {
-        if (cleansedData.getRecordingTimestamp() == null) {
-            handleFailureXML(archiveItem, "Invalid timestamp: Timestamp is null.");
-            return false;
-        }
-        return true;
-    }
 
-    private boolean validateTestData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    private Map<String, Object> validateTestData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         if (cleansedData.isTest()) {
-            handleFailure(archiveItem, cleansedData.getTestCheckResult().getReason());
-            return false;
+            return createErrorResponse(cleansedData.getTestCheckResult().getReason());
         }
-        return true;
+        return createSuccessResponse(cleansedData);
     }
 
-    private boolean validateTestDataXML(CleansedData cleansedData, UnifiedArchiveData archiveItem) {
-        if (cleansedData.isTest()) {
-            handleFailureXML(archiveItem, cleansedData.getTestCheckResult().getReason());
-            return false;
-        }
-        return true;
-    }
-
-    private boolean validateCourt(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    private Map<String, Object> validateCourt(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         if (cleansedData.getCourt() == null) {
-            handleFailure(archiveItem, "No valid court associated.");
-            return false;
+            return createErrorResponse(ERROR_COURT);
         }
-        return true;
+        return createSuccessResponse(cleansedData);
     }
 
-    private boolean validateCourtXML(CleansedData cleansedData, UnifiedArchiveData archiveItem) {
-        if (cleansedData.getCourt() == null) {
-            Logger.getAnonymousLogger().info("Cleansed data is: " + cleansedData);
-            handleFailureXML(archiveItem, "No valid court associated.");
-            return false;
+    private Map<String, Object> validateMostRecentVersion(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+        if (!cleansedData.isMostRecentVersion() ) {
+            return createErrorResponse(ERROR_MOST_RECENT_VERSION);
         }
-        return true;
+        return createSuccessResponse(cleansedData);
     }
 
-    private boolean validateCaseReference(
+    private Map<String, Object> validateCaseReference(
         CleansedData cleansedData, 
         CSVArchiveListData archiveItem) {
         if (cleansedData.getUrn() == null || cleansedData.getUrn().isEmpty()) {
-            handleFailure(archiveItem, "No valid case reference (URN).");
-            return false;
+            return createErrorResponse(ERROR_CASE_REFERENCE);
         }
-        return true;
+        return createSuccessResponse(cleansedData);
     }
 
-    private boolean validateCaseReferenceXML(
-        CleansedData cleansedData, 
-        UnifiedArchiveData archiveItem) {
-        if (cleansedData.getUrn() == null || cleansedData.getUrn().isEmpty()) {
-            handleFailureXML(archiveItem, "No valid case reference (URN).");
-            return false;
-        }
-        return true;
+    // =========================
+    // Helper Methods
+    // =========================
+
+    /**
+     * Creates an error response with the specified error message.
+     * @param errorMessage The error message to include in the response.
+     * @return A map containing the error response.
+     */
+    private Map<String, Object> createErrorResponse(String errorMessage) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("cleansedData", null);
+        errorResponse.put("errorMessage", errorMessage);
+        return errorResponse;
     }
 
-    private void handleFailure(CSVArchiveListData archiveItem, String reason) {
-        migrationTrackerService.addFailedItem(new FailedItem(archiveItem, reason));
+    /**
+     * Creates a success response with the cleansed data.
+     * @param cleansedData The cleansed data to include in the response.
+     * @return A map containing the success response.
+     */
+    private Map<String, Object> createSuccessResponse(CleansedData cleansedData) {
+        Map<String, Object> successResponse = new HashMap<>();
+        successResponse.put("cleansedData", cleansedData);
+        successResponse.put("errorMessage", null);
+        return successResponse;
     }
-
-    private void handleFailureXML(UnifiedArchiveData archiveItem, String reason) {
-        migrationTrackerServiceXML.addFailedItem(new FailedItemXML(archiveItem, reason));
-    }
-   
 }

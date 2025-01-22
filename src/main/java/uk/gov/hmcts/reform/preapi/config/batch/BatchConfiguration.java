@@ -9,6 +9,7 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.SimpleStepBuilder;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemReader;
@@ -26,6 +27,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.Processor;
+import uk.gov.hmcts.reform.preapi.batch.processor.RecordingMetadataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.reader.XMLReader;
 import uk.gov.hmcts.reform.preapi.batch.writer.Writer;
@@ -35,7 +37,6 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.entities.batch.XMLArchiveFileData;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
-import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerServiceXML;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -52,10 +53,12 @@ public class BatchConfiguration implements StepExecutionListener {
     private final CSVReader csvReader;
     private final XMLReader xmlReader;
     private final PreProcessor preProcessor;
+    private final RecordingMetadataProcessor recordingPreProcessor;
     private final Processor itemProcessor;
     private final Writer itemWriter;
     private final MigrationTrackerService migrationTrackerService;
-    private final MigrationTrackerServiceXML migrationTrackerServiceXML;
+    private static final int CHUNK_SIZE = 10;
+    private static final int SKIP_LIMIT = 10;
 
     @Autowired
     public BatchConfiguration(
@@ -64,21 +67,20 @@ public class BatchConfiguration implements StepExecutionListener {
         CSVReader csvReader,
         XMLReader xmlReader,
         PreProcessor preProcessor,
+        RecordingMetadataProcessor recordingPreProcessor,
         Processor itemProcessor,
         Writer itemWriter,
-        MigrationTrackerService migrationTrackerService,
-        MigrationTrackerServiceXML migrationTrackerServiceXML
+        MigrationTrackerService migrationTrackerService
     ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.csvReader = csvReader;
         this.xmlReader = xmlReader;
         this.preProcessor = preProcessor;
+        this.recordingPreProcessor =  recordingPreProcessor;
         this.itemProcessor = itemProcessor;
         this.itemWriter = itemWriter;
         this.migrationTrackerService = migrationTrackerService;
-        this.migrationTrackerServiceXML = migrationTrackerServiceXML;
-
     }
 
     @Bean
@@ -87,6 +89,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return new JobBuilder("importCsvJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(preProcessStep())
+            .next(preProcessMetadataStep())
             .next(createReadStep(
                 "sitesDataStep", 
                 new ClassPathResource("batch/Sites.csv"), 
@@ -123,10 +126,23 @@ public class BatchConfiguration implements StepExecutionListener {
         Class<T> targetClass, 
         boolean writeToCsv
     ) {
-        FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass, ",");
+        FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
         StepBuilder stepBuilder = new StepBuilder(stepName, jobRepository);
-        
-        var simpleStepBuilder = stepBuilder.<T, MigratedItemGroup>chunk(10, transactionManager)
+        var simpleStepBuilder = createChunkStep(stepBuilder, reader, writeToCsv);
+
+        return simpleStepBuilder
+                .faultTolerant()
+                .skipLimit(SKIP_LIMIT)
+                .skip(Exception.class)
+                .build();  
+    }
+
+    private <T> SimpleStepBuilder<T, MigratedItemGroup> createChunkStep(
+        StepBuilder stepBuilder, 
+        FlatFileItemReader<T> reader, 
+        boolean writeToCsv
+    ) {
+        var simpleStepBuilder = stepBuilder.<T, MigratedItemGroup>chunk(CHUNK_SIZE, transactionManager)
                 .reader(reader)
                 .processor(itemProcessor);
 
@@ -136,29 +152,22 @@ public class BatchConfiguration implements StepExecutionListener {
             simpleStepBuilder = simpleStepBuilder.writer(noOpWriter()); 
         }
 
-        return simpleStepBuilder
-                .faultTolerant()
-                .skipLimit(10)
-                .skip(Exception.class)
-                .build();  
+        return simpleStepBuilder;
     }
-
-
         
     // Utility method to create a CSV reader
     private <T> FlatFileItemReader<T> createCsvReader(
         Resource inputFile, 
         String[] fieldNames, 
-        Class<T> targetClass, 
-        String delimiter
+        Class<T> targetClass
     ) {
         try {
-            return csvReader.createReader(inputFile, fieldNames, targetClass, delimiter);
+            return csvReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {
+            Logger.getAnonymousLogger().severe("Failed to create reader for file: " + inputFile.getFilename());
             throw new IllegalStateException("Failed to create reader for file: " + inputFile.getFilename(), e);
         }
     }
-
 
     // Initialisation step to set up necessary prerequisites for processing
     @Bean
@@ -171,6 +180,34 @@ public class BatchConfiguration implements StepExecutionListener {
                 .build();
     }
 
+
+    @Bean
+    public Step preProcessMetadataStep() {
+        return new StepBuilder("preProcessMetadataStep", jobRepository)
+            .tasklet((contribution, chunkContext) -> {
+                Resource resource = new ClassPathResource("batch/Archive_List.csv");
+                String[] fieldNames = {"archive_name", "description", "create_time", "duration", "owner", 
+                    "video_type", "audio_type", "content_type", "far_end_address"};
+
+                FlatFileItemReader<CSVArchiveListData> reader = csvReader.createReader(
+                    resource, fieldNames, CSVArchiveListData.class
+                );
+
+                reader.open(new ExecutionContext());
+
+                CSVArchiveListData item;
+                while ((item = reader.read()) != null) {
+                    recordingPreProcessor.processRecording(item); 
+                }
+
+                reader.close();
+
+                return RepeatStatus.FINISHED;
+            }, transactionManager)
+            .build();
+    }
+    
+
     // Step to write data to CSV
     @Bean
     public Step writeToCSV() {
@@ -182,17 +219,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 .build();
     }
 
-    // Step to write data to CSV - testing for XML
-    @Bean
-    public Step writeToCsvXML() {
-        return new StepBuilder("writeToCSV", jobRepository)
-                .tasklet((contribution, chunkContext) -> {
-                    migrationTrackerServiceXML.writeAllToCsv();
-                    return RepeatStatus.FINISHED;
-                }, transactionManager)
-                .build();
-    }
-
+    
     // A utility no-operation writer for steps that do not require actual writing
     @Bean
     public <T> ItemWriter<T> noOpWriter() {
@@ -204,13 +231,13 @@ public class BatchConfiguration implements StepExecutionListener {
     @Bean
     public Step processXmlFilesStep() {
         return new StepBuilder("processXmlFilesStep", jobRepository)
-                .<XMLArchiveFileData, MigratedItemGroup>chunk(10, transactionManager)
+                .<XMLArchiveFileData, MigratedItemGroup>chunk(CHUNK_SIZE, transactionManager)
                 .reader(xmlItemReader())
                 .processor(itemProcessor)
                 .writer(itemWriter)
                 .faultTolerant()
                 .skip(Exception.class)
-                .skipLimit(100) 
+                .skipLimit(SKIP_LIMIT) 
                 .listener(new StepExecutionListener() {
                     @Override
                     public void beforeStep(StepExecution stepExecution) {

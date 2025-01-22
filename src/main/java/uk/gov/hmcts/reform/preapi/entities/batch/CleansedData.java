@@ -10,6 +10,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+/**
+ * Represents cleansed data for a recording.
+ */
 public class CleansedData {
 
     private String courtReference;
@@ -23,13 +26,16 @@ public class CleansedData {
     private String witnessFirstName;
     private String recordingVersion;
     private String caseReference;
+    private String recordingVersionNumberStr;
     private int recordingVersionNumber;
     private Duration duration;
     private boolean isTest;
+    private boolean isMostRecentVersion;
     private String fileExtension;
     private TestItem testCheckResult;
     private String[] shareBookingEmails;
     private List<Map<String, String>> shareBookingContacts;
+    
     
     private CleansedData(Builder builder) {
         this.courtReference = builder.courtReference;
@@ -43,98 +49,41 @@ public class CleansedData {
         this.witnessFirstName = builder.witnessFirstName;
         this.recordingVersion = builder.recordingVersion;
         this.caseReference = builder.caseReference;
+        this.recordingVersionNumberStr = builder.recordingVersionNumberStr;
         this.recordingVersionNumber = builder.recordingVersionNumber;
         this.duration = builder.duration;
         this.isTest = builder.isTest;
+        this.isMostRecentVersion = builder.isMostRecentVersion;
         this.fileExtension = builder.fileExtension;
         this.testCheckResult = builder.testCheckResult;
         this.shareBookingEmails = builder.shareBookingEmails;
         this.shareBookingContacts = builder.shareBookingContacts;
     }
 
-    public String getCourtReference() { 
-        return courtReference; 
-    }
-
-    public String getFullCourtName() { 
-        return fullCourtName; 
-    }
-
-    public Timestamp getRecordingTimestamp() { 
-        return recordingTimestamp; 
-    }
-
-    public String getUrn() { 
-        return urn; 
-    }
-
-    public String getCaseReference() { 
-        return caseReference; 
-    }
-
-    public String getExhibitReference() { 
-        return exhibitReference; 
-    }
-
-    public String getDefendantLastName() { 
-        return defendantLastName; 
-    }
-
-    public String getWitnessFirstName() { 
-        return witnessFirstName; 
-    }
-
-    public String getRecordingVersion() { 
-        return recordingVersion; 
-    }
-
-    public int getRecordingVersionNumber() { 
-        return recordingVersionNumber; 
-    }
-
-    public boolean isOrig() {
-        return "ORIG".equalsIgnoreCase(this.getRecordingVersion());
-    }
-
-    public boolean isCopy() {
-        return "COPY".equalsIgnoreCase(this.getRecordingVersion());
-    }
-
-    public Duration getDuration() { 
-        return duration; 
-    }
-
-    public boolean isTest() { 
-        return isTest; 
-    }
-
-    public TestItem getTestCheckResult() {
-        return testCheckResult;
-    }
-
-    public String getFileExtension() { 
-        return fileExtension; 
-    }
-
-    public Court getCourt() { 
-        return court; 
-    }
-
-    public CaseState getState() { 
-        return state; 
-    }
-
-    public String[] getShareBookingEmails() {
-        return shareBookingEmails;
-    }
-
-    public boolean isRecordingType(String type) {
-        return type.equalsIgnoreCase(this.recordingVersion);
-    }
-
-    public List<Map<String, String>> getShareBookingContacts() {
-        return shareBookingContacts;
-    }
+    // Getters
+    public String getCourtReference() { return courtReference; }
+    public String getFullCourtName() { return fullCourtName; }
+    public Timestamp getRecordingTimestamp() { return recordingTimestamp; }
+    public String getUrn() { return urn; }
+    public String getCaseReference() { return caseReference; }
+    public String getExhibitReference() { return exhibitReference; }
+    public String getDefendantLastName() { return defendantLastName; }
+    public String getWitnessFirstName() { return witnessFirstName; }
+    public String getRecordingVersion() { return recordingVersion; }
+    public String getRecordingVersionNumberStr() { return recordingVersionNumberStr; }
+    public int getRecordingVersionNumber() { return recordingVersionNumber; }
+    public boolean isOrig() { return "ORIG".equalsIgnoreCase(this.getRecordingVersion()); }
+    public boolean isCopy() { return "COPY".equalsIgnoreCase(this.getRecordingVersion()); }
+    public Duration getDuration() { return duration; }
+    public boolean isTest() { return isTest; }
+    public boolean isMostRecentVersion() { return isMostRecentVersion; }
+    public TestItem getTestCheckResult() { return testCheckResult; }
+    public String getFileExtension() { return fileExtension; }
+    public Court getCourt() { return court; }
+    public CaseState getState() { return state; }
+    public String[] getShareBookingEmails() {return shareBookingEmails; }
+    public boolean isRecordingType(String type) { return type.equalsIgnoreCase(this.recordingVersion); }
+    public List<Map<String, String>> getShareBookingContacts() { return shareBookingContacts; }
 
     @Override
     public String toString() {
@@ -150,9 +99,11 @@ public class CleansedData {
             .add("witnessFirstName='" + witnessFirstName + "'")
             .add("recordingVersion='" + recordingVersion + "'")
             .add("caseReference='" + caseReference + "'")
+            .add("recordingVersionNumberStr=" + recordingVersionNumberStr)
             .add("recordingVersionNumber=" + recordingVersionNumber)
             .add("duration=" + duration)
             .add("isTest=" + isTest)
+            .add("isMostRecentVersion=" + isMostRecentVersion)
             .add("fileExtension='" + fileExtension + "'")
             .add("testCheckResult=" + testCheckResult)
             .add("shareBookingEmails=" + Arrays.toString(shareBookingEmails))
@@ -160,6 +111,9 @@ public class CleansedData {
             .toString();
     }
 
+    /**
+     * Builder for creating instances of CleansedData.
+     */
     public static class Builder {
         private String courtReference;
         private String fullCourtName;
@@ -172,9 +126,11 @@ public class CleansedData {
         private String witnessFirstName;
         private String recordingVersion;
         private String caseReference;
+        private String recordingVersionNumberStr;
         private int recordingVersionNumber;
         private Duration duration;
         private boolean isTest;
+        private boolean isMostRecentVersion;
         private String fileExtension;
         private TestItem testCheckResult;
         private String[] shareBookingEmails;
@@ -235,6 +191,11 @@ public class CleansedData {
             return this;
         }
 
+        public Builder setRecordingVersionNumberStr(String recordingVersionNumberStr) {
+            this.recordingVersionNumberStr = recordingVersionNumberStr;
+            return this;
+        }
+
         public Builder setRecordingVersionNumber(int recordingVersionNumber) {
             this.recordingVersionNumber = recordingVersionNumber;
             return this;
@@ -247,6 +208,11 @@ public class CleansedData {
 
         public Builder setIsTest(boolean isTest) {
             this.isTest = isTest;
+            return this;
+        }
+
+        public Builder setIsMostRecentVersion(boolean isMostRecentVersion) {
+            this.isMostRecentVersion = isMostRecentVersion;
             return this;
         }
 
