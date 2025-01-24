@@ -371,6 +371,96 @@ public class ReportServiceTest {
         ).isEqualTo(regionEntity.getName());
     }
 
+    @DisplayName("Find audits relating to playbacks from the portal and return a report using erroneous recordinguid")
+    @Test
+    void reportPlaybackPortalSuccessRecordingid() {
+        auditEntity.setSource(AuditLogSource.PORTAL);
+
+        var objectMapper = new ObjectMapper();
+        var objectNode = objectMapper.createObjectNode();
+        objectNode.put("recordinguid", recordingEntity.getId().toString());
+        auditEntity.setAuditDetails(objectNode);
+
+        when(auditRepository
+                 .findBySourceAndFunctionalAreaAndActivity(
+                     AuditLogSource.PORTAL,
+                     "Video Player",
+                     "Play"
+                 )
+        ).thenReturn(List.of(auditEntity));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(AuditLogSource.PORTAL);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
+        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+        assertThat(report
+                       .getFirst()
+                       .getRegions()
+                       .stream()
+                       .toList()
+                       .getFirst()
+                       .getName()
+        ).isEqualTo(regionEntity.getName());
+    }
+
+    @DisplayName("Find audits relating to playbacks from the portal and return a report without recordingid")
+    @Test
+    void reportPlaybackPortalSuccessNoRecordingId() {
+        auditEntity.setSource(AuditLogSource.PORTAL);
+
+        var objectMapper = new ObjectMapper();
+        var objectNode = objectMapper.createObjectNode();
+        auditEntity.setAuditDetails(objectNode);
+
+        when(auditRepository
+                 .findBySourceAndFunctionalAreaAndActivity(
+                     AuditLogSource.PORTAL,
+                     "Video Player",
+                     "Play"
+                 )
+        ).thenReturn(List.of(auditEntity));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(AuditLogSource.PORTAL);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
+        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCaseReference()).isNullOrEmpty();
+        assertThat(report.getFirst().getCourt()).isNullOrEmpty();
+        assertThat(report.getFirst().getRecordingId()).isNull();
+    }
+
+    @DisplayName("Find audits relating to playbacks from the portal and return a report without audit details")
+    @Test
+    void reportPlaybackPortalSuccessNoAuditDetails() {
+        auditEntity.setSource(AuditLogSource.PORTAL);
+
+        when(auditRepository
+                 .findBySourceAndFunctionalAreaAndActivity(
+                     AuditLogSource.PORTAL,
+                     "Video Player",
+                     "Play"
+                 )
+        ).thenReturn(List.of(auditEntity));
+        var report = reportService.reportPlayback(AuditLogSource.PORTAL);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
+        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCaseReference()).isNullOrEmpty(); // has a value???
+        assertThat(report.getFirst().getCourt()).isNullOrEmpty();
+        assertThat(report.getFirst().getRecordingId()).isNull();
+    }
+
     @DisplayName("Find audits relating to playbacks from the application and return a report")
     @Test
     void reportPlaybackApplicationSuccess() {
