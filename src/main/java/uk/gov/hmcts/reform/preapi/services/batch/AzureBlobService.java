@@ -40,28 +40,6 @@ public class AzureBlobService {
         }
     }
 
-    public List<String> fetchBlobNames(String containerName, int offset, int limit) {
-        List<String> blobNames = new ArrayList<>();
-
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
-        int currentIndex = 0;
-
-        for (BlobItem blobItem : containerClient.listBlobs()) {
-            String blobName = blobItem.getName();
-            if (blobName.endsWith(".xml")) {
-                if (currentIndex >= offset && currentIndex < offset + limit) {
-                    blobNames.add(blobName);
-                }
-            }
-            currentIndex++;
-            if (currentIndex >= offset + limit) {
-                break; 
-            }
-        }
-
-        return blobNames;
-    }
-
     public List<String> fetchBlobNames(String containerName) {
         List<String> blobNames = new ArrayList<>();
 
@@ -78,8 +56,6 @@ public class AzureBlobService {
     }
 
     public InputStreamResource fetchSingleXmlBlob(String containerName, String blobName) {
-        Logger.getAnonymousLogger().info("ç: " + blobName + " from container: " + containerName);
-
         try {
             BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
             BlobClient blobClient = containerClient.getBlobClient(blobName);
@@ -122,9 +98,5 @@ public class AzureBlobService {
 
         return paginatedBlobNames;
     }
-
-
-
-    
 
 }

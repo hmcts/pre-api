@@ -7,7 +7,6 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
-// import uk.gov.hmcts.reform.preapi.entities.batch.UnifiedArchiveData;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
@@ -15,7 +14,6 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,19 +25,16 @@ import java.util.logging.Logger;
 public class DataTransformationService {
 
     private final RedisTemplate<String, Object> redisTemplate; 
-    private final RedisService redisService;
     private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
     
     @Autowired
     public DataTransformationService(
         RedisTemplate<String, Object> redisTemplate,
-        RedisService redisService,
         DataExtractionService extractionService,
         CourtRepository courtRepository
     ) {
         this.redisTemplate = redisTemplate;
-        this.redisService = redisService;
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
     }
@@ -81,14 +76,18 @@ public class DataTransformationService {
         Map<String, List<String[]>> channelUserDataMap,
         Timestamp recordingTimestamp
     ) {
-        List<Map<String, String>> shareBookingContacts = populateShareBookingContacts(
-            channelUserDataMap.get(archiveItem.getArchiveNameNoExt())
-        );
+        List<String[]> userEmailList = getUsersAndEmails(archiveItem, channelUserDataMap);
+        List<Map<String, String>> shareBookingContacts = populateShareBookingContacts(userEmailList);
   
         String recordingVersion = extractionService.extractRecordingVersion(archiveItem);
         int recordingVersionNumber = "ORIG".equalsIgnoreCase(recordingVersion) ? 1 : 2;
         String recordingVersionNumberStr = extractionService.extractRecordingVersionNumber(archiveItem);
-        recordingVersionNumberStr = (recordingVersionNumberStr == null || recordingVersionNumberStr.isEmpty()) ? "1" : recordingVersionNumberStr;
+        recordingVersionNumberStr = (
+            recordingVersionNumberStr == null || recordingVersionNumberStr.isEmpty()) 
+                ? "1" : recordingVersionNumberStr;
+
+        CaseState caseState = (shareBookingContacts != null && !shareBookingContacts.isEmpty()) 
+            ? CaseState.OPEN : CaseState.CLOSED;
 
 
         return new CleansedData.Builder()
@@ -103,7 +102,7 @@ public class DataTransformationService {
             .setIsTest(checkIsTest(archiveItem).isTest())
             .setIsMostRecentVersion(isMostRecentVersion(archiveItem))
             .setTestCheckResult(checkIsTest(archiveItem))
-            .setState(CaseState.CLOSED)
+            .setState(caseState)
             .setFileExtension(extractionService.extractFileExtension(archiveItem))
             .setRecordingVersion(recordingVersion)
             .setRecordingVersionNumberStr(recordingVersionNumberStr)
@@ -115,6 +114,7 @@ public class DataTransformationService {
     // ======================
     // Court Handling Methods
     // ======================
+
     private UUID extractCourtId(CSVArchiveListData archiveItem, Map<String, String> sitesDataMap) {
         String courtReference = extractionService.extractCourtReference(archiveItem);
         if (courtReference.isEmpty()) {
@@ -141,29 +141,28 @@ public class DataTransformationService {
     // ============================
     // Timestamp and Version Parsing
     // ============================
+   
     private Timestamp getRecordingTimestamp(CSVArchiveListData archiveItem) {
-        String recordingDate = archiveItem.getCreateTime();
-        Timestamp timestamp = convertToTimestamp(recordingDate);
-        if (timestamp == null) {
-            throw new IllegalArgumentException("FAIL: Unable to convert recording date to timestamp: " + recordingDate);
-        }
-        return timestamp;
-    }
-
-    private Timestamp convertToTimestamp(String recordingDate) {
+        String createTime = String.valueOf(archiveItem.getCreateTime());
         try {
-            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            LocalDateTime dateTime = LocalDateTime.parse(recordingDate, inputFormatter);
-
-            return Timestamp.valueOf(dateTime);
-        } catch (DateTimeParseException e) {
-            return null; 
+            if (createTime.matches("\\d+")) {
+                long epochMilli = Long.parseLong(createTime);
+                return new Timestamp(epochMilli);
+            } else {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                LocalDateTime dateTime = LocalDateTime.parse(createTime, formatter);
+                return Timestamp.valueOf(dateTime);
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid date format for createTime: " + createTime, e);
         }
     }
+
 
     // ============================
     // Data Validation and Contacts
     // ============================
+
     public TestItem checkIsTest(CSVArchiveListData archiveItem) {
         StringBuilder reasons = new StringBuilder();
 
@@ -173,16 +172,6 @@ public class DataTransformationService {
             reasons.append("Archive name contains 'demo'. ");
         } else if (containsTestKeyWord(archiveItem.getArchiveName(), "unknown")) {
             reasons.append("Archive name contains 'unknown'. ");
-        } else if (containsTestKeyWord(archiveItem.getFarEndAddress(), "test")) {
-            reasons.append("Far end address contains 'test'. ");
-        } else if (containsTestKeyWord(archiveItem.getDescription(), "test")) {
-            reasons.append("Description contains 'test'. ");
-        } else if (containsTestKeyWord(archiveItem.getVideoType(), "test")) {
-            reasons.append("Video type contains 'test'. ");
-        } else if (containsTestKeyWord(archiveItem.getContentType(), "test")) {
-            reasons.append("Content type contains 'test'. ");
-        } else if (containsTestKeyWord(archiveItem.getOwner(), "test")) {
-            reasons.append("Owner contains 'test'. ");
         } else if (archiveItem.getDuration() < 10) {
             reasons.append("Duration is less than 10 seconds. ");
         }
@@ -211,14 +200,17 @@ public class DataTransformationService {
 
             String versionType = extractionService.extractRecordingVersion(archiveItem);
             String currentVersionNumberStr = extractionService.extractRecordingVersionNumber(archiveItem);
-            currentVersionNumberStr = (currentVersionNumberStr == null || currentVersionNumberStr.isEmpty()) ? "1" : currentVersionNumberStr;
+            currentVersionNumberStr = (currentVersionNumberStr == null 
+                || currentVersionNumberStr.isEmpty()) ? "1" : currentVersionNumberStr;
 
             if ("ORIG".equalsIgnoreCase(versionType)) {
                 String highestOrigVersionStr = existingData.get("origVersionNumber");
-                return highestOrigVersionStr == null || compareVersionStrings(currentVersionNumberStr, highestOrigVersionStr) >= 0;
+                return highestOrigVersionStr == null 
+                    || compareVersionStrings(currentVersionNumberStr, highestOrigVersionStr) >= 0;
             } else if ("COPY".equalsIgnoreCase(versionType)) {
                 String highestCopyVersionStr = existingData.get("copyVersionNumber");
-                return highestCopyVersionStr == null || compareVersionStrings(currentVersionNumberStr, highestCopyVersionStr) >= 0;
+                return highestCopyVersionStr == null 
+                    || compareVersionStrings(currentVersionNumberStr, highestCopyVersionStr) >= 0;
             } else {
                 Logger.getAnonymousLogger().warning("Unsupported version type: " + versionType);
             }
@@ -228,9 +220,28 @@ public class DataTransformationService {
         return false;
     }
 
+    private List<String[]> getUsersAndEmails(
+        CSVArchiveListData archiveItem, 
+        Map<String, List<String[]>> 
+        channelUserDataMap
+    ) {
+        String key = archiveItem.getArchiveNameNoExt(); 
+        List<String[]> channelDataList = channelUserDataMap.get(key);
+        List<String[]> userEmailList = new ArrayList<>(); // Initialize the list to return
+
+        if (channelDataList != null) {
+            for (String[] channelDataArray : channelDataList) {
+                String user = channelDataArray[0];
+                String email = channelDataArray[1];
+                userEmailList.add(new String[]{user, email}); 
+            }
+        }
+        return userEmailList; 
+    }
+
     private List<Map<String, String>> populateShareBookingContacts(List<String[]> usersAndEmails) {
         List<Map<String, String>> contactsList = new ArrayList<>();
-        
+
         if (usersAndEmails != null) {
             for (String[] userInfo : usersAndEmails) {
                 String[] nameParts = userInfo[0].split("\\.");
@@ -241,8 +252,8 @@ public class DataTransformationService {
 
                 contactsList.add(contact);
             }
-        }
-        
+        } 
+
         return contactsList;
     }
 
@@ -253,6 +264,7 @@ public class DataTransformationService {
     // =========================
     // Response Creation Methods
     // =========================
+
     private Map<String, Object> createErrorResponse(String errorMessage) {
         Map<String, Object> errorResponse = new HashMap<>();
         errorResponse.put("cleansedData", null);
@@ -271,6 +283,7 @@ public class DataTransformationService {
     // =========================
     // Utility Methods
     // =========================
+
     public boolean isOriginalVersion(CleansedData cleansedItem) {
         return "ORIG".equalsIgnoreCase(cleansedItem.getRecordingVersion());
     }
@@ -301,8 +314,12 @@ public class DataTransformationService {
             int v1Part = i < v1Parts.length ? Integer.parseInt(v1Parts[i]) : 0;
             int v2Part = i < v2Parts.length ? Integer.parseInt(v2Parts[i]) : 0;
 
-            if (v1Part < v2Part) return -1;
-            if (v1Part > v2Part) return 1;
+            if (v1Part < v2Part) {
+                return -1;
+            }
+            if (v1Part > v2Part) {
+                return 1;
+            }
         }
         return 0;
     }

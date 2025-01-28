@@ -89,7 +89,7 @@ public class PreProcessor {
             String courtKey = COURT_KEY_PREFIX + court.getName();
             redisTemplate.opsForValue().set(courtKey, court.getId().toString());
         }
-        Logger.getAnonymousLogger().info("Loaded "+ courts.size()+ " courts into Redis.");
+        Logger.getAnonymousLogger().info("Loaded " + courts.size() + " courts into Redis.");
     }
 
     /**
@@ -102,7 +102,7 @@ public class PreProcessor {
             String caseKey = CASE_KEY_PREFIX + acase.getReference();
             redisTemplate.opsForValue().set(caseKey, acase.getId().toString());
         }
-        Logger.getAnonymousLogger().info("Loaded "+ cases.size()+ " cases into Redis.");
+        Logger.getAnonymousLogger().info("Loaded " + cases.size() + " cases into Redis.");
     }
 
     /**
@@ -115,7 +115,7 @@ public class PreProcessor {
             String userKey = USER_KEY_PREFIX + user.getEmail();
             redisTemplate.opsForValue().set(userKey, user.getId().toString());
         }
-        Logger.getAnonymousLogger().info("Loaded "+ users.size()+ " users into Redis.");
+        Logger.getAnonymousLogger().info("Loaded " + users.size() + " users into Redis.");
     }
 
     // =========================

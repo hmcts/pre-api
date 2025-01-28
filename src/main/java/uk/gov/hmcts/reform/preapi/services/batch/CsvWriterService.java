@@ -27,7 +27,8 @@ public class CsvWriterService {
         List<String> headers, 
         List<T> dataRows, 
         String fileNamePrefix,
-        String outputDir
+        String outputDir,
+        boolean showTimestamp
     ) {
         // Generate the file name
         Path outputPath = Paths.get(outputDir);
@@ -40,7 +41,7 @@ public class CsvWriterService {
         }
 
         String timeStamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm:ss"));
-        String fileName = fileNamePrefix + "-" + timeStamp + ".csv";
+        String fileName = showTimestamp ? fileNamePrefix + "-" + timeStamp + ".csv" : fileNamePrefix + ".csv";
         Path filePath = outputPath.resolve(fileName);
 
         // Write to the CSV file
@@ -54,7 +55,8 @@ public class CsvWriterService {
                 String line = formatDataRow(dataRow);
                 fileWriter.write(line + "\n");
             }
-            Logger.getAnonymousLogger().info("Successfully wrote " + dataRows.size() + " rows to CSV file: " +filePath );
+            Logger.getAnonymousLogger().info("Successfully wrote " + dataRows.size() 
+                + " rows to CSV file: " + filePath);
             
         } catch (IOException e) {
             Logger.getAnonymousLogger().severe("Error writing to CSV: " + e.getMessage());

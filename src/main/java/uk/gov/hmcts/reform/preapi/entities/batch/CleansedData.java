@@ -5,7 +5,6 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -33,7 +32,6 @@ public class CleansedData {
     private boolean isMostRecentVersion;
     private String fileExtension;
     private TestItem testCheckResult;
-    private String[] shareBookingEmails;
     private List<Map<String, String>> shareBookingContacts;
     
     
@@ -56,34 +54,97 @@ public class CleansedData {
         this.isMostRecentVersion = builder.isMostRecentVersion;
         this.fileExtension = builder.fileExtension;
         this.testCheckResult = builder.testCheckResult;
-        this.shareBookingEmails = builder.shareBookingEmails;
         this.shareBookingContacts = builder.shareBookingContacts;
     }
 
     // Getters
-    public String getCourtReference() { return courtReference; }
-    public String getFullCourtName() { return fullCourtName; }
-    public Timestamp getRecordingTimestamp() { return recordingTimestamp; }
-    public String getUrn() { return urn; }
-    public String getCaseReference() { return caseReference; }
-    public String getExhibitReference() { return exhibitReference; }
-    public String getDefendantLastName() { return defendantLastName; }
-    public String getWitnessFirstName() { return witnessFirstName; }
-    public String getRecordingVersion() { return recordingVersion; }
-    public String getRecordingVersionNumberStr() { return recordingVersionNumberStr; }
-    public int getRecordingVersionNumber() { return recordingVersionNumber; }
-    public boolean isOrig() { return "ORIG".equalsIgnoreCase(this.getRecordingVersion()); }
-    public boolean isCopy() { return "COPY".equalsIgnoreCase(this.getRecordingVersion()); }
-    public Duration getDuration() { return duration; }
-    public boolean isTest() { return isTest; }
-    public boolean isMostRecentVersion() { return isMostRecentVersion; }
-    public TestItem getTestCheckResult() { return testCheckResult; }
-    public String getFileExtension() { return fileExtension; }
-    public Court getCourt() { return court; }
-    public CaseState getState() { return state; }
-    public String[] getShareBookingEmails() {return shareBookingEmails; }
-    public boolean isRecordingType(String type) { return type.equalsIgnoreCase(this.recordingVersion); }
-    public List<Map<String, String>> getShareBookingContacts() { return shareBookingContacts; }
+    public String getCourtReference() { 
+        return courtReference; 
+    }
+
+    public String getFullCourtName() { 
+        return fullCourtName; 
+    }
+
+    public Timestamp getRecordingTimestamp() { 
+        return recordingTimestamp; 
+    }
+
+    public String getUrn() { 
+        return urn; 
+    }
+
+    public String getCaseReference() { 
+        return caseReference; 
+    }
+    
+    public String getExhibitReference() { 
+        return exhibitReference; 
+    }
+
+    public String getDefendantLastName() { 
+        return defendantLastName; 
+    }
+
+    public String getWitnessFirstName() { 
+        return witnessFirstName; 
+    }
+
+    public String getRecordingVersion() { 
+        return recordingVersion; 
+    }
+
+    public String getRecordingVersionNumberStr() { 
+        return recordingVersionNumberStr; 
+    }
+    
+    public int getRecordingVersionNumber() { 
+        return recordingVersionNumber; 
+    }
+
+    public boolean isOrig() { 
+        return "ORIG".equalsIgnoreCase(this.getRecordingVersion()); 
+    }
+
+    public boolean isCopy() { 
+        return "COPY".equalsIgnoreCase(this.getRecordingVersion()); 
+    }
+
+    public Duration getDuration() { 
+        return duration; 
+    }
+
+    public boolean isTest() { 
+        return isTest; 
+    }
+
+    public boolean isMostRecentVersion() { 
+        return isMostRecentVersion; 
+    }
+
+    public TestItem getTestCheckResult() { 
+        return testCheckResult; 
+    }
+
+    public String getFileExtension() { 
+        return fileExtension; 
+    }
+
+    public Court getCourt() { 
+        return court; 
+    }
+
+    public CaseState getState() { 
+        return state; 
+    }
+
+    public boolean isRecordingType(String type) { 
+        return type.equalsIgnoreCase(this.recordingVersion); 
+    }
+
+    public List<Map<String, String>> getShareBookingContacts() { 
+        return shareBookingContacts; 
+    }
 
     @Override
     public String toString() {
@@ -106,7 +167,6 @@ public class CleansedData {
             .add("isMostRecentVersion=" + isMostRecentVersion)
             .add("fileExtension='" + fileExtension + "'")
             .add("testCheckResult=" + testCheckResult)
-            .add("shareBookingEmails=" + Arrays.toString(shareBookingEmails))
             .add("shareBookingContacts=" + shareBookingContacts)
             .toString();
     }
@@ -133,7 +193,6 @@ public class CleansedData {
         private boolean isMostRecentVersion;
         private String fileExtension;
         private TestItem testCheckResult;
-        private String[] shareBookingEmails;
         private List<Map<String, String>> shareBookingContacts;
 
         public Builder setCourtReference(String courtReference) {
@@ -223,11 +282,6 @@ public class CleansedData {
 
         public Builder setTestCheckResult(TestItem testCheckResult) {
             this.testCheckResult = testCheckResult;
-            return this;
-        }
-
-        public Builder setShareBookingEmails(String[] shareBookingEmails) {
-            this.shareBookingEmails = shareBookingEmails;
             return this;
         }
 

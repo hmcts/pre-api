@@ -37,7 +37,6 @@ public class RecordingMetadataProcessor {
      */
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
-            // Transform the archive item into cleansed data
             Map<String, Object> transformationResult = transformationService.transformArchiveListData(
                 archiveItem, redisService.getHashAll("sites_data", String.class, String.class), new HashMap<>()
             );
@@ -60,13 +59,15 @@ public class RecordingMetadataProcessor {
             // Update metadata based on version type
             if ("ORIG".equalsIgnoreCase(versionType)) {
                 String existingOrigVersionStr = existingMetadata.get("origVersionNumber");
-                if (existingOrigVersionStr == null || compareVersionNumbers(versionNumberStr, existingOrigVersionStr) > 0) {
+                if (existingOrigVersionStr == null 
+                    || compareVersionNumbers(versionNumberStr, existingOrigVersionStr) > 0) {
                     existingMetadata.put("origVersionArchiveName", archiveName);
                     existingMetadata.put("origVersionNumber", versionNumberStr);
                 }
             } else if ("COPY".equalsIgnoreCase(versionType)) {
                 String existingCopyVersionStr = existingMetadata.get("copyVersionNumber");
-                if (existingCopyVersionStr == null || compareVersionNumbers(versionNumberStr, existingCopyVersionStr) > 0) {
+                if (existingCopyVersionStr == null 
+                    || compareVersionNumbers(versionNumberStr, existingCopyVersionStr) > 0) {
                     existingMetadata.put("copyVersionArchiveName", archiveName);
                     existingMetadata.put("copyVersionNumber", versionNumberStr);
                 }
@@ -100,8 +101,12 @@ public class RecordingMetadataProcessor {
             int v1Part = i < v1Parts.length ? Integer.parseInt(v1Parts[i]) : 0;
             int v2Part = i < v2Parts.length ? Integer.parseInt(v2Parts[i]) : 0;
 
-            if (v1Part < v2Part) return -1;
-            if (v1Part > v2Part) return 1;
+            if (v1Part < v2Part) {
+                return -1;
+            }
+            if (v1Part > v2Part) {
+                return 1;
+            }
         }
         return 0;
     }

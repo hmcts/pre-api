@@ -21,8 +21,6 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
-import uk.gov.hmcts.reform.preapi.entities.batch.UnifiedArchiveData;
-import uk.gov.hmcts.reform.preapi.entities.batch.XMLArchiveFileData;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
@@ -101,9 +99,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     public MigratedItemGroup process(Object item) throws Exception {
         if (item instanceof CSVArchiveListData) {
             return processArchiveListData((CSVArchiveListData) item);
-        
-        // } else if (item instanceof XMLArchiveFileData) {
-        //     return processXMLData((XMLArchiveFileData) item);
         } else if (item instanceof CSVSitesData) {
             processSitesData((CSVSitesData) item);
         } else if (item instanceof CSVChannelData) {
@@ -203,6 +198,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         List<ShareBooking> shareBookings = new ArrayList<>();
         List<User> users = new ArrayList<>();
         List<Object> shareBookingResult = entityCreationService.createShareBookings(cleansedData, booking);
+        Logger.getAnonymousLogger().info("Share booking result :" + shareBookingResult);
         // shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
         // users = (List<User>) shareBookingResult.get(1);
         
@@ -326,37 +322,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         return captureSession;
     }
-
-    //======================
-    // CONVERTING CSV AND XML TO UNIFIED DATA
-    //======================
-    public UnifiedArchiveData convertCSVToUnifiedData(CSVArchiveListData csvData) {
-        return new UnifiedArchiveData(
-            csvData.getArchiveNameNoExt(),
-            csvData.getCreateTime(),
-            csvData.getDuration(),
-            "From CSV: " + csvData.getDescription()
-        );
-    }
-
-    //  method to convert XML data to UnifiedArchiveData
-    public UnifiedArchiveData convertXMLToUnifiedData(XMLArchiveFileData xmlData) {
-        List<XMLArchiveFileData.MP4File> mp4Files = xmlData.getMp4FileGrp().getMp4Files();
-        
-        if (mp4Files == null || mp4Files.isEmpty()) {
-            throw new IllegalArgumentException("No MP4 files found in the XML data");
-        }
-        
-        XMLArchiveFileData.MP4File mp4File = mp4Files.get(0);
-
-        return new UnifiedArchiveData(
-            xmlData.getDisplayName(),
-            String.valueOf(mp4File.getCreatTime()), 
-            xmlData.getDuration(),
-            "From XML"
-        );
-    }
-
 
 
 }

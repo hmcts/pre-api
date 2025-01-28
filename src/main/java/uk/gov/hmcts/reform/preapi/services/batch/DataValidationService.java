@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-// import uk.gov.hmcts.reform.preapi.entities.batch.UnifiedArchiveData;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,14 +12,14 @@ import java.util.Map;
 public class DataValidationService {
     
     private static final String ERROR_FILE_EXTENSION = "File not .mp4 file.";
-    private static final String ERROR_RAW_EXTENSION = "File with .raw extension not to migrate.";
     private static final String ERROR_TIMESTAMP = "Invalid timestamp: Timestamp is null.";
     private static final String ERROR_COURT = "No valid court associated.";
     private static final String ERROR_MOST_RECENT_VERSION = "Recording is not the most recent version.";
     private static final String ERROR_CASE_REFERENCE = "No valid case reference (URN).";
 
     @Autowired
-    public DataValidationService() {}
+    public DataValidationService() {
+    }
 
     // =========================
     // Main Validation Logic
@@ -71,13 +70,12 @@ public class DataValidationService {
         String fileExtension = cleansedData.getFileExtension();
         fileExtension = (fileExtension == null || fileExtension.isBlank()) ? "" : fileExtension.toLowerCase();
 
-        if (fileExtension.isBlank()) {
+        if (fileExtension.isBlank() 
+            || ".raw".equalsIgnoreCase(fileExtension) 
+            || ".ra".equalsIgnoreCase(fileExtension)) {
             return createErrorResponse(ERROR_FILE_EXTENSION);
         }
 
-        if (".raw".equalsIgnoreCase(fileExtension) || ".ra".equalsIgnoreCase(fileExtension)) {
-            return createErrorResponse(ERROR_RAW_EXTENSION);
-        }
         return createSuccessResponse(cleansedData);
     }
 
@@ -104,7 +102,7 @@ public class DataValidationService {
     }
 
     private Map<String, Object> validateMostRecentVersion(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        if (!cleansedData.isMostRecentVersion() ) {
+        if (!cleansedData.isMostRecentVersion()) {
             return createErrorResponse(ERROR_MOST_RECENT_VERSION);
         }
         return createSuccessResponse(cleansedData);

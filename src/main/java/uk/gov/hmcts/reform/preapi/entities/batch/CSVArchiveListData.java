@@ -1,32 +1,25 @@
 package uk.gov.hmcts.reform.preapi.entities.batch;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
+
 public class CSVArchiveListData {
 
     private String archiveName;
-    private String description;
     private String createTime;
     private int duration;
-    private String owner;
-    private String videoType;
-    private String audioType;
-    private String contentType;
-    private String farEndAddress;
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public CSVArchiveListData() {
     }
 
-    public CSVArchiveListData(String archiveName, String description, String createTime, int duration, 
-                            String owner, String videoType, String audioType, String contentType, 
-                            String farEndAddress) {
+    public CSVArchiveListData(String archiveName, String createTime, int duration) {
         this.archiveName = archiveName;
-        this.description = description;
         this.createTime = createTime;
         this.duration = duration;
-        this.owner = owner;
-        this.videoType = videoType;
-        this.audioType = audioType;
-        this.contentType = contentType;
-        this.farEndAddress = farEndAddress;
     }
 
     public String getArchiveName() {
@@ -35,14 +28,6 @@ public class CSVArchiveListData {
 
     public void setArchiveName(String archiveName) {
         this.archiveName = archiveName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public String getCreateTime() {
@@ -61,46 +46,6 @@ public class CSVArchiveListData {
         this.duration = duration;
     }
 
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
-
-    public String getVideoType() {
-        return videoType;
-    }
-
-    public void setVideoType(String videoType) {
-        this.videoType = videoType;
-    }
-
-    public String getAudioType() {
-        return audioType;
-    }
-
-    public void setAudioType(String audioType) {
-        this.audioType = audioType;
-    }
-
-    public String getContentType() {
-        return contentType;
-    }
-
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
-    }
-
-    public String getFarEndAddress() {
-        return farEndAddress;
-    }
-
-    public void setFarEndAddress(String farEndAddress) {
-        this.farEndAddress = farEndAddress;
-    }
-
     public String getArchiveNameNoExt() {
         if (archiveName == null || archiveName.isEmpty()) {
             return archiveName;
@@ -110,6 +55,15 @@ public class CSVArchiveListData {
             return archiveName;
         }
         return archiveName.substring(0, lastDotIndex);
+    }
+
+    public LocalDateTime getCreateTimeAsLocalDateTime() {
+        if (createTime.matches("\\d+")) { 
+            long epochMilli = Long.parseLong(createTime);
+            return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), ZoneId.systemDefault());
+        } else {
+            return LocalDateTime.parse(createTime, FORMATTER);
+        }
     }
 
 }

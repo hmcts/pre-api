@@ -70,8 +70,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     @Override
     public void write(Chunk<? extends MigratedItemGroup> items) throws Exception {
         List<MigratedItemGroup> migratedItems = new ArrayList<>();
-        Logger.getAnonymousLogger().info("13. Writer - in writer  ");
-
         for (MigratedItemGroup entity : items) {
             if (entity != null) {
                 migratedItems.add(entity);
@@ -103,7 +101,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 try {
                     participantRepository.saveAllAndFlush(participants);
                 } catch (Exception e) {
-                    Logger.getAnonymousLogger().info("WRITER: Issue with participants: " + e.getMessage());
+                    Logger.getAnonymousLogger().info("Writer: Issue with participants: " + e.getMessage());
                 }
             }
 
@@ -125,7 +123,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 try {
                     recordingRepository.saveAndFlush(recording);
                 } catch (Exception e) {
-                    Logger.getAnonymousLogger().info("WRITER: Issue with recording: " + e.getMessage());
+                    Logger.getAnonymousLogger().info("Writer: Issue with recording: " + e.getMessage());
                 }
             }
             // Save the users if they exist

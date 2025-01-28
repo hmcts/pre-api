@@ -103,7 +103,7 @@ public class MigrationTrackerService {
             rows.add(row);
         }
 
-        csvWriterService.writeToCsv(headers, rows, fileName, outputDir);
+        csvWriterService.writeToCsv(headers, rows, fileName, outputDir, true);
     }
 
     /**
@@ -113,11 +113,9 @@ public class MigrationTrackerService {
      */
     public void writeFailedItemsToCsv(String fileName, String outputDir) {
         List<String> headers = List.of(
-            "Reason for Failure","archiveName","description","createTime",
-            "duration","owner","videoType","audioType","contentType",
-            "farEndAddress"
+            "Reason for Failure","Filename","created_at",
+            "duration"
         );
-        
         List<List<String>> rows = new ArrayList<>();
 
         for (FailedItem item : failedItems) {
@@ -126,19 +124,13 @@ public class MigrationTrackerService {
             List<String> row = List.of(
                 getValueOrEmpty(item.getReason()), 
                 getValueOrEmpty(archiveItem.getArchiveName()),   
-                getValueOrEmpty(archiveItem.getDescription()),  
                 getValueOrEmpty(archiveItem.getCreateTime()),   
-                getValueOrEmpty(archiveItem.getDuration()),   
-                getValueOrEmpty(archiveItem.getOwner()),  
-                getValueOrEmpty(archiveItem.getVideoType()),  
-                getValueOrEmpty(archiveItem.getAudioType()),   
-                getValueOrEmpty(archiveItem.getContentType()),   
-                getValueOrEmpty(archiveItem.getFarEndAddress()) 
+                getValueOrEmpty(archiveItem.getDuration())   
             );
             rows.add(row);
         }
 
-        csvWriterService.writeToCsv(headers, rows, fileName, outputDir);
+        csvWriterService.writeToCsv(headers, rows, fileName, outputDir,true);
     }
 
     /**

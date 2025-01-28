@@ -6,40 +6,50 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Service
 public class EntityCreationService {
 
     private static final String DEFAULT_NAME = "Unknown";
-    private static final String REDIS_USER_KEY_PREFIX = "user:";
+    private static final String REDIS_USER_KEY_PREFIX = "batch-preprocessor:user:";
     private final DataTransformationService transformationService;
     private final RedisService redisService;
     private final UserRepository userRepository;
+    private final PortalAccessRepository portalAccessRepository;
+
 
     @Autowired
     public EntityCreationService(
         DataTransformationService transformationService,
         RedisService redisService,
-        UserRepository userRepository
+        UserRepository userRepository,
+        PortalAccessRepository portalAccessRepository
     ) {
         this.transformationService = transformationService;
         this.redisService = redisService;
         this.userRepository = userRepository;
+        this.portalAccessRepository = portalAccessRepository;
     }
 
     // =========================
@@ -148,16 +158,19 @@ public class EntityCreationService {
      * @return A list containing the created ShareBooking and User entities, or null if inputs are invalid.
      */
     public List<Object> createShareBookings(CleansedData cleansedData, Booking booking) {
-        List<Object> results = new ArrayList<>();
         if (cleansedData == null || booking == null) {
             return null;
         }
-
+        
+        List<Object> results = new ArrayList<>();
         List<ShareBooking> shareBookings = new ArrayList<>();
         List<User> sharedWithUsers = new ArrayList<>();
 
         for (Map<String, String> contactInfo : cleansedData.getShareBookingContacts()) {
             User user = getOrCreateUser(contactInfo);
+            if (user == null) {
+                continue;  
+            }
             ShareBooking shareBooking = new ShareBooking();
             shareBooking.setId(UUID.randomUUID());
             shareBooking.setBooking(booking);
@@ -167,7 +180,10 @@ public class EntityCreationService {
             sharedWithUsers.add(user);
             shareBookings.add(shareBooking);
         }
-
+        if (shareBookings.isEmpty() || sharedWithUsers.isEmpty()) {
+            Logger.getAnonymousLogger().info("No share bookings or users were created");
+            return null;
+        }
         results.add(shareBookings);
         results.add(sharedWithUsers);
         return results.isEmpty() ? null : results;
@@ -190,12 +206,21 @@ public class EntityCreationService {
         if (userId != null) {
             return userRepository.findById(UUID.fromString(userId)).orElse(null);
         } else {
+            Logger.getAnonymousLogger().info("Creating new user ");
             User newUser = new User();
             newUser.setId(UUID.randomUUID());
             newUser.setFirstName(contactInfo.getOrDefault("firstName", "Unknown"));
             newUser.setLastName(contactInfo.getOrDefault("lastName", "Unknown"));
             newUser.setEmail(email);
 
+            userRepository.saveAndFlush(newUser);
+
+            PortalAccess portalUser = new PortalAccess();
+            portalUser.setUser(newUser);
+            portalUser.setStatus(AccessStatus.INVITATION_SENT);
+            portalUser.setInvitedAt(Timestamp.from(Instant.now()));
+            portalAccessRepository.save(portalUser);
+            
             redisService.saveValue(redisUserKey, newUser.getId().toString());
             return newUser;
         }
