@@ -125,6 +125,7 @@ public class ReportServiceTest {
         recordingEntity.setParentRecording(null);
         auditEntity.setSource(null);
         auditEntity.setCreatedBy(null);
+        auditEntity.setAuditDetails(null);
         bookingEntity.setParticipants(Set.of());
     }
 
