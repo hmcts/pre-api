@@ -125,6 +125,7 @@ public class ReportServiceTest {
         recordingEntity.setParentRecording(null);
         auditEntity.setSource(null);
         auditEntity.setCreatedBy(null);
+        auditEntity.setAuditDetails(null);
         bookingEntity.setParticipants(Set.of());
     }
 
@@ -542,6 +543,35 @@ public class ReportServiceTest {
                        .getFirst()
                        .getName()
         ).isEqualTo(regionEntity.getName());
+
+        verify(auditRepository, times(1)).findAllAccessAttempts();
+        verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
+    }
+
+    @DisplayName("Find audits relating to all playback attempts and return a report when null auditdetails")
+    @Test
+    void reportPlaybackAllSuccessNullAuditDetails() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        auditEntity.setCreatedBy(user.getId());
+        auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(null);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getCaseReference()).isEqualTo(null);
+        assertThat(report.getFirst().getCourt()).isEqualTo(null);
+        assertThat(report.getFirst().getRecordingId()).isEqualTo(null);
 
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
