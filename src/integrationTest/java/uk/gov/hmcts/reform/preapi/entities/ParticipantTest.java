@@ -15,7 +15,7 @@ import java.sql.Timestamp;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
-class CreateParticipantDTOTest {
+class ParticipantTest {
 
     @Autowired
     private EntityManager entityManager;
@@ -47,7 +47,7 @@ class CreateParticipantDTOTest {
         assertEquals(
             testParticipant.getParticipantType(),
             retrievedParticipant.getParticipantType(),
-            "ParticipantDTO type should match"
+            "Participant type should match"
         );
         assertEquals(testParticipant.getFirstName(), retrievedParticipant.getFirstName(), "First names should match");
         assertEquals(testParticipant.getLastName(), retrievedParticipant.getLastName(), "Last name should match");

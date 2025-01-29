@@ -34,9 +34,11 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class UserService {
@@ -138,7 +140,6 @@ public class UserService {
         if (isUpdate && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
-
         if (!isUpdate && userRepository.existsByEmailIgnoreCase(createUserDTO.getEmail())) {
             throw new ConflictException("User with email: " + createUserDTO.getEmail() + " already exists");
         }
@@ -148,7 +149,6 @@ public class UserService {
                 throw new NotFoundException("Portal Access: " + id);
             }
         });
-
         var entity = user.orElse(new User());
         entity.setId(createUserDTO.getId());
         entity.setFirstName(createUserDTO.getFirstName());
@@ -159,18 +159,16 @@ public class UserService {
         userRepository.saveAndFlush(entity);
 
         if (isUpdate) {
-            entity
-                .getAppAccess()
-                .stream()
+            Stream.ofNullable(entity.getAppAccess())
+                .flatMap(Collection::stream)
                 .filter(appAccess -> appAccess.getDeletedAt() == null)
                 .map(AppAccess::getId)
                 .filter(id -> createUserDTO.getAppAccess().stream().map(CreateAppAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
                 .forEach(appAccessService::deleteById);
 
-            entity
-                .getPortalAccess()
-                .stream()
+            Stream.ofNullable(entity.getPortalAccess())
+                .flatMap(Collection::stream)
                 .map(PortalAccess::getId)
                 .filter(id -> createUserDTO.getPortalAccess().stream().map(CreatePortalAccessDTO::getId)
                     .noneMatch(newAccessId -> newAccessId.equals(id)))
@@ -228,9 +226,8 @@ public class UserService {
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
             .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
 
-        appAccessRepository
-            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getId()));
+        appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId).
+            ifPresent(appAccess -> appAccessService.deleteById(appAccess.getFirst().getId()));
 
         userRepository
             .findById(userId)
