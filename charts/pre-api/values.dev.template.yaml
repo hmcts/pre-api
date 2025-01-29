@@ -2,6 +2,12 @@ java:
   devmemoryLimits: '2048Mi'
   postgresql:
     enabled: true
+    primary:
+      initdb:
+        user: "postgres"
+        scripts:
+          init.sql: |-
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
