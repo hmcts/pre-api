@@ -71,7 +71,7 @@ public class ReportService {
             .countRecordingsPerCase()
             .stream()
             .map(data -> new RecordingsPerCaseReportDTO((Case) data[0], ((Long) data[1]).intValue()))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Transactional
@@ -81,7 +81,7 @@ public class ReportService {
             .stream()
             .map(EditReportDTO::new)
             .sorted(Comparator.comparing(EditReportDTO::getCreatedAt))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Transactional
@@ -96,7 +96,7 @@ public class ReportService {
             .stream()
             .map(SharedReportDTO::new)
             .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Transactional
@@ -106,7 +106,7 @@ public class ReportService {
             .stream()
             .map(ScheduleReportDTO::new)
             .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Transactional
@@ -116,7 +116,7 @@ public class ReportService {
                 .findAllAccessAttempts()
                 .stream()
                 .map(this::toPlaybackReport)
-                .collect(Collectors.toList());
+                .toList();
         } else if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
             final var activityPlay = "Play";
             final var functionalAreaVideoPlayer = "Video Player";
@@ -132,7 +132,7 @@ public class ReportService {
                 )
                 .stream()
                 .map(this::toPlaybackReport)
-                .collect(Collectors.toList());
+                .toList();
         } else {
             throw new NotFoundException("Report for playback source: " + source);
         }
@@ -145,7 +145,7 @@ public class ReportService {
             .stream()
             .map(CompletedCaptureSessionReportDTO::new)
             .sorted(Comparator.comparing(CompletedCaptureSessionReportDTO::getScheduledFor))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Transactional
@@ -155,7 +155,7 @@ public class ReportService {
             .stream()
             .map(AccessRemovedReportDTO::new)
             .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     @Transactional
@@ -165,7 +165,7 @@ public class ReportService {
             .stream()
             .map(this::getParticipantsForRecording)
             .flatMap(List::stream)
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private List<RecordingParticipantsReportDTO> getParticipantsForRecording(Recording recording) {
@@ -175,7 +175,7 @@ public class ReportService {
             .getParticipants()
             .stream()
             .map(participant -> new RecordingParticipantsReportDTO(participant, recording))
-            .collect(Collectors.toList());
+            .toList();
     }
 
     private PlaybackReportDTO toPlaybackReport(Audit audit) {
