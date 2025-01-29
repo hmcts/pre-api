@@ -180,7 +180,7 @@ public class ReportService {
 
     private PlaybackReportDTO toPlaybackReport(Audit audit) {
         // S28-3604 discovered audit details records Recording Id as recordingId _and_ recordinguid
-        var auditDetails = !audit.getAuditDetails().isNull();
+        var auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
         UUID recordingId = null;
         if (auditDetails) {
             if (audit.getAuditDetails().hasNonNull("recordingId")) {
@@ -189,7 +189,7 @@ public class ReportService {
                 recordingId = UUID.fromString(audit.getAuditDetails().get("recordinguid").asText());
             }
         }
-        
+
         return new PlaybackReportDTO(
             audit,
             audit.getCreatedBy() != null
