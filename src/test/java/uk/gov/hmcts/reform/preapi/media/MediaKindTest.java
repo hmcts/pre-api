@@ -477,7 +477,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
         verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(mockClient, never()).putAsset(any(), any());
-
     }
 
     @Test
@@ -526,6 +525,11 @@ public class MediaKindTest {
         verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
         assertThat(jobArgument3.getValue()).startsWith(tempName);
         assertThat(jobArgument4.getValue()).startsWith(tempName);
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(captureSession.getBookingId().toString());
+        verify(azureIngestStorageService, times(1)).markContainerAsProcessing(recordingId.toString());
+        verify(azureIngestStorageService, times(1))
+            .markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+        verify(azureIngestStorageService, times(1)).markContainerAsSafeToDelete(recordingId.toString());
     }
 
     @Test
