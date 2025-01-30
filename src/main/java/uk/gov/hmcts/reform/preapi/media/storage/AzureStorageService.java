@@ -1,8 +1,14 @@
 package uk.gov.hmcts.reform.preapi.media.storage;
 
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.models.BlobItem;
+import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
+import java.util.HashMap;
+
+@Slf4j
 public abstract class AzureStorageService {
 
     protected final BlobServiceClient client;
@@ -51,5 +57,22 @@ public abstract class AzureStorageService {
                 .listBlobs()
                 .stream()
                 .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
+    }
+
+    public void tagAllBlobsInContainer(String containerName, String tagKey, String tagValue) {
+        log.info("Setting all blob's tags in container '{}': '{}' to '{}'", containerName, tagKey, tagValue);
+        var containerClient = client.getBlobContainerClient(containerName);
+        containerClient.listBlobs()
+            .stream()
+            .map(BlobItem::getName)
+            .map(containerClient::getBlobClient)
+            .forEach(blob -> setBlobTag(blob, tagKey, tagValue));
+    }
+
+    protected void setBlobTag(BlobClient blob, String tagKey, String tagValue) {
+        var currentTags = blob.getTags();
+        var newTags = new HashMap<>(currentTags);
+        newTags.put(tagKey, tagValue);
+        blob.setTags(newTags);
     }
 }
