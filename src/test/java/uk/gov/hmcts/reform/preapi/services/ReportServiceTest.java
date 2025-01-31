@@ -399,20 +399,15 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
-        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find audits relating to playbacks from the portal and return a report without recordingid")
@@ -436,12 +431,15 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
-        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
         assertThat(report.getFirst().getCaseReference()).isNullOrEmpty();
-        assertThat(report.getFirst().getCourt()).isNullOrEmpty();
-        assertThat(report.getFirst().getRecordingId()).isNull();
+        assertThat(report.getFirst().getCourtName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCounty()).isNullOrEmpty();
+        assertThat(report.getFirst().getPostcode()).isNullOrEmpty();
+        assertThat(report.getFirst().getRegions()).isNullOrEmpty();
     }
 
     @DisplayName("Find audits relating to playbacks from the portal and return a report without audit details")
@@ -459,12 +457,18 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
-        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
-        assertThat(report.getFirst().getCaseReference()).isNullOrEmpty(); // has a value???
-        assertThat(report.getFirst().getCourt()).isNullOrEmpty();
-        assertThat(report.getFirst().getRecordingId()).isNull();
+
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getUser()).isNullOrEmpty();
+        assertThat(report.getFirst().getUserOrganisation()).isNullOrEmpty();
+        assertThat(report.getFirst().getCaseReference()).isNullOrEmpty();
+        assertThat(report.getFirst().getCourtName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCounty()).isNullOrEmpty();
+        assertThat(report.getFirst().getPostcode()).isNullOrEmpty();
+        assertThat(report.getFirst().getRegions()).isNullOrEmpty();
     }
 
     @DisplayName("Find audits relating to playbacks from the application and return a report")
@@ -569,12 +573,19 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(null);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(null);
-        assertThat(report.getFirst().getCourt()).isEqualTo(null);
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(null);
+        assertThat(report.getFirst().getCourtName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCounty()).isNullOrEmpty();
+        assertThat(report.getFirst().getPostcode()).isNullOrEmpty();
+
+        assertThat(report.getFirst().getRegions()).isNullOrEmpty();
+
 
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
