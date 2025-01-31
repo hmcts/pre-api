@@ -34,8 +34,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: SYMMETRIC_KEY
         - name: pp-authorization
           alias: FLOW_KEY
-        - name: flow-http-api
-          alias: FLOW_HTTP_API
+        - name: flow-close-live-event-http-api
+          alias: FLOW_CLOSE_LIVE_EVENT_HTTP_API
         - name: flow-case-state-notifier-http-api
           alias: FLOW_CASE_STATE_NOTIFIER_HTTP_API
         - name: flow-case-state-notifier-workflow-id

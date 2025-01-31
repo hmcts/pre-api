@@ -94,7 +94,7 @@ cron-user-email: ${CRON_USER_EMAIL:test@test.com}
 flow:
   workflow:
     stopLiveEventNotifier:
-      api: ${FLOW_HTTP_API:https://prod-01.uksouth.logic.azure.com}
+      api: ${FLOW_CLOSE_LIVE_EVENT_HTTP_API:https://prod-01.uksouth.logic.azure.com}
       id: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
       enabled: true
     caseStateChangeNotifier:
