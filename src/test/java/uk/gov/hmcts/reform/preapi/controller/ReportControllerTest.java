@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import static org.mockito.Mockito.times;
@@ -61,6 +63,11 @@ public class ReportControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
+
+    @BeforeAll
+    static void setUp() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 
     @DisplayName("Should get a report containing a list of concurrent capture sessions")
     @Test
