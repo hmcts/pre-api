@@ -105,9 +105,9 @@ public class ReportService {
         return captureSessionRepository
             .findAllByStatus(RecordingStatus.RECORDING_AVAILABLE)
             .stream()
+            .sorted(Comparator.comparing(c -> c.getBooking().getScheduledFor()))
             .map(ScheduleReportDTO::new)
-            .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
-            .toList();
+            .collect(Collectors.toList());
     }
 
     @Transactional

@@ -290,11 +290,13 @@ public class ReportServiceTest {
         captureSessionEntity.setStartedByUser(userEntity);
 
         var otherBooking = new Booking();
+        otherBooking.setCreatedAt(Timestamp.from(Instant.now()));
         otherBooking.setId(UUID.randomUUID());
         otherBooking.setCaseId(caseEntity);
         otherBooking.setScheduledFor(Timestamp.from(Instant.MIN));
 
         captureSessionEntity.getBooking().setScheduledFor(Timestamp.from(Instant.MAX));
+        bookingEntity.setCreatedAt(Timestamp.from(Instant.now()));
 
         var otherCaptureSessionEntity = new CaptureSession();
         otherCaptureSessionEntity.setId(UUID.randomUUID());
@@ -308,12 +310,21 @@ public class ReportServiceTest {
         var report = reportService.reportScheduled();
 
         assertThat(report.size()).isEqualTo(2);
-        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getScheduledFor()).isEqualTo(captureSessionEntity.getBooking().getScheduledFor());
-        assertThat(report.getFirst().getCaptureSessionUser()).isEqualTo(userEntity.getEmail());
+        var first = report.getFirst();
+        assertThat(first.getScheduledDate())
+            .isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getBooking().getScheduledFor()));
+        assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+        assertThat(first.getDateOfBooking())
+            .isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getBooking().getCreatedAt()));
+        assertThat(first.getUser()).isEqualTo(userEntity.getEmail());
 
-        assertThat(report.get(1).getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.get(1).getScheduledFor()).isEqualTo(otherBooking.getScheduledFor());
+        assertThat(report.getLast().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getLast().getScheduledDate())
+            .isEqualTo(DateTimeUtils.formatDate(otherBooking.getScheduledFor()));
     }
 
     @DisplayName("Find audits relating to playbacks from the portal and return a report")
