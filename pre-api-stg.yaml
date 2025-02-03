@@ -291,28 +291,41 @@ definitions:
     description: CompletedCaptureSessionReportDTO
     properties:
       case_reference:
-        description: CompletedCaptureSessionReportCaseReference
+        description: ReportCaseReference
         type: string
-      count_defendants:
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendant:
         description: CompletedCaptureSessionReportDefendantCount
         format: int32
         type: integer
-      count_witnesses:
-        description: CompletedCaptureSessionReportWitnessCount
-        format: int32
-        type: integer
-      court:
-        description: CompletedCaptureSessionReportCourtName
+      defendant_names:
+        description: CompletedCaptureSessionReportDefendantNames
         type: string
-      duration:
-        description: CompletedCaptureSessionReportDuration
+      finish_time:
+        description: CompletedCaptureSessionReportFinishTime
         type: string
-      finished_at:
-        description: CompletedCaptureSessionReportFinishedAt
-        format: date-time
+      postcode:
+        description: ReportPostcode
         type: string
-      recording_status:
-        description: CompletedCaptureSessionReportRecordingStatus
+      recording_date:
+        description: CompletedCaptureSessionReportRecordingDate
+        type: string
+      recording_time:
+        description: CompletedCaptureSessionReportRecordingTime
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: CompletedCaptureSessionReportScheduledDate
+        type: string
+      status:
+        description: CompletedCaptureSessionReportStatus
         enum:
           - STANDBY
           - INITIALISING
@@ -322,19 +335,15 @@ definitions:
           - FAILURE
           - NO_RECORDING
         type: string
-      regions:
-        description: CompletedCaptureSessionReportRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      scheduled_for:
-        description: CompletedCaptureSessionReportBookingScheduledFor
-        format: date-time
+      timezone:
+        description: CompletedCaptureSessionReportTimezone
         type: string
-      started_at:
-        description: CompletedCaptureSessionReportStartedAt
-        format: date-time
+      witness:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      witness_names:
+        description: CompletedCaptureSessionReportWitnessNames
         type: string
     type: object
   ConcurrentCaptureSessionReportDTO:
@@ -833,25 +842,29 @@ definitions:
     description: EditReportDTO
     properties:
       case_reference:
-        description: EditReportCaseReference
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
         type: string
       court:
-        description: EditReportCourtName
+        description: ReportCourt
         type: string
-      created_at:
-        description: EditReportEditCreatedAt
-        format: date-time
+      edit_date:
+        description: EditReportEditDate
         type: string
-      recording_id:
-        description: EditReportRecordingId
-        format: uuid
+      edit_time:
+        description: EditReportEditTime
         type: string
-      regions:
-        description: EditReportRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      timezone:
+        description: EditReportEditTimezone
+        type: string
       version:
         description: EditReportRecordingVersion
         format: int32
@@ -1680,21 +1693,24 @@ definitions:
     description: RecordingsPerCaseReportDTO
     properties:
       case_reference:
-        description: RecordingsPerCaseCaseReference
+        description: ReportCaseReference
         type: string
       count:
         description: RecordingsPerCaseCount
         format: int32
         type: integer
-      court:
-        description: RecordingsPerCaseCourt
+      county:
+        description: ReportCounty
         type: string
-      regions:
-        description: RecordingsPerCaseRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
+      court:
+        description: ReportCourt
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
     type: object
   RegionDTO:
     description: RegionDTO
@@ -1737,28 +1753,29 @@ definitions:
   ScheduleReportDTO:
     description: ScheduleReportDTO
     properties:
-      booking_created_at:
-        description: ScheduleReportBookingCreatedAt
-        format: date-time
-        type: string
-      capture_session_user:
-        description: ScheduleReportUserEmail
-        type: string
       case_reference:
-        description: ScheduleReportCaseReference
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
         type: string
       court:
-        description: ScheduleReportCourtName
+        description: ReportCourt
         type: string
-      regions:
-        description: ScheduleReportCourtRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      scheduled_for:
-        description: ScheduleReportStartedAt
-        format: date-time
+      date_of_booking:
+        description: ScheduleReportBookingCreatedAt
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: ScheduleReportStartedDate
+        type: string
+      user:
+        description: ScheduleReportUserEmail
         type: string
     type: object
   ShareBookingDTO:
@@ -1801,6 +1818,12 @@ definitions:
         type: string
       organisation_shared_with:
         description: SharedReportOrganisationAllocatedTo
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
         type: string
       postcode:
         description: ReportPostcode
