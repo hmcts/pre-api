@@ -114,20 +114,30 @@ public class ReportControllerTest {
     @Test
     void reportEditsSuccess() throws Exception  {
         var reportItem = new EditReportDTO();
-        reportItem.setCreatedAt(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setEditDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setEditTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setVersion(2);
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example Court");
-        reportItem.setRegions(Set.of());
-        reportItem.setRecordingId(UUID.randomUUID());
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Somewhere");
 
         when(reportService.reportEdits()).thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/edits"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].edit_date").value(reportItem.getEditDate()))
+            .andExpect(jsonPath("$[0].edit_time").value(reportItem.getEditTime()))
+            .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
             .andExpect(jsonPath("$[0].version").value(reportItem.getVersion()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
     }
 
     @DisplayName("Should get a report containing a list of details relating to shared bookings")
