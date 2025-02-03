@@ -336,13 +336,13 @@ definitions:
     description: ConcurrentCaptureSessionReportDTO
     properties:
       case_reference:
-        description: CaptureSessionCaseReference
+        description: ReportCaseReference
         type: string
       county:
-        description: CaptureSessionCourtCounty
+        description: ReportCounty
         type: string
       court:
-        description: CaptureSessionCourtName
+        description: ReportCourt
         type: string
       date:
         description: CaptureSessionStartDate
@@ -354,10 +354,10 @@ definitions:
         description: CaptureSessionEndTime
         type: string
       postcode:
-        description: CaptureSessionCourtPostcode
+        description: ReportPostcode
         type: string
       region:
-        description: CaptureSessionRegionName
+        description: ReportRegion
         type: string
       start_time:
         description: CaptureSessionStartTime
