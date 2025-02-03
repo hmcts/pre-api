@@ -404,9 +404,7 @@ public class ReportServiceIT extends IntegrationTestBase {
                                                int expectedCount) {
         assertThat(report.getCaseReference()).isEqualTo(aCase.getReference());
         assertThat(report.getCourt()).isEqualTo(court.getName());
-        assertThat(report.getRegions().size()).isEqualTo(1);
-        assertThat(report.getRegions().stream().findFirst().get().getName())
-            .isEqualTo(region.getName());
+        assertThat(report.getRegion()).isEqualTo(region.getName());
         assertThat(report.getCount()).isEqualTo(expectedCount);
     }
 
