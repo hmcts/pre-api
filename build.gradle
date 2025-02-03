@@ -305,7 +305,7 @@ dependencies {
 
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.4.0'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.5.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.6.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.6:all'
