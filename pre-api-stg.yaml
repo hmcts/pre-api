@@ -336,13 +336,13 @@ definitions:
     description: ConcurrentCaptureSessionReportDTO
     properties:
       case_reference:
-        description: CaptureSessionCaseReference
+        description: ReportCaseReference
         type: string
       county:
-        description: CaptureSessionCourtCounty
+        description: ReportCounty
         type: string
       court:
-        description: CaptureSessionCourtName
+        description: ReportCourt
         type: string
       date:
         description: CaptureSessionStartDate
@@ -354,10 +354,10 @@ definitions:
         description: CaptureSessionEndTime
         type: string
       postcode:
-        description: CaptureSessionCourtPostcode
+        description: ReportPostcode
         type: string
       region:
-        description: CaptureSessionRegionName
+        description: ReportRegion
         type: string
       start_time:
         description: CaptureSessionStartTime
@@ -1521,28 +1521,32 @@ definitions:
       case_reference:
         description: PlaybackReportCaseReference
         type: string
-      court:
-        description: PlaybackReportCourt
+      county:
+        description: PlaybackReportCounty
         type: string
-      playback_at:
-        description: PlaybackReportPlaybackAt
-        format: date-time
+      court_name:
+        description: PlaybackReportCourtName
         type: string
-      recording_id:
-        description: PlaybackReportRecordingId
-        format: uuid
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      playback_time_zone:
+        description: PlaybackReportTimeZone
+        type: string
+      postcode:
+        description: PlaybackReportPostcode
         type: string
       regions:
         description: PlaybackReportRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      user_email:
-        description: PlaybackReportUserEmail
         type: string
-      user_full_name:
-        description: PlaybackReportUserFullName
+      user:
+        description: PlaybackReportUser
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
         type: string
     type: object
   PortalAccessDTO:
