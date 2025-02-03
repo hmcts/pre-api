@@ -336,24 +336,32 @@ public class ReportControllerTest {
     @Test
     void reportAccessRemoved() throws Exception {
         var reportItem = new AccessRemovedReportDTO();
-        reportItem.setRemovedAt(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setRemovedDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setRemovedTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setRemovedTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example court");
-        reportItem.setRegions(Set.of());
-        reportItem.setUserFullName("Example Person");
+        reportItem.setCounty("Kent");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Somewhere");
+        reportItem.setFullName("Example Person");
         reportItem.setUserEmail("example@example.com");
-        reportItem.setRemovalReason("Example reason");
 
         when(reportService.reportAccessRemoved()).thenReturn(List.of(reportItem));
 
         mockMvc.perform(get("/reports/share-bookings-removed"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].removed_date").value(reportItem.getRemovedDate()))
+            .andExpect(jsonPath("$[0].removed_time").value(reportItem.getRemovedTime()))
+            .andExpect(jsonPath("$[0].removed_timezone").value(reportItem.getRemovedTimezone()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
-            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
-            .andExpect(jsonPath("$[0].removal_reason").value(reportItem.getRemovalReason()));
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].full_name").value(reportItem.getFullName()))
+            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()));
     }
 
     @DisplayName("Should get a report containing a list of playback data for source 'PORTAL'")
