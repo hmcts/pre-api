@@ -31,6 +31,9 @@ public class SharedReportDTO extends BaseReportDTO {
     @Schema(description = "SharedReportSharedWithFullName")
     private String sharedWithFullName;
 
+    @Schema(description = "SharedReportOrganisationAllocatedTo")
+    private String organisationSharedWith;
+
     @Schema(description = "SharedReportGrantedBy")
     private String grantedBy;
 
@@ -45,6 +48,8 @@ public class SharedReportDTO extends BaseReportDTO {
 
         sharedWith = shareBooking.getSharedWith().getEmail();
         sharedWithFullName = shareBooking.getSharedWith().getFullName();
+        organisationSharedWith = shareBooking.getSharedWith().getOrganisation();
+
         grantedBy = shareBooking.getSharedBy().getEmail();
         grantedByFullName = shareBooking.getSharedBy().getFullName();
     }

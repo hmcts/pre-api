@@ -90,10 +90,11 @@ public class ReportService {
         UUID courtId,
         UUID bookingId,
         UUID sharedWithId,
-        String sharedWithEmail
+        String sharedWithEmail,
+        boolean onlyActive
     ) {
         return shareBookingRepository
-            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail)
+            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail, onlyActive)
             .stream()
             .sorted(Comparator.comparing(ShareBooking::getCreatedAt))
             .map(SharedReportDTO::new)

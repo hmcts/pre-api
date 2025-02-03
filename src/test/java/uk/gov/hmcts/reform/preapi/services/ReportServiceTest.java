@@ -257,10 +257,10 @@ public class ReportServiceTest {
         sharedBooking2.setSharedWith(shareWith);
         sharedBooking2.setSharedBy(shareBy);
 
-        when(shareBookingRepository.searchAll(null, null, null, null))
+        when(shareBookingRepository.searchAll(null, null, null, null, false))
             .thenReturn(List.of(sharedBooking1, sharedBooking2));
 
-        var report = reportService.reportShared(null, null, null, null);
+        var report = reportService.reportShared(null, null, null, null, false);
 
         assertThat(report.size()).isEqualTo(2);
 
