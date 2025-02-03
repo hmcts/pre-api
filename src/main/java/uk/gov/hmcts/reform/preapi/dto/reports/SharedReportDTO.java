@@ -49,6 +49,7 @@ public class SharedReportDTO extends BaseReportDTO {
         sharedWith = shareBooking.getSharedWith().getEmail();
         sharedWithFullName = shareBooking.getSharedWith().getFullName();
         organisationSharedWith = shareBooking.getSharedWith().getOrganisation();
+
         grantedBy = shareBooking.getSharedBy().getEmail();
         grantedByFullName = shareBooking.getSharedBy().getFullName();
     }

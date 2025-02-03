@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,12 +15,18 @@ import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.Region;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
-import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
@@ -31,6 +38,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import static org.mockito.Mockito.times;
@@ -55,6 +63,11 @@ public class ReportControllerTest {
 
     @MockBean
     private ScheduledTaskRunner taskRunner;
+
+    @BeforeAll
+    static void setUp() {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 
     @DisplayName("Should get a report containing a list of concurrent capture sessions")
     @Test
@@ -86,7 +99,9 @@ public class ReportControllerTest {
         var reportItem = new RecordingsPerCaseReportDTO();
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example Court");
-        reportItem.setRegions(Set.of());
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Example Region");
         reportItem.setCount(2);
 
         when(reportService.reportRecordingsPerCase()).thenReturn(List.of(reportItem));
@@ -94,6 +109,10 @@ public class ReportControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()))
             .andExpect(jsonPath("$[0].count").value(reportItem.getCount()));
     }
 
@@ -101,20 +120,30 @@ public class ReportControllerTest {
     @Test
     void reportEditsSuccess() throws Exception  {
         var reportItem = new EditReportDTO();
-        reportItem.setCreatedAt(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setEditDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setEditTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setVersion(2);
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example Court");
-        reportItem.setRegions(Set.of());
-        reportItem.setRecordingId(UUID.randomUUID());
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Somewhere");
 
         when(reportService.reportEdits()).thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/edits"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].edit_date").value(reportItem.getEditDate()))
+            .andExpect(jsonPath("$[0].edit_time").value(reportItem.getEditTime()))
+            .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
             .andExpect(jsonPath("$[0].version").value(reportItem.getVersion()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
     }
 
     @DisplayName("Should get a report containing a list of details relating to shared bookings")
@@ -161,7 +190,6 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
 
-
         verify(reportService, times(1)).reportShared(courtId, null, null, null, false);
     }
 
@@ -173,6 +201,7 @@ public class ReportControllerTest {
 
         when(reportService.reportShared(null, searchId, null, null, false))
             .thenReturn(List.of(reportItem));
+
         mockMvc.perform(get("/reports/shared-bookings")
                             .param("bookingId", searchId.toString()))
             .andExpect(status().isOk())
@@ -218,6 +247,7 @@ public class ReportControllerTest {
 
         when(reportService.reportShared(null, null, null, reportItem.getSharedWith(), false))
             .thenReturn(List.of(reportItem));
+      
         mockMvc.perform(get("/reports/shared-bookings")
                             .param("sharedWithEmail", reportItem.getSharedWith()))
             .andExpect(status().isOk())
@@ -229,6 +259,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].shared_with_full_name").value(reportItem.getSharedWithFullName()))
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
+
 
         verify(reportService, times(1)).reportShared(null, null, null, reportItem.getSharedWith(), false);
     }
@@ -260,79 +291,109 @@ public class ReportControllerTest {
     @Test
     void reportScheduledSuccess() throws Exception {
         var reportItem = new ScheduleReportDTO();
-        reportItem.setScheduledFor(Timestamp.from(Instant.now()));
-        reportItem.setBookingCreatedAt(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setScheduledDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setCaseReference("ABC123");
-        reportItem.setCaptureSessionUser("example@example.com");
-        reportItem.setCourt("Example court");
-        reportItem.setRegions(Set.of());
+        reportItem.setCourt("Example Court");
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Example Region");
+        reportItem.setDateOfBooking(DateTimeUtils.formatDate(timestamp));
+        reportItem.setUser("example@example.com");
 
         when(reportService.reportScheduled()).thenReturn(List.of(reportItem));
-
         mockMvc.perform(get("/reports/schedules"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].scheduled_date").value(reportItem.getScheduledDate()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].capture_session_user").value(reportItem.getCaptureSessionUser()));
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()))
+            .andExpect(jsonPath("$[0].date_of_booking").value(reportItem.getDateOfBooking()))
+            .andExpect(jsonPath("$[0].user").value(reportItem.getUser()));
     }
 
     @DisplayName("Should get a report containing a list of completed capture sessions (with available recordings)")
     @Test
     void reportCompletedCaptureSessions() throws Exception {
         var reportItem = new CompletedCaptureSessionReportDTO();
-        reportItem.setStartedAt(Timestamp.from(Instant.now()));
-        reportItem.setFinishedAt(Timestamp.from(Instant.now()));
-        reportItem.setDuration(Duration.ofMinutes(3L));
-        reportItem.setScheduledFor(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setRecordingDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setRecordingTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setFinishTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
+        reportItem.setScheduledDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setCaseReference("ABC123");
-        reportItem.setCountDefendants(1);
-        reportItem.setCountWitnesses(5);
-        reportItem.setRecordingStatus(RecordingStatus.RECORDING_AVAILABLE);
+        reportItem.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        reportItem.setDefendantNames("Defendant Name");
+        reportItem.setDefendant(1);
+        reportItem.setWitnessNames("Witness Name");
+        reportItem.setWitness(1);
         reportItem.setCourt("Example Court");
-        reportItem.setRegions(Set.of());
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Example Region");
 
         when(reportService.reportCompletedCaptureSessions()).thenReturn(List.of(reportItem));
 
         mockMvc.perform(get("/reports/completed-capture-sessions"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].duration").value(reportItem.getDuration().toString()))
+            .andExpect(jsonPath("$[0].recording_date").value(reportItem.getRecordingDate()))
+            .andExpect(jsonPath("$[0].recording_time").value(reportItem.getRecordingTime()))
+            .andExpect(jsonPath("$[0].finish_time").value(reportItem.getFinishTime()))
+            .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
+            .andExpect(jsonPath("$[0].scheduled_date").value(reportItem.getScheduledDate()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].count_defendants").value(reportItem.getCountDefendants()))
-            .andExpect(jsonPath("$[0].count_witnesses").value(reportItem.getCountWitnesses()))
-            .andExpect(jsonPath("$[0].recording_status").value(reportItem.getRecordingStatus().toString()))
-            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()));
+            .andExpect(jsonPath("$[0].status").value(reportItem.getStatus().toString()))
+            .andExpect(jsonPath("$[0].defendant_names").value(reportItem.getDefendantNames()))
+            .andExpect(jsonPath("$[0].defendant").value(reportItem.getDefendant()))
+            .andExpect(jsonPath("$[0].witness_names").value(reportItem.getWitnessNames()))
+            .andExpect(jsonPath("$[0].witness").value(reportItem.getWitness()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
     }
 
     @DisplayName("Should get a report containing a list of share booking removals with case and user details")
     @Test
     void reportAccessRemoved() throws Exception {
         var reportItem = new AccessRemovedReportDTO();
-        reportItem.setRemovedAt(Timestamp.from(Instant.now()));
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setRemovedDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setRemovedTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setRemovedTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example court");
-        reportItem.setRegions(Set.of());
-        reportItem.setUserFullName("Example Person");
+        reportItem.setCounty("Kent");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Somewhere");
+        reportItem.setFullName("Example Person");
         reportItem.setUserEmail("example@example.com");
-        reportItem.setRemovalReason("Example reason");
 
         when(reportService.reportAccessRemoved()).thenReturn(List.of(reportItem));
 
         mockMvc.perform(get("/reports/share-bookings-removed"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$[0].removed_date").value(reportItem.getRemovedDate()))
+            .andExpect(jsonPath("$[0].removed_time").value(reportItem.getRemovedTime()))
+            .andExpect(jsonPath("$[0].removed_timezone").value(reportItem.getRemovedTimezone()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
-            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
-            .andExpect(jsonPath("$[0].removal_reason").value(reportItem.getRemovalReason()));
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].full_name").value(reportItem.getFullName()))
+            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()));
     }
 
     @DisplayName("Should get a report containing a list of playback data for source 'PORTAL'")
     @Test
     void reportPlaybackPortalSuccess() throws Exception {
-        var reportItem = createPlaybackReport();
+        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
 
         when(reportService.reportPlayback(AuditLogSource.PORTAL)).thenReturn(List.of(reportItem));
 
@@ -340,11 +401,16 @@ public class ReportControllerTest {
                             .param("source", "PORTAL"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
-            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
+            .andExpect(jsonPath("$[0].playback_date").value("01/01/2025"))
+            .andExpect(jsonPath("$[0].playback_time").value("00:00:00"))
+            .andExpect(jsonPath("$[0].playback_time_zone").value("GMT"))
+            .andExpect(jsonPath("$[0].user").value(reportItem.getUser()))
+            .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+            .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+            .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+            .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+            .andExpect(jsonPath("$[0].regions").value(reportItem.getRegions()));
 
         verify(reportService, times(1)).reportPlayback(AuditLogSource.PORTAL);
     }
@@ -352,19 +418,24 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for source 'APPLICATION'")
     @Test
     void reportPlaybackApplicationSuccess() throws Exception {
-        var reportItem = createPlaybackReport();
+        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-07-01 00:00:00"));
 
         when(reportService.reportPlayback(AuditLogSource.APPLICATION)).thenReturn(List.of(reportItem));
 
         mockMvc.perform(get("/reports/playback")
                             .param("source", "APPLICATION"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
-            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
-            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$[0].playback_date").value("01/07/2025"))
+               .andExpect(jsonPath("$[0].playback_time").value("01:00:00"))
+               .andExpect(jsonPath("$[0].playback_time_zone").value("BST"))
+               .andExpect(jsonPath("$[0].user").value(reportItem.getUser()))
+               .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
+               .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+               .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+               .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+               .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+               .andExpect(jsonPath("$[0].regions").value(reportItem.getRegions()));
 
         verify(reportService, times(1)).reportPlayback(AuditLogSource.APPLICATION);
     }
@@ -372,55 +443,92 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of playback data for no source")
     @Test
     void reportPlaybackAllSuccess() throws Exception {
-        var reportItem = createPlaybackReport();
+        var reportItem = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
 
         when(reportService.reportPlayback(null)).thenReturn(List.of(reportItem));
 
         mockMvc.perform(get("/reports/playback"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
-            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
-            .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
-            .andExpect(jsonPath("$[0].recording_id").value(reportItem.getRecordingId().toString()));
+               .andExpect(status().isOk())
+               .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+               .andExpect(jsonPath("$[0].playback_date").value("01/01/2025"))
+               .andExpect(jsonPath("$[0].playback_time").value("00:00:00"))
+               .andExpect(jsonPath("$[0].playback_time_zone").value("GMT"))
+               .andExpect(jsonPath("$[0].user").value(reportItem.getUser()))
+               .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
+               .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+               .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+               .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
+               .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
+               .andExpect(jsonPath("$[0].regions").value(reportItem.getRegions()));
 
         verify(reportService, times(1)).reportPlayback(null);
     }
 
-    @DisplayName("Should get a report containing a list of participants and their related recordings")
-    @Test
-    void reportRecordingParticipantsSuccess() throws Exception {
-        var dto = new RecordingParticipantsReportDTO();
-        dto.setParticipantName("Participant Name");
-        dto.setParticipantType(ParticipantType.WITNESS);
-        dto.setRecordedAt(Timestamp.from(Instant.now()));
-        dto.setCourtName("Court Name");
-        dto.setCaseReference("1234567890");
-        dto.setRecordingId(UUID.randomUUID());
+    private PlaybackReportDTO createPlaybackReport(Timestamp createdAt) {
 
-        when(reportService.reportRecordingParticipants()).thenReturn(List.of(dto));
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setOrganisation("FooOrg");
+        user.setFirstName("Example");
+        user.setLastName("Person");
 
-        mockMvc.perform(get("/reports/recording-participants"))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(jsonPath("$[0].participant_name").value(dto.getParticipantName()))
-            .andExpect(jsonPath("$[0].participant_type").value(dto.getParticipantType().toString()))
-            .andExpect(jsonPath("$[0].court_name").value(dto.getCourtName()))
-            .andExpect(jsonPath("$[0].case_reference").value(dto.getCaseReference()))
-            .andExpect(jsonPath("$[0].recording_id").value(dto.getRecordingId().toString()));
+        var regionEntity = new Region();
+        regionEntity.setId(UUID.randomUUID());
+        regionEntity.setName("London");
+
+        var regionEntity2 = new Region();
+        regionEntity2.setId(UUID.randomUUID());
+        regionEntity2.setName("Manchester");
+
+        var courtEntity = new Court();
+        courtEntity.setId(UUID.randomUUID());
+        courtEntity.setName("Example Court");
+        courtEntity.setRegions(Set.of(regionEntity, regionEntity2));
+        courtEntity.setCounty("Kent");
+        courtEntity.setPostcode("AB1 2CD");
+
+        var recordingEntity = new Recording();
+        recordingEntity.setId(UUID.randomUUID());
+
+        var caseEntity = new Case();
+        caseEntity.setId(UUID.randomUUID());
+        caseEntity.setCourt(courtEntity);
+        caseEntity.setReference("ABC123");
+
+        var bookingEntity = new Booking();
+        bookingEntity.setId(UUID.randomUUID());
+        bookingEntity.setCaseId(caseEntity);
+
+        var captureSessionEntity = new CaptureSession();
+        captureSessionEntity.setId(UUID.randomUUID());
+        captureSessionEntity.setBooking(bookingEntity);
+
+        recordingEntity.setCaptureSession(captureSessionEntity);
+
+        var auditEntity = new Audit();
+        auditEntity.setId(UUID.randomUUID());
+        auditEntity.setCreatedAt(createdAt);
+        auditEntity.setTableRecordId(recordingEntity.getId());
+
+        return new PlaybackReportDTO(auditEntity, user, null);
     }
 
-    private PlaybackReportDTO createPlaybackReport() {
-        return new PlaybackReportDTO(
-            Timestamp.from(Instant.now()),
-            "Example Person",
-            "example@example.com",
-            "CASE123456",
-            "Example Court",
-            Set.of(),
-            UUID.randomUUID()
-        );
+    private SharedReportDTO createSharedReport() {
+        var reportItem = new SharedReportDTO();
+        var timestamp = Timestamp.from(Instant.now());
+        reportItem.setShareDate(DateTimeUtils.formatDate(timestamp));
+        reportItem.setShareTime(DateTimeUtils.formatTime(timestamp));
+        reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
+        reportItem.setSharedWith("shared-with@example.com");
+        reportItem.setSharedWithFullName("Example One");
+        reportItem.setGrantedBy("shared-by@example.com");
+        reportItem.setGrantedByFullName("Example Two");
+        reportItem.setCaseReference("ABC123");
+        reportItem.setCourt("Example Court");
+        reportItem.setCounty("Example County");
+        reportItem.setPostcode("AB1 2CD");
+        reportItem.setRegion("Example Region");
+        return reportItem;
     }
 
     private SharedReportDTO createSharedReport() {
