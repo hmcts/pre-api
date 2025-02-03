@@ -616,28 +616,29 @@ public class ReportServiceTest {
         defendant.setCaseId(caseEntity);
 
         bookingEntity.setParticipants(Set.of(witness, defendant));
+        bookingEntity.setScheduledFor(Timestamp.from(Instant.now()));
 
         when(recordingRepository.findAllByParentRecordingIsNull()).thenReturn(List.of(recordingEntity));
 
         var report = reportService.reportCompletedCaptureSessions();
 
-        assertThat(report.getFirst().getStartedAt()).isEqualTo(captureSessionEntity.getStartedAt());
-        assertThat(report.getFirst().getFinishedAt()).isEqualTo(captureSessionEntity.getFinishedAt());
-        assertThat(report.getFirst().getDuration()).isEqualTo(recordingEntity.getDuration());
-        assertThat(report.getFirst().getScheduledFor()).isEqualTo(bookingEntity.getScheduledFor());
-        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCountDefendants()).isEqualTo(1);
-        assertThat(report.getFirst().getCountWitnesses()).isEqualTo(1);
-        assertThat(report.getFirst().getRecordingStatus()).isEqualTo(captureSessionEntity.getStatus());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        var first = report.getFirst();
+        assertThat(first.getRecordingDate()).isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getStartedAt()));
+        assertThat(first.getRecordingTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getStartedAt()));
+        assertThat(first.getFinishTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getFinishedAt()));
+        assertThat(first.getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(captureSessionEntity.getStartedAt()));
+        assertThat(first.getScheduledDate()).isEqualTo(DateTimeUtils.formatDate(bookingEntity.getScheduledFor()));
+        assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(first.getStatus()).isEqualTo(captureSessionEntity.getStatus());
+        assertThat(first.getDefendantNames()).isEqualTo(defendant.getFullName());
+        assertThat(first.getDefendant()).isEqualTo(1);
+        assertThat(first.getWitnessNames()).isEqualTo(witness.getFullName());
+        assertThat(first.getWitness()).isEqualTo(1);
+        assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find all share booking removals and return a report")
