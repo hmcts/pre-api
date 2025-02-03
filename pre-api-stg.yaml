@@ -1825,12 +1825,6 @@ definitions:
       region:
         description: ReportRegion
         type: string
-      postcode:
-        description: ReportPostcode
-        type: string
-      region:
-        description: ReportRegion
-        type: string
       share_date:
         description: SharedReportShareDate
         type: string
