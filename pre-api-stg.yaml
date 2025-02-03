@@ -28,29 +28,34 @@ definitions:
     description: AccessRemovedReportDTO
     properties:
       case_reference:
-        description: AccessRemovedReportCaseReference
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
         type: string
       court:
-        description: AccessRemovedReportCourtName
+        description: ReportCourt
         type: string
-      regions:
-        description: AccessRemovedReportRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      removal_reason:
-        description: AccessRemovedReportRemovalReason
+      full_name:
+        description: AccessRemovedReportUserFullName
         type: string
-      removed_at:
-        description: AccessRemovedReportRemovedAt
-        format: date-time
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      removed_date:
+        description: AccessRemovedReportRemovedDate
+        type: string
+      removed_time:
+        description: AccessRemovedReportRemovedTime
+        type: string
+      removed_timezone:
+        description: AccessRemovedReportRemovedTimezone
         type: string
       user_email:
         description: AccessRemovedReportUserEmail
-        type: string
-      user_full_name:
-        description: AccessRemovedReportUserFullName
         type: string
     type: object
   AssetDTO:
@@ -1521,28 +1526,32 @@ definitions:
       case_reference:
         description: PlaybackReportCaseReference
         type: string
-      court:
-        description: PlaybackReportCourt
+      county:
+        description: PlaybackReportCounty
         type: string
-      playback_at:
-        description: PlaybackReportPlaybackAt
-        format: date-time
+      court_name:
+        description: PlaybackReportCourtName
         type: string
-      recording_id:
-        description: PlaybackReportRecordingId
-        format: uuid
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      playback_time_zone:
+        description: PlaybackReportTimeZone
+        type: string
+      postcode:
+        description: PlaybackReportPostcode
         type: string
       regions:
         description: PlaybackReportRegions
-        items:
-          $ref: '#/definitions/RegionDTO'
-        type: array
-        uniqueItems: true
-      user_email:
-        description: PlaybackReportUserEmail
         type: string
-      user_full_name:
-        description: PlaybackReportUserFullName
+      user:
+        description: PlaybackReportUser
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
         type: string
     type: object
   PortalAccessDTO:

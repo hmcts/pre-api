@@ -10,10 +10,8 @@ import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
-import java.sql.Timestamp;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
@@ -25,42 +23,55 @@ import javax.annotation.Nullable;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class PlaybackReportDTO {
 
-    @Schema(description = "PlaybackReportPlaybackAt")
-    private Timestamp playbackAt;
+    @Schema(description = "PlaybackReportPlaybackDate")
+    private String playbackDate;
 
-    @Schema(description = "PlaybackReportUserFullName")
-    private String userFullName;
+    @Schema(description = "PlaybackReportPlaybackTime")
+    private String playbackTime;
 
-    @Schema(description = "PlaybackReportUserEmail")
-    private String userEmail;
+    @Schema(description = "PlaybackReportTimeZone")
+    private String playbackTimeZone;
+
+    @Schema(description = "PlaybackReportUser")
+    private String user;
+
+    @Schema(description = "PlaybackReportUserOrganisation")
+    private String userOrganisation;
 
     @Schema(description = "PlaybackReportCaseReference")
     private String caseReference;
 
-    @Schema(description = "PlaybackReportCourt")
-    private String court;
+    @Schema(description = "PlaybackReportCourtName")
+    private String courtName;
+
+    @Schema(description = "PlaybackReportCounty")
+    private String county;
+
+    @Schema(description = "PlaybackReportPostcode")
+    private String postcode;
 
     @Schema(description = "PlaybackReportRegions")
-    private Set<RegionDTO> regions;
-
-    @Schema(description = "PlaybackReportRecordingId")
-    private UUID recordingId;
+    private String regions;
 
     public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
-        playbackAt = audit.getCreatedAt();
+        playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());
+        playbackTimeZone = DateTimeUtils.getTimezoneAbbreviation(audit.getCreatedAt());
+        playbackTime = DateTimeUtils.formatTime(audit.getCreatedAt());
         if (user != null) {
-            userFullName = user.getFullName();
-            userEmail = user.getEmail();
+            this.user = user.getFullName();
+            userOrganisation = user.getOrganisation();
         }
         if (recording != null) {
             var caseEntity = recording.getCaptureSession().getBooking().getCaseId();
             var courtEntity = caseEntity.getCourt();
-            court = courtEntity.getName();
             caseReference = caseEntity.getReference();
+            courtName = courtEntity.getName();
+            county = courtEntity.getCounty();
+            postcode = courtEntity.getPostcode();
             regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
-                .flatMap(regions -> regions.stream().map(RegionDTO::new))
-                .collect(Collectors.toSet());
-            recordingId = recording.getId();
+                            .flatMap(regions -> regions.stream().map(RegionDTO::new))
+                            .map(RegionDTO::getName)
+                            .collect(Collectors.joining(", "));
         }
     }
 }
