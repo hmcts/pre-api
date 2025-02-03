@@ -271,22 +271,20 @@ public class ReportServiceTest {
 
         assertThat(report.size()).isEqualTo(2);
 
-        assertThat(report.getFirst().getSharedAt()).isEqualTo(sharedBooking2.getCreatedAt());
-        assertThat(report.getFirst().getAllocatedTo()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
-        assertThat(report.getFirst().getAllocatedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
+        assertThat(report.getFirst().getShareDate()).isEqualTo(DateTimeUtils.formatDate(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getShareTime()).isEqualTo(DateTimeUtils.formatTime(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getSharedWith()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
+        assertThat(report.getFirst().getGrantedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
-        assertThat(report.getFirst().getBookingId()).isEqualTo(sharedBooking2.getBooking().getId());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
 
-        assertThat(report.getLast().getSharedAt()).isEqualTo(sharedBooking1.getCreatedAt());
+        assertThat(report.getLast().getShareDate()).isEqualTo(DateTimeUtils.formatDate(sharedBooking1.getCreatedAt()));
+        assertThat(report.getLast().getShareTime()).isEqualTo(DateTimeUtils.formatTime(sharedBooking1.getCreatedAt()));
+        assertThat(report.getLast().getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(sharedBooking1.getCreatedAt()));
     }
 
     @DisplayName("Find all capture sessions with recording available and get report on booking details")

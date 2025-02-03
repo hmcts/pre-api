@@ -95,9 +95,9 @@ public class ReportService {
         return shareBookingRepository
             .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail)
             .stream()
+            .sorted(Comparator.comparing(ShareBooking::getCreatedAt))
             .map(SharedReportDTO::new)
-            .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))
-            .toList();
+            .collect(Collectors.toList());
     }
 
     @Transactional
