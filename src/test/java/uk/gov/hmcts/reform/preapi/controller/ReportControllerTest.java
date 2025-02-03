@@ -247,7 +247,7 @@ public class ReportControllerTest {
 
         when(reportService.reportShared(null, null, null, reportItem.getSharedWith(), false))
             .thenReturn(List.of(reportItem));
-      
+
         mockMvc.perform(get("/reports/shared-bookings")
                             .param("sharedWithEmail", reportItem.getSharedWith()))
             .andExpect(status().isOk())
@@ -511,24 +511,6 @@ public class ReportControllerTest {
         auditEntity.setTableRecordId(recordingEntity.getId());
 
         return new PlaybackReportDTO(auditEntity, user, null);
-    }
-
-    private SharedReportDTO createSharedReport() {
-        var reportItem = new SharedReportDTO();
-        var timestamp = Timestamp.from(Instant.now());
-        reportItem.setShareDate(DateTimeUtils.formatDate(timestamp));
-        reportItem.setShareTime(DateTimeUtils.formatTime(timestamp));
-        reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
-        reportItem.setSharedWith("shared-with@example.com");
-        reportItem.setSharedWithFullName("Example One");
-        reportItem.setGrantedBy("shared-by@example.com");
-        reportItem.setGrantedByFullName("Example Two");
-        reportItem.setCaseReference("ABC123");
-        reportItem.setCourt("Example Court");
-        reportItem.setCounty("Example County");
-        reportItem.setPostcode("AB1 2CD");
-        reportItem.setRegion("Example Region");
-        return reportItem;
     }
 
     private SharedReportDTO createSharedReport() {
