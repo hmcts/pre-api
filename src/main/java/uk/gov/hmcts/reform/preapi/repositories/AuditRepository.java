@@ -16,8 +16,10 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
     @Query(
         """
         SELECT a FROM Audit a
-        WHERE a.activity != 'Recording Playback ended'
-        AND CAST(FUNCTION('jsonb_extract_path_text', a.auditDetails, 'description') as text) ILIKE '%playback%'
+        WHERE (
+            a.activity != 'Recording Playback ended'
+            AND CAST(FUNCTION('jsonb_extract_path_text', a.auditDetails, 'description') as text) ILIKE '%playback%'
+        ) OR a.activity = 'Play'
         """
     )
     List<Audit> findAllAccessAttempts();
