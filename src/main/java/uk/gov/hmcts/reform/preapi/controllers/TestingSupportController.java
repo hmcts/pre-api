@@ -45,6 +45,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -54,6 +55,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
@@ -73,6 +76,7 @@ class TestingSupportController {
     private final AppAccessRepository appAccessRepository;
     private final TermsAndConditionsRepository termsAndConditionsRepository;
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
+    private final ScheduledTaskRunner scheduledTaskRunner;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -84,10 +88,11 @@ class TestingSupportController {
                              final RegionRepository regionRepository,
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
-                             RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository,
-                             TermsAndConditionsRepository termsAndConditionsRepository,
-                             UserTermsAcceptedRepository userTermsAcceptedRepository) {
+                             final RoleRepository roleRepository,
+                             final AppAccessRepository appAccessRepository,
+                             final TermsAndConditionsRepository termsAndConditionsRepository,
+                             final UserTermsAcceptedRepository userTermsAcceptedRepository,
+                             final ScheduledTaskRunner scheduledTaskRunner) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -101,6 +106,7 @@ class TestingSupportController {
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
+        this.scheduledTaskRunner = scheduledTaskRunner;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -393,6 +399,17 @@ class TestingSupportController {
         return ResponseEntity.ok(new BookingDTO(booking));
     }
 
+    @PostMapping(value = "/trigger-task/{taskName}")
+    public ResponseEntity<Void> triggerTask(@PathVariable String taskName) {
+        final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
+        var task = scheduledTaskRunner.getTask(beanName);
+        if (task == null) {
+            throw new NotFoundException("Task: " + taskName);
+        }
+        task.run();
+
+        return ResponseEntity.noContent().build();
+    }
 
     private Court createTestCourt() {
         var court = new Court();
