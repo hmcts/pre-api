@@ -130,7 +130,13 @@ public class StartLiveEvents extends RobotUserTask {
                 Thread.sleep(2000);
                 var liveEvents = mediaService.getLiveEvents();
                 startingCaptureSessions = startingCaptureSessions.stream()
-                    .filter(id -> !tryGetIngestAddress(id, liveEvents))
+                    .filter(id -> {
+                        var result = tryGetIngestAddress(id, liveEvents);
+                        if (result) {
+                            log.info("Ingest address obtained for capture session {}", id);
+                        }
+                        return !result;
+                    })
                     .toList();
             } while (!startingCaptureSessions.isEmpty());
         } catch (Exception e) {
