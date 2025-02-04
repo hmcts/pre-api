@@ -333,6 +333,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should return the capture session when successfully started the live event")
@@ -352,6 +353,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw not found error when live event cannot be found after creation")
@@ -370,6 +372,7 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 409 error when asset already exists")
@@ -391,6 +394,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 409 error when live output already exists")
@@ -413,6 +417,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 404 error when creating a live output but cannot find live event")
@@ -435,6 +440,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 404 error when attempting to start live event that cannot be found (after setup)")
@@ -457,6 +463,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @Test
@@ -477,7 +484,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
         verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(mockClient, never()).putAsset(any(), any());
-
     }
 
     @Test

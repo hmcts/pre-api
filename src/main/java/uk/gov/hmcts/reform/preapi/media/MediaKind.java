@@ -417,6 +417,7 @@ public class MediaKind implements IMediaService {
         createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
+        assertStreamingLocatorExists(captureSession.getId());
     }
 
     private void startLiveEvent(String liveEventName) {
