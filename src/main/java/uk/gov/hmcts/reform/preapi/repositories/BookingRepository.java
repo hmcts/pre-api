@@ -38,6 +38,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                     b.caseId.reference ILIKE %:reference%
                 )
                 AND
+                 (
+                     :includeDeleted = TRUE OR
+                     b.deletedAt IS NULL
+                 )
+                AND
                 (
                     CAST(:caseId as uuid) IS NULL OR
                     b.caseId.id = :caseId
@@ -102,6 +107,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("authorisedBookings") List<UUID> authorisedBookings,
         @Param("authCourtId") UUID authCourtId,
         @Param("hasRecordings") Boolean hasRecordings,
+        @Param("includeDeleted") Boolean includeDeleted,
         @Param("statuses") List<RecordingStatus> statuses,
         @Param("notStatuses") List<RecordingStatus> notStatuses,
         Pageable pageable
