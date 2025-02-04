@@ -305,6 +305,8 @@ dependencies {
 
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.4.0'
 
+  implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
+
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.6.Final')
 
 

@@ -21,6 +21,7 @@ java:
     MEDIA_SERVICE: MediaKind
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
+    ENABLE_NEW_EMAIL_SERVICE: true
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}

@@ -4,15 +4,24 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.Application;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
+import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = Application.class)
 public abstract class IntegrationTestBase {
+
+    @MockBean
+    protected EmailServiceFactory emailServiceFactory;
+
+    @MockBean
+    protected ShareBookingService shareBookingService;
 
     @Autowired
     protected EntityManager entityManager;
@@ -36,7 +45,11 @@ public abstract class IntegrationTestBase {
 
     @AfterEach
     void tearDown() {
-        entityManager.clear();
-        entityManager.flush();
+        try {
+            entityManager.clear();
+            entityManager.flush();
+        } catch (Exception ignored) {
+            // ignored
+        }
     }
 }
