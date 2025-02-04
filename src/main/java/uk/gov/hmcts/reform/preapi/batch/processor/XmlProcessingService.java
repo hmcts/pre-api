@@ -36,18 +36,18 @@ public class XmlProcessingService {
      */
     public void processXmlAndWriteCsv(String containerName, String outputDir) {
         try {
-            List<String> blobNames = azureBlobService.fetchBlobNames(containerName);
+            List<String> blobNames = azureBlobService.fetchBlobNames(containerName, "dev");
             List<List<String>> allDataRows = new ArrayList<>();
 
             for (String blobName : blobNames) {
-                InputStream inputStream = azureBlobService.fetchSingleXmlBlob(containerName, blobName).getInputStream();
+                InputStream inputStream = azureBlobService.fetchSingleXmlBlob(containerName,"dev", blobName).getInputStream();
                 List<List<String>> dataRows = parseXmlFromBlob(inputStream);
                 allDataRows.addAll(dataRows);
             }
 
             if (!allDataRows.isEmpty()) {
                 csvWriterService.writeToCsv(
-                    List.of("archive_name", "create_time", "duration"), 
+                    List.of("archive_name", "create_time", "duration","file_name"), 
                     allDataRows, 
                     "Archive_List", 
                     outputDir, 
@@ -81,8 +81,20 @@ public class XmlProcessingService {
                 String displayName = eElement.getElementsByTagName("DisplayName").item(0).getTextContent();
                 String creatTime = eElement.getElementsByTagName("CreatTime").item(0).getTextContent();
                 String duration = eElement.getElementsByTagName("Duration").item(0).getTextContent();
-                List<String> row = List.of(displayName, creatTime, duration);
-                dataRows.add(row);
+
+                NodeList mp4List = eElement.getElementsByTagName("MP4FileGrp");
+                if (mp4List.getLength() > 0) {
+                    Element mp4Element = (Element) mp4List.item(0);
+                    NodeList mp4Files = mp4Element.getElementsByTagName("MP4File");
+                    for (int j = 0; j < mp4Files.getLength(); j++) {
+                        Element fileElement = (Element) mp4Files.item(j);
+                        String fileName = fileElement.getElementsByTagName("Name").item(0).getTextContent();
+                        if (fileName.endsWith(".mp4") && fileName.startsWith("0x1e")) {
+                            List<String> row = List.of(displayName, creatTime, duration, fileName);
+                            dataRows.add(row);
+                        }
+                    }
+                }
             }
         }
         return dataRows;

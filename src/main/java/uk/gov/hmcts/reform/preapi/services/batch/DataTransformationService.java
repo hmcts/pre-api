@@ -7,6 +7,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
+import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
@@ -14,6 +15,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,17 +26,21 @@ import java.util.logging.Logger;
 @Service
 public class DataTransformationService {
 
+    private static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown");
     private final RedisTemplate<String, Object> redisTemplate; 
+    private final RedisService redisService;
     private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
     
     @Autowired
     public DataTransformationService(
         RedisTemplate<String, Object> redisTemplate,
+        RedisService redisService,
         DataExtractionService extractionService,
         CourtRepository courtRepository
     ) {
         this.redisTemplate = redisTemplate;
+        this.redisService = redisService;
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
     }
@@ -42,17 +48,19 @@ public class DataTransformationService {
     /**
      * Main method for transforming archive list data.
      * @param archiveItem The archive list data to transform.
-     * @param sitesDataMap Mapping of court references to full court names.
      * @param channelUserDataMap Mapping of archive names to user data.
      * @return A map containing cleansed data or an error message.
      */
-    public Map<String, Object> transformArchiveListData(
+    public TransformationResult transformArchiveListData(
         CSVArchiveListData archiveItem,
-        Map<String, String> sitesDataMap,
         Map<String, List<String[]>> channelUserDataMap
     ) {
-        
         try {
+            Map<String, String> sitesDataMap = redisService.getHashAll("sites_data", String.class, String.class);
+            if (sitesDataMap == null || sitesDataMap.isEmpty()) {
+                throw new IllegalStateException("Sites data not found in Redis");
+            }
+
             UUID courtId = extractCourtId(archiveItem, sitesDataMap);
             Court fullCourt = fetchCourt(courtId);
             Timestamp recordingTimestamp = getRecordingTimestamp(archiveItem);
@@ -75,38 +83,43 @@ public class DataTransformationService {
         Court court,
         Map<String, List<String[]>> channelUserDataMap,
         Timestamp recordingTimestamp
-    ) {
-        List<String[]> userEmailList = getUsersAndEmails(archiveItem, channelUserDataMap);
-        List<Map<String, String>> shareBookingContacts = populateShareBookingContacts(userEmailList);
-  
-        String recordingVersion = extractionService.extractRecordingVersion(archiveItem);
-        int recordingVersionNumber = "ORIG".equalsIgnoreCase(recordingVersion) ? 1 : 2;
-        String recordingVersionNumberStr = extractionService.extractRecordingVersionNumber(archiveItem);
-        recordingVersionNumberStr = (
-            recordingVersionNumberStr == null || recordingVersionNumberStr.isEmpty()) 
-                ? "1" : recordingVersionNumberStr;
+        ) {
 
-        CaseState caseState = (shareBookingContacts != null && !shareBookingContacts.isEmpty()) 
-            ? CaseState.OPEN : CaseState.CLOSED;
+        Map<String, String> extracted = extractCommonFields(archiveItem);
 
+        //  Extract user emails and build share booking contacts
+        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem, channelUserDataMap);
+
+        // Extract recording version details
+        String versionType = extracted.get("recordingVersion");
+        String currentVersionNumber = getCurrentVersionNumber(archiveItem);
+
+        currentVersionNumber = (
+            currentVersionNumber == null || currentVersionNumber.isEmpty()) 
+                ? "1" : currentVersionNumber;
+
+        CaseState caseState = (!shareBookingContacts.isEmpty()) ? CaseState.OPEN : CaseState.CLOSED;
+        TestItem testCheckResult = checkIsTest(archiveItem);
 
         return new CleansedData.Builder()
             .setCourt(court)
             .setRecordingTimestamp(recordingTimestamp)
             .setDuration(Duration.ofSeconds(archiveItem.getDuration()))
-            .setCourtReference(extractionService.extractCourtReference(archiveItem))
-            .setUrn(extractionService.extractURN(archiveItem))
-            .setExhibitReference(extractionService.extractExhibitReference(archiveItem))
-            .setDefendantLastName(extractionService.extractDefendantLastName(archiveItem))
-            .setWitnessFirstName(extractionService.extractWitnessFirstName(archiveItem))
-            .setIsTest(checkIsTest(archiveItem).isTest())
-            .setIsMostRecentVersion(isMostRecentVersion(archiveItem))
-            .setTestCheckResult(checkIsTest(archiveItem))
+            .setCourtReference(extracted.get("courtReference"))
+            .setUrn(extracted.get("urn"))
+            .setExhibitReference(extracted.get("exhibitReference"))
+            .setCaseReference(buildCaseReference(extracted.get("urn"),extracted.get("exhibitReference")))
+            .setDefendantLastName(extracted.get("defendantLastName"))
+            .setWitnessFirstName(extracted.get("witnessFirstName"))
+            .setIsTest(testCheckResult.isTest())
+            .setTestCheckResult(testCheckResult)
+            .setIsMostRecentVersion(isMostRecentVersion(archiveItem, versionType, currentVersionNumber))
             .setState(caseState)
-            .setFileExtension(extractionService.extractFileExtension(archiveItem))
-            .setRecordingVersion(recordingVersion)
-            .setRecordingVersionNumberStr(recordingVersionNumberStr)
-            .setRecordingVersionNumber(recordingVersionNumber)
+            .setFileExtension(extracted.get("fileExtension"))
+            .setFileName(archiveItem.getFileName())
+            .setRecordingVersion(versionType)
+            .setRecordingVersionNumberStr(currentVersionNumber)
+            .setRecordingVersionNumber(determineRecordingVersionNumber(versionType))
             .setShareBookingContacts(shareBookingContacts)
             .build();
     }
@@ -114,7 +127,7 @@ public class DataTransformationService {
     // ======================
     // Court Handling Methods
     // ======================
-
+    
     private UUID extractCourtId(CSVArchiveListData archiveItem, Map<String, String> sitesDataMap) {
         String courtReference = extractionService.extractCourtReference(archiveItem);
         if (courtReference.isEmpty()) {
@@ -122,9 +135,9 @@ public class DataTransformationService {
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
-        String courtIdString = (String) redisTemplate.opsForValue().get("batch-preprocessor:court:" + fullCourtName);
+        String courtIdString = (String) (redisService.getHashValue("vf:court:", fullCourtName, String.class));
 
-        if (courtIdString != null) {
+        if (courtIdString != null ) {
             try {
                 return UUID.fromString(courtIdString);
             } catch (IllegalArgumentException e) {
@@ -164,15 +177,16 @@ public class DataTransformationService {
     // ============================
 
     public TestItem checkIsTest(CSVArchiveListData archiveItem) {
+        String lowerName = archiveItem.getArchiveName().toLowerCase();
         StringBuilder reasons = new StringBuilder();
 
-        if (containsTestKeyWord(archiveItem.getArchiveName(), "test")) {
-            reasons.append("Archive name contains 'test'. ");
-        } else if (containsTestKeyWord(archiveItem.getArchiveName(), "demo")) {
-            reasons.append("Archive name contains 'demo'. ");
-        } else if (containsTestKeyWord(archiveItem.getArchiveName(), "unknown")) {
-            reasons.append("Archive name contains 'unknown'. ");
-        } else if (archiveItem.getDuration() < 10) {
+        for (String keyword : TEST_KEYWORDS){
+            if(lowerName.contains(keyword)){
+                reasons.append("Archive name contains '").append(keyword).append("'. ");
+            }
+        }
+
+        if (archiveItem.getDuration() < 10) {
             reasons.append("Duration is less than 10 seconds. ");
         }
 
@@ -181,44 +195,27 @@ public class DataTransformationService {
             : new TestItem(false, "No test related criteria met.");
     }
 
-    public boolean isMostRecentVersion(CSVArchiveListData archiveItem) {
+    public boolean isMostRecentVersion(CSVArchiveListData archiveItem, String versionType, String currentVersionNumber) {
         try {
-            String key = String.format("metadataPreprocess:%s-%s-%s",
-                extractionService.extractURN(archiveItem),
-                extractionService.extractDefendantLastName(archiveItem),
-                extractionService.extractWitnessFirstName(archiveItem));
+            // Build the Redis key
+            String redisKey = buildMetadataPreprocessKey(archiveItem);
 
-            Map<Object, Object> rawMap = redisTemplate.opsForHash().entries(key);
-            if (rawMap.isEmpty()) {
+            // Fetch existing metadata
+            Map<String, String> existingData = redisService.getHashAll(redisKey, String.class, String.class);
+            if(existingData.isEmpty()){
                 return false;
             }
 
-            Map<String, String> existingData = new HashMap<>();
-            for (Map.Entry<Object, Object> entry : rawMap.entrySet()) {
-                existingData.put((String) entry.getKey(), (String) entry.getValue());
-            }
+            // Determine version recency
+            return evaluateRecency(versionType, currentVersionNumber, existingData);
 
-            String versionType = extractionService.extractRecordingVersion(archiveItem);
-            String currentVersionNumberStr = extractionService.extractRecordingVersionNumber(archiveItem);
-            currentVersionNumberStr = (currentVersionNumberStr == null 
-                || currentVersionNumberStr.isEmpty()) ? "1" : currentVersionNumberStr;
-
-            if ("ORIG".equalsIgnoreCase(versionType)) {
-                String highestOrigVersionStr = existingData.get("origVersionNumber");
-                return highestOrigVersionStr == null 
-                    || compareVersionStrings(currentVersionNumberStr, highestOrigVersionStr) >= 0;
-            } else if ("COPY".equalsIgnoreCase(versionType)) {
-                String highestCopyVersionStr = existingData.get("copyVersionNumber");
-                return highestCopyVersionStr == null 
-                    || compareVersionStrings(currentVersionNumberStr, highestCopyVersionStr) >= 0;
-            } else {
-                Logger.getAnonymousLogger().warning("Unsupported version type: " + versionType);
-            }
         } catch (Exception e) {
             Logger.getAnonymousLogger().warning("Error in isMostRecentVersion: " + e.getMessage());
         }
         return false;
     }
+
+    
 
     private List<String[]> getUsersAndEmails(
         CSVArchiveListData archiveItem, 
@@ -227,7 +224,7 @@ public class DataTransformationService {
     ) {
         String key = archiveItem.getArchiveNameNoExt(); 
         List<String[]> channelDataList = channelUserDataMap.get(key);
-        List<String[]> userEmailList = new ArrayList<>(); // Initialize the list to return
+        List<String[]> userEmailList = new ArrayList<>(); 
 
         if (channelDataList != null) {
             for (String[] channelDataArray : channelDataList) {
@@ -257,49 +254,116 @@ public class DataTransformationService {
         return contactsList;
     }
 
-    private boolean containsTestKeyWord(String value, String criteria) {
-        return value != null && value.toLowerCase().contains(criteria);
-    }
-
     // =========================
     // Response Creation Methods
     // =========================
 
-    private Map<String, Object> createErrorResponse(String errorMessage) {
-        Map<String, Object> errorResponse = new HashMap<>();
-        errorResponse.put("cleansedData", null);
-        errorResponse.put("errorMessage", errorMessage);
+    private TransformationResult createErrorResponse(String errorMessage) {
+        TransformationResult errorResponse = new TransformationResult(null, errorMessage);
         return errorResponse;
     }
 
-    private Map<String, Object> createSuccessResponse(CleansedData cleansedData) {
-        Map<String, Object> successResponse = new HashMap<>();
-        successResponse.put("cleansedData", cleansedData);
-        successResponse.put("errorMessage", null);
+    private TransformationResult createSuccessResponse(CleansedData cleansedData) {
+        TransformationResult successResponse = new TransformationResult(cleansedData, null);
         return successResponse;
     }
 
+    // =========================
+    // Helper Methos
+    // =========================    
+
+    private List<Map<String,String>> buildShareBookingContacts(
+        CSVArchiveListData archiveItem,
+        Map<String, List<String[]>> channelUserDataMap
+    ) {
+        List<String[]> userEmailList = getUsersAndEmails(archiveItem, channelUserDataMap);
+        return populateShareBookingContacts(userEmailList);
+    }
+
+    private Map<String, String> extractCommonFields(CSVArchiveListData archiveItem) {
+        Map<String, String> fields = new HashMap<>();
+        fields.put("courtReference", extractionService.extractCourtReference(archiveItem));
+        fields.put("urn", extractionService.extractURN(archiveItem));
+        fields.put("exhibitReference", extractionService.extractExhibitReference(archiveItem));
+        fields.put("defendantLastName", extractionService.extractDefendantLastName(archiveItem));
+        fields.put("witnessFirstName", extractionService.extractWitnessFirstName(archiveItem));
+        fields.put("fileExtension", extractionService.extractFileExtension(archiveItem));
+        fields.put("recordingVersion", extractionService.extractRecordingVersion(archiveItem));
+        fields.put("recordingVersionNumber", extractionService.extractRecordingVersionNumber(archiveItem));
+        return fields;
+    }
+
+    /* 
+    * Extracts the recording version from the archive item.
+    */
+    private String buildMetadataPreprocessKey(CSVArchiveListData archiveItem) {
+        return String.format("metadataPreprocess:%s-%s-%s",
+            extractionService.extractURN(archiveItem),
+            extractionService.extractDefendantLastName(archiveItem),
+            extractionService.extractWitnessFirstName(archiveItem)
+        );
+    }
+
+    
+    private int determineRecordingVersionNumber(String recordingVersion) {
+        return "ORIG".equalsIgnoreCase(recordingVersion) ? 1 : 2;
+    }
     
     // =========================
     // Utility Methods
     // =========================
 
+    private String getCurrentVersionNumber(CSVArchiveListData archiveItem) {
+        String versionNumberStr = extractionService.extractRecordingVersionNumber(archiveItem);
+        return (versionNumberStr == null || versionNumberStr.isEmpty()) ? "1" : versionNumberStr;
+    }
+
+    private boolean evaluateRecency(
+        String versionType, 
+        String currentVersionNumber, 
+        Map<String, String> existingData
+    ) {
+        switch (versionType.toUpperCase()) {
+            case "ORIG":
+                return isOrigMostRecent(currentVersionNumber, existingData);
+
+            case "COPY":
+                return isCopyMostRecent(currentVersionNumber, existingData);
+
+            default:
+                Logger.getAnonymousLogger().warning("Unsupported version type: " + versionType);
+                return false;
+        }
+    }
+
+    private boolean isOrigMostRecent(String currentVersionNumber, Map<String, String> existingData) {
+        String highestOrigVersionStr = existingData.get("origVersionNumber");
+        return highestOrigVersionStr == null
+            || compareVersionStrings(currentVersionNumber, highestOrigVersionStr) >= 0;
+    }
+
+    private boolean isCopyMostRecent(String currentVersionNumber, Map<String, String> existingData) {
+        String highestCopyVersionStr = existingData.get("copyVersionNumber");
+        return highestCopyVersionStr == null
+            || compareVersionStrings(currentVersionNumber, highestCopyVersionStr) >= 0;
+    }
+
     public boolean isOriginalVersion(CleansedData cleansedItem) {
         return "ORIG".equalsIgnoreCase(cleansedItem.getRecordingVersion());
     }
 
-    public String buildCaseReference(CleansedData cleansedItem) {
+    public String buildCaseReference(String urn, String exhibitRef) {
         StringBuilder referenceBuilder = new StringBuilder();
         
-        if (cleansedItem.getUrn() != null && !cleansedItem.getUrn().isEmpty()) {
-            referenceBuilder.append(cleansedItem.getUrn());
+        if (urn!= null && !urn.isEmpty()) {
+            referenceBuilder.append(urn);
         }
         
-        if (cleansedItem.getExhibitReference() != null && !cleansedItem.getExhibitReference().isEmpty()) {
+        if (exhibitRef != null && !exhibitRef.isEmpty()) {
             if (referenceBuilder.length() > 0) {
                 referenceBuilder.append("-");
             }
-            referenceBuilder.append(cleansedItem.getExhibitReference());
+            referenceBuilder.append(exhibitRef);
         }
         
         return referenceBuilder.toString();

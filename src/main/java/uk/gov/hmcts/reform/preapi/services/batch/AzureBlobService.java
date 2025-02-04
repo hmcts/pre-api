@@ -1,5 +1,8 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
+import com.azure.core.http.policy.HttpLogDetailLevel;
+import com.azure.core.http.policy.HttpLogOptions;
+import com.azure.core.http.policy.HttpLoggingPolicy;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
@@ -10,25 +13,54 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 import java.util.List;
 import java.util.logging.Logger;
+
 
 @Service
 public class AzureBlobService {
 
-    private final BlobServiceClient blobServiceClient;
+    private Map<String, BlobServiceClient> clients = new HashMap<>();
+
 
     @Autowired
-    public AzureBlobService(@Value("${azure.storage.connectionString}") String connectionString) {
-        this.blobServiceClient = new BlobServiceClientBuilder()
-            .connectionString(connectionString)
-            .buildClient();
+    public AzureBlobService(@Value("${azure.storage.connectionString}") String devConnectionString,
+                            @Value("${azure.ingestStorage.connectionString}") String ingestStgConnectionString,
+                            @Value("${azure.finalStorage.connectionString}") String finalStgConnectionString) {
+        
+        HttpLogOptions logOptions = new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS);
+
+        clients.put("dev", new BlobServiceClientBuilder()
+                            .connectionString(devConnectionString)
+                            .httpLogOptions(logOptions)
+                            .addPolicy(new HttpLoggingPolicy(logOptions))
+                            .buildClient());
+        clients.put("stagingIngest", new BlobServiceClientBuilder()
+                            .connectionString(ingestStgConnectionString)
+                            .httpLogOptions(logOptions)
+                            .addPolicy(new HttpLoggingPolicy(logOptions))
+                            .buildClient());
+        clients.put("stagingFinal", new BlobServiceClientBuilder()
+                            .connectionString(finalStgConnectionString)
+                            .httpLogOptions(logOptions)
+                            .addPolicy(new HttpLoggingPolicy(logOptions))
+                            .buildClient());
     }
 
-    public void listBlobs(String containerName) {
+    private BlobServiceClient getClient(String environment) {
+        return clients.get(environment);
+    }
+
+    public void listBlobs(String containerName, String environment) {
         try {
-            BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+            BlobContainerClient containerClient = getClient(environment).getBlobContainerClient(containerName);
 
             if (!containerClient.exists()) {
                 Logger.getAnonymousLogger().warning("AzureBlobFetcher: Container does not exist - " + containerName);
@@ -40,10 +72,10 @@ public class AzureBlobService {
         }
     }
 
-    public List<String> fetchBlobNames(String containerName) {
+    public List<String> fetchBlobNames(String containerName, String environment) {
         List<String> blobNames = new ArrayList<>();
 
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+        BlobContainerClient containerClient = getClient(environment).getBlobContainerClient(containerName);
 
         for (BlobItem blobItem : containerClient.listBlobs()) {
             String blobName = blobItem.getName();
@@ -55,9 +87,9 @@ public class AzureBlobService {
         return blobNames;
     }
 
-    public InputStreamResource fetchSingleXmlBlob(String containerName, String blobName) {
+    public InputStreamResource fetchSingleXmlBlob(String containerName, String environment, String blobName) {
         try {
-            BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+            BlobContainerClient containerClient = getClient(environment).getBlobContainerClient(containerName);
             BlobClient blobClient = containerClient.getBlobClient(blobName);
 
             if (!blobClient.exists()) {
@@ -72,9 +104,9 @@ public class AzureBlobService {
         }
     }
 
-    public List<String> fetchBlobNamesPaginated(String containerName, int offset, int limit) {
+    public List<String> fetchBlobNamesPaginated(String containerName, String environment, int offset, int limit) {
         List<String> paginatedBlobNames = new ArrayList<>();
-        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+        BlobContainerClient containerClient = getClient(environment).getBlobContainerClient(containerName);
 
         if (!containerClient.exists()) {
             Logger.getAnonymousLogger().warning("Container does not exist: " + containerName);
@@ -97,6 +129,22 @@ public class AzureBlobService {
         }
 
         return paginatedBlobNames;
+    }
+
+    public boolean uploadBlob(String localFileName, String containerName, String environment, String uploadFileName) {
+        Logger.getAnonymousLogger().info("File to updload at: "+ localFileName + " - " + containerName + " - " + environment + " - " + uploadFileName);
+
+        try {
+            var file = new File(localFileName);
+            var containerClient = getClient(environment).createBlobContainerIfNotExists(containerName);
+            var blobClient = containerClient.getBlobClient(uploadFileName);
+            blobClient.upload(new FileInputStream(file), file.length(), true);
+            Logger.getAnonymousLogger().info("Successfully uploaded to ingest storage: " + containerName + uploadFileName);
+            return true;
+        } catch (IOException e) {
+            Logger.getAnonymousLogger().warning("Failed to upload to ingest storage: " + containerName + uploadFileName + e);
+        }
+        return false;
     }
 
 }

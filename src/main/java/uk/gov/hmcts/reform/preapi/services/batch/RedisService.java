@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -124,5 +125,13 @@ public class RedisService {
         }
         return "caseParticipants:" + caseReference + "--" + participantPair;
     }
+
+    public void clearNamespaceKeys(String namespace) {
+        Set<String> keys = redisTemplate.keys(namespace + "*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+        }
+    }
+
 
 }

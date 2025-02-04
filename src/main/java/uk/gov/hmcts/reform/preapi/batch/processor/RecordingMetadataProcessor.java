@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
+import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
 import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
@@ -37,11 +38,11 @@ public class RecordingMetadataProcessor {
      */
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
-            Map<String, Object> transformationResult = transformationService.transformArchiveListData(
-                archiveItem, redisService.getHashAll("sites_data", String.class, String.class), new HashMap<>()
+            TransformationResult transformationResult = transformationService.transformArchiveListData(
+                archiveItem, new HashMap<>()
             );
 
-            CleansedData cleansedData = (CleansedData) transformationResult.get("cleansedData");
+            CleansedData cleansedData = (CleansedData) transformationResult.getCleansedData();
             String key = buildRedisKey(cleansedData);
             
             // Get existing metadata from Redis

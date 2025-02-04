@@ -106,7 +106,7 @@ public class BatchConfiguration implements StepExecutionListener {
             .next(createReadStep(
                 "archiveListDataStep", 
                 new ClassPathResource("batch/Archive_List.csv"), 
-                new String[]{"archive_name",  "create_time", "duration"},
+                new String[]{"archive_name",  "create_time", "duration","file_name"},
                  
                 CSVArchiveListData.class, 
                 true 
@@ -212,7 +212,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("preProcessMetadataStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
                 Resource resource = new ClassPathResource("batch/Archive_List.csv");
-                String[] fieldNames = {"archive_name",  "create_time", "duration"};
+                String[] fieldNames = {"archive_name",  "create_time", "duration","file_name"};
 
                 FlatFileItemReader<CSVArchiveListData> reader = csvReader.createReader(
                     resource, fieldNames, CSVArchiveListData.class

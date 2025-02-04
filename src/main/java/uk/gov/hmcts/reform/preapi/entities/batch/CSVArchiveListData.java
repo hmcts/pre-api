@@ -11,15 +11,17 @@ public class CSVArchiveListData {
     private String archiveName;
     private String createTime;
     private int duration;
+    private String fileName;
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public CSVArchiveListData() {
     }
 
-    public CSVArchiveListData(String archiveName, String createTime, int duration) {
+    public CSVArchiveListData(String archiveName, String createTime, int duration, String fileName) {
         this.archiveName = archiveName;
         this.createTime = createTime;
         this.duration = duration;
+        this.fileName = fileName;
     }
 
     public String getArchiveName() {
@@ -44,6 +46,14 @@ public class CSVArchiveListData {
 
     public void setDuration(int duration) {
         this.duration = duration;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 
     public String getArchiveNameNoExt() {

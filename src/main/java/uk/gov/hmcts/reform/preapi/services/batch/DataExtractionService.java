@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.services.batch;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-// import uk.gov.hmcts.reform.preapi.entities.batch.UnifiedArchiveData;
 import uk.gov.hmcts.reform.preapi.util.batch.RegexPatterns;
 
 import java.util.LinkedHashMap;

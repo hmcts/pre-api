@@ -31,6 +31,7 @@ public class CleansedData {
     private boolean isTest;
     private boolean isMostRecentVersion;
     private String fileExtension;
+    private String fileName;
     private TestItem testCheckResult;
     private List<Map<String, String>> shareBookingContacts;
     
@@ -53,6 +54,7 @@ public class CleansedData {
         this.isTest = builder.isTest;
         this.isMostRecentVersion = builder.isMostRecentVersion;
         this.fileExtension = builder.fileExtension;
+        this.fileName = builder.fileName;
         this.testCheckResult = builder.testCheckResult;
         this.shareBookingContacts = builder.shareBookingContacts;
     }
@@ -130,6 +132,10 @@ public class CleansedData {
         return fileExtension; 
     }
 
+    public String getFileName() { 
+        return fileName; 
+    }
+
     public Court getCourt() { 
         return court; 
     }
@@ -166,6 +172,7 @@ public class CleansedData {
             .add("isTest=" + isTest)
             .add("isMostRecentVersion=" + isMostRecentVersion)
             .add("fileExtension='" + fileExtension + "'")
+            .add("fileName='" + fileName + "'")
             .add("testCheckResult=" + testCheckResult)
             .add("shareBookingContacts=" + shareBookingContacts)
             .toString();
@@ -192,6 +199,7 @@ public class CleansedData {
         private boolean isTest;
         private boolean isMostRecentVersion;
         private String fileExtension;
+        private String fileName;
         private TestItem testCheckResult;
         private List<Map<String, String>> shareBookingContacts;
 
@@ -277,6 +285,11 @@ public class CleansedData {
 
         public Builder setFileExtension(String fileExtension) {
             this.fileExtension = fileExtension;
+            return this;
+        }
+
+        public Builder setFileName(String fileName) {
+            this.fileName = fileName;
             return this;
         }
 

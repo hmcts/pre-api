@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.services.batch;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -26,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @Service
 public class EntityCreationService {
@@ -65,7 +66,7 @@ public class EntityCreationService {
         Case aCase = new Case();
         aCase.setId(UUID.randomUUID());
         aCase.setCourt(cleansedData.getCourt());
-        aCase.setReference(transformationService.buildCaseReference(cleansedData));
+        aCase.setReference(cleansedData.getCaseReference());
         aCase.setTest(cleansedData.isTest());
         aCase.setCreatedAt(cleansedData.getRecordingTimestamp());
         aCase.setState(cleansedData.getState());
@@ -84,6 +85,14 @@ public class EntityCreationService {
         booking.setCaseId(acase);
         booking.setScheduledFor(cleansedData.getRecordingTimestamp());
         booking.setCreatedAt(cleansedData.getRecordingTimestamp());
+        // booking.setParticipants(acase.getParticipants().stream().map(p -> {
+        //     var createParticipant = new Participant();
+        //     createParticipant.setId(p.getId());
+        //     createParticipant.setFirstName(p.getFirstName());
+        //     createParticipant.setLastName(p.getLastName());
+        //     createParticipant.setParticipantType(p.getParticipantType());
+        //     return createParticipant;
+        // }).collect(Collectors.toSet()));
         return booking;
     }
 
@@ -130,6 +139,7 @@ public class EntityCreationService {
         Set<Participant> participants = new HashSet<>();
         participants.add(createParticipant(ParticipantType.WITNESS, acase, cleansedData.getWitnessFirstName(), ""));
         participants.add(createParticipant(ParticipantType.DEFENDANT, acase, "", cleansedData.getDefendantLastName()));
+        // acase.setParticipants(participants);
         return participants;
     }
 
@@ -181,7 +191,7 @@ public class EntityCreationService {
             shareBookings.add(shareBooking);
         }
         if (shareBookings.isEmpty() || sharedWithUsers.isEmpty()) {
-            Logger.getAnonymousLogger().info("No share bookings or users were created");
+            // Logger.getAnonymousLogger().info("No share bookings or users were created");
             return null;
         }
         results.add(shareBookings);
@@ -206,7 +216,7 @@ public class EntityCreationService {
         if (userId != null) {
             return userRepository.findById(UUID.fromString(userId)).orElse(null);
         } else {
-            Logger.getAnonymousLogger().info("Creating new user ");
+            // Logger.getAnonymousLogger().info("Creating new user ");
             User newUser = new User();
             newUser.setId(UUID.randomUUID());
             newUser.setFirstName(contactInfo.getOrDefault("firstName", "Unknown"));
