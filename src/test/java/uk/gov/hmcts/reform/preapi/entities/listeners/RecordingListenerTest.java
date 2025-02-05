@@ -104,9 +104,6 @@ public class RecordingListenerTest {
         var recording = new Recording();
         recording.setCaptureSession(captureSession);
 
-        when(
-            shareBookingService.getSharesForCase(any())
-        ).thenReturn(Set.of(createShare()));
         when(emailServiceFactory.isEnabled()).thenReturn(true);
         var govNotify = mock(GovNotify.class);
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
@@ -126,6 +123,7 @@ public class RecordingListenerTest {
         share.setBooking(booking);
         when(caseEntity.getId()).thenReturn(UUID.randomUUID());
         when(booking.getCaseId()).thenReturn(caseEntity);
+        when(booking.getShares()).thenReturn(Set.of(share));
         var captureSession = mock(CaptureSession.class);
         when(booking.getCaptureSessions()).thenReturn(Set.of(captureSession));
         when(captureSession.getBooking()).thenReturn(booking);
@@ -133,9 +131,6 @@ public class RecordingListenerTest {
         var recording = new Recording();
         recording.setCaptureSession(captureSession);
 
-        when(
-            shareBookingService.getSharesForCase(any())
-        ).thenReturn(Set.of(share));
         when(emailServiceFactory.isEnabled()).thenReturn(true);
         var govNotify = mock(GovNotify.class);
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);

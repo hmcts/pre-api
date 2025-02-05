@@ -52,7 +52,8 @@ public class RecordingListener {
         }
 
         try {
-            var shares = shareBookingService.getSharesForCase(r.getCaptureSession().getBooking().getCaseId());
+
+            var shares = r.getCaptureSession().getBooking().getShares();
             var emailService = emailServiceFactory.getEnabledEmailService();
 
             shares.forEach(share -> {
