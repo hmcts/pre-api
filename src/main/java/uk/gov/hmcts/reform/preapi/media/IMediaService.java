@@ -33,4 +33,12 @@ public interface IMediaService {
     void cleanupStoppedLiveEvent(String liveEventId);
 
     void deleteAllStreamingLocatorsAndContentKeyPolicies();
+
+    String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen, UUID recordingId);
+
+    String triggerProcessingStep2(UUID recordingId);
+
+    RecordingStatus verifyFinalAssetExists(UUID recordingId);
+
+    RecordingStatus hasJobCompleted(String transformName, String jobName);
 }
