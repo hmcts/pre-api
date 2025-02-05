@@ -12,7 +12,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -168,9 +167,7 @@ public class ShareBookingService {
         if (emailServiceFactory.isEnabled()
             && Stream.ofNullable(s.getBooking().getCaptureSessions())
                      .flatMap(Set::stream)
-                     .filter(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))
-                     .map(CaptureSession::getRecordings)
-                     .anyMatch(r -> !r.isEmpty())) {
+                     .anyMatch(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))) {
 
             try {
                 log.info("onBookingShared: Booking({})", s.getBooking().getId());

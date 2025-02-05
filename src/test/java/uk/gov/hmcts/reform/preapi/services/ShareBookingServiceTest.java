@@ -12,7 +12,6 @@ import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -520,7 +519,6 @@ public class ShareBookingServiceTest {
 
         // add a capture session with recording to the booking entity
         var captureSession = new CaptureSession();
-        captureSession.setRecordings(Set.of(new Recording()));
         captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         bookingEntity.setCaptureSessions(Set.of(captureSession));
 
