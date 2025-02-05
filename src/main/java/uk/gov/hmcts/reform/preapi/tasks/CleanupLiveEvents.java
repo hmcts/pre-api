@@ -125,6 +125,7 @@ public class CleanupLiveEvents extends RobotUserTask {
             threadProcessLiveEventAssets.join();
         } catch (InterruptedException e) {
             log.error("Clean up live event thread interrupted", e);
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
 
@@ -148,6 +149,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                 Thread.sleep(jobPollingInterval);
             } catch (InterruptedException e) {
                 // Do nothing
+                Thread.currentThread().interrupt();
             }
 
             liveEventCleanupMap.entrySet()
