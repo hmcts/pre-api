@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
@@ -91,9 +92,9 @@ public class RecordingListenerTest {
         verify(emailServiceFactory, times(0)).getEnabledEmailService();
     }
 
-    @DisplayName("On Recording Created Email Service Enabled")
+    @DisplayName("On Recording Created Email Service Enabled No Email as no recording")
     @Test
-    void onRecordingCreatedEmailServiceEnabled() {
+    void onRecordingCreatedEmailServiceEnabledNoEmailNoRecording() {
         var captureSession = mock(CaptureSession.class);
         var booking = mock(Booking.class);
         var caseEntity = mock(Case.class);
@@ -106,6 +107,35 @@ public class RecordingListenerTest {
         when(
             shareBookingService.getSharesForCase(any())
         ).thenReturn(Set.of(createShare()));
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        var govNotify = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+
+        recordingListener.onRecordingCreated(recording);
+
+        verify(emailServiceFactory, times(1)).getEnabledEmailService();
+        verify(govNotify, times(0)).recordingReady(any(User.class), eq(caseEntity));
+    }
+
+    @DisplayName("On Recording Created Email Service Enabled")
+    @Test
+    void onRecordingCreatedEmailServiceEnabled() {
+        var booking = mock(Booking.class);
+        var caseEntity = mock(Case.class);
+        var share = createShare();
+        share.setBooking(booking);
+        when(caseEntity.getId()).thenReturn(UUID.randomUUID());
+        when(booking.getCaseId()).thenReturn(caseEntity);
+        var captureSession = mock(CaptureSession.class);
+        when(booking.getCaptureSessions()).thenReturn(Set.of(captureSession));
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(captureSession.getStatus()).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+        var recording = new Recording();
+        recording.setCaptureSession(captureSession);
+
+        when(
+            shareBookingService.getSharesForCase(any())
+        ).thenReturn(Set.of(share));
         when(emailServiceFactory.isEnabled()).thenReturn(true);
         var govNotify = mock(GovNotify.class);
         when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);

@@ -10,8 +10,12 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
+
+import java.util.Set;
+import java.util.stream.Stream;
 
 @Component
 @Slf4j
@@ -50,8 +54,15 @@ public class RecordingListener {
         try {
             var shares = shareBookingService.getSharesForCase(r.getCaptureSession().getBooking().getCaseId());
             var emailService = emailServiceFactory.getEnabledEmailService();
-            shares.forEach(share -> emailService.recordingReady(
-                share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId())
+
+            shares.forEach(share -> {
+                if (Stream.ofNullable(share.getBooking().getCaptureSessions())
+                      .flatMap(Set::stream)
+                      .anyMatch(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))) {
+                    emailService.recordingReady(
+                        share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId());
+                    }
+                }
             );
         } catch (Exception e) {
             log.error("Failed to notify users of recording ready for recording: " + r.getId());
