@@ -25,12 +25,14 @@ import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
+import uk.gov.hmcts.reform.preapi.services.batch.CsvWriterService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
 import uk.gov.hmcts.reform.preapi.services.batch.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
+import uk.gov.hmcts.reform.preapi.util.batch.RecordingUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -56,9 +58,12 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final DataValidationService validationService;
     private final MigrationTrackerService migrationTrackerService;
     private final CaseRepository caseRepository;
+    private final ReferenceDataProcessor referenceDataProcessor;
     private final RecordingMediaKindTransform recordingMediaKindTransform;
+    private final CsvWriterService csvWriterService;
+
     private final Map<String, Case> caseCache = new HashMap<>();
-    private final Map<String, List<String[]>> channelUserDataMap = new HashMap<>();
+    // private final Map<String, List<String[]>> channelUserDataMap = new HashMap<>();
     private final Map<String, Recording> origRecordingsMap = new HashMap<>();
 
     @Autowired
@@ -70,6 +75,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         DataValidationService validationService,
         RedisService redisService,
         CaseRepository caseRepository,
+        CsvWriterService csvWriterService,
+        ReferenceDataProcessor referenceDataProcessor,
         RecordingMediaKindTransform recordingMediaKindTransform,
         UserRepository userRepository,
         MigrationTrackerService migrationTrackerService
@@ -79,7 +86,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         this.entityCreationService = entityCreationService;
         this.transformationService = transformationService;
         this.validationService = validationService;
+        this.csvWriterService = csvWriterService;
         this.caseRepository = caseRepository;
+        this.referenceDataProcessor = referenceDataProcessor;
         this.recordingMediaKindTransform = recordingMediaKindTransform;
         this.migrationTrackerService = migrationTrackerService;
     }
@@ -104,29 +113,18 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     @Override
     public MigratedItemGroup process(Object item) throws Exception {
-        if (item instanceof CSVArchiveListData) {
-            return processArchiveListData((CSVArchiveListData) item);
-        } else if (item instanceof CSVSitesData) {
-            processSitesData((CSVSitesData) item);
-        } else if (item instanceof CSVChannelData) {
-            processChannelUserData((CSVChannelData) item);
+        if (item instanceof CSVArchiveListData ) {
+            return process((CSVArchiveListData) item);
+        } else if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
+            referenceDataProcessor.process(item);
+            return null;
         } else {
             Logger.getAnonymousLogger().severe("Unsuported item type: " + item.getClass().getName());
         }
         return null;
     }
 
-    private void processSitesData(CSVSitesData sitesItem) {
-        redisService.saveHashValue(REDIS_SITES_KEY, sitesItem.getSiteReference(), sitesItem.getSiteName());
-    }
-
-    private void processChannelUserData(CSVChannelData channelDataItem) {
-        channelUserDataMap
-            .computeIfAbsent(channelDataItem.getChannelName(), k -> new ArrayList<>())
-            .add(new String[]{channelDataItem.getChannelUser(), channelDataItem.getChannelUserEmail()});
-    }
-
-    private MigratedItemGroup processArchiveListData(CSVArchiveListData archiveItem) {
+    private MigratedItemGroup process(CSVArchiveListData archiveItem) {
         // 1. Transform Data
         CleansedData cleansedData;
         try {
@@ -137,11 +135,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             );
             return null;
         }
-
-        if (cleansedData == null){
-            return null;
-        }
-
        
         // 2. Check if already migrated
         boolean alreadyMigrated = redisService.hashKeyExists("vf:case:", cleansedData.getCaseReference());
@@ -155,13 +148,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (!validated){
             return null;
         } 
-       
 
         // 4. Extract Pattern from Archive
         String pattern ;
         pattern = extractPattern(archiveItem);
-    
-        
+
         // 5. Create Migrated Item Group
         try {
             return createMigratedItemGroup(pattern, archiveItem, cleansedData);
@@ -178,6 +169,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // Transformation and Validation
     // =========================
     private CleansedData transformArchiveData(CSVArchiveListData archiveItem) {
+        Map<String, List<String[]>> channelUserDataMap= referenceDataProcessor.getChannelUserDataMap();
+
         TransformationResult transformationResult = transformationService.transformArchiveListData(archiveItem, channelUserDataMap);
         String errorMessage = (String) transformationResult.getErrorMessage();
 
@@ -217,6 +210,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     // Entity Creation Logic
     // =========================
+    @SuppressWarnings("unchecked")
     private MigratedItemGroup createMigratedItemGroup(String pattern, 
         CSVArchiveListData archiveItem, CleansedData cleansedData) {
 
@@ -236,10 +230,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         List<ShareBooking> shareBookings = new ArrayList<>();
         List<User> users = new ArrayList<>();
         List<Object> shareBookingResult = entityCreationService.createShareBookings(cleansedData, booking);
-        // Logger.getAnonymousLogger().info("Share booking result :" + shareBookingResult);
-        // shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
-        // users = (List<User>) shareBookingResult.get(1);
         
+        if (shareBookingResult != null && shareBookingResult.size() == 2) {
+            shareBookings = (List<ShareBooking>) shareBookingResult.get(0);
+            users = (List<User>) shareBookingResult.get(1);
+        }
+        
+        // writeShareBookingUsersCsv(users);
+
         PassItem passItem = new PassItem(pattern, archiveItem.getArchiveName(), acase, 
             booking, captureSession, recording, participants, shareBookings, users);
         return new MigratedItemGroup(acase, booking, captureSession, recording, participants, 
@@ -254,12 +252,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return caseCache.get(caseReference);
         }
 
-        if (transformationService.isOriginalVersion(cleansedData)) {
-            Case newCase = entityCreationService.createCase(cleansedData);
-            caseCache.put(caseReference, newCase);
-            return newCase;
-        }
-        return null;
+        Case newCase = entityCreationService.createCase(cleansedData);
+        caseCache.put(caseReference, newCase);
+        return newCase;
+        
     }
 
     private Booking processBooking(String baseKey, CleansedData cleansedData, Case acase) {
@@ -308,12 +304,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private Recording determineParentRecording(CleansedData cleansedItem, Recording currentRecording) {
-        if (transformationService.isOriginalVersion(cleansedItem)) {
+        if (RecordingUtils.isOriginalVersion(cleansedItem)) {
+            Logger.getAnonymousLogger().info("This is an original and it's the parent recording" );
             currentRecording.setParentRecording(currentRecording);
             currentRecording.setVersion(1);
             origRecordingsMap.put(cleansedItem.getCaseReference(), currentRecording);
         } else {
             Recording parentRecording = origRecordingsMap.get(cleansedItem.getCaseReference());
+            Logger.getAnonymousLogger().info("This is NOT an original " + parentRecording );
             if (parentRecording != null) {
                 currentRecording.setParentRecording(parentRecording);
                 currentRecording.setVersion(2);
@@ -360,6 +358,31 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         captureSession.setStatus(captureSessionDTO.getStatus());
 
         return captureSession;
+    }
+
+    public void writeShareBookingUsersCsv(List<User> users) {
+        if (users == null || users.isEmpty()) {
+            return;
+        }
+        
+        List<String> headers = List.of(
+           "user_id","First Name", "Last Name","Email"
+        );
+
+        List<List<String>> rows = new ArrayList<>();
+        for (User user : users) {
+            List<String> row = List.of(
+                user.getId().toString(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getEmail()
+            );
+        rows.add(row);
+        }
+
+        String fileName = "Invited_Users";
+        String outputDir = "ZZZMigration Reports";
+        csvWriterService.writeToCsv(headers, rows, fileName, outputDir, true);
     }
 
 }

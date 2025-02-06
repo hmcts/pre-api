@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
+import uk.gov.hmcts.reform.preapi.util.batch.RecordingUtils;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -87,13 +88,10 @@ public class DataTransformationService {
 
         Map<String, String> extracted = extractCommonFields(archiveItem);
 
-        //  Extract user emails and build share booking contacts
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem, channelUserDataMap);
 
-        // Extract recording version details
         String versionType = extracted.get("recordingVersion");
-        String currentVersionNumber = getCurrentVersionNumber(archiveItem);
-
+        String currentVersionNumber = RecordingUtils.getCurrentVersionNumber(extractionService.extractRecordingVersionNumber(archiveItem));
         currentVersionNumber = (
             currentVersionNumber == null || currentVersionNumber.isEmpty()) 
                 ? "1" : currentVersionNumber;
@@ -119,7 +117,7 @@ public class DataTransformationService {
             .setFileName(archiveItem.getFileName())
             .setRecordingVersion(versionType)
             .setRecordingVersionNumberStr(currentVersionNumber)
-            .setRecordingVersionNumber(determineRecordingVersionNumber(versionType))
+            .setRecordingVersionNumber(RecordingUtils.determineRecordingVersionNumber(versionType))
             .setShareBookingContacts(shareBookingContacts)
             .build();
     }
@@ -207,7 +205,7 @@ public class DataTransformationService {
             }
 
             // Determine version recency
-            return evaluateRecency(versionType, currentVersionNumber, existingData);
+            return RecordingUtils.evaluateRecency(versionType, currentVersionNumber, existingData);
 
         } catch (Exception e) {
             Logger.getAnonymousLogger().warning("Error in isMostRecentVersion: " + e.getMessage());
@@ -305,52 +303,9 @@ public class DataTransformationService {
     }
 
     
-    private int determineRecordingVersionNumber(String recordingVersion) {
-        return "ORIG".equalsIgnoreCase(recordingVersion) ? 1 : 2;
-    }
-    
     // =========================
     // Utility Methods
     // =========================
-
-    private String getCurrentVersionNumber(CSVArchiveListData archiveItem) {
-        String versionNumberStr = extractionService.extractRecordingVersionNumber(archiveItem);
-        return (versionNumberStr == null || versionNumberStr.isEmpty()) ? "1" : versionNumberStr;
-    }
-
-    private boolean evaluateRecency(
-        String versionType, 
-        String currentVersionNumber, 
-        Map<String, String> existingData
-    ) {
-        switch (versionType.toUpperCase()) {
-            case "ORIG":
-                return isOrigMostRecent(currentVersionNumber, existingData);
-
-            case "COPY":
-                return isCopyMostRecent(currentVersionNumber, existingData);
-
-            default:
-                Logger.getAnonymousLogger().warning("Unsupported version type: " + versionType);
-                return false;
-        }
-    }
-
-    private boolean isOrigMostRecent(String currentVersionNumber, Map<String, String> existingData) {
-        String highestOrigVersionStr = existingData.get("origVersionNumber");
-        return highestOrigVersionStr == null
-            || compareVersionStrings(currentVersionNumber, highestOrigVersionStr) >= 0;
-    }
-
-    private boolean isCopyMostRecent(String currentVersionNumber, Map<String, String> existingData) {
-        String highestCopyVersionStr = existingData.get("copyVersionNumber");
-        return highestCopyVersionStr == null
-            || compareVersionStrings(currentVersionNumber, highestCopyVersionStr) >= 0;
-    }
-
-    public boolean isOriginalVersion(CleansedData cleansedItem) {
-        return "ORIG".equalsIgnoreCase(cleansedItem.getRecordingVersion());
-    }
 
     public String buildCaseReference(String urn, String exhibitRef) {
         StringBuilder referenceBuilder = new StringBuilder();
@@ -369,24 +324,6 @@ public class DataTransformationService {
         return referenceBuilder.toString();
     }
 
-    public static int compareVersionStrings(String v1, String v2) {
-        String[] v1Parts = v1.split("\\.");
-        String[] v2Parts = v2.split("\\.");
-
-        int length = Math.max(v1Parts.length, v2Parts.length);
-        for (int i = 0; i < length; i++) {
-            int v1Part = i < v1Parts.length ? Integer.parseInt(v1Parts[i]) : 0;
-            int v2Part = i < v2Parts.length ? Integer.parseInt(v2Parts[i]) : 0;
-
-            if (v1Part < v2Part) {
-                return -1;
-            }
-            if (v1Part > v2Part) {
-                return 1;
-            }
-        }
-        return 0;
-    }
 
 }
 

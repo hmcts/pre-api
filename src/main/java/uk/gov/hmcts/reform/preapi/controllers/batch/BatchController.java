@@ -18,15 +18,34 @@ public class BatchController {
 
     private final JobLauncher jobLauncher;
     private final Job importCsvJob;
+    private final Job fetchXmlJob;
 
     @Autowired
     public BatchController(JobLauncher jobLauncher,
-                           @Qualifier("importCsvJob") Job importCsvJob) {
+                           @Qualifier("importCsvJob") Job importCsvJob,
+                           @Qualifier("fetchXmlJob") Job fetchXmlJob) {
         this.jobLauncher = jobLauncher;
         this.importCsvJob = importCsvJob;
+        this.fetchXmlJob = fetchXmlJob;
     }
 
-    @PostMapping("/start")
+    @PostMapping("/startXml")
+    public ResponseEntity<String> startXmlBatch() {
+        try {   
+            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
+            jobParametersBuilder.addLong("time", System.currentTimeMillis()); 
+
+            jobLauncher.run(fetchXmlJob, jobParametersBuilder.toJobParameters());
+            Logger.getAnonymousLogger().info("Fetch XML batch job successfully started.");
+            return ResponseEntity.ok("Fetch XML batch job job has been started and processing data from all CSV files.");
+
+        } catch (Exception e) {
+            Logger.getAnonymousLogger().severe("Error starting fetch XML batch job: " + e.getMessage());
+            return ResponseEntity.status(500).body("Failed to start fetch XML batch job: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/startTransform")
     public ResponseEntity<String> startBatch() {
         try {   
             JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();

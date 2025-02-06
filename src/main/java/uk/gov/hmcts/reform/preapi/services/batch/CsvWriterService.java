@@ -30,7 +30,6 @@ public class CsvWriterService {
         String outputDir,
         boolean showTimestamp
     ) {
-        // Generate the file name
         Path outputPath = Paths.get(outputDir);
         if (!outputPath.toFile().exists()) {
             boolean dirCreated = outputPath.toFile().mkdirs();
@@ -44,9 +43,8 @@ public class CsvWriterService {
         String fileName = showTimestamp ? fileNamePrefix + "-" + timeStamp + ".csv" : fileNamePrefix + ".csv";
         Path filePath = outputPath.resolve(fileName);
 
-        // Write to the CSV file
         boolean fileExists = new File(fileName).exists();
-        try (FileWriter fileWriter = new FileWriter(filePath.toFile(), true)) {
+        try (FileWriter fileWriter = new FileWriter(filePath.toFile(), false)) {
             if (!fileExists) {
                 fileWriter.write(String.join(",", headers) + "\n");
             }

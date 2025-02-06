@@ -79,18 +79,26 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
+    @Qualifier("fetchXmlJob")
+    public Job fetchXmlJob() {
+        return new JobBuilder("fetchXmlJob", jobRepository)
+            .incrementer(new RunIdIncrementer())
+            .start(fetchAndConvertXmlFileStep()) 
+            .build();
+    }
+
+    @Bean
     @Qualifier("importCsvJob")
     public Job processCSVJob() {
         return new JobBuilder("importCsvJob", jobRepository)
             .incrementer(new RunIdIncrementer())
-            // .start(fetchAndConvertXmlFileStep())
             .start(fileAvailabilityDecider())
             .on("FAILED").end()
             .on("COMPLETED")
             .to(createReadStep(
                 "sitesDataStep", 
                 new ClassPathResource("batch/Sites.csv"), 
-                new String[]{"site_reference", "site_name", "location"}, 
+                new String[]{"site_reference", "site_name", "location", "court_name"}, 
                 CSVSitesData.class, 
                 false
             ))

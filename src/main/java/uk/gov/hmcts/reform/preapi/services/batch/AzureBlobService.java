@@ -1,8 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
-import com.azure.core.http.policy.HttpLogDetailLevel;
-import com.azure.core.http.policy.HttpLogOptions;
-import com.azure.core.http.policy.HttpLoggingPolicy;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
@@ -35,22 +32,14 @@ public class AzureBlobService {
                             @Value("${azure.ingestStorage.connectionString}") String ingestStgConnectionString,
                             @Value("${azure.finalStorage.connectionString}") String finalStgConnectionString) {
         
-        HttpLogOptions logOptions = new HttpLogOptions().setLogLevel(HttpLogDetailLevel.BODY_AND_HEADERS);
-
         clients.put("dev", new BlobServiceClientBuilder()
                             .connectionString(devConnectionString)
-                            .httpLogOptions(logOptions)
-                            .addPolicy(new HttpLoggingPolicy(logOptions))
                             .buildClient());
         clients.put("stagingIngest", new BlobServiceClientBuilder()
                             .connectionString(ingestStgConnectionString)
-                            .httpLogOptions(logOptions)
-                            .addPolicy(new HttpLoggingPolicy(logOptions))
                             .buildClient());
         clients.put("stagingFinal", new BlobServiceClientBuilder()
                             .connectionString(finalStgConnectionString)
-                            .httpLogOptions(logOptions)
-                            .addPolicy(new HttpLoggingPolicy(logOptions))
                             .buildClient());
     }
 

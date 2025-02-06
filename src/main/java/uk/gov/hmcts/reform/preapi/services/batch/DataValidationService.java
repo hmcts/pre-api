@@ -30,112 +30,64 @@ public class DataValidationService {
      * @return A map containing the validation result, including the cleansed data and any error messages.
      */
     public TransformationResult validateCleansedData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        TransformationResult validationResult;
-
-        validationResult = validateFileExtension(cleansedData, archiveItem);
-        if (validationResult.getErrorMessage() != null) {
-            return validationResult; 
+        
+        // 1. File extension check
+        if (!isFileExtensionValid(cleansedData)) {
+            return failure(ERROR_FILE_EXTENSION);
         }
 
-        validationResult = validateDate(cleansedData, archiveItem);
-        if (validationResult.getErrorMessage() != null) {
-            return validationResult;
+        // 2. Timestamp check
+        if (cleansedData.getRecordingTimestamp() == null) {
+            return failure(ERROR_TIMESTAMP);
         }
 
-        validationResult = validateTestData(cleansedData, archiveItem);
-        if (validationResult.getErrorMessage() != null) {
-            return validationResult; 
+        // 3. Test data check
+        if (cleansedData.isTest()) {
+            return failure(cleansedData.getTestCheckResult().getReason());
         }
 
-        validationResult = validateCourt(cleansedData, archiveItem);
-        if (validationResult.getErrorMessage() != null) {
-            return validationResult; 
+        // 4. Court check
+        if (cleansedData.getCourt() == null) {
+            return failure(ERROR_COURT);
         }
 
-        validationResult = validateMostRecentVersion(cleansedData, archiveItem);
-        if (validationResult.getErrorMessage() != null) {
-            return validationResult; 
+        // 5. Most recent version check
+        if (!cleansedData.isMostRecentVersion()) {
+            return failure(ERROR_MOST_RECENT_VERSION);
         }
 
-        return validateCaseReference(cleansedData, archiveItem);
+        // 6. Case reference check
+        if (cleansedData.getUrn() == null || cleansedData.getUrn().isEmpty()) {
+            return failure(ERROR_CASE_REFERENCE);
+        }
+
+        return success(cleansedData);
     }
 
     // =========================
     // Specific Validation Methods
     // =========================
 
-    private TransformationResult validateFileExtension(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    private boolean isFileExtensionValid(CleansedData cleansedData) {
         String fileExtension = cleansedData.getFileExtension();
-        fileExtension = (fileExtension == null || fileExtension.isBlank()) ? "" : fileExtension.toLowerCase();
-
-        if (fileExtension.isBlank() 
-            || ".raw".equalsIgnoreCase(fileExtension) 
-            || ".ra".equalsIgnoreCase(fileExtension)) {
-            return createErrorResponse(ERROR_FILE_EXTENSION);
+        if (fileExtension == null || fileExtension.isBlank()) {
+            return false;
         }
 
-        return createSuccessResponse(cleansedData);
-    }
+        String lowerExtension = fileExtension.toLowerCase();
 
-    private TransformationResult validateDate(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        if (cleansedData.getRecordingTimestamp() == null) {
-            return createErrorResponse(ERROR_TIMESTAMP);
-        }
-        return createSuccessResponse(cleansedData);
-    }
-
-
-    private TransformationResult validateTestData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        if (cleansedData.isTest()) {
-            return createErrorResponse(cleansedData.getTestCheckResult().getReason());
-        }
-        return createSuccessResponse(cleansedData);
-    }
-
-    private TransformationResult validateCourt(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        if (cleansedData.getCourt() == null) {
-            return createErrorResponse(ERROR_COURT);
-        }
-        return createSuccessResponse(cleansedData);
-    }
-
-    private TransformationResult validateMostRecentVersion(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        if (!cleansedData.isMostRecentVersion()) {
-            return createErrorResponse(ERROR_MOST_RECENT_VERSION);
-        }
-        return createSuccessResponse(cleansedData);
-    }
-
-    private TransformationResult validateCaseReference(
-        CleansedData cleansedData, 
-        CSVArchiveListData archiveItem) {
-        if (cleansedData.getUrn() == null || cleansedData.getUrn().isEmpty()) {
-            return createErrorResponse(ERROR_CASE_REFERENCE);
-        }
-        return createSuccessResponse(cleansedData);
+        return !(lowerExtension.equals(".raw") || lowerExtension.equals(".ra"));
     }
 
     // =========================
     // Helper Methods
     // =========================
 
-    /**
-     * Creates an error response with the specified error message.
-     * @param errorMessage The error message to include in the response.
-     * @return An object containing the error response.
-     */
-    private TransformationResult createErrorResponse(String errorMessage) {
-        TransformationResult errorResponse = new TransformationResult(null, errorMessage);
-        return errorResponse;
+    private TransformationResult failure(String errorMessage) {
+        return new TransformationResult(null, errorMessage);
     }
 
-    /**
-     * Creates a success response with the cleansed data.
-     * @param cleansedData The cleansed data to include in the response.
-     * @return An object containing the success response.
-     */
-    private TransformationResult createSuccessResponse(CleansedData cleansedData) {
-        TransformationResult successResponse = new TransformationResult(cleansedData, null);
-        return successResponse;
+    private TransformationResult success(CleansedData cleansedData) {
+        return new TransformationResult(cleansedData, null);
     }
 }

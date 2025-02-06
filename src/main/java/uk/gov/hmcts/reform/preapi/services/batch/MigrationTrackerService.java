@@ -25,51 +25,58 @@ public class MigrationTrackerService {
         this.csvWriterService = csvWriterService;
     }
     
-    /**
-     * Adds a successfully migrated item to the list of migrated items.
-     * @param item The PassItem representing a successfully migrated item.
-     */
     public void addMigratedItem(PassItem item) {
         migratedItems.add(item);
     }
 
-    /**
-     * Adds a failed item to the list of failed items.
-     * @param item The FailedItem representing an item that failed migration.
-     */
     public void addFailedItem(FailedItem item) {
         failedItems.add(item);
     }
 
-    /**
-     * Converts an object to its string representation. If the object is null,
-     * an empty string is returned instead. 
-     * @param value The object to convert to a string. Can be null.
-     * @return The string representation of the object, or an empty string if the object is null.
-     */
-    private String getValueOrEmpty(Object value) {
-        return value != null ? value.toString() : "";
+    public void writeMigratedItemsToCsv(String fileName, String outputDir) {
+        List<String> headers = getMigratedItemsHeaders();
+        List<List<String>> rows = buildMigratedItemsRows(migratedItems);
+        csvWriterService.writeToCsv(headers, rows, fileName, outputDir, true);
     }
 
-    /**
-     * Writes all successfully migrated items to a CSV file.
-     * @param fileName  The name of the CSV file to be created.
-     * @param outputDir The directory where the CSV file will be saved.
+    public void writeFailedItemsToCsv(String fileName, String outputDir) {
+        List<String> headers = getFailedItemsHeaders();
+        List<List<String>> rows = buildFailedItemsRows(failedItems);
+        csvWriterService.writeToCsv(headers, rows, fileName, outputDir, true);
+    }
+
+
+     /**
+     * Writes both migrated and failed items to CSV files and logs the total counts,
+     * and generates all reports at once.
      */
-    public void writeMigratedItemsToCsv(String fileName, String outputDir) {
-        List<String> headers = List.of(
+    public void writeAllToCsv() {
+        writeMigratedItemsToCsv("Migrated","ZZZMigration Reports");
+        writeFailedItemsToCsv("Failed","ZZZMigration Reports");
+        Logger.getAnonymousLogger().info("Total Migrated Items: " + migratedItems.size());
+        Logger.getAnonymousLogger().info("Total Failed Items: " + failedItems.size());
+
+    }
+
+    // ==================================
+    // Helpers
+    // ==================================
+
+    private List<String> getMigratedItemsHeaders() {
+        return List.of(
             "regexPattern", "archiveName", "caseReference", "isTest", "scheduledFor", "origin",
             "ingestAddress", "liveOutputURL", "startedAt", "startedByUserId", "finishedAt",
             "finishedByUserId", "status", "version", "fileName", "duration", "participants",
             "users", "shareBookings", "caseId", "courtId", "bookingId", "captureSessionId",
             "recordingId", "parentRecordingId", "participantIds", "shareBookingIds", "userIds"
         );
+    }
 
+    private List<List<String>> buildMigratedItemsRows(List<PassItem> items) {
         List<List<String>> rows = new ArrayList<>();
-
         for (PassItem item : migratedItems) {
 
-            List<String> row = List.of(
+            rows.add(List.of(
                 getValueOrEmpty(item.getRegexPattern()), 
                 getValueOrEmpty(item.getArchiveName()),
                 getValueOrEmpty(item.getCaseReference()), 
@@ -98,50 +105,34 @@ public class MigrationTrackerService {
                 getValueOrEmpty(item.getParticipantIds()),
                 getValueOrEmpty(item.getShareBookingIds()),
                 getValueOrEmpty(item.getUserIds())
-                );
-            
-            rows.add(row);
+                )
+            );
         }
-
-        csvWriterService.writeToCsv(headers, rows, fileName, outputDir, true);
+        return rows;
     }
 
-    /**
-     * Writes all failed items to a CSV file.
-     * @param fileName  The name of the CSV file to be created.
-     * @param outputDir The directory where the CSV file will be saved.
-     */
-    public void writeFailedItemsToCsv(String fileName, String outputDir) {
-        List<String> headers = List.of(
-            "Reason for Failure","Filename","created_at",
-            "duration"
-        );
+    private List<String> getFailedItemsHeaders() {
+        return List.of("Reason for Failure", "Filename", "Display Name");
+    }
+
+    public List<List<String>> buildFailedItemsRows(List<FailedItem> items) {
         List<List<String>> rows = new ArrayList<>();
 
         for (FailedItem item : failedItems) {
             CSVArchiveListData archiveItem = item.getArchiveItem();
             
-            List<String> row = List.of(
+            rows.add(List.of(
                 getValueOrEmpty(item.getReason()), 
-                getValueOrEmpty(archiveItem.getArchiveName()),   
-                getValueOrEmpty(archiveItem.getCreateTime()),   
-                getValueOrEmpty(archiveItem.getDuration())   
+                getValueOrEmpty(archiveItem.getFileName()),
+                getValueOrEmpty(archiveItem.getArchiveName())   
+                )
             );
-            rows.add(row);
         }
-
-        csvWriterService.writeToCsv(headers, rows, fileName, outputDir,true);
+        return rows;
     }
 
-    /**
-     * Writes both migrated and failed items to CSV files and logs the total counts,
-     * and generates all reports at once.
-     */
-    public void writeAllToCsv() {
-        writeMigratedItemsToCsv("Migrated","ZZZMigration Reports");
-        writeFailedItemsToCsv("Failed","ZZZMigration Reports");
-        Logger.getAnonymousLogger().info("Total Migrated Items: " + migratedItems.size());
-        Logger.getAnonymousLogger().info("Total Failed Items: " + failedItems.size());
-
+    private String getValueOrEmpty(Object value) {
+        return value != null ? value.toString() : "";
     }
+
 }

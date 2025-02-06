@@ -89,44 +89,39 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         }
         for (MigratedItemGroup migratedItem : migratedItems) {
 
-            // Save the case entity if it exists
             Case acase = migratedItem.getCase();
             if (acase != null) {
                 caseRepository.saveAndFlush(acase);
             }
 
-            // Save the participants if they exist
             Set<Participant> participants = migratedItem.getParticipants();
             if (participants != null) {
                 try {
                     participantRepository.saveAllAndFlush(participants);
                 } catch (Exception e) {
-                    Logger.getAnonymousLogger().info("Writer: Issue with participants: " + e.getMessage());
+                    Logger.getAnonymousLogger().info("WRITER: Issue with participants: " + e.getMessage());
                 }
             }
 
-            // Save the booking entity if it exists
             Booking booking = migratedItem.getBooking();
             if (booking != null) {
                 bookingRepository.saveAndFlush(booking);
             }
 
-            // Save the capture session entity if it exists
             CaptureSession captureSession = migratedItem.getCaptureSession();
             if (captureSession != null) {
                 captureSessionRepository.saveAndFlush(captureSession);
             }
 
-            // Save the recording entity if it exists
             Recording recording = migratedItem.getRecording();
             if (recording != null) {
                 try {
                     recordingRepository.saveAndFlush(recording);
                 } catch (Exception e) {
-                    Logger.getAnonymousLogger().info("Writer: Issue with recording: " + e.getMessage());
+                    Logger.getAnonymousLogger().info("WRITER: Issue with recording: " + e.getMessage());
                 }
             }
-            // Save the users if they exist
+
             List<User> users = migratedItem.getUsers();
             if (users != null && !users.isEmpty()) {
                 for (User user : users) {
@@ -134,7 +129,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 }
             }
             
-            // Save the share bookings if they exist
             List<ShareBooking> shareBookings = migratedItem.getShareBookings();
             if (shareBookings != null && !shareBookings.isEmpty()) {
                 for (ShareBooking shareBooking : shareBookings) {
@@ -142,7 +136,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 }
             }
 
-            // Track the successful migration using the MigrationTrackerService
             PassItem passItem = migratedItem.getPassItem();
             if (passItem != null) {
                 migrationTrackerService.addMigratedItem(passItem);

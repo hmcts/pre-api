@@ -34,6 +34,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: AZURE_FINAL_SA_CONNECTION_STRING
         - name: ingestsa-storage-account-connection-string
           alias: AZURE_INGEST_SA_CONNECTION_STRING
+        - name: presa-storage-account-connection-string
+          alias: AZURE_VF_SA_CONNECTION_STRING
         - name: symmetrickey
           alias: SYMMETRIC_KEY
         - name: pp-authorization
