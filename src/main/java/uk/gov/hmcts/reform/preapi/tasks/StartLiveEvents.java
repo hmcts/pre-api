@@ -35,6 +35,7 @@ public class StartLiveEvents extends RobotUserTask {
     private final CaptureSessionService captureSessionService;
 
     private final int batchSize;
+    private final int pollInterval;
 
     @Autowired
     public StartLiveEvents(UserService userService,
@@ -42,12 +43,14 @@ public class StartLiveEvents extends RobotUserTask {
                            CaptureSessionService captureSessionService, MediaServiceBroker mediaServiceBroker,
                            BookingService bookingService,
                            @Value("${cron-user-email}") String cronUserEmail,
-                           @Value("${tasks.start-live-event.batch-size}") int batchSize) {
+                           @Value("${tasks.start-live-event.batch-size}") int batchSize,
+                           @Value("${tasks.start-live-event.poll-interval}") int pollInterval) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.bookingService = bookingService;
         this.captureSessionService = captureSessionService;
         this.batchSize = batchSize;
+        this.pollInterval = pollInterval;
     }
 
     @Override
@@ -127,7 +130,7 @@ public class StartLiveEvents extends RobotUserTask {
 
         try {
             do {
-                Thread.sleep(2000);
+                Thread.sleep(pollInterval);
                 var liveEvents = mediaService.getLiveEvents();
                 startingCaptureSessions = startingCaptureSessions.stream()
                     .filter(id -> {
