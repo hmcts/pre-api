@@ -130,6 +130,7 @@ public class RecordingListenerTest {
         when(captureSession.getStatus()).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
         var recording = new Recording();
         recording.setCaptureSession(captureSession);
+        recording.setVersion(1);
 
         when(emailServiceFactory.isEnabled()).thenReturn(true);
         var govNotify = mock(GovNotify.class);
@@ -139,6 +140,11 @@ public class RecordingListenerTest {
 
         verify(emailServiceFactory, times(1)).getEnabledEmailService();
         verify(govNotify, times(1)).recordingReady(any(User.class), eq(caseEntity));
+
+        recording.setVersion(2);
+        recordingListener.onRecordingCreated(recording);
+
+        verify(govNotify, times(1)).recordingEdited(any(User.class), eq(caseEntity));
     }
 
     private ShareBooking createShare() {

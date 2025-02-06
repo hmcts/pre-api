@@ -12,7 +12,6 @@ import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
-import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.util.Set;
 import java.util.stream.Stream;
@@ -24,14 +23,10 @@ public class RecordingListener {
 
     private final EmailServiceFactory emailServiceFactory;
 
-    private final ShareBookingService shareBookingService;
-
     @Autowired
     public RecordingListener(@Lazy AzureFinalStorageService azureFinalStorageService,
-                             @Lazy ShareBookingService shareBookingService,
                              EmailServiceFactory emailServiceFactory) {
         this.azureFinalStorageService = azureFinalStorageService;
-        this.shareBookingService = shareBookingService;
         this.emailServiceFactory = emailServiceFactory;
     }
 
@@ -60,8 +55,13 @@ public class RecordingListener {
                 if (Stream.ofNullable(share.getBooking().getCaptureSessions())
                       .flatMap(Set::stream)
                       .anyMatch(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))) {
-                    emailService.recordingReady(
-                        share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId());
+                    if (r.getVersion() > 1) {
+                        emailService.recordingEdited(
+                            share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId());
+                    } else {
+                        emailService.recordingReady(
+                            share.getSharedWith(), r.getCaptureSession().getBooking().getCaseId());
+                        }
                     }
                 }
             );
