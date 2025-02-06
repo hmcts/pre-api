@@ -519,11 +519,11 @@ public class MediaKindTest {
         var jobArgument3 = ArgumentCaptor.forClass(String.class);
         var jobArgument4 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument3.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
         assertThat(jobArgument3.getValue()).startsWith(tempName);
         assertThat(jobArgument4.getValue()).startsWith(tempName);
     }
@@ -610,7 +610,7 @@ public class MediaKindTest {
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -656,7 +656,7 @@ public class MediaKindTest {
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
