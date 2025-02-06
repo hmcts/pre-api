@@ -43,7 +43,7 @@ class CreateParticipantDTOTest extends IntegrationTestBase {
         assertEquals(
             testParticipant.getParticipantType(),
             retrievedParticipant.getParticipantType(),
-            "ParticipantDTO type should match"
+            "Participant type should match"
         );
         assertEquals(testParticipant.getFirstName(), retrievedParticipant.getFirstName(), "First names should match");
         assertEquals(testParticipant.getLastName(), retrievedParticipant.getLastName(), "Last name should match");
