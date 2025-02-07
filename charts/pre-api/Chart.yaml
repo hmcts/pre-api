@@ -12,6 +12,6 @@ dependencies:
     repository: oci://hmctspublic.azurecr.io/helm/v1/repo/
     condition: java.enabled
   - name: job
-    version: 2.1.2
+    version: 2.1.3
     repository: oci://hmctspublic.azurecr.io/helm/v1/repo/
     condition: job.enabled
