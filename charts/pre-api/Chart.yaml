@@ -9,9 +9,9 @@ maintainers:
 dependencies:
   - name: java
     version: 5.2.1
-    repository: oci://hmctspublic.azurecr.io/helm/v1/repo/
+    repository: oci://hmctspublic.azurecr.io/helm
     condition: java.enabled
   - name: job
     version: 2.1.3
-    repository: oci://hmctspublic.azurecr.io/helm/v1/repo/
+    repository: oci://hmctspublic.azurecr.io/helm
     condition: job.enabled
