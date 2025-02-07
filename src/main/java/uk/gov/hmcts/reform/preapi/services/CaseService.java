@@ -270,10 +270,13 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
             .toList();
-        try {
-            caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
-        } catch (Exception e) {
-            log.error("Failed to notify users of case closure: {}", c.getId());
+
+        if (!notifications.isEmpty()) {
+            try {
+                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
+            } catch (Exception e) {
+                log.error("Failed to notify users of case closure: {}", c.getId());
+            }
         }
 
         bookingRepository
@@ -295,6 +298,11 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
             .toList();
+
+        if (notifications.isEmpty()) {
+            return;
+        }
+
         try {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {
@@ -309,6 +317,11 @@ public class CaseService {
             .stream()
             .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
             .toList();
+
+        if (notifications.isEmpty()) {
+            return;
+        }
+
         try {
             caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(notifications);
         } catch (Exception e) {

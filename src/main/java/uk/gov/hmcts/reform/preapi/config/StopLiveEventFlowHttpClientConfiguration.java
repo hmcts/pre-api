@@ -10,11 +10,11 @@ import org.springframework.context.annotation.Primary;
 import uk.gov.hmcts.reform.preapi.media.FeignErrorDecoder;
 
 @Configuration
-public class FlowHttpClientConfiguration {
+public class StopLiveEventFlowHttpClientConfiguration {
 
     @Bean
-    public FlowRequestInterceptor requestInterceptor() {
-        return new FlowRequestInterceptor();
+    public StopLiveEventFlowRequestInterceptor requestInterceptor() {
+        return new StopLiveEventFlowRequestInterceptor();
     }
 
     @Bean

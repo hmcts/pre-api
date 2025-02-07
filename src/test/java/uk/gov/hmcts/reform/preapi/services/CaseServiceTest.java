@@ -451,7 +451,7 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(0)).save(any());
     }
@@ -700,7 +700,7 @@ class CaseServiceTest {
         verify(caseRepository).findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
         verify(shareBookingService).deleteCascade(pendingCase);
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(any());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(any());
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(pendingCase);
     }
 
