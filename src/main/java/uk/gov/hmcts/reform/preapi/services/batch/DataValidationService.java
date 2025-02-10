@@ -3,8 +3,8 @@ package uk.gov.hmcts.reform.preapi.services.batch;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
+import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
 
 @Service    
 public class DataValidationService {

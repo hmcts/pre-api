@@ -5,6 +5,7 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -19,10 +20,10 @@ public class MigrationTrackerService {
 
     private List<PassItem> migratedItems = new ArrayList<>();
     private List<FailedItem> failedItems = new ArrayList<>();
-    private final CsvWriterService csvWriterService;
+    private final ReportingService reportingService;
 
-    public MigrationTrackerService(CsvWriterService csvWriterService) {
-        this.csvWriterService = csvWriterService;
+    public MigrationTrackerService(ReportingService reportingService) {
+        this.reportingService = reportingService;
     }
     
     public void addMigratedItem(PassItem item) {
@@ -33,26 +34,34 @@ public class MigrationTrackerService {
         failedItems.add(item);
     }
 
-    public void writeMigratedItemsToCsv(String fileName, String outputDir) {
+    public void writeMigratedItemsToCsv(String fileName, String outputDir)  {
         List<String> headers = getMigratedItemsHeaders();
         List<List<String>> rows = buildMigratedItemsRows(migratedItems);
-        csvWriterService.writeToCsv(headers, rows, fileName, outputDir, true);
+        try {
+            reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
+        } catch (IOException e) {
+            Logger.getAnonymousLogger().warning("Failed to write migrated items to CSV: " + e.getMessage());
+        }
     }
 
     public void writeFailedItemsToCsv(String fileName, String outputDir) {
         List<String> headers = getFailedItemsHeaders();
         List<List<String>> rows = buildFailedItemsRows(failedItems);
-        csvWriterService.writeToCsv(headers, rows, fileName, outputDir, true);
+        try {
+            reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
+        } catch (IOException e) {
+            Logger.getAnonymousLogger().warning("Failed to write migrated items to CSV: " + e.getMessage());
+        }
     }
 
 
-     /**
+    /**
      * Writes both migrated and failed items to CSV files and logs the total counts,
      * and generates all reports at once.
      */
     public void writeAllToCsv() {
-        writeMigratedItemsToCsv("Migrated","ZZZMigration Reports");
-        writeFailedItemsToCsv("Failed","ZZZMigration Reports");
+        writeMigratedItemsToCsv("Migrated","Migration Reports");
+        writeFailedItemsToCsv("Failed","Migration Reports");
         Logger.getAnonymousLogger().info("Total Migrated Items: " + migratedItems.size());
         Logger.getAnonymousLogger().info("Total Failed Items: " + failedItems.size());
 

@@ -43,7 +43,6 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // =========================================
     private void processSitesData(CSVSitesData sitesItem) {
         redisService.saveHashValue(REDIS_SITES_KEY, sitesItem.getSiteReference(), sitesItem.getCourtName());
-        // Logger.getAnonymousLogger().info("Stored site data: " + sitesItem.getSiteReference() + " -> " + sitesItem.getCourtName());
     }
 
     // ==================================================
@@ -53,8 +52,6 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
         channelUserDataMap
             .computeIfAbsent(channelDataItem.getChannelName(), k -> new ArrayList<>())
             .add(new String[]{channelDataItem.getChannelUser(), channelDataItem.getChannelUserEmail()});
-
-        // Logger.getAnonymousLogger().info("Stored channel user data: " + channelDataItem.getChannelUser() + " -> " + channelDataItem.getChannelUserEmail());
     }
 
 

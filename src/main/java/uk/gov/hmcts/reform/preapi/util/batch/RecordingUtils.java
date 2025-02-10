@@ -1,10 +1,10 @@
 package uk.gov.hmcts.reform.preapi.util.batch;
 
-import java.util.Map;
-import java.util.logging.Logger;
-
 import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
+
+import java.util.Map;
+import java.util.logging.Logger;
 
 
 @UtilityClass
@@ -15,8 +15,12 @@ public final class RecordingUtils {
      * @return -1 if v1 < v2, 0 if they are equal, 1 if v1 > v2
      */
     public static int compareVersionStrings(String v1, String v2) {
-        if (v1 == null) v1 = "0";
-        if (v2 == null) v2 = "0";
+        if (v1 == null) {
+            v1 = "0";
+        }
+        if (v2 == null) {
+            v2 = "0";
+        }
 
         String[] v1Parts = v1.split("\\.");
         String[] v2Parts = v2.split("\\.");
@@ -45,7 +49,7 @@ public final class RecordingUtils {
         return "ORIG".equalsIgnoreCase(recordingVersion) ? 1 : 2;
     }
 
-     /**
+    /**
      * Returns "1" if the input is null or empty, otherwise returns the input.
      */
     public String getCurrentVersionNumber(String versionNumStr) {

@@ -64,12 +64,14 @@ azure:
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
+
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
   storage:
     accountName: ${AZURE_VF_SA:}
     connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
+
 hibernate:
   show_sql: true
 

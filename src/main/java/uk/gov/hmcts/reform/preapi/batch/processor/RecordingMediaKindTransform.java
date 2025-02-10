@@ -4,10 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
-import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
+import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,8 +30,8 @@ public class RecordingMediaKindTransform {
         try {
             String containerName = recordingId.toString();
             String containerNameIngest = recordingId.toString() + "-input";
-            String sourceEnvironment = "dev";
             String sourceEnvironmentContainerName = "pre-vodafone-spike";
+            String sourceEnvironment = "dev";
             String ingestEnvironment = "stagingIngest";
             String finalEnvironment = "stagingFinal";
 
@@ -46,8 +46,7 @@ public class RecordingMediaKindTransform {
 
             // Once processed, transfer from 'ingest' to 'final'
             if (localFilePath != null) {
-                String processedFilePath = localFilePath.replace(".mp4", "_processed.mp4");
-                azureBlobService.uploadBlob(processedFilePath, containerName, finalEnvironment, mp4FileName);
+                azureBlobService.uploadBlob(localFilePath, containerName, finalEnvironment, mp4FileName);
             }
 
             Logger.getAnonymousLogger().info("Media processing complete for: " + mp4FileName);

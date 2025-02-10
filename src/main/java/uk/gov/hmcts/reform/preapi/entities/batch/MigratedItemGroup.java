@@ -1,64 +1,64 @@
 package uk.gov.hmcts.reform.preapi.entities.batch;
 
-import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
-import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
 import java.util.List;
 import java.util.Set;
 
 
 public class MigratedItemGroup {
-    private Case acase;
-    private Booking booking;
-    private CaptureSession captureSession;
-    private Recording recording;
-    private Set<Participant> participants;
+    private CreateCaseDTO acase;
+    private CreateBookingDTO booking;
+    private CreateCaptureSessionDTO captureSession;
+    private CreateRecordingDTO recording;
+    private Set<CreateParticipantDTO> participants;
+    private List<CreateShareBookingDTO> shareBookings;
+    private List<CreateInviteDTO> invites; 
     private PassItem passItem;
-    private List<ShareBooking> shareBookings;
-    private List<User> users; 
 
     public MigratedItemGroup(
-        Case aCase, 
-        Booking booking, 
-        CaptureSession captureSession, 
-        Recording recording, 
-        Set<Participant> participants,
-        PassItem passItem,
-        List<ShareBooking> shareBookings,
-        List<User> users 
+        CreateCaseDTO aCase, 
+        CreateBookingDTO booking, 
+        CreateCaptureSessionDTO captureSession, 
+        CreateRecordingDTO recording, 
+        Set<CreateParticipantDTO> participants,
+        List<CreateShareBookingDTO> shareBookings,
+        List<CreateInviteDTO> invites,
+        PassItem passItem
     ) {
         this.acase = aCase;
         this.booking = booking;
         this.captureSession = captureSession;
         this.recording = recording;
         this.participants = participants;
-        this.passItem = passItem;
         this.shareBookings = shareBookings;
-        this.users = users;
+        this.invites = invites;
+        this.passItem = passItem;
     }
 
-    public Case getCase() {
+    public CreateCaseDTO getCase() {
         return acase;
     }
 
-    public Booking getBooking() {
+    public CreateBookingDTO getBooking() {
         return booking;
     }
 
-    public CaptureSession getCaptureSession() {
+    public CreateCaptureSessionDTO getCaptureSession() {
         return captureSession;
     }
 
-    public Recording getRecording() {
+    public CreateRecordingDTO getRecording() {
         return recording;
     }
 
-    public Set<Participant> getParticipants() {
+    public Set<CreateParticipantDTO> getParticipants() {
         return participants;
     }
 
@@ -66,12 +66,12 @@ public class MigratedItemGroup {
         return passItem;
     }
 
-    public List<ShareBooking> getShareBookings() {
+    public List<CreateShareBookingDTO> getShareBookings() {
         return shareBookings;
     }
 
-    public List<User> getUsers() {
-        return users;
+    public List<CreateInviteDTO> getInvites() {
+        return invites;
     }
 
     @Override
@@ -82,9 +82,8 @@ public class MigratedItemGroup {
             + ", captureSession=" + (captureSession != null ? captureSession.toString() : "null") 
             + ", recording=" + (recording != null ? recording.toString() : "null") 
             + ", participants=" + (participants != null ? participants.toString() : "null") 
-            + ", passItem=" + (passItem != null ? passItem.toString() : "null") 
             + ", shareBookings=" + (shareBookings != null ? shareBookings.toString() : "null") 
-            + ", users=" + (users != null ? users.toString() : "null") 
+            + ", passItem=" + (passItem != null ? passItem.toString() : "null") 
             + '}';
     }
 }

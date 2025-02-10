@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
@@ -16,8 +15,8 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,19 +27,16 @@ import java.util.logging.Logger;
 public class DataTransformationService {
 
     private static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown");
-    private final RedisTemplate<String, Object> redisTemplate; 
     private final RedisService redisService;
     private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
     
     @Autowired
     public DataTransformationService(
-        RedisTemplate<String, Object> redisTemplate,
         RedisService redisService,
         DataExtractionService extractionService,
         CourtRepository courtRepository
     ) {
-        this.redisTemplate = redisTemplate;
         this.redisService = redisService;
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
@@ -84,14 +80,15 @@ public class DataTransformationService {
         Court court,
         Map<String, List<String[]>> channelUserDataMap,
         Timestamp recordingTimestamp
-        ) {
+    ) {
 
         Map<String, String> extracted = extractCommonFields(archiveItem);
 
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem, channelUserDataMap);
 
         String versionType = extracted.get("recordingVersion");
-        String currentVersionNumber = RecordingUtils.getCurrentVersionNumber(extractionService.extractRecordingVersionNumber(archiveItem));
+        String currentVersionNumber = RecordingUtils.getCurrentVersionNumber(
+            extractionService.extractRecordingVersionNumber(archiveItem));
         currentVersionNumber = (
             currentVersionNumber == null || currentVersionNumber.isEmpty()) 
                 ? "1" : currentVersionNumber;
@@ -135,7 +132,7 @@ public class DataTransformationService {
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, "Unknown Court");
         String courtIdString = (String) (redisService.getHashValue("vf:court:", fullCourtName, String.class));
 
-        if (courtIdString != null ) {
+        if (courtIdString != null) {
             try {
                 return UUID.fromString(courtIdString);
             } catch (IllegalArgumentException e) {
@@ -178,8 +175,8 @@ public class DataTransformationService {
         String lowerName = archiveItem.getArchiveName().toLowerCase();
         StringBuilder reasons = new StringBuilder();
 
-        for (String keyword : TEST_KEYWORDS){
-            if(lowerName.contains(keyword)){
+        for (String keyword : TEST_KEYWORDS) {
+            if (lowerName.contains(keyword)) {
                 reasons.append("Archive name contains '").append(keyword).append("'. ");
             }
         }
@@ -193,14 +190,18 @@ public class DataTransformationService {
             : new TestItem(false, "No test related criteria met.");
     }
 
-    public boolean isMostRecentVersion(CSVArchiveListData archiveItem, String versionType, String currentVersionNumber) {
+    public boolean isMostRecentVersion(
+        CSVArchiveListData archiveItem, 
+        String versionType, 
+        String currentVersionNumber
+    ) {
         try {
             // Build the Redis key
             String redisKey = buildMetadataPreprocessKey(archiveItem);
 
             // Fetch existing metadata
             Map<String, String> existingData = redisService.getHashAll(redisKey, String.class, String.class);
-            if(existingData.isEmpty()){
+            if (existingData.isEmpty()) {
                 return false;
             }
 
@@ -302,7 +303,6 @@ public class DataTransformationService {
         );
     }
 
-    
     // =========================
     // Utility Methods
     // =========================
@@ -310,7 +310,7 @@ public class DataTransformationService {
     public String buildCaseReference(String urn, String exhibitRef) {
         StringBuilder referenceBuilder = new StringBuilder();
         
-        if (urn!= null && !urn.isEmpty()) {
+        if (urn != null && !urn.isEmpty()) {
             referenceBuilder.append(urn);
         }
         

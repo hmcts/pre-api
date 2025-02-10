@@ -7,7 +7,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
-import uk.gov.hmcts.reform.preapi.services.batch.CsvWriterService;
+import uk.gov.hmcts.reform.preapi.services.batch.ReportingService;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ public class XmlProcessingService {
     private AzureBlobService azureBlobService;
 
     @Autowired
-    private CsvWriterService csvWriterService;
+    private ReportingService reportingService;
 
     /**
      * Process XML files from a specified Azure Blob container and write extracted data to CSV.
@@ -40,13 +40,16 @@ public class XmlProcessingService {
             List<List<String>> allDataRows = new ArrayList<>();
 
             for (String blobName : blobNames) {
-                InputStream inputStream = azureBlobService.fetchSingleXmlBlob(containerName,"dev", blobName).getInputStream();
+                InputStream inputStream = azureBlobService.fetchSingleXmlBlob(
+                    containerName,
+                    "dev", 
+                    blobName).getInputStream();
                 List<List<String>> dataRows = parseXmlFromBlob(inputStream);
                 allDataRows.addAll(dataRows);
             }
 
             if (!allDataRows.isEmpty()) {
-                csvWriterService.writeToCsv(
+                reportingService.writeToCsv(
                     List.of("archive_name", "create_time", "duration","file_name"), 
                     allDataRows, 
                     "Archive_List", 

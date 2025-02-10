@@ -15,9 +15,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
 
@@ -29,8 +28,9 @@ public class AzureBlobService {
 
     @Autowired
     public AzureBlobService(@Value("${azure.storage.connectionString}") String devConnectionString,
-                            @Value("${azure.ingestStorage.connectionString}") String ingestStgConnectionString,
-                            @Value("${azure.finalStorage.connectionString}") String finalStgConnectionString) {
+                            @Value("${azure.ingestStorage.connectionString}")String ingestStgConnectionString,
+                            @Value("${azure.finalStorage.connectionString}") String finalStgConnectionString
+        ) {
         
         clients.put("dev", new BlobServiceClientBuilder()
                             .connectionString(devConnectionString)
@@ -121,17 +121,20 @@ public class AzureBlobService {
     }
 
     public boolean uploadBlob(String localFileName, String containerName, String environment, String uploadFileName) {
-        Logger.getAnonymousLogger().info("File to updload at: "+ localFileName + " - " + containerName + " - " + environment + " - " + uploadFileName);
+        Logger.getAnonymousLogger().info("File to updload at: " 
+            + localFileName + " - " + containerName + " - " + environment + " - " + uploadFileName);
 
         try {
             var file = new File(localFileName);
             var containerClient = getClient(environment).createBlobContainerIfNotExists(containerName);
             var blobClient = containerClient.getBlobClient(uploadFileName);
             blobClient.upload(new FileInputStream(file), file.length(), true);
-            Logger.getAnonymousLogger().info("Successfully uploaded to ingest storage: " + containerName + uploadFileName);
+            Logger.getAnonymousLogger().info("Successfully uploaded to ingest storage: " 
+                + containerName + uploadFileName);
             return true;
         } catch (IOException e) {
-            Logger.getAnonymousLogger().warning("Failed to upload to ingest storage: " + containerName + uploadFileName + e);
+            Logger.getAnonymousLogger().warning("Failed to upload to ingest storage: " 
+                + containerName + uploadFileName + e);
         }
         return false;
     }

@@ -37,7 +37,8 @@ public class BatchController {
 
             jobLauncher.run(fetchXmlJob, jobParametersBuilder.toJobParameters());
             Logger.getAnonymousLogger().info("Fetch XML batch job successfully started.");
-            return ResponseEntity.ok("Fetch XML batch job job has been started and processing data from all CSV files.");
+            return ResponseEntity.ok(
+                "Fetch XML batch job job has been started and processing data from all CSV files.");
 
         } catch (Exception e) {
             Logger.getAnonymousLogger().severe("Error starting fetch XML batch job: " + e.getMessage());

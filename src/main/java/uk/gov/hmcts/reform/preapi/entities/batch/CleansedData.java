@@ -5,6 +5,7 @@ import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -150,6 +151,14 @@ public class CleansedData {
 
     public List<Map<String, String>> getShareBookingContacts() { 
         return shareBookingContacts; 
+    }
+
+    public Timestamp getFinishedAt() {
+        if (recordingTimestamp == null || duration == null) {
+            return null;
+        }
+        Instant finishedAt = recordingTimestamp.toInstant().plus(duration);
+        return Timestamp.from(finishedAt);
     }
 
     @Override

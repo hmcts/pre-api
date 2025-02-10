@@ -1,12 +1,12 @@
 package uk.gov.hmcts.reform.preapi.entities.batch;
 
-import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
-import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -51,20 +51,21 @@ public class PassItem {
     public PassItem(
         String regexPattern,
         String archiveName, 
-        Case acase, 
-        Booking booking, 
-        CaptureSession captureSession, 
-        Recording recording,
-        Set<Participant> participants,
-        List<ShareBooking> shareBookings,
-        List<User> users
+        CreateCaseDTO acase, 
+        CreateBookingDTO booking, 
+        CreateCaptureSessionDTO captureSession, 
+        CreateRecordingDTO recording,
+        Set<CreateParticipantDTO> participants,
+        List<CreateShareBookingDTO> shareBookings,
+        List<CreateInviteDTO> users
+
     ) {
         this.regexPattern = regexPattern;
         this.archiveName = archiveName;
         
         this.caseId = acase != null ? acase.getId() : null;
-        this.courtId = (acase != null && acase.getCourt() != null) 
-            ? acase.getCourt().getId() 
+        this.courtId = (acase != null && acase.getCourtId() != null) 
+            ? acase.getCourtId() 
             : null;
         this.caseReference = acase != null ? acase.getReference() : null;
         this.isTest = acase != null ? acase.isTest() : null;
@@ -79,19 +80,19 @@ public class PassItem {
         this.ingestAddress = captureSession != null ? captureSession.getIngestAddress() : null;
         this.liveOutputURL = captureSession != null ? captureSession.getLiveOutputUrl() : null;
         this.startedAt = captureSession != null ? captureSession.getStartedAt() : null;
-        this.startedByUserId = (captureSession != null && captureSession.getStartedByUser() != null) 
-            ? captureSession.getStartedByUser().getId() 
+        this.startedByUserId = (captureSession != null && captureSession.getStartedByUserId() != null) 
+            ? captureSession.getStartedByUserId()
             : null;
         this.finishedAt = captureSession != null ? captureSession.getFinishedAt() : null;
-        this.finishedByUserId = (captureSession != null && captureSession.getFinishedByUser() != null) 
-            ? captureSession.getFinishedByUser().getId() 
+        this.finishedByUserId = (captureSession != null && captureSession.getFinishedByUserId() != null) 
+            ? captureSession.getFinishedByUserId()
             : null;
         this.status = captureSession != null && captureSession.getStatus() != null 
             ? captureSession.getStatus().name() 
             : null;
         this.recordingId = recording != null ? recording.getId() : null;
-        this.parentRecordingId = (recording != null && recording.getParentRecording() != null) 
-            ? recording.getParentRecording().getId() 
+        this.parentRecordingId = (recording != null && recording.getParentRecordingId() != null) 
+            ? recording.getParentRecordingId()
             : null;
         this.version = recording != null ? recording.getVersion() : null;
         this.fileName = recording != null ? recording.getFilename() : null;

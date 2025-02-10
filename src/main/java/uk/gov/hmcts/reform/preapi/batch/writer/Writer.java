@@ -6,27 +6,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.entities.Booking;
-import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
-import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
-import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
-import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.services.InviteService;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -37,25 +33,19 @@ import java.util.logging.Logger;
 public class Writer implements ItemWriter<MigratedItemGroup> {
 
     @Autowired
-    private CaseRepository caseRepository;
+    private CaseService caseService;
 
     @Autowired
-    private BookingRepository bookingRepository;
+    private BookingService bookingService;
 
     @Autowired
-    private CaptureSessionRepository captureSessionRepository;
+    private RecordingService recordingService;
 
     @Autowired
-    private RecordingRepository recordingRepository;
+    private CaptureSessionService captureSessionService;
 
     @Autowired
-    private ParticipantRepository participantRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ShareBookingRepository shareBookingRepository;
+    private InviteService inviteService;
 
     @Autowired
     private MigrationTrackerService migrationTrackerService;
@@ -70,6 +60,8 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     @Override
     public void write(Chunk<? extends MigratedItemGroup> items) throws Exception {
         List<MigratedItemGroup> migratedItems = new ArrayList<>();
+        Logger.getAnonymousLogger().info("Processing chunk with " + items.size() + " migrated item(s).");
+        
         for (MigratedItemGroup entity : items) {
             if (entity != null) {
                 migratedItems.add(entity);
@@ -89,57 +81,81 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         }
         for (MigratedItemGroup migratedItem : migratedItems) {
 
-            Case acase = migratedItem.getCase();
+            CreateCaseDTO acase = migratedItem.getCase();
             if (acase != null) {
-                caseRepository.saveAndFlush(acase);
-            }
-
-            Set<Participant> participants = migratedItem.getParticipants();
-            if (participants != null) {
                 try {
-                    participantRepository.saveAllAndFlush(participants);
+                    UpsertResult result = caseService.upsert(acase);
+                    Logger.getAnonymousLogger().info(String.format("Case upsert succeeded. Case id: %s, Result: %s",
+                            acase.getId(), result));
                 } catch (Exception e) {
-                    Logger.getAnonymousLogger().info("WRITER: Issue with participants: " + e.getMessage());
+                    Logger.getAnonymousLogger().info("Failed to upsert case. Case id: %s. Exception: %s"
+                        + acase.getId() + e);
                 }
             }
 
-            Booking booking = migratedItem.getBooking();
-            if (booking != null) {
-                bookingRepository.saveAndFlush(booking);
+            CreateBookingDTO booking = migratedItem.getBooking();
+            try {
+                UpsertResult result = bookingService.upsert(booking);
+               
+                Logger.getAnonymousLogger().info(String.format("Booking upsert succeeded. Booking id: %s, Result: %s",
+                            booking.getId(), result));
+            } catch (Exception e) {
+                Logger.getAnonymousLogger().info("Failed to upsert booking. Booking id: %s. Exception: %s"
+                    + booking.getId() + e);
             }
 
-            CaptureSession captureSession = migratedItem.getCaptureSession();
-            if (captureSession != null) {
-                captureSessionRepository.saveAndFlush(captureSession);
+            CreateCaptureSessionDTO captureSession = migratedItem.getCaptureSession();
+            try {
+                UpsertResult result = captureSessionService.upsert(captureSession);
+                Logger.getAnonymousLogger().info("Capture Session upsert result: " + result);
+            } catch (Exception e) {
+                Logger.getAnonymousLogger().info("Failed to upsert capture: " + e.getMessage());
             }
 
-            Recording recording = migratedItem.getRecording();
-            if (recording != null) {
-                try {
-                    recordingRepository.saveAndFlush(recording);
-                } catch (Exception e) {
-                    Logger.getAnonymousLogger().info("WRITER: Issue with recording: " + e.getMessage());
-                }
+            CreateRecordingDTO recording = migratedItem.getRecording();
+            try {
+                UpsertResult result = recordingService.upsert(recording);
+                Logger.getAnonymousLogger().info("Recroding upsert result: " + result);
+            } catch (Exception e) {
+                Logger.getAnonymousLogger().info("Failed to upsert recording: " + e.getMessage());
             }
 
-            List<User> users = migratedItem.getUsers();
-            if (users != null && !users.isEmpty()) {
-                for (User user : users) {
-                    userRepository.saveAndFlush(user);
-                }
-            }
             
-            List<ShareBooking> shareBookings = migratedItem.getShareBookings();
-            if (shareBookings != null && !shareBookings.isEmpty()) {
-                for (ShareBooking shareBooking : shareBookings) {
-                    shareBookingRepository.saveAndFlush(shareBooking);
+            List<CreateInviteDTO> invites = migratedItem.getInvites();
+            if (invites != null && !invites.isEmpty()) {
+                for (CreateInviteDTO invite : invites) {
+                    try {
+                        inviteService.upsert(invite);
+                    } catch (Exception e) {
+                        Logger.getAnonymousLogger().info("Failed to upsert invite: " + e.getMessage());
+                    }
                 }
             }
 
-            PassItem passItem = migratedItem.getPassItem();
-            if (passItem != null) {
-                migrationTrackerService.addMigratedItem(passItem);
-            }    
+            // List<CreateShareBookingDTO> shareBookings = migratedItem.getShareBookings();
+            // if (shareBookings != null && !shareBookings.isEmpty()) {
+            //     Logger.getAnonymousLogger().info("Share bookings in writer: "+shareBookings);
+            //     for (CreateShareBookingDTO shareBooking : shareBookings) {
+            //         try{
+            //             shareBookingService.shareBookingById(shareBooking);
+            //         } catch (Exception e){
+            //             Logger.getAnonymousLogger().info("Failed to upsert shareBooking: "+ e.getMessage() );
+            //         }
+            //     }
+            // } else {
+            //     Logger.getAnonymousLogger().info("Share bookings in writer is emptuy");
+            // }
+            
+            
+            try {
+                PassItem passItem = migratedItem.getPassItem();
+                if (passItem != null) {
+                    migrationTrackerService.addMigratedItem(passItem);
+                }   
+            } catch (Exception e) {
+                Logger.getAnonymousLogger().info("Failed to create migrated item: %s. Exception: %s" + e);
+            }
+             
         }
     }
 }

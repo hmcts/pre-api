@@ -34,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.tasks.RobotUserTaskImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -51,7 +52,9 @@ public class BatchConfiguration implements StepExecutionListener {
     private final Processor itemProcessor;
     private final Writer itemWriter;
     private final MigrationTrackerService migrationTrackerService;
+    private final RobotUserTaskImpl robotUserTask;
     private final XmlProcessingService xmlProcessingService;
+
     private static final int CHUNK_SIZE = 10;
     private static final int SKIP_LIMIT = 10;
 
@@ -65,6 +68,7 @@ public class BatchConfiguration implements StepExecutionListener {
         Processor itemProcessor,
         Writer itemWriter,
         MigrationTrackerService migrationTrackerService,
+        RobotUserTaskImpl robotUserTask,
         XmlProcessingService xmlProcessingService
     ) {
         this.jobRepository = jobRepository;
@@ -75,6 +79,7 @@ public class BatchConfiguration implements StepExecutionListener {
         this.itemProcessor = itemProcessor;
         this.itemWriter = itemWriter;
         this.migrationTrackerService = migrationTrackerService;
+        this.robotUserTask = robotUserTask;
         this.xmlProcessingService = xmlProcessingService;
     }
 
@@ -109,6 +114,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 CSVChannelData.class,
                 false 
             ))
+            .next(signInRobotUserStep(jobRepository, transactionManager))
             .next(preProcessStep())
             .next(preProcessMetadataStep())
             .next(createReadStep(
@@ -208,7 +214,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     String containerName = "pre-vodafone-spike"; 
-                    String outputDir = "/Users/marianneazzopardi/Desktop/PRE-API/pre-api/src/main/resources/batch"; 
+                    String outputDir = "src/main/resources/batch"; 
                     xmlProcessingService.processXmlAndWriteCsv(containerName, outputDir);
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
@@ -261,4 +267,14 @@ public class BatchConfiguration implements StepExecutionListener {
         };
     }
 
+    @Bean
+    public Step signInRobotUserStep(JobRepository jobRepository,
+                                    PlatformTransactionManager transactionManager) {
+        return new StepBuilder("signInRobotUserStep", jobRepository)
+            .tasklet((contribution, chunkContext) -> {
+                robotUserTask.signIn();
+                return RepeatStatus.FINISHED;
+            }, transactionManager)
+            .build();
+    }
 }

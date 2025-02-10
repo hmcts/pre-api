@@ -1,1 +1,0 @@
-ALTER TABLE public.cases ALTER COLUMN reference TYPE VARCHAR(255);
