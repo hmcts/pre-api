@@ -410,7 +410,7 @@ class TestingSupportController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<Audit> assembler
     ) {
-        var resultPage = auditRepository.findLatest(pageable);
+        var resultPage = auditRepository.searchAll(pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
@@ -418,7 +418,7 @@ class TestingSupportController {
 
         return ResponseEntity.ok(assembler.toModel(resultPage));
     }
-  
+
     @PostMapping(value = "/booking-scheduled-for-past/{bookingId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookingDTO> bookingScheduledForPast(@PathVariable UUID bookingId) {
         var booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
