@@ -48,7 +48,10 @@ public class RecordingListener {
 
         try {
 
-            var shares = r.getCaptureSession().getBooking().getShares();
+            var shares = r.getCaptureSession().getBooking().getShares()
+                          .stream()
+                          .filter(s -> !s.isDeleted())
+                          .toList();
             var emailService = emailServiceFactory.getEnabledEmailService();
 
             shares.forEach(share -> {

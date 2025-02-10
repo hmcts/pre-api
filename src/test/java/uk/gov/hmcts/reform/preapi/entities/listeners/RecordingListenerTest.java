@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
@@ -145,6 +146,33 @@ public class RecordingListenerTest {
         recordingListener.onRecordingCreated(recording);
 
         verify(govNotify, times(1)).recordingEdited(any(User.class), eq(caseEntity));
+    }
+
+    @DisplayName("On Recording Created Email Service Enabled but shares marked deleted")
+    @Test
+    void onRecordingCreatedEmailServiceEnabledShareMarkedDeleted() {
+        var booking = mock(Booking.class);
+        var share = createShare();
+        share.setBooking(booking);
+        share.setDeletedAt(Timestamp.from(java.time.Instant.now()));
+        share.setDeleted(true);
+        when(booking.getShares()).thenReturn(Set.of(share));
+        var captureSession = mock(CaptureSession.class);
+        when(booking.getCaptureSessions()).thenReturn(Set.of(captureSession));
+        when(captureSession.getBooking()).thenReturn(booking);
+        when(captureSession.getStatus()).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+        var recording = new Recording();
+        recording.setCaptureSession(captureSession);
+        recording.setVersion(1);
+
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        var govNotify = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+
+        recordingListener.onRecordingCreated(recording);
+
+        verify(emailServiceFactory, times(1)).getEnabledEmailService();
+        verify(govNotify, times(0)).recordingReady(any(User.class), any(Case.class));
     }
 
     private ShareBooking createShare() {
