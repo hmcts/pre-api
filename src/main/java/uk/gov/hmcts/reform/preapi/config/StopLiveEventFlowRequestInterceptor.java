@@ -1,10 +1,8 @@
 package uk.gov.hmcts.reform.preapi.config;
 
-import feign.RequestInterceptor;
-import feign.RequestTemplate;
 import org.springframework.beans.factory.annotation.Value;
 
-public class StopLiveEventFlowRequestInterceptor implements RequestInterceptor {
+public class StopLiveEventFlowRequestInterceptor extends BaseFlowRequestInterceptor {
 
     @Value("${flow.key}")
     private String flowKey;
@@ -16,17 +14,17 @@ public class StopLiveEventFlowRequestInterceptor implements RequestInterceptor {
     private String flowId;
 
     @Override
-    public void apply(RequestTemplate requestTemplate) {
-        if (!requestTemplate.path().contains(flowId)) {
-            return;
-        }
+    protected String getFlowKey() {
+        return flowKey;
+    }
 
-        requestTemplate.header("Content-Type", "application/json");
-        requestTemplate.header("X-Flow-Key", flowKey);
+    @Override
+    protected String getFlowSig() {
+        return flowSig;
+    }
 
-        requestTemplate.query("api-version", "2016-06-01");
-        requestTemplate.query("sp", "%2Ftriggers%2Fmanual%2Frun");
-        requestTemplate.query("sv", "1.0");
-        requestTemplate.query("sig", flowSig);
+    @Override
+    protected String getFlowId() {
+        return flowId;
     }
 }
