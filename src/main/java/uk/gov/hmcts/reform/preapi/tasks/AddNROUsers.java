@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
@@ -44,14 +43,14 @@ public class AddNROUsers extends RobotUserTask {
     public AddNROUsers(UserService userService,
                        UserAuthenticationService userAuthenticationService,
                        @Value("${cron-user-email}") String cronUserEmail, CourtRepository courtRepository,
-                       RoleRepository roleRepository, UserRepository userRepository, @Value("${testFilePath}") String usersFile) {
+                       RoleRepository roleRepository, UserRepository userRepository,
+                       @Value("${testFilePath}") String usersFile) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
         if (!(usersFile.isEmpty())) {
             this.usersFile = usersFile;
-        }
-        else {
+        } else {
             // this.usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
         }
         this.userRepository = userRepository;
@@ -126,8 +125,7 @@ public class AddNROUsers extends RobotUserTask {
             // System.out.println("Upserting " + createUserDTO.getEmail() + " to DB. . .");
             try {
                 this.userService.upsert(createUserDTO);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
                 this.existingUsers.add(createUserDTO);
             }
@@ -135,8 +133,7 @@ public class AddNROUsers extends RobotUserTask {
             // check user is in DB
             try {
                 this.userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(createUserDTO.getEmail()).get();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 System.out.println("Upsert failed: " + e);
                 // logger; detect log msgs written in unit test
             }
@@ -196,8 +193,7 @@ public class AddNROUsers extends RobotUserTask {
 
                 if (values[3].contains("Secondary")) {
                     isDefault = false;
-                }
-                else if (values[3].contains("Primary")) {
+                } else if (values[3].contains("Primary")) {
                     isDefault = true;
                 }
 
@@ -228,8 +224,7 @@ public class AddNROUsers extends RobotUserTask {
         if (this.courtRepository.findFirstByName(importedNROUser.getCourt()).isPresent()) {
             userAppAccess.setCourtId(this.courtRepository.findFirstByName(
                 importedNROUser.getCourt()).get().getId());
-        }
-        else {
+        } else {
             this.usersWithoutCourts.add(importedNROUser.getEmail());
         }
 

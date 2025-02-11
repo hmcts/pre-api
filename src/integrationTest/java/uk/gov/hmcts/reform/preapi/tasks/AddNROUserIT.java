@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AddNROUserIT extends IntegrationTestBase {
 
@@ -39,7 +39,8 @@ public class AddNROUserIT extends IntegrationTestBase {
     @Autowired
     private UserService userService;
 
-    private final static String testUsersFile = "src/test/java/uk/gov/hmcts/reform/preapi/tasks/Test_NRO_User_Import.csv";
+    private static final String testUsersFile =
+        "src/test/java/uk/gov/hmcts/reform/preapi/tasks/Test_NRO_User_Import.csv";
     private static final String CRON_USER_EMAIL = "Phoebe.Revolta@HMCTS.net";
 
 
@@ -107,7 +108,8 @@ public class AddNROUserIT extends IntegrationTestBase {
         ImportedNROUser testImportedNROUserE = new ImportedNROUser("Example",
                                                                    "User E",
                                                                    "exampleUserE@test.com",
-                                                                   "Doncaster Crown Court (Doncaster Justice Centre South)",
+                                                                   "Doncaster Crown Court "
+                                                                       + "(Doncaster Justice Centre South)",
                                                                    true,
                                                                    "2");
 
@@ -116,7 +118,9 @@ public class AddNROUserIT extends IntegrationTestBase {
             testImportedNROUserB,
             testImportedNROUserBSecondaryCourt1,
             testImportedNROUserC,
-            testImportedNROUserCSecondaryCourt1, testImportedNROUserCSecondaryCourt2, testImportedNROUserCSecondaryCourt3,
+            testImportedNROUserCSecondaryCourt1,
+            testImportedNROUserCSecondaryCourt2,
+            testImportedNROUserCSecondaryCourt3,
             testImportedNROUserD,
             testImportedNROUserE
         };
@@ -134,10 +138,9 @@ public class AddNROUserIT extends IntegrationTestBase {
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
             // test NRO user without a court is NOT created successfully (NOT in DB)
             if (testImportedNROUser.getCourt().equals("Foo Court D")) {
-                assertTrue(userRepository.
-                               findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail()).isEmpty());
-            }
-            else {
+                assertTrue(userRepository
+                               .findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail()).isEmpty());
+            } else {
                 // test NRO user is created successfully
                 assertEquals(testImportedNROUser.getEmail(),
                              userService.findByEmail(testImportedNROUser.getEmail()).getUser().getEmail());
@@ -172,12 +175,14 @@ public class AddNROUserIT extends IntegrationTestBase {
             // check current user still does exist (and that the data has just been obscured)
             assertTrue(userRepository.findById(entry.getValue()).isPresent());
             // check that the email has been obscured to be the id & @test.com
-            assertEquals(entry.getValue().toString() + "@test.com", userRepository.findById(entry.getValue()).get().getEmail());
+            assertEquals(entry.getValue().toString() + "@test.com", userRepository.findById(
+                entry.getValue()).get().getEmail());
             // check the user's first and last name are Example User respectively
             assertEquals("Example", userRepository.findById(entry.getValue()).get().getFirstName());
             assertEquals("User", userRepository.findById(entry.getValue()).get().getLastName());
             // check the user's app access entry(ies) still exist (and that the data has just been obscured)
-            assertTrue(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).isPresent());
+            assertTrue(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(
+                entry.getValue()).isPresent());
 
             for (AppAccess appAccess : appAccessRepository
                 .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).get()) {

@@ -48,8 +48,7 @@ public class ObscureNROUsers extends RobotUserTask {
         this.roleRepository = roleRepository;
         if (!(usersFile.isEmpty())) {
             this.usersFile = usersFile;
-        }
-        else {
+        } else {
         }
         this.userRepository = userRepository;
         this.userService = userService;
@@ -113,17 +112,16 @@ public class ObscureNROUsers extends RobotUserTask {
 
     private void obscureEntries(Set<String> emails) {
         // compose statement to print & input into pgadmin4 to erase the audit logs
-        StringBuilder pgAdmin4Query = new StringBuilder("UPDATE public.audits\n" +
-                                                            "SET audit_details = '{}'::jsonb\n" +
-                                                            "WHERE audit_details::text ILIKE '%");
+        StringBuilder pgAdmin4Query = new StringBuilder("UPDATE public.audits\n"
+                                                            + "SET audit_details = '{}'::jsonb\n"
+                                                            + "WHERE audit_details::text ILIKE '%");
         int index = 0;
         for (String email : emails) {
             if (index < (emails.size() - 1)) {
                 pgAdmin4Query.append(email)
                     .append("%'\n")
                     .append("OR audit_details::text ILIKE '%");
-            }
-            else if (index == (emails.size() - 1)) {
+            } else if (index == (emails.size() - 1)) {
                 pgAdmin4Query.append(email)
                     .append("%'");
             }
@@ -136,13 +134,13 @@ public class ObscureNROUsers extends RobotUserTask {
                 // System.out.println(userId);
                 if (!(userId.toString().isEmpty())) {
                     CreateUserDTO createUserDTO = new CreateUserDTO();
-                    Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<CreatePortalAccessDTO>() {};
+                    Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<CreatePortalAccessDTO>() {};
                     Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<CreateAppAccessDTO>() {};
                     createUserDTO.setId(userId);
                     createUserDTO.setFirstName("Example");
                     createUserDTO.setLastName("User");
                     createUserDTO.setEmail(userId + "@test.com");
-                    createUserDTO.setPortalAccess(createPortalAccessDTOS);
+                    createUserDTO.setPortalAccess(createPortalAccessDTOs);
 
                     // Update app access entries of current user to obscurity
                     if (this.appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
@@ -156,8 +154,10 @@ public class ObscureNROUsers extends RobotUserTask {
                             createAppAccessDTO.setUserId(userId);
 
                             createAppAccessDTO.setDefaultCourt(appAccess.isDefaultCourt());
-                            createAppAccessDTO.setRoleId(this.roleRepository.findFirstByName("Level 1").get().getId());
-                            createAppAccessDTO.setCourtId(this.courtRepository.findFirstByName("Foo Court").get().getId());
+                            createAppAccessDTO.setRoleId(this.roleRepository.findFirstByName("Level 1")
+                                                             .get().getId());
+                            createAppAccessDTO.setCourtId(this.courtRepository.findFirstByName("Foo Court")
+                                                              .get().getId());
 
                             createAppAccessDTO.setActive(false);
 
@@ -166,14 +166,12 @@ public class ObscureNROUsers extends RobotUserTask {
 
                         createUserDTO.setAppAccess(createAppAccessDTOs);
                         this.userService.upsert(createUserDTO);
-                    }
-                    else {
+                    } else {
                         System.out.println("New error here");
                     }
                 }
 
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 System.out.println(email + " does not exist yet!");
                 System.out.println(e);
             }
