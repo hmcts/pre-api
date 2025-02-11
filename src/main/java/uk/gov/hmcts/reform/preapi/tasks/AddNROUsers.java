@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -50,8 +51,6 @@ public class AddNROUsers extends RobotUserTask {
         this.roleRepository = roleRepository;
         if (!(usersFile.isEmpty())) {
             this.usersFile = usersFile;
-        } else {
-            // this.usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
         }
         this.userRepository = userRepository;
         this.userService = userService;
@@ -131,11 +130,8 @@ public class AddNROUsers extends RobotUserTask {
             }
 
             // check user is in DB
-            try {
-                this.userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(createUserDTO.getEmail()).get();
-            } catch (Exception e) {
-                System.out.println("Upsert failed: " + e);
-                // logger; detect log msgs written in unit test
+            if (this.userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(createUserDTO.getEmail()).isEmpty()) {
+                log.info("Upsert failed for user: {}", createUserDTO.getEmail());
             }
         }
 
@@ -184,22 +180,7 @@ public class AddNROUsers extends RobotUserTask {
             while ((line = br.readLine()) != null) {
                 String[] values = parseCsvLine(line);
 
-                String firstName = values[0];
-                String lastName = values[1];
-                String email = values[2];
-                String court = values[4];
-                Boolean isDefault = null;
-                String userLevel = values[6];
-
-                if (values[3].contains("Secondary")) {
-                    isDefault = false;
-                } else if (values[3].contains("Primary")) {
-                    isDefault = true;
-                }
-
-                ImportedNROUser importedNROUser = new ImportedNROUser(
-                    firstName, lastName, email, court, isDefault, userLevel
-                );
+                ImportedNROUser importedNROUser = getNROUser(values);
 
                 this.importedNROUsers.add(importedNROUser);
             }
@@ -207,6 +188,26 @@ public class AddNROUsers extends RobotUserTask {
             e.printStackTrace();
             System.exit(0);
         }
+    }
+
+    private static @NotNull ImportedNROUser getNROUser(String[] values) {
+        String firstName = values[0];
+        String lastName = values[1];
+        String email = values[2];
+        String court = values[4];
+        Boolean isDefault = null;
+        String userLevel = values[6];
+
+        if (values[3].contains("Secondary")) {
+            isDefault = false;
+        } else if (values[3].contains("Primary")) {
+            isDefault = true;
+        }
+
+        ImportedNROUser importedNROUser = new ImportedNROUser(
+            firstName, lastName, email, court, isDefault, userLevel
+        );
+        return importedNROUser;
     }
 
     private CreateAppAccessDTO createAppAccessObj(ImportedNROUser importedNROUser, UUID userId) {

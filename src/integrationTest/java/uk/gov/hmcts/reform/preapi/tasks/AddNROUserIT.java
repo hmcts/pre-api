@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import jakarta.transaction.Transactional;
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -56,74 +57,7 @@ public class AddNROUserIT extends IntegrationTestBase {
     @Test
     public void testRunAddNROUsers() {
         // NRO objects to test assertions:
-        ImportedNROUser testImportedNROUserA = new ImportedNROUser("Example",
-                                                                   "User A",
-                                                                   "exampleUserA@test.com",
-                                                                   "Aylesbury Crown Court",
-                                                                   true,
-                                                                   "2");
-        ImportedNROUser testImportedNROUserB = new ImportedNROUser("Example",
-                                                                   "User B",
-                                                                   "exampleUserB@test.com",
-                                                                   "Basildon Combined Court",
-                                                                   true,
-                                                                   "2");
-        ImportedNROUser testImportedNROUserBSecondaryCourt1 = new ImportedNROUser("Example",
-                                                                   "User B",
-                                                                   "exampleUserB@test.com",
-                                                                   "Bolton Combined Court",
-                                                                   false,
-                                                                   "2");
-        ImportedNROUser testImportedNROUserC = new ImportedNROUser("Example",
-                                                                   "User C",
-                                                                   "exampleUserC@test.com",
-                                                                   "Caernarfon Justice Centre",
-                                                                   true,
-                                                                   "2");
-        ImportedNROUser testImportedNROUserCSecondaryCourt1 = new ImportedNROUser("Example",
-                                                                   "User C",
-                                                                   "exampleUserC@test.com",
-                                                                   "Cambridge Crown Court",
-                                                                   false,
-                                                                   "2");
-        ImportedNROUser testImportedNROUserCSecondaryCourt2 = new ImportedNROUser("Example",
-                                                                   "User C",
-                                                                   "exampleUserC@test.com",
-                                                                   "Canterbury Combined Court",
-                                                                   false,
-                                                                   "2");
-        ImportedNROUser testImportedNROUserCSecondaryCourt3 = new ImportedNROUser("Example",
-                                                                   "User C",
-                                                                   "exampleUserC@test.com",
-                                                                   "Cardiff Crown Court",
-                                                                   false,
-                                                                   "2");
-        // User whose court does not exist in the DB
-        ImportedNROUser testImportedNROUserD = new ImportedNROUser("Example",
-                                                                   "User D",
-                                                                   "exampleUserD@test.com",
-                                                                   "Foo Court D",
-                                                                   true,
-                                                                   "2");
-        ImportedNROUser testImportedNROUserE = new ImportedNROUser("Example",
-                                                                   "User E",
-                                                                   "exampleUserE@test.com",
-                                                                   "Doncaster Crown Court "
-                                                                       + "(Doncaster Justice Centre South)",
-                                                                   true,
-                                                                   "2");
-
-        ImportedNROUser[] testImportedNROUsers = new ImportedNROUser[]{
-            testImportedNROUserA,
-            testImportedNROUserB,
-            testImportedNROUserBSecondaryCourt1,
-            testImportedNROUserC,
-            testImportedNROUserCSecondaryCourt1,
-            testImportedNROUserCSecondaryCourt2,
-            testImportedNROUserCSecondaryCourt3,
-            testImportedNROUserD,
-            testImportedNROUserE
-        };
+        ImportedNROUser[] testImportedNROUsers = getTestImportedNROUsers();
 
         // initialise & run the AddNROUsers test
         AddNROUsers addNROUsers = new AddNROUsers(userService,
@@ -199,6 +133,77 @@ public class AddNROUserIT extends IntegrationTestBase {
             }
         }
         // checking all emails are in the SQL statement to erase the audit logs
+    }
+
+    private static ImportedNROUser @NotNull [] getTestImportedNROUsers() {
+        ImportedNROUser testImportedNROUserA = new ImportedNROUser("Example",
+                                                                   "User A",
+                                                                   "exampleUserA@test.com",
+                                                                   "Aylesbury Crown Court",
+                                                                   true,
+                                                                   "2");
+        ImportedNROUser testImportedNROUserB = new ImportedNROUser("Example",
+                                                                   "User B",
+                                                                   "exampleUserB@test.com",
+                                                                   "Basildon Combined Court",
+                                                                   true,
+                                                                   "2");
+        ImportedNROUser testImportedNROUserBSecondaryCourt1 = new ImportedNROUser("Example",
+                                                                   "User B",
+                                                                   "exampleUserB@test.com",
+                                                                   "Bolton Combined Court",
+                                                                   false,
+                                                                   "2");
+        ImportedNROUser testImportedNROUserC = new ImportedNROUser("Example",
+                                                                   "User C",
+                                                                   "exampleUserC@test.com",
+                                                                   "Caernarfon Justice Centre",
+                                                                   true,
+                                                                   "2");
+        ImportedNROUser testImportedNROUserCSecondaryCourt1 = new ImportedNROUser("Example",
+                                                                   "User C",
+                                                                   "exampleUserC@test.com",
+                                                                   "Cambridge Crown Court",
+                                                                   false,
+                                                                   "2");
+        ImportedNROUser testImportedNROUserCSecondaryCourt2 = new ImportedNROUser("Example",
+                                                                   "User C",
+                                                                   "exampleUserC@test.com",
+                                                                   "Canterbury Combined Court",
+                                                                   false,
+                                                                   "2");
+        ImportedNROUser testImportedNROUserCSecondaryCourt3 = new ImportedNROUser("Example",
+                                                                   "User C",
+                                                                   "exampleUserC@test.com",
+                                                                   "Cardiff Crown Court",
+                                                                   false,
+                                                                   "2");
+        // User whose court does not exist in the DB
+        ImportedNROUser testImportedNROUserD = new ImportedNROUser("Example",
+                                                                   "User D",
+                                                                   "exampleUserD@test.com",
+                                                                   "Foo Court D",
+                                                                   true,
+                                                                   "2");
+        ImportedNROUser testImportedNROUserE = new ImportedNROUser("Example",
+                                                                   "User E",
+                                                                   "exampleUserE@test.com",
+                                                                   "Doncaster Crown Court "
+                                                                       + "(Doncaster Justice Centre South)",
+                                                                   true,
+                                                                   "2");
+
+        return new ImportedNROUser[]{
+            testImportedNROUserA,
+            testImportedNROUserB,
+            testImportedNROUserBSecondaryCourt1,
+            testImportedNROUserC,
+            testImportedNROUserCSecondaryCourt1,
+            testImportedNROUserCSecondaryCourt2,
+            testImportedNROUserCSecondaryCourt3,
+            testImportedNROUserD,
+            testImportedNROUserE
+        };
     }
 
     @Transactional
