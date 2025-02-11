@@ -18,9 +18,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = Application.class)
 public class UserTermsAcceptedTest extends IntegrationTestBase {
 
-    @Autowired
-    private EntityManager entityManager;
-
     @Test
     @Transactional
     public void testSaveAndRetrieve() {
