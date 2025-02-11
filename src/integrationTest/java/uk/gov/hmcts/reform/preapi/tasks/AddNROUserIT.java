@@ -164,7 +164,6 @@ public class AddNROUserIT extends IntegrationTestBase {
                                                               appAccessRepository,
                                                               courtRepository,
                                                               roleRepository,
-                                                              userRepository,
                                                               testUsersFile);
         obscureNROUsers.run();
 

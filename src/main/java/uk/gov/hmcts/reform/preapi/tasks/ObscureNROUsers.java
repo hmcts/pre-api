@@ -11,7 +11,6 @@ import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
@@ -33,7 +32,6 @@ public class ObscureNROUsers extends RobotUserTask {
     private final CourtRepository courtRepository;
     private final RoleRepository roleRepository;
     private final UserService userService;
-    private UserRepository userRepository;
 
 
     @Autowired
@@ -41,29 +39,25 @@ public class ObscureNROUsers extends RobotUserTask {
                            UserAuthenticationService userAuthenticationService,
                            @Value("${cron-user-email}") String cronUserEmail, AppAccessRepository appAccessRepository,
                            CourtRepository courtRepository, RoleRepository roleRepository,
-                           UserRepository userRepository, @Value("${testFilePath}") String usersFile) {
+                           @Value("${testFilePath}") String usersFile) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.appAccessRepository = appAccessRepository;
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
         if (!(usersFile.isEmpty())) {
             this.usersFile = usersFile;
-        } else {
         }
-        this.userRepository = userRepository;
         this.userService = userService;
     }
 
     public ObscureNROUsers(UserService userService,
                            UserAuthenticationService userAuthenticationService,
                            @Value("${cron-user-email}") String cronUserEmail, AppAccessRepository appAccessRepository,
-                           CourtRepository courtRepository, RoleRepository roleRepository,
-                           UserRepository userRepository) {
+                           CourtRepository courtRepository, RoleRepository roleRepository) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.appAccessRepository = appAccessRepository;
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
-        this.userRepository = userRepository;
         this.userService = userService;
     }
 
@@ -135,13 +129,13 @@ public class ObscureNROUsers extends RobotUserTask {
                 if (!(userId.toString().isEmpty())) {
                     CreateUserDTO createUserDTO = new CreateUserDTO();
                     Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<CreatePortalAccessDTO>() {};
-                    Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<CreateAppAccessDTO>() {};
                     createUserDTO.setId(userId);
                     createUserDTO.setFirstName("Example");
                     createUserDTO.setLastName("User");
                     createUserDTO.setEmail(userId + "@test.com");
                     createUserDTO.setPortalAccess(createPortalAccessDTOs);
 
+                    Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<CreateAppAccessDTO>() {};
                     // Update app access entries of current user to obscurity
                     if (this.appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
                         .isPresent()) {
