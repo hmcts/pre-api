@@ -138,7 +138,9 @@ public class ObscureNROUsers extends RobotUserTask {
                     Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<CreateAppAccessDTO>() {};
                     // Update app access entries of current user to obscurity
                     if (this.appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-                        .isPresent()) {
+                        .isPresent()
+                        && this.roleRepository.findFirstByName("Level 1").isPresent()
+                        && this.courtRepository.findFirstByName("Foo Court").isPresent()) {
                         for (AppAccess appAccess : this.appAccessRepository
                             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId).get()) {
                             // System.out.println(createUserDTO.getEmail() + " " + appAccess.getId());
@@ -161,7 +163,10 @@ public class ObscureNROUsers extends RobotUserTask {
                         createUserDTO.setAppAccess(createAppAccessDTOs);
                         this.userService.upsert(createUserDTO);
                     } else {
-                        System.out.println("New error here");
+                        log.info("An app access entry does not exist for "
+                                               + createUserDTO.getEmail()
+                                               + " Or the role used to obscure the user, or the court used to "
+                                               + "obscure the user, does not exist.");
                     }
                 }
 

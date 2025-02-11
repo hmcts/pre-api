@@ -63,7 +63,6 @@ public class AddNROUsers extends RobotUserTask {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
-        // this.usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
         this.userRepository = userRepository;
         this.userService = userService;
     }
