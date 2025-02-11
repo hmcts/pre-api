@@ -1,11 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.dto.AuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -45,13 +41,6 @@ public class AuditService {
         auditRepository.save(audit);
 
         return UpsertResult.CREATED;
-    }
-
-    @Transactional
-    public Page<AuditDTO> findAll(Pageable pageable) {
-        return auditRepository
-            .searchAll(pageable)
-            .map(AuditDTO::new);
     }
 
     public List<Audit> getAuditsByTableRecordId(UUID tableRecordId) {

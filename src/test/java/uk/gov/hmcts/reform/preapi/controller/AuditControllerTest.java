@@ -8,12 +8,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import uk.gov.hmcts.reform.preapi.controllers.AuditController;
-import uk.gov.hmcts.reform.preapi.dto.AuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -23,21 +21,16 @@ import uk.gov.hmcts.reform.preapi.services.AuditService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.text.SimpleDateFormat;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
-
 
 @WebMvcTest(AuditController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -83,8 +76,8 @@ class AuditControllerTest {
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
-            .andReturn();
+                                    .andExpect(status().isCreated())
+                                    .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
@@ -108,8 +101,8 @@ class AuditControllerTest {
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isCreated())
-            .andReturn();
+                                    .andExpect(status().isCreated())
+                                    .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
@@ -132,9 +125,9 @@ class AuditControllerTest {
                             .content(OBJECT_MAPPER.writeValueAsString(audit))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message")
-                           .value("Data is immutable and cannot be changed. Id: " + audit.getId()));
+               .andExpect(status().isBadRequest())
+               .andExpect(jsonPath("$.message")
+                              .value("Data is immutable and cannot be changed. Id: " + audit.getId()));
     }
 
     @DisplayName("Should fail to create an audit record with 400 response code auditId mismatch")
@@ -154,8 +147,8 @@ class AuditControllerTest {
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().is4xxClientError())
-            .andReturn();
+                                    .andExpect(status().is4xxClientError())
+                                    .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Path id does not match payload property createAuditDTO.id\"}");
@@ -166,46 +159,10 @@ class AuditControllerTest {
     void createAuditEndpointNotAcceptable() throws Exception {
 
         mockMvc.perform(put(getPath(UUID.randomUUID())))
-            .andExpect(status().is4xxClientError());
+               .andExpect(status().is4xxClientError());
     }
 
     private String getPath(UUID auditId) {
         return "/audit/" + auditId;
-    }
-
-    @DisplayName("Should get a list of audit logs with 200 response code")
-    @Test
-    void testSearchAuditLogsSuccess() throws Exception {
-        UUID auditLogId = UUID.randomUUID();
-        var mockAuditDTO = new AuditDTO();
-        mockAuditDTO.setId(auditLogId);
-        var auditDTOList = List.of(mockAuditDTO);
-        when(auditService.findAll(any()))
-            .thenReturn(new PageImpl<>(auditDTOList));
-
-        mockMvc.perform(get("/audit")
-                            .with(csrf())
-            )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$._embedded.auditDTOList").isNotEmpty())
-            .andExpect(jsonPath("$._embedded.auditDTOList[0].id").value(auditLogId.toString()));
-
-        verify(auditService, times(1)).findAll(any());
-    }
-
-    @DisplayName("Requested page out of range")
-    @Test
-    void getAuditLogsRequestedPageOutOfRange() throws Exception {
-        UUID auditLogId = UUID.randomUUID();
-        var mockAuditDTO = new AuditDTO();
-        mockAuditDTO.setId(auditLogId);
-        var auditDTOList = List.of(mockAuditDTO);
-        when(auditService.findAll(any()))
-            .thenReturn(new PageImpl<>(auditDTOList));
-
-        mockMvc.perform(get("/audit?page=5"))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Requested page {5} is out of range. Max page is {1}"));
-
     }
 }
