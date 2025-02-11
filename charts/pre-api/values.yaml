@@ -48,6 +48,10 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: MEDIA_KIND_SUBSCRIPTION_ID
         - name: api-MK-CUSTOMER-ID
           alias: MEDIA_KIND_CUSTOMER_ID
+        - name: govnotify-key
+          alias: GOV_NOTIFY_API_KEY
+        - name: govnotify-key-test
+          alias: GOV_NOTIFY_API_KEY_TEST
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
@@ -58,6 +62,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     PLATFORM_ENV_TAG: Production
     CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"
     ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
+    EMAIL_SERVICE: GovNotify
+    ENABLE_NEW_EMAIL_SERVICE: false
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues
