@@ -76,8 +76,8 @@ class AuditControllerTest {
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().isCreated())
-                                    .andReturn();
+            .andExpect(status().isCreated())
+            .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
@@ -101,8 +101,8 @@ class AuditControllerTest {
                                                  .content(OBJECT_MAPPER.writeValueAsString(audit))
                                                  .contentType(MediaType.APPLICATION_JSON_VALUE)
                                                  .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().isCreated())
-                                    .andReturn();
+            .andExpect(status().isCreated())
+            .andReturn();
 
         assertThat(response.getResponse().getContentAsString()).isEqualTo("");
     }
@@ -125,9 +125,9 @@ class AuditControllerTest {
                             .content(OBJECT_MAPPER.writeValueAsString(audit))
                             .contentType(MediaType.APPLICATION_JSON_VALUE)
                             .accept(MediaType.APPLICATION_JSON_VALUE))
-               .andExpect(status().isBadRequest())
-               .andExpect(jsonPath("$.message")
-                              .value("Data is immutable and cannot be changed. Id: " + audit.getId()));
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.message")
+                           .value("Data is immutable and cannot be changed. Id: " + audit.getId()));
     }
 
     @DisplayName("Should fail to create an audit record with 400 response code auditId mismatch")
@@ -142,13 +142,13 @@ class AuditControllerTest {
         var xUserId = UUID.randomUUID();
 
         MvcResult response = mockMvc.perform(put(getPath(UUID.randomUUID()))
-                                                 .with(csrf())
-                                                 .header(X_USER_ID_HEADER, xUserId)
-                                                 .content(OBJECT_MAPPER.writeValueAsString(audit))
-                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
-                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
-                                    .andExpect(status().is4xxClientError())
-                                    .andReturn();
+                            .with(csrf())
+                            .header(X_USER_ID_HEADER, xUserId)
+                            .content(OBJECT_MAPPER.writeValueAsString(audit))
+                            .contentType(MediaType.APPLICATION_JSON_VALUE)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Path id does not match payload property createAuditDTO.id\"}");
@@ -159,7 +159,7 @@ class AuditControllerTest {
     void createAuditEndpointNotAcceptable() throws Exception {
 
         mockMvc.perform(put(getPath(UUID.randomUUID())))
-               .andExpect(status().is4xxClientError());
+            .andExpect(status().is4xxClientError());
     }
 
     private String getPath(UUID auditId) {
