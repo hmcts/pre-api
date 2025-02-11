@@ -9,7 +9,11 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -34,6 +38,8 @@ public class CleanupLiveEvents extends RobotUserTask {
 
     private final String platformEnv;
 
+    private final EmailServiceFactory emailServiceFactory;
+
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
                       CaptureSessionService captureSessionService,
@@ -43,7 +49,8 @@ public class CleanupLiveEvents extends RobotUserTask {
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
-                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient) {
+                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
+                      EmailServiceFactory emailServiceFactory) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
@@ -51,6 +58,7 @@ public class CleanupLiveEvents extends RobotUserTask {
         this.recordingService = recordingService;
         this.platformEnv = platformEnv;
         this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Override
@@ -108,7 +116,8 @@ public class CleanupLiveEvents extends RobotUserTask {
                               try {
                                   var booking = bookingService.findById(captureSession.getBookingId());
 
-                                  var toNotify = booking.getShares().stream()
+                                  var shares = booking.getShares();
+                                  var toNotify = shares.stream()
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
                                                         )
@@ -122,7 +131,23 @@ public class CleanupLiveEvents extends RobotUserTask {
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
                                       log.info("Sending email notifications to {} user(s)", toNotify.size());
-                                      stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
+                                      if (!emailServiceFactory.isEnabled()) {
+                                          stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
+                                      } else {
+                                          var forCase = new Case();
+                                          forCase.setReference(booking.getCaseDTO().getReference());
+                                          var court = new Court();
+                                          court.setName(booking.getCaseDTO().getCourt().getName());
+                                          forCase.setCourt(court);
+                                          var emailService = emailServiceFactory.getEnabledEmailService();
+                                          shares.forEach(share -> {
+                                              var emailUser = new User();
+                                              emailUser.setEmail(share.getSharedWithUser().getEmail());
+                                              emailUser.setFirstName(share.getSharedWithUser().getFirstName());
+                                              emailUser.setLastName(share.getSharedWithUser().getLastName());
+                                              emailService.recordingReady(emailUser, forCase);
+                                          });
+                                      }
                                   } else {
                                       log.info("No users to notify for capture session {}", captureSession.getId());
                                   }

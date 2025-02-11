@@ -105,6 +105,14 @@ flow:
   key: ${FLOW_KEY:123}
 
 testFilePath: src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv
+email:
+  service: ${EMAIL_SERVICE:GovNotify}
+  govNotify:
+    key: ${GOV_NOTIFY_API_KEY:}
+  enable: ${ENABLE_NEW_EMAIL_SERVICE:false}
+
+portal:
+  url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}
 
 #logging:
 #  level:
