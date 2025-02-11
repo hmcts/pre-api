@@ -104,6 +104,15 @@ flow:
   sig: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG:123}
   key: ${FLOW_KEY:123}
 
+email:
+  service: ${EMAIL_SERVICE:GovNotify}
+  govNotify:
+    key: ${GOV_NOTIFY_API_KEY:}
+  enable: ${ENABLE_NEW_EMAIL_SERVICE:false}
+
+portal:
+  url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
