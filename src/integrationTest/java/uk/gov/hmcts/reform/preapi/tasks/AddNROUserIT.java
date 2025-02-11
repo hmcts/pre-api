@@ -40,7 +40,7 @@ public class AddNROUserIT extends IntegrationTestBase {
     private UserService userService;
 
     private static final String testUsersFile =
-        "src/test/java/uk/gov/hmcts/reform/preapi/tasks/Test_NRO_User_Import.csv";
+        "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";
     private static final String CRON_USER_EMAIL = "Phoebe.Revolta@HMCTS.net";
 
 
@@ -150,7 +150,9 @@ public class AddNROUserIT extends IntegrationTestBase {
         // now check users are obscured in the DB
         Map<String, UUID> testUserEmailsAndIDs = new HashMap<String, UUID>();
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
-            if (!(testImportedNROUser.getCourt().equals("Foo Court D"))) {
+            if (!(testImportedNROUser.getCourt().equals("Foo Court D"))
+                && (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail())
+                .isPresent())) {
                 testUserEmailsAndIDs.put(testImportedNROUser.getEmail(),
                                    userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(
                                        testImportedNROUser.getEmail()).get().getId());
@@ -196,8 +198,7 @@ public class AddNROUserIT extends IntegrationTestBase {
                 assertFalse(appAccess.isActive());
             }
         }
-        // checking all emails are in the SQL statement
-        // checking users are NOT in the DB
+        // checking all emails are in the SQL statement to erase the audit logs
     }
 
     @Transactional
