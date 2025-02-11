@@ -14,9 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest(classes = Application.class)
 class UserTest extends IntegrationTestBase {
 
-    @Autowired
-    private EntityManager entityManager;
-
     @Test
     @Transactional
     public void testSaveAndRetrieveUser() { //NOPMD - suppressed JUnit5TestShouldBePackagePrivate
