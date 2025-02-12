@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -179,8 +178,7 @@ public class AddNROUsers extends RobotUserTask {
             isDefault = false;
         } else if (values[3].contains("Primary")) {
             isDefault = true;
-        }
-        else {
+        } else {
             this.otherUsersNotImported.add(email);
             return null;
         }
