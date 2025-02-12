@@ -167,15 +167,29 @@ public class AddNROUserIT extends IntegrationTestBase {
     @Transactional
     @Test
     public void testInvalidCSVFile() {
+        String falseFileName = "falseFileName";
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                 userAuthenticationService,
                 CRON_USER_EMAIL,
                 courtRepository,
                 roleRepository,
                 userRepository,
-                "testFalseFile");
+                falseFileName);
         try {
             addNROUsers.run();
+        } catch (Exception e) {
+            fail();
+        }
+
+        try {
+            ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
+                    userAuthenticationService,
+                    CRON_USER_EMAIL,
+                    appAccessRepository,
+                    courtRepository,
+                    roleRepository,
+                    falseFileName);
+            obscureNROUsers.run();
         } catch (Exception e) {
             fail();
         }
