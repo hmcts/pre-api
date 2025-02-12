@@ -25,6 +25,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class AddNROUserIT extends IntegrationTestBase {
@@ -161,6 +162,23 @@ public class AddNROUserIT extends IntegrationTestBase {
         assertEquals("ImportedNROUser{firstName='Updated', lastName='Example-User A', "
                         + "email='updatedUserA@test.com', court='Updated Court Name', isDefault=false, userAccess='1'}",
                 testImportedNROUsers[0].toString());
+    }
+
+    @Transactional
+    @Test
+    public void testInvalidCSVFile() {
+        AddNROUsers addNROUsers = new AddNROUsers(userService,
+                userAuthenticationService,
+                CRON_USER_EMAIL,
+                courtRepository,
+                roleRepository,
+                userRepository,
+                "testFalseFile");
+        try {
+            addNROUsers.run();
+        } catch (Exception e) {
+            fail();
+        }
     }
 
     private static ImportedNROUser @NotNull [] getTestImportedNROUsers() {

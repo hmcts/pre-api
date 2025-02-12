@@ -33,6 +33,7 @@ public class AddNROUsers extends RobotUserTask {
     private final ArrayList<ImportedNROUser> importedNROUsers = new ArrayList<>();
     private final ArrayList<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
+    private Boolean stopScript = false;
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
     private final UserRepository userRepository;
     private final ArrayList<String> usersWithoutCourts = new ArrayList<>();
@@ -69,6 +70,9 @@ public class AddNROUsers extends RobotUserTask {
 
         log.info("Reading in .csv file. . .");
         this.createImportedNROUserObjects(this.usersFile);
+        if (this.stopScript) {
+            return;
+        }
 
         // group the new list of NRO users (objects) by email
         log.info("Grouping NRO user courts by email. . .");
@@ -161,8 +165,8 @@ public class AddNROUsers extends RobotUserTask {
 
             }
         } catch (IOException e) {
-            log.info("Error: ", e);
-            System.exit(0);
+            log.error("Error: " + e.getMessage());
+            this.stopScript = true;
         }
     }
 
