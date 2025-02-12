@@ -31,7 +31,6 @@ public class ObscureNROUsers extends RobotUserTask {
     private final RoleRepository roleRepository;
     private final Set<String> userEmails = new HashSet<>();
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
-    private final UserService userService;
 
 
     @Autowired
@@ -47,7 +46,6 @@ public class ObscureNROUsers extends RobotUserTask {
         if (!(usersFile.isEmpty())) {
             this.usersFile = usersFile;
         }
-        this.userService = userService;
     }
 
     public ObscureNROUsers(UserService userService,
@@ -58,7 +56,6 @@ public class ObscureNROUsers extends RobotUserTask {
         this.appAccessRepository = appAccessRepository;
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
-        this.userService = userService;
     }
 
     @Override
