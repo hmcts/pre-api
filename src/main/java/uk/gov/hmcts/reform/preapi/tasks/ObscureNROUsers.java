@@ -26,11 +26,11 @@ import java.util.UUID;
 @Slf4j
 public class ObscureNROUsers extends RobotUserTask {
 
-    private final Set<String> userEmails = new HashSet<String>();
-    private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
     private final AppAccessRepository appAccessRepository;
     private final CourtRepository courtRepository;
     private final RoleRepository roleRepository;
+    private final Set<String> userEmails = new HashSet<String>();
+    private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
     private final UserService userService;
 
 
@@ -125,7 +125,6 @@ public class ObscureNROUsers extends RobotUserTask {
             try {
                 UUID userId = this.userService.findByEmail(email).getUser().getId(); // User ID of current user
 
-                // System.out.println(userId);
                 if (!(userId.toString().isEmpty())) {
                     CreateUserDTO createUserDTO = new CreateUserDTO();
                     Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<CreatePortalAccessDTO>() {};
