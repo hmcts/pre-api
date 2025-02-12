@@ -137,6 +137,25 @@ public class AddNROUserIT extends IntegrationTestBase {
         // checking all emails are in the SQL statement to erase the audit logs
     }
 
+    @Transactional
+    @Test
+    public void testSetters() {
+        ImportedNROUser[] testImportedNROUsers = getTestImportedNROUsers();
+        testImportedNROUsers[0].setFirstName("Updated");
+        testImportedNROUsers[0].setLastName("Example-User A");
+        testImportedNROUsers[0].setEmail("updatedUserA@test.com");
+        testImportedNROUsers[0].setIsDefault(false);
+        testImportedNROUsers[0].setCourt("Updated Court Name");
+        testImportedNROUsers[0].setUserAccess("1");
+
+        assertEquals("Updated", testImportedNROUsers[0].getFirstName());
+        assertEquals("Example-User A", testImportedNROUsers[0].getLastName());
+        assertEquals("updatedUserA@test.com", testImportedNROUsers[0].getEmail());
+        assertFalse(testImportedNROUsers[0].getIsDefault());
+        assertEquals("Updated Court Name", testImportedNROUsers[0].getCourt());
+        assertEquals("1", testImportedNROUsers[0].getUserAccess());
+    }
+
     private static ImportedNROUser @NotNull [] getTestImportedNROUsers() {
         ImportedNROUser testImportedNROUserA = new ImportedNROUser("Example",
                                                                    "User A",
