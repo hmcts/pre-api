@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import java.util.ArrayList;
+
 public class ImportedNROUser {
     private String firstName;
     private String lastName;
@@ -78,5 +80,24 @@ public class ImportedNROUser {
 
     public void setUserAccess(String userAccess) {
         this.userAccess = userAccess;
+    }
+
+    public static String[] parseCsvLine(String line) {
+        ArrayList<String> result = new ArrayList<>();
+        StringBuilder currentValue = new StringBuilder();
+        boolean inQuotes = false;
+        for (char ch : line.toCharArray()) {
+            if (ch == '\"') {
+                inQuotes = !inQuotes;  // Toggle the inQuotes flag
+            } else if (ch == ',' && !inQuotes) {
+                result.add(currentValue.toString().trim());
+                currentValue.setLength(0); // Reset the StringBuilder
+            } else {
+                currentValue.append(ch);
+            }
+        }
+        // Add the last value
+        result.add(currentValue.toString().trim());
+        return result.toArray(new String[0]);
     }
 }

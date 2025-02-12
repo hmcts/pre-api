@@ -141,27 +141,6 @@ public class AddNROUsers extends RobotUserTask {
 
     }
 
-    private String[] parseCsvLine(String line) {
-        ArrayList<String> result = new ArrayList<>();
-        StringBuilder currentValue = new StringBuilder();
-        boolean inQuotes = false;
-
-        for (char ch : line.toCharArray()) {
-            if (ch == '\"') {
-                inQuotes = !inQuotes;  // Toggle the inQuotes flag
-            } else if (ch == ',' && !inQuotes) {
-                result.add(currentValue.toString().trim());
-                currentValue.setLength(0); // Reset the StringBuilder
-            } else {
-                currentValue.append(ch);
-            }
-        }
-        // Add the last value
-        result.add(currentValue.toString().trim());
-
-        return result.toArray(new String[0]);
-    }
-
     private void createImportedNROUserObjects(String usersFilePath) {
         // Read from CSV file
         try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
@@ -174,7 +153,7 @@ public class AddNROUsers extends RobotUserTask {
                 if (line.contains("FirstName")) {
                     continue;
                 }
-                String[] values = parseCsvLine(line);
+                String[] values = ImportedNROUser.parseCsvLine(line);
 
                 ImportedNROUser importedNROUser = getNROUser(values);
 

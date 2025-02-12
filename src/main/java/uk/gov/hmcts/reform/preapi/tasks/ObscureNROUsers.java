@@ -17,7 +17,6 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -69,7 +68,7 @@ public class ObscureNROUsers extends RobotUserTask {
                 if (line.contains("FirstName")) {
                     continue;
                 }
-                String[] values = parseCsvLine(line);
+                String[] values = ImportedNROUser.parseCsvLine(line);
                 String email = values[2];
 
                 this.userEmails.add(email);
@@ -80,27 +79,6 @@ public class ObscureNROUsers extends RobotUserTask {
 
         this.obscureEntries(userEmails);
         log.info("Completed ObscureNROUsers task");
-    }
-
-    private String[] parseCsvLine(String line) {
-        ArrayList<String> result = new ArrayList<>();
-        StringBuilder currentValue = new StringBuilder();
-        boolean inQuotes = false;
-
-        for (char ch : line.toCharArray()) {
-            if (ch == '\"') {
-                inQuotes = !inQuotes;  // Toggle the inQuotes flag
-            } else if (ch == ',' && !inQuotes) {
-                result.add(currentValue.toString().trim());
-                currentValue.setLength(0); // Reset the StringBuilder
-            } else {
-                currentValue.append(ch);
-            }
-        }
-        // Add the last value
-        result.add(currentValue.toString().trim());
-
-        return result.toArray(new String[0]);
     }
 
     private void obscureEntries(Set<String> emails) {
