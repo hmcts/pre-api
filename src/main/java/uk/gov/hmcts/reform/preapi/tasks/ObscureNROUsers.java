@@ -97,8 +97,7 @@ public class ObscureNROUsers extends RobotUserTask {
             } else if (index == (emails.size() - 1)) {
                 pgAdmin4Query.append(email)
                     .append("%'");
-            }
-            else {
+            } else {
                 break;
             }
             index++;
