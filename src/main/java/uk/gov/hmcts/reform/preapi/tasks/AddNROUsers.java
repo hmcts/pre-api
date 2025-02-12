@@ -66,7 +66,7 @@ public class AddNROUsers extends RobotUserTask {
 
         log.info("Reading in .csv file. . .");
         this.createImportedNROUserObjects(this.usersFile);
-        if (this.stopScript.equals(Boolean.FALSE)) {
+        if (this.stopScript.equals(Boolean.TRUE)) {
             return;
         }
 

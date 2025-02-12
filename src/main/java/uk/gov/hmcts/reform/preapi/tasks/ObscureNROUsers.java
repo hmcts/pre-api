@@ -98,6 +98,9 @@ public class ObscureNROUsers extends RobotUserTask {
                 pgAdmin4Query.append(email)
                     .append("%'");
             }
+            else {
+                break;
+            }
             index++;
 
             // Update user with current email to obscurity
