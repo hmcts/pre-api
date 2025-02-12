@@ -303,7 +303,7 @@ dependencies {
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.20.4'
 
-  implementation group: 'com.auth0', name: 'java-jwt', version: '4.4.0'
+  implementation group: 'com.auth0', name: 'java-jwt', version: '4.5.0'
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
