@@ -123,10 +123,6 @@ public class AddNROUsers extends RobotUserTask {
             } catch (Exception e) {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
                 this.otherUsersNotImported.add(createUserDTO.getEmail());
-            }
-
-            // check user is in DB
-            if (this.userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(createUserDTO.getEmail()).isEmpty()) {
                 log.info("Upsert failed for user: {}", createUserDTO.getEmail());
             }
         }
