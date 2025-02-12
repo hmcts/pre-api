@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
-    private final ArrayList<CreateUserDTO> existingUsers = new ArrayList<>();
+    private final ArrayList<String> otherUsersNotImported = new ArrayList<>();
     private final ArrayList<ImportedNROUser> importedNROUsers = new ArrayList<>();
     private final ArrayList<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
@@ -119,7 +119,7 @@ public class AddNROUsers extends RobotUserTask {
                 this.userService.upsert(createUserDTO);
             } catch (Exception e) {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
-                this.existingUsers.add(createUserDTO);
+                this.otherUsersNotImported.add(createUserDTO.getEmail());
             }
 
             // check user is in DB
@@ -133,8 +133,8 @@ public class AddNROUsers extends RobotUserTask {
             log.info(importedNROUserEmail);
         }
         log.info("Otherwise uninserted users:");
-        for (CreateUserDTO uninsertedUser : this.existingUsers) {
-            log.info(uninsertedUser.getEmail());
+        for (String uninsertedUser : this.otherUsersNotImported) {
+            log.info(uninsertedUser);
         }
 
         log.info("Completed AddNROUsers task");
@@ -156,8 +156,10 @@ public class AddNROUsers extends RobotUserTask {
                 String[] values = ImportedNROUser.parseCsvLine(line);
 
                 ImportedNROUser importedNROUser = getNROUser(values);
+                if (importedNROUser != null) {
+                    this.importedNROUsers.add(importedNROUser);
+                }
 
-                this.importedNROUsers.add(importedNROUser);
             }
         } catch (IOException e) {
             log.info("Error: ", e);
@@ -165,7 +167,7 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
-    private static @NotNull ImportedNROUser getNROUser(String[] values) {
+    private ImportedNROUser getNROUser(String[] values) {
         String firstName = values[0];
         String lastName = values[1];
         String email = values[2];
@@ -177,6 +179,10 @@ public class AddNROUsers extends RobotUserTask {
             isDefault = false;
         } else if (values[3].contains("Primary")) {
             isDefault = true;
+        }
+        else {
+            this.otherUsersNotImported.add(email);
+            return null;
         }
 
         return new ImportedNROUser(
