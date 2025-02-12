@@ -36,7 +36,6 @@ public class AddNROUsers extends RobotUserTask {
     private final RoleRepository roleRepository;
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
     private final UserRepository userRepository;
-    private final UserService userService;
     private final ArrayList<String> usersWithoutCourts = new ArrayList<>();
 
 
@@ -53,7 +52,6 @@ public class AddNROUsers extends RobotUserTask {
             this.usersFile = usersFile;
         }
         this.userRepository = userRepository;
-        this.userService = userService;
     }
 
     public AddNROUsers(UserService userService,
@@ -64,7 +62,6 @@ public class AddNROUsers extends RobotUserTask {
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
         this.userRepository = userRepository;
-        this.userService = userService;
     }
 
     @Override
