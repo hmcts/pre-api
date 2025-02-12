@@ -68,7 +68,6 @@ public class AddNROUserIT extends IntegrationTestBase {
                                                   CRON_USER_EMAIL,
                                                   courtRepository,
                                                   roleRepository,
-                                                  userRepository,
                                                   testUsersFile);
         addNROUsers.run();
 
@@ -173,7 +172,6 @@ public class AddNROUserIT extends IntegrationTestBase {
                 CRON_USER_EMAIL,
                 courtRepository,
                 roleRepository,
-                userRepository,
                 falseFileName);
         try {
             addNROUsers.run();

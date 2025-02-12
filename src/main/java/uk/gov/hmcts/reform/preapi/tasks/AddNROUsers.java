@@ -35,7 +35,6 @@ public class AddNROUsers extends RobotUserTask {
     private final RoleRepository roleRepository;
     private Boolean stopScript = false;
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
-    private final UserRepository userRepository;
     private final ArrayList<String> usersWithoutCourts = new ArrayList<>();
 
 
@@ -43,7 +42,7 @@ public class AddNROUsers extends RobotUserTask {
     public AddNROUsers(UserService userService,
                        UserAuthenticationService userAuthenticationService,
                        @Value("${cron-user-email}") String cronUserEmail, CourtRepository courtRepository,
-                       RoleRepository roleRepository, UserRepository userRepository,
+                       RoleRepository roleRepository,
                        @Value("${testFilePath}") String usersFile) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
@@ -51,17 +50,15 @@ public class AddNROUsers extends RobotUserTask {
         if (!(usersFile.isEmpty())) {
             this.usersFile = usersFile;
         }
-        this.userRepository = userRepository;
     }
 
     public AddNROUsers(UserService userService,
                        UserAuthenticationService userAuthenticationService,
                        @Value("${cron-user-email}") String cronUserEmail, CourtRepository courtRepository,
-                       RoleRepository roleRepository, UserRepository userRepository) {
+                       RoleRepository roleRepository) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
-        this.userRepository = userRepository;
     }
 
     @Override
@@ -70,7 +67,7 @@ public class AddNROUsers extends RobotUserTask {
 
         log.info("Reading in .csv file. . .");
         this.createImportedNROUserObjects(this.usersFile);
-        if (this.stopScript) {
+        if ((this.stopScript != null) && this.stopScript) {
             return;
         }
 
