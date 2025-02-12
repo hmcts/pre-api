@@ -73,7 +73,9 @@ public class AddNROUserIT extends IntegrationTestBase {
 
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
             // test NRO user without a court is NOT created successfully (NOT in DB)
-            if (testImportedNROUser.getCourt().equals("Foo Court D")) {
+            if ((testImportedNROUser.getCourt().equals("Foo Court D"))
+                    || (testImportedNROUser.getCourt().equals("Foo Court F"))
+                    || (testImportedNROUser.getCourt().equals("Foo Court G"))) {
                 assertTrue(userRepository
                                .findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail()).isEmpty());
             } else {
@@ -87,6 +89,8 @@ public class AddNROUserIT extends IntegrationTestBase {
         Map<String, UUID> testUserEmailsAndIDs = new HashMap<>();
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
             if (!(testImportedNROUser.getCourt().equals("Foo Court D"))
+                && !(testImportedNROUser.getCourt().equals("Foo Court F"))
+                && !(testImportedNROUser.getCourt().equals("Foo Court G"))
                 && (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail())
                 .isPresent())) {
                 testUserEmailsAndIDs.put(testImportedNROUser.getEmail(),
