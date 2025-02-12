@@ -85,11 +85,8 @@ public class ImportedNROUser {
     public static String[] parseCsvLine(String line) {
         ArrayList<String> result = new ArrayList<>();
         StringBuilder currentValue = new StringBuilder();
-        boolean inQuotes = false;
         for (char ch : line.toCharArray()) {
-            if (ch == '\"') {
-                inQuotes = !inQuotes;  // Toggle the inQuotes flag
-            } else if (ch == ',' && !inQuotes) {
+            if (ch == ',') {
                 result.add(currentValue.toString().trim());
                 currentValue.setLength(0); // Reset the StringBuilder
             } else {
