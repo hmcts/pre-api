@@ -21,33 +21,33 @@ public class CreateAuditDTO {
 
     @Schema(description = "AuditId")
     @NotNull
-    protected UUID id;
+    private UUID id;
 
     @Schema(description = "AuditTableName")
-    protected String tableName;
+    private String tableName;
 
     @Schema(description = "AuditTableNameRecordId")
-    protected UUID tableRecordId;
+    private UUID tableRecordId;
 
     @Schema(description = "AuditLogSource")
     @NotNull
-    protected AuditLogSource source;
+    private AuditLogSource source;
 
     @Schema(
         description = "AuditCategory",
         examples = {"User", "Password", "Login", "2FA Code", "Recording", "Livestream"}
     )
-    protected String category;
+    private String category;
 
     @Schema(description = "AuditActivity", examples = {"Create", "Update", "Delete", "Check", "Play", "Locked"})
-    protected String activity;
+    private String activity;
 
     @Schema(description = "AuditFunctionalArea", examples = {"Registration", "Login", "Video Player", "API", "Admin"})
-    protected String functionalArea;
+    private String functionalArea;
 
     @Schema(description = "AuditDetailsJSONString")
     @JsonRawValue
-    protected JsonNode auditDetails;
+    private JsonNode auditDetails;
 
     public CreateAuditDTO(Audit auditEntity) {
         this.id = auditEntity.getId();

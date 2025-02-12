@@ -836,54 +836,6 @@ definitions:
         format: int32
         type: integer
     type: object
-  EntityModelAuditDTO:
-    properties:
-      _links:
-        $ref: '#/definitions/Links'
-      activity:
-        description: AuditActivity
-        type: string
-      audit_details:
-        $ref: '#/definitions/JsonNode'
-      category:
-        description: AuditCategory
-        type: string
-      created_at:
-        description: AuditCreatedAt
-        format: date-time
-        type: string
-      created_by:
-        description: AuditCreatedBy
-        format: uuid
-        type: string
-      functional_area:
-        description: AuditFunctionalArea
-        type: string
-      id:
-        description: AuditId
-        format: uuid
-        type: string
-      source:
-        description: AuditLogSource
-        enum:
-          - APPLICATION
-          - PORTAL
-          - ADMIN
-          - AUTO
-        type: string
-      table_name:
-        description: AuditTableName
-        type: string
-      table_record_id:
-        description: AuditTableNameRecordId
-        format: uuid
-        type: string
-    required:
-      - created_at
-      - created_by
-      - id
-      - source
-    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -1369,20 +1321,6 @@ definitions:
       totalPages:
         format: int64
         type: integer
-    type: object
-  PagedModelEntityModelAuditDTO:
-    properties:
-      _embedded:
-        properties:
-          auditDTOList:
-            items:
-              $ref: '#/definitions/EntityModelAuditDTO'
-            type: array
-        type: object
-      _links:
-        $ref: '#/definitions/Links'
-      page:
-        $ref: '#/definitions/PageMetadata'
     type: object
   PagedModelEntityModelBookingDTO:
     properties:
@@ -1975,39 +1913,6 @@ paths:
       summary: Get the latest terms and conditions for the app
       tags:
         - terms-and-conditions-controller
-  /audit:
-    get:
-      operationId: getAuditLogs
-      parameters:
-        - description: The page number of search result to return
-          format: int32
-          in: query
-          name: page
-          type: integer
-          x-example: 0
-        - description: The number of search results to return per page
-          format: int32
-          in: query
-          name: size
-          type: integer
-          x-example: 10
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/PagedModelEntityModelAuditDTO'
-      summary: Search all Audits
-      tags:
-        - audit-controller
   '/audit/{id}':
     put:
       consumes:

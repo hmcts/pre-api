@@ -26,11 +26,6 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
 
     List<Audit> findByTableRecordId(UUID tableRecordId);
 
-    @Query(
-        """
-        SELECT a FROM Audit a
-        ORDER BY a.createdAt DESC
-        """
-    )
-    Page<Audit> searchAll(Pageable pageable);
+    @Query("SELECT a FROM Audit a ORDER BY a.createdAt DESC")
+    Page<Audit> findLatest(Pageable pageable);
 }
