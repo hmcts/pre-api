@@ -274,7 +274,7 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.19.0'
 
-  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.7'
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.8'
 
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
@@ -282,7 +282,7 @@ dependencies {
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.3.1'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.3.1'
   implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.5'
-  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.0'
+  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.1'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
@@ -303,11 +303,11 @@ dependencies {
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.20.4'
 
-  implementation group: 'com.auth0', name: 'java-jwt', version: '4.4.0'
+  implementation group: 'com.auth0', name: 'java-jwt', version: '4.5.0'
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.6.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.7.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.7:all'
