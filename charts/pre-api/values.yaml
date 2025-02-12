@@ -64,6 +64,7 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
     EMAIL_SERVICE: GovNotify
     ENABLE_NEW_EMAIL_SERVICE: false
+    ENABLE_STREAMING_LOCATOR_ON_START: false
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues
