@@ -71,11 +71,11 @@ public class AddNROUsers extends RobotUserTask {
     public void run() throws RuntimeException {
         log.info("Running AddNROUsers task");
 
-        System.out.println("Reading in .csv file. . .");
+        log.info("Reading in .csv file. . .");
         this.createImportedNROUserObjects(this.usersFile);
 
         // group the new list of NRO users (objects) by email
-        System.out.println("Grouping NRO user courts by email. . .");
+        log.info("Grouping NRO user courts by email. . .");
         Map<String, List<ImportedNROUser>> groupedByEmail = this.importedNROUsers.stream()
             .collect(Collectors.groupingBy(ImportedNROUser::getEmail));
 
@@ -87,7 +87,7 @@ public class AddNROUsers extends RobotUserTask {
 
 
         // create a new user for each email,
-        System.out.println("Creating new users. . .");
+        log.info("Creating new users. . .");
         for (Map.Entry<String, List<ImportedNROUser>> entry : groupedByEmail.entrySet()) {
             CreateUserDTO createUserDTO = new CreateUserDTO();
             createUserDTO.setId(UUID.randomUUID());
@@ -96,12 +96,10 @@ public class AddNROUsers extends RobotUserTask {
             createUserDTO.setEmail(entry.getKey());             // entry.getKey() is the user email
 
             // create a (empty) set of PortalAccess objects for each user
-            // System.out.println("Creating new portal access object. . .");
             Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<>(){};
             createUserDTO.setPortalAccess(createPortalAccessDTOS);
 
             // then create an AppAccess object for each primary and secondary court of the user
-            // System.out.println("Creating new app access object(s). . .");
             Set<CreateAppAccessDTO> createAppAccessDTOS = new HashSet<>(){};
 
             for (ImportedNROUser importedNROUser : entry.getValue()) {
@@ -117,10 +115,9 @@ public class AddNROUsers extends RobotUserTask {
                 this.nroUsers.add(createUserDTO);
             }
         }
-        System.out.println("Upserting createUserDTOs to DB. . .");
+        log.info("Upserting createUserDTOs to DB. . .");
         for (CreateUserDTO createUserDTO : this.nroUsers) {
             // add user to DB
-            // System.out.println("Upserting " + createUserDTO.getEmail() + " to DB. . .");
             try {
                 this.userService.upsert(createUserDTO);
             } catch (Exception e) {
@@ -134,13 +131,13 @@ public class AddNROUsers extends RobotUserTask {
             }
         }
 
-        System.out.println("Uninserted users without courts:");
+        log.info("Uninserted users without courts:");
         for (String importedNROUserEmail : this.usersWithoutCourts) {
-            System.out.println(importedNROUserEmail);
+            log.info(importedNROUserEmail);
         }
-        System.out.println("Otherwise uninserted users:");
+        log.info("Otherwise uninserted users:");
         for (CreateUserDTO uninsertedUser : this.existingUsers) {
-            System.out.println(uninsertedUser.getEmail());
+            log.info(uninsertedUser.getEmail());
         }
 
         log.info("Completed AddNROUsers task");

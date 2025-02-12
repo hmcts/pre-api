@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -25,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@Slf4j
 public class AddNROUserIT extends IntegrationTestBase {
 
     @Autowired
@@ -103,7 +105,7 @@ public class AddNROUserIT extends IntegrationTestBase {
                                                               testUsersFile);
         obscureNROUsers.run();
 
-        System.out.println("Checking user deletion from DB is successful. . .");
+        log.info("Checking user deletion from DB is successful. . .");
         for (Map.Entry<String,UUID> entry : testUserEmailsAndIDs.entrySet()) {
             // check current user email does not exist
             assertTrue(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(entry.getKey()).isEmpty());

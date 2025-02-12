@@ -142,7 +142,6 @@ public class ObscureNROUsers extends RobotUserTask {
                         && this.courtRepository.findFirstByName("Foo Court").isPresent()) {
                         for (AppAccess appAccess : this.appAccessRepository
                             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId).get()) {
-                            // System.out.println(createUserDTO.getEmail() + " " + appAccess.getId());
 
                             CreateAppAccessDTO createAppAccessDTO = new CreateAppAccessDTO();
                             createAppAccessDTO.setId(appAccess.getId());
@@ -170,11 +169,9 @@ public class ObscureNROUsers extends RobotUserTask {
                 }
 
             } catch (Exception e) {
-                System.out.println(email + " does not exist yet!");
-                System.out.println(e);
+                log.info(email + " does not exist yet!", e);
             }
         }
         log.info(pgAdmin4Query.toString());
-        System.out.println(pgAdmin4Query);
     }
 }
