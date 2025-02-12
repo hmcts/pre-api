@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
