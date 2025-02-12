@@ -21,7 +21,7 @@ public class ImportedNROUser {
 
     @Override
     public String toString() {
-        final StringBuffer sb = new StringBuffer("ImportedNROUser{");
+        final StringBuilder sb = new StringBuilder("ImportedNROUser{");
         sb.append("firstName='").append(firstName).append('\'');
         sb.append(", lastName='").append(lastName).append('\'');
         sb.append(", email='").append(email).append('\'');
@@ -69,7 +69,7 @@ public class ImportedNROUser {
     }
 
     public void setIsDefault(Boolean isDefault) {
-        isDefault = isDefault;
+        this.isDefault = isDefault;
     }
 
     public String getUserAccess() {
