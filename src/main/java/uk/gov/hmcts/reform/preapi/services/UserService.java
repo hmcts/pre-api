@@ -227,7 +227,8 @@ public class UserService {
             .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
 
         appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-                .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getFirst().getId()));
+            .filter(appAccess -> !appAccess.isEmpty())
+            .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getFirst().getId()));
 
         userRepository
             .findById(userId)
