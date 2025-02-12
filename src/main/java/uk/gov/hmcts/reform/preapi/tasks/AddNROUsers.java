@@ -197,10 +197,9 @@ public class AddNROUsers extends RobotUserTask {
             isDefault = true;
         }
 
-        ImportedNROUser importedNROUser = new ImportedNROUser(
+        return new ImportedNROUser(
             firstName, lastName, email, court, isDefault, userLevel
         );
-        return importedNROUser;
     }
 
     private CreateAppAccessDTO createAppAccessObj(ImportedNROUser importedNROUser, UUID userId) {
