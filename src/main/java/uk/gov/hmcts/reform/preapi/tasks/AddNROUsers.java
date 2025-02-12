@@ -30,14 +30,14 @@ import java.util.stream.Collectors;
 public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
-    private final ArrayList<CreateUserDTO> existingUsers = new ArrayList<CreateUserDTO>();
-    private final ArrayList<ImportedNROUser> importedNROUsers = new ArrayList<ImportedNROUser>();
-    private final ArrayList<CreateUserDTO> nroUsers = new ArrayList<CreateUserDTO>();
+    private final ArrayList<CreateUserDTO> existingUsers = new ArrayList<>();
+    private final ArrayList<ImportedNROUser> importedNROUsers = new ArrayList<>();
+    private final ArrayList<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
     private final UserRepository userRepository;
     private final UserService userService;
-    private final ArrayList<String> usersWithoutCourts = new ArrayList<String>();
+    private final ArrayList<String> usersWithoutCourts = new ArrayList<>();
 
 
     @Autowired
@@ -97,12 +97,12 @@ public class AddNROUsers extends RobotUserTask {
 
             // create a (empty) set of PortalAccess objects for each user
             // System.out.println("Creating new portal access object. . .");
-            Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<CreatePortalAccessDTO>(){};
+            Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<>(){};
             createUserDTO.setPortalAccess(createPortalAccessDTOS);
 
             // then create an AppAccess object for each primary and secondary court of the user
             // System.out.println("Creating new app access object(s). . .");
-            Set<CreateAppAccessDTO> createAppAccessDTOS = new HashSet<CreateAppAccessDTO>(){};
+            Set<CreateAppAccessDTO> createAppAccessDTOS = new HashSet<>(){};
 
             for (ImportedNROUser importedNROUser : entry.getValue()) {
                 CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, createUserDTO.getId());

@@ -29,7 +29,7 @@ public class ObscureNROUsers extends RobotUserTask {
     private final AppAccessRepository appAccessRepository;
     private final CourtRepository courtRepository;
     private final RoleRepository roleRepository;
-    private final Set<String> userEmails = new HashSet<String>();
+    private final Set<String> userEmails = new HashSet<>();
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
     private final UserService userService;
 
@@ -127,14 +127,14 @@ public class ObscureNROUsers extends RobotUserTask {
 
                 if (!(userId.toString().isEmpty())) {
                     CreateUserDTO createUserDTO = new CreateUserDTO();
-                    Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<CreatePortalAccessDTO>() {};
+                    Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<>() {};
                     createUserDTO.setId(userId);
                     createUserDTO.setFirstName("Example");
                     createUserDTO.setLastName("User");
                     createUserDTO.setEmail(userId + "@test.com");
                     createUserDTO.setPortalAccess(createPortalAccessDTOs);
 
-                    Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<CreateAppAccessDTO>() {};
+                    Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>() {};
                     // Update app access entries of current user to obscurity
                     if (this.appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
                         .isPresent()

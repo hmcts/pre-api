@@ -82,7 +82,7 @@ public class AddNROUserIT extends IntegrationTestBase {
         }
 
         // now check users are obscured in the DB
-        Map<String, UUID> testUserEmailsAndIDs = new HashMap<String, UUID>();
+        Map<String, UUID> testUserEmailsAndIDs = new HashMap<>();
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
             if (!(testImportedNROUser.getCourt().equals("Foo Court D"))
                 && (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail())
