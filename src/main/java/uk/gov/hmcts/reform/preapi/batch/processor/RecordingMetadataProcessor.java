@@ -1,7 +1,11 @@
 package uk.gov.hmcts.reform.preapi.batch.processor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
@@ -10,15 +14,15 @@ import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 /**
  * Processes recording metadata from CSVArchiveListData and caches it in Redis.
  */
 @Component
 public class RecordingMetadataProcessor {
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
 
-    private static final String REDIS_KEY_FORMAT = "metadataPreprocess:%s-%s-%s";
+    private static final String REDIS_KEY_FORMAT = "vf:metadataPreprocess:%s-%s-%s";
     private final DataTransformationService transformationService;
     private final RedisService redisService;
 
@@ -38,10 +42,9 @@ public class RecordingMetadataProcessor {
      */
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
-            TransformationResult transformationResult = transformationService.transformArchiveListData(
-                archiveItem, new HashMap<>()
+            TransformationResult transformationResult = transformationService.transformData(
+                archiveItem
             );
-
             CleansedData cleansedData = (CleansedData) transformationResult.getCleansedData();
             String key = buildRedisKey(cleansedData);
             
@@ -78,8 +81,8 @@ public class RecordingMetadataProcessor {
             redisService.saveHashAll(key, existingMetadata);
 
         } catch (Exception e) {
-            Logger.getAnonymousLogger().severe("Failed to process archive item: " 
-                + archiveItem.getArchiveName() + ". Reason: " + e.getMessage()); 
+            logger.error("Failed to process archive item: {}. Reason: {}", 
+                archiveItem.getArchiveName(), e.getMessage()); 
         }
     }
 

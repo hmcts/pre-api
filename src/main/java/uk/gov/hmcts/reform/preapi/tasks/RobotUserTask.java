@@ -14,7 +14,7 @@ public abstract class RobotUserTask implements Runnable {
 
     protected RobotUserTask(UserService userService,
                             UserAuthenticationService userAuthenticationService,
-                            @Value("${cron-user-email}") String cronUserEmail) {
+                            @Value("${vodafone-user-email}") String cronUserEmail) {
         this.userService = userService;
         this.userAuthenticationService = userAuthenticationService;
         this.cronUserEmail = cronUserEmail;

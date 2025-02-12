@@ -1,6 +1,10 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -10,12 +14,11 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
 public class ReportingService {
-
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
     /**
@@ -37,7 +40,7 @@ public class ReportingService {
         Path outputPath = Paths.get(outputDir);
         if (!Files.exists(outputPath)) {
             Files.createDirectories(outputPath);
-            Logger.getAnonymousLogger().severe("Created report output directory: " + outputDir);
+            logger.error("Created report output directory: {}", outputDir);
         }
 
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
@@ -55,9 +58,6 @@ public class ReportingService {
                 writer.newLine();
             }
         } 
-
-        Logger.getAnonymousLogger().info("Successfully wrote " + dataRows.size() 
-                + " rows to CSV file: " + filePath);
         return filePath;      
     }
 

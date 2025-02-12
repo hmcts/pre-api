@@ -1,9 +1,12 @@
 package uk.gov.hmcts.reform.preapi.batch.processor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -13,10 +16,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @Service
 public class RecordingMediaKindTransform {
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+
     private final AzureBlobService azureBlobService;
     private final MediaKind mediaKindService;
 
@@ -44,21 +48,21 @@ public class RecordingMediaKindTransform {
             // Process the media in 'ingest'
             processInMediaKind(recordingId, mp4FileName);
 
-            // Once processed, transfer from 'ingest' to 'final'
+            // Once processed, transferred from 'ingest' to 'final'
             if (localFilePath != null) {
                 azureBlobService.uploadBlob(localFilePath, containerName, finalEnvironment, mp4FileName);
             }
 
-            Logger.getAnonymousLogger().info("Media processing complete for: " + mp4FileName);
+            logger.info("Media processing complete for: {}", mp4FileName);
         } catch (Exception e) {
-            Logger.getAnonymousLogger().severe("Failed to process media: " + e.getMessage());
+            logger.error("Failed to process media: {}", e.getMessage());
         }
     }
 
     private String downloadFile(String blobName, String environment, String containerName) {
         InputStreamResource resource = azureBlobService.fetchSingleXmlBlob(containerName, environment, blobName);
         if (resource == null) {
-            Logger.getAnonymousLogger().warning("Failed to fetch file: " + blobName);
+            logger.error("Failed to fetch file: {}", blobName);
             return null;
         }
 
@@ -69,7 +73,7 @@ public class RecordingMediaKindTransform {
                 return tempFile.getAbsolutePath();
             }
         } catch (IOException e) {
-            Logger.getAnonymousLogger().severe("Error saving file locally: " + e.getMessage());
+            logger.error("Error saving file locally: {}", e.getMessage());
             return null;
         }
     }
@@ -89,9 +93,9 @@ public class RecordingMediaKindTransform {
             generateAssetDTO.setParentRecordingId(containerUUID);
 
             GenerateAssetResponseDTO response = mediaKindService.importAsset(generateAssetDTO);
-            Logger.getAnonymousLogger().info("Asset Import Job State: " + response.getJobStatus());
+            logger.info("Asset Import Job State: {}", response.getJobStatus());
         } catch (Exception e) {
-            Logger.getAnonymousLogger().severe("Failed to process media: " + e.getMessage());
+            logger.error("Failed to process media: {}", e.getMessage());
         }
         
     }

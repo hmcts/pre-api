@@ -1,18 +1,21 @@
 package uk.gov.hmcts.reform.preapi.batch.processor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.services.batch.ReportingService;
 
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -22,6 +25,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
  */
 @Service
 public class XmlProcessingService {
+
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
 
     @Autowired
     private AzureBlobService azureBlobService;
@@ -50,7 +55,7 @@ public class XmlProcessingService {
 
             if (!allDataRows.isEmpty()) {
                 reportingService.writeToCsv(
-                    List.of("archive_name", "create_time", "duration","file_name"), 
+                    List.of("archive_name", "create_time", "duration","file_name", "file_size"), 
                     allDataRows, 
                     "Archive_List", 
                     outputDir, 
@@ -58,7 +63,7 @@ public class XmlProcessingService {
                 );
             }
         } catch (Exception e) {
-            Logger.getAnonymousLogger().severe("Error processing XML and writing to CSV: " + e.getMessage());
+            logger.error("Error processing XML and writing to CSV: {}", e.getMessage());
         }
     }
 
@@ -89,11 +94,18 @@ public class XmlProcessingService {
                 if (mp4List.getLength() > 0) {
                     Element mp4Element = (Element) mp4List.item(0);
                     NodeList mp4Files = mp4Element.getElementsByTagName("MP4File");
+                    
                     for (int j = 0; j < mp4Files.getLength(); j++) {
                         Element fileElement = (Element) mp4Files.item(j);
                         String fileName = fileElement.getElementsByTagName("Name").item(0).getTextContent();
+                        String fileSizeKb = fileElement.getElementsByTagName("Size").item(0).getTextContent();
+                        
+                        double sizeInKb = Double.parseDouble(fileSizeKb);
+                        double sizeInMb = sizeInKb / 1024.0;
+                        String fileSizeMb = String.format("%.2f MB", sizeInMb);
+
                         if (fileName.endsWith(".mp4") && fileName.startsWith("0x1e")) {
-                            List<String> row = List.of(displayName, creatTime, duration, fileName);
+                            List<String> row = List.of(displayName, creatTime, duration, fileName, fileSizeMb);
                             dataRows.add(row);
                         }
                     }

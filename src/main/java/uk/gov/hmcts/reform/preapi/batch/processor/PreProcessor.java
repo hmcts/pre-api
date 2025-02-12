@@ -1,7 +1,11 @@
 package uk.gov.hmcts.reform.preapi.batch.processor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -10,10 +14,10 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.function.Function;
 
 /**
  * Handles pre-processing tasks for batch jobs, including loading data into Redis
@@ -21,16 +25,20 @@ import java.util.logging.Logger;
  */
 @Component
 public class PreProcessor {
-
-    private final RedisService redisService;
-    private final CourtRepository courtRepository;
-    private final CaseRepository caseRepository;
-    private final UserRepository userRepository;
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
 
     private static final String NAMESPACE = "vf:";
     private static final String COURT_KEY_PREFIX = NAMESPACE + "court:";
     private static final String CASE_KEY_PREFIX = NAMESPACE + "case:";
     private static final String USER_KEY_PREFIX = NAMESPACE + "user:";
+
+    private final RedisService redisService;
+    private final CourtRepository courtRepository;
+    private final CaseRepository caseRepository;
+    private final UserRepository userRepository;
+    
+    @Value("${vodafone-user-email}")
+    private String vodafoneUserEmail;
 
     public PreProcessor(
         RedisService redisService,
@@ -53,69 +61,45 @@ public class PreProcessor {
      * Clears any stale data and loads required entities into Redis.
      */
     public void initialize() {
+        logger.info("Starting initialization of temporary storage.");
         clearTemporaryStorage();
-        Logger.getAnonymousLogger().info("Starting initialization of temporary storage.");
-        loadCourtData();
-        loadCaseData();
-        loadUserData();
-        Logger.getAnonymousLogger().info("Initialization completed.");
+        loadAllData();
+        logger.info("Initialization completed.");
     }
 
-    /**
-     * Clears Redis entries for this batch process to ensure no stale data is used.
-     */
-    public void clearTemporaryStorage() {
-        Logger.getAnonymousLogger().info("Clearing temporary storage...");
-        redisService.clearNamespaceKeys(NAMESPACE);
-    }
 
-    // =========================
-    // Data Loading Logic
-    // =========================
+    // ==============================
+    // Data Loading Logic & Helpers
+    // ==============================
 
-    /**
-     * Loads all courts from the database into Redis.
-     */
-    @Transactional
-    public void loadCourtData() {
+    @Transactional(readOnly = true)
+    protected void loadAllData() {   
         List<Court> courts = courtRepository.findAll();
-        Map<String, String> courtMap = new HashMap<>();
+        storeEntitiesInRedis(COURT_KEY_PREFIX, courts, Court::getName, court -> court.getId().toString(),"courts");
         
-        for (Court court : courts) {
-            courtMap.put(court.getName(), court.getId().toString());
-        }
-
-        redisService.saveHashAll(COURT_KEY_PREFIX, courtMap);
-        Logger.getAnonymousLogger().info("Loaded " + courts.size() + " courts into Redis.");
-    }
-
-    /**
-     * Loads all cases from the database into Redis.
-    */
-    @Transactional
-    public void loadCaseData() {
         List<Case> cases = caseRepository.findAll();
-        Map<String, String> caseMap = new HashMap<>();
-        for (Case acase : cases) {
-            caseMap.put(acase.getReference(), acase.getId().toString());
-        }
-
-        redisService.saveHashAll(CASE_KEY_PREFIX, caseMap);
-        Logger.getAnonymousLogger().info("Loaded " + cases.size() + " cases into Redis.");
+        storeEntitiesInRedis(CASE_KEY_PREFIX, cases, Case::getReference, acase -> acase.getId().toString(),"cases");
+        
+        List<User> users = userRepository.findAll();
+        storeEntitiesInRedis(USER_KEY_PREFIX, users, User::getEmail, user -> user.getId().toString(),"users");
     }
 
-    /**
-     * Loads all users from the database into Redis.
-    */
-    @Transactional
-    public void loadUserData() {
-        List<User> users = userRepository.findAll();
-        Map<String, String> userMap = new HashMap<>();
-        for (User user : users) {
-            userMap.put(user.getEmail(), user.getId().toString());
-        }
+    private <T> void storeEntitiesInRedis(
+        String prefix,
+        List<T> items,
+        Function<T, String> keyFn,
+        Function<T, String> valFn,
+        String entityName
+    ) {
+        Map<String, String> map = items.stream()
+            .collect(Collectors.toMap(keyFn, valFn, (existing, replacement) -> existing)); 
 
-        redisService.saveHashAll(USER_KEY_PREFIX, userMap);
-        Logger.getAnonymousLogger().info("Loaded " + users.size() + " users into Redis.");
+        redisService.saveHashAll(prefix, map);
+        logger.info("Loaded {} {} records into Redis.", items.size(), entityName);
+    }
+
+    public void clearTemporaryStorage() {
+        logger.info("Clearing temporary storage...");
+        redisService.clearNamespaceKeys(NAMESPACE);
     }
 }

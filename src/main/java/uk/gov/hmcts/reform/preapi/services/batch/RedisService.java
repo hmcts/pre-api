@@ -123,7 +123,7 @@ public class RedisService {
         if (caseReference == null || caseReference.isBlank()) {
             throw new IllegalArgumentException("Case reference cannot be null or blank");
         }
-        return "caseParticipants:" + caseReference + "--" + participantPair;
+        return "vf:caseParticipants:" + caseReference + "--" + participantPair;
     }
 
     public void clearNamespaceKeys(String namespace) {

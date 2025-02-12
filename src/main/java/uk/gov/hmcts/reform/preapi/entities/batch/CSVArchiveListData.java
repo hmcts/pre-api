@@ -5,23 +5,24 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
-
 public class CSVArchiveListData {
-
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    
     private String archiveName;
     private String createTime;
     private int duration;
     private String fileName;
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private String fileSize;
 
     public CSVArchiveListData() {
     }
 
-    public CSVArchiveListData(String archiveName, String createTime, int duration, String fileName) {
+    public CSVArchiveListData(String archiveName, String createTime, int duration, String fileName, String fileSize) {
         this.archiveName = archiveName;
         this.createTime = createTime;
         this.duration = duration;
         this.fileName = fileName;
+        this.fileSize = fileSize;
     }
 
     public String getArchiveName() {
@@ -54,6 +55,14 @@ public class CSVArchiveListData {
 
     public void setFileName(String fileName) {
         this.fileName = fileName;
+    }
+
+    public String getFileSize() {
+        return fileSize;
+    }
+
+    public void setFileSize(String fileSize) {
+        this.fileSize = fileSize;
     }
 
     public String getArchiveNameNoExt() {

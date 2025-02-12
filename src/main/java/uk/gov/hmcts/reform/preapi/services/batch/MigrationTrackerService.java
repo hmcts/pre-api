@@ -1,14 +1,20 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Logger;
 
 /**
  * Service responsible for tracking and reporting the migration of items.
@@ -18,8 +24,11 @@ import java.util.logging.Logger;
 @Service
 public class MigrationTrackerService {
 
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+
     private List<PassItem> migratedItems = new ArrayList<>();
     private List<FailedItem> failedItems = new ArrayList<>();
+    private List<CreateInviteDTO> invitedUsers = new ArrayList<>();
     private final ReportingService reportingService;
 
     public MigrationTrackerService(ReportingService reportingService) {
@@ -34,13 +43,17 @@ public class MigrationTrackerService {
         failedItems.add(item);
     }
 
+    public void addInvitedUser(CreateInviteDTO user) {
+        invitedUsers.add(user);
+    }
+
     public void writeMigratedItemsToCsv(String fileName, String outputDir)  {
         List<String> headers = getMigratedItemsHeaders();
         List<List<String>> rows = buildMigratedItemsRows(migratedItems);
         try {
             reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
         } catch (IOException e) {
-            Logger.getAnonymousLogger().warning("Failed to write migrated items to CSV: " + e.getMessage());
+            logger.error("Failed to write migrated items to CSV: {}", e.getMessage());
         }
     }
 
@@ -50,10 +63,19 @@ public class MigrationTrackerService {
         try {
             reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
         } catch (IOException e) {
-            Logger.getAnonymousLogger().warning("Failed to write migrated items to CSV: " + e.getMessage());
+            logger.error("Failed to write migrated items to CSV: {}", e.getMessage());
         }
     }
 
+    public void writeInvitedUsersToCsv(String fileName, String outputDir) {
+        List<String> headers = getInvitedUsersHeaders();
+        List<List<String>> rows = buildInvitedUserRows(invitedUsers);
+        try {
+            reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
+        } catch (IOException e) {
+            logger.error("Failed to write migrated items to CSV: {}", e.getMessage());
+        }
+    }
 
     /**
      * Writes both migrated and failed items to CSV files and logs the total counts,
@@ -62,9 +84,10 @@ public class MigrationTrackerService {
     public void writeAllToCsv() {
         writeMigratedItemsToCsv("Migrated","Migration Reports");
         writeFailedItemsToCsv("Failed","Migration Reports");
-        Logger.getAnonymousLogger().info("Total Migrated Items: " + migratedItems.size());
-        Logger.getAnonymousLogger().info("Total Failed Items: " + failedItems.size());
-
+        writeInvitedUsersToCsv("Invited_users","Migration Reports");
+        logger.info("Total Migrated Items: {}", migratedItems.size());
+        logger.info("Total Failed Items: {}", failedItems.size());
+        logger.info("Total Invited Items: {}", invitedUsers.size());
     }
 
     // ==================================
@@ -73,47 +96,28 @@ public class MigrationTrackerService {
 
     private List<String> getMigratedItemsHeaders() {
         return List.of(
-            "regexPattern", "archiveName", "caseReference", "isTest", "scheduledFor", "origin",
-            "ingestAddress", "liveOutputURL", "startedAt", "startedByUserId", "finishedAt",
-            "finishedByUserId", "status", "version", "fileName", "duration", "participants",
-            "users", "shareBookings", "caseId", "courtId", "bookingId", "captureSessionId",
-            "recordingId", "parentRecordingId", "participantIds", "shareBookingIds", "userIds"
+            "Regex Pattern", "Display Name", "Case Reference", "Scheduled For",
+            "Case State", "Version", "File Name", "Duration", "File Size",
+            "Date / Time migrated"
         );
     }
 
     private List<List<String>> buildMigratedItemsRows(List<PassItem> items) {
         List<List<String>> rows = new ArrayList<>();
         for (PassItem item : migratedItems) {
+            String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             rows.add(List.of(
                 getValueOrEmpty(item.getRegexPattern()), 
                 getValueOrEmpty(item.getArchiveName()),
                 getValueOrEmpty(item.getCaseReference()), 
-                getValueOrEmpty(item.getIsTest()),
                 getValueOrEmpty(item.getScheduledFor()),
-                getValueOrEmpty(item.getOrigin()), 
-                getValueOrEmpty(item.getIngestAddress()),
-                getValueOrEmpty(item.getLiveOutputURL()),
-                getValueOrEmpty(item.getStartedAt()),
-                getValueOrEmpty(item.getStartedByUserId()),
-                getValueOrEmpty(item.getFinishedAt()),
-                getValueOrEmpty(item.getFinishedByUserId()),
-                getValueOrEmpty(item.getStatus()), 
-                getValueOrEmpty(item.getVersion()),
-                getValueOrEmpty(item.getFileName()),
-                getValueOrEmpty(item.getDuration()),
-                getValueOrEmpty(item.getParticipants()),
-                getValueOrEmpty(item.getUsers()),
-                getValueOrEmpty(item.getShareBookings()),
-                getValueOrEmpty(item.getCaseId()),
-                getValueOrEmpty(item.getCourtId()),
-                getValueOrEmpty(item.getBookingId()),
-                getValueOrEmpty(item.getCaptureSessionId()),
-                getValueOrEmpty(item.getRecordingId()),
-                getValueOrEmpty(item.getParentRecordingId()),
-                getValueOrEmpty(item.getParticipantIds()),
-                getValueOrEmpty(item.getShareBookingIds()),
-                getValueOrEmpty(item.getUserIds())
+                getValueOrEmpty(item.getState()), 
+                getValueOrEmpty(item.getVersion()), 
+                getValueOrEmpty(item.getFileName()),   
+                formatDuration(item.getDuration()),
+                getValueOrEmpty(item.getFileSize()),
+                migratedTime
                 )
             );
         }
@@ -121,7 +125,7 @@ public class MigrationTrackerService {
     }
 
     private List<String> getFailedItemsHeaders() {
-        return List.of("Reason for Failure", "Filename", "Display Name");
+        return List.of("Reason for Failure", "Display Name","Filename","File Size", "Date / Time");
     }
 
     public List<List<String>> buildFailedItemsRows(List<FailedItem> items) {
@@ -129,19 +133,53 @@ public class MigrationTrackerService {
 
         for (FailedItem item : failedItems) {
             CSVArchiveListData archiveItem = item.getArchiveItem();
-            
+            String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
             rows.add(List.of(
                 getValueOrEmpty(item.getReason()), 
+                getValueOrEmpty(archiveItem.getArchiveName()),
                 getValueOrEmpty(archiveItem.getFileName()),
-                getValueOrEmpty(archiveItem.getArchiveName())   
+                getValueOrEmpty(archiveItem.getFileSize()),
+                failureTime
                 )
             );
         }
         return rows;
     }
 
+    private List<String> getInvitedUsersHeaders() {
+        return List.of("user_id","First Name", "Last Name","Email");
+    }
+
+    public List<List<String>> buildInvitedUserRows(List<CreateInviteDTO> items) {
+        List<List<String>> rows = new ArrayList<>();
+
+        for (CreateInviteDTO item : invitedUsers) {
+
+            rows.add(List.of(
+                getValueOrEmpty(item.getUserId()), 
+                getValueOrEmpty(item.getFirstName()),
+                getValueOrEmpty(item.getLastName()),
+                getValueOrEmpty(item.getEmail())
+                )
+            );
+        }
+        return rows;
+    }
+
+
     private String getValueOrEmpty(Object value) {
         return value != null ? value.toString() : "";
+    }
+
+    private String formatDuration(Duration duration) {
+        if (duration == null) {
+            return "";
+        }
+        long hours = duration.toHours();
+        long minutes = duration.toMinutes() % 60;
+        long seconds = duration.getSeconds() % 60;
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
 
 }

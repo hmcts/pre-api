@@ -1,7 +1,12 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import uk.gov.hmcts.reform.preapi.batch.processor.ReferenceDataProcessor;
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
@@ -21,48 +26,48 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @Service
 public class DataTransformationService {
+    private static final class Constants {
+        public static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown");
+        public static final String REDIS_COURTS_KEY = "vf:court:";
+        public static final String REDIS_RECORDING_METADATA_KEY = "vf:metadataPreprocess:%s-%s-%s";
+        public static final int MIN_RECORDING_DURATION = 10;
+    }
 
-    private static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown");
     private final RedisService redisService;
     private final DataExtractionService extractionService;
     private final CourtRepository courtRepository;
-    
+    private final ReferenceDataProcessor referenceDataProcessor;
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+
     @Autowired
     public DataTransformationService(
         RedisService redisService,
         DataExtractionService extractionService,
-        CourtRepository courtRepository
+        CourtRepository courtRepository,
+        ReferenceDataProcessor referenceDataProcessor
     ) {
         this.redisService = redisService;
         this.extractionService = extractionService;
         this.courtRepository = courtRepository;
+        this.referenceDataProcessor = referenceDataProcessor;
     }
     
     /**
      * Main method for transforming archive list data.
      * @param archiveItem The archive list data to transform.
-     * @param channelUserDataMap Mapping of archive names to user data.
      * @return A map containing cleansed data or an error message.
      */
-    public TransformationResult transformArchiveListData(
-        CSVArchiveListData archiveItem,
-        Map<String, List<String[]>> channelUserDataMap
-    ) {
+    public TransformationResult transformData(CSVArchiveListData archiveItem) {
         try {
-            Map<String, String> sitesDataMap = redisService.getHashAll("sites_data", String.class, String.class);
-            if (sitesDataMap == null || sitesDataMap.isEmpty()) {
-                throw new IllegalStateException("Sites data not found in Redis");
-            }
-
+            Map<String, String> sitesDataMap = getSitesData();
             UUID courtId = extractCourtId(archiveItem, sitesDataMap);
-            Court fullCourt = fetchCourt(courtId);
+            Court court = fetchCourt(courtId);
+
             Timestamp recordingTimestamp = getRecordingTimestamp(archiveItem);
-            CleansedData cleansedData = buildCleansedData(archiveItem, fullCourt, 
-                channelUserDataMap, recordingTimestamp);
+            CleansedData cleansedData = buildCleansedData(archiveItem, court, recordingTimestamp);
             
             return createSuccessResponse(cleansedData);
 
@@ -78,13 +83,12 @@ public class DataTransformationService {
     private CleansedData buildCleansedData(
         CSVArchiveListData archiveItem,
         Court court,
-        Map<String, List<String[]>> channelUserDataMap,
         Timestamp recordingTimestamp
     ) {
 
         Map<String, String> extracted = extractCommonFields(archiveItem);
 
-        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem, channelUserDataMap);
+        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem);
 
         String versionType = extracted.get("recordingVersion");
         String currentVersionNumber = RecordingUtils.getCurrentVersionNumber(
@@ -92,9 +96,6 @@ public class DataTransformationService {
         currentVersionNumber = (
             currentVersionNumber == null || currentVersionNumber.isEmpty()) 
                 ? "1" : currentVersionNumber;
-
-        CaseState caseState = (!shareBookingContacts.isEmpty()) ? CaseState.OPEN : CaseState.CLOSED;
-        TestItem testCheckResult = checkIsTest(archiveItem);
 
         return new CleansedData.Builder()
             .setCourt(court)
@@ -106,10 +107,10 @@ public class DataTransformationService {
             .setCaseReference(buildCaseReference(extracted.get("urn"),extracted.get("exhibitReference")))
             .setDefendantLastName(extracted.get("defendantLastName"))
             .setWitnessFirstName(extracted.get("witnessFirstName"))
-            .setIsTest(testCheckResult.isTest())
-            .setTestCheckResult(testCheckResult)
+            .setIsTest(checkIsTest(archiveItem).isTest())
+            .setTestCheckResult(checkIsTest(archiveItem))
             .setIsMostRecentVersion(isMostRecentVersion(archiveItem, versionType, currentVersionNumber))
-            .setState(caseState)
+            .setState(determineState(shareBookingContacts))
             .setFileExtension(extracted.get("fileExtension"))
             .setFileName(archiveItem.getFileName())
             .setRecordingVersion(versionType)
@@ -118,6 +119,7 @@ public class DataTransformationService {
             .setShareBookingContacts(shareBookingContacts)
             .build();
     }
+
 
     // ======================
     // Court Handling Methods
@@ -175,13 +177,13 @@ public class DataTransformationService {
         String lowerName = archiveItem.getArchiveName().toLowerCase();
         StringBuilder reasons = new StringBuilder();
 
-        for (String keyword : TEST_KEYWORDS) {
+        for (String keyword : Constants.TEST_KEYWORDS) {
             if (lowerName.contains(keyword)) {
                 reasons.append("Archive name contains '").append(keyword).append("'. ");
             }
         }
 
-        if (archiveItem.getDuration() < 10) {
+        if (archiveItem.getDuration() < Constants.MIN_RECORDING_DURATION) {
             reasons.append("Duration is less than 10 seconds. ");
         }
 
@@ -209,33 +211,25 @@ public class DataTransformationService {
             return RecordingUtils.evaluateRecency(versionType, currentVersionNumber, existingData);
 
         } catch (Exception e) {
-            Logger.getAnonymousLogger().warning("Error in isMostRecentVersion: " + e.getMessage());
+            logger.info("Error in isMostRecentVersion: {}" , e.getMessage());
         }
         return false;
     }
 
-    
-
-    private List<String[]> getUsersAndEmails(
-        CSVArchiveListData archiveItem, 
-        Map<String, List<String[]>> 
-        channelUserDataMap
-    ) {
-        String key = archiveItem.getArchiveNameNoExt(); 
-        List<String[]> channelDataList = channelUserDataMap.get(key);
-        List<String[]> userEmailList = new ArrayList<>(); 
-
-        if (channelDataList != null) {
-            for (String[] channelDataArray : channelDataList) {
-                String user = channelDataArray[0];
-                String email = channelDataArray[1];
-                userEmailList.add(new String[]{user, email}); 
-            }
+    private List<String[]> getUsersAndEmails(String key) {
+        Map<String, List<String[]>> channelUserDataMap = referenceDataProcessor.fetchChannelUserDataMap();
+        
+        List<String[]> userEmailList = channelUserDataMap.get(key);
+        if (userEmailList == null) {
+            userEmailList = new ArrayList<>();
         }
+
         return userEmailList; 
     }
 
-    private List<Map<String, String>> populateShareBookingContacts(List<String[]> usersAndEmails) {
+    private List<Map<String, String>> buildShareBookingContacts(CSVArchiveListData archiveItem) {
+        String key = archiveItem.getArchiveNameNoExt(); 
+        List<String[]> usersAndEmails = getUsersAndEmails(key);
         List<Map<String, String>> contactsList = new ArrayList<>();
 
         if (usersAndEmails != null) {
@@ -271,12 +265,16 @@ public class DataTransformationService {
     // Helper Methos
     // =========================    
 
-    private List<Map<String,String>> buildShareBookingContacts(
-        CSVArchiveListData archiveItem,
-        Map<String, List<String[]>> channelUserDataMap
-    ) {
-        List<String[]> userEmailList = getUsersAndEmails(archiveItem, channelUserDataMap);
-        return populateShareBookingContacts(userEmailList);
+    private Map<String, String> getSitesData() {
+        Map<String, String> sitesDataMap = redisService.getHashAll("sites_data", String.class, String.class);
+        if (sitesDataMap == null || sitesDataMap.isEmpty()) {
+            throw new IllegalStateException("Sites data not found in Redis");
+        }
+        return sitesDataMap;
+    }
+
+    private CaseState determineState(List<Map<String, String>> contacts) {
+        return (!contacts.isEmpty()) ? CaseState.OPEN : CaseState.CLOSED;
     }
 
     private Map<String, String> extractCommonFields(CSVArchiveListData archiveItem) {
@@ -296,7 +294,7 @@ public class DataTransformationService {
     * Extracts the recording version from the archive item.
     */
     private String buildMetadataPreprocessKey(CSVArchiveListData archiveItem) {
-        return String.format("metadataPreprocess:%s-%s-%s",
+        return String.format(Constants.REDIS_RECORDING_METADATA_KEY,
             extractionService.extractURN(archiveItem),
             extractionService.extractDefendantLastName(archiveItem),
             extractionService.extractWitnessFirstName(archiveItem)

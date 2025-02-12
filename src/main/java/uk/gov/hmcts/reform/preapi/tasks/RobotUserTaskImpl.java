@@ -10,7 +10,7 @@ public class RobotUserTaskImpl extends RobotUserTask {
 
     public RobotUserTaskImpl(UserService userService,
                              UserAuthenticationService userAuthenticationService,
-                             @Value("${cron-user-email}") String cronUserEmail) {
+                             @Value("${vodafone-user-email}") String cronUserEmail) {
         super(userService, userAuthenticationService, cronUserEmail);
     }
 
