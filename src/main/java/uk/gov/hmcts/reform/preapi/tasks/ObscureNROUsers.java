@@ -103,9 +103,10 @@ public class ObscureNROUsers extends RobotUserTask {
 
     private void obscureEntries(Set<String> emails) {
         // compose statement to print & input into pgadmin4 to erase the audit logs
-        StringBuilder pgAdmin4Query = new StringBuilder("UPDATE public.audits\n"
-                                                            + "SET audit_details = '{}'::jsonb\n"
-                                                            + "WHERE audit_details::text ILIKE '%");
+        StringBuilder pgAdmin4Query = new StringBuilder("""
+                UPDATE public.audits
+                SET audit_details = '{}'::jsonb
+                WHERE audit_details::text ILIKE '%""");
         int index = 0;
         for (String email : emails) {
             if (index < (emails.size() - 1)) {
