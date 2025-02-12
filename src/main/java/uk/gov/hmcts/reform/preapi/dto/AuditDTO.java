@@ -7,37 +7,55 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.User;
 
 import java.sql.Timestamp;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
 @Schema(description = "AuditDTO")
+@EqualsAndHashCode(callSuper = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class AuditDTO extends CreateAuditDTO {
 
-    @Schema(description = "AuditCreatedAt")
     @NotNull
+    @Schema(description = "AuditCreatedAt")
     private Timestamp createdAt;
 
-    @Schema(description = "AuditCreatedBy")
     @NotNull
-    private UUID createdBy;
+    @Schema(description = "AuditCreatedBy")
+    private BaseUserDTO createdBy;
 
     public AuditDTO(Audit auditEntity) {
         super();
-        this.id = auditEntity.getId();
-        this.tableName = auditEntity.getTableName();
-        this.tableRecordId = auditEntity.getTableRecordId();
-        this.source = auditEntity.getSource();
-        this.category = auditEntity.getCategory();
-        this.activity = auditEntity.getActivity();
-        this.functionalArea = auditEntity.getFunctionalArea();
-        this.auditDetails = auditEntity.getAuditDetails();
-        this.createdAt = auditEntity.getCreatedAt();
-        this.createdBy = auditEntity.getCreatedBy();
+        id = auditEntity.getId();
+        tableName = auditEntity.getTableName();
+        tableRecordId = auditEntity.getTableRecordId();
+        source = auditEntity.getSource();
+        category = auditEntity.getCategory();
+        activity = auditEntity.getActivity();
+        functionalArea = auditEntity.getFunctionalArea();
+        auditDetails = auditEntity.getAuditDetails();
+        createdAt = auditEntity.getCreatedAt();
+        if (auditEntity.getCreatedBy() != null) {
+            createdBy = new BaseUserDTO();
+            createdBy.setId(auditEntity.getCreatedBy());
+        }
+    }
+
+    public AuditDTO(Audit auditEntity, User user) {
+        super();
+        id = auditEntity.getId();
+        tableName = auditEntity.getTableName();
+        tableRecordId = auditEntity.getTableRecordId();
+        source = auditEntity.getSource();
+        category = auditEntity.getCategory();
+        activity = auditEntity.getActivity();
+        functionalArea = auditEntity.getFunctionalArea();
+        auditDetails = auditEntity.getAuditDetails();
+        createdAt = auditEntity.getCreatedAt();
+        createdBy = new BaseUserDTO(user);
     }
 }
