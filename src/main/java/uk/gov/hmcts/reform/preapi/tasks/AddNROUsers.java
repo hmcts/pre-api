@@ -167,10 +167,13 @@ public class AddNROUsers extends RobotUserTask {
         try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
             String line;
             // Skip header if there is one
-            br.readLine(); // Uncomment if your CSV has a header
 
             // Read each line
             while ((line = br.readLine()) != null) {
+                // Skip header if there is one
+                if (line.contains("FirstName")) {
+                    continue;
+                }
                 String[] values = parseCsvLine(line);
 
                 ImportedNROUser importedNROUser = getNROUser(values);
