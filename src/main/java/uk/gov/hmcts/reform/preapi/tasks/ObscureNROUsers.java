@@ -74,7 +74,8 @@ public class ObscureNROUsers extends RobotUserTask {
                 this.userEmails.add(email);
             }
         } catch (IOException e) {
-            log.info("Error: ", e);
+            log.error("Error: " + e.getMessage());
+            return;
         }
 
         this.obscureEntries(userEmails);
