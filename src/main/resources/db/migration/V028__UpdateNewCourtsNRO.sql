@@ -1,5 +1,5 @@
 -- Leeds Crown Court - Updated name to "Leeds Combined Court Centre"
-UPDATE courts
+UPDATE public.courts
 SET name = 'Leeds Combined Court Centre'
 WHERE name = 'Leeds Crown Court';
 
@@ -9,16 +9,16 @@ SET location_code = 439
 WHERE name = 'Newcastle upon Tyne Combined Court Centre';
 
 -- Kingston-upon-Thames Crown Court - Updated location code to 427
-UPDATE courts
+UPDATE public.courts
 SET location_code = 427
 WHERE name = 'Kingston-upon-Thames Crown Court';
 
 --Kingston-upon-Thames Crown Court - Updated court region to "London"
 --Newcastle upon Tyne Combined Court Centre - Updated court region to "North East (England)"
-INSERT INTO PUBLIC.court_region (court_id, region_id)
+INSERT INTO public.court_region (court_id, region_id)
 SELECT c.id AS court_id, r.id AS region_id
-FROM PUBLIC.courts c
-JOIN PUBLIC.regions r
+FROM public.courts c
+JOIN public.regions r
 ON CASE
     WHEN c.name = 'Newcastle upon Tyne Combined Court Centre' THEN r.NAME = 'North East (England)'
     WHEN c.name = 'Kingston-upon-Thames Crown Court' THEN r.NAME = 'London'
