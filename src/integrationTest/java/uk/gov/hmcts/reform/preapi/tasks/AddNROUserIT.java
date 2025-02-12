@@ -154,7 +154,9 @@ public class AddNROUserIT extends IntegrationTestBase {
         assertFalse(testImportedNROUsers[0].getIsDefault());
         assertEquals("Updated Court Name", testImportedNROUsers[0].getCourt());
         assertEquals("1", testImportedNROUsers[0].getUserAccess());
-        assertEquals("ImportedNROUser{firstName='Updated', lastName='Example-User A', email='updatedUserA@test.com', court='Updated Court Name', isDefault=false, userAccess='1'}", testImportedNROUsers[0].toString());
+        assertEquals("ImportedNROUser{firstName='Updated', lastName='Example-User A', "
+                        + "email='updatedUserA@test.com', court='Updated Court Name', isDefault=false, userAccess='1'}",
+                testImportedNROUsers[0].toString());
     }
 
     private static ImportedNROUser @NotNull [] getTestImportedNROUsers() {
