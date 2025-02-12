@@ -184,7 +184,7 @@ public class AddNROUsers extends RobotUserTask {
                 this.importedNROUsers.add(importedNROUser);
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.info("Error: ", e);
             System.exit(0);
         }
     }
