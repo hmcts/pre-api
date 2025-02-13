@@ -80,6 +80,7 @@ public class BookingService {
         Optional<Timestamp> scheduledFor,
         UUID participantId,
         Boolean hasRecordings,
+        Boolean includeDeleted,
         List<RecordingStatus> statuses,
         List<RecordingStatus> notStatuses,
         Pageable pageable
@@ -104,6 +105,7 @@ public class BookingService {
                 authorisedBookings,
                 authorisedCourt,
                 hasRecordings,
+                includeDeleted,
                 statuses,
                 notStatuses,
                 pageable
