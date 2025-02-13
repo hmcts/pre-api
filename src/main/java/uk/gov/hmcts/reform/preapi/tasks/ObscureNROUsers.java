@@ -18,6 +18,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,6 +60,13 @@ public class ObscureNROUsers extends RobotUserTask {
 
     @Override
     public void run() throws RuntimeException {
+
+        if (!this.roleRepository.findFirstByName("Level 1").isPresent()
+            || !this.courtRepository.findFirstByName("Foo Court").isPresent()) {
+            log.error("Cannot obscure users: obscuring role and/or court do not exist in the DB.");
+            return;
+        }
+
         // Collate user emails
         try (BufferedReader br = new BufferedReader(new FileReader(usersFile))) {
             String line;
@@ -79,29 +87,12 @@ public class ObscureNROUsers extends RobotUserTask {
         }
 
         this.obscureEntries(userEmails);
+        this.constructQuery(userEmails);
         log.info("Completed ObscureNROUsers task");
     }
 
     private void obscureEntries(Set<String> emails) {
-        // compose statement to print & input into pgadmin4 to erase the audit logs
-        StringBuilder pgAdmin4Query = new StringBuilder("""
-                UPDATE public.audits
-                SET audit_details = '{}'::jsonb
-                WHERE audit_details::text ILIKE '%""");
-        int index = 0;
         for (String email : emails) {
-            if (index < (emails.size() - 1)) {
-                pgAdmin4Query.append(email)
-                    .append("%'\n")
-                    .append("OR audit_details::text ILIKE '%");
-            } else if (index == (emails.size() - 1)) {
-                pgAdmin4Query.append(email)
-                    .append("%'");
-            } else {
-                break;
-            }
-            index++;
-
             // Update user with current email to obscurity
             try {
                 UUID userId = this.userService.findByEmail(email).getUser().getId(); // User ID of current user
@@ -118,9 +109,7 @@ public class ObscureNROUsers extends RobotUserTask {
                     Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>() {};
                     // Update app access entries of current user to obscurity
                     if (!this.appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-                        .isEmpty()
-                        && this.roleRepository.findFirstByName("Level 1").isPresent()
-                        && this.courtRepository.findFirstByName("Foo Court").isPresent()) {
+                        .isEmpty()) {
                         for (AppAccess appAccess : this.appAccessRepository
                             .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)) {
 
@@ -142,17 +131,41 @@ public class ObscureNROUsers extends RobotUserTask {
                         createUserDTO.setAppAccess(createAppAccessDTOs);
                         this.userService.upsert(createUserDTO);
                     } else {
-                        log.info("An app access entry does not exist for "
-                                               + createUserDTO.getEmail()
-                                               + " Or the role used to obscure the user, or the court used to "
-                                               + "obscure the user, does not exist.");
+                        log.info("An app access entry does not exist for " + createUserDTO.getEmail()
+                                     + " Or the role used to obscure the user, or the court used to "
+                                     + "obscure the user, does not exist.");
                     }
                 }
+
 
             } catch (Exception e) {
                 log.info(email + " does not exist yet!", e);
             }
         }
+    }
+
+    private void constructQuery(Set<String> emails) {
+        // compose statement to print & input into pgadmin4 to erase the audit logs
+        StringBuilder pgAdmin4Query = new StringBuilder("""
+                UPDATE public.audits
+                SET audit_details = '{}'::jsonb
+                WHERE audit_details::text ILIKE '%""");
+
+        Iterator<String> iterator = emails.iterator();
+
+        if (iterator.hasNext()) {
+            String firstEmail = iterator.next(); // Get the first email
+            pgAdmin4Query.append(firstEmail).append("%'\n");
+        }
+
+        // Iterate over remaining emails
+        while (iterator.hasNext()) {
+            String email = iterator.next();
+            pgAdmin4Query.append("OR audit_details::text ILIKE '%")
+                .append(email)
+                .append("%'\n");
+        }
+
         log.info(pgAdmin4Query.toString());
     }
 }

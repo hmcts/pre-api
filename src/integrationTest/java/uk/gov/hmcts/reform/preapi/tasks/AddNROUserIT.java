@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -20,10 +21,12 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -55,7 +58,7 @@ public class AddNROUserIT extends IntegrationTestBase {
     }
 
     // test NRO users are imported successfully
-    @DisplayName("Test NRO users listed in a CSV file are successfully imported to an ImportedNROUser object")
+    @DisplayName("Test NRO users listed in a CSV file are successfully uploaded to, then obscured in, the DB")
     @Transactional
     @Test
     public void testRunAddNROUsers() {
@@ -99,6 +102,11 @@ public class AddNROUserIT extends IntegrationTestBase {
             }
         }
 
+        User testUndetectedUser = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("exampleUserE@test.com").get();
+        testUndetectedUser.setEmail("null@test.com");
+        entityManager.persist(testUndetectedUser);
+        entityManager.flush();
+
         // initialise & run the ObscureNROUsers test
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                               userAuthenticationService,
@@ -112,30 +120,59 @@ public class AddNROUserIT extends IntegrationTestBase {
         log.info("Checking user deletion from DB is successful. . .");
         for (Map.Entry<String,UUID> entry : testUserEmailsAndIDs.entrySet()) {
             // check current user email does not exist
-            assertTrue(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(entry.getKey()).isEmpty());
-            // check current user still does exist (and that the data has just been obscured)
-            assertTrue(userRepository.findById(entry.getValue()).isPresent());
-            // check that the email has been obscured to be the id & @test.com
-            assertEquals(entry.getValue().toString() + "@test.com", userRepository.findById(
-                entry.getValue()).get().getEmail());
-            // check the user's first and last name are Example User respectively
-            assertEquals("Example", userRepository.findById(entry.getValue()).get().getFirstName());
-            assertEquals("User", userRepository.findById(entry.getValue()).get().getLastName());
-            // check the user's app access entry(ies) still exist (and that the data has just been obscured)
-            assertFalse(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(
-                entry.getValue()).isEmpty());
+            if (!Objects.equals(entry.getKey(), "exampleUserE@test.com")) {
+                assertTrue(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(entry.getKey()).isEmpty());
+                // check current user still does exist (and that the data has just been obscured)
+                assertTrue(userRepository.findById(entry.getValue()).isPresent());
+                // check that the email has been obscured to be the id & @test.com
+                assertEquals(
+                    entry.getValue().toString() + "@test.com", userRepository.findById(
+                        entry.getValue()).get().getEmail()
+                );
+                // check the user's first and last name are Example User respectively
+                assertEquals("Example", userRepository.findById(entry.getValue()).get().getFirstName());
+                assertEquals("User", userRepository.findById(entry.getValue()).get().getLastName());
+                // check the user's app access entry(ies) still exist (and that the data has just been obscured)
+                assertFalse(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(
+                    entry.getValue()).isEmpty());
 
-            for (AppAccess appAccess : appAccessRepository
-                .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue())) {
-                // check that the current app access entry has the same user id as the current user being tested
-                assertEquals(entry.getValue(), appAccess.getUser().getId());
-                // no test for default court; doesn't matter
-                // check that the current app access court has been obscured to Foo Court
-                assertEquals("Foo Court", appAccess.getCourt().getName());
-                // check that the current app access has been given the lowest access level (Level 1)
-                assertEquals("Level 1", appAccess.getRole().getName());
-                // check that the current app access isActive has been set to False
-                assertFalse(appAccess.isActive());
+                for (AppAccess appAccess : appAccessRepository
+                    .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue())) {
+                    // check that the current app access entry has the same user id as the current user being tested
+                    assertEquals(entry.getValue(), appAccess.getUser().getId());
+                    // no test for default court; doesn't matter
+                    // check that the current app access court has been obscured to Foo Court
+                    assertEquals("Foo Court", appAccess.getCourt().getName());
+                    // check that the current app access has been given the lowest access level (Level 1)
+                    assertEquals("Level 1", appAccess.getRole().getName());
+                    // check that the current app access isActive has been set to False
+                    assertFalse(appAccess.isActive());
+                }
+            } else {
+                // assert that if a user's email is modified, it is not found or obscured from the DB
+                assertNotEquals(
+                    entry.getValue().toString() + "@test.com", userRepository.findById(
+                        entry.getValue()).get().getEmail()
+                );
+                assertEquals("null@test.com", userRepository.findById(
+                    entry.getValue()).get().getEmail());
+                assertEquals("Example",
+                             userService.findByEmail("null@test.com").getUser().getFirstName());
+                assertEquals("User E",
+                             userService.findByEmail("null@test.com").getUser().getLastName());
+                assertEquals("Level 2", appAccessRepository
+                    .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).getFirst()
+                    .getRole().getName());
+                assertEquals("Doncaster Crown Court (Doncaster Justice Centre South)", appAccessRepository
+                    .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).getFirst()
+                    .getCourt().getName());
+                assertTrue(appAccessRepository
+                               .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).getFirst()
+                               .isActive());
+                assertTrue(appAccessRepository
+                               .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).getFirst()
+                               .isDefaultCourt());
+
             }
         }
         // checking all emails are in the SQL statement to erase the audit logs
