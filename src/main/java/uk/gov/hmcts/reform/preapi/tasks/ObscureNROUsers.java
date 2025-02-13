@@ -135,9 +135,9 @@ public class ObscureNROUsers extends RobotUserTask {
                                      + " Or the role used to obscure the user, or the court used to "
                                      + "obscure the user, does not exist.");
                     }
+                } else {
+                    throw new Exception();
                 }
-
-
             } catch (Exception e) {
                 log.info(email + " does not exist yet!", e);
             }

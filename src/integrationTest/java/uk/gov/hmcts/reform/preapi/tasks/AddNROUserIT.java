@@ -180,6 +180,88 @@ public class AddNROUserIT extends IntegrationTestBase {
 
     @Transactional
     @Test
+    public void testRunObscureNROUsersFailNoCourt() {
+        // initialise & run the AddNROUsers test
+        AddNROUsers addNROUsers = new AddNROUsers(userService,
+                                                  userAuthenticationService,
+                                                  CRON_USER_EMAIL,
+                                                  courtRepository,
+                                                  roleRepository,
+                                                  testUsersFile);
+        addNROUsers.run();
+
+        courtRepository.deleteById(courtRepository.findFirstByName("Foo Court").get().getId());
+        entityManager.flush();
+        // initialise & run the ObscureNROUsers test
+        ObscureNROUsers noCourtObscureNROUsers = new ObscureNROUsers(userService,
+                                                                     userAuthenticationService,
+                                                                     CRON_USER_EMAIL,
+                                                                     appAccessRepository,
+                                                                     courtRepository,
+                                                                     roleRepository,
+                                                                     testUsersFile);
+        noCourtObscureNROUsers.run();
+
+        ImportedNROUser[] testImportedNROUsers = getTestImportedNROUsers();
+
+        for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
+            if ((testImportedNROUser.getCourt().equals("Foo Court D"))
+                || (testImportedNROUser.getCourt().equals("Foo Court F"))
+                || (testImportedNROUser.getCourt().equals("Foo Court G"))) {
+                assertTrue(userRepository
+                               .findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail()).isEmpty());
+            } else {
+                // test NRO user is NOT obscured successfully (still in DB)
+                assertEquals(testImportedNROUser.getEmail(),
+                             userService.findByEmail(testImportedNROUser.getEmail()).getUser().getEmail());
+            }
+        }
+
+    }
+
+    @Transactional
+    @Test
+    public void testRunObscureNROUsersFailNoRole() {
+        // initialise & run the AddNROUsers test
+        AddNROUsers addNROUsers = new AddNROUsers(userService,
+                                                  userAuthenticationService,
+                                                  CRON_USER_EMAIL,
+                                                  courtRepository,
+                                                  roleRepository,
+                                                  testUsersFile);
+        addNROUsers.run();
+
+        roleRepository.deleteById(roleRepository.findFirstByName("Level 1").get().getId());
+        entityManager.flush();
+
+        // initialise & run the ObscureNROUsers test
+        ObscureNROUsers noCourtObscureNROUsers = new ObscureNROUsers(userService,
+                                                                     userAuthenticationService,
+                                                                     CRON_USER_EMAIL,
+                                                                     appAccessRepository,
+                                                                     courtRepository,
+                                                                     roleRepository,
+                                                                     testUsersFile);
+        noCourtObscureNROUsers.run();
+
+        ImportedNROUser[] testImportedNROUsers = getTestImportedNROUsers();
+
+        for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
+            if ((testImportedNROUser.getCourt().equals("Foo Court D"))
+                || (testImportedNROUser.getCourt().equals("Foo Court F"))
+                || (testImportedNROUser.getCourt().equals("Foo Court G"))) {
+                assertTrue(userRepository
+                               .findByEmailIgnoreCaseAndDeletedAtIsNull(testImportedNROUser.getEmail()).isEmpty());
+            } else {
+                // test NRO user is NOT obscured successfully (still in DB)
+                assertEquals(testImportedNROUser.getEmail(),
+                             userService.findByEmail(testImportedNROUser.getEmail()).getUser().getEmail());
+            }
+        }
+    }
+
+    @Transactional
+    @Test
     public void testSettersAndToString() {
         ImportedNROUser[] testImportedNROUsers = getTestImportedNROUsers();
         testImportedNROUsers[0].setFirstName("Updated");
