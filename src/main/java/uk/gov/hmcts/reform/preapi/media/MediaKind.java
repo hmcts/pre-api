@@ -445,16 +445,6 @@ public class MediaKind implements IMediaService {
         mediaKindClient.deleteLiveEvent(liveEventName);
     }
 
-    private void stopAndDeleteStreamingEndpoint(String endpointName) {
-        try {
-            mediaKindClient.stopStreamingEndpoint(endpointName);
-        } catch (NotFoundException e) {
-            // ignore
-            return;
-        }
-        mediaKindClient.deleteStreamingEndpoint(endpointName);
-    }
-
     private void assertTransformExists(String transformName) {
         try {
             mediaKindClient.getTransform(transformName);
@@ -549,15 +539,6 @@ public class MediaKind implements IMediaService {
         }
 
         return job.getProperties().getState();
-    }
-
-    private MkLiveEvent checkStreamReady(String liveEventName) throws InterruptedException {
-        MkLiveEvent liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventMk(liveEventName);
-        } while (!liveEvent.getProperties().getResourceState().equals("Running"));
-        return liveEvent;
     }
 
     private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {

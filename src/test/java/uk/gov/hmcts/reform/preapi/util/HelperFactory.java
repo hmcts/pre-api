@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.util;
 
 import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.dto.CreateCourtDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
@@ -295,16 +294,5 @@ public class HelperFactory {
         dto.setResourceState(resourceState);
         dto.setInputRtmp(inputRtmp);
         return dto;
-    }
-
-    public CreateInviteDTO createInviteDTO(User user) {
-        var invite = new CreateInviteDTO();
-        invite.setUserId(user.getId());
-        invite.setFirstName(user.getFirstName());
-        invite.setLastName(user.getLastName());
-        invite.setEmail(user.getEmail());
-        invite.setOrganisation(user.getOrganisation());
-        invite.setPhone(user.getPhone());
-        return invite;
     }
 }
