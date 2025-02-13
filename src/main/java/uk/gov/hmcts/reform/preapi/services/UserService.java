@@ -226,9 +226,11 @@ public class UserService {
             .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
             .ifPresent(portalAccess -> portalAccessService.deleteById(portalAccess.getId()));
 
-        appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-            .filter(appAccess -> !appAccess.isEmpty())
-            .ifPresent(appAccess -> appAccessService.deleteById(appAccess.getFirst().getId()));
+        appAccessRepository
+            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+            .stream()
+            .map(AppAccess::getId)
+            .forEach(appAccessService::deleteById);
 
         userRepository
             .findById(userId)

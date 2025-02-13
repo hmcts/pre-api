@@ -122,11 +122,11 @@ public class AddNROUserIT extends IntegrationTestBase {
             assertEquals("Example", userRepository.findById(entry.getValue()).get().getFirstName());
             assertEquals("User", userRepository.findById(entry.getValue()).get().getLastName());
             // check the user's app access entry(ies) still exist (and that the data has just been obscured)
-            assertTrue(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(
-                entry.getValue()).isPresent());
+            assertFalse(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(
+                entry.getValue()).isEmpty());
 
             for (AppAccess appAccess : appAccessRepository
-                .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).get()) {
+                .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue())) {
                 // check that the current app access entry has the same user id as the current user being tested
                 assertEquals(entry.getValue(), appAccess.getUser().getId());
                 // no test for default court; doesn't matter

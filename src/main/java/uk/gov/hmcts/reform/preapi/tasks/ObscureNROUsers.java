@@ -117,12 +117,12 @@ public class ObscureNROUsers extends RobotUserTask {
 
                     Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>() {};
                     // Update app access entries of current user to obscurity
-                    if (this.appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-                        .isPresent()
+                    if (!this.appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+                        .isEmpty()
                         && this.roleRepository.findFirstByName("Level 1").isPresent()
                         && this.courtRepository.findFirstByName("Foo Court").isPresent()) {
                         for (AppAccess appAccess : this.appAccessRepository
-                            .findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId).get()) {
+                            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)) {
 
                             CreateAppAccessDTO createAppAccessDTO = new CreateAppAccessDTO();
                             createAppAccessDTO.setId(appAccess.getId());

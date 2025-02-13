@@ -486,8 +486,8 @@ public class UserServiceTest {
             .thenReturn(Optional.of(portalAccessEntity));
         ArrayList<AppAccess> appAccessEntities = new ArrayList<>();
         appAccessEntities.add(appAccessEntity);
-        when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(Optional.of(appAccessEntities));
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
+            .thenReturn(appAccessEntities);
         when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
         userService.deleteById(userEntity.getId());
@@ -495,7 +495,7 @@ public class UserServiceTest {
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
-        verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(appAccessRepository, times(1)).findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessService, times(1)).deleteById(appAccessEntity.getId());
         verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
@@ -503,11 +503,12 @@ public class UserServiceTest {
     @DisplayName("Delete a user by it's id when user is not attached to portal access or app access")
     @Test
     void deleteUserByIdNoAccessSuccess() {
+        ArrayList<AppAccess> emptySet = new ArrayList<>(){};
         when(userRepository.existsByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(true);
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
             .thenReturn(Optional.empty());
-        when(appAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
-            .thenReturn(Optional.empty());
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
+            .thenReturn(emptySet);
         when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
         userService.deleteById(userEntity.getId());
@@ -515,7 +516,7 @@ public class UserServiceTest {
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(portalAccessRepository, never()).save(any());
-        verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(appAccessRepository, times(1)).findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessRepository, never()).save(any());
         verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
@@ -534,7 +535,7 @@ public class UserServiceTest {
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userId);
         verify(portalAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(portalAccessRepository, never()).save(any());
-        verify(appAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(appAccessRepository, never()).findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessRepository, never()).save(any());
         verify(userRepository, never()).deleteById(userEntity.getId());
     }
@@ -545,6 +546,9 @@ public class UserServiceTest {
         when(userRepository.existsByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(true);
         when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
             .thenReturn(Optional.of(portalAccessEntity));
+        ArrayList<AppAccess> emptyAppAccessEntities = new ArrayList<>(){};
+        when(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
+            .thenReturn(emptyAppAccessEntities);
         when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
 
         userService.deleteById(userEntity.getId());
@@ -552,7 +556,7 @@ public class UserServiceTest {
         verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
         verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
-        verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(appAccessRepository, times(1)).findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessService, never()).deleteById(appAccessEntity.getId());
         verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
