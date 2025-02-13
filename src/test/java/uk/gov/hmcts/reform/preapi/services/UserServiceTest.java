@@ -40,7 +40,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.apache.logging.log4j.ThreadContext.isEmpty;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -537,6 +539,24 @@ public class UserServiceTest {
         verify(appAccessRepository, never()).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
         verify(appAccessRepository, never()).save(any());
         verify(userRepository, never()).deleteById(userEntity.getId());
+    }
+
+    @DisplayName("Delete a user when App Access entry doesn't exist")
+    @Test
+    void deleteUserWithEmptyAppAccess() {
+        when(userRepository.existsByIdAndDeletedAtIsNull(userEntity.getId())).thenReturn(true);
+        when(portalAccessRepository.findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId()))
+            .thenReturn(Optional.of(portalAccessEntity));
+        when(userRepository.findById(userEntity.getId())).thenReturn(Optional.ofNullable(userEntity));
+
+        userService.deleteById(userEntity.getId());
+
+        verify(userRepository, times(1)).existsByIdAndDeletedAtIsNull(userEntity.getId());
+        verify(portalAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(portalAccessService, times(1)).deleteById(portalAccessEntity.getId());
+        verify(appAccessRepository, times(1)).findByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userEntity.getId());
+        verify(appAccessService, never()).deleteById(appAccessEntity.getId());
+        verify(userRepository, times(1)).saveAndFlush(userEntity);
     }
 
     @DisplayName("Create a user")
