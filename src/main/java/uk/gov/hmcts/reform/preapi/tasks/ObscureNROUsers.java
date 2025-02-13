@@ -17,8 +17,10 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -151,16 +153,14 @@ public class ObscureNROUsers extends RobotUserTask {
                 SET audit_details = '{}'::jsonb
                 WHERE audit_details::text ILIKE '%""");
 
-        Iterator<String> iterator = emails.iterator();
 
-        if (iterator.hasNext()) {
-            String firstEmail = iterator.next(); // Get the first email
-            pgAdmin4Query.append(firstEmail).append("%'\n");
-        }
+        ArrayList<String> emailsListed = new ArrayList<>(emails);
+
+        pgAdmin4Query.append(emailsListed.getFirst()).append("%'\n");
 
         // Iterate over remaining emails
-        while (iterator.hasNext()) {
-            String email = iterator.next();
+        for (int i = 1; i < emailsListed.size(); i++) {
+            String email = emailsListed.get(i);
             pgAdmin4Query.append("OR audit_details::text ILIKE '%")
                 .append(email)
                 .append("%'\n");
