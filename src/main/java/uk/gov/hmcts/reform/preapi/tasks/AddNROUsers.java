@@ -16,12 +16,11 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -33,7 +32,7 @@ public class AddNROUsers extends RobotUserTask {
     private final ArrayList<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
     private Boolean stopScript = false;
-    private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
+    private String usersFile = "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";
     private final ArrayList<String> usersWithoutCourts = new ArrayList<>();
 
 
@@ -60,48 +59,23 @@ public class AddNROUsers extends RobotUserTask {
         }
 
         // group the new list of NRO users (objects) by email
-        log.info("Grouping NRO user courts by email. . .");
-        Map<String, List<ImportedNROUser>> groupedByEmail = this.importedNROUsers.stream()
-            .collect(Collectors.groupingBy(ImportedNROUser::getEmail));
+        // log.info("Grouping NRO user courts by email. . .");
+        // Map<String, List<ImportedNROUser>> groupedByEmail = this.importedNROUsers.stream()
+        // .collect(Collectors.groupingBy(ImportedNROUser::getEmail));
 
         // create a new user for each email,
         log.info("Creating new users. . .");
-        for (Map.Entry<String, List<ImportedNROUser>> entry : groupedByEmail.entrySet()) {
-            CreateUserDTO createUserDTO = new CreateUserDTO();
-            createUserDTO.setId(UUID.randomUUID());
-            createUserDTO.setFirstName(entry.getValue().getFirst().getFirstName());
-            createUserDTO.setLastName(entry.getValue().getFirst().getLastName());
-            createUserDTO.setEmail(entry.getKey());             // entry.getKey() is the user email
+        this.createUsers();
 
-            // create a (empty) set of PortalAccess objects for each user
-            Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<>(){};
-            createUserDTO.setPortalAccess(createPortalAccessDTOS);
-
-            // then create an AppAccess object for each primary and secondary court of the user
-            Set<CreateAppAccessDTO> createAppAccessDTOS = new HashSet<>(){};
-
-            for (ImportedNROUser importedNROUser : entry.getValue()) {
-                CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, createUserDTO.getId());
-                if (userAppAccess.getCourtId() != null) {
-                    createAppAccessDTOS.add(userAppAccess);
-                }
-            }
-
-            // ONLY add user to the DB, if they have an app access DTO with a court entry that is NOT null
-            if (!(this.usersWithoutCourts.contains(createUserDTO.getEmail()))) {
-                createUserDTO.setAppAccess(createAppAccessDTOS);
-                this.nroUsers.add(createUserDTO);
-            }
-        }
         log.info("Upserting createUserDTOs to DB. . .");
-        for (CreateUserDTO createUserDTO : this.nroUsers) {
+        for (CreateUserDTO createUserDTOToUpsert : this.nroUsers) {
             // add user to DB
             try {
-                this.userService.upsert(createUserDTO);
+                this.userService.upsert(createUserDTOToUpsert);
             } catch (Exception e) {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
-                this.otherUsersNotImported.add(createUserDTO.getEmail());
-                log.info("Upsert failed for user: {}", createUserDTO.getEmail());
+                this.otherUsersNotImported.add(createUserDTOToUpsert.getEmail());
+                log.info("Upsert failed for user: {}", createUserDTOToUpsert.getEmail());
             }
         }
 
@@ -188,5 +162,74 @@ public class AddNROUsers extends RobotUserTask {
         userAppAccess.setDefaultCourt(importedNROUser.getIsDefault());
 
         return userAppAccess;
+    }
+
+    private void createUsers() {
+
+        // sort list of imported NRO users in alphabetical order by email
+        this.importedNROUsers.sort(Comparator.comparing(ImportedNROUser::getEmail));
+
+        String previousEmail = null;
+        UUID currentId = null;
+        Set<CreateAppAccessDTO> createAppAccessDTOS = null;
+        CreateUserDTO createUserDTO = null;
+
+        for (ImportedNROUser importedNROUser : this.importedNROUsers) {
+            if (!Objects.equals(importedNROUser.getEmail(), previousEmail)) {
+                currentId = UUID.randomUUID();
+                createUserDTO = new CreateUserDTO();
+                createUserDTO.setId(currentId);
+                createUserDTO.setFirstName(importedNROUser.getFirstName());
+                createUserDTO.setLastName(importedNROUser.getLastName());
+                createUserDTO.setEmail(importedNROUser.getEmail());             // entry.getKey() is the user email
+
+                // create a (empty) set of PortalAccess objects for each user
+                Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<>(){};
+                createUserDTO.setPortalAccess(createPortalAccessDTOS);
+
+                // then create an AppAccess object for each primary and secondary court of the user
+                createAppAccessDTOS = new HashSet<>(){};
+            }
+
+            CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, currentId);
+            if (userAppAccess.getCourtId() != null) {
+                createAppAccessDTOS.add(userAppAccess);
+            }
+
+            if (!(this.usersWithoutCourts.contains(createUserDTO.getEmail()))) {
+                createUserDTO.setAppAccess(createAppAccessDTOS);
+                this.nroUsers.add(createUserDTO);
+            }
+
+            previousEmail = importedNROUser.getEmail();
+        }
+
+        // for (Map.Entry<String, List<ImportedNROUser>> entry : groupedByEmail.entrySet()) {
+        // CreateUserDTO createUserDTO = new CreateUserDTO();
+        // createUserDTO.setId(UUID.randomUUID());
+        // createUserDTO.setFirstName(entry.getValue().getFirst().getFirstName());
+        // createUserDTO.setLastName(entry.getValue().getFirst().getLastName());
+        // createUserDTO.setEmail(entry.getKey());             // entry.getKey() is the user email
+
+        // create a (empty) set of PortalAccess objects for each user
+        // Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<>(){};
+        // createUserDTO.setPortalAccess(createPortalAccessDTOS);
+
+        // then create an AppAccess object for each primary and secondary court of the user
+        // Set<CreateAppAccessDTO> createAppAccessDTOS = new HashSet<>(){};
+
+        // for (ImportedNROUser importedNROUser : entry.getValue()) {
+        // CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, createUserDTO.getId());
+        // if (userAppAccess.getCourtId() != null) {
+        // createAppAccessDTOS.add(userAppAccess);
+        // }
+        // }
+
+        // ONLY add user to the DB, if they have an app access DTO with a court entry that is NOT null
+        // if (!(this.usersWithoutCourts.contains(createUserDTO.getEmail()))) {
+        // createUserDTO.setAppAccess(createAppAccessDTOS);
+        // this.nroUsers.add(createUserDTO);
+        // }
+        //}
     }
 }
