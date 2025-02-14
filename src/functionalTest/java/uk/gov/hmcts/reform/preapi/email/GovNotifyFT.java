@@ -157,7 +157,7 @@ public class GovNotifyFT {
     void casePendingClosure() {
         var user = createUser();
         var forCase = createCase();
-        var date = Timestamp.valueOf("2021-01-01");
+        var date = Timestamp.valueOf("2021-01-01 00:00:00.0");
 
         var response = client.casePendingClosure(user, forCase, date);
         assertEquals(fromEmailAddress, response.getFromEmail());
