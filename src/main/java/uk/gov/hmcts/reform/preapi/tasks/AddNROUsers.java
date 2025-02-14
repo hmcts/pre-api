@@ -64,13 +64,6 @@ public class AddNROUsers extends RobotUserTask {
         Map<String, List<ImportedNROUser>> groupedByEmail = this.importedNROUsers.stream()
             .collect(Collectors.groupingBy(ImportedNROUser::getEmail));
 
-        // TODO: flatten groupedByEmail to be one list, check if current element contains @
-        // if current element contains @, create new user DTO obj, set a UUID and email
-        // otherwise, set first name, last name, app access object etc
-        // achieve flattening by toString-ing the entryset and splitting it, then iterating through it
-        // check chat for solution to flatten the map entirely whilst keeping the key and values beside each other!
-
-
         // create a new user for each email,
         log.info("Creating new users. . .");
         for (Map.Entry<String, List<ImportedNROUser>> entry : groupedByEmail.entrySet()) {
