@@ -42,22 +42,11 @@ public class AddNROUsers extends RobotUserTask {
                        UserAuthenticationService userAuthenticationService,
                        @Value("${cron-user-email}") String cronUserEmail, CourtRepository courtRepository,
                        RoleRepository roleRepository,
-                       @Value("${testFilePath}") String usersFile) {
+                       @Value("${nroUsersFilePath}") String usersFile) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
-        if (!(usersFile.isEmpty())) {
-            this.usersFile = usersFile;
-        }
-    }
-
-    public AddNROUsers(UserService userService,
-                       UserAuthenticationService userAuthenticationService,
-                       @Value("${cron-user-email}") String cronUserEmail, CourtRepository courtRepository,
-                       RoleRepository roleRepository) {
-        super(userService, userAuthenticationService, cronUserEmail);
-        this.courtRepository = courtRepository;
-        this.roleRepository = roleRepository;
+        this.usersFile = usersFile;
     }
 
     @Override
