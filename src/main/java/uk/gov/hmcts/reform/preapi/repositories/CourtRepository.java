@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -37,4 +39,8 @@ public interface CourtRepository extends JpaRepository<Court, UUID> {
         @Param("regionName") String regionName,
         Pageable pageable
     );
+
+    List<Court> findFirst10ByOrderByNameAsc();
+
+    Optional<Court> findFirstByName(String name);
 }

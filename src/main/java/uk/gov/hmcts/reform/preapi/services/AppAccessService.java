@@ -70,7 +70,7 @@ public class AppAccessService {
             entity.setActive(createAppAccessDTO.getActive());
         }
         entity.setLastAccess(createAppAccessDTO.getLastActive());
-        appAccessRepository.save(entity);
+        appAccessRepository.saveAndFlush(entity);
 
         var isUpdate = appAccess.isPresent();
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;

@@ -40,11 +40,11 @@ public class User extends CreatedModifiedAtEntity implements ISoftDeletable {
     private Timestamp deletedAt;
 
     @OneToMany
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
     private Set<AppAccess> appAccess;
 
     @OneToMany
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = true)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
     private Set<PortalAccess> portalAccess;
 
     @OneToMany
