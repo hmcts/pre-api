@@ -117,6 +117,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                                   var booking = bookingService.findById(captureSession.getBookingId());
 
                                   var shares = booking.getShares();
+                                  // @todo simplify this after 4.3 goes live S28-3692
                                   var toNotify = shares.stream()
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
@@ -125,6 +126,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                                                             .builder()
                                                             .email(u.getEmail())
                                                             .firstName(u.getFirstName())
+                                                            .lastName(u.getLastName())
                                                             .caseReference(booking.getCaseDTO().getReference())
                                                             .courtName(booking.getCaseDTO().getCourt().getName())
                                                             .build())
@@ -140,11 +142,11 @@ public class CleanupLiveEvents extends RobotUserTask {
                                           court.setName(booking.getCaseDTO().getCourt().getName());
                                           forCase.setCourt(court);
                                           var emailService = emailServiceFactory.getEnabledEmailService();
-                                          shares.forEach(share -> {
+                                          toNotify.forEach(notify -> {
                                               var emailUser = new User();
-                                              emailUser.setEmail(share.getSharedWithUser().getEmail());
-                                              emailUser.setFirstName(share.getSharedWithUser().getFirstName());
-                                              emailUser.setLastName(share.getSharedWithUser().getLastName());
+                                              emailUser.setEmail(notify.getEmail());
+                                              emailUser.setFirstName(notify.getFirstName());
+                                              emailUser.setLastName(notify.getLastName());
                                               emailService.recordingReady(emailUser, forCase);
                                           });
                                       }
