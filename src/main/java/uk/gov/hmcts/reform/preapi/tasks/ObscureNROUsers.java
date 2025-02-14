@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -97,49 +98,43 @@ public class ObscureNROUsers extends RobotUserTask {
             try {
                 UUID userId = this.userService.findByEmail(email).getUser().getId(); // User ID of current user
 
-                if (!(userId.toString().isEmpty())) {
-                    CreateUserDTO createUserDTO = new CreateUserDTO();
-                    Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<>() {};
-                    createUserDTO.setId(userId);
-                    createUserDTO.setFirstName("Example");
-                    createUserDTO.setLastName("User");
-                    createUserDTO.setEmail(userId + "@test.com");
-                    createUserDTO.setPortalAccess(createPortalAccessDTOs);
+                CreateUserDTO createUserDTO = new CreateUserDTO();
+                Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<>() {};
+                createUserDTO.setId(userId);
+                createUserDTO.setFirstName("Example");
+                createUserDTO.setLastName("User");
+                createUserDTO.setEmail(userId + "@test.com");
+                createUserDTO.setPortalAccess(createPortalAccessDTOs);
 
-                    Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>() {};
-                    // Update app access entries of current user to obscurity
-                    if (!this.appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-                        .isEmpty()) {
-                        for (AppAccess appAccess : this.appAccessRepository
-                            .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)) {
+                Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>() {};
+                // Update app access entries of current user to obscurity
+                if (!this.appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
+                    .isEmpty()) {
+                    for (AppAccess appAccess : this.appAccessRepository
+                        .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)) {
 
-                            CreateAppAccessDTO createAppAccessDTO = new CreateAppAccessDTO();
-                            createAppAccessDTO.setId(appAccess.getId());
-                            createAppAccessDTO.setUserId(userId);
+                        CreateAppAccessDTO createAppAccessDTO = new CreateAppAccessDTO();
+                        createAppAccessDTO.setId(appAccess.getId());
+                        createAppAccessDTO.setUserId(userId);
 
-                            createAppAccessDTO.setDefaultCourt(appAccess.isDefaultCourt());
-                            createAppAccessDTO.setRoleId(this.roleRepository.findFirstByName("Level 1")
-                                                             .get().getId());
-                            createAppAccessDTO.setCourtId(this.courtRepository.findFirstByName("Foo Court")
-                                                              .get().getId());
+                        createAppAccessDTO.setDefaultCourt(appAccess.isDefaultCourt());
+                        createAppAccessDTO.setRoleId(this.roleRepository.findFirstByName("Level 1")
+                                                         .get().getId());
+                        createAppAccessDTO.setCourtId(this.courtRepository.findFirstByName("Foo Court")
+                                                          .get().getId());
 
-                            createAppAccessDTO.setActive(false);
+                        createAppAccessDTO.setActive(false);
 
-                            createAppAccessDTOs.add(createAppAccessDTO);
-                        }
-
-                        createUserDTO.setAppAccess(createAppAccessDTOs);
-                        this.userService.upsert(createUserDTO);
-                    } else {
-                        log.info("An app access entry does not exist for " + createUserDTO.getEmail()
-                                     + " Or the role used to obscure the user, or the court used to "
-                                     + "obscure the user, does not exist.");
+                        createAppAccessDTOs.add(createAppAccessDTO);
                     }
+
+                    createUserDTO.setAppAccess(createAppAccessDTOs);
+                    this.userService.upsert(createUserDTO);
                 } else {
-                    throw new Exception();
+                    log.info("An app access entry cannot be found for " + createUserDTO.getEmail());
                 }
-            } catch (Exception e) {
-                log.info(email + " does not exist yet!", e);
+            } catch (NotFoundException e) {
+                log.info(email + " does not exist in the DB yet!", e);
             }
         }
     }
