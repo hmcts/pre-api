@@ -1,23 +1,28 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class ImportedNROUser {
     private String firstName;
     private String lastName;
     private String email;
     private String court;
+    private UUID courtId;
     private Boolean isDefault;
+    private UUID roleId;
     private String userAccess;
 
-    public ImportedNROUser(String firstName, String lastName, String email, String court, Boolean isDefault,
-                    String userAccess) {
+    public ImportedNROUser(String firstName, String lastName, String email, String court, UUID courtId,
+                           Boolean isDefault, UUID roleId, String userAccess) {
         super();
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.court = court;
+        this.courtId = courtId;
         this.isDefault = isDefault;
+        this.roleId = roleId;
         this.userAccess = userAccess;
     }
 
@@ -66,12 +71,28 @@ public class ImportedNROUser {
         this.court = court;
     }
 
+    public UUID getCourtId() {
+        return courtId;
+    }
+
+    public void setCourtId(UUID courtId) {
+        this.courtId = courtId;
+    }
+
     public Boolean getIsDefault() {
         return isDefault;
     }
 
     public void setIsDefault(Boolean isDefault) {
         this.isDefault = isDefault;
+    }
+
+    public UUID getRoleId() {
+        return roleId;
+    }
+
+    public void setRoleId(UUID roleId) {
+        this.roleId = roleId;
     }
 
     public String getUserAccess() {

@@ -50,8 +50,8 @@ public class ObscureNROUsers extends RobotUserTask {
     @Override
     public void run() throws RuntimeException {
 
-        if (!this.roleRepository.findFirstByName("Level 1").isPresent()
-            || !this.courtRepository.findFirstByName("Foo Court").isPresent()) {
+        if (this.roleRepository.findFirstByName("Level 1").isEmpty()
+            || this.courtRepository.findFirstByName("Foo Court").isEmpty()) {
             log.error("Cannot obscure users: obscuring role and/or court do not exist in the DB.");
             return;
         }

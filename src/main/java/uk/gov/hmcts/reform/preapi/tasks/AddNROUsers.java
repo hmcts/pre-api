@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Objects;
@@ -54,14 +55,10 @@ public class AddNROUsers extends RobotUserTask {
 
         log.info("Reading in .csv file. . .");
         this.createImportedNROUserObjects(this.usersFile);
+        // if there were any IO errors in the .csv file, exit
         if (this.stopScript.equals(Boolean.TRUE)) {
             return;
         }
-
-        // group the new list of NRO users (objects) by email
-        // log.info("Grouping NRO user courts by email. . .");
-        // Map<String, List<ImportedNROUser>> groupedByEmail = this.importedNROUsers.stream()
-        // .collect(Collectors.groupingBy(ImportedNROUser::getEmail));
 
         // create a new user for each email,
         log.info("Creating new users. . .");
@@ -69,7 +66,7 @@ public class AddNROUsers extends RobotUserTask {
 
         log.info("Upserting createUserDTOs to DB. . .");
         for (CreateUserDTO createUserDTOToUpsert : this.nroUsers) {
-            // add user to DB
+            // add user to DB (assuming they do not exist already)
             try {
                 this.userService.upsert(createUserDTOToUpsert);
             } catch (Exception e) {
@@ -90,6 +87,19 @@ public class AddNROUsers extends RobotUserTask {
 
         log.info("Completed AddNROUsers task");
 
+    }
+
+    private CreateAppAccessDTO createAppAccessObj(ImportedNROUser importedNROUser, UUID userId) {
+        CreateAppAccessDTO userAppAccess = new CreateAppAccessDTO();
+
+        // values have been validated in getNROUser
+        userAppAccess.setId(UUID.randomUUID());
+        userAppAccess.setUserId(userId);
+        userAppAccess.setRoleId(importedNROUser.getRoleId());
+        userAppAccess.setCourtId(importedNROUser.getCourtId());
+        userAppAccess.setDefaultCourt(importedNROUser.getIsDefault());
+
+        return userAppAccess;
     }
 
     private void createImportedNROUserObjects(String usersFilePath) {
@@ -118,91 +128,58 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
-    private ImportedNROUser getNROUser(String[] values) {
-        String firstName = values[0];
-        String lastName = values[1];
-        String email = values[2];
-        String court = values[4];
-        Boolean isDefault = null;
-        String userLevel = values[6];
-
-        if (values[3].contains("Secondary")) {
-            isDefault = false;
-        } else if (values[3].contains("Primary")) {
-            isDefault = true;
-        } else {
-            this.otherUsersNotImported.add(email);
-            return null;
-        }
-
-        return new ImportedNROUser(
-            firstName, lastName, email, court, isDefault, userLevel
-        );
-    }
-
-    private CreateAppAccessDTO createAppAccessObj(ImportedNROUser importedNROUser, UUID userId) {
-        CreateAppAccessDTO userAppAccess = new CreateAppAccessDTO();
-
-        userAppAccess.setId(UUID.randomUUID());
-
-        userAppAccess.setUserId(userId);
-
-        if (this.roleRepository.findFirstByName("Level " + importedNROUser.getUserAccess()).isPresent()) {
-            userAppAccess.setRoleId((this.roleRepository.findFirstByName(
-                "Level " + importedNROUser.getUserAccess())).get().getId());
-        }
-
-        if (this.courtRepository.findFirstByName(importedNROUser.getCourt()).isPresent()) {
-            userAppAccess.setCourtId(this.courtRepository.findFirstByName(
-                importedNROUser.getCourt()).get().getId());
-        } else {
-            this.usersWithoutCourts.add(importedNROUser.getEmail());
-        }
-
-        userAppAccess.setDefaultCourt(importedNROUser.getIsDefault());
-
-        return userAppAccess;
-    }
-
     private void createUsers() {
+        // sort list of imported NRO users in alphabetical order by email (& then by court)
+        this.importedNROUsers.sort(Comparator.comparing(ImportedNROUser::getEmail)
+                                       .thenComparing(ImportedNROUser::getCourt));
 
-        // sort list of imported NRO users in alphabetical order by email
-        this.importedNROUsers.sort(Comparator.comparing(ImportedNROUser::getEmail));
-
+        // initialise values
         String previousEmail = null;
-        UUID currentId = null;
-        Set<CreateAppAccessDTO> createAppAccessDTOS = null;
+        UUID currentUserId = null;
+        Set<CreateAppAccessDTO> createAppAccessDTOs = null;
         CreateUserDTO createUserDTO = null;
+        int index = 0;
 
         for (ImportedNROUser importedNROUser : this.importedNROUsers) {
+            // if the previous email and current email are not the same, make a new user
             if (!Objects.equals(importedNROUser.getEmail(), previousEmail)) {
-                currentId = UUID.randomUUID();
+                currentUserId = UUID.randomUUID();
                 createUserDTO = new CreateUserDTO();
-                createUserDTO.setId(currentId);
+                createUserDTO.setId(currentUserId);
                 createUserDTO.setFirstName(importedNROUser.getFirstName());
                 createUserDTO.setLastName(importedNROUser.getLastName());
-                createUserDTO.setEmail(importedNROUser.getEmail());             // entry.getKey() is the user email
+                createUserDTO.setEmail(importedNROUser.getEmail());
 
                 // create a (empty) set of PortalAccess objects for each user
                 Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<>(){};
                 createUserDTO.setPortalAccess(createPortalAccessDTOS);
 
                 // then create an AppAccess object for each primary and secondary court of the user
-                createAppAccessDTOS = new HashSet<>(){};
+                createAppAccessDTOs = new HashSet<>(){};
             }
 
-            CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, currentId);
-            if (userAppAccess.getCourtId() != null) {
-                createAppAccessDTOS.add(userAppAccess);
-            }
+            CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, currentUserId);
+            createAppAccessDTOs.add(userAppAccess);
 
-            if (!(this.usersWithoutCourts.contains(createUserDTO.getEmail()))) {
-                createUserDTO.setAppAccess(createAppAccessDTOS);
+            // if this is the last element, or if the next element is a new email,
+            if ((index == (this.importedNROUsers.size() - 1)
+                || !(Objects.equals(this.importedNROUsers.get(index + 1).getEmail(), createUserDTO.getEmail())))) {
+                // assign all the app access objects for this user to the current user,
+                createUserDTO.setAppAccess(createAppAccessDTOs);
+                // then add the user to the list of users to upload
                 this.nroUsers.add(createUserDTO);
             }
 
+            index++;
             previousEmail = importedNROUser.getEmail();
         }
+
+        // old method:
+
+        // group the new list of NRO users (objects) by email
+        // log.info("Grouping NRO user courts by email. . .");
+        // Map<String, List<ImportedNROUser>> groupedByEmail = this.importedNROUsers.stream()
+        // .collect(Collectors.groupingBy(ImportedNROUser::getEmail));
 
         // for (Map.Entry<String, List<ImportedNROUser>> entry : groupedByEmail.entrySet()) {
         // CreateUserDTO createUserDTO = new CreateUserDTO();
@@ -231,5 +208,55 @@ public class AddNROUsers extends RobotUserTask {
         // this.nroUsers.add(createUserDTO);
         // }
         //}
+    }
+
+    private ImportedNROUser getNROUser(String[] values) {
+        String firstName = values[0];
+        String lastName = values[1];
+        String email = values[2];
+
+        if ((firstName == null) || (lastName == null) || (email == null)) {
+            log.info("User with the following values cannot be fully identified and will not be imported: "
+                         + Arrays.toString(values));
+            return null;
+        }
+
+        Boolean isDefault = null;
+
+        // validate isDefault
+        if (values[3].contains("Secondary")) {
+            isDefault = false;
+        } else if (values[3].contains("Primary")) {
+            isDefault = true;
+        } else {
+            this.otherUsersNotImported.add(email);
+            return null;
+        }
+
+        String court = values[4];
+        UUID courtId = null;
+
+        // validate court
+        if (this.courtRepository.findFirstByName(court).isEmpty()) {
+            this.usersWithoutCourts.add(email);
+            return null;
+        } else {
+            courtId = this.courtRepository.findFirstByName(court).get().getId();
+        }
+
+        String userLevel = values[6];
+        UUID roleId = null;
+
+        // validate role
+        if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
+            this.otherUsersNotImported.add(email);
+            return null;
+        } else {
+            roleId = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
+        }
+
+        return new ImportedNROUser(
+            firstName, lastName, email, court, courtId, isDefault, roleId, userLevel
+        );
     }
 }
