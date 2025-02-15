@@ -19,9 +19,14 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -32,6 +37,8 @@ public class ObscureNROUsers extends RobotUserTask {
     private final RoleRepository roleRepository;
     private final Set<String> userEmails = new HashSet<>();
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
+    private UUID obscuringRoleID;
+    private UUID obscuringCourtID;
 
 
     @Autowired
@@ -54,6 +61,9 @@ public class ObscureNROUsers extends RobotUserTask {
             || this.courtRepository.findFirstByName("Foo Court").isEmpty()) {
             log.error("Cannot obscure users: obscuring role and/or court do not exist in the DB.");
             return;
+        } else {
+            this.obscuringRoleID = this.roleRepository.findFirstByName("Level 1").get().getId();
+            this.obscuringCourtID = this.courtRepository.findFirstByName("Foo Court").get().getId();
         }
 
         // Collate user emails
@@ -81,50 +91,78 @@ public class ObscureNROUsers extends RobotUserTask {
     }
 
     private void obscureEntries(Set<String> emails) {
+
+        ArrayList<List<AppAccess>> unflattenedAppAccessObjsForImportedUsers = new ArrayList<>();
+        Map<String, UUID> userEmailAndIDs = new HashMap<>();
+
         for (String email : emails) {
-            // Update user with current email to obscurity
             try {
-                UUID userId = this.userService.findByEmail(email).getUser().getId(); // User ID of current user
-
-                CreateUserDTO createUserDTO = new CreateUserDTO();
-                Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<>() {};
-                createUserDTO.setId(userId);
-                createUserDTO.setFirstName("Example");
-                createUserDTO.setLastName("User");
-                createUserDTO.setEmail(userId + "@test.com");
-                createUserDTO.setPortalAccess(createPortalAccessDTOs);
-
-                Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>() {};
-                // Update app access entries of current user to obscurity
-                if (!this.appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)
-                    .isEmpty()) {
-                    for (AppAccess appAccess : this.appAccessRepository
-                        .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userId)) {
-
-                        CreateAppAccessDTO createAppAccessDTO = new CreateAppAccessDTO();
-                        createAppAccessDTO.setId(appAccess.getId());
-                        createAppAccessDTO.setUserId(userId);
-
-                        createAppAccessDTO.setDefaultCourt(appAccess.isDefaultCourt());
-                        createAppAccessDTO.setRoleId(this.roleRepository.findFirstByName("Level 1")
-                                                         .get().getId());
-                        createAppAccessDTO.setCourtId(this.courtRepository.findFirstByName("Foo Court")
-                                                          .get().getId());
-
-                        createAppAccessDTO.setActive(false);
-
-                        createAppAccessDTOs.add(createAppAccessDTO);
-                    }
-
-                    createUserDTO.setAppAccess(createAppAccessDTOs);
-                    this.userService.upsert(createUserDTO);
-                } else {
-                    log.info("An app access entry cannot be found for " + createUserDTO.getEmail());
-                }
+                userEmailAndIDs.put(email, this.userService.findByEmail(email).getUser().getId());
             } catch (NotFoundException e) {
                 log.info(email + " does not exist in the DB yet!", e);
             }
         }
+
+        for (Map.Entry<String, UUID> emailAndID : userEmailAndIDs.entrySet()) {
+            if (this.appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(emailAndID.getValue())
+                .isEmpty()) {
+                log.info("An app access entry cannot be found for " + emailAndID.getKey());
+            } else {
+                unflattenedAppAccessObjsForImportedUsers.add(
+                    this.appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(
+                        emailAndID.getValue()));
+            }
+        }
+
+        ArrayList<AppAccess> appAccessObjsForImportedUsers = unflattenedAppAccessObjsForImportedUsers.stream()
+            .flatMap(List::stream)
+            .collect(Collectors.toCollection(ArrayList::new));
+
+        // initialise values
+        Set<CreateAppAccessDTO> createAppAccessDTOs = null;
+        CreateUserDTO createUserDTO = null;
+        int index = 0;
+        UUID previousUserID = null;
+
+        for (AppAccess appAccess : appAccessObjsForImportedUsers) {
+            if (appAccess.getUser().getId() != previousUserID) {
+                createUserDTO = new CreateUserDTO();
+                Set<CreatePortalAccessDTO> createPortalAccessDTOs = new HashSet<>() {};
+                createUserDTO.setId(appAccess.getUser().getId());
+                createUserDTO.setFirstName("Example");
+                createUserDTO.setLastName("User");
+                createUserDTO.setEmail(appAccess.getUser().getId() + "@test.com");
+                createUserDTO.setPortalAccess(createPortalAccessDTOs);
+                createAppAccessDTOs = new HashSet<>() {};
+            }
+
+            CreateAppAccessDTO userAppAccess = this.getCreateAppAccessDTO(appAccess, appAccess.getUser().getId());
+            createAppAccessDTOs.add(userAppAccess);
+
+            // if this is the last element, or if the next element is a new email,
+            if ((index == (appAccessObjsForImportedUsers.size() - 1)
+                || !(Objects.equals(appAccessObjsForImportedUsers.get(index + 1).getUser().getEmail(),
+                                    createUserDTO.getEmail())))) {
+                // assign all the app access objects for this user to the current user,
+                createUserDTO.setAppAccess(createAppAccessDTOs);
+                this.userService.upsert(createUserDTO);
+            }
+            index++;
+            previousUserID = appAccess.getUser().getId();
+        }
+    }
+
+    private CreateAppAccessDTO getCreateAppAccessDTO(AppAccess appAccess, UUID userId) {
+        CreateAppAccessDTO createAppAccessDTO = new CreateAppAccessDTO();
+        createAppAccessDTO.setId(appAccess.getId());
+        createAppAccessDTO.setUserId(userId);
+
+        createAppAccessDTO.setDefaultCourt(appAccess.isDefaultCourt());
+        createAppAccessDTO.setRoleId(this.obscuringRoleID);
+        createAppAccessDTO.setCourtId(this.obscuringCourtID);
+
+        createAppAccessDTO.setActive(false);
+        return createAppAccessDTO;
     }
 
     private void constructQuery(Set<String> emails) {

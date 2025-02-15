@@ -221,7 +221,7 @@ public class AddNROUsers extends RobotUserTask {
             return null;
         }
 
-        Boolean isDefault = null;
+        boolean isDefault;
 
         // validate isDefault
         if (values[3].contains("Secondary")) {
@@ -234,7 +234,7 @@ public class AddNROUsers extends RobotUserTask {
         }
 
         String court = values[4];
-        UUID courtId = null;
+        UUID courtId;
 
         // validate court
         if (this.courtRepository.findFirstByName(court).isEmpty()) {
@@ -245,7 +245,7 @@ public class AddNROUsers extends RobotUserTask {
         }
 
         String userLevel = values[6];
-        UUID roleId = null;
+        UUID roleId;
 
         // validate role
         if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {

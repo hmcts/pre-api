@@ -33,7 +33,9 @@ public class ImportedNROUser {
         sb.append(", lastName='").append(lastName).append('\'');
         sb.append(", email='").append(email).append('\'');
         sb.append(", court='").append(court).append('\'');
+        sb.append(", courtId='").append(courtId).append('\'');
         sb.append(", isDefault=").append(isDefault);
+        sb.append(", roleId='").append(roleId).append('\'');
         sb.append(", userAccess='").append(userAccess).append('\'');
         sb.append('}');
         return sb.toString();

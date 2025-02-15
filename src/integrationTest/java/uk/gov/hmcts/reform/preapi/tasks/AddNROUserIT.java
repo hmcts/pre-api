@@ -183,7 +183,7 @@ public class AddNROUserIT extends IntegrationTestBase {
             );
             obscureNROUsers.run();
 
-            log.info("Checking user deletion from DB is successful. . .");
+            log.info("Checking user has been successfully obscured from DB. . .");
             for (Map.Entry<String, UUID> entry : testUserEmailsAndIDs.entrySet()) {
                 // check current user email does not exist
                 if (!Objects.equals(entry.getKey(), "exampleUserE@test.com")) {
@@ -378,7 +378,9 @@ public class AddNROUserIT extends IntegrationTestBase {
         assertEquals(testNewRoleID, this.testImportedNROUsers.getFirst().getRoleId());
         assertEquals("1", this.testImportedNROUsers.getFirst().getUserAccess());
         assertEquals("ImportedNROUser{firstName='Updated', lastName='Example-User A', "
-                        + "email='updatedUserA@test.com', court='Updated Court Name', isDefault=false, userAccess='1'}",
+                        + "email='updatedUserA@test.com', court='Updated Court Name', courtId='"
+                         + testNewCourtID + "', isDefault=false, roleId='"
+                         + testNewRoleID + "', userAccess='1'}",
                      this.testImportedNROUsers.getFirst().toString());
     }
 
