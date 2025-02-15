@@ -20,6 +20,8 @@ import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
+import java.sql.Timestamp;
+
 @Slf4j
 @Service
 public class GovNotify implements IEmailService {
@@ -77,7 +79,7 @@ public class GovNotify implements IEmailService {
     }
 
     @Override
-    public EmailResponse casePendingClosure(User to, Case forCase, String date) {
+    public EmailResponse casePendingClosure(User to, Case forCase, Timestamp date) {
         var template = new CasePendingClosure(to.getEmail(), to.getFirstName(), to.getLastName(),
                                               forCase.getReference(), date);
         try {

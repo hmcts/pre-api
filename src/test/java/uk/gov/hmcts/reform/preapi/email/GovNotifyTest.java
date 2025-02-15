@@ -20,6 +20,7 @@ import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,7 +87,11 @@ public class GovNotifyTest {
     @DisplayName("Should create CasePendingClosure template")
     @Test
     void shouldCreateCasePendingClosureTemplate() {
-        var template = new CasePendingClosure("to", "firstName", "lastName", "caseRef", "closureDate");
+        var template = new CasePendingClosure("to",
+                                              "firstName",
+                                              "lastName",
+                                              "caseRef",
+                                              Timestamp.valueOf("2025-01-01 00:00:00.0"));
         assertThat(template.getTemplateId()).isEqualTo("5322ba5c-f4c4-4d1b-807c-16f56f0d8d0c");
     }
 
@@ -190,7 +195,7 @@ public class GovNotifyTest {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
 
-        var response = govNotify.casePendingClosure(getUser(), getCase(), "closureDate");
+        var response = govNotify.casePendingClosure(getUser(), getCase(), Timestamp.valueOf("2025-01-01 00:00:00.0"));
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -272,7 +277,9 @@ public class GovNotifyTest {
             .thenThrow(mock(NotificationClientException.class));
 
         var message = assertThrows(EmailFailedToSendException.class,
-                                   () -> govNotify.casePendingClosure(getUser(), getCase(), "closureDate"))
+                                   () -> govNotify.casePendingClosure(getUser(),
+                                                                      getCase(),
+                                                                      Timestamp.valueOf("2025-01-01 00:00:00.0")))
             .getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());
