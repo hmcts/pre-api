@@ -338,7 +338,7 @@ public class CaseService {
             } else {
                 var emailService = emailServiceFactory.getEnabledEmailService();
                 shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c,
-                                                                        c.getClosedAt().toString()));
+                                                                        c.getClosedAt()));
             }
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: {}", c.getId());
