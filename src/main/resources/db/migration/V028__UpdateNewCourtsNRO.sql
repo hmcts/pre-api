@@ -8,6 +8,13 @@ UPDATE public.courts
 SET location_code = 439
 WHERE name = 'Newcastle upon Tyne Combined Court Centre';
 
+-- Leeds' Magistrates' Court (Leeds Youth Court) - Updated name & location code to 2375
+UPDATE public.courts
+SET 
+    name = 'Leeds Magistrates'' Court',
+    location_code = 2375
+WHERE name = 'Leeds Youth Court';
+
 -- Kingston-upon-Thames Crown Court - Updated location code to 427
 UPDATE public.courts
 SET location_code = 427
@@ -24,7 +31,7 @@ ON CASE
     WHEN c.name = 'Kingston-upon-Thames Crown Court' THEN r.NAME = 'London'
 END; 
 
--- Leeds Crown Court - Audit entry regarding update
+-- Leeds Crown Court, Leeds Youth - Audit entry regarding name update 
 INSERT INTO public.audits (
     id, 
     table_name, 
@@ -54,11 +61,14 @@ SELECT
     ) AS audit_details
 FROM public.courts c
 WHERE c.name IN (
-    'Leeds Combined Court Centre'
+    'Leeds Combined Court Centre',
+    'Leeds Magistrates'' Court'
 );
 
---Kingston-upon-Thames Crown Court - Audit entry regarding update
---Newcastle upon Tyne Combined Court Centre - Audit entry regarding update
+--Audit entry regarding location code update
+--Kingston-upon-Thames Crown Court,
+--Newcastle upon Tyne Combined Court Centre,
+--Leeds Youth 
 INSERT INTO public.audits (
     id, 
     table_name, 
@@ -89,5 +99,6 @@ SELECT
 FROM public.courts c
 WHERE c.name IN (
     'Newcastle upon Tyne Combined Court Centre',
-    'Kingston-upon-Thames Crown Court'
+    'Kingston-upon-Thames Crown Court',
+    'Leeds Magistrates'' Court'
 );
