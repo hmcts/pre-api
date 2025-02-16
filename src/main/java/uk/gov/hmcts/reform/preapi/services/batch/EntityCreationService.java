@@ -1,6 +1,8 @@
 
 package uk.gov.hmcts.reform.preapi.services.batch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -29,9 +31,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
 
@@ -40,6 +45,7 @@ public class EntityCreationService {
         static final String REDIS_USER_KEY_PREFIX = "vf:user:";
         static final String REDIS_BOOKING_FIELD = "bookingField";
         static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
+        static final String REDIS_SHARE_BOOKING_FIELD = "vf:shareBooking:";
         
         private Constants() {}
     }
@@ -151,28 +157,42 @@ public class EntityCreationService {
         List<CreateShareBookingDTO> shareBookings,
         List<CreateInviteDTO> userInvites
     ) {
+        
+        String email = contactInfo.get("email").toLowerCase();
         String firstName = contactInfo.getOrDefault("firstName", "Unknown");
         String lastName = contactInfo.getOrDefault("lastName", "Unknown");
-        String email = contactInfo.get("email");
-        
-        String existingUserId = getUserIdFromRedis(email);
-        String vodafoneUser = getUserIdFromRedis(vodafoneUserEmail);
-        CreateUserDTO sharedWith;
-        CreateUserDTO sharedBy = getUserById(vodafoneUser);
-        CreateInviteDTO inviteDTO;
-        
-        if (existingUserId != null) {
-            sharedWith = getUserById(existingUserId);
-        } else {
-            sharedWith = createUser(firstName, lastName, email, UUID.randomUUID()); 
-            inviteDTO = createInvite(sharedWith);
-            userInvites.add(inviteDTO);
+
+        try{            
+            String existingUserId = getUserIdFromRedis(email);
+            String vodafoneUser = getUserIdFromRedis(vodafoneUserEmail);
+
+            CreateUserDTO sharedBy = getUserById(vodafoneUser);
+            CreateUserDTO sharedWith;
+            CreateInviteDTO inviteDTO;
+            
+            if (existingUserId != null) {
+                sharedWith = new CreateUserDTO();
+                sharedWith.setId(UUID.fromString(existingUserId));
+                sharedWith.setEmail(email);
+            } else {
+                sharedWith = createUser(firstName, lastName, email, UUID.randomUUID()); 
+                inviteDTO = createInvite(sharedWith);
+                userInvites.add(inviteDTO);
+                redisService.saveHashValue(Constants.REDIS_USER_KEY_PREFIX, email, sharedWith.getId().toString());    
+            }
+            
+            String redisBookingKey = Constants.REDIS_SHARE_BOOKING_FIELD + booking.getId().toString();
+            String existingSharedWith = redisService.getHashValue(redisBookingKey, sharedWith.getId().toString(), String.class);
+            if (existingSharedWith != null && existingSharedWith.equals(sharedWith.getId().toString())) {
+                return; 
+            }
+            
+            redisService.saveHashValue(redisBookingKey, sharedWith.getId().toString(), sharedWith.getId().toString());
+            shareBookings.add(createShareBooking(booking, sharedWith, sharedBy));
+        } catch (Exception e) {
+            logger.error("Failed to create share booking: " + e.getMessage());
         }
-
-        shareBookings.add(createShareBooking(booking, sharedWith, sharedBy));
     }
-
-
 
     public CreateShareBookingDTO createShareBooking(
         CreateBookingDTO bookingDTO, 
@@ -231,7 +251,5 @@ public class EntityCreationService {
 
         return createInviteDTO;
     }
-
-    
 
 }
