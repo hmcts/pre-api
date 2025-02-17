@@ -11,3 +11,6 @@ Example,User E,exampleUserE@test.com,Primary,Doncaster Crown Court (Doncaster Ju
 Example,User F,exampleUserF@test.com,Primary,Gloucester Crown Court,xxx,0
 Example,User G,exampleUserG@test.com,Primaaary,Grimsby Combined Court Centre,xxx,2
 ,,,Primary,,xxx,2
+Example,,,Primary,,xxx,2
+,User H,,Primary,,xxx,2
+,,exampleUserH@test.com,Primary,,xxx,2
