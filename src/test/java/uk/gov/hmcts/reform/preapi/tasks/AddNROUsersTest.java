@@ -32,7 +32,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AddNROUsers.class)
-public class AddNROUsersTest {
+class AddNROUsersTest {
 
     @MockBean
     private UserAuthenticationService userAuthenticationService;
