@@ -40,7 +40,5 @@ public interface CourtRepository extends JpaRepository<Court, UUID> {
         Pageable pageable
     );
 
-    List<Court> findFirst10ByOrderByNameAsc();
-
     Optional<Court> findFirstByName(String name);
 }
