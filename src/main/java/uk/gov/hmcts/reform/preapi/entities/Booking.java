@@ -84,4 +84,13 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     public boolean isDeleteOperation() {
         return this.isSoftDeleteOperation;
     }
+
+    @Override
+    public void prePersist() {
+        super.prePersist();
+        if (participants != null) {
+            // force hibernate to load the collection so audit is correct
+            participants.size();
+        }
+    }
 }
