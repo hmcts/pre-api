@@ -150,6 +150,8 @@ public class AddNROUsersTest {
         when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
             .thenReturn(Optional.of(uncalledTestCourt));
 
+        when(this.userService.upsert((CreateUserDTO) (any()))).thenThrow(NotFoundException.class);
+
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
                                                   CRON_USER_EMAIL,
@@ -157,8 +159,6 @@ public class AddNROUsersTest {
                                                   roleRepository,
                                                   testUsersFile);
         addNROUsers.run();
-
-        when(userService.upsert((CreateUserDTO) any())).thenThrow(NotFoundException.class);
 
         verify(userService, times(4)).upsert((CreateUserDTO) any());
         verify(userService, times(4)).upsert((CreateUserDTO) any());
