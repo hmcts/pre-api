@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
@@ -24,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -116,6 +119,55 @@ public class AddNROUsersTest {
         // the role will also not be called if there is a failing court
         verify(roleRepository, times(17)).findFirstByName(any());
         verify(courtRepository, times(19)).findFirstByName(any());
+    }
+
+    @DisplayName("Successfully throw exceptions for upsert failures")
+    @Test
+    void addNROUsersFailure() {
+        Role testRoleLvl1 = HelperFactory.createRole("Level 1");
+        testRoleLvl1.setDescription("test");
+        testRoleLvl1.setId(UUID.randomUUID());
+        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
+        testRoleLvl2.setDescription("test");
+        testRoleLvl2.setId(UUID.randomUUID());
+
+        ArrayList<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
+
+        when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
+
+        for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
+            Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
+                                                        null);
+            testImportedNROUser.setCourt(testCourt.getName());
+            testImportedNROUser.setCourtId(testCourt.getId());
+
+            when(this.courtRepository.findFirstByName(testImportedNROUser.getCourt()))
+                .thenReturn(Optional.of(testCourt));
+        }
+
+        // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
+        Court uncalledTestCourt = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
+                                                            null);
+        when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
+            .thenReturn(Optional.of(uncalledTestCourt));
+
+        AddNROUsers addNROUsers = new AddNROUsers(userService,
+                                                  userAuthenticationService,
+                                                  CRON_USER_EMAIL,
+                                                  courtRepository,
+                                                  roleRepository,
+                                                  testUsersFile);
+        addNROUsers.run();
+
+        when(userService.upsert((CreateUserDTO) any())).thenThrow(NotFoundException.class);
+
+        verify(userService, times(4)).upsert((CreateUserDTO) any());
+        verify(userService, times(4)).upsert((CreateUserDTO) any());
+
+        for (ImportedNROUser testUnimportedNROUser : testImportedNROUsers) {
+            assertTrue(userRepository
+                           .findByEmailIgnoreCaseAndDeletedAtIsNull(testUnimportedNROUser.getEmail()).isEmpty());
+        }
     }
 
     private ArrayList<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
