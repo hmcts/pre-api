@@ -1,8 +1,13 @@
 package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 
 public class RecordingEdited extends RecordingReady {
-    public RecordingEdited(String to, String firstName, String caseRef, String courtName, String portalLink) {
-        super(to, firstName, caseRef, courtName, portalLink);
+    public RecordingEdited(String to,
+                           String firstName,
+                           String lastName,
+                           String caseRef,
+                           String courtName,
+                           String portalLink) {
+        super(to, firstName, lastName, caseRef, courtName, portalLink);
     }
 
     public String getTemplateId() {
