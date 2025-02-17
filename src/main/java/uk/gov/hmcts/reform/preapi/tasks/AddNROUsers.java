@@ -137,7 +137,7 @@ public class AddNROUsers extends RobotUserTask {
         String previousEmail = null;
         UUID currentUserId = null;
         Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>(){};
-        CreateUserDTO createUserDTO = null;
+        CreateUserDTO createUserDTO = new CreateUserDTO();
         int index = 0;
 
         for (ImportedNROUser importedNROUser : this.importedNROUsers) {
