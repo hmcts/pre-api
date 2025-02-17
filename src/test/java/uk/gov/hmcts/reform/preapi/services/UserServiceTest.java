@@ -51,7 +51,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = UserService.class)
-public class UserServiceTest {
+class UserServiceTest {
     private static User userEntity;
     private static User portalUserEntity;
     private static User appUserEntity;
