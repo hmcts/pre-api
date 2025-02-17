@@ -18,6 +18,8 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -144,7 +146,7 @@ public class AddNROUserIT extends IntegrationTestBase {
             Comparator.comparing((AppAccess appAccess) -> appAccess.getUser().getEmail())
                 .thenComparing(appAccess -> appAccess.getCourt().getName()));
 
-        assertEquals(8, appAccessObjsForTestUsers.size());
+        assertEquals(9, appAccessObjsForTestUsers.size());
 
         // iterate through relevant app access objects and assert each object has their expected values
         int index = 0;
@@ -159,14 +161,16 @@ public class AddNROUserIT extends IntegrationTestBase {
 
 
         // initialise & run the ObscureNROUsers test
-        if (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("exampleUserE@test.com").isPresent()) {
+        if (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("exampleUserE@test.com").isPresent()
+            && userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("exampleUserH@test.com").isPresent()) {
             User testUndetectedUser = userRepository
                 .findByEmailIgnoreCaseAndDeletedAtIsNull("exampleUserE@test.com").get();
             AppAccess testUndetectedAppAccess = appAccessRepository
-                .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(testUndetectedUser.getId()).getFirst();
-            testUndetectedAppAccess.setDeleted(true);
-            ArrayList<AppAccess> newTestUndetectedAppAccess = new ArrayList<>();
-            newTestUndetectedAppAccess.add(testUndetectedAppAccess);
+                .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(userRepository
+                                                                           .findByEmailIgnoreCaseAndDeletedAtIsNull(
+                                                                               "exampleUserH@test.com").get().getId())
+                .getFirst();
+            testUndetectedAppAccess.setDeletedAt(Timestamp.valueOf(LocalDateTime.now()));
             testUndetectedUser.setEmail("null@test.com");
             entityManager.persist(testUndetectedAppAccess);
             entityManager.persist(testUndetectedUser);
@@ -186,7 +190,8 @@ public class AddNROUserIT extends IntegrationTestBase {
             log.info("Checking user has been successfully obscured from DB. . .");
             for (Map.Entry<String, UUID> entry : testUserEmailsAndIDs.entrySet()) {
                 // check current user email does not exist
-                if (!Objects.equals(entry.getKey(), "exampleUserE@test.com")) {
+                if (!Objects.equals(entry.getKey(), "exampleUserE@test.com")
+                    && !Objects.equals(entry.getKey(), "exampleUserH@test.com")) {
                     assertTrue(userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(entry.getKey()).isEmpty());
                     // check current user still does exist (and that the data has just been obscured)
                     assertTrue(userRepository.findById(entry.getValue()).isPresent());
@@ -201,11 +206,11 @@ public class AddNROUserIT extends IntegrationTestBase {
                     // check the user's app access entry(ies) still exist (and that the data has just been obscured)
                     assertFalse(appAccessRepository.findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(
                         entry.getValue()).isEmpty());
-                } else {
+                } else if (Objects.equals(entry.getKey(), "exampleUserE@test.com")) {
                     // assert that if a user's email is modified, it is not found (hence not fully obscured) from the DB
                     assertNotEquals(
-                        entry.getValue().toString() + "@test.com", userRepository.findById(
-                            entry.getValue()).get().getEmail()
+                            entry.getValue().toString() + "@test.com", userRepository.findById(
+                                entry.getValue()).get().getEmail()
                     );
                     assertEquals(
                         "null@test.com", userRepository.findById(
@@ -235,13 +240,48 @@ public class AddNROUserIT extends IntegrationTestBase {
                     assertTrue(appAccessRepository
                                    .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(entry.getValue()).getFirst()
                                    .isDefaultCourt());
-
+                } else if (Objects.equals(entry.getKey(), "exampleUserH@test.com")) {
+                    // assert that if a user's email is modified, it is not found (hence not fully obscured) from the DB
+                    assertNotEquals(
+                        entry.getValue().toString() + "@test.com", userRepository.findById(
+                            entry.getValue()).get().getEmail()
+                    );
+                    assertEquals(
+                        "exampleUserH@test.com", userRepository.findById(
+                            entry.getValue()).get().getEmail()
+                    );
+                    assertEquals(
+                        "Example",
+                        userService.findByEmail("exampleUserH@test.com").getUser().getFirstName()
+                    );
+                    assertEquals(
+                        "User H",
+                        userService.findByEmail("exampleUserH@test.com").getUser().getLastName()
+                    );
+                    assertEquals(
+                        "Level 2", appAccessRepository
+                            .findAllByUser_IdAndDeletedAtIsNotNull(entry.getValue()).getFirst()
+                            .getRole().getName()
+                    );
+                    assertEquals(
+                        "Harrow Crown Court", appAccessRepository
+                            .findAllByUser_IdAndDeletedAtIsNotNull(entry.getValue()).getFirst()
+                            .getCourt().getName()
+                    );
+                    assertTrue(appAccessRepository
+                                   .findAllByUser_IdAndDeletedAtIsNotNull(entry.getValue()).getFirst()
+                                   .isActive());
+                    assertTrue(appAccessRepository
+                                   .findAllByUser_IdAndDeletedAtIsNotNull(entry.getValue()).getFirst()
+                                   .isDefaultCourt());
                 }
 
                 // assert the app access objects have been modified as expected (except for those for user E)
                 for (AppAccess appAccess : appAccessObjsForTestUsers) {
                     if (testUserEmailsAndIDs.containsValue(appAccess.getUser().getId())
-                        && (appAccess.getUser().getId() != testUserEmailsAndIDs.get("exampleUserE@test.com"))) {
+                        && (appAccess.getUser().getId() != testUserEmailsAndIDs.get("exampleUserE@test.com"))
+                        && (appAccess.getUser().getId() != testUserEmailsAndIDs.get("exampleUserH@test.com"))
+                    ) {
                         // check that the current app access entry has the same user id as the current user being tested
                         assertEquals(appAccess.getUser().getId() + "@test.com",
                                      appAccess.getUser().getEmail());
@@ -506,6 +546,14 @@ public class AddNROUserIT extends IntegrationTestBase {
                                                                    true,
                                                                    testLvl2ID,
                                                                    "2");
+        ImportedNROUser testImportedNROUserH = new ImportedNROUser("Example",
+                                                                   "User H",
+                                                                   "exampleUserH@test.com",
+                                                                   "Harrow Crown Court",
+                                                                   findTestCourtID("Harrow Crown Court"),
+                                                                   true,
+                                                                   testLvl2ID,
+                                                                   "2");
 
         ArrayList<ImportedNROUser> testUsers = new ArrayList<>();
         testUsers.add(testImportedNROUserA);
@@ -516,6 +564,7 @@ public class AddNROUserIT extends IntegrationTestBase {
         testUsers.add(testImportedNROUserCSecondaryCourt2);
         testUsers.add(testImportedNROUserCSecondaryCourt3);
         testUsers.add(testImportedNROUserE);
+        testUsers.add(testImportedNROUserH);
 
         // sort alphabetically by email then court name
         testUsers.sort(Comparator.comparing(ImportedNROUser::getEmail).thenComparing(ImportedNROUser::getCourt));

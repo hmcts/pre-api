@@ -107,17 +107,17 @@ public class AddNROUsersTest {
         addNROUsers.run();
 
         // there should only be 4 viable NRO users to upsert into the DB (4 emails with valid rows in the csv file)
-        verify(userService, times(4)).upsert((CreateUserDTO) any());
+        verify(userService, times(5)).upsert((CreateUserDTO) any());
 
         // calls to court and role repos are made twice (if all fields successful) during validation
         // a failing court or a failing role will still be called once
         // neither the court nor the role will be called if there is an invalid primary/secondary status
-        // out of 11 rows, if all 11 are valid, there should be 22 calls each to the court repo and the role repo resp.
+        // out of 12 rows, if all 12 are valid, there should be 24 calls each to the court repo and the role repo resp.
         // but there should be two failing courts and two failing roles
         // two calls each will never be called due to one row with an invalid primary/secondary status
         // the role will also not be called if there is a failing court
-        verify(roleRepository, times(17)).findFirstByName(any());
-        verify(courtRepository, times(19)).findFirstByName(any());
+        verify(roleRepository, times(19)).findFirstByName(any());
+        verify(courtRepository, times(21)).findFirstByName(any());
     }
 
     @DisplayName("Successfully throw exceptions for upsert failures")
@@ -160,8 +160,7 @@ public class AddNROUsersTest {
                                                   TEST_USERS_FILE);
         addNROUsers.run();
 
-        verify(userService, times(4)).upsert((CreateUserDTO) any());
-        verify(userService, times(4)).upsert((CreateUserDTO) any());
+        verify(userService, times(5)).upsert((CreateUserDTO) any());
 
         for (ImportedNROUser testUnimportedNROUser : testImportedNROUsers) {
             assertTrue(userRepository
@@ -235,6 +234,14 @@ public class AddNROUsersTest {
                                                                    true,
                                                                    testLvl2ID,
                                                                    "2");
+        ImportedNROUser testImportedNROUserH = new ImportedNROUser("Example",
+                                                                   "User H",
+                                                                   "exampleUserH@test.com",
+                                                                   "Harrow Crown Court",
+                                                                   null,
+                                                                   true,
+                                                                   testLvl2ID,
+                                                                   "2");
 
         ArrayList<ImportedNROUser> testUsers = new ArrayList<>();
         testUsers.add(testImportedNROUserA);
@@ -245,6 +252,7 @@ public class AddNROUsersTest {
         testUsers.add(testImportedNROUserCSecondaryCourt2);
         testUsers.add(testImportedNROUserCSecondaryCourt3);
         testUsers.add(testImportedNROUserE);
+        testUsers.add(testImportedNROUserH);
 
         return testUsers;
     }
