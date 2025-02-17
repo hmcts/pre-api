@@ -14,6 +14,8 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.listeners.AuditListener;
+import uk.gov.hmcts.reform.preapi.enums.AuditAction;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -30,6 +32,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -44,6 +47,7 @@ public class BookingService {
     private final CaptureSessionService captureSessionService;
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
+    private final AuditListener auditListener;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
@@ -51,13 +55,15 @@ public class BookingService {
                           final ParticipantRepository participantRepository,
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
-                          @Lazy CaseService caseService) {
+                          @Lazy CaseService caseService,
+                          @Lazy AuditListener auditListener) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
+        this.auditListener = auditListener;
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
@@ -143,6 +149,7 @@ public class BookingService {
 
         bookingEntity.setId(createBookingDTO.getId());
         bookingEntity.setCaseId(caseEntity);
+        bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
@@ -160,11 +167,13 @@ public class BookingService {
                     return entity;
                 }))
                 .collect(Collectors.toSet()));
-        bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
-
-        bookingRepository.save(bookingEntity);
 
         var isUpdate = optBooking.isPresent();
+        if (!isUpdate) {
+            AuditListener.disableAuditingForClass(Booking.class, Set.of(AuditAction.UPDATE));
+        }
+        bookingRepository.save(bookingEntity);
+
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 

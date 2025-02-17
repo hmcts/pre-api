@@ -20,13 +20,15 @@ import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @Component
 public class AuditListener {
-
     @Lazy
     @Autowired
     private AuditRepository auditRepository;
@@ -38,6 +40,15 @@ public class AuditListener {
     @Lazy
     @Autowired
     private HttpServletRequest request;
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    private static final ThreadLocal<Map<Class<?>, Set<AuditAction>>> disabledAuditClasses = ThreadLocal.withInitial(
+        () -> {
+            var set = new HashMap<Class<?>, Set<AuditAction>>();
+            set.put(Audit.class, Set.of(AuditAction.CREATE, AuditAction.UPDATE, AuditAction.DELETE));
+            return set;
+        });
 
     @PrePersist
     public void prePersist(BaseEntity entity) {
@@ -58,10 +69,8 @@ public class AuditListener {
         audit(entity, AuditAction.DELETE);
     }
 
-    ObjectMapper mapper = new ObjectMapper();
-
-    private void audit(BaseEntity entity, AuditAction action) {
-        if (entity.getClass() == Audit.class) {
+    public void audit(BaseEntity entity, AuditAction action) {
+        if (!isAuditableEntity(entity.getClass(), action)) {
             return;
         }
         var audit = new Audit();
@@ -110,5 +119,17 @@ public class AuditListener {
         return auth.isAppUser()
             ? (auth.getAppAccess() != null ? auth.getAppAccess().getId() : null)
             : (auth.getPortalAccess() != null ? auth.getPortalAccess().getId() : null);
+    }
+
+    public static void enableAuditingForClass(Class<?> entity) {
+        disabledAuditClasses.get().remove(entity);
+    }
+
+    public static void disableAuditingForClass(Class<?> entity, Set<AuditAction> actions) {
+        disabledAuditClasses.get().put(entity, actions);
+    }
+
+    private static boolean isAuditableEntity(Class<?> entity, AuditAction action) {
+        return !disabledAuditClasses.get().getOrDefault(entity, Set.of()).contains(action);
     }
 }
