@@ -165,7 +165,7 @@ public class GovNotifyFT {
             """
             Dear John Doe,
 
-            Case 123456 has been set to close on 2021-01-01. Once the case has been closed, access to recordings will be removed.
+            Case 123456 has been set to close on 1 January 2021. Once the case has been closed, access to recordings will be removed.
 
             Kind regards,
             Pre-Recorded Evidence Team""", response);
