@@ -140,6 +140,7 @@ public class UserService {
         if (isUpdate && user.get().isDeleted()) {
             throw new ResourceInDeletedStateException("UserDTO", createUserDTO.getId().toString());
         }
+
         if (!isUpdate && userRepository.existsByEmailIgnoreCase(createUserDTO.getEmail())) {
             throw new ConflictException("User with email: " + createUserDTO.getEmail() + " already exists");
         }
@@ -149,6 +150,7 @@ public class UserService {
                 throw new NotFoundException("Portal Access: " + id);
             }
         });
+
         var entity = user.orElse(new User());
         entity.setId(createUserDTO.getId());
         entity.setFirstName(createUserDTO.getFirstName());
