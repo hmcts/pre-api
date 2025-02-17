@@ -64,7 +64,7 @@ public class AddNROUsersTest {
     @MockBean
     private UserService userService;
 
-    private static final String testUsersFile =
+    private static final String TEST_USERS_FILE =
         "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";
     private static final String CRON_USER_EMAIL = "Phoebe.Revolta@HMCTS.net";
 
@@ -103,7 +103,7 @@ public class AddNROUsersTest {
                                                   CRON_USER_EMAIL,
                                                   courtRepository,
                                                   roleRepository,
-                                                  testUsersFile);
+                                                  TEST_USERS_FILE);
         addNROUsers.run();
 
         // there should only be 4 viable NRO users to upsert into the DB (4 emails with valid rows in the csv file)
