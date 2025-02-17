@@ -69,7 +69,7 @@ public class AppAccessServiceTest {
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
         verify(courtRepository, times(1)).findById(model.getCourtId());
         verify(roleRepository, times(1)).findById(model.getRoleId());
-        verify(appAccessRepository, times(1)).saveAndFlush(any());
+        verify(appAccessRepository, times(1)).save(any());
     }
 
     @DisplayName("Update an app access entity")
@@ -96,7 +96,7 @@ public class AppAccessServiceTest {
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
         verify(courtRepository, times(1)).findById(model.getCourtId());
         verify(roleRepository, times(1)).findById(model.getRoleId());
-        verify(appAccessRepository, times(1)).saveAndFlush(any());
+        verify(appAccessRepository, times(1)).save(any());
     }
 
     @DisplayName("Should fail to create/update when app access has been deleted")
@@ -119,7 +119,7 @@ public class AppAccessServiceTest {
         );
 
         verify(appAccessRepository, times(1)).findById(model.getId());
-        verify(appAccessRepository, never()).saveAndFlush(any());
+        verify(appAccessRepository, never()).save(any());
     }
 
     @DisplayName("Should fail to create/update when user cannot be found")
@@ -142,7 +142,7 @@ public class AppAccessServiceTest {
 
         verify(appAccessRepository, times(1)).findById(model.getId());
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
-        verify(appAccessRepository, never()).saveAndFlush(any());
+        verify(appAccessRepository, never()).save(any());
     }
 
     @DisplayName("Should fail to create/update when court cannot be found")
@@ -167,7 +167,7 @@ public class AppAccessServiceTest {
         verify(appAccessRepository, times(1)).findById(model.getId());
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
         verify(courtRepository, times(1)).findById(model.getCourtId());
-        verify(appAccessRepository, never()).saveAndFlush(any());
+        verify(appAccessRepository, never()).save(any());
     }
 
     @DisplayName("Should fail to create/update when role cannot be found")
@@ -194,7 +194,7 @@ public class AppAccessServiceTest {
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(model.getUserId());
         verify(courtRepository, times(1)).findById(model.getCourtId());
         verify(roleRepository, times(1)).findById(model.getRoleId());
-        verify(appAccessRepository, never()).saveAndFlush(any());
+        verify(appAccessRepository, never()).save(any());
     }
 
     @DisplayName("Should mark app access entity as deleted and inactive")
@@ -241,6 +241,6 @@ public class AppAccessServiceTest {
         verify(userRepository, times(1)).findByIdAndDeletedAtIsNull(dto.getUserId());
         verify(courtRepository, times(1)).findById(dto.getCourtId());
         verify(roleRepository, times(1)).findById(dto.getRoleId());
-        verify(appAccessRepository, times(1)).saveAndFlush(any());
+        verify(appAccessRepository, times(1)).save(any());
     }
 }
