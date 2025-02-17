@@ -10,7 +10,6 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
