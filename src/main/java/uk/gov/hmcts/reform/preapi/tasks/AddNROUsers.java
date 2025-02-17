@@ -215,7 +215,7 @@ public class AddNROUsers extends RobotUserTask {
         String lastName = values[1];
         String email = values[2];
 
-        if ((firstName == null) || (lastName == null) || (email == null)) {
+        if ((firstName.isEmpty()) || (lastName.isEmpty()) || (email.isEmpty())) {
             log.info("User with the following values cannot be fully identified and will not be imported: "
                          + Arrays.toString(values));
             return null;

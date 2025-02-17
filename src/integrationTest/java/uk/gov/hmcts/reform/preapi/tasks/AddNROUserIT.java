@@ -75,12 +75,6 @@ public class AddNROUserIT extends IntegrationTestBase {
     @Test
     public void testRunAddNROUsersAndObscureNROUsers() {
 
-        Map<String, ImportedNROUser> testUserEmailsAndNROUsers = new HashMap<>();
-
-        for (ImportedNROUser testImportedNROUser : this.testImportedNROUsers) {
-            testUserEmailsAndNROUsers.put(testImportedNROUser.getEmail(), testImportedNROUser);
-        }
-
         // initialise & run the AddNROUsers test
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
