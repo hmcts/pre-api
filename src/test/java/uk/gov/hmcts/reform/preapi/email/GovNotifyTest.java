@@ -80,7 +80,7 @@ public class GovNotifyTest {
     @DisplayName("Should create RecordingReady template")
     @Test
     void shouldCreateRecordingReadyTemplate() {
-        var template = new RecordingReady("to", "firstName", "lastName","caseRef", "courtName", "portalLink");
+        var template = new RecordingReady("to", "firstName", "lastName", "caseRef", "courtName", "portalLink");
         assertThat(template.getTemplateId()).isEqualTo("6ad8d468-4a18-4180-9c08-c6fae055a385");
     }
 
