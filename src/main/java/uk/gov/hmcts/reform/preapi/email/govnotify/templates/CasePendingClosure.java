@@ -12,7 +12,7 @@ public class CasePendingClosure extends BaseTemplate {
                 "first_name", firstName,
                 "last_name", lastName,
                 "case_ref", caseRef,
-                "closure_date", new SimpleDateFormat("yyyy-MM-dd").format(closureDate)
+                "closure_date", new SimpleDateFormat("d MMMM yyyy").format(closureDate)
             )
         );
     }
