@@ -39,7 +39,7 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingReady(User to, Case forCase) {
-        var template = new RecordingReady(to.getEmail(), to.getFirstName(), forCase.getReference(),
+        var template = new RecordingReady(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference(),
                                           forCase.getCourt().getName(), portalUrl);
         try {
             log.info("Recording ready email sent to {}", to.getEmail());
@@ -52,7 +52,7 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingEdited(User to, Case forCase) {
-        var template = new RecordingEdited(to.getEmail(), to.getFirstName(), forCase.getReference(),
+        var template = new RecordingEdited(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference(),
                                            forCase.getCourt().getName(), portalUrl);
         try {
             log.info("Recording edited email sent to {}", to.getEmail());
@@ -65,7 +65,7 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse portalInvite(User to) {
-        var template = new PortalInvite(to.getEmail(), to.getFirstName(), portalUrl,
+        var template = new PortalInvite(to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
                                         portalUrl + "/assets/files/user-guide.pdf",
                                         portalUrl + "/assets/files/process-guide.pdf",
                                         portalUrl + "/assets/files/faqs.pdf");

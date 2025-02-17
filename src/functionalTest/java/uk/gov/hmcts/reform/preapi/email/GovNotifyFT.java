@@ -64,7 +64,7 @@ public class GovNotifyFT {
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – New Video", response.getSubject());
         compareBody(
             """
-            Hello John,
+            Hello John Doe,
 
             A new Pre-recorded Evidence video has been captured for case 123456 at court Court Name.
 
@@ -91,7 +91,7 @@ public class GovNotifyFT {
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – Edited Video", response.getSubject());
         compareBody(
             """
-            Hello John,
+            Hello John Doe,
 
             A new Pre-recorded Evidence video has been edited for case 123456 at court Court Name.
 
@@ -120,7 +120,7 @@ public class GovNotifyFT {
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal Invitation", response.getSubject());
         compareBody(
             """
-            Hello John,
+            Hello John Doe,
 
             This is an invitation to the HMCTS Pre-recorded Evidence Portal where you can view recorded evidence. \s
 

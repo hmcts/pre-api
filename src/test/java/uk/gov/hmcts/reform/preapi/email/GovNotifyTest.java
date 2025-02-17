@@ -66,7 +66,7 @@ public class GovNotifyTest {
     @DisplayName("Should create RecordingEdited template")
     @Test
     void shouldCreateRecordingEditedTemplate() {
-        var template = new RecordingEdited("to", "firstName", "caseRef", "courtName", "portalLink");
+        var template = new RecordingEdited("to", "firstName", "lastName", "caseRef", "courtName", "portalLink");
         assertThat(template.getTemplateId()).isEqualTo("1da03824-84e8-425d-b913-c2bac661e64a");
     }
 
@@ -80,7 +80,7 @@ public class GovNotifyTest {
     @DisplayName("Should create RecordingReady template")
     @Test
     void shouldCreateRecordingReadyTemplate() {
-        var template = new RecordingReady("to", "firstName", "caseRef", "courtName", "portalLink");
+        var template = new RecordingReady("to", "firstName", "lastName","caseRef", "courtName", "portalLink");
         assertThat(template.getTemplateId()).isEqualTo("6ad8d468-4a18-4180-9c08-c6fae055a385");
     }
 
@@ -98,7 +98,15 @@ public class GovNotifyTest {
     @DisplayName("Should create PortalInvite template")
     @Test
     void shouldCreatePortalInviteTemplate() {
-        var template = new PortalInvite("to", "firstName", "lastName", "caseRef", "courtName", "portalLink");
+        var template = new PortalInvite(
+            "to",
+            "firstName",
+            "lastName",
+            "portalUrl",
+            "guideLink",
+            "processGuideLink",
+            "faqsLink"
+        );
         assertThat(template.getTemplateId()).isEqualTo("e04adfb8-58e0-44be-ab42-bd6d896ccfb7");
     }
 
