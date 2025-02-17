@@ -162,7 +162,13 @@ public class AddNROUserIT extends IntegrationTestBase {
         if (userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull("exampleUserE@test.com").isPresent()) {
             User testUndetectedUser = userRepository
                 .findByEmailIgnoreCaseAndDeletedAtIsNull("exampleUserE@test.com").get();
+            AppAccess testUndetectedAppAccess = appAccessRepository
+                .findAllByUser_IdAndDeletedAtNullAndUser_DeletedAtNull(testUndetectedUser.getId()).getFirst();
+            testUndetectedAppAccess.setDeleted(true);
+            ArrayList<AppAccess> newTestUndetectedAppAccess = new ArrayList<>();
+            newTestUndetectedAppAccess.add(testUndetectedAppAccess);
             testUndetectedUser.setEmail("null@test.com");
+            entityManager.persist(testUndetectedAppAccess);
             entityManager.persist(testUndetectedUser);
             entityManager.flush();
 
