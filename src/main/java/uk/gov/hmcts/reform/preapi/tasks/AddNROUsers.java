@@ -224,9 +224,9 @@ public class AddNROUsers extends RobotUserTask {
         boolean isDefault;
 
         // validate isDefault
-        if (values[3].contains("Secondary")) {
+        if (values[3].toLowerCase().contains("secondary")) {
             isDefault = false;
-        } else if (values[3].contains("Primary")) {
+        } else if (values[3].toLowerCase().contains("primary")) {
             isDefault = true;
         } else {
             this.otherUsersNotImported.add(email);
