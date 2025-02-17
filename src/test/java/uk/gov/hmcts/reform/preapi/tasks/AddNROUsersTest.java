@@ -86,7 +86,7 @@ class AddNROUsersTest {
             Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
                                                         null);
             testImportedNROUser.setCourt(testCourt.getName());
-            testImportedNROUser.setCourtId(testCourt.getId());
+            testImportedNROUser.setCourtID(testCourt.getId());
 
             when(this.courtRepository.findFirstByName(testImportedNROUser.getCourt()))
                 .thenReturn(Optional.of(testCourt));
@@ -138,7 +138,7 @@ class AddNROUsersTest {
             Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
                                                         null);
             testImportedNROUser.setCourt(testCourt.getName());
-            testImportedNROUser.setCourtId(testCourt.getId());
+            testImportedNROUser.setCourtID(testCourt.getId());
 
             when(this.courtRepository.findFirstByName(testImportedNROUser.getCourt()))
                 .thenReturn(Optional.of(testCourt));

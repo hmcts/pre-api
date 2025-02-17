@@ -405,8 +405,8 @@ public class AddNROUserIT extends IntegrationTestBase {
         this.testImportedNROUsers.getFirst().setEmail("updatedUserA@test.com");
         this.testImportedNROUsers.getFirst().setIsDefault(false);
         this.testImportedNROUsers.getFirst().setCourt("Updated Court Name");
-        this.testImportedNROUsers.getFirst().setCourtId(testNewCourtID);
-        this.testImportedNROUsers.getFirst().setRoleId(testNewRoleID);
+        this.testImportedNROUsers.getFirst().setCourtID(testNewCourtID);
+        this.testImportedNROUsers.getFirst().setRoleID(testNewRoleID);
         this.testImportedNROUsers.getFirst().setUserAccess("1");
 
         assertEquals("Updated", this.testImportedNROUsers.getFirst().getFirstName());
@@ -414,8 +414,8 @@ public class AddNROUserIT extends IntegrationTestBase {
         assertEquals("updatedUserA@test.com", this.testImportedNROUsers.getFirst().getEmail());
         assertFalse(this.testImportedNROUsers.getFirst().getIsDefault());
         assertEquals("Updated Court Name", this.testImportedNROUsers.getFirst().getCourt());
-        assertEquals(testNewCourtID, this.testImportedNROUsers.getFirst().getCourtId());
-        assertEquals(testNewRoleID, this.testImportedNROUsers.getFirst().getRoleId());
+        assertEquals(testNewCourtID, this.testImportedNROUsers.getFirst().getCourtID());
+        assertEquals(testNewRoleID, this.testImportedNROUsers.getFirst().getRoleID());
         assertEquals("1", this.testImportedNROUsers.getFirst().getUserAccess());
         assertEquals("ImportedNROUser{firstName='Updated', lastName='Example-User A', "
                         + "email='updatedUserA@test.com', court='Updated Court Name', courtId='"

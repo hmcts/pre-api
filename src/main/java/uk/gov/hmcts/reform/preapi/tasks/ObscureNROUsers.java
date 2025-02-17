@@ -124,6 +124,7 @@ public class ObscureNROUsers extends RobotUserTask {
         int index = 0;
         UUID previousUserID = null;
 
+        // iterate over each app access entry for each imported user, to alter their values & those of their user
         for (AppAccess appAccess : appAccessObjsForImportedUsers) {
             if (appAccess.getUser().getId() != previousUserID) {
                 createUserDTO = new CreateUserDTO();
@@ -143,7 +144,7 @@ public class ObscureNROUsers extends RobotUserTask {
             if ((index == (appAccessObjsForImportedUsers.size() - 1)
                 || !(Objects.equals(appAccessObjsForImportedUsers.get(index + 1).getUser().getEmail(),
                                     createUserDTO.getEmail())))) {
-                // assign all the app access objects for this user to the current user,
+                // assign all the app access objects for this user to the current user
                 createUserDTO.setAppAccess(createAppAccessDTOs);
                 this.userService.upsert(createUserDTO);
             }

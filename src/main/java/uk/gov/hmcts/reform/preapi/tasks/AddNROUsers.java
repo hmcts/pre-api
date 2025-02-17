@@ -60,7 +60,7 @@ public class AddNROUsers extends RobotUserTask {
             return;
         }
 
-        // create a new user for each email,
+        // create a new user for each email (with their corresponding app access entries)
         log.info("Creating new users. . .");
         this.createUsers();
 
@@ -89,14 +89,14 @@ public class AddNROUsers extends RobotUserTask {
 
     }
 
-    private CreateAppAccessDTO createAppAccessObj(ImportedNROUser importedNROUser, UUID userId) {
+    private CreateAppAccessDTO createAppAccessObj(ImportedNROUser importedNROUser, UUID userID) {
         CreateAppAccessDTO userAppAccess = new CreateAppAccessDTO();
 
         // values have been validated in getNROUser
         userAppAccess.setId(UUID.randomUUID());
-        userAppAccess.setUserId(userId);
-        userAppAccess.setRoleId(importedNROUser.getRoleId());
-        userAppAccess.setCourtId(importedNROUser.getCourtId());
+        userAppAccess.setUserId(userID);
+        userAppAccess.setRoleId(importedNROUser.getRoleID());
+        userAppAccess.setCourtId(importedNROUser.getCourtID());
         userAppAccess.setDefaultCourt(importedNROUser.getIsDefault());
 
         return userAppAccess;
@@ -106,14 +106,13 @@ public class AddNROUsers extends RobotUserTask {
         // Read from CSV file
         try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
             String line;
-            // Skip header if there is one
-
             // Read each line
             while ((line = br.readLine()) != null) {
                 // Skip header if there is one
                 if (line.contains("FirstName")) {
                     continue;
                 }
+
                 String[] values = ImportedNROUser.parseCsvLine(line);
 
                 ImportedNROUser importedNROUser = getNROUser(values);
@@ -135,7 +134,7 @@ public class AddNROUsers extends RobotUserTask {
 
         // initialise values
         String previousEmail = null;
-        UUID currentUserId = null;
+        UUID currentUserID = null;
         Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>(){};
         CreateUserDTO createUserDTO = new CreateUserDTO();
         int index = 0;
@@ -143,9 +142,9 @@ public class AddNROUsers extends RobotUserTask {
         for (ImportedNROUser importedNROUser : this.importedNROUsers) {
             // if the previous email and current email are not the same, make a new user
             if (!Objects.equals(importedNROUser.getEmail(), previousEmail)) {
-                currentUserId = UUID.randomUUID();
+                currentUserID = UUID.randomUUID();
                 createUserDTO = new CreateUserDTO();
-                createUserDTO.setId(currentUserId);
+                createUserDTO.setId(currentUserID);
                 createUserDTO.setFirstName(importedNROUser.getFirstName());
                 createUserDTO.setLastName(importedNROUser.getLastName());
                 createUserDTO.setEmail(importedNROUser.getEmail());
@@ -158,7 +157,7 @@ public class AddNROUsers extends RobotUserTask {
                 createAppAccessDTOs = new HashSet<>(){};
             }
 
-            CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, currentUserId);
+            CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, currentUserID);
             createAppAccessDTOs.add(userAppAccess);
 
             // if this is the last element, or if the next element is a new email,
@@ -234,29 +233,29 @@ public class AddNROUsers extends RobotUserTask {
         }
 
         String court = values[4];
-        UUID courtId;
+        UUID courtID;
 
         // validate court
         if (this.courtRepository.findFirstByName(court).isEmpty()) {
             this.usersWithoutCourts.add(email);
             return null;
         } else {
-            courtId = this.courtRepository.findFirstByName(court).get().getId();
+            courtID = this.courtRepository.findFirstByName(court).get().getId();
         }
 
         String userLevel = values[6];
-        UUID roleId;
+        UUID roleID;
 
         // validate role
         if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
             this.otherUsersNotImported.add(email);
             return null;
         } else {
-            roleId = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
+            roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
         }
 
         return new ImportedNROUser(
-            firstName, lastName, email, court, courtId, isDefault, roleId, userLevel
+            firstName, lastName, email, court, courtID, isDefault, roleID, userLevel
         );
     }
 }

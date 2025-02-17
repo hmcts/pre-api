@@ -8,21 +8,21 @@ public class ImportedNROUser {
     private String lastName;
     private String email;
     private String court;
-    private UUID courtId;
+    private UUID courtID;
     private Boolean isDefault;
-    private UUID roleId;
+    private UUID roleID;
     private String userAccess;
 
-    public ImportedNROUser(String firstName, String lastName, String email, String court, UUID courtId,
-                           Boolean isDefault, UUID roleId, String userAccess) {
+    public ImportedNROUser(String firstName, String lastName, String email, String court, UUID courtID,
+                           Boolean isDefault, UUID roleID, String userAccess) {
         super();
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.court = court;
-        this.courtId = courtId;
+        this.courtID = courtID;
         this.isDefault = isDefault;
-        this.roleId = roleId;
+        this.roleID = roleID;
         this.userAccess = userAccess;
     }
 
@@ -33,9 +33,9 @@ public class ImportedNROUser {
         sb.append(", lastName='").append(lastName).append('\'');
         sb.append(", email='").append(email).append('\'');
         sb.append(", court='").append(court).append('\'');
-        sb.append(", courtId='").append(courtId).append('\'');
+        sb.append(", courtId='").append(courtID).append('\'');
         sb.append(", isDefault=").append(isDefault);
-        sb.append(", roleId='").append(roleId).append('\'');
+        sb.append(", roleId='").append(roleID).append('\'');
         sb.append(", userAccess='").append(userAccess).append('\'');
         sb.append('}');
         return sb.toString();
@@ -73,12 +73,12 @@ public class ImportedNROUser {
         this.court = court;
     }
 
-    public UUID getCourtId() {
-        return courtId;
+    public UUID getCourtID() {
+        return courtID;
     }
 
-    public void setCourtId(UUID courtId) {
-        this.courtId = courtId;
+    public void setCourtID(UUID courtID) {
+        this.courtID = courtID;
     }
 
     public Boolean getIsDefault() {
@@ -89,12 +89,12 @@ public class ImportedNROUser {
         this.isDefault = isDefault;
     }
 
-    public UUID getRoleId() {
-        return roleId;
+    public UUID getRoleID() {
+        return roleID;
     }
 
-    public void setRoleId(UUID roleId) {
-        this.roleId = roleId;
+    public void setRoleID(UUID roleID) {
+        this.roleID = roleID;
     }
 
     public String getUserAccess() {
