@@ -157,7 +157,7 @@ public class AddNROUsersTest {
                                                   CRON_USER_EMAIL,
                                                   courtRepository,
                                                   roleRepository,
-                                                  testUsersFile);
+                                                  TEST_USERS_FILE);
         addNROUsers.run();
 
         verify(userService, times(4)).upsert((CreateUserDTO) any());
