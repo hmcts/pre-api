@@ -22,7 +22,7 @@ Connect-MicrosoftTeams
 
  - Ensure you have been made an owner of the private channel in production - HMCTS Pre-recorded Evidence Production
 
- - When ready run pwsh NRO-teams-onboarding.ps1
+ - When ready run pwsh NRO-teams-onboarding.ps1 from the scripts directory
 
 #>
 
@@ -31,15 +31,15 @@ Connect-MicrosoftTeams
 
 $CSVPath = "" #add your path to CSV file containing user emails to be onboarded
 $TeamID = "22bb9c0b-42cc-4919-b61d-07986ede3ce6" # change to demo or prod: in microsoft teams click three dots next to team, select get link, copy the group id from url
-$TenantId = "c6874728-71e6-41fe-a9e1-2e8c36776ad8"
+$TenantId = "531ff96d-0ae9-462a-8d2d-bec7c0b42082"
 $TeamDisplayName = "HMCTS PRE-NLE" #set to demo "HMCTS Pre-Demo" or prod "HMCTS Pre-recorded Evidence"
-$ChannelName = "HMCTS Pre-recorded Evidence Production" #this is the name of the private channel in prod (confirm it's correct)
+$ChannelName = "NRO-test" #this is the name of the private channel in prod (confirm it's correct, or update to channel name you are testing)
 
-$LogPathMatches = "" #add your path to file to be populated by script
-$LogPathAddedMembers = "" #add your path to file to be populated by script
-$LogPathGetAllMembers = "" #add your path to file to be populated by script
-$LogPathAddChannelMembers = "" #add your path to file to be populated by script
-$LogPathGetAllChannelMembers = "" #add your path to file to be populated by script
+$LogPathMatches = "../NRO-logs/MatchingUsers.txt"
+$LogPathAddedMembers = "../NRO-logs/Added-team-members.txt"
+$LogPathGetAllMembers = "../NRO-logs/Get-all-team-members.txt"
+$LogPathAddChannelMembers = "../NRO-logs/Added-channel-members.txt"
+$LogPathGetAllChannelMembers = "../NRO-logs/Get-all-channel-members.txt"
 
 $TeamUsersToAdd = Import-Csv -Path $CSVPath
 $CSVUsers = $TeamUsersToAdd | ForEach-Object { ($_.'Email' -split '@')[0].ToLower() }
@@ -65,8 +65,8 @@ $TeamUsersToAdd | ForEach-Object {
 
 Write-Host "Added team users saved to: $LogPathAddedMembers"
 
-#should be "HMCTS Pre-recorded Evidence"
-if($TeamDisplayName -eq "HMCTS Pre-recorded Evidence"){
+#should be "HMCTS Pre-recorded Evidence" for running in prod or team with your private channel to test
+if($TeamDisplayName -eq "HMCTS PRE-NLE"){
 $TeamUsers = Get-TeamUser -GroupId $TeamID
 
 # Matches guest users in csv to those in teams to extract their UserId (required to add guest user to private channel)
@@ -113,17 +113,15 @@ Catch {
 }
 
 # Retrieves all team and channel members
-Try {
-    $channelMembers = Get-TeamChannelUser -GroupId $TeamID -DisplayName $ChannelName
-    if ($channelMembers) {
-        Add-Content -Path $LogPathGetAllChannelMembers -Value "`nChannel members for '$ChannelName':`n"
-        $channelMembers | ForEach-Object {
-            $_ | Select-Object * | Out-String | Add-Content -Path $LogPathGetAllChannelMembers
-        }
-        Write-Host "All channel users saved to: $LogPathGetAllChannelMembers"
-    } else {
-        Add-Content -Path $LogPathGetAllChannelMembers -Value "`nNo members found in the channel '$ChannelName'.`n"
-    }
+  Try {
+      $channelMembers = Get-TeamChannelUser -GroupId $TeamID -DisplayName $ChannelName
+      if ($channelMembers) {
+          Add-Content -Path $LogPathGetAllChannelMembers -Value "`nChannel members for '$ChannelName':`n"
+          $channelMembers | Format-Table -AutoSize | Out-String | Add-Content -Path $LogPathGetAllChannelMembers
+          Write-Host "All channel users saved to: $LogPathGetAllChannelMembers"
+      } else {
+          Add-Content -Path $LogPathGetAllChannelMembers -Value "`nNo members found in the channel '$ChannelName'.`n"
+      }
 
 }
 Catch {
@@ -134,9 +132,7 @@ Try {
     $teamMembers = Get-TeamUser -GroupId $TeamID
     if ($teamMembers) {
         Add-Content -Path $LogPathGetAllMembers -Value "`nTeam members for '$TeamDisplayName':`n"
-        $teamMembers | ForEach-Object {
-            $_ | Select-Object * | Out-String | Add-Content -Path $LogPathGetAllMembers
-        }
+        $teamMembers | Format-Table -AutoSize | Out-String | Add-Content -Path $LogPathGetAllMembers
         Write-Host "All team users saved to: $LogPathGetAllMembers"
     } else {
         Add-Content -Path $LogPathGetAllMembers -Value "`nNo members found in the Team '$TeamID'.`n"
