@@ -30,7 +30,7 @@ public class AzureBlobService {
     public AzureBlobService(@Value("${azure.storage.connectionString}") String devConnectionString,
                             @Value("${azure.ingestStorage.connectionString}")String ingestStgConnectionString,
                             @Value("${azure.finalStorage.connectionString}") String finalStgConnectionString
-        ) {
+    ) {
         
         clients.put("dev", new BlobServiceClientBuilder()
                             .connectionString(devConnectionString)

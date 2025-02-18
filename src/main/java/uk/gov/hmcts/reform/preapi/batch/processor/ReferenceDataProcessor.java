@@ -9,10 +9,10 @@ import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Collections;
 
 /**
  * Processor for handling reference data like sites and channel user data.
@@ -20,14 +20,9 @@ import java.util.Collections;
 @Component
 public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     private static final Logger logger = LoggerFactory.getLogger(ReferenceDataProcessor.class);
+    private static final String SITES = "sites_data";
+    private static final String CHANNEL = "channel_data";
 
-    private static final class RedisKeys {
-        private static final String SITES = "sites_data";
-        private static final String CHANNEL = "channel_data";
-        
-        private RedisKeys() {} 
-    }
-    
     private final RedisService redisService;
 
     public ReferenceDataProcessor(RedisService redisService) {
@@ -55,14 +50,14 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // =========================================
     private void processSitesData(CSVSitesData sitesItem) {
         redisService.saveHashValue(
-            RedisKeys.SITES, 
+            SITES, 
             sitesItem.getSiteReference(), 
             sitesItem.getCourtName()
         );
     }
 
-    public Map<String, String> fetchSitesData(){
-        return redisService.getHashAll(RedisKeys.SITES, String.class, String.class);
+    public Map<String, String> fetchSitesData() {
+        return redisService.getHashAll(SITES, String.class, String.class);
     }
 
 
@@ -74,7 +69,7 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
         channelList.add(createChannelUserEntry(channelDataItem));
 
         redisService.saveHashValue(
-            RedisKeys.CHANNEL, 
+            CHANNEL, 
             channelDataItem.getChannelName(), 
             channelList
         );
@@ -83,20 +78,20 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     @SuppressWarnings("unchecked")
     public Map<String, List<String[]>> fetchChannelUserDataMap() {
         return (Map<String, List<String[]>>)
-            (Map<?, ?>) redisService.getHashAll(RedisKeys.CHANNEL, String.class, List.class);
+            (Map<?, ?>) redisService.getHashAll(CHANNEL, String.class, List.class);
     }
 
     @SuppressWarnings("unchecked")
     public Set<String> fetchChannelUserDataKeys() {
         Map<String, List<String[]>> channelDataMap = (Map<String, List<String[]>>)
-            (Map<?, ?>) redisService.getHashAll(RedisKeys.CHANNEL, String.class, List.class);
+            (Map<?, ?>) redisService.getHashAll(CHANNEL, String.class, List.class);
         return (channelDataMap != null) ? channelDataMap.keySet() : Collections.emptySet();
     }
 
     @SuppressWarnings("unchecked")
     private List<String[]> getExistingChannelList(String channelName) {
         List<String[]> channelList = redisService.getHashValue(
-            RedisKeys.CHANNEL,
+            CHANNEL,
             channelName,
             List.class
         );

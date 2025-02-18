@@ -1,0 +1,104 @@
+package uk.gov.hmcts.reform.preapi.entities.batch;
+
+import java.time.LocalDateTime;
+
+public class ExtractedMetadata {
+    private String courtReference;
+    private String date;
+    private String urn;
+    private String exhibitReference;
+    private String defendantLastName;
+    private String witnessFirstName;
+    private String recordingVersion;
+    private String recordingVersionNumber;
+    private String fileExtension;
+    private LocalDateTime createTime;  
+    private int duration;  
+    private String fileName;  
+    private String fileSize;  
+
+    public ExtractedMetadata(String courtReference, String date, String urn, String exhibitReference,
+                             String defendantLastName, String witnessFirstName, String recordingVersion,
+                             String recordingVersionNumber, String fileExtension, LocalDateTime createTime,
+                             int duration, String fileName, String fileSize) {
+        this.courtReference = courtReference;
+        this.date = date;
+        this.urn = urn;
+        this.exhibitReference = exhibitReference;
+        this.defendantLastName = defendantLastName;
+        this.witnessFirstName = witnessFirstName;
+        this.recordingVersion = recordingVersion;
+        this.recordingVersionNumber = recordingVersionNumber;
+        this.fileExtension = fileExtension;
+        this.createTime = createTime;
+        this.duration = duration;
+        this.fileName = fileName;
+        this.fileSize = fileSize;
+    }
+
+    public String getCourtReference() { 
+        return courtReference; 
+    }
+
+    public String getDate() { 
+        return date; 
+    }
+
+    public String getUrn() { 
+        return urn; 
+    }
+
+    public String getExhibitReference() { 
+        return exhibitReference; 
+    }
+
+    public String getDefendantLastName() { 
+        return defendantLastName; 
+    }
+
+    public String getWitnessFirstName() { 
+        return witnessFirstName; 
+    }
+
+    public String getRecordingVersion() { 
+        return recordingVersion; 
+    }
+
+    public String getRecordingVersionNumber() { 
+        return recordingVersionNumber; 
+    }
+
+    public String getFileExtension() { 
+        return fileExtension; 
+    }
+
+    public LocalDateTime getCreateTime() { 
+        return createTime; 
+    }  
+
+    public int getDuration() { 
+        return duration; 
+    }  
+
+    public String getFileName() { 
+        return fileName; 
+    }  
+    
+    public String getFileSize() { 
+        return fileSize; 
+    } 
+
+    public String createCaseReference() {
+        StringBuilder referenceBuilder = new StringBuilder();
+        if (urn != null && !urn.isEmpty()) {
+            referenceBuilder.append(urn);
+        }
+        if (exhibitReference != null && !exhibitReference.isEmpty()) {
+            if (referenceBuilder.length() > 0) {
+                referenceBuilder.append("-");
+            }
+            referenceBuilder.append(exhibitReference);
+        }
+        return referenceBuilder.toString();
+    }
+}

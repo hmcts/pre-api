@@ -50,15 +50,10 @@ public class BatchConfiguration implements StepExecutionListener {
 
     private static final int CHUNK_SIZE = 10;
     private static final int SKIP_LIMIT = 10;
-
-    private static final class BatchResources {
-        static final String BASE_PATH = "batch/";
-        static final String SITES_CSV = BASE_PATH + "Sites.csv";
-        static final String CHANNEL_USER_CSV = BASE_PATH + "Channel_User_Report.csv";
-        static final String ARCHIVE_LIST_CSV = BASE_PATH + "Archive_List.csv";
-        
-        private BatchResources() {}
-    }
+    private static final String BASE_PATH = "batch/";
+    private static final String SITES_CSV = BASE_PATH + "Sites.csv";
+    private static final String CHANNEL_USER_CSV = BASE_PATH + "Channel_User_Report.csv";
+    private static final String ARCHIVE_LIST_CSV = BASE_PATH + "Archive_List.csv";
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
@@ -130,7 +125,7 @@ public class BatchConfiguration implements StepExecutionListener {
             .next(createPreProcessStep())
             .next(createPreProcessMetadataStep())
             .next(createArchiveListStep())
-            .next(createMarkCasesClosedStep()) 
+            // .next(createMarkCasesClosedStep()) 
             .next(createWriteToCSVStep())
             .end()
             .build();
@@ -142,7 +137,7 @@ public class BatchConfiguration implements StepExecutionListener {
     private Step createSitesDataStep() {
         return createReadStep(
             "sitesDataStep",
-            new ClassPathResource(BatchResources.SITES_CSV),
+            new ClassPathResource(SITES_CSV),
             new String[]{"site_reference", "site_name", "location", "court_name"},
             CSVSitesData.class,
             false
@@ -152,7 +147,7 @@ public class BatchConfiguration implements StepExecutionListener {
     private Step createChannelUserStep() {
         return createReadStep(
             "channelUserStep",
-            new ClassPathResource(BatchResources.CHANNEL_USER_CSV),
+            new ClassPathResource(CHANNEL_USER_CSV),
             new String[]{"channel_name", "channel_user", "channel_user_email"},
             CSVChannelData.class,
             false
@@ -162,7 +157,7 @@ public class BatchConfiguration implements StepExecutionListener {
     private Step createArchiveListStep() {
         return createReadStep(
             "archiveListDataStep",
-            new ClassPathResource(BatchResources.ARCHIVE_LIST_CSV),
+            new ClassPathResource(ARCHIVE_LIST_CSV),
             new String[]{"archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true

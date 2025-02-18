@@ -8,7 +8,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
 import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.services.batch.ReportingService;

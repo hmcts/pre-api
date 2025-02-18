@@ -5,7 +5,6 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -127,15 +126,27 @@ public class MigrationGroupBuilderService {
 
     private CreateBookingDTO processBooking(String baseKey, CleansedData cleansedData, CreateCaseDTO acase) {
         if (redisService.hashKeyExists(baseKey, REDIS_BOOKING_FIELD)) {
-            CreateBookingDTO bookingDTO = redisService.getHashValue(baseKey, REDIS_BOOKING_FIELD, CreateBookingDTO.class);
+            CreateBookingDTO bookingDTO = redisService.getHashValue(
+                baseKey, 
+                REDIS_BOOKING_FIELD, 
+                CreateBookingDTO.class
+            );
             return bookingDTO;
         }
         return entityCreationService.createBooking(cleansedData, acase, baseKey);
     }
 
-    private CreateCaptureSessionDTO processCaptureSession(String baseKey, CleansedData cleansedData, CreateBookingDTO booking) {
+    private CreateCaptureSessionDTO processCaptureSession(
+        String baseKey,
+        CleansedData cleansedData, 
+        CreateBookingDTO booking
+    ) {
         if (redisService.hashKeyExists(baseKey, REDIS_CAPTURE_SESSION_FIELD)) {
-            CreateCaptureSessionDTO captureSessionDTO = redisService.getHashValue(baseKey,REDIS_CAPTURE_SESSION_FIELD, CreateCaptureSessionDTO.class);
+            CreateCaptureSessionDTO captureSessionDTO = redisService.getHashValue(
+                baseKey,
+                REDIS_CAPTURE_SESSION_FIELD, 
+                CreateCaptureSessionDTO.class
+            );
             return captureSessionDTO;
         }
         return  entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
@@ -143,11 +154,12 @@ public class MigrationGroupBuilderService {
 
     private CreateRecordingDTO createRecording(CSVArchiveListData archiveItem, CleansedData cleansedItem, 
         String redisKey, CreateCaptureSessionDTO captureSession) {
-            CreateRecordingDTO recording = entityCreationService.createRecording(cleansedItem, captureSession);
+        CreateRecordingDTO recording = entityCreationService.createRecording(cleansedItem, captureSession);
         return recording;
     }
 
-    // private CreateRecordingDTO determineParentRecording(CleansedData cleansedItem, CreateRecordingDTO currentRecording) {
+    // private CreateRecordingDTO determineParentRecording(
+    // CleansedData cleansedItem, CreateRecordingDTO currentRecording) {
     //     if (RecordingUtils.isOriginalVersion(cleansedItem)) {
     //         currentRecording.setParentRecordingId(currentRecording.getId());
     //         currentRecording.setVersion(1);

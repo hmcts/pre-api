@@ -6,14 +6,13 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
 import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
+import uk.gov.hmcts.reform.preapi.entities.batch.ServiceResult;
 import uk.gov.hmcts.reform.preapi.services.batch.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
@@ -21,7 +20,6 @@ import uk.gov.hmcts.reform.preapi.services.batch.MigrationGroupBuilderService;
 import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 
@@ -40,7 +38,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
 
-    private final Map<String, CreateRecordingDTO> origRecordingsMap = new HashMap<>();
+    // private final Map<String, CreateRecordingDTO> origRecordingsMap = new HashMap<>();
 
     @Autowired
     public Processor(
@@ -78,45 +76,24 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private MigratedItemGroup process(CSVArchiveListData archiveItem) {
-        // 1. Transform Data
-        CleansedData cleansedData;
+        try {
+            
+            CleansedData cleansedData = transformData(archiveItem);
+            if (cleansedData == null) {
+                return null;
+            }
+            
+            checkMigrated(cleansedData, archiveItem);
+
+            if (!validateData(cleansedData, archiveItem)) {
+                return null;
+            } 
+
+            String pattern = extractPattern(archiveItem);
+            return migrationService.createMigratedItemGroup(pattern, archiveItem, cleansedData);
         
-        try {
-            cleansedData = transformData(archiveItem);
         } catch (Exception e) {
-            migrationTrackerService.addFailedItem(
-                new FailedItem(archiveItem, "Transformation error: " + e.getMessage())
-            );
-            return null;
-        }
-       
-        // 2. Check if already migrated
-        boolean alreadyMigrated = redisService.hashKeyExists("vf:case:", cleansedData.getCaseReference());
-        if (alreadyMigrated) {
-            migrationTrackerService.addFailedItem(new FailedItem(
-                archiveItem, "Already migrated: " + cleansedData.getCaseReference()));
-            return null;
-        }
-
-        // 3. Validate Transformed Data
-        boolean validated = validateData(cleansedData, archiveItem);
-        if (!validated) {
-            return null;
-        } 
-
-        // 4. Extract Pattern from Archive
-        String pattern;
-        pattern = extractPattern(archiveItem);
-
-        // 5. Create Migrated Item Group
-        try {
-            return migrationService.createMigratedItemGroup(pattern,archiveItem,cleansedData);
-            // return createMigratedItemGroup(pattern, archiveItem, cleansedData);
-        } catch (Exception e) {
-            migrationTrackerService.addFailedItem(
-                new FailedItem(archiveItem, "Failed to create migrated item group: " + e.getMessage())
-            );
-            return null;
+            return handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage());
         }
     }
 
@@ -125,28 +102,36 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // Transformation and Validation
     // =========================
     private CleansedData transformData(CSVArchiveListData archiveItem) {
-        TransformationResult result = transformationService.transformData(archiveItem);
+        ServiceResult<CleansedData> result = transformationService.transformData(archiveItem);
         if (checkForError(result, archiveItem)) {
             return null;
         }
-        return (CleansedData) result.getCleansedData();
+        return (CleansedData) result.getData();
     }
 
     private boolean validateData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        TransformationResult result = validationService.validateCleansedData(cleansedData, archiveItem);
+        ServiceResult<CleansedData> result = validationService.validateCleansedData(cleansedData, archiveItem);
         if (checkForError(result, archiveItem)) {
             return false;
         }
         return true;
     }
-    
+
+    private void checkMigrated(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+        boolean alreadyMigrated = redisService.hashKeyExists("vf:case:", cleansedData.getCaseReference());
+        if (alreadyMigrated) {
+            handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference());
+        }
+       
+    }
+
     //======================
     // Helper Methods
     //======================
-    private boolean checkForError(TransformationResult result, CSVArchiveListData archiveItem) {
+    private boolean checkForError(ServiceResult<CleansedData> result, CSVArchiveListData archiveItem) {
         String errorMessage = (String) result.getErrorMessage();
         if (errorMessage != null) {
-            migrationTrackerService.addFailedItem(new FailedItem(archiveItem, errorMessage));
+            handleError(archiveItem, errorMessage);
             return true;
         }
         return false;
@@ -157,9 +142,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             Map.Entry<String, Matcher> patternMatch = extractionService.matchPattern(archiveItem);
             return patternMatch != null ? patternMatch.getKey() : null; 
         } catch (Exception e) {
-            migrationTrackerService.addFailedItem(new FailedItem(archiveItem, e.getMessage()));
+            handleError(archiveItem, e.getMessage());
             return null;
         }
+    }
+
+    private MigratedItemGroup handleError(CSVArchiveListData archiveItem, String message) {
+        migrationTrackerService.addFailedItem(new FailedItem(archiveItem, message));
+        return null;
     }
 }
 

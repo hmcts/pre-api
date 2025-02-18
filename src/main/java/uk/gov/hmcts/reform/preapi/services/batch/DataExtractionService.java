@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services.batch;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.entities.batch.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.util.batch.RegexPatterns;
 
 import java.util.LinkedHashMap;
@@ -26,12 +27,15 @@ public class DataExtractionService {
      */
     private Map<String, Pattern> getNamedPatterns() {
         Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
+        namedPatterns.put("12", RegexPatterns.PATTERN_12);
         namedPatterns.put("11", RegexPatterns.PATTERN_11);
         namedPatterns.put("10", RegexPatterns.PATTERN_10);
         namedPatterns.put("1", RegexPatterns.PATTERN_1); // GENERIC_NAME_PATTERN_Tref
         namedPatterns.put("2", RegexPatterns.PATTERN_2); // GENERIC_NAME_PATTERN
         namedPatterns.put("4", RegexPatterns.PATTERN_4);
         namedPatterns.put("5", RegexPatterns.PATTERN_5);
+        namedPatterns.put("13", RegexPatterns.PATTERN_13);
+        namedPatterns.put("14", RegexPatterns.PATTERN_14);
         return namedPatterns;
     }
 
@@ -113,5 +117,22 @@ public class DataExtractionService {
     public String extractFileExtension(CSVArchiveListData archiveItem) {
         return extractField(archiveItem, "ext");
     }
-    
+
+    public ExtractedMetadata extractMetadata(CSVArchiveListData archiveItem) {
+        return new ExtractedMetadata(
+            extractField(archiveItem, "court"),
+            extractField(archiveItem, "date"),
+            extractField(archiveItem, "urn"),
+            extractField(archiveItem, "exhibitRef"),
+            extractField(archiveItem, "defendantLastName"),
+            extractField(archiveItem, "witnessFirstName"),
+            extractField(archiveItem, "versionType"),
+            extractField(archiveItem, "versionNumber"),
+            extractField(archiveItem, "ext"),
+            archiveItem.getCreateTimeAsLocalDateTime(),  
+            archiveItem.getDuration(),  
+            archiveItem.getFileName(),  
+            archiveItem.getFileSize()
+        );
+    }
 }

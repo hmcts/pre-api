@@ -131,7 +131,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     }
 
 
-    private void processCaseData(CreateCaseDTO caseData){
+    private void processCaseData(CreateCaseDTO caseData) {
         if (caseData != null) {
             try {
                 caseService.upsert(caseData);
@@ -141,7 +141,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         }
     }
 
-    private void processBookingData(CreateBookingDTO bookingData){
+    private void processBookingData(CreateBookingDTO bookingData) {
         if (bookingData != null) {
             try {
                 bookingService.upsert(bookingData);
@@ -151,7 +151,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         }
     }
 
-    private void processCaptureSessionData(CreateCaptureSessionDTO captureSessionData){
+    private void processCaptureSessionData(CreateCaptureSessionDTO captureSessionData) {
         if (captureSessionData != null) {
             try {
                 captureSessionService.upsert(captureSessionData);
@@ -161,7 +161,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         }
     }
 
-    private void processRecordingData(CreateRecordingDTO recordingData){
+    private void processRecordingData(CreateRecordingDTO recordingData) {
         if (recordingData != null) {
             try {
                 recordingService.upsert(recordingData);

@@ -17,7 +17,7 @@ public class PassItem {
     ) {
         this.regexPattern = regexPattern;
         this.archiveItem = archiveItem;
-        this.cleansedData = cleansedData ;
+        this.cleansedData = cleansedData;
     }
 
     public String getRegexPattern() {

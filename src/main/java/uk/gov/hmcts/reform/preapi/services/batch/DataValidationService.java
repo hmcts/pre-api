@@ -4,11 +4,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-import uk.gov.hmcts.reform.preapi.entities.batch.TransformationResult;
+import uk.gov.hmcts.reform.preapi.entities.batch.ServiceResult;
+import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
+import uk.gov.hmcts.reform.preapi.util.batch.ServiceResultUtil;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Service    
 public class DataValidationService {
-    
+    public static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown");
+    public static final int MIN_RECORDING_DURATION = 10;
     private static final String ERROR_FILE_EXTENSION = "File not .mp4 file.";
     private static final String ERROR_TIMESTAMP = "Invalid timestamp: Timestamp is null.";
     private static final String ERROR_COURT = "No valid court associated.";
@@ -29,39 +35,39 @@ public class DataValidationService {
      * @param archiveItem The original archive item for reference.
      * @return A map containing the validation result, including the cleansed data and any error messages.
      */
-    public TransformationResult validateCleansedData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        
+    public ServiceResult<CleansedData> validateCleansedData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+        // 3. Test data check
+        TestItem testCheck = checkIsTest(archiveItem);
+        if (testCheck.isTest()) {
+            return ServiceResultUtil.createFailureReponse(testCheck.getReason());
+        }
+
         // 1. File extension check
         if (!isFileExtensionValid(cleansedData)) {
-            return failure(ERROR_FILE_EXTENSION);
+            return ServiceResultUtil.createFailureReponse(ERROR_FILE_EXTENSION);
         }
 
         // 2. Timestamp check
         if (cleansedData.getRecordingTimestamp() == null) {
-            return failure(ERROR_TIMESTAMP);
-        }
-
-        // 3. Test data check
-        if (cleansedData.isTest()) {
-            return failure(cleansedData.getTestCheckResult().getReason());
+            return ServiceResultUtil.createFailureReponse(ERROR_TIMESTAMP);
         }
 
         // 4. Court check
         if (cleansedData.getCourt() == null) {
-            return failure(ERROR_COURT);
+            return ServiceResultUtil.createFailureReponse(ERROR_COURT);
         }
 
         // 5. Most recent version check
         if (!cleansedData.isMostRecentVersion()) {
-            return failure(ERROR_MOST_RECENT_VERSION);
+            return ServiceResultUtil.createFailureReponse(ERROR_MOST_RECENT_VERSION);
         }
 
         // 6. Case reference check
         if (cleansedData.getUrn() == null || cleansedData.getUrn().isEmpty()) {
-            return failure(ERROR_CASE_REFERENCE);
+            return ServiceResultUtil.createFailureReponse(ERROR_CASE_REFERENCE);
         }
 
-        return success(cleansedData);
+        return ServiceResultUtil.createSuccessResponse(cleansedData);
     }
 
     // =========================
@@ -79,15 +85,27 @@ public class DataValidationService {
         return !(lowerExtension.equals(".raw") || lowerExtension.equals(".ra"));
     }
 
-    // =========================
-    // Helper Methods
-    // =========================
+    public TestItem checkIsTest(CSVArchiveListData archiveItem) {
+        if (archiveItem == null || archiveItem.getArchiveName() == null) {
+            throw new IllegalArgumentException("Archive item or name cannot be null.");
+        }
 
-    private TransformationResult failure(String errorMessage) {
-        return new TransformationResult(null, errorMessage);
+        String lowerName = archiveItem.getArchiveName().toLowerCase();
+        StringBuilder reasons = new StringBuilder();
+
+        for (String keyword : TEST_KEYWORDS) {
+            if (lowerName.contains(keyword)) {
+                reasons.append("Archive name contains '").append(keyword).append("'. ");
+            }
+        }
+
+        if (archiveItem.getDuration() < MIN_RECORDING_DURATION) {
+            reasons.append("Duration is less than 10 seconds. ");
+        }
+
+        return reasons.length() > 0 
+            ? new TestItem(true, reasons.toString().trim())
+            : new TestItem(false, "No test related criteria met.");
     }
 
-    private TransformationResult success(CleansedData cleansedData) {
-        return new TransformationResult(cleansedData, null);
-    }
 }

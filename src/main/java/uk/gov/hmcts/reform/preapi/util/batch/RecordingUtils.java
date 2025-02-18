@@ -1,20 +1,68 @@
 package uk.gov.hmcts.reform.preapi.util.batch;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.experimental.UtilityClass;
-import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Logger;
 
 
 @UtilityClass
 public final class RecordingUtils {
+    private static final String REDIS_RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
 
-    /**
-     * Compares two version strings (e.g., "1.2" vs "1.10").
-     * @return -1 if v1 < v2, 0 if they are equal, 1 if v1 > v2
-     */
-    public static int compareVersionStrings(String v1, String v2) {
+    @Getter
+    @AllArgsConstructor
+    public static class VersionDetails {
+        private final String versionType;
+        private final String versionNumberStr;
+        private final int versionNumber;
+        private final boolean isMostRecent;
+    }
+
+    public VersionDetails processVersioning(
+        String recordingVersion, 
+        String versionNumberStr, 
+        String urn, 
+        String defendant, 
+        String witness,
+        Map<String, String> existingRedisData
+    ) {
+        String versionType = recordingVersion;
+        String validVersionNumber = getValidVersionNumber(versionNumberStr);
+        int versionNumber = getRecordingVersionNumber(versionType);
+        boolean isMostRecent = isMostRecentVersion(versionType, validVersionNumber, existingRedisData);
+
+        return new VersionDetails(versionType, validVersionNumber, versionNumber, isMostRecent);
+    }
+
+    public int getRecordingVersionNumber(String recordingVersion) {
+        return "ORIG".equalsIgnoreCase(recordingVersion) ? 1 : 2;
+    }
+
+    public String getValidVersionNumber(String versionNumStr) {
+        return (versionNumStr == null || versionNumStr.isEmpty()) ? "1" : versionNumStr;
+    }
+
+    public static boolean isMostRecentVersion(
+        String versionType, 
+        String currentVersion, 
+        Map<String, String> existingData
+    ) {
+        String key = "ORIG".equalsIgnoreCase(versionType) ? "origVersionNumber" : "copyVersionNumber";
+        String storedVersion = existingData.get(key);
+
+        boolean isRecent = storedVersion == null || compareVersionStrings(currentVersion, storedVersion) >= 0;
+        return isRecent;
+    }
+    
+
+    public String buildMetadataPreprocessKey(String urn, String defendant, String witness) {
+        return String.format(REDIS_RECORDING_METADATA_KEY, urn, defendant, witness);
+    }
+
+    private static int compareVersionStrings(String v1, String v2) {
         if (v1 == null) {
             v1 = "0";
         }
@@ -40,61 +88,30 @@ public final class RecordingUtils {
         return 0; 
     }
 
-    /**
-     * Determine the version number for a given recording version string.
-     * @param recordingVersion can be "ORIG" or any other string (treated as COPY)
-     * @return 1 for "ORIG", otherwise 2
-     */
-    public int determineRecordingVersionNumber(String recordingVersion) {
-        return "ORIG".equalsIgnoreCase(recordingVersion) ? 1 : 2;
-    }
-
-    /**
-     * Returns "1" if the input is null or empty, otherwise returns the input.
-     */
-    public String getCurrentVersionNumber(String versionNumStr) {
-        return (versionNumStr == null || versionNumStr.isEmpty()) ? "1" : versionNumStr;
-    }
-
-    /**
-     * Evaluates whether the current version is the most recent compared to existing data,
-     * depending on whether the version type is "ORIG" or "COPY".
-     */
-    public boolean evaluateRecency(
-        String versionType, 
-        String currentVersionNumber, 
-        Map<String, String> existingData
+    public Map<String, String> updateVersionMetadata(
+        String versionType,
+        String versionNumber,
+        String archiveName,
+        Map<String, String> existingMetadata
     ) {
-        switch (versionType.toUpperCase()) {
-            case "ORIG":
-                return isMostRecent(currentVersionNumber, "origVersionNumber",existingData);
+        Map<String, String> updatedMetadata = new HashMap<>(existingMetadata);
+        String validVersionNumber = getValidVersionNumber(versionNumber);
 
-            case "COPY":
-                return isMostRecent(currentVersionNumber,"copyVersionNumber", existingData);
-
-            default:
-                Logger.getAnonymousLogger().warning("Unsupported version type: " + versionType);
-                return false;
+        if ("ORIG".equalsIgnoreCase(versionType)) {
+            String existingVersion = existingMetadata.get("origVersionNumber");
+            if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
+                updatedMetadata.put("origVersionArchiveName", archiveName);
+                updatedMetadata.put("origVersionNumber", validVersionNumber);
+            }
+        } else if ("COPY".equalsIgnoreCase(versionType)) {
+            String existingVersion = existingMetadata.get("copyVersionNumber");
+            if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
+                updatedMetadata.put("copyVersionArchiveName", archiveName);
+                updatedMetadata.put("copyVersionNumber", validVersionNumber);
+            }
         }
-    }
 
-    /**
-     * Returns true if the current version is greater than or equal to the stored version
-     * (based on the key in existingData). If there is no stored version, true is returned.
-     */
-    private boolean isMostRecent(String currentVersionNumber, 
-                                    String existingVersionKey,
-                                    Map<String, String> existingData) {
-        String storedVersion = existingData.get(existingVersionKey);
-        return storedVersion == null
-            || RecordingUtils.compareVersionStrings(currentVersionNumber, storedVersion) >= 0;
-    }
-
-    /**
-     * Checks if a {@link CleansedData} item is labeled as an original version ("ORIG").
-     */
-    public boolean isOriginalVersion(CleansedData cleansedItem) {
-        return "ORIG".equalsIgnoreCase(cleansedItem.getRecordingVersion());
+        return updatedMetadata;
     }
 
 }

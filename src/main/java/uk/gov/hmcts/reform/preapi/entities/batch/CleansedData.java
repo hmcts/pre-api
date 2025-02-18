@@ -10,11 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-/**
- * Represents cleansed data for a recording.
- */
 public class CleansedData {
-
     private String courtReference;
     private String fullCourtName;
     private Court court;
@@ -29,11 +25,9 @@ public class CleansedData {
     private String recordingVersionNumberStr;
     private int recordingVersionNumber;
     private Duration duration;
-    private boolean isTest;
     private boolean isMostRecentVersion;
     private String fileExtension;
     private String fileName;
-    private TestItem testCheckResult;
     private List<Map<String, String>> shareBookingContacts;
     
     
@@ -52,15 +46,12 @@ public class CleansedData {
         this.recordingVersionNumberStr = builder.recordingVersionNumberStr;
         this.recordingVersionNumber = builder.recordingVersionNumber;
         this.duration = builder.duration;
-        this.isTest = builder.isTest;
         this.isMostRecentVersion = builder.isMostRecentVersion;
         this.fileExtension = builder.fileExtension;
         this.fileName = builder.fileName;
-        this.testCheckResult = builder.testCheckResult;
         this.shareBookingContacts = builder.shareBookingContacts;
     }
 
-    // Getters
     public String getCourtReference() { 
         return courtReference; 
     }
@@ -117,16 +108,8 @@ public class CleansedData {
         return duration; 
     }
 
-    public boolean isTest() { 
-        return isTest; 
-    }
-
     public boolean isMostRecentVersion() { 
         return isMostRecentVersion; 
-    }
-
-    public TestItem getTestCheckResult() { 
-        return testCheckResult; 
     }
 
     public String getFileExtension() { 
@@ -178,18 +161,14 @@ public class CleansedData {
             .add("recordingVersionNumberStr=" + recordingVersionNumberStr)
             .add("recordingVersionNumber=" + recordingVersionNumber)
             .add("duration=" + duration)
-            .add("isTest=" + isTest)
             .add("isMostRecentVersion=" + isMostRecentVersion)
             .add("fileExtension='" + fileExtension + "'")
             .add("fileName='" + fileName + "'")
-            .add("testCheckResult=" + testCheckResult)
             .add("shareBookingContacts=" + shareBookingContacts)
             .toString();
     }
 
-    /**
-     * Builder for creating instances of CleansedData.
-     */
+
     public static class Builder {
         private String courtReference;
         private String fullCourtName;
@@ -205,11 +184,9 @@ public class CleansedData {
         private String recordingVersionNumberStr;
         private int recordingVersionNumber;
         private Duration duration;
-        private boolean isTest;
         private boolean isMostRecentVersion;
         private String fileExtension;
         private String fileName;
-        private TestItem testCheckResult;
         private List<Map<String, String>> shareBookingContacts;
 
         public Builder setCourtReference(String courtReference) {
@@ -282,11 +259,6 @@ public class CleansedData {
             return this;
         }
 
-        public Builder setIsTest(boolean isTest) {
-            this.isTest = isTest;
-            return this;
-        }
-
         public Builder setIsMostRecentVersion(boolean isMostRecentVersion) {
             this.isMostRecentVersion = isMostRecentVersion;
             return this;
@@ -299,11 +271,6 @@ public class CleansedData {
 
         public Builder setFileName(String fileName) {
             this.fileName = fileName;
-            return this;
-        }
-
-        public Builder setTestCheckResult(TestItem testCheckResult) {
-            this.testCheckResult = testCheckResult;
             return this;
         }
 

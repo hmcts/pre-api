@@ -16,8 +16,8 @@ import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Handles pre-processing tasks for batch jobs, including loading data into Redis

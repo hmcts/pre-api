@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.services.batch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 
 import java.io.BufferedWriter;
