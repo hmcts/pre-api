@@ -30,6 +30,7 @@ public class MigrationGroupBuilderService {
 
     private static final String REDIS_BOOKING_FIELD = "bookingField";
     private static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
+    private static final String REDIS_RECORDING_FIELD = "recordingField";
     private final CaseRepository caseRepository;
 
     private final EntityCreationService entityCreationService;
@@ -88,7 +89,7 @@ public class MigrationGroupBuilderService {
 
         CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
-        CreateRecordingDTO recording = createRecording(archiveItem, cleansedData, baseKey, captureSession);
+        CreateRecordingDTO recording = processRecording(baseKey, archiveItem, cleansedData, baseKey, captureSession);
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> invites = new ArrayList<>();
@@ -152,19 +153,22 @@ public class MigrationGroupBuilderService {
         return  entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
     }
 
-    private CreateRecordingDTO createRecording(CSVArchiveListData archiveItem, CleansedData cleansedItem, 
-        String redisKey, CreateCaptureSessionDTO captureSession) {
-        CreateRecordingDTO recording = entityCreationService.createRecording(cleansedItem, captureSession);
+    private CreateRecordingDTO processRecording(
+        String baseKey,
+        CSVArchiveListData archiveItem, 
+        CleansedData cleansedItem, 
+        String redisKey, 
+        CreateCaptureSessionDTO captureSession
+    ) {
+        if (redisService.hashKeyExists(baseKey, REDIS_RECORDING_FIELD)) {
+            CreateRecordingDTO recordingDTO = redisService.getHashValue(
+                baseKey,
+                REDIS_RECORDING_FIELD, 
+                CreateRecordingDTO.class
+            );
+            return recordingDTO;
+        }
+        CreateRecordingDTO recording = entityCreationService.createRecording(baseKey,cleansedItem, captureSession);
         return recording;
     }
-
-    // private CreateRecordingDTO determineParentRecording(
-    // CleansedData cleansedItem, CreateRecordingDTO currentRecording) {
-    //     if (RecordingUtils.isOriginalVersion(cleansedItem)) {
-    //         currentRecording.setParentRecordingId(currentRecording.getId());
-    //         currentRecording.setVersion(1);
-    //         origRecordingsMap.put(cleansedItem.getCaseReference(), currentRecording);
-    //     } 
-    //     return currentRecording;
-    // }
 }

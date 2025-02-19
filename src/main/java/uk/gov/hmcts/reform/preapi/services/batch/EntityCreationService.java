@@ -40,6 +40,7 @@ public class EntityCreationService {
     static final String REDIS_USER_KEY_PREFIX = "vf:user:";
     static final String REDIS_BOOKING_FIELD = "bookingField";
     static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
+    static final String REDIS_RECORDING_FIELD = "recordingField";
     static final String REDIS_SHARE_BOOKING_FIELD = "vf:shareBooking:";
 
     @Value("${vodafone-user-email}")
@@ -96,7 +97,11 @@ public class EntityCreationService {
         return captureSessionDTO;
     }
 
-    public CreateRecordingDTO createRecording(CleansedData cleansedData, CreateCaptureSessionDTO captureSession) {
+    public CreateRecordingDTO createRecording(
+        String redisKey,
+        CleansedData cleansedData, 
+        CreateCaptureSessionDTO captureSession
+        ) {
         var recordingDTO = new CreateRecordingDTO();
         recordingDTO.setId(UUID.randomUUID());
         recordingDTO.setCaptureSessionId(captureSession.getId());
@@ -104,6 +109,21 @@ public class EntityCreationService {
         recordingDTO.setFilename(cleansedData.getFileName());
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
+
+        String existingMetadata = redisService.getHashValue(redisKey, "recordingMetadata", String.class);
+        UUID parentRecordingId = null;
+        if (existingMetadata != null) {
+            String[] parts = existingMetadata.split(":");
+            parentRecordingId = UUID.fromString(parts[0]);  
+        }
+
+        if (recordingDTO.getVersion() > 1 && parentRecordingId != null) {
+            recordingDTO.setParentRecordingId(parentRecordingId);
+        } 
+
+        String recordingMetadata = recordingDTO.getId().toString() + ":" + recordingDTO.getVersion();
+        redisService.saveHashValue(redisKey, "recordingMetadata", recordingMetadata);
+
         return recordingDTO;
     }
 
