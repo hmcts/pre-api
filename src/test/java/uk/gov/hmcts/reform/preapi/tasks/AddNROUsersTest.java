@@ -107,7 +107,7 @@ class AddNROUsersTest {
         addNROUsers.run();
 
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
-        verify(userService, times(5)).upsert((CreateUserDTO) any());
+        verify(userService, times(5)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(37)).findFirstByName(any());
         verify(courtRepository, times(29)).findFirstByName(any());
@@ -140,7 +140,7 @@ class AddNROUsersTest {
         when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
             .thenReturn(Optional.of(uncalledTestCourt));
 
-        when(this.userService.upsert((CreateUserDTO) (any()))).thenThrow(NotFoundException.class);
+        when(this.userService.upsert(any(CreateUserDTO.class))).thenThrow(NotFoundException.class);
 
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
@@ -150,7 +150,7 @@ class AddNROUsersTest {
                                                   TEST_USERS_FILE);
         addNROUsers.run();
 
-        verify(userService, times(5)).upsert((CreateUserDTO) any());
+        verify(userService, times(5)).upsert(any(CreateUserDTO.class));
     }
 
     private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
