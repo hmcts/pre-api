@@ -32,7 +32,6 @@ public class AddNROUsers extends RobotUserTask {
     private final List<ImportedNROUser> importedNROUsers = new ArrayList<>();
     private final List<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
-    private Boolean stopScript = false;
     private String usersFile = "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";
 
 
@@ -53,10 +52,10 @@ public class AddNROUsers extends RobotUserTask {
         log.info("Running AddNROUsers task");
 
         log.info("Reading in .csv file from path: " + this.usersFile);
-        this.createImportedNROUserObjects(this.usersFile);
-        // if there were any IO errors in the .csv file, exit
-        if (this.stopScript.equals(Boolean.TRUE)) {
-            return;
+        try {
+            this.createImportedNROUserObjects(this.usersFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         // create a new user for each email (with their corresponding app access entries)
@@ -101,7 +100,7 @@ public class AddNROUsers extends RobotUserTask {
         return userAppAccess;
     }
 
-    private void createImportedNROUserObjects(String usersFilePath) {
+    private void createImportedNROUserObjects(String usersFilePath) throws IOException {
         int rowNumber = 0;
         // Read from CSV file
         try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
@@ -124,7 +123,7 @@ public class AddNROUsers extends RobotUserTask {
             }
         } catch (IOException e) {
             log.error("Error: " + e.getMessage());
-            this.stopScript = true;
+            throw e;
         }
     }
 
@@ -179,7 +178,7 @@ public class AddNROUsers extends RobotUserTask {
         boolean errorFlag = false;
 
         StringBuilder csvErrors = new StringBuilder();
-        csvErrors.append("User in row " + rowNumber + " will not be imported:");
+        csvErrors.append("User in row ").append(rowNumber).append(" will not be imported:");
 
         // validate firstName
         String firstName = values[0];
