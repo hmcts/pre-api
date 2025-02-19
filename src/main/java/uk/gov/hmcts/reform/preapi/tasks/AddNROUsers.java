@@ -71,7 +71,7 @@ public class AddNROUsers extends RobotUserTask {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
                 this.otherUsersNotImported.add(createUserDTOToUpsert.getEmail());
                 log.error("Upsert failed for user: {}", createUserDTOToUpsert.getEmail());
-                log.error("\nReason for upsert failure:\n", e);
+                log.error("\nReason for upsert failure:\n" + e.getMessage());
             }
         }
 
