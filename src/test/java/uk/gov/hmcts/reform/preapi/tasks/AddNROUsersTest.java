@@ -64,8 +64,8 @@ class AddNROUsersTest {
     private UserService userService;
 
     private static final String TEST_USERS_FILE =
-        "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";
-    private static final String CRON_USER_EMAIL = "Phoebe.Revolta@HMCTS.net";
+        "src/integrationTest/resources/Test_NRO_User_Import.csv";
+    private static final String CRON_USER_EMAIL = "test@test.com";
 
     @DisplayName("Successfully add users from test file to DB")
     @Test

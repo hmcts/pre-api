@@ -26,7 +26,7 @@ public class ObscureNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
     private final RoleRepository roleRepository;
-    private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
+    private String usersFile = "src/integrationTest/resources/Test_NRO_User_Import.csv";
     private final Map<String, UUID> userEmailAndIDs = new HashMap<>();
 
 
