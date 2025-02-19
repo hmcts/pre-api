@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -77,7 +78,7 @@ class AddNROUsersTest {
         testRoleLvl2.setDescription("test");
         testRoleLvl2.setId(UUID.randomUUID());
 
-        ArrayList<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
+        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
 
         when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
 
@@ -119,7 +120,7 @@ class AddNROUsersTest {
         testRoleLvl2.setDescription("test");
         testRoleLvl2.setId(UUID.randomUUID());
 
-        ArrayList<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
+        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
 
         when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
 
@@ -152,7 +153,7 @@ class AddNROUsersTest {
         verify(userService, times(5)).upsert((CreateUserDTO) any());
     }
 
-    private ArrayList<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
+    private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
         ImportedNROUser testImportedNROUserA = new ImportedNROUser("Example",
                                                                    "User A",
                                                                    "exampleUserA@test.com",
@@ -227,7 +228,7 @@ class AddNROUsersTest {
                                                                    testLvl2ID,
                                                                    "2");
 
-        ArrayList<ImportedNROUser> testUsers = new ArrayList<>();
+        List<ImportedNROUser> testUsers = new ArrayList<>();
         testUsers.add(testImportedNROUserA);
         testUsers.add(testImportedNROUserB);
         testUsers.add(testImportedNROUserBSecondaryCourt1);

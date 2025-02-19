@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -27,9 +28,9 @@ import java.util.UUID;
 public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
-    private final ArrayList<String> otherUsersNotImported = new ArrayList<>();
-    private final ArrayList<ImportedNROUser> importedNROUsers = new ArrayList<>();
-    private final ArrayList<CreateUserDTO> nroUsers = new ArrayList<>();
+    private final List<String> otherUsersNotImported = new ArrayList<>();
+    private final List<ImportedNROUser> importedNROUsers = new ArrayList<>();
+    private final List<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
     private Boolean stopScript = false;
     private String usersFile = "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";

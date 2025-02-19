@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -19,7 +20,7 @@ public class ImportedNROUser {
     private String userAccess;
 
     public static String[] parseCsvLine(String line) {
-        ArrayList<String> result = new ArrayList<>();
+        List<String> result = new ArrayList<>();
         StringBuilder currentValue = new StringBuilder();
         for (char ch : line.toCharArray()) {
             if (ch == ',') {

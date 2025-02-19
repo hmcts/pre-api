@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -117,7 +118,7 @@ public class ObscureNROUsers extends RobotUserTask {
                 SET audit_details = '{}'::jsonb
                 WHERE audit_details::text ILIKE '%""");
 
-        ArrayList<String> emailsListed = new ArrayList<>(emails);
+        List<String> emailsListed = new ArrayList<>(emails);
 
         pgAdmin4Query.append(emailsListed.getFirst()).append("%'\n");
 

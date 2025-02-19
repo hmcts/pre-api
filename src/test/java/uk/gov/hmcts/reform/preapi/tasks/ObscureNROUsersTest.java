@@ -26,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -83,7 +84,7 @@ class ObscureNROUsersTest {
         testRoleLvl2.setDescription("test");
         testRoleLvl2.setId(UUID.randomUUID());
 
-        ArrayList<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
+        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
 
         when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
 
@@ -159,7 +160,7 @@ class ObscureNROUsersTest {
         verify(courtRepository, times(31)).findFirstByName(any());
     }
 
-    private ArrayList<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
+    private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
         ImportedNROUser testImportedNROUserA = new ImportedNROUser("Example",
                                                                    "User A",
                                                                    "exampleUserA@test.com",
@@ -234,7 +235,7 @@ class ObscureNROUsersTest {
                                                                    testLvl2ID,
                                                                    "2");
 
-        ArrayList<ImportedNROUser> testUsers = new ArrayList<>();
+        List<ImportedNROUser> testUsers = new ArrayList<>();
         testUsers.add(testImportedNROUserA);
         testUsers.add(testImportedNROUserB);
         testUsers.add(testImportedNROUserBSecondaryCourt1);

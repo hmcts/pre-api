@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -17,9 +18,9 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -46,21 +47,21 @@ public class AddNROUsersIT extends IntegrationTestBase {
     private static final String TEST_USERS_FILE =
         "src/integrationTest/resources/Test_NRO_User_Import.csv";
     private static final String CRON_USER_EMAIL = "test@test.com";
-    private ArrayList<ImportedNROUser> testImportedNROUsers;
-    private ArrayList<String> failureCaseEmails;
+    private List<ImportedNROUser> testImportedNROUsers;
+    private List<String> failureCaseEmails;
 
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         // NRO objects to test assertions:
         this.testImportedNROUsers = getTestImportedNROUsers(
             this.populateRolesTableAndGetTestRoleIDs().get("Test Level 2 ID")
         );
-        this.failureCaseEmails = new ArrayList<>(Arrays.asList(
+        this.failureCaseEmails = List.of(
             "exampleUserD@test.com",
             "exampleUserF@test.com",
             "exampleUserG@test.com"
-        ));
+        );
     }
 
     // test NRO users are imported successfully
@@ -123,7 +124,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
         }
 
         // initialise & create list for relevant app access objects to test
-        ArrayList<AppAccess> appAccessObjsForTestUsers = new ArrayList<>();
+        List<AppAccess> appAccessObjsForTestUsers = new ArrayList<>();
 
         for (AppAccess appAccessObj : appAccessRepository.findAll()) {
             // app access table should not contain failure case emails
@@ -201,17 +202,13 @@ public class AddNROUsersIT extends IntegrationTestBase {
         }
     }
 
-    private UUID findTestCourtID(String courtName) {
-        if (this.courtRepository.findFirstByName(courtName).isPresent()) {
-            return this.courtRepository.findFirstByName(courtName).get().getId();
-        } else {
-            System.out.println("Court is not available in the test DB - exiting");
-            System.exit(0);
-            return null;
-        }
+    private UUID findTestCourtID(String courtName) throws Exception {
+        return courtRepository.findFirstByName(courtName)
+            .map(BaseEntity::getId)
+            .orElseThrow(() -> new Exception("Court" + courtName + " is not available in the test DB"));
     }
 
-    private ArrayList<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
+    private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) throws Exception {
         ImportedNROUser testImportedNROUserA = new ImportedNROUser("Example",
                                                                    "User A",
                                                                    "exampleUserA@test.com",
@@ -302,7 +299,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
                                                                    testLvl2ID,
                                                                    "2");
 
-        ArrayList<ImportedNROUser> testUsers = new ArrayList<>();
+        List<ImportedNROUser> testUsers = new ArrayList<>();
         testUsers.add(testImportedNROUserA);
         testUsers.add(testImportedNROUserB);
         testUsers.add(testImportedNROUserBSecondaryCourt1);
