@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -158,6 +159,118 @@ class ObscureNROUsersTest {
 
         verify(roleRepository, times(39)).findFirstByName(any());
         verify(courtRepository, times(31)).findFirstByName(any());
+    }
+
+    @DisplayName("Successfully throw exception when the obscuring court cannot be found in the DB")
+    @Test
+    void obscureNROUsersNoCourt() {
+        Role testRoleLvl4 = HelperFactory.createRole("Level 4");
+        testRoleLvl4.setDescription("test");
+        testRoleLvl4.setId(UUID.randomUUID());
+        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
+        testRoleLvl2.setDescription("test");
+        testRoleLvl2.setId(UUID.randomUUID());
+
+        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
+
+        when(this.roleRepository.findFirstByName("Level 4")).thenReturn(Optional.of(testRoleLvl4));
+
+        for (ImportedNROUser importedNROUser : testImportedNROUsers) {
+
+            var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
+            when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+
+            var mockBaseUser = new BaseUserDTO();
+            mockBaseUser.setId(UUID.randomUUID());
+            mockBaseUser.setFirstName(importedNROUser.getFirstName());
+            mockBaseUser.setEmail(importedNROUser.getEmail());
+
+            var mockUser = new UserDTO();
+            mockUser.setId(UUID.randomUUID());
+            mockUser.setFirstName(importedNROUser.getFirstName());
+            mockUser.setEmail(importedNROUser.getEmail());
+
+            var accessDTO = mock(AccessDTO.class);
+
+            when(accessDTO.getUser()).thenReturn(mockBaseUser);
+            when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
+            when(accessDTO.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
+
+            var userAuth = mock(UserAuthentication.class);
+            when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+
+        }
+
+        ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
+                                                              userAuthenticationService,
+                                                              CRON_USER_EMAIL,
+                                                              courtRepository,
+                                                              roleRepository,
+                                                              TEST_USERS_FILE);
+
+        Assertions.assertThrows(IllegalArgumentException.class, obscureNROUsers::run);
+
+        // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
+        verify(userService, times(0)).upsert((CreateUserDTO) any());
+
+        verify(roleRepository, times(0)).findFirstByName(any());
+        verify(courtRepository, times(1)).findFirstByName(any());
+    }
+
+    @DisplayName("Successfully print obscuring queries for values from test file")
+    @Test
+    void obscureNROUsersNoRole() {
+        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
+        testRoleLvl2.setDescription("test");
+        testRoleLvl2.setId(UUID.randomUUID());
+
+        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
+
+        Court obscuringTestCourt = HelperFactory.createCourt(CourtType.CROWN, "Foo Court",
+                                                             null);
+        when(this.courtRepository.findFirstByName("Foo Court"))
+            .thenReturn(Optional.of(obscuringTestCourt));
+
+        for (ImportedNROUser importedNROUser : testImportedNROUsers) {
+
+            var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
+            when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+
+            var mockBaseUser = new BaseUserDTO();
+            mockBaseUser.setId(UUID.randomUUID());
+            mockBaseUser.setFirstName(importedNROUser.getFirstName());
+            mockBaseUser.setEmail(importedNROUser.getEmail());
+
+            var mockUser = new UserDTO();
+            mockUser.setId(UUID.randomUUID());
+            mockUser.setFirstName(importedNROUser.getFirstName());
+            mockUser.setEmail(importedNROUser.getEmail());
+
+            var accessDTO = mock(AccessDTO.class);
+
+            when(accessDTO.getUser()).thenReturn(mockBaseUser);
+            when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
+            when(accessDTO.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
+
+            var userAuth = mock(UserAuthentication.class);
+            when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+
+        }
+
+        ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
+                                                              userAuthenticationService,
+                                                              CRON_USER_EMAIL,
+                                                              courtRepository,
+                                                              roleRepository,
+                                                              TEST_USERS_FILE);
+
+        Assertions.assertThrows(IllegalArgumentException.class, obscureNROUsers::run);
+
+        // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
+        verify(userService, times(0)).upsert((CreateUserDTO) any());
+
+        verify(roleRepository, times(1)).findFirstByName(any());
+        verify(courtRepository, times(2)).findFirstByName(any());
     }
 
     private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
