@@ -175,30 +175,24 @@ public class AddNROUsers extends RobotUserTask {
     }
 
     private ImportedNROUser getNROUser(String[] values, int rowNumber) {
-        boolean errorFlag = false;
-
         StringBuilder csvErrors = new StringBuilder();
-        csvErrors.append("User in row ").append(rowNumber).append(" will not be imported:");
 
         // validate firstName
         String firstName = values[0];
         if (firstName.isEmpty()) {
             csvErrors.append("\nUser is missing First Name from the .csv input");
-            errorFlag = true;
         }
 
         // validate lastName
         String lastName = values[1];
         if (lastName.isEmpty()) {
             csvErrors.append("\nUser is missing Last Name from the .csv input");
-            errorFlag = true;
         }
 
         // validate email
         String email = values[2];
         if (email.isEmpty()) {
             csvErrors.append("\nUser is missing Email from the .csv input");
-            errorFlag = true;
         }
 
         // validate isDefault
@@ -206,7 +200,6 @@ public class AddNROUsers extends RobotUserTask {
 
         if (!values[3].toLowerCase().contains("primary") && !values[3].toLowerCase().contains("secondary")) {
             csvErrors.append("\nUser is missing Primary/Secondary Court Level from the .csv input");
-            errorFlag = true;
         } else if (values[3].toLowerCase().contains("primary")) {
             isDefault = true;
         }
@@ -216,7 +209,6 @@ public class AddNROUsers extends RobotUserTask {
         UUID courtID = null;
         if (this.courtRepository.findFirstByName(court).isEmpty()) {
             csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file");
-            errorFlag = true;
         } else {
             courtID = this.courtRepository.findFirstByName(court).get().getId();
         }
@@ -226,12 +218,12 @@ public class AddNROUsers extends RobotUserTask {
         UUID roleID = null;
         if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
             csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file");
-            errorFlag = true;
         } else {
             roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
         }
 
-        if (errorFlag) {
+        if (!csvErrors.isEmpty()) {
+            csvErrors.insert(0, "User in row " + rowNumber + " will not be imported:");
             log.info(csvErrors.toString());
             return null;
         } else {
