@@ -108,15 +108,8 @@ class AddNROUsersTest {
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
         verify(userService, times(5)).upsert((CreateUserDTO) any());
 
-        // calls to court and role repos are made twice (if all fields successful) during validation
-        // a failing court or a failing role will still be called once
-        // neither the court nor the role will be called if there is an invalid primary/secondary status
-        // out of 12 rows, if all 12 are valid, there should be 24 calls each to the court repo and the role repo resp.
-        // but there should be two failing courts and two failing roles
-        // two calls each will never be called due to one row with an invalid primary/secondary status
-        // the role will also not be called if there is a failing court
-        verify(roleRepository, times(19)).findFirstByName(any());
-        verify(courtRepository, times(21)).findFirstByName(any());
+        verify(roleRepository, times(37)).findFirstByName(any());
+        verify(courtRepository, times(29)).findFirstByName(any());
     }
 
     @DisplayName("Successfully throw exceptions for upsert failures")

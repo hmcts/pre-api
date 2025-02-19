@@ -27,8 +27,6 @@ public class ObscureNROUsers extends RobotUserTask {
     private final CourtRepository courtRepository;
     private final RoleRepository roleRepository;
     private String usersFile = "src/main/java/uk/gov/hmcts/reform/preapi/tasks/NRO_User_Import.csv";
-    private final UUID obscuringRoleID;
-    private final UUID obscuringCourtID;
     private final Map<String, UUID> userEmailAndIDs = new HashMap<>();
 
 
@@ -42,28 +40,30 @@ public class ObscureNROUsers extends RobotUserTask {
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
         this.usersFile = usersFile;
+    }
 
-        if (this.roleRepository.findFirstByName("Level 4").isEmpty()) {
-            String noObscuringRoleErrorMessage = "Cannot obscure users: obscuring role does not exist in the DB "
-                + "established in the .env file.";
-            log.error(noObscuringRoleErrorMessage);
-            throw new IllegalArgumentException(noObscuringRoleErrorMessage);
-        } else {
-            this.obscuringRoleID = this.roleRepository.findFirstByName("Level 4").get().getId();
-        }
+    @Override
+    public void run() throws RuntimeException {
 
+        UUID obscuringCourtID;
         if (this.courtRepository.findFirstByName("Foo Court").isEmpty()) {
             String noObscuringCourtErrorMessage = "Cannot obscure users: obscuring court does not exist in the DB "
                 + "established in the .env file.";
             log.error(noObscuringCourtErrorMessage);
             throw new IllegalArgumentException(noObscuringCourtErrorMessage);
         } else {
-            this.obscuringCourtID = this.courtRepository.findFirstByName("Foo Court").get().getId();
+            obscuringCourtID = this.courtRepository.findFirstByName("Foo Court").get().getId();
         }
-    }
 
-    @Override
-    public void run() throws RuntimeException {
+        UUID obscuringRoleID;
+        if (this.roleRepository.findFirstByName("Level 4").isEmpty()) {
+            String noObscuringRoleErrorMessage = "Cannot obscure users: obscuring role does not exist in the DB "
+                + "established in the .env file.";
+            log.error(noObscuringRoleErrorMessage);
+            throw new IllegalArgumentException(noObscuringRoleErrorMessage);
+        } else {
+            obscuringRoleID = this.roleRepository.findFirstByName("Level 4").get().getId();
+        }
 
         // Collate user emails
         try (BufferedReader br = new BufferedReader(new FileReader(this.usersFile))) {
@@ -88,7 +88,7 @@ public class ObscureNROUsers extends RobotUserTask {
             return;
         }
 
-        this.constructAppAccessQuery(this.userEmailAndIDs.values(), this.obscuringCourtID, this.obscuringRoleID);
+        this.constructAppAccessQuery(this.userEmailAndIDs.values(), obscuringCourtID, obscuringRoleID);
         this.constructAuditsQuery(this.userEmailAndIDs.keySet());
         this.constructUsersQuery(this.userEmailAndIDs.values());
         log.info("Completed ObscureNROUsers task");
