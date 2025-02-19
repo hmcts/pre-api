@@ -77,11 +77,7 @@ public class ObscureNROUsers extends RobotUserTask {
                 String[] values = ImportedNROUser.parseCsvLine(line);
                 String email = values[2];
 
-                try {
-                    this.userEmailAndIDs.put(email, this.userService.findByEmail(email).getUser().getId());
-                } catch (NotFoundException e) {
-                    log.info(email + " does not exist in the DB yet!", e);
-                }
+                this.populateUserEmailsAndIDs(email);
             }
         } catch (IOException e) {
             log.error("Error: " + e.getMessage());
@@ -153,5 +149,13 @@ public class ObscureNROUsers extends RobotUserTask {
         pgAdmin4Query.append(");");
 
         log.info(pgAdmin4Query.toString());
+    }
+
+    private void populateUserEmailsAndIDs(String email) {
+        try {
+            this.userEmailAndIDs.put(email, this.userService.findByEmail(email).getUser().getId());
+        } catch (NotFoundException | NullPointerException e) {
+            log.info(email + " does not exist in the DB yet!", e);
+        }
     }
 }
