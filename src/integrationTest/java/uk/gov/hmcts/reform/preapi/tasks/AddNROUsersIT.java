@@ -174,10 +174,10 @@ public class AddNROUsersIT extends IntegrationTestBase {
         assertEquals(testNewCourtID, this.testImportedNROUsers.getFirst().getCourtID());
         assertEquals(testNewRoleID, this.testImportedNROUsers.getFirst().getRoleID());
         assertEquals("1", this.testImportedNROUsers.getFirst().getUserAccess());
-        assertEquals("ImportedNROUser{firstName='Updated', lastName='Example-User A', "
-                        + "email='updatedUserA@test.com', court='Updated Court Name', courtId='"
-                         + testNewCourtID + "', isDefault=false, roleId='"
-                         + testNewRoleID + "', userAccess='1'}",
+        assertEquals("ImportedNROUser(firstName=Updated, lastName=Example-User A, "
+                        + "email=updatedUserA@test.com, court=Updated Court Name, courtID="
+                         + testNewCourtID + ", isDefault=false, roleID="
+                         + testNewRoleID + ", userAccess=1)",
                      this.testImportedNROUsers.getFirst().toString());
     }
 

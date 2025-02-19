@@ -120,7 +120,6 @@ class ObscureNROUsersTest {
 
         for (ImportedNROUser importedNROUser : testImportedNROUsers) {
 
-            var accessDTO = mock(AccessDTO.class);
             var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
             when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
 
@@ -133,6 +132,8 @@ class ObscureNROUsersTest {
             mockUser.setId(UUID.randomUUID());
             mockUser.setFirstName(importedNROUser.getFirstName());
             mockUser.setEmail(importedNROUser.getEmail());
+
+            var accessDTO = mock(AccessDTO.class);
 
             when(accessDTO.getUser()).thenReturn(mockBaseUser);
             when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
