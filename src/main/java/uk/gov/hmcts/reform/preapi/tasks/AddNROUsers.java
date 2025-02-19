@@ -141,7 +141,7 @@ public class AddNROUsers extends RobotUserTask {
 
         for (ImportedNROUser importedNROUser : this.importedNROUsers) {
             // if the previous email and current email are not the same, make a new user
-            if (!Objects.equals(importedNROUser.getEmail(), previousEmail)) {
+            if (!importedNROUser.getEmail().equals(previousEmail)) {
                 currentUserID = UUID.randomUUID();
                 createUserDTO = new CreateUserDTO();
                 createUserDTO.setId(currentUserID);
