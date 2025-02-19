@@ -129,7 +129,7 @@ public class AuditListener {
         disabledAuditClasses.get().put(entity, actions);
     }
 
-    private static boolean isAuditableEntity(Class<?> entity, AuditAction action) {
+    protected static boolean isAuditableEntity(Class<?> entity, AuditAction action) {
         return !disabledAuditClasses.get().getOrDefault(entity, Set.of()).contains(action);
     }
 }

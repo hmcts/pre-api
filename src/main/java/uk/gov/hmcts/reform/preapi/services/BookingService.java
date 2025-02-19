@@ -47,7 +47,6 @@ public class BookingService {
     private final CaptureSessionService captureSessionService;
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
-    private final AuditListener auditListener;
 
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
@@ -55,15 +54,13 @@ public class BookingService {
                           final ParticipantRepository participantRepository,
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
-                          @Lazy CaseService caseService,
-                          @Lazy AuditListener auditListener) {
+                          @Lazy CaseService caseService) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
-        this.auditListener = auditListener;
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
