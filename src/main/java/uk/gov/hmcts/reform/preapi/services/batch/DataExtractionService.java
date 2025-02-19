@@ -27,15 +27,13 @@ public class DataExtractionService {
      */
     private Map<String, Pattern> getNamedPatterns() {
         Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
-        namedPatterns.put("12", RegexPatterns.PATTERN_12);
-        namedPatterns.put("11", RegexPatterns.PATTERN_11);
-        namedPatterns.put("10", RegexPatterns.PATTERN_10);
-        namedPatterns.put("1", RegexPatterns.PATTERN_1); // GENERIC_NAME_PATTERN_Tref
-        namedPatterns.put("2", RegexPatterns.PATTERN_2); // GENERIC_NAME_PATTERN
-        namedPatterns.put("4", RegexPatterns.PATTERN_4);
-        namedPatterns.put("5", RegexPatterns.PATTERN_5);
-        namedPatterns.put("13", RegexPatterns.PATTERN_13);
-        namedPatterns.put("14", RegexPatterns.PATTERN_14);
+        namedPatterns.put("Special case",RegexPatterns.SPECIAL_CASE_PATTERN);
+        namedPatterns.put("Standard", RegexPatterns.STANDARD_PATTERN);
+        namedPatterns.put("Flexible", RegexPatterns.FLEXIBLE_PATTERN);
+        namedPatterns.put("Prefix", RegexPatterns.PREFIX_PATTERN);
+        namedPatterns.put("Double URN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN);
+        namedPatterns.put("Double Exhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN);
+
         return namedPatterns;
     }
 
@@ -49,8 +47,9 @@ public class DataExtractionService {
      * @return A map entry containing the pattern name and the corresponding matcher, or null if no match is found.
      */
     public Map.Entry<String, Matcher> matchPattern(CSVArchiveListData archiveItem) {
+        String cleanedArchiveName = cleanArchiveName(archiveItem.getArchiveName());
         for (Map.Entry<String, Pattern> entry : getNamedPatterns().entrySet()) {
-            Matcher matcher = entry.getValue().matcher(archiveItem.getArchiveName());
+            Matcher matcher = entry.getValue().matcher(cleanedArchiveName);
             if (matcher.matches()) {
                 return Map.entry(entry.getKey(), matcher);
             } 
@@ -134,5 +133,13 @@ public class DataExtractionService {
             archiveItem.getFileName(),  
             archiveItem.getFileSize()
         );
+    }
+
+    private static String cleanArchiveName(String archiveName) {
+        return archiveName
+            .replaceAll("[-_\\s]?QC\\d*(?=\\.[a-zA-Z]+$|$)", "") 
+            .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
+            .replaceAll("[-_\\s]{2,}", "-")  
+            .trim();
     }
 }

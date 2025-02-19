@@ -13,13 +13,15 @@ import java.util.List;
 
 @Service    
 public class DataValidationService {
-    public static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown");
+    public static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown", "training");
     public static final int MIN_RECORDING_DURATION = 10;
     private static final String ERROR_FILE_EXTENSION = "File not .mp4 file.";
     private static final String ERROR_TIMESTAMP = "Invalid timestamp: Timestamp is null.";
     private static final String ERROR_COURT = "No valid court associated.";
     private static final String ERROR_MOST_RECENT_VERSION = "Recording is not the most recent version.";
     private static final String ERROR_CASE_REFERENCE = "No valid case reference.";
+    private static final String ERROR_CASE_REFERENCE_LONG = "Case reference longer than 24 chars.";
+
 
     @Autowired
     public DataValidationService() {
@@ -36,35 +38,33 @@ public class DataValidationService {
      * @return A map containing the validation result, including the cleansed data and any error messages.
      */
     public ServiceResult<CleansedData> validateCleansedData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        // 3. Test data check
         TestItem testCheck = checkIsTest(archiveItem);
         if (testCheck.isTest()) {
             return ServiceResultUtil.createFailureReponse(testCheck.getReason());
         }
 
-        // 1. File extension check
         if (!isFileExtensionValid(cleansedData)) {
             return ServiceResultUtil.createFailureReponse(ERROR_FILE_EXTENSION);
         }
 
-        // 2. Timestamp check
         if (cleansedData.getRecordingTimestamp() == null) {
             return ServiceResultUtil.createFailureReponse(ERROR_TIMESTAMP);
         }
 
-        // 4. Court check
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.createFailureReponse(ERROR_COURT);
         }
 
-        // 5. Most recent version check
         if (!cleansedData.isMostRecentVersion()) {
             return ServiceResultUtil.createFailureReponse(ERROR_MOST_RECENT_VERSION);
         }
 
-        // 6. Case reference check
-        if (cleansedData.getUrn() == null || cleansedData.getUrn().isEmpty()) {
+        if (cleansedData.getCaseReference() == null) {
             return ServiceResultUtil.createFailureReponse(ERROR_CASE_REFERENCE);
+        }
+
+        if (cleansedData.getCaseReference().length() > 24){
+            return ServiceResultUtil.createFailureReponse(ERROR_CASE_REFERENCE_LONG);
         }
 
         return ServiceResultUtil.createSuccessResponse(cleansedData);
@@ -82,7 +82,8 @@ public class DataValidationService {
 
         String lowerExtension = fileExtension.toLowerCase();
 
-        return !(lowerExtension.equals(".raw") || lowerExtension.equals(".ra"));
+        return !(lowerExtension.equals(".raw") || lowerExtension.equals(".ra")
+                || lowerExtension.equals("ra") || lowerExtension.equals("raw"));
     }
 
     public TestItem checkIsTest(CSVArchiveListData archiveItem) {
