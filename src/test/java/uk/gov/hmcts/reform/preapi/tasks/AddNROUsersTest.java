@@ -113,7 +113,7 @@ class AddNROUsersTest {
         verify(courtRepository, times(29)).findFirstByName(any());
     }
 
-    @DisplayName("Successfully throw exceptions for upsert failures")
+    @DisplayName("Successfully handle exceptions for upsert failures")
     @Test
     void addNROUsersFailure() {
         Role testRoleLvl2 = HelperFactory.createRole("Level 2");
