@@ -81,8 +81,7 @@ public class ObscureNROUsers extends RobotUserTask {
                 this.populateUserEmailsAndIDs(email);
             }
         } catch (IOException e) {
-            log.error("Error: " + e.getMessage());
-            return;
+            throw new RuntimeException(e);
         }
 
         this.constructAppAccessQuery(this.userEmailAndIDs.values(), obscuringCourtID, obscuringRoleID);
