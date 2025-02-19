@@ -63,11 +63,9 @@ public class InviteService {
     public UpsertResult upsert(CreateInviteDTO createInviteDTO) {
         var result = userService.upsert(createInviteDTO);
 
-        if (result == UpsertResult.CREATED) {
-            var user = userRepository.findById(createInviteDTO.getUserId())
-                .orElseThrow(() -> new NotFoundException("User: " + createInviteDTO.getUserId()));
-            onUserInvitedToPortal(user);
-        }
+        var user = userRepository.findById(createInviteDTO.getUserId())
+            .orElseThrow(() -> new NotFoundException("User: " + createInviteDTO.getUserId()));
+        onUserInvitedToPortal(user);
 
         return result;
     }
