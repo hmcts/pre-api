@@ -16,7 +16,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Objects;
@@ -34,7 +33,6 @@ public class AddNROUsers extends RobotUserTask {
     private final RoleRepository roleRepository;
     private Boolean stopScript = false;
     private String usersFile = "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";
-    private final ArrayList<String> usersWithoutCourts = new ArrayList<>();
 
 
     @Autowired
@@ -53,7 +51,7 @@ public class AddNROUsers extends RobotUserTask {
     public void run() throws RuntimeException {
         log.info("Running AddNROUsers task");
 
-        log.info("Reading in .csv file. . .");
+        log.info("Reading in .csv file from path: " + this.usersFile);
         this.createImportedNROUserObjects(this.usersFile);
         // if there were any IO errors in the .csv file, exit
         if (this.stopScript.equals(Boolean.TRUE)) {
@@ -72,17 +70,16 @@ public class AddNROUsers extends RobotUserTask {
             } catch (Exception e) {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
                 this.otherUsersNotImported.add(createUserDTOToUpsert.getEmail());
-                log.info("Upsert failed for user: {}", createUserDTOToUpsert.getEmail());
+                log.error("Upsert failed for user: {}", createUserDTOToUpsert.getEmail());
+                log.error("\nReason for upsert failure:\n", e);
             }
         }
 
-        log.info("Uninserted users without courts:");
-        for (String importedNROUserEmail : this.usersWithoutCourts) {
-            log.info(importedNROUserEmail);
-        }
-        log.info("Otherwise uninserted users:");
-        for (String uninsertedUser : this.otherUsersNotImported) {
-            log.info(uninsertedUser);
+        log.info("NRO Users successfully added to the DB:");
+        for (CreateUserDTO createUserDTO : this.nroUsers) {
+            if (!this.otherUsersNotImported.contains(createUserDTO.getEmail())) {
+                log.info(createUserDTO.getEmail());
+            }
         }
 
         log.info("Completed AddNROUsers task");
@@ -98,11 +95,13 @@ public class AddNROUsers extends RobotUserTask {
         userAppAccess.setRoleId(importedNROUser.getRoleID());
         userAppAccess.setCourtId(importedNROUser.getCourtID());
         userAppAccess.setDefaultCourt(importedNROUser.getIsDefault());
+        userAppAccess.setActive(true);
 
         return userAppAccess;
     }
 
     private void createImportedNROUserObjects(String usersFilePath) {
+        int rowNumber = 0;
         // Read from CSV file
         try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
             String line;
@@ -115,11 +114,12 @@ public class AddNROUsers extends RobotUserTask {
 
                 String[] values = ImportedNROUser.parseCsvLine(line);
 
-                ImportedNROUser importedNROUser = getNROUser(values);
+                ImportedNROUser importedNROUser = this.getNROUser(values, rowNumber);
                 if (importedNROUser != null) {
                     this.importedNROUsers.add(importedNROUser);
                 }
 
+                rowNumber++;
             }
         } catch (IOException e) {
             log.error("Error: " + e.getMessage());
@@ -133,11 +133,11 @@ public class AddNROUsers extends RobotUserTask {
                                        .thenComparing(ImportedNROUser::getCourt));
 
         // initialise values
-        String previousEmail = null;
-        UUID currentUserID = null;
         Set<CreateAppAccessDTO> createAppAccessDTOs = new HashSet<>(){};
         CreateUserDTO createUserDTO = new CreateUserDTO();
+        UUID currentUserID = null;
         int index = 0;
+        String previousEmail = null;
 
         for (ImportedNROUser importedNROUser : this.importedNROUsers) {
             // if the previous email and current email are not the same, make a new user
@@ -172,90 +172,70 @@ public class AddNROUsers extends RobotUserTask {
             index++;
             previousEmail = importedNROUser.getEmail();
         }
-
-        // old method:
-
-        // group the new list of NRO users (objects) by email
-        // log.info("Grouping NRO user courts by email. . .");
-        // Map<String, List<ImportedNROUser>> groupedByEmail = this.importedNROUsers.stream()
-        // .collect(Collectors.groupingBy(ImportedNROUser::getEmail));
-
-        // for (Map.Entry<String, List<ImportedNROUser>> entry : groupedByEmail.entrySet()) {
-        // CreateUserDTO createUserDTO = new CreateUserDTO();
-        // createUserDTO.setId(UUID.randomUUID());
-        // createUserDTO.setFirstName(entry.getValue().getFirst().getFirstName());
-        // createUserDTO.setLastName(entry.getValue().getFirst().getLastName());
-        // createUserDTO.setEmail(entry.getKey());             // entry.getKey() is the user email
-
-        // create a (empty) set of PortalAccess objects for each user
-        // Set<CreatePortalAccessDTO> createPortalAccessDTOS = new HashSet<>(){};
-        // createUserDTO.setPortalAccess(createPortalAccessDTOS);
-
-        // then create an AppAccess object for each primary and secondary court of the user
-        // Set<CreateAppAccessDTO> createAppAccessDTOS = new HashSet<>(){};
-
-        // for (ImportedNROUser importedNROUser : entry.getValue()) {
-        // CreateAppAccessDTO userAppAccess = this.createAppAccessObj(importedNROUser, createUserDTO.getId());
-        // if (userAppAccess.getCourtId() != null) {
-        // createAppAccessDTOS.add(userAppAccess);
-        // }
-        // }
-
-        // ONLY add user to the DB, if they have an app access DTO with a court entry that is NOT null
-        // if (!(this.usersWithoutCourts.contains(createUserDTO.getEmail()))) {
-        // createUserDTO.setAppAccess(createAppAccessDTOS);
-        // this.nroUsers.add(createUserDTO);
-        // }
-        //}
     }
 
-    private ImportedNROUser getNROUser(String[] values) {
-        String firstName = values[0];
-        String lastName = values[1];
-        String email = values[2];
+    private ImportedNROUser getNROUser(String[] values, int rowNumber) {
+        boolean errorFlag = false;
 
-        if ((firstName.isEmpty()) || (lastName.isEmpty()) || (email.isEmpty())) {
-            log.info("User with the following values cannot be fully identified and will not be imported: "
-                         + Arrays.toString(values));
-            return null;
+        StringBuilder csvErrors = new StringBuilder();
+        csvErrors.append("User in row " + rowNumber + " will not be imported:");
+
+        // validate firstName
+        String firstName = values[0];
+        if (firstName.isEmpty()) {
+            csvErrors.append("\nUser is missing First Name from the .csv input");
+            errorFlag = true;
         }
 
-        boolean isDefault;
+        // validate lastName
+        String lastName = values[1];
+        if (lastName.isEmpty()) {
+            csvErrors.append("\nUser is missing Last Name from the .csv input");
+            errorFlag = true;
+        }
+
+        // validate email
+        String email = values[2];
+        if (email.isEmpty()) {
+            csvErrors.append("\nUser is missing Email from the .csv input");
+            errorFlag = true;
+        }
 
         // validate isDefault
-        if (values[3].toLowerCase().contains("secondary")) {
-            isDefault = false;
+        boolean isDefault = false;
+
+        if (!values[3].toLowerCase().contains("primary") && !values[3].toLowerCase().contains("secondary")) {
+            csvErrors.append("\nUser is missing Primary/Secondary Court Level from the .csv input");
+            errorFlag = true;
         } else if (values[3].toLowerCase().contains("primary")) {
             isDefault = true;
-        } else {
-            this.otherUsersNotImported.add(email);
-            return null;
         }
 
-        String court = values[4];
-        UUID courtID;
-
         // validate court
+        String court = values[4];
+        UUID courtID = null;
         if (this.courtRepository.findFirstByName(court).isEmpty()) {
-            this.usersWithoutCourts.add(email);
-            return null;
+            csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file");
+            errorFlag = true;
         } else {
             courtID = this.courtRepository.findFirstByName(court).get().getId();
         }
 
-        String userLevel = values[6];
-        UUID roleID;
-
         // validate role
+        String userLevel = values[6];
+        UUID roleID = null;
         if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
-            this.otherUsersNotImported.add(email);
-            return null;
+            csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file");
+            errorFlag = true;
         } else {
             roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
         }
 
-        return new ImportedNROUser(
-            firstName, lastName, email, court, courtID, isDefault, roleID, userLevel
-        );
+        if (errorFlag) {
+            log.info(csvErrors.toString());
+            return null;
+        } else {
+            return new ImportedNROUser(firstName, lastName, email, court, courtID, isDefault, roleID, userLevel);
+        }
     }
 }
