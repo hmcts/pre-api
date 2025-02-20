@@ -46,16 +46,7 @@ public class AuditDTO extends CreateAuditDTO {
     }
 
     public AuditDTO(Audit auditEntity, User user) {
-        super();
-        id = auditEntity.getId();
-        tableName = auditEntity.getTableName();
-        tableRecordId = auditEntity.getTableRecordId();
-        source = auditEntity.getSource();
-        category = auditEntity.getCategory();
-        activity = auditEntity.getActivity();
-        functionalArea = auditEntity.getFunctionalArea();
-        auditDetails = auditEntity.getAuditDetails();
-        createdAt = auditEntity.getCreatedAt();
+        this(auditEntity);
         createdBy = new BaseUserDTO(user);
     }
 }
