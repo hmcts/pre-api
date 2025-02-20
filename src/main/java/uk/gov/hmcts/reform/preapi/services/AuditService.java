@@ -14,7 +14,6 @@ import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
-import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -25,15 +24,14 @@ import javax.annotation.Nullable;
 public class AuditService {
 
     private final AuditRepository auditRepository;
-    private final UserRepository userRepository;
     private final AppAccessRepository appAccessRepository;
     private final PortalAccessRepository portalAccessRepository;
 
     @Autowired
-    public AuditService(AuditRepository auditRepository, UserRepository userRepository,
-                        AppAccessRepository appAccessRepository, PortalAccessRepository portalAccessRepository) {
+    public AuditService(AuditRepository auditRepository,
+                        AppAccessRepository appAccessRepository,
+                        PortalAccessRepository portalAccessRepository) {
         this.auditRepository = auditRepository;
-        this.userRepository = userRepository;
         this.appAccessRepository = appAccessRepository;
         this.portalAccessRepository = portalAccessRepository;
     }
