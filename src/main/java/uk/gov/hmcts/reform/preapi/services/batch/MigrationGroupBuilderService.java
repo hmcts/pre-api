@@ -1,10 +1,15 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import uk.gov.hmcts.reform.preapi.batch.processor.RecordingMediaKindTransform;
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -27,6 +32,7 @@ import java.util.Set;
 
 @Service
 public class MigrationGroupBuilderService {
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
 
     private static final String REDIS_BOOKING_FIELD = "bookingField";
     private static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
@@ -36,6 +42,7 @@ public class MigrationGroupBuilderService {
     private final EntityCreationService entityCreationService;
     private final RedisService redisService;
     private final MigrationTrackerService migrationTrackerService;
+    private final RecordingMediaKindTransform recordingMediaKindTransform;
     private final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
 
 
@@ -44,12 +51,14 @@ public class MigrationGroupBuilderService {
         EntityCreationService entityCreationService, 
         RedisService redisService,
         MigrationTrackerService migrationTrackerService,
-        CaseRepository caseRepository
+        CaseRepository caseRepository,
+        RecordingMediaKindTransform recordingMediaKindTransform
     ) {
         this.entityCreationService = entityCreationService;
         this.redisService = redisService;
         this.migrationTrackerService = migrationTrackerService;
         this.caseRepository = caseRepository;
+        this.recordingMediaKindTransform = recordingMediaKindTransform;
     }
 
     // =========================
@@ -91,6 +100,13 @@ public class MigrationGroupBuilderService {
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, archiveItem, cleansedData, baseKey, captureSession);
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
+
+        // if (recording != null) {
+        //     logger.info("MediaKindifying file: "+ recording.getFilename() + " : " + recording.getId());
+        //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());  
+        // }
+
+
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> invites = new ArrayList<>();
         List<Object> shareBookingResult = entityCreationService.createShareBookings(cleansedData, booking);

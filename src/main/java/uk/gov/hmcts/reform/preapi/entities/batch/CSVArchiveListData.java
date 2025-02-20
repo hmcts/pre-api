@@ -8,19 +8,19 @@ import java.time.format.DateTimeFormatter;
 public class CSVArchiveListData {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     
-    private String archiveName;
-    private String createTime;
-    private int duration;
-    private String fileName;
-    private String fileSize;
+    private String archiveName = "";
+    private String createTime = "";
+    private Integer duration = 0;
+    private String fileName = "";
+    private String fileSize = "";
 
     public CSVArchiveListData() {
     }
 
-    public CSVArchiveListData(String archiveName, String createTime, int duration, String fileName, String fileSize) {
+    public CSVArchiveListData(String archiveName, String createTime, Integer duration, String fileName, String fileSize) {
         this.archiveName = archiveName;
         this.createTime = createTime;
-        this.duration = duration;
+        this.duration = (duration != null) ? duration : 0;
         this.fileName = fileName;
         this.fileSize = fileSize;
     }
@@ -41,12 +41,12 @@ public class CSVArchiveListData {
         this.createTime = createTime;
     }
 
-    public int getDuration() {
+    public Integer getDuration() {
         return duration;
     }
 
-    public void setDuration(int duration) {
-        this.duration = duration;
+    public void setDuration(Integer duration) {
+        this.duration = (duration != null) ? duration : 0;
     }
 
     public String getFileName() {

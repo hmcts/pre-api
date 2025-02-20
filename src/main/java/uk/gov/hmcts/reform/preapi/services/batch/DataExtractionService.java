@@ -1,6 +1,10 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.entities.batch.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.util.batch.RegexPatterns;
@@ -12,6 +16,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class DataExtractionService {
+
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
 
     public DataExtractionService() {
     }
@@ -33,6 +39,7 @@ public class DataExtractionService {
         namedPatterns.put("Prefix", RegexPatterns.PREFIX_PATTERN);
         namedPatterns.put("Double URN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN);
         namedPatterns.put("Double Exhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN);
+        namedPatterns.put("Match All", RegexPatterns.MATCH_ALL_PATTERN);
 
         return namedPatterns;
     }
@@ -137,8 +144,11 @@ public class DataExtractionService {
 
     private static String cleanArchiveName(String archiveName) {
         return archiveName
-            .replaceAll("[-_\\s]?QC\\d*(?=\\.[a-zA-Z]+$|$)", "") 
+            .replaceAll("^QC[_\\d]?", "") 
+            .replaceAll("^QC(?![A-Za-z])", "")  
+            .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")  
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
+            .replaceAll("_(?=\\.[^.]+$)", "")  
             .replaceAll("[-_\\s]{2,}", "-")  
             .trim();
     }

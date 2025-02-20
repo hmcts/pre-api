@@ -101,4 +101,26 @@ public class ExtractedMetadata {
         }
         return referenceBuilder.toString();
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ExtractedMetadata {");
+        sb.append("courtReference='").append(courtReference).append('\'');
+        sb.append(", date='").append(date).append('\'');
+        sb.append(", urn='").append(urn).append('\'');
+        sb.append(", exhibitReference='").append(exhibitReference).append('\'');
+        sb.append(", defendantLastName='").append(defendantLastName).append('\'');
+        sb.append(", witnessFirstName='").append(witnessFirstName).append('\'');
+        sb.append(", recordingVersion='").append(recordingVersion).append('\'');
+        sb.append(", recordingVersionNumber='").append(recordingVersionNumber).append('\'');
+        sb.append(", fileExtension='").append(fileExtension).append('\'');
+        sb.append(", createTime=").append(createTime);
+        sb.append(", duration=").append(duration);
+        sb.append(", fileName='").append(fileName).append('\'');
+        sb.append(", fileSize='").append(fileSize).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
+
 }

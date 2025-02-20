@@ -38,8 +38,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
 
-    // private final Map<String, CreateRecordingDTO> origRecordingsMap = new HashMap<>();
-
     @Autowired
     public Processor(
         RedisService redisService,
@@ -82,7 +80,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (cleansedData == null) {
                 return null;
             }
-            
             checkMigrated(cleansedData, archiveItem);
 
             if (!validateData(cleansedData, archiveItem)) {

@@ -56,8 +56,12 @@ public class DataTransformationService {
     public ServiceResult<CleansedData> transformData(CSVArchiveListData archiveItem) {
         try {
             this.archiveItem = archiveItem;
-            this.extracted = extractionService.extractMetadata(archiveItem);
             this.sitesDataMap = getSitesData();
+
+            this.extracted = extractionService.extractMetadata(archiveItem);
+            if (extracted.getCourtReference() == ""){
+                return ServiceResultUtil.createFailureReponse("Regex matching failed");
+            }
             
             CleansedData cleansedData = buildCleansedData();
             return ServiceResultUtil.createSuccessResponse(cleansedData);

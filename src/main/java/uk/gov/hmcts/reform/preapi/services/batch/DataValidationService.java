@@ -13,7 +13,7 @@ import java.util.List;
 
 @Service    
 public class DataValidationService {
-    public static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown", "training");
+    public static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown", "training", "T35T");
     public static final int MIN_RECORDING_DURATION = 10;
     private static final String ERROR_FILE_EXTENSION = "File not .mp4 file.";
     private static final String ERROR_TIMESTAMP = "Invalid timestamp: Timestamp is null.";
