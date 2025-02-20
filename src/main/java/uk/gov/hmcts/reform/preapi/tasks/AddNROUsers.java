@@ -101,7 +101,7 @@ public class AddNROUsers extends RobotUserTask {
     }
 
     private void createImportedNROUserObjects(String usersFilePath) throws IOException {
-        int rowNumber = 0;
+        int rowNumber = 1;
         // Read from CSV file
         try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
             String line;
@@ -109,6 +109,7 @@ public class AddNROUsers extends RobotUserTask {
             while ((line = br.readLine()) != null) {
                 // Skip header if there is one
                 if (line.contains("FirstName")) {
+                    rowNumber++;
                     continue;
                 }
 
