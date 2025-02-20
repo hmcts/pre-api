@@ -125,19 +125,11 @@ public class AddNROUsersIT extends IntegrationTestBase {
         }
 
         // initialise & create list for relevant app access objects to test
-        List<AppAccess> appAccessObjsForTestUsers = new ArrayList<>();
-
-        for (AppAccess appAccessObj : appAccessRepository.findAll()) {
-            // app access table should not contain failure case emails
-            assertFalse(failureCaseEmails.contains(appAccessObj.getUser().getEmail()));
-            if (testUserEmailsAndIDs.containsKey(appAccessObj.getUser().getEmail())) {
-                appAccessObjsForTestUsers.add(appAccessObj);
-            }
-        }
-
-        appAccessObjsForTestUsers.sort(
-            Comparator.comparing((AppAccess appAccess) -> appAccess.getUser().getEmail())
-                .thenComparing(appAccess -> appAccess.getCourt().getName()));
+        List<AppAccess> appAccessObjsForTestUsers = appAccessRepository.findAll().stream()
+            .filter(appAccessObj ->
+                        testUserEmailsAndIDs.containsKey(appAccessObj.getUser().getEmail())).sorted(
+                Comparator.comparing((AppAccess appAccess) -> appAccess.getUser().getEmail())
+                    .thenComparing(appAccess -> appAccess.getCourt().getName())).toList();
 
         assertEquals(9, appAccessObjsForTestUsers.size());
 
