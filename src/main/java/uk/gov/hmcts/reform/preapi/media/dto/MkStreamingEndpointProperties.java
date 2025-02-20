@@ -31,15 +31,6 @@ public class MkStreamingEndpointProperties {
         CdnProviderEnum(String value) {
             this.value = value;
         }
-
-        public static CdnProviderEnum fromValue(String value) {
-            for (CdnProviderEnum enumValue : CdnProviderEnum.values()) {
-                if (enumValue.value.equals(value)) {
-                    return enumValue;
-                }
-            }
-            throw new IllegalArgumentException("Unexpected value: " + value);
-        }
     }
 
     public enum ProvisioningState {
