@@ -14,7 +14,6 @@ import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
 @SpringBootTest
 public class GovNotifyFT {
     private final String toEmailAddress = "test@test.com";
@@ -64,7 +63,7 @@ public class GovNotifyFT {
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – New Video", response.getSubject());
         compareBody(
             """
-            Hello John,
+            Hello John Doe,
 
             A new Pre-recorded Evidence video has been captured for case 123456 at court Court Name.
 
@@ -91,7 +90,7 @@ public class GovNotifyFT {
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal – Edited Video", response.getSubject());
         compareBody(
             """
-            Hello John,
+            Hello John Doe,
 
             A new Pre-recorded Evidence video has been edited for case 123456 at court Court Name.
 
@@ -111,16 +110,13 @@ public class GovNotifyFT {
     @SuppressWarnings("LineLength")
     void portalInvite() {
         var user = createUser();
-        var userGuideLink = portalUrl + "/user-guide";
-        var processGuideLink = portalUrl + "/process-guide";
-        var faqsLink = portalUrl + "/faqs";
 
         var response = client.portalInvite(user);
         assertEquals(fromEmailAddress, response.getFromEmail());
         assertEquals("[Do Not Reply] HMCTS Pre-recorded Evidence Portal Invitation", response.getSubject());
         compareBody(
             """
-            Hello John,
+            Hello John Doe,
 
             This is an invitation to the HMCTS Pre-recorded Evidence Portal where you can view recorded evidence. \s
 
@@ -169,7 +165,7 @@ public class GovNotifyFT {
             """
             Dear John Doe,
 
-            Case 123456 has been set to close on 2021-01-01. Once the case has been closed, access to recordings will be removed.
+            Case 123456 has been set to close on 1 January 2021. Once the case has been closed, access to recordings will be removed.
 
             Kind regards,
             Pre-Recorded Evidence Team""", response);
