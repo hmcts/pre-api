@@ -84,6 +84,7 @@ mediakind:
   token: ${MEDIA_KIND_TOKEN:}
   issuer: ${ISSUER:https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/}
   symmetricKey: ${SYMMETRIC_KEY:}
+  streaming-locator-on-start: ${ENABLE_STREAMING_LOCATOR_ON_START:false}
 
 media-service: ${MEDIA_SERVICE:MediaKind}
 
@@ -103,6 +104,15 @@ flow:
       enabled: true
   sig: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG:123}
   key: ${FLOW_KEY:123}
+
+email:
+  service: ${EMAIL_SERVICE:GovNotify}
+  govNotify:
+    key: ${GOV_NOTIFY_API_KEY:}
+  enable: ${ENABLE_NEW_EMAIL_SERVICE:false}
+
+portal:
+  url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}
 
 #logging:
 #  level:
