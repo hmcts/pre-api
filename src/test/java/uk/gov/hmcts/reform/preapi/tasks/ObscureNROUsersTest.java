@@ -155,7 +155,7 @@ class ObscureNROUsersTest {
         obscureNROUsers.run();
 
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
-        verify(userService, times(5)).upsert((CreateUserDTO) any());
+        verify(userService, times(5)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(39)).findFirstByName(any());
         verify(courtRepository, times(31)).findFirstByName(any());
@@ -211,7 +211,7 @@ class ObscureNROUsersTest {
         Assertions.assertThrows(IllegalArgumentException.class, obscureNROUsers::run);
 
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
-        verify(userService, times(0)).upsert((CreateUserDTO) any());
+        verify(userService, times(0)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(0)).findFirstByName(any());
         verify(courtRepository, times(1)).findFirstByName(any());
@@ -267,7 +267,7 @@ class ObscureNROUsersTest {
         Assertions.assertThrows(IllegalArgumentException.class, obscureNROUsers::run);
 
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
-        verify(userService, times(0)).upsert((CreateUserDTO) any());
+        verify(userService, times(0)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(1)).findFirstByName(any());
         verify(courtRepository, times(2)).findFirstByName(any());
@@ -328,7 +328,7 @@ class ObscureNROUsersTest {
         Assertions.assertThrows(RuntimeException.class, obscureNROUsers::run);
 
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
-        verify(userService, times(0)).upsert((CreateUserDTO) any());
+        verify(userService, times(0)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(2)).findFirstByName(any());
         verify(courtRepository, times(2)).findFirstByName(any());
