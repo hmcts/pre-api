@@ -1,6 +1,0 @@
-"Email","UserId"
-"Cristiane.Marsilio@HMCTS.NET","db6ab888-30b5-4944-9d22-c890b0b9c063"
-"Phoebe.Revolta@HMCTS.NET","521079f8-60e3-45df-a167-5cff0b942377"
-"Amanda.Richards@HMCTS.NET","69b4c77d-b285-4bde-9fbc-a23a77109850"
-"cristiane.marsilio_justice.gov.uk#EXT#@CJSCommonPlatform.onmicrosoft.com","f29dd87c-18de-4bdd-8f51-e9f8a2488ac0"
-"Amanda.Richards_justice.gov.uk#EXT#@CJSCommonPlatform.onmicrosoft.com","d1830d93-9d0b-46dd-8930-90596056fb4d"

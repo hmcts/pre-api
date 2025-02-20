@@ -35,6 +35,7 @@ $TenantId = "531ff96d-0ae9-462a-8d2d-bec7c0b42082"
 $TeamDisplayName = "HMCTS PRE-NLE" #set to demo "HMCTS Pre-Demo" or prod "HMCTS Pre-recorded Evidence"
 $ChannelName = "NRO-test" #this should be the name of the private channel in prod "HMCTS Pre-recorded Evidence Production" (confirm it's correct, or update to channel name you are testing)
 
+#add correct log paths
 $LogPathMatches = "../NRO-logs/MatchingUsers.txt"
 $LogPathAddedMembers = "../NRO-logs/Added-team-members.txt"
 $LogPathGetAllMembers = "../NRO-logs/Get-all-team-members.txt"

@@ -27,3 +27,5 @@ applicationinsights-agent-*.jar
 *.log
 bin/migration/*/*.txt
 bin/migration/**/__pycache__/
+
+.NRO-logs/
