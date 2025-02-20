@@ -20,7 +20,7 @@ Connect-MicrosoftTeams
 
  - Update the script as instructed in the comments
 
- - Ensure you have been made an owner of the private channel in production - HMCTS Pre-recorded Evidence Production
+ - Ensure you have been made an owner of the private channel in production - HMCTS Pre-recorded Evidence Production, or are the owner of channel you are testing
 
  - When ready run pwsh NRO-teams-onboarding.ps1 from the scripts directory
 
@@ -29,11 +29,11 @@ Connect-MicrosoftTeams
 # Connect to Microsoft Teams
 Connect-MicrosoftTeams
 
-$CSVPath = "" #add your path to CSV file containing user emails to be onboarded
+$CSVPath = " " #add path to CSV file containing user emails to be onboarded, add a real justice user to the csv if using the test NRO csv
 $TeamID = "22bb9c0b-42cc-4919-b61d-07986ede3ce6" # change to demo or prod: in microsoft teams click three dots next to team, select get link, copy the group id from url
 $TenantId = "531ff96d-0ae9-462a-8d2d-bec7c0b42082"
 $TeamDisplayName = "HMCTS PRE-NLE" #set to demo "HMCTS Pre-Demo" or prod "HMCTS Pre-recorded Evidence"
-$ChannelName = "NRO-test" #this is the name of the private channel in prod (confirm it's correct, or update to channel name you are testing)
+$ChannelName = "NRO-test" #this should be the name of the private channel in prod "HMCTS Pre-recorded Evidence Production" (confirm it's correct, or update to channel name you are testing)
 
 $LogPathMatches = "../NRO-logs/MatchingUsers.txt"
 $LogPathAddedMembers = "../NRO-logs/Added-team-members.txt"
