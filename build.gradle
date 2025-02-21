@@ -240,13 +240,13 @@ repositories {
 
 ext {
   log4JVersion = "2.24.3"
+  reformLoggingVersion = "6.1.8"
 }
 
 def versions = [
   jackson         : '2.18.2',
   junit           : '5.11.4',
   junitPlatform   : '1.11.4',
-  reformLogging   : '5.1.5',
   springBoot      : springBoot.class.package.implementationVersion
 ]
 
@@ -274,10 +274,13 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.19.0'
 
-  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.8'
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: reformLoggingVersion
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging-appinsights', version: reformLoggingVersion
 
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
+
+  implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '8.0'
 
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.3.2'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.3.2'
