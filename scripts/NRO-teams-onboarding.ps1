@@ -31,7 +31,7 @@ Connect-MicrosoftTeams
 
 $CSVPath = "" #add your path to CSV file containing user emails to be onboarded, if using the main onboarding test csv add a real justice user as this will fail for fake emails
 $TeamID = "" # change to demo or prod: in microsoft teams click three dots next to team, select get link, copy the group id from url
-$TenantId = "c6874728-71e6-41fe-a9e1-2e8c36776ad8"
+$TenantId = "531ff96d-0ae9-462a-8d2d-bec7c0b42082"
 $TeamDisplayName = "HMCTS PRE-NLE" #set to demo "HMCTS Pre-Demo" or prod "HMCTS Pre-recorded Evidence"
 $ChannelName = "NRO-test" #this should be the name of the private channel in prod, or channel being tested
 
