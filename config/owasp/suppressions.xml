@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
   <!--Please add all the false positives under the below section-->
-  <suppress>
+  <!-- <suppress>
     <notes><![CDATA[
    file name: jackson-databind-2.15.3.jar
    ]]></notes>
@@ -126,6 +126,6 @@
    ]]></notes>
     <packageUrl regex="true">^pkg:maven/org\.apache\.commons/commons\-compress@.*$</packageUrl>
     <cve>CVE-2024-26308</cve>
-  </suppress>
+  </suppress> -->
   <!--End of temporary suppression section -->
 </suppressions>
