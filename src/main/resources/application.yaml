@@ -17,6 +17,8 @@ springdoc:
   paths-to-exclude:
     - /info
     - /health/*
+  api-docs:
+    version: openapi_3_0
 
 spring:
   config:
@@ -140,3 +142,4 @@ portal:
 #        jdbc: DEBUG
 #        transaction:
 #          interceptor: trace
+
