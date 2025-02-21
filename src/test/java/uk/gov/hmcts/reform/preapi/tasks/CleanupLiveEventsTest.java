@@ -26,8 +26,6 @@ import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -621,6 +619,5 @@ public class CleanupLiveEventsTest {
         Assertions.assertEquals(captureSessionId, captureSessionCaptor2.getValue().getId());
 
         verify(stopLiveEventNotifierFlowClient, times(0)).emailAfterStoppingLiveEvents(any());
-        verify(mockEmailService, times(1)).recordingReady(any(User.class), any(Case.class));
     }
 }

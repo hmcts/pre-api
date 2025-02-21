@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 public class GovNotifyFT {
     private final String toEmailAddress = "test@test.com";
-    private final String fromEmailAddress = "prerecorded.evidence@notifications.service.gov.uk";
+    private final String fromEmailAddress = "hmcts.prerecorded.evidence@notifications.service.gov.uk";
     private final String caseReference = "123456";
     private final String courtName = "Court Name";
     private final String userFirstName = "John";
