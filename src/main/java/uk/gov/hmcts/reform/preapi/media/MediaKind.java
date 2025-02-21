@@ -346,6 +346,7 @@ public class MediaKind implements IMediaService {
             );
             return RecordingStatus.NO_RECORDING;
         }
+        azureIngestStorageService.markContainerAsProcessing(captureSession.getBookingId().toString());
 
         var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
         var recordingTempAssetName = recordingNoHyphen + "_temp";
@@ -365,6 +366,7 @@ public class MediaKind implements IMediaService {
             log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
             return RecordingStatus.FAILURE;
         }
+        azureIngestStorageService.markContainerAsProcessing(recordingId.toString());
 
         var jobName2 = encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
         var encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
@@ -376,6 +378,9 @@ public class MediaKind implements IMediaService {
                       recordingAssetName, recordingId);
             return RecordingStatus.FAILURE;
         }
+
+        azureIngestStorageService.markContainerAsSafeToDelete(captureSession.getBookingId().toString());
+        azureIngestStorageService.markContainerAsSafeToDelete(recordingId.toString());
         return RecordingStatus.RECORDING_AVAILABLE;
     }
 
