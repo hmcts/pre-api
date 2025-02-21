@@ -34,12 +34,14 @@ public class DataExtractionService {
     private Map<String, Pattern> getNamedPatterns() {
         Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
         namedPatterns.put("Special case",RegexPatterns.SPECIAL_CASE_PATTERN);
+        namedPatterns.put("Numbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS);
         namedPatterns.put("Standard", RegexPatterns.STANDARD_PATTERN);
         namedPatterns.put("Flexible", RegexPatterns.FLEXIBLE_PATTERN);
         namedPatterns.put("Prefix", RegexPatterns.PREFIX_PATTERN);
         namedPatterns.put("Double URN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN);
         namedPatterns.put("Double Exhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN);
         namedPatterns.put("Match All", RegexPatterns.MATCH_ALL_PATTERN);
+        
 
         return namedPatterns;
     }

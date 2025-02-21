@@ -32,6 +32,17 @@ public final class RegexPatterns {
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
+    public static final Pattern STANDARD_PATTERN_WITH_NUMBERS = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE +
+        DATE_PATTERN + SEPARATOR_ONE +
+        OPTIONAL_PREFIX + 
+        URN_PATTERN + SEPARATOR_ONE +
+        "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?" +
+        NAMES_PATTERN + SEPARATOR_ONE +
+        VERSION_PATTERN +
+        "(?:" + EXTENSION_PATTERN + ")?$"
+    );
+
     public static final Pattern FLEXIBLE_PATTERN = Pattern.compile(
         "^" + COURT_PATTERN + SEPARATOR_ONE 
         + DATE_PATTERN + SEPARATOR_ONE 
