@@ -4,8 +4,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
@@ -43,19 +43,19 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = ShareBookingService.class)
 public class ShareBookingServiceTest {
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private ShareBookingRepository shareBookingRepository;
 
-    @MockBean
+    @MockitoBean
     private EmailServiceFactory emailServiceFactory;
 
-    @MockBean
+    @MockitoBean
     private GovNotify govNotify;
 
     @Autowired

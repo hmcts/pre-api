@@ -4,7 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = PortalAccessService.class)
 public class PortalAccessServiceTest {
-    @MockBean
+    @MockitoBean
     private PortalAccessRepository portalAccessRepository;
 
     @Autowired

@@ -5,13 +5,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.filter.XUserIdFilter;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -31,7 +31,7 @@ import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_H
 @SpringBootTest(classes = XUserIdFilter.class)
 public class XUserIdFilterTest {
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
     @Autowired
