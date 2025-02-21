@@ -248,6 +248,21 @@ TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
 # or
 TASK_NAME=CleanupLiveEvents ./gradlew bootRun
 ```
+## Monitoring and Logging
+
+We use Azure Application Insights for storing our logs. Ask a teammate for the specific Azure resource to access them. Locally, we use Log4j.
+
+This service is also monitored in production and staging environments by Dynatrace. Ask a team member for the URL of our specific Dynatrace instance.
+
+### Application Insights
+
+Application Insights is configured via the `lib/applicationinsights.json` file. The Dockerfile is configured to copy this file and download the App Insights client.
+
+At runtime, the client is attached as a Java agent, enabling it to send logs to App Insights.
+
+A connection string is used to connect to App Insights. This is configured to read from the Key Vault Secret mounted inside the pod.
+
+Connecting to App Insights locally is possible, although a bit fiddly. The easiest way is to get the connection string from Azure, set it as an environment variable (`APPLICATIONINSIGHTS_CONNECTION_STRING`), and add the Java agent as a VM argument. You'll also need to remove or comment out the connection string line in the config file.
 
 ## License
 
