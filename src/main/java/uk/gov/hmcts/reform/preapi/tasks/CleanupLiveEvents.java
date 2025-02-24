@@ -11,9 +11,6 @@ import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.Court;
-import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -132,24 +129,12 @@ public class CleanupLiveEvents extends RobotUserTask {
                                                             .build())
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
-                                      log.info("Sending email notifications to {} user(s)", toNotify.size());
                                       if (!emailServiceFactory.isEnabled()) {
+                                          log.info("Sending email notifications to {} user(s)", toNotify.size());
                                           stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
-                                      } else {
-                                          var forCase = new Case();
-                                          forCase.setReference(booking.getCaseDTO().getReference());
-                                          var court = new Court();
-                                          court.setName(booking.getCaseDTO().getCourt().getName());
-                                          forCase.setCourt(court);
-                                          var emailService = emailServiceFactory.getEnabledEmailService();
-                                          toNotify.forEach(notify -> {
-                                              var emailUser = new User();
-                                              emailUser.setEmail(notify.getEmail());
-                                              emailUser.setFirstName(notify.getFirstName());
-                                              emailUser.setLastName(notify.getLastName());
-                                              emailService.recordingReady(emailUser, forCase);
-                                          });
                                       }
+                                      // if GovNotify is enabled, users are notified via the
+                                      // RecordingListener.onRecordingCreated method
                                   } else {
                                       log.info("No users to notify for capture session {}", captureSession.getId());
                                   }
@@ -216,12 +201,5 @@ public class CleanupLiveEvents extends RobotUserTask {
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             return false;
         }
-    }
-
-    private UUID generateUuidFromLiveEventName(String liveEventId) {
-        return new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
     }
 }
