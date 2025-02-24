@@ -121,19 +121,18 @@ public class AzureBlobService {
     }
 
     public boolean uploadBlob(String localFileName, String containerName, String environment, String uploadFileName) {
-        Logger.getAnonymousLogger().info("File to updload at: " 
-            + localFileName + " - " + containerName + " - " + environment + " - " + uploadFileName);
-
         try {
             var file = new File(localFileName);
-            var containerClient = getClient(environment).createBlobContainerIfNotExists(containerName);
+            var containerClient = getClient(environment).getBlobContainerClient(containerName);
+            if (!containerClient.exists()) {
+                containerClient.create();
+            }
             var blobClient = containerClient.getBlobClient(uploadFileName);
             blobClient.upload(new FileInputStream(file), file.length(), true);
-            Logger.getAnonymousLogger().info("Successfully uploaded to ingest storage: " 
-                + containerName + uploadFileName);
+      
             return true;
         } catch (IOException e) {
-            Logger.getAnonymousLogger().warning("Failed to upload to ingest storage: " 
+            Logger.getAnonymousLogger().warning("Failed to upload to storage: " 
                 + containerName + uploadFileName + e);
         }
         return false;

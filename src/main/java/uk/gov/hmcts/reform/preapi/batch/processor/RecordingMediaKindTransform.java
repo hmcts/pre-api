@@ -33,11 +33,10 @@ public class RecordingMediaKindTransform {
     public void processMedia(String mp4FileName, UUID recordingId) {
         try {
             String containerName = recordingId.toString();
-            String containerNameIngest = recordingId.toString() + "-input";
+            String containerNameIngest = containerName + "-input";
             String sourceEnvironmentContainerName = "pre-vodafone-spike";
             String sourceEnvironment = "dev";
             String ingestEnvironment = "stagingIngest";
-            String finalEnvironment = "stagingFinal";
 
             // Fetch and transfer MP4 from 'presadev' to 'ingest'
             String localFilePath = downloadFile(mp4FileName, sourceEnvironment, sourceEnvironmentContainerName);
@@ -45,15 +44,9 @@ public class RecordingMediaKindTransform {
                 azureBlobService.uploadBlob(localFilePath, containerNameIngest, ingestEnvironment, mp4FileName);
             }
 
-            // Process the media in 'ingest'
+            // Process the media in 'ingest' and upload to 'final'
             processInMediaKind(recordingId, mp4FileName);
 
-            // Once processed, transferred from 'ingest' to 'final'
-            if (localFilePath != null) {
-                azureBlobService.uploadBlob(localFilePath, containerName, finalEnvironment, mp4FileName);
-            }
-
-            logger.info("Media processing complete for: {}", mp4FileName);
         } catch (Exception e) {
             logger.error("Failed to process media: {}", e.getMessage());
         }
@@ -93,11 +86,12 @@ public class RecordingMediaKindTransform {
             generateAssetDTO.setParentRecordingId(containerUUID);
 
             GenerateAssetResponseDTO response = mediaKindService.importAsset(generateAssetDTO);
-            logger.info("Asset Import Job State: {}", response.getJobStatus());
+
         } catch (Exception e) {
-            logger.error("Failed to process media: {}", e.getMessage());
+            logger.error("Failed to process media: {}", e.getMessage(),e);
         }
         
     }
+
 }
 

@@ -102,7 +102,6 @@ public class MigrationGroupBuilderService {
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
 
         // if (recording != null) {
-        //     logger.info("MediaKindifying file: "+ recording.getFilename() + " : " + recording.getId());
         //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());  
         // }
 

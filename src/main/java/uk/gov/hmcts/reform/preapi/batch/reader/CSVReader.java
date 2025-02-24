@@ -45,6 +45,7 @@ public class CSVReader {
                             setTargetType(targetClass);
                         }
                     })
+                    .strict(false)
                     .build();
         } catch (Exception e) {
             Logger.getAnonymousLogger().severe("Failed to create CSV reader for resource: "
