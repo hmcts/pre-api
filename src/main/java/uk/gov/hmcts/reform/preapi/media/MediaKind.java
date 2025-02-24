@@ -34,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.StreamingLocatorDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -328,6 +329,12 @@ public class MediaKind implements IMediaService {
         return getAllMkList(mediaKindClient::getLiveEvents)
             .map(LiveEventDTO::new)
             .toList();
+    }
+
+    public List<StreamingLocatorDTO> getStreamingLocators() {
+        return getAllMkList(mediaKindClient::getStreamingLocators)
+                .map(StreamingLocatorDTO::new)
+                .toList();
     }
 
     @Override
