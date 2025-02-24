@@ -50,6 +50,7 @@ public class AddNROUsers extends RobotUserTask {
     @Override
     public void run() throws RuntimeException {
         log.info("Running AddNROUsers task");
+        signInRobotUser();
 
         log.info("Reading in .csv file from path: " + this.usersFile);
         try {
