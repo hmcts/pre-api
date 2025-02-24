@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
@@ -45,11 +46,12 @@ public class AddNROUsersIT extends IntegrationTestBase {
     @Autowired
     private UserService userService;
 
-    private static final String TEST_USERS_FILE =
-        "src/integrationTest/resources/Test_NRO_User_Import.csv";
-    private static final String CRON_USER_EMAIL = "test@test.com";
-    private List<ImportedNROUser> testImportedNROUsers;
+    @Value("${cron-user-email}")
+    private String CRON_USER_EMAIL;
+    private static final String TEST_USERS_FILE = "src/integrationTest/resources/Test_NRO_User_Import.csv";
+
     private List<String> failureCaseEmails;
+    private List<ImportedNROUser> testImportedNROUsers;
 
 
     @BeforeEach
