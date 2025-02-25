@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
+import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -40,14 +41,14 @@ public class AddNROUsersIT extends IntegrationTestBase {
     @Autowired
     private RoleRepository roleRepository;
     @Autowired
-    private static UserAuthenticationService userAuthenticationService;
+    private UserAuthenticationService userAuthenticationService;
     @Autowired
     private UserRepository userRepository;
     @Autowired
     private UserService userService;
 
     @Value("${cron-user-email}")
-    private String CRON_USER_EMAIL;
+    private String cronUserEmail;
     private static final String TEST_USERS_FILE = "src/integrationTest/resources/Test_NRO_User_Import.csv";
 
     private List<String> failureCaseEmails;
@@ -56,6 +57,19 @@ public class AddNROUsersIT extends IntegrationTestBase {
 
     @BeforeEach
     void setUp() throws Exception {
+        var mockUser = HelperFactory.createUser("Example", "Admin-User", cronUserEmail,
+                                                null, null, null);
+        entityManager.persist(mockUser);
+        var mockCourt = HelperFactory.createCourt(CourtType.CROWN, "Admin Court", null);
+        entityManager.persist(mockCourt);
+        var mockRole = HelperFactory.createRole("Super User");
+        entityManager.persist(mockRole);
+        var mockAppAccess = HelperFactory.createAppAccess(mockUser, mockCourt, mockRole, true, null,
+                                                          null, true);
+        entityManager.persist(mockAppAccess);
+        entityManager.flush();
+        entityManager.refresh(mockUser);
+
         // NRO objects to test assertions:
         this.testImportedNROUsers = getTestImportedNROUsers(
             this.populateRolesTableAndGetTestRoleIDs().get("Test Level 2 ID")
@@ -68,14 +82,14 @@ public class AddNROUsersIT extends IntegrationTestBase {
     }
 
     // test NRO users are imported successfully
-    @DisplayName("Test NRO users listed in a CSV file are successfully uploaded to, then obscured in, the DB")
+    @DisplayName("Test NRO users listed in a CSV file are successfully uploaded to the DB")
     @Transactional
     @Test
     public void testRunAddNROUsers() {
         // initialise & run the AddNROUsers test
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
-                                                  CRON_USER_EMAIL,
+                                                  cronUserEmail,
                                                   courtRepository,
                                                   roleRepository,
                                                   TEST_USERS_FILE
@@ -150,6 +164,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
     @Transactional
     @Test
     public void testSettersAndToString() {
+        mockAdminUser();
         UUID testNewCourtID = UUID.randomUUID();
         UUID testNewRoleID = UUID.randomUUID();
 
@@ -180,10 +195,11 @@ public class AddNROUsersIT extends IntegrationTestBase {
     @Transactional
     @Test
     public void testInvalidCSVFile() {
+        mockAdminUser();
         String falseFileName = "falseFileName";
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                 userAuthenticationService,
-                CRON_USER_EMAIL,
+                cronUserEmail,
                 courtRepository,
                 roleRepository,
                 falseFileName);

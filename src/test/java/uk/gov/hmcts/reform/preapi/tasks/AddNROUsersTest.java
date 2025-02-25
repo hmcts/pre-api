@@ -1,10 +1,14 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
+import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -15,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.AppAccessService;
 import uk.gov.hmcts.reform.preapi.services.PortalAccessService;
@@ -24,9 +29,11 @@ import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -64,9 +71,23 @@ class AddNROUsersTest {
     @MockBean
     private UserService userService;
 
+    @Value("${cron-user-email}")
+    private String cronUserEmail;
     private static final String TEST_USERS_FILE =
         "src/integrationTest/resources/Test_NRO_User_Import.csv";
-    private static final String CRON_USER_EMAIL = "test@test.com";
+
+    @BeforeEach
+    void beforeEach() {
+        var accessDto = mock(AccessDTO.class);
+        var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
+        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+
+        when(userService.findByEmail(cronUserEmail)).thenReturn(accessDto);
+        when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
+
+        var userAuth = mock(UserAuthentication.class);
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+    }
 
     @DisplayName("Successfully add users from test file to DB")
     @Test
@@ -100,7 +121,7 @@ class AddNROUsersTest {
 
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
-                                                  CRON_USER_EMAIL,
+                                                  cronUserEmail,
                                                   courtRepository,
                                                   roleRepository,
                                                   TEST_USERS_FILE);
@@ -144,7 +165,7 @@ class AddNROUsersTest {
 
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
-                                                  CRON_USER_EMAIL,
+                                                  cronUserEmail,
                                                   courtRepository,
                                                   roleRepository,
                                                   TEST_USERS_FILE);

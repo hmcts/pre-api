@@ -1,8 +1,10 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
@@ -73,7 +75,21 @@ class ObscureNROUsersTest {
 
     private static final String TEST_USERS_FILE =
         "src/integrationTest/resources/Test_NRO_User_Import.csv";
-    private static final String CRON_USER_EMAIL = "test@test.com";
+    @Value("${cron-user-email}")
+    private String cronUserEmail;
+
+    @BeforeEach
+    void beforeEach() {
+        var accessDto = mock(AccessDTO.class);
+        var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
+        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+
+        when(userService.findByEmail(cronUserEmail)).thenReturn(accessDto);
+        when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
+
+        var userAuth = mock(UserAuthentication.class);
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+    }
 
     @DisplayName("Successfully print obscuring queries for values from test file")
     @Test
@@ -107,7 +123,7 @@ class ObscureNROUsersTest {
 
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
-                                                  CRON_USER_EMAIL,
+                                                  cronUserEmail,
                                                   courtRepository,
                                                   roleRepository,
                                                   TEST_USERS_FILE);
@@ -148,7 +164,7 @@ class ObscureNROUsersTest {
 
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                   userAuthenticationService,
-                                                  CRON_USER_EMAIL,
+                                                              cronUserEmail,
                                                   courtRepository,
                                                   roleRepository,
                                                   TEST_USERS_FILE);
@@ -203,7 +219,7 @@ class ObscureNROUsersTest {
 
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                               userAuthenticationService,
-                                                              CRON_USER_EMAIL,
+                                                              cronUserEmail,
                                                               courtRepository,
                                                               roleRepository,
                                                               TEST_USERS_FILE);
@@ -259,7 +275,7 @@ class ObscureNROUsersTest {
 
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                               userAuthenticationService,
-                                                              CRON_USER_EMAIL,
+                                                              cronUserEmail,
                                                               courtRepository,
                                                               roleRepository,
                                                               TEST_USERS_FILE);
@@ -320,7 +336,7 @@ class ObscureNROUsersTest {
 
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                               userAuthenticationService,
-                                                              CRON_USER_EMAIL,
+                                                              cronUserEmail,
                                                               courtRepository,
                                                               roleRepository,
                                                               "falseFileName");
