@@ -74,14 +74,13 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private MigratedItemGroup process(CSVArchiveListData archiveItem) {
-        try {
-            
+        try {            
             CleansedData cleansedData = transformData(archiveItem);
             if (cleansedData == null) {
                 return null;
             }
             checkMigrated(cleansedData, archiveItem);
-
+            
             if (!validateData(cleansedData, archiveItem)) {
                 return null;
             } 

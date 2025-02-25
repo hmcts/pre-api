@@ -2,7 +2,6 @@
 package uk.gov.hmcts.reform.preapi.services.batch;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -128,10 +128,16 @@ public class EntityCreationService {
     }
 
     public Set<CreateParticipantDTO> createParticipants(CleansedData cleansedData) {
-        var participants = Set.of(
-            createParticipant(ParticipantType.WITNESS,  cleansedData.getWitnessFirstName(), ""),
-            createParticipant(ParticipantType.DEFENDANT,  "", cleansedData.getDefendantLastName())
-        );
+        Set<CreateParticipantDTO> participants = new HashSet<>();
+        
+        if (cleansedData.getWitnessFirstName() != null && !cleansedData.getWitnessFirstName().trim().isEmpty()) {
+            participants.add(createParticipant(ParticipantType.WITNESS, cleansedData.getWitnessFirstName(), ""));
+        }
+        
+        if (cleansedData.getDefendantLastName() != null && !cleansedData.getDefendantLastName().trim().isEmpty()) {
+            participants.add(createParticipant(ParticipantType.DEFENDANT, "", cleansedData.getDefendantLastName()));
+        }
+        
         return participants;
     }
 
@@ -253,8 +259,8 @@ public class EntityCreationService {
     public CreateUserDTO createUser(String firstName, String lastName, String email, UUID id) {
         CreateUserDTO userDTO = new CreateUserDTO();
         userDTO.setId(id);
-        userDTO.setFirstName(StringUtils.capitalize(firstName.toLowerCase()));
-        userDTO.setLastName(StringUtils.capitalize(lastName.toLowerCase()));
+        userDTO.setFirstName(firstName);
+        userDTO.setLastName(lastName);
         userDTO.setEmail(email);
         userDTO.setPortalAccess(Set.of());
         userDTO.setAppAccess(null);

@@ -28,7 +28,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.HashSet;
+
 
 @Service
 public class MigrationGroupBuilderService {
@@ -126,18 +129,68 @@ public class MigrationGroupBuilderService {
             shareBookings, invites, passItem);
     }
 
-    
     private CreateCaseDTO createCaseIfOrig(CleansedData cleansedData) {
-        String caseReference = cleansedData.getCaseReference();        
+        String caseReference = cleansedData.getCaseReference();    
+
+        if (caseReference == null || caseReference.isBlank()) {
+            return null;
+        }
 
         if (caseCache.containsKey(caseReference)) {
-            return caseCache.get(caseReference);
+            CreateCaseDTO existingCase = caseCache.get(caseReference);
+            
+            if (existingCase == null) {
+                return null;
+            }
+
+            Set<CreateParticipantDTO> currentParticipants = existingCase.getParticipants();
+            if (currentParticipants == null) {
+                currentParticipants = new HashSet<>();
+            }
+
+            Set<CreateParticipantDTO> newParticipants = entityCreationService.createParticipants(cleansedData);
+            Set<CreateParticipantDTO> updatedParticipants = new HashSet<>(currentParticipants);
+            boolean changed = false;
+            
+            for (CreateParticipantDTO newParticipant : newParticipants) {
+                boolean exists = false;
+                
+                for (CreateParticipantDTO existingParticipant : currentParticipants) {
+                    if (isSameParticipant(existingParticipant, newParticipant)) {
+                        exists = true;
+                        break;
+                    }
+                }
+                
+                if (!exists) {
+                    updatedParticipants.add(newParticipant);
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                existingCase.setParticipants(updatedParticipants);
+            } 
+            return existingCase;
         }
 
         CreateCaseDTO newCase = entityCreationService.createCase(cleansedData);
+        if (newCase == null) {
+            return null;
+        }
+
         caseCache.put(caseReference, newCase);
         return newCase;
-        
+    }
+
+    private boolean isSameParticipant(CreateParticipantDTO p1, CreateParticipantDTO p2) {
+        return p1.getParticipantType() == p2.getParticipantType() &&
+            Objects.equals(normalizeName(p1.getFirstName()), normalizeName(p2.getFirstName())) &&
+            Objects.equals(normalizeName(p1.getLastName()), normalizeName(p2.getLastName()));
+    }
+
+    private String normalizeName(String name) {
+        return name == null ? "" : name.trim().toLowerCase();
     }
 
     private CreateBookingDTO processBooking(String baseKey, CleansedData cleansedData, CreateCaseDTO acase) {

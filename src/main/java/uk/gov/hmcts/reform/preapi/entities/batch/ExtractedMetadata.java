@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities.batch;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.time.LocalDateTime;
 
 public class ExtractedMetadata {
@@ -25,8 +27,8 @@ public class ExtractedMetadata {
         this.date = date;
         this.urn = urn;
         this.exhibitReference = exhibitReference;
-        this.defendantLastName = defendantLastName;
-        this.witnessFirstName = witnessFirstName;
+        this.defendantLastName = formatName(defendantLastName.toLowerCase());
+        this.witnessFirstName = formatName(witnessFirstName.toLowerCase());
         this.recordingVersion = recordingVersion;
         this.recordingVersionNumber = recordingVersionNumber;
         this.fileExtension = fileExtension;
@@ -87,6 +89,10 @@ public class ExtractedMetadata {
     public String getFileSize() { 
         return fileSize; 
     } 
+
+    private String formatName(String name) {
+        return name != null ? StringUtils.capitalize(name.toLowerCase()) : null;
+    }
 
     public String createCaseReference() {
         StringBuilder referenceBuilder = new StringBuilder();
