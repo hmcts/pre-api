@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.entities.batch.ServiceResult;
 import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
 import uk.gov.hmcts.reform.preapi.util.batch.ServiceResultUtil;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
@@ -15,13 +16,14 @@ import java.util.List;
 public class DataValidationService {
     public static final List<String> TEST_KEYWORDS = Arrays.asList("test", "demo", "unknown", "training", "T35T");
     public static final int MIN_RECORDING_DURATION = 10;
+    private static final LocalDate GO_LIVE_DATE = LocalDate.of(2019, 5, 23);
     private static final String ERROR_FILE_EXTENSION = "File not .mp4 file.";
     private static final String ERROR_TIMESTAMP = "Invalid timestamp: Timestamp is null.";
     private static final String ERROR_COURT = "No valid court associated.";
     private static final String ERROR_MOST_RECENT_VERSION = "Recording is not the most recent version.";
     private static final String ERROR_CASE_REFERENCE = "No valid case reference.";
     private static final String ERROR_CASE_REFERENCE_LONG = "Case reference longer than 24 chars.";
-
+    private static final String ERROR_PREDATES_GO_LIVE = "Record date predates go live date - 23/05/2019";
 
     @Autowired
     public DataValidationService() {
@@ -39,6 +41,10 @@ public class DataValidationService {
      */
     public ServiceResult<CleansedData> validateCleansedData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         TestItem testCheck = checkIsTest(archiveItem);
+        if (!isDateAfterGoLive(cleansedData)) {
+            return ServiceResultUtil.createFailureReponse(ERROR_PREDATES_GO_LIVE);
+        }
+
         if (testCheck.isTest()) {
             return ServiceResultUtil.createFailureReponse(testCheck.getReason());
         }
@@ -73,6 +79,17 @@ public class DataValidationService {
     // =========================
     // Specific Validation Methods
     // =========================
+    private boolean isDateAfterGoLive(CleansedData cleansedData) {
+        if (cleansedData.getRecordingTimestamp() == null) {
+            return false;
+        }
+        
+        LocalDate recordingDate = cleansedData.getRecordingTimestamp().toInstant()
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate();
+        
+        return !recordingDate.isBefore(GO_LIVE_DATE);
+    }
 
     private boolean isFileExtensionValid(CleansedData cleansedData) {
         String fileExtension = cleansedData.getFileExtension();

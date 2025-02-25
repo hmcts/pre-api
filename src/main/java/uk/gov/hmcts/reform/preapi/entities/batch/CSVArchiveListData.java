@@ -1,12 +1,16 @@
 package uk.gov.hmcts.reform.preapi.entities.batch;
 
-import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Locale;
 
 public class CSVArchiveListData {
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
     
     private String archiveName = "";
     private String createTime = "";
@@ -77,12 +81,40 @@ public class CSVArchiveListData {
     }
 
     public LocalDateTime getCreateTimeAsLocalDateTime() {
-        if (createTime.matches("\\d+")) { 
-            long epochMilli = Long.parseLong(createTime);
-            return LocalDateTime.ofInstant(Instant.ofEpochMilli(epochMilli), ZoneId.systemDefault());
-        } else {
-            return LocalDateTime.parse(createTime, FORMATTER);
+        if (createTime == null || createTime.isEmpty()) {
+            return null;
         }
+
+        String[] datePatterns = {
+            "dd/MM/yyyy HH:mm",   
+            "dd/MM/yyyy H:mm",    
+            "d/MM/yyyy HH:mm",   
+            "d/MM/yyyy H:mm",    
+            "dd/M/yyyy HH:mm",   
+            "dd/M/yyyy H:mm",     
+            "d/M/yyyy HH:mm",     
+            "d/M/yyyy H:mm",     
+            "dd-MM-yyyy HH:mm",   
+            "dd-MM-yyyy H:mm",  
+            "d-MM-yyyy HH:mm",   
+            "d-MM-yyyy H:mm",    
+            "dd-M-yyyy HH:mm", 
+            "dd-M-yyyy H:mm",     
+            "d-M-yyyy HH:mm", 
+            "d-M-yyyy H:mm"  
+        };
+
+        for (String pattern : datePatterns) {
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
+                return LocalDateTime.parse(createTime, formatter);
+            } catch (DateTimeParseException e) {
+                logger.debug("Failed to parse date '{}' with pattern '{}'", createTime, pattern);
+            }
+        }
+         logger.error("Could not parse create time '{}' with any known pattern", createTime);
+        return null;
     }
+
 
 }

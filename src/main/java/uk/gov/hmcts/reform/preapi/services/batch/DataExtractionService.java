@@ -18,8 +18,10 @@ import java.util.regex.Pattern;
 public class DataExtractionService {
 
     private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private final Map<String, Pattern> namedPatterns;
 
     public DataExtractionService() {
+        this.namedPatterns = initializePatterns();
     }
 
     // =========================
@@ -31,8 +33,9 @@ public class DataExtractionService {
      * The patterns are ordered by priority (e.g., more specific patterns come first).
      * @return A map of pattern names to compiled regex patterns.
      */
-    private Map<String, Pattern> getNamedPatterns() {
+    private Map<String, Pattern> initializePatterns() {
         Map<String, Pattern> namedPatterns = new LinkedHashMap<>();
+        namedPatterns.put("Specific", RegexPatterns.SPECIFIC_T_PATTERN);
         namedPatterns.put("Special case",RegexPatterns.SPECIAL_CASE_PATTERN);
         namedPatterns.put("Numbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS);
         namedPatterns.put("Standard", RegexPatterns.STANDARD_PATTERN);
@@ -41,7 +44,7 @@ public class DataExtractionService {
         namedPatterns.put("Double URN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN);
         namedPatterns.put("Double Exhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN);
         namedPatterns.put("Match All", RegexPatterns.MATCH_ALL_PATTERN);
-        
+        namedPatterns.put("DATE_TIME_PATTERN", RegexPatterns.DATE_TIME_PATTERN);
 
         return namedPatterns;
     }
@@ -57,7 +60,8 @@ public class DataExtractionService {
      */
     public Map.Entry<String, Matcher> matchPattern(CSVArchiveListData archiveItem) {
         String cleanedArchiveName = cleanArchiveName(archiveItem.getArchiveName());
-        for (Map.Entry<String, Pattern> entry : getNamedPatterns().entrySet()) {
+
+        for (Map.Entry<String, Pattern> entry : namedPatterns.entrySet()) {
             Matcher matcher = entry.getValue().matcher(cleanedArchiveName);
             if (matcher.matches()) {
                 return Map.entry(entry.getKey(), matcher);
@@ -83,8 +87,9 @@ public class DataExtractionService {
             try {
                 return patternMatch.getValue().group(groupName);
             } catch (Exception e) {
-                throw new IllegalStateException("Group '" + groupName + "' not found in pattern '" 
-                    + patternMatch.getKey() + "'", e);
+                logger.warn("Group '{}' not found in pattern '{}' for file: {}", 
+                groupName, patternMatch.getKey(), archiveItem.getArchiveName());
+                return "";
             }
         }
         return "";
