@@ -17,8 +17,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -28,7 +30,7 @@ import java.util.UUID;
 public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
-    private final Set<String> otherUsersNotImported = new HashSet<>();
+    private final Map<String, String> otherUsersNotImported = new HashMap<>();
     private final List<ImportedNROUser> importedNROUsers = new ArrayList<>();
     private final List<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
@@ -59,6 +61,8 @@ public class AddNROUsers extends RobotUserTask {
             throw new RuntimeException(e);
         }
 
+        this.deleteInvalidNROUsersForImportation();
+
         // create a new user for each email (with their corresponding app access entries)
         log.info("Creating new users. . .");
         this.createUsers();
@@ -70,7 +74,7 @@ public class AddNROUsers extends RobotUserTask {
                 this.userService.upsert(createUserDTOToUpsert);
             } catch (Exception e) {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
-                this.otherUsersNotImported.add(createUserDTOToUpsert.getEmail());
+                this.otherUsersNotImported.put(createUserDTOToUpsert.getEmail(), e.getMessage());
                 log.error("Upsert failed for user: {}", createUserDTOToUpsert.getEmail());
                 log.error("\nReason for upsert failure:\n" + e.getMessage());
             }
@@ -78,7 +82,7 @@ public class AddNROUsers extends RobotUserTask {
 
         log.info("NRO Users successfully added to the DB:");
         for (CreateUserDTO createUserDTO : this.nroUsers) {
-            if (!this.otherUsersNotImported.contains(createUserDTO.getEmail())) {
+            if (!this.otherUsersNotImported.containsKey(createUserDTO.getEmail())) {
                 log.info(createUserDTO.getEmail());
             }
         }
@@ -176,32 +180,61 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
+    private void deleteInvalidNROUsersForImportation() {
+        List<ImportedNROUser> importedNROUsersToDelete = new ArrayList<>();
+        for (ImportedNROUser importedNROUser : this.importedNROUsers) {
+            if (this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
+                importedNROUsersToDelete.add(importedNROUser);
+            }
+        }
+
+        for (ImportedNROUser importedNROUserToDelete : importedNROUsersToDelete) {
+            this.importedNROUsers.remove(importedNROUserToDelete);
+        }
+
+        for (Map.Entry<String, String> unaddedEmailsAndErrors: this.otherUsersNotImported.entrySet()) {
+            log.info(unaddedEmailsAndErrors.getValue());
+        }
+    }
+
     private ImportedNROUser getNROUser(String[] values, int rowNumber) {
         StringBuilder csvErrors = new StringBuilder();
 
         // validate firstName
         String firstName = values[0];
         if (firstName.isEmpty()) {
-            csvErrors.append("\nUser is missing First Name from the .csv input");
+            csvErrors.append("\nUser is missing First Name from the .csv input")
+                .append(" (from row ")
+                .append(rowNumber)
+                .append(")");
         }
 
         // validate lastName
         String lastName = values[1];
         if (lastName.isEmpty()) {
-            csvErrors.append("\nUser is missing Last Name from the .csv input");
+            csvErrors.append("\nUser is missing Last Name from the .csv input")
+                .append(" (from row ")
+                .append(rowNumber)
+                .append(")");
         }
 
         // validate email
         String email = values[2];
         if (email.isEmpty()) {
-            csvErrors.append("\nUser is missing Email from the .csv input");
+            csvErrors.append("\nUser is missing Email from the .csv input")
+                .append(" (from row ")
+                .append(rowNumber)
+                .append(")");
         }
 
         // validate isDefault
         boolean isDefault = false;
 
         if (!values[3].toLowerCase().contains("primary") && !values[3].toLowerCase().contains("secondary")) {
-            csvErrors.append("\nUser is missing Primary/Secondary Court Level from the .csv input");
+            csvErrors.append("\nUser is missing Primary/Secondary Court Level from the .csv input")
+                .append(" (from row ")
+                .append(rowNumber)
+                .append(")");
         } else if (values[3].toLowerCase().contains("primary")) {
             isDefault = true;
         }
@@ -210,7 +243,10 @@ public class AddNROUsers extends RobotUserTask {
         String court = values[4];
         UUID courtID = null;
         if (this.courtRepository.findFirstByName(court).isEmpty()) {
-            csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file");
+            csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file")
+                .append(" (from row ")
+                .append(rowNumber)
+                .append(")");
         } else {
             courtID = this.courtRepository.findFirstByName(court).get().getId();
         }
@@ -219,19 +255,29 @@ public class AddNROUsers extends RobotUserTask {
         String userLevel = values[6];
         UUID roleID = null;
         if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
-            csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file");
+            csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file")
+                .append(" (from row ")
+                .append(rowNumber)
+                .append(")");
         } else {
             roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
         }
 
-        if (!csvErrors.isEmpty()) {
-            csvErrors.insert(0, "User in row " + rowNumber + " will not be imported:");
-            log.info(csvErrors.toString());
-            this.otherUsersNotImported.add(email);
+        // if errors exist and the user does not have errors already:
+        if (!csvErrors.toString().isEmpty() && !this.otherUsersNotImported.containsKey(email)) {
+            csvErrors.insert(0, "User found in row " + rowNumber + " with email '" + email
+                + "' will not be imported:");
+            this.otherUsersNotImported.put(email, csvErrors.toString());
             return null;
-        } else if (this.otherUsersNotImported.contains(email)) {
-            log.info("User in row " + rowNumber + " will not be imported:");
-            log.info(email + " has at least one court which does not exist in the DB; this has already been logged");
+        // if errors exist and the user has errors already:
+        } else if (!csvErrors.toString().isEmpty() && this.otherUsersNotImported.containsKey(email)) {
+            csvErrors.insert(0, this.otherUsersNotImported.get(email)
+                .replace(" with email", "," + rowNumber + " with email"));
+            this.otherUsersNotImported.put(email, csvErrors.toString());
+            return null;
+        } else if (csvErrors.toString().isEmpty() && this.otherUsersNotImported.containsKey(email)) {
+            this.otherUsersNotImported.put(email, this.otherUsersNotImported.get(email)
+                .replace(" with email", "," + rowNumber + " with email"));
             return null;
         } else {
             return new ImportedNROUser(firstName, lastName, email, court, courtID, isDefault, roleID, userLevel);

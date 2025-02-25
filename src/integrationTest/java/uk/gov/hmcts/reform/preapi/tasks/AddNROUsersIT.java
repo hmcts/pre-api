@@ -77,7 +77,8 @@ public class AddNROUsersIT extends IntegrationTestBase {
         this.failureCaseEmails = List.of(
             "exampleUserD@test.com",
             "exampleUserF@test.com",
-            "exampleUserG@test.com"
+            "exampleUserG@test.com",
+            "exampleUserH@test.com"
         );
     }
 
@@ -147,7 +148,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
                 Comparator.comparing((AppAccess appAccess) -> appAccess.getUser().getEmail())
                     .thenComparing(appAccess -> appAccess.getCourt().getName())).toList();
 
-        assertEquals(9, appAccessObjsForTestUsers.size());
+        assertEquals(8, appAccessObjsForTestUsers.size());
 
         // iterate through relevant app access objects and assert each object has their expected values
         int index = 0;
@@ -304,14 +305,6 @@ public class AddNROUsersIT extends IntegrationTestBase {
                                                                    true,
                                                                    testLvl2ID,
                                                                    "2");
-        ImportedNROUser testImportedNROUserH = new ImportedNROUser("Example",
-                                                                   "User H",
-                                                                   "exampleUserH@test.com",
-                                                                   "Harrow Crown Court",
-                                                                   findTestCourtID("Harrow Crown Court"),
-                                                                   true,
-                                                                   testLvl2ID,
-                                                                   "2");
 
         List<ImportedNROUser> testUsers = new ArrayList<>();
         testUsers.add(testImportedNROUserA);
@@ -322,7 +315,6 @@ public class AddNROUsersIT extends IntegrationTestBase {
         testUsers.add(testImportedNROUserCSecondaryCourt2);
         testUsers.add(testImportedNROUserCSecondaryCourt3);
         testUsers.add(testImportedNROUserE);
-        testUsers.add(testImportedNROUserH);
 
         // sort alphabetically by email then court name
         testUsers.sort(Comparator.comparing(ImportedNROUser::getEmail).thenComparing(ImportedNROUser::getCourt));

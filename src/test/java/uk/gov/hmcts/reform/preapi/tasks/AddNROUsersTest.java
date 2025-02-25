@@ -132,7 +132,7 @@ class AddNROUsersTest {
         addNROUsers.run();
 
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
-        verify(userService, times(5)).upsert(any(CreateUserDTO.class));
+        verify(userService, times(4)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(39)).findFirstByName(any());
         verify(courtRepository, times(31)).findFirstByName(any());
@@ -179,7 +179,7 @@ class AddNROUsersTest {
                                                   TEST_USERS_FILE);
         addNROUsers.run();
 
-        verify(userService, times(5)).upsert(any(CreateUserDTO.class));
+        verify(userService, times(4)).upsert(any(CreateUserDTO.class));
     }
 
     private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) {
