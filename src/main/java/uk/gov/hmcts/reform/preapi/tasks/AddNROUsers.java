@@ -28,7 +28,7 @@ import java.util.UUID;
 public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
-    private final List<String> otherUsersNotImported = new ArrayList<>();
+    private final Set<String> otherUsersNotImported = new HashSet<>();
     private final List<ImportedNROUser> importedNROUsers = new ArrayList<>();
     private final List<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
@@ -227,6 +227,11 @@ public class AddNROUsers extends RobotUserTask {
         if (!csvErrors.isEmpty()) {
             csvErrors.insert(0, "User in row " + rowNumber + " will not be imported:");
             log.info(csvErrors.toString());
+            this.otherUsersNotImported.add(email);
+            return null;
+        } else if (this.otherUsersNotImported.contains(email)) {
+            log.info("User in row " + rowNumber + " will not be imported:");
+            log.info(email + " has at least one court which does not exist in the DB; this has already been logged");
             return null;
         } else {
             return new ImportedNROUser(firstName, lastName, email, court, courtID, isDefault, roleID, userLevel);
