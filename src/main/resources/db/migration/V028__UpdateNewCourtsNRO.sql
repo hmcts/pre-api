@@ -13,6 +13,7 @@ SET name = CASE
     WHEN name = 'Kingston-upon-Hull Combined Court Centre' THEN 'Kingston-upon-Hull Combined Court'
     WHEN name = 'Maidstone Combined Court Centre' THEN 'Maidstone Combined Court'
     WHEN name = 'Manchester Crown Court (Crown Square)' THEN 'Manchester Crown Court'
+    WHEN name = 'Manchester Crown Court (Minshull Street)' THEN 'Manchester Minshull Street Crown Court'
     WHEN name = 'Merthyr Tydfil Crown Court' THEN 'Merthyr Tydfil Combined Court'
     WHEN name = 'Mold Justice Centre (Mold Law Courts)' THEN 'Mold Justice Centre'
     WHEN name = 'Newcastle upon Tyne Combined Court Centre' THEN 'Newcastle upon Tyne Crown Court'
@@ -30,7 +31,7 @@ SET name = CASE
     WHEN name = 'Warwickshire (South) Justice Centre' THEN 'Warwick Combined Court'
     WHEN name = 'Winchester Combined Court Centre' THEN 'Winchester Combined Court'
     WHEN name = 'Wolverhampton Combined Court Centre' THEN 'Wolverhampton Combined Court'
-    WHEN name = 'Leeds Crown Court' THEN 'Leeds Combined Court Centre'  
+    WHEN name = 'Leeds Crown Court' THEN 'Leeds Combined Court'  
     WHEN name = 'Leeds Youth Court' THEN 'Leeds Magistrates'' Court'
     WHEN name = 'Liverpool QEII Law Courts: Liverpool Crown Court' THEN 'Liverpool Crown Court'
     WHEN name = 'Isle of Wight Combined (and Magistrates) Court' THEN 'Isle of Wight Combined Court'
@@ -70,7 +71,8 @@ WHERE name IN (
     'Leeds Youth Court',
     'Liverpool QEII Law Courts: Liverpool Crown Court',
     'Isle of Wight Combined (and Magistrates) Court',
-    'Birmingham Crown Court & Annex'
+    'Birmingham Crown Court & Annex',
+    'Manchester Crown Court (Minshull Street)'
 );
 
 -- Delete courts where not required
@@ -188,11 +190,12 @@ WHERE c.name IN (
     'Warwick Combined Court',
     'Winchester Combined Court',
     'Wolverhampton Combined Court',
-    'Leeds Combined Court Centre',
+    'Leeds Combined Court',
     'Leeds Magistrates'' Court',
     'Liverpool Crown Court',
     'Isle of Wight Combined Court',
-    'Birmingham Crown Court'
+    'Birmingham Crown Court',
+    'Manchester Minshull Street Crown Court'
 );
 
 --Audit entry regarding location code updates
@@ -230,5 +233,43 @@ WHERE c.name IN (
     'Leeds Magistrates'' Court'
 );
 
+-- Audit entry regarding deleted courts
+INSERT INTO public.audits (
+    id, 
+    table_name, 
+    table_record_id, 
+    source, 
+    category, 
+    activity, 
+    functional_area, 
+    created_by, 
+    created_at, 
+    audit_details
+)
+SELECT
+    gen_random_uuid() AS id,
+    'courts' AS table_name,
+    NULL AS table_record_id,
+    'AUTO' AS source,
+    'Court' AS category,
+    'Delete' AS activity,
+    'Delete a court' AS functional_area,
+    (SELECT id FROM public.users WHERE last_name = 'Admin' LIMIT 1) AS created_by,
+    NOW() AS created_at,
+    jsonb_build_object(
+        'description', 'Court has been deleted.',
+        'courtName', name
+    ) AS audit_details
+FROM (
+    VALUES
+        ('Caernarfon Justice Centre'),
+        ('Coventry Combined Court Centre'),
+        ('Doncaster Crown Court (Doncaster Justice Centre South)'),
+        ('King''s Lynn Crown Court'),
+        ('Lancaster Crown Court'),
+        ('Newcastle Moot Hall Annex'),
+        ('Newport (South Wales) Crown Court'),
+        ('Warrington Crown Court')
+) AS deleted_courts(name);
 
 COMMIT;
