@@ -32,6 +32,9 @@ SET name = CASE
     WHEN name = 'Wolverhampton Combined Court Centre' THEN 'Wolverhampton Combined Court'
     WHEN name = 'Leeds Crown Court' THEN 'Leeds Combined Court Centre'  
     WHEN name = 'Leeds Youth Court' THEN 'Leeds Magistrates'' Court'
+    WHEN name = 'Liverpool QEII Law Courts: Liverpool Crown Court' THEN 'Liverpool Crown Court'
+    WHEN name = 'Isle of Wight Combined (and Magistrates) Court' THEN 'Isle of Wight Combined Court'
+    WHEN name = 'Birmingham Crown Court & Annex' THEN 'Birmingham Crown Court'
 
     ELSE name
 END
@@ -64,7 +67,10 @@ WHERE name IN (
     'Winchester Combined Court Centre',
     'Wolverhampton Combined Court Centre',
     'Leeds Crown Court',
-    'Leeds Youth Court'
+    'Leeds Youth Court',
+    'Liverpool QEII Law Courts: Liverpool Crown Court',
+    'Isle of Wight Combined (and Magistrates) Court',
+    'Birmingham Crown Court & Annex'
 );
 
 -- Delete courts where not required
@@ -183,7 +189,10 @@ WHERE c.name IN (
     'Winchester Combined Court',
     'Wolverhampton Combined Court',
     'Leeds Combined Court Centre',
-    'Leeds Magistrates'' Court'
+    'Leeds Magistrates'' Court',
+    'Liverpool Crown Court',
+    'Isle of Wight Combined Court',
+    'Birmingham Crown Court'
 );
 
 --Audit entry regarding location code updates
