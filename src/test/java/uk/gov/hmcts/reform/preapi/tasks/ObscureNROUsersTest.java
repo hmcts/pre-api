@@ -116,10 +116,15 @@ class ObscureNROUsersTest {
         }
 
         // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
-        Court uncalledTestCourt = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
-                                                            null);
+        // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
+        Court uncalledTestCourt1 = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
+                                                             null);
         when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
-            .thenReturn(Optional.of(uncalledTestCourt));
+            .thenReturn(Optional.of(uncalledTestCourt1));
+        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
+                                                             null);
+        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
+            .thenReturn(Optional.of(uncalledTestCourt2));
 
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
@@ -173,8 +178,8 @@ class ObscureNROUsersTest {
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
         verify(userService, times(5)).upsert(any(CreateUserDTO.class));
 
-        verify(roleRepository, times(39)).findFirstByName(any());
-        verify(courtRepository, times(31)).findFirstByName(any());
+        verify(roleRepository, times(41)).findFirstByName(any());
+        verify(courtRepository, times(33)).findFirstByName(any());
     }
 
     @DisplayName("Successfully throw exception when the obscuring court cannot be found in the DB")
@@ -216,6 +221,11 @@ class ObscureNROUsersTest {
             when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
 
         }
+
+        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
+                                                             null);
+        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
+            .thenReturn(Optional.of(uncalledTestCourt2));
 
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                               userAuthenticationService,

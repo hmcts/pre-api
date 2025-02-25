@@ -114,10 +114,14 @@ class AddNROUsersTest {
         }
 
         // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
-        Court uncalledTestCourt = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
+        Court uncalledTestCourt1 = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
                                                             null);
         when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
-            .thenReturn(Optional.of(uncalledTestCourt));
+            .thenReturn(Optional.of(uncalledTestCourt1));
+        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
+                                                             null);
+        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
+            .thenReturn(Optional.of(uncalledTestCourt2));
 
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
@@ -131,7 +135,7 @@ class AddNROUsersTest {
         verify(userService, times(5)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(39)).findFirstByName(any());
-        verify(courtRepository, times(30)).findFirstByName(any());
+        verify(courtRepository, times(31)).findFirstByName(any());
     }
 
     @DisplayName("Successfully handle exceptions for upsert failures")
@@ -156,10 +160,14 @@ class AddNROUsersTest {
         }
 
         // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
-        Court uncalledTestCourt = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
+        Court uncalledTestCourt1 = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
                                                             null);
         when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
-            .thenReturn(Optional.of(uncalledTestCourt));
+            .thenReturn(Optional.of(uncalledTestCourt1));
+        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
+                                                             null);
+        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
+            .thenReturn(Optional.of(uncalledTestCourt2));
 
         when(this.userService.upsert(any(CreateUserDTO.class))).thenThrow(NotFoundException.class);
 
