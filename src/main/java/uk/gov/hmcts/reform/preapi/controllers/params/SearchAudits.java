@@ -25,4 +25,16 @@ public class SearchAudits {
     private UUID courtId;
 
     private String caseReference;
+
+    public String getFunctionalArea() {
+        return functionalArea != null && !functionalArea.isEmpty() ? functionalArea : null;
+    }
+
+    public String getUserName() {
+        return userName != null && !userName.isEmpty() ? userName : null;
+    }
+
+    public String getCaseReference() {
+        return caseReference != null && !caseReference.isEmpty() ? caseReference : null;
+    }
 }
