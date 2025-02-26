@@ -19,3 +19,18 @@ Example,,,Primary,,xxx,2
 Example,,exampleUserH@test.com,Primary,,xxx,2
 ,User H,exampleUserH@test.com,Primary,,xxx,2
 Example,UserH,,Primary,,xxx,2
+PrimaryMissing,User I,exampleUserI@test.com,Primary,Court404,xxx,2
+PrimaryMissing,User I,exampleUserI@test.com,Secondary,Aylesbury Crown Court,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Primary,Aylesbury Crown Court,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Basildon Combined Court,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Bolton Combined Court,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Caernarfon Justice Centre,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Cambridge Crown Court,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Canterbury Combined Court,xxx,2
+DuplicatePrimaryCourtAssignment,User K,exampleUserK@test.com,Primary,Aylesbury Crown Court,xxx,2
+DuplicatePrimaryCourtAssignment,User K,exampleUserK@test.com,Primary,Aylesbury Crown Court,xxx,2
+DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Primary,Bolton Combined Court,xxx,2
+DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Secondary,Aylesbury Crown Court,xxx,2
+DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Secondary,Aylesbury Crown Court,xxx,2
+DuplicateCourtAssignment,User M,exampleUserM@test.com,Primary,Aylesbury Crown Court,xxx,2
+DuplicateCourtAssignment,User M,exampleUserM@test.com,Secondary,Aylesbury Crown Court,xxx,2
