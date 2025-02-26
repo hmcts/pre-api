@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -69,6 +70,10 @@ public class AddNROUsers extends RobotUserTask {
         this.createUsers();
 
         this.removeDuplicates();
+
+        for (Map.Entry<String, String> unaddedEmailsAndErrors: this.otherUsersNotImported.entrySet()) {
+            log.info(unaddedEmailsAndErrors.getValue());
+        }
 
         log.info("Upserting createUserDTOs to DB. . .");
         for (CreateUserDTO createUserDTOToUpsert : this.nroUsers) {
@@ -195,10 +200,6 @@ public class AddNROUsers extends RobotUserTask {
         for (ImportedNROUser importedNROUserToDelete : importedNROUsersToDelete) {
             this.importedNROUsers.remove(importedNROUserToDelete);
         }
-
-        for (Map.Entry<String, String> unaddedEmailsAndErrors: this.otherUsersNotImported.entrySet()) {
-            log.info(unaddedEmailsAndErrors.getValue());
-        }
     }
 
     private ImportedNROUser getNROUser(String[] values, int rowNumber) {
@@ -302,13 +303,61 @@ public class AddNROUsers extends RobotUserTask {
         createAppAccessDTOs.sort(Comparator.comparing(CreateAppAccessDTO::getUserId)
                         .thenComparing(CreateAppAccessDTO::getCourtId));
 
+        createAppAccessDTOs.forEach(System.out::println);
+
         // initialise values
+        Map<UUID, String> usersIDsForUsersToDelete = getUsersIDsForUsersToDelete(createAppAccessDTOs);
+
+        Map<CreateUserDTO, String> usersToDelete = new HashMap<>();
+        for (CreateUserDTO createUserDTO : this.nroUsers) {
+            if (usersIDsForUsersToDelete.containsKey(createUserDTO.getId())) {
+                usersToDelete.put(createUserDTO, usersIDsForUsersToDelete.get(
+                    createUserDTO.getId()).substring(0,
+                                                     usersIDsForUsersToDelete.get(createUserDTO.getId()).length() - 1));
+            }
+        }
+
+        List<String> usersToDeleteEmails = new ArrayList<>();
+
+        for (Map.Entry<CreateUserDTO, String> userToDelete : usersToDelete.entrySet()) {
+            this.nroUsers.remove(userToDelete.getKey());
+            usersToDeleteEmails.add(userToDelete.getKey().getEmail());
+        }
+
+        Map<String, String> rowIndexesForUsersToDelete = new HashMap<>();
+
+        for (Map.Entry<Integer, ImportedNROUser> indexedNROUser : this.indexedNROUsers.entrySet()) {
+            if (usersToDeleteEmails.contains(indexedNROUser.getValue().getEmail())
+                && (rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()) == null)) {
+                rowIndexesForUsersToDelete.put(indexedNROUser.getValue().getEmail(),
+                                               indexedNROUser.getKey().toString());
+            } else if (usersToDeleteEmails.contains(indexedNROUser.getValue().getEmail())
+                && (rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()) != null)
+                && (!rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()).isEmpty())) {
+                rowIndexesForUsersToDelete.put(indexedNROUser.getValue().getEmail(),
+                                               rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail())
+                                               + "," + indexedNROUser.getKey().toString());
+            }
+        }
+
+        for (Map.Entry<CreateUserDTO, String> createUserDTOWithErrors : usersToDelete.entrySet()) {
+            createUserDTOWithErrors.setValue("User found in row "
+                                                 + rowIndexesForUsersToDelete.get(createUserDTOWithErrors.getKey()
+                                                                                      .getEmail()) + " with email '"
+                                                 + createUserDTOWithErrors.getKey().getEmail()
+                                                 + "' will not be imported:\n" + createUserDTOWithErrors.getValue());
+            this.otherUsersNotImported.put(createUserDTOWithErrors.getKey().getEmail(), createUserDTOWithErrors
+                .getValue());
+        }
+    }
+
+    private static @NotNull Map<UUID, String> getUsersIDsForUsersToDelete(
+        List<CreateAppAccessDTO> createAppAccessDTOs) {
         int index = 0;
         UUID previousCourt = null;
         UUID previousUser = null;
         int secondaryCourtCount = 0;
         int primaryCourtCount = 0;
-        boolean userHasPrimaryCourt = false;
         Map<UUID, String> usersIDsForUsersToDelete = new HashMap<>();
 
         // for every app access object
@@ -318,9 +367,9 @@ public class AddNROUsers extends RobotUserTask {
             // the current user is:
             UUID currentUser = createAppAccessDTO.getUserId();
 
-            if ((currentUser != previousUser) && !userHasPrimaryCourt && (index != 0)) {
+            if ((currentUser != previousUser) && (primaryCourtCount == 0) && (index != 0)) {
                 // user does not have a primary court, delete them
-                appAccessErrors.append("\nUser has no primary court");
+                appAccessErrors.append("User has no primary court\n");
                 usersIDsForUsersToDelete.put(previousUser, appAccessErrors.toString());
             }
 
@@ -328,7 +377,6 @@ public class AddNROUsers extends RobotUserTask {
             if ((currentUser != previousUser)) {
                 secondaryCourtCount = 0;
                 primaryCourtCount = 0;
-                userHasPrimaryCourt = false;
             }
 
             // the current court is:
@@ -336,14 +384,12 @@ public class AddNROUsers extends RobotUserTask {
             // if the user has the same court name in two different app access objects,
             if ((currentCourt == previousCourt) && (currentUser == previousUser)) {
                 // delete them
-                appAccessErrors.append("\nUser has duplicate court names");
+                appAccessErrors.append("User has duplicate court names\n");
                 usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
             }
 
             // if the user has a primary court,
             if (createAppAccessDTO.getDefaultCourt()) {
-                // set userHasPrimaryCourt to true & decrement the secondaryCourtCount
-                userHasPrimaryCourt = true;
                 primaryCourtCount++;
             } else {
                 secondaryCourtCount++;
@@ -352,12 +398,19 @@ public class AddNROUsers extends RobotUserTask {
             // if a user has more than 4 secondary courts,
             if (secondaryCourtCount > 4) {
                 // delete them
-                appAccessErrors.append("\nUser has more than 4 secondary courts");
+                appAccessErrors.append("User has more than 4 secondary courts\n");
                 usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
             }
 
             if (primaryCourtCount > 1) {
-                appAccessErrors.append("\nUser has more than 1 primary court");
+                appAccessErrors.append("User has more than 1 primary court\n");
+                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
+            }
+
+            if ((index == (createAppAccessDTOs.size() - 1)
+                && (currentUser != previousUser)
+                && (primaryCourtCount == 0))) {
+                appAccessErrors.append("User has no primary court\n");
                 usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
             }
 
@@ -366,38 +419,6 @@ public class AddNROUsers extends RobotUserTask {
             previousUser = currentUser;
             index++;
         }
-
-        Map<CreateUserDTO, String> usersToDelete = new HashMap<>();
-        for (CreateUserDTO createUserDTO : this.nroUsers) {
-            if (usersIDsForUsersToDelete.containsKey(createUserDTO.getId())) {
-                usersToDelete.put(createUserDTO, usersIDsForUsersToDelete.get(createUserDTO.getId()));
-            }
-        }
-
-        for (Map.Entry<CreateUserDTO, String> userToDelete : usersToDelete.entrySet()) {
-            this.nroUsers.remove(userToDelete.getKey());
-        }
-    }
-
-    private int findRowNumber(CreateAppAccessDTO createAppAccessDTO, String userEmail) {
-        for (Map.Entry<Integer, ImportedNROUser> indexedNROUser : this.indexedNROUsers.entrySet()) {
-            if ((Objects.equals(indexedNROUser.getValue().getEmail(), userEmail))
-                && (indexedNROUser.getValue().getIsDefault() == createAppAccessDTO.getDefaultCourt())
-                && (Objects.equals(indexedNROUser.getValue().getUserAccess(), createAppAccessDTO.getRoleId().toString())
-                && (indexedNROUser.getValue().getCourtID() == createAppAccessDTO.getCourtId()))) {
-                return indexedNROUser.getKey();
-            }
-        }
-        return 0;
-    }
-
-    private String findUserEmail(CreateAppAccessDTO createAppAccessDTO) {
-        UUID userID = createAppAccessDTO.getUserId();
-        for (CreateUserDTO createUserDTO : this.nroUsers) {
-            if (createUserDTO.getId() == userID) {
-                return createUserDTO.getEmail();
-            }
-        }
-        return null;
+        return usersIDsForUsersToDelete;
     }
 }
