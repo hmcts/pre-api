@@ -2,11 +2,9 @@ package uk.gov.hmcts.reform.preapi.alerts;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import groovy.util.logging.Slf4j;
 import lombok.Builder;
 import lombok.Data;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
@@ -20,7 +18,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class SlackMessage {
 
-    private static final Logger log = LoggerFactory.getLogger(SlackMessage.class);
     private String environment;
 
     private List<SlackMessageSection> sections;
@@ -30,7 +27,7 @@ public class SlackMessage {
      *
      * @return A string of JSON containing all details.
      */
-    public String toJson() throws JsonProcessingException {
+    public String toJson() {
         StringBuilder message = new StringBuilder();
 
         message.append(":globe_with_meridians: *Environment:* ")

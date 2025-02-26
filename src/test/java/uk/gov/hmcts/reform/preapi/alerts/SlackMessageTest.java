@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.alerts;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +37,7 @@ class SlackMessageTest {
     }
 
     @Test
-    void testToJson() throws JsonProcessingException {
+    void testToJson() {
         List<String> items = List.of("Alert 1", "Alert 2");
         SlackMessageSection section = new SlackMessageSection("Important Alerts", items, "No alerts");
 
@@ -57,7 +56,7 @@ class SlackMessageTest {
     }
 
     @Test
-    void testToJsonWithEmptyItems() throws JsonProcessingException {
+    void testToJsonWithEmptyItems() {
         SlackMessageSection section = new SlackMessageSection(
                 "No Alerts", Collections.emptyList(), "No alerts available");
 
@@ -75,7 +74,7 @@ class SlackMessageTest {
     }
 
     @Test
-    void testToJsonWithNullValues() throws JsonProcessingException {
+    void testToJsonWithNullValues() {
         slackMessage = SlackMessage.builder()
                 .environment(null)
                 .sections(Collections.emptyList())
@@ -88,7 +87,7 @@ class SlackMessageTest {
     }
 
     @Test
-    void testToJsonWithMultipleSections() throws JsonProcessingException {
+    void testToJsonWithMultipleSections() {
         SlackMessageSection section1 = new SlackMessageSection("Section 1", List.of("Item A", "Item B"), "No items");
         SlackMessageSection section2 = new SlackMessageSection("Section 2", List.of("Item C"), "No issues");
 
@@ -109,7 +108,7 @@ class SlackMessageTest {
     }
 
     @Test
-    void testToJsonWithEmptySections() throws JsonProcessingException {
+    void testToJsonWithEmptySections() {
         slackMessage = SlackMessage.builder()
                 .environment("Test")
                 .sections(Collections.emptyList())
