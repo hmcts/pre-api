@@ -249,7 +249,7 @@ INSERT INTO public.audits (
 SELECT
     gen_random_uuid() AS id,
     'courts' AS table_name,
-    NULL AS table_record_id,
+    c.id AS table_record_id,
     'AUTO' AS source,
     'Court' AS category,
     'Delete' AS activity,
@@ -261,15 +261,16 @@ SELECT
         'courtName', name
     ) AS audit_details
 FROM (
-    VALUES
-        ('Caernarfon Justice Centre'),
-        ('Coventry Combined Court Centre'),
-        ('Doncaster Crown Court (Doncaster Justice Centre South)'),
-        ('King''s Lynn Crown Court'),
-        ('Lancaster Crown Court'),
-        ('Newcastle Moot Hall Annex'),
-        ('Newport (South Wales) Crown Court'),
-        ('Warrington Crown Court')
-) AS deleted_courts(name);
+    SELECT * FROM courts
+    WHERE name in (
+        'Caernarfon Justice Centre',
+        'Coventry Combined Court Centre',
+        'Doncaster Crown Court (Doncaster Justice Centre South)',
+        'King''s Lynn Crown Court',
+        'Lancaster Crown Court',
+        'Newcastle Moot Hall Annex',
+        'Newport (South Wales) Crown Court',
+        'Warrington Crown Court'
+) AS c;
 
 COMMIT;
