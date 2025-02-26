@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocator;
-import uk.gov.hmcts.reform.preapi.media.dto.MkStreamingLocatorProperties;
 
 import java.util.Date;
 
@@ -20,7 +19,7 @@ public class StreamingLocatorDTO {
     private String streamingPolicyName;
     private Date created;
     private Date endTime;
-    private MkStreamingLocatorProperties properties;
+    private StreamingLocatorPropertiesDTO properties;
 
     public StreamingLocatorDTO(MkStreamingLocator mkStreamingLocator) {
         this.name = mkStreamingLocator.getName();
@@ -29,6 +28,7 @@ public class StreamingLocatorDTO {
         this.streamingPolicyName = mkStreamingLocator.getStreamingPolicyName();
         this.created = mkStreamingLocator.getCreated();
         this.endTime = mkStreamingLocator.getEndTime();
-        this.properties = mkStreamingLocator.getProperties();
+
+        this.properties = new StreamingLocatorPropertiesDTO(mkStreamingLocator.getProperties());
     }
 }
