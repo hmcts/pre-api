@@ -10,33 +10,38 @@ import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import java.util.List;
 
 /**
- * Check for any streaming locators and send an alert if there are any.
+ * Check for any streaming locators/live events and send an alert if there are any.
  */
 @Component
 @Slf4j
-public class CheckForStreamingLocators implements Runnable {
+public class CheckForStreamingLocatorsAndLiveEvents implements Runnable {
 
     private final MediaServiceBroker mediaServiceBroker;
 
     @Autowired
-    CheckForStreamingLocators(MediaServiceBroker mediaServiceBroker) {
+    CheckForStreamingLocatorsAndLiveEvents(MediaServiceBroker mediaServiceBroker) {
         this.mediaServiceBroker = mediaServiceBroker;
     }
 
     @Override
     public void run() {
-        log.info("Running CheckForStreamingLocators task");
+        log.info("Running CheckForStreamingLocatorsAndLiveEvents task");
 
-        // Get streaming locators
         List<StreamingLocatorDTO> streamingLocatorDTOList = mediaServiceBroker.getEnabledMediaService().getStreamingLocators();
-
         List<LiveEventDTO> liveEventDTOList = mediaServiceBroker.getEnabledMediaService().getLiveEvents();
 
+        //TODO:
+        // Form the URLs for locators then message be like
+        // The nightly task found the below still running:
+        // Streaming locators:
+        // . abcde-dffddg <-- UUID (link)
+        // Live events:
+        // abcde-efegfg <-- UUID (link)
 
         log.info(streamingLocatorDTOList.toString());
         log.info(liveEventDTOList.toString());
 
-        log.info("Completed CheckForStreamingLocators task");
+        log.info("Completed CheckForStreamingLocatorsAndLiveEvents task");
     }
 }
 
