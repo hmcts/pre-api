@@ -10,9 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Model that represents a Slack message that can be built and converted to a JSON string.
- */
 @Data
 @Builder
 @Slf4j
@@ -25,7 +22,7 @@ public class SlackMessage {
     /**
      * Converts the contents of the model to a JSON string.
      *
-     * @return A string of JSON containing all details.
+     * @return A string which is the message content.
      */
     public String toJson() {
         StringBuilder message = new StringBuilder();

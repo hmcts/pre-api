@@ -5,9 +5,6 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * Model that represents a section in the Slack message.
- */
 @Data
 @AllArgsConstructor
 public class SlackMessageSection {
