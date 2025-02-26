@@ -84,7 +84,8 @@ public class AddNROUsersIT extends IntegrationTestBase {
             "exampleUserK@test.com",
             "exampleUserL@test.com",
             "exampleUserM@test.com",
-            "exampleUserN@test.com"
+            "exampleUserN@test.com",
+            "exampleUserO@test.com"
         );
     }
 

@@ -179,8 +179,8 @@ class ObscureNROUsersTest {
         // there should only be 4 viable NRO users to upsert into the DB (4 emails with valid rows in the csv file)
         verify(userService, times(4)).upsert(any(CreateUserDTO.class));
 
-        verify(roleRepository, times(75)).findFirstByName(any());
-        verify(courtRepository, times(66)).findFirstByName(any());
+        verify(roleRepository, times(77)).findFirstByName(any());
+        verify(courtRepository, times(68)).findFirstByName(any());
     }
 
     @DisplayName("Successfully throw exception when the obscuring court cannot be found in the DB")

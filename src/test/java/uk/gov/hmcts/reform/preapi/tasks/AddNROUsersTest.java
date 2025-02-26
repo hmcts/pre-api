@@ -135,8 +135,8 @@ class AddNROUsersTest {
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
         verify(userService, times(4)).upsert(any(CreateUserDTO.class));
 
-        verify(roleRepository, times(73)).findFirstByName(any());
-        verify(courtRepository, times(64)).findFirstByName(any());
+        verify(roleRepository, times(75)).findFirstByName(any());
+        verify(courtRepository, times(66)).findFirstByName(any());
     }
 
     @DisplayName("Successfully handle exceptions for upsert failures")

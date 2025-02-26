@@ -318,21 +318,17 @@ public class AddNROUsers extends RobotUserTask {
             // the current user is:
             UUID currentUser = createAppAccessDTO.getUserId();
 
+            if ((currentUser != previousUser) && !userHasPrimaryCourt && (index != 0)) {
+                // user does not have a primary court, delete them
+                appAccessErrors.append("\nUser has no primary court");
+                usersIDsForUsersToDelete.put(previousUser, appAccessErrors.toString());
+            }
+
             // reset the secondaryCourtCount for new users
             if ((currentUser != previousUser)) {
                 secondaryCourtCount = 0;
                 primaryCourtCount = 0;
-            }
-
-            // if the current user is a new user & they have a primary court,
-            if ((currentUser != previousUser) && userHasPrimaryCourt) {
-                // reset userHasPrimaryCourt value
                 userHasPrimaryCourt = false;
-                // if current user is a new user & they do NOT have a primary court & the index is not the first value,
-            } else if ((currentUser != previousUser) && !userHasPrimaryCourt && (index != 0)) {
-                // user does not have a primary court, delete them
-                appAccessErrors.append("\nUser has no primary court");
-                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
             }
 
             // the current court is:
