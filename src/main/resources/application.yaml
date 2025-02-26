@@ -97,12 +97,13 @@ flow:
     stopLiveEventNotifier:
       api: ${FLOW_CLOSE_LIVE_EVENT_HTTP_API:https://prod-01.uksouth.logic.azure.com}
       id: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID:3497b00b2e404a54bc53604aea1deaae}
+      sig: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG:123}
       enabled: true
     caseStateChangeNotifier:
       api: ${FLOW_CASE_STATE_NOTIFIER_HTTP_API:https://prod-17.uksouth.logic.azure.com:443}
       id: ${CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID:8b976c9fdc7749d3a4b8c9d6a6ef9d0c}
+      sig: ${FLOW_CASE_STATE_CHANGE_NOTIFIER_SIG:123}
       enabled: true
-  sig: ${FLOW_CLOSE_LIVE_EVENT_EMAIL_SIG:123}
   key: ${FLOW_KEY:123}
 
 nroUsersFilePath: src/integrationTest/resources/Test_NRO_User_Import.csv
