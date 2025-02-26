@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.entities.batch;
+package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;

@@ -1,6 +1,6 @@
-package uk.gov.hmcts.reform.preapi.util.batch;
+package uk.gov.hmcts.reform.preapi.batch.util;
 
-import uk.gov.hmcts.reform.preapi.entities.batch.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 
 public class ServiceResultUtil {
 

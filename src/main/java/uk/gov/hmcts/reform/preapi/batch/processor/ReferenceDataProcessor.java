@@ -4,9 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
-import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
+
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
+import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
 
 import java.util.ArrayList;
 import java.util.Collections;

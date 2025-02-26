@@ -1,20 +1,21 @@
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.processor.ReferenceDataProcessor;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
+import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 import uk.gov.hmcts.reform.preapi.entities.Court;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-import uk.gov.hmcts.reform.preapi.entities.batch.ExtractedMetadata;
-import uk.gov.hmcts.reform.preapi.entities.batch.ServiceResult;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
-import uk.gov.hmcts.reform.preapi.util.batch.RecordingUtils;
-import uk.gov.hmcts.reform.preapi.util.batch.ServiceResultUtil;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -37,7 +38,7 @@ public class DataTransformationService {
     private ExtractedMetadata extracted;
     private Map<String, String> sitesDataMap;
     private CSVArchiveListData archiveItem;
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataTransformationService.class);
 
     @Autowired
     public DataTransformationService(

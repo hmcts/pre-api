@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.controllers.batch;
+package uk.gov.hmcts.reform.preapi.batch.controllers;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersBuilder;

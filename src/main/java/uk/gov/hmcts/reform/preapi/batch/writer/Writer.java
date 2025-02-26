@@ -8,21 +8,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.services.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
 import uk.gov.hmcts.reform.preapi.services.InviteService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
-import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Transactional(propagation = Propagation.REQUIRED)
 public class Writer implements ItemWriter<MigratedItemGroup> {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(Writer.class);
 
     private final CaseService caseService;
     private final BookingService bookingService;

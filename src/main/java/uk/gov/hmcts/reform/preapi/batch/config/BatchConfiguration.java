@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.config.batch;
+package uk.gov.hmcts.reform.preapi.batch.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,21 +23,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.processor.RecordingMetadataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.ReferenceDataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.XmlProcessingService;
 import uk.gov.hmcts.reform.preapi.batch.reader.CSVReader;
+import uk.gov.hmcts.reform.preapi.batch.services.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.writer.Writer;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
-import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
-import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.tasks.RobotUserTaskImpl;
 
 import java.io.File;
@@ -50,7 +50,7 @@ public class BatchConfiguration implements StepExecutionListener {
 
     private static final int CHUNK_SIZE = 10;
     private static final int SKIP_LIMIT = 10;
-    private static final String BASE_PATH = "batch/";
+    private static final String BASE_PATH = "/batch/";
     private static final String SITES_CSV = BASE_PATH + "Sites.csv";
     private static final String CHANNEL_USER_CSV = BASE_PATH + "Channel_User_Report.csv";
     private static final String ARCHIVE_LIST_CSV = BASE_PATH + "Archive_List.csv";
@@ -67,7 +67,6 @@ public class BatchConfiguration implements StepExecutionListener {
     private final CaseService caseService;
     private final RobotUserTaskImpl robotUserTask;
     private final XmlProcessingService xmlProcessingService;
-
     
     @Autowired
     public BatchConfiguration(
@@ -170,7 +169,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     String containerName = "pre-vodafone-spike"; 
-                    String outputDir = "src/main/resources/batch"; 
+                    String outputDir = "src/main/batch"; 
                     xmlProcessingService.processXmlAndWriteCsv(containerName, outputDir);
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
@@ -189,7 +188,7 @@ public class BatchConfiguration implements StepExecutionListener {
     protected Step createPreProcessMetadataStep() {
         return new StepBuilder("preProcessMetadataStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
-                Resource resource = new ClassPathResource("batch/Archive_List.csv");
+                Resource resource = new ClassPathResource(ARCHIVE_LIST_CSV);
                 String[] fieldNames = {"archive_name", "create_time", "duration", "file_name", "file_size"};
 
                 FlatFileItemReader<CSVArchiveListData> reader = csvReader.createReader(
@@ -228,20 +227,20 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-    protected Step createMarkCasesClosedStep() {
-        return new StepBuilder("markCasesClosedStep", jobRepository)
-            .tasklet((contribution, chunkContext) -> {
-                var validCaseReferences = referenceDataProcessor.fetchChannelUserDataKeys();
-                validCaseReferences.forEach(caseReference -> {
-                    var foundCase = caseService
-                            .searchBy(caseReference, null, false, Pageable.unpaged())
-                            .toList();
-                    // logger.info("Case reference '{}' returned: {}", caseReference, foundCase);
-                });
-                return RepeatStatus.FINISHED;
-            }, transactionManager)
-            .build();
-    }
+    // protected Step createMarkCasesClosedStep() {
+    //     return new StepBuilder("markCasesClosedStep", jobRepository)
+    //         .tasklet((contribution, chunkContext) -> {
+    //             var validCaseReferences = referenceDataProcessor.fetchChannelUserDataKeys();
+    //             validCaseReferences.forEach(caseReference -> {
+    //                 var foundCase = caseService
+    //                         .searchBy(caseReference, null, false, Pageable.unpaged())
+    //                         .toList();
+    //                 // logger.info("Case reference '{}' returned: {}", caseReference, foundCase);
+    //             });
+    //             return RepeatStatus.FINISHED;
+    //         }, transactionManager)
+    //         .build();
+    // }
 
 
     // =========================
@@ -249,9 +248,12 @@ public class BatchConfiguration implements StepExecutionListener {
     // =========================
     protected JobExecutionDecider fileAvailabilityDecider() {
         return (jobExecution, stepExecution) -> {
-            File sites = new File("src/main/resources/batch/Sites.csv");
-            File channelReport = new File("src/main/resources/batch/Channel_User_Report.csv");
-            File archiveList = new File("src/main/resources/batch/Archive_List.csv");
+            // File sites = new File("src/main/batch/resources/Sites.csv");
+            // File channelReport = new File("src/main/batch/resources/Channel_User_Report.csv");
+            // File archiveList = new File("src/main/batch/resources/Archive_List.csv");
+            Resource sites = new ClassPathResource(SITES_CSV);
+            Resource channelReport = new ClassPathResource(CHANNEL_USER_CSV);
+            Resource archiveList = new ClassPathResource(ARCHIVE_LIST_CSV);
 
             if (sites.exists() && channelReport.exists() && archiveList.exists()) {
                 return new FlowExecutionStatus("COMPLETED");

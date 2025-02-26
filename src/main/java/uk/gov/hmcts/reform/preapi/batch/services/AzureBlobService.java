@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;

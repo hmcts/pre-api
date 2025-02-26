@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.entities.batch;
+package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import org.apache.commons.lang3.StringUtils;
 

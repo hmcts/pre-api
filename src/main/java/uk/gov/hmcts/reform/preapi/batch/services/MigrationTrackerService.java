@@ -1,13 +1,14 @@
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
-import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -24,7 +25,7 @@ import java.util.List;
 @Service
 public class MigrationTrackerService {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(MigrationTrackerService.class);
 
     private List<PassItem> migratedItems = new ArrayList<>();
     private List<FailedItem> failedItems = new ArrayList<>();

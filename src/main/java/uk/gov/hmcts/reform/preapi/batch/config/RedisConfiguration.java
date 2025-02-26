@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.config.batch;
+package uk.gov.hmcts.reform.preapi.batch.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

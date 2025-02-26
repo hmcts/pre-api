@@ -1,17 +1,29 @@
-package uk.gov.hmcts.reform.preapi.entities.batch;
+package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 public class CSVArchiveListData {
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(CSVArchiveListData.class);
     
+    private static final List<String> DATE_PATTERNS = List.of(
+        "dd/MM/yyyy HH:mm", "dd/MM/yyyy H:mm",
+        "d/MM/yyyy HH:mm", "d/MM/yyyy H:mm",
+        "dd/M/yyyy HH:mm", "dd/M/yyyy H:mm",
+        "d/M/yyyy HH:mm", "d/M/yyyy H:mm",
+        "dd-MM-yyyy HH:mm", "dd-MM-yyyy H:mm",
+        "d-MM-yyyy HH:mm", "d-MM-yyyy H:mm",
+        "dd-M-yyyy HH:mm", "dd-M-yyyy H:mm",
+        "d-M-yyyy HH:mm", "d-M-yyyy H:mm"
+    );
+
     private String archiveName = "";
     private String createTime = "";
     private Integer duration = 0;
@@ -73,11 +85,9 @@ public class CSVArchiveListData {
         if (archiveName == null || archiveName.isEmpty()) {
             return archiveName;
         }
+        
         int lastDotIndex = archiveName.lastIndexOf('.');
-        if (lastDotIndex == -1) {
-            return archiveName;
-        }
-        return archiveName.substring(0, lastDotIndex);
+        return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
 
     public LocalDateTime getCreateTimeAsLocalDateTime() {
@@ -85,36 +95,32 @@ public class CSVArchiveListData {
             return null;
         }
 
-        String[] datePatterns = {
-            "dd/MM/yyyy HH:mm",   
-            "dd/MM/yyyy H:mm",    
-            "d/MM/yyyy HH:mm",   
-            "d/MM/yyyy H:mm",    
-            "dd/M/yyyy HH:mm",   
-            "dd/M/yyyy H:mm",     
-            "d/M/yyyy HH:mm",     
-            "d/M/yyyy H:mm",     
-            "dd-MM-yyyy HH:mm",   
-            "dd-MM-yyyy H:mm",  
-            "d-MM-yyyy HH:mm",   
-            "d-MM-yyyy H:mm",    
-            "dd-M-yyyy HH:mm", 
-            "dd-M-yyyy H:mm",     
-            "d-M-yyyy HH:mm", 
-            "d-M-yyyy H:mm"  
-        };
-
-        for (String pattern : datePatterns) {
-            try {
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
-                return LocalDateTime.parse(createTime, formatter);
-            } catch (DateTimeParseException e) {
-                logger.debug("Failed to parse date '{}' with pattern '{}'", createTime, pattern);
-            }
-        }
-         logger.error("Could not parse create time '{}' with any known pattern", createTime);
-        return null;
+        return DATE_PATTERNS.stream()
+            .map(pattern -> {
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
+                    return LocalDateTime.parse(createTime.trim(), formatter);
+                } catch (DateTimeParseException e) {
+                    logger.debug("Failed to parse date '{}' with pattern '{}'", createTime, pattern);
+                    return null;
+                }
+            })
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElseGet(() -> {
+                logger.error("Could not parse create time '{}' with any known pattern", createTime);
+                return null;
+            });
     }
 
-
+    @Override
+    public String toString() {
+        return "CSVArchiveListData{" +
+               "archiveName='" + archiveName + '\'' +
+               ", createTime='" + createTime + '\'' +
+               ", duration=" + duration +
+               ", fileName='" + fileName + '\'' +
+               ", fileSize='" + fileSize + '\'' +
+               '}';
+    }
 }

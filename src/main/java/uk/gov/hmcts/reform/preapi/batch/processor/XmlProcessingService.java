@@ -8,9 +8,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
-import uk.gov.hmcts.reform.preapi.services.batch.ReportingService;
+
+import uk.gov.hmcts.reform.preapi.batch.services.AzureBlobService;
+import uk.gov.hmcts.reform.preapi.batch.services.ReportingService;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -25,7 +25,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 @Service
 public class XmlProcessingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(XmlProcessingService.class);
 
     @Autowired
     private AzureBlobService azureBlobService;

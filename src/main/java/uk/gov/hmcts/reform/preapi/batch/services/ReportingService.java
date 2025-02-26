@@ -1,9 +1,9 @@
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.method.P;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class ReportingService {
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(ReportingService.class);
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
 
     /**
@@ -36,12 +36,30 @@ public class ReportingService {
         String outputDir,
         boolean showTimestamp
     ) throws IOException {
-        Path outputPath = Paths.get(outputDir);
-        if (!Files.exists(outputPath)) {
-            Files.createDirectories(outputPath);
-            logger.error("Created report output directory: {}", outputDir);
+        if (headers == null || headers.isEmpty()) {
+            throw new IllegalArgumentException("Headers cannot be null or empty");
+        }
+        if (dataRows == null) {
+            throw new IllegalArgumentException("Data rows cannot be null");
+        }
+        if (fileNamePrefix == null || fileNamePrefix.trim().isEmpty()) {
+            throw new IllegalArgumentException("File name prefix cannot be null or empty");
+        }
+        if (outputDir == null || outputDir.trim().isEmpty()) {
+            throw new IllegalArgumentException("Output directory cannot be null or empty");
         }
 
+        Path outputPath = Paths.get(outputDir);
+        try {
+            if (!Files.exists(outputPath)) {
+                Files.createDirectories(outputPath);
+                logger.info("Created report output directory: {}", outputDir);
+            }
+        } catch (Exception e) {
+            logger.error("Failed to create output directory: {}", outputDir, e);
+            throw e;
+        }
+        
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
         String fileName = showTimestamp 
             ? String.format("%s-%s.csv", fileNamePrefix, timestamp)

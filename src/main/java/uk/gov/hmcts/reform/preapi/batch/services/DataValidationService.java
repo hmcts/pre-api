@@ -1,12 +1,13 @@
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-import uk.gov.hmcts.reform.preapi.entities.batch.ServiceResult;
-import uk.gov.hmcts.reform.preapi.entities.batch.TestItem;
-import uk.gov.hmcts.reform.preapi.util.batch.ServiceResultUtil;
+
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 import java.time.LocalDate;
 import java.util.Arrays;

@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,8 +8,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.processor.RecordingMediaKindTransform;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -18,10 +22,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.entities.batch.PassItem;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.util.ArrayList;
@@ -35,7 +35,7 @@ import java.util.HashSet;
 
 @Service
 public class MigrationGroupBuilderService {
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(MigrationGroupBuilderService.class);
 
     private static final String REDIS_BOOKING_FIELD = "bookingField";
     private static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
@@ -194,7 +194,7 @@ public class MigrationGroupBuilderService {
     }
 
     private CreateBookingDTO processBooking(String baseKey, CleansedData cleansedData, CreateCaseDTO acase) {
-        if (redisService.hashKeyExists(baseKey, REDIS_BOOKING_FIELD)) {
+        if (redisService.checkHashKeyExists(baseKey, REDIS_BOOKING_FIELD)) {
             CreateBookingDTO bookingDTO = redisService.getHashValue(
                 baseKey, 
                 REDIS_BOOKING_FIELD, 
@@ -210,7 +210,7 @@ public class MigrationGroupBuilderService {
         CleansedData cleansedData, 
         CreateBookingDTO booking
     ) {
-        if (redisService.hashKeyExists(baseKey, REDIS_CAPTURE_SESSION_FIELD)) {
+        if (redisService.checkHashKeyExists(baseKey, REDIS_CAPTURE_SESSION_FIELD)) {
             CreateCaptureSessionDTO captureSessionDTO = redisService.getHashValue(
                 baseKey,
                 REDIS_CAPTURE_SESSION_FIELD, 
@@ -228,7 +228,7 @@ public class MigrationGroupBuilderService {
         String redisKey, 
         CreateCaptureSessionDTO captureSession
     ) {
-        if (redisService.hashKeyExists(baseKey, REDIS_RECORDING_FIELD)) {
+        if (redisService.checkHashKeyExists(baseKey, REDIS_RECORDING_FIELD)) {
             CreateRecordingDTO recordingDTO = redisService.getHashValue(
                 baseKey,
                 REDIS_RECORDING_FIELD, 

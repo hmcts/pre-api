@@ -1,13 +1,13 @@
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.ExtractedMetadata;
-import uk.gov.hmcts.reform.preapi.util.batch.RegexPatterns;
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
 @Service
 public class DataExtractionService {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataExtractionService.class);
     private final Map<String, Pattern> namedPatterns;
 
     public DataExtractionService() {

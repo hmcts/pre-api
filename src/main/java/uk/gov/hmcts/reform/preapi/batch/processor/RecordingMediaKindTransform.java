@@ -6,11 +6,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.services.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
-import uk.gov.hmcts.reform.preapi.services.batch.AzureBlobService;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,7 +20,7 @@ import java.util.UUID;
 
 @Service
 public class RecordingMediaKindTransform {
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(RecordingMediaKindTransform.class);
 
     private final AzureBlobService azureBlobService;
     private final MediaKind mediaKindService;

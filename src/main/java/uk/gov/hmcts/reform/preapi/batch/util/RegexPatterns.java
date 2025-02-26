@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.util.batch;
+package uk.gov.hmcts.reform.preapi.batch.util;
 
 import java.util.regex.Pattern;
 

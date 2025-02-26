@@ -5,20 +5,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVChannelData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CSVSitesData;
-import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
-import uk.gov.hmcts.reform.preapi.entities.batch.FailedItem;
-import uk.gov.hmcts.reform.preapi.entities.batch.MigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.entities.batch.ServiceResult;
-import uk.gov.hmcts.reform.preapi.services.batch.DataExtractionService;
-import uk.gov.hmcts.reform.preapi.services.batch.DataTransformationService;
-import uk.gov.hmcts.reform.preapi.services.batch.DataValidationService;
-import uk.gov.hmcts.reform.preapi.services.batch.MigrationGroupBuilderService;
-import uk.gov.hmcts.reform.preapi.services.batch.MigrationTrackerService;
-import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
+
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.services.DataExtractionService;
+import uk.gov.hmcts.reform.preapi.batch.services.DataTransformationService;
+import uk.gov.hmcts.reform.preapi.batch.services.DataValidationService;
+import uk.gov.hmcts.reform.preapi.batch.services.MigrationGroupBuilderService;
+import uk.gov.hmcts.reform.preapi.batch.services.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
 
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -28,7 +29,7 @@ import java.util.regex.Matcher;
  */
 @Component
 public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(Processor.class);
 
     private final DataExtractionService extractionService;
     private final RedisService redisService;
@@ -79,7 +80,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (cleansedData == null) {
                 return null;
             }
-            checkMigrated(cleansedData, archiveItem);
+
+            if (checkMigrated(cleansedData, archiveItem)) {
+                return null;
+            }
             
             if (!validateData(cleansedData, archiveItem)) {
                 return null;
@@ -113,12 +117,13 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return true;
     }
 
-    private void checkMigrated(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        boolean alreadyMigrated = redisService.hashKeyExists("vf:case:", cleansedData.getCaseReference());
+    private boolean checkMigrated(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+        boolean alreadyMigrated = redisService.checkHashKeyExists("vf:case:", cleansedData.getCaseReference());
         if (alreadyMigrated) {
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference());
+            return true;
         }
-       
+        return false;
     }
 
     //======================

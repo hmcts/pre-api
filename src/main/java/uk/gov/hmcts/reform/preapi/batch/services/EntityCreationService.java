@@ -1,12 +1,14 @@
 
-package uk.gov.hmcts.reform.preapi.services.batch;
+package uk.gov.hmcts.reform.preapi.batch.services;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -16,7 +18,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
-import uk.gov.hmcts.reform.preapi.entities.batch.CleansedData;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -34,7 +35,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(EntityCreationService.class);
 
     static final String DEFAULT_NAME = "Unknown";
     static final String REDIS_USER_KEY_PREFIX = "vf:user:";
@@ -53,6 +54,13 @@ public class EntityCreationService {
     // Entity Creation Methods
     // =========================
     public CreateCaseDTO createCase(CleansedData cleansedData) {
+        if (cleansedData == null) {
+            throw new IllegalArgumentException("CleansedData cannot be null");
+        }
+        if (cleansedData.getCourt() == null || cleansedData.getCourt().getId() == null) {
+            throw new IllegalArgumentException("Court information is missing");
+        }
+
         var caseDTO = new CreateCaseDTO();
         caseDTO.setId(UUID.randomUUID());
         caseDTO.setCourtId(cleansedData.getCourt().getId());
@@ -216,7 +224,7 @@ public class EntityCreationService {
             redisService.saveHashValue(redisBookingKey, sharedWith.getId().toString(), sharedWith.getId().toString());
             shareBookings.add(createShareBooking(booking, sharedWith, sharedBy));
         } catch (Exception e) {
-            logger.error("Failed to create share booking: " + e.getMessage());
+            logger.error("Failed to create share booking: ", e.getMessage(), e);
         }
     }
 
@@ -248,6 +256,7 @@ public class EntityCreationService {
         try {
             return userService.findByEmail(email).getUser().getId();
         } catch (Exception e) {
+            logger.warn("Could not find user by email: {}", email, e);
             return null; 
         }
     }

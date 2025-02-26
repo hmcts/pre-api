@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.util.batch;
+package uk.gov.hmcts.reform.preapi.batch.util;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

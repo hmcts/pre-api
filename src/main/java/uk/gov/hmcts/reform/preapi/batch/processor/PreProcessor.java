@@ -5,14 +5,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.config.batch.BatchConfiguration;
+
+import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
-import uk.gov.hmcts.reform.preapi.services.batch.RedisService;
 
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class PreProcessor {
-    private static final Logger logger = LoggerFactory.getLogger(BatchConfiguration.class);
+    private static final Logger logger = LoggerFactory.getLogger(PreProcessor.class);
 
     private static final String NAMESPACE = "vf:";
     private static final String COURT_KEY_PREFIX = NAMESPACE + "court:";
