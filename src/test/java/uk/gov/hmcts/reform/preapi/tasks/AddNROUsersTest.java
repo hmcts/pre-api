@@ -106,6 +106,7 @@ class AddNROUsersTest {
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
             Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
                                                         null);
+            testCourt.setId(UUID.randomUUID());
             testImportedNROUser.setCourt(testCourt.getName());
             testImportedNROUser.setCourtID(testCourt.getId());
 
@@ -134,8 +135,8 @@ class AddNROUsersTest {
         // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
         verify(userService, times(4)).upsert(any(CreateUserDTO.class));
 
-        verify(roleRepository, times(39)).findFirstByName(any());
-        verify(courtRepository, times(31)).findFirstByName(any());
+        verify(roleRepository, times(73)).findFirstByName(any());
+        verify(courtRepository, times(64)).findFirstByName(any());
     }
 
     @DisplayName("Successfully handle exceptions for upsert failures")
@@ -152,6 +153,7 @@ class AddNROUsersTest {
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
             Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
                                                         null);
+            testCourt.setId(UUID.randomUUID());
             testImportedNROUser.setCourt(testCourt.getName());
             testImportedNROUser.setCourtID(testCourt.getId());
 

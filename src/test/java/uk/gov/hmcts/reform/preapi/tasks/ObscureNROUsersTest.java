@@ -108,6 +108,7 @@ class ObscureNROUsersTest {
         for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
             Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
                                                         null);
+            testCourt.setId(UUID.randomUUID());
             testImportedNROUser.setCourt(testCourt.getName());
             testImportedNROUser.setCourtID(testCourt.getId());
 
@@ -175,11 +176,11 @@ class ObscureNROUsersTest {
                                                   TEST_USERS_FILE);
         obscureNROUsers.run();
 
-        // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
+        // there should only be 4 viable NRO users to upsert into the DB (4 emails with valid rows in the csv file)
         verify(userService, times(4)).upsert(any(CreateUserDTO.class));
 
-        verify(roleRepository, times(41)).findFirstByName(any());
-        verify(courtRepository, times(33)).findFirstByName(any());
+        verify(roleRepository, times(75)).findFirstByName(any());
+        verify(courtRepository, times(66)).findFirstByName(any());
     }
 
     @DisplayName("Successfully throw exception when the obscuring court cannot be found in the DB")

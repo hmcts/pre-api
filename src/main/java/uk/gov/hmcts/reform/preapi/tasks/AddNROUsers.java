@@ -31,6 +31,7 @@ public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
     private final Map<String, String> otherUsersNotImported = new HashMap<>();
+    private final Map<Integer, ImportedNROUser> indexedNROUsers = new HashMap<>();
     private final List<ImportedNROUser> importedNROUsers = new ArrayList<>();
     private final List<CreateUserDTO> nroUsers = new ArrayList<>();
     private final RoleRepository roleRepository;
@@ -66,6 +67,8 @@ public class AddNROUsers extends RobotUserTask {
         // create a new user for each email (with their corresponding app access entries)
         log.info("Creating new users. . .");
         this.createUsers();
+
+        this.removeDuplicates();
 
         log.info("Upserting createUserDTOs to DB. . .");
         for (CreateUserDTO createUserDTOToUpsert : this.nroUsers) {
@@ -131,6 +134,7 @@ public class AddNROUsers extends RobotUserTask {
             log.error("Error: " + e.getMessage());
             throw e;
         }
+
     }
 
     private void createUsers() {
@@ -263,6 +267,9 @@ public class AddNROUsers extends RobotUserTask {
             roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
         }
 
+        this.indexedNROUsers.put(rowNumber, new ImportedNROUser(firstName, lastName, email, court,
+                                                                courtID, isDefault, roleID, userLevel));
+
         // if errors exist and the user does not have errors already:
         if (!csvErrors.toString().isEmpty() && !this.otherUsersNotImported.containsKey(email)) {
             csvErrors.insert(0, "User found in row " + rowNumber + " with email '" + email
@@ -282,5 +289,119 @@ public class AddNROUsers extends RobotUserTask {
         } else {
             return new ImportedNROUser(firstName, lastName, email, court, courtID, isDefault, roleID, userLevel);
         }
+    }
+
+    private void removeDuplicates() {
+        // collate all app access DTOs made for the NRO users
+        List<CreateAppAccessDTO> createAppAccessDTOs = new ArrayList<>();
+        for (CreateUserDTO createUserDTO : this.nroUsers) {
+            createAppAccessDTOs.addAll(createUserDTO.getAppAccess());
+        }
+
+        // sort app access objects by user ID and then court ID
+        createAppAccessDTOs.sort(Comparator.comparing(CreateAppAccessDTO::getUserId)
+                        .thenComparing(CreateAppAccessDTO::getCourtId));
+
+        // initialise values
+        int index = 0;
+        UUID previousCourt = null;
+        UUID previousUser = null;
+        int secondaryCourtCount = 0;
+        int primaryCourtCount = 0;
+        boolean userHasPrimaryCourt = false;
+        Map<UUID, String> usersIDsForUsersToDelete = new HashMap<>();
+
+        // for every app access object
+        for (CreateAppAccessDTO createAppAccessDTO : createAppAccessDTOs) {
+            StringBuilder appAccessErrors = new StringBuilder();
+
+            // the current user is:
+            UUID currentUser = createAppAccessDTO.getUserId();
+
+            // reset the secondaryCourtCount for new users
+            if ((currentUser != previousUser)) {
+                secondaryCourtCount = 0;
+                primaryCourtCount = 0;
+            }
+
+            // if the current user is a new user & they have a primary court,
+            if ((currentUser != previousUser) && userHasPrimaryCourt) {
+                // reset userHasPrimaryCourt value
+                userHasPrimaryCourt = false;
+                // if current user is a new user & they do NOT have a primary court & the index is not the first value,
+            } else if ((currentUser != previousUser) && !userHasPrimaryCourt && (index != 0)) {
+                // user does not have a primary court, delete them
+                appAccessErrors.append("\nUser has no primary court");
+                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
+            }
+
+            // the current court is:
+            UUID currentCourt = createAppAccessDTO.getCourtId();
+            // if the user has the same court name in two different app access objects,
+            if ((currentCourt == previousCourt) && (currentUser == previousUser)) {
+                // delete them
+                appAccessErrors.append("\nUser has duplicate court names");
+                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
+            }
+
+            // if the user has a primary court,
+            if (createAppAccessDTO.getDefaultCourt()) {
+                // set userHasPrimaryCourt to true & decrement the secondaryCourtCount
+                userHasPrimaryCourt = true;
+                primaryCourtCount++;
+            } else {
+                secondaryCourtCount++;
+            }
+
+            // if a user has more than 4 secondary courts,
+            if (secondaryCourtCount > 4) {
+                // delete them
+                appAccessErrors.append("\nUser has more than 4 secondary courts");
+                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
+            }
+
+            if (primaryCourtCount > 1) {
+                appAccessErrors.append("\nUser has more than 1 primary court");
+                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
+            }
+
+            // re-initialise for the next iteration
+            previousCourt = currentCourt;
+            previousUser = currentUser;
+            index++;
+        }
+
+        Map<CreateUserDTO, String> usersToDelete = new HashMap<>();
+        for (CreateUserDTO createUserDTO : this.nroUsers) {
+            if (usersIDsForUsersToDelete.containsKey(createUserDTO.getId())) {
+                usersToDelete.put(createUserDTO, usersIDsForUsersToDelete.get(createUserDTO.getId()));
+            }
+        }
+
+        for (Map.Entry<CreateUserDTO, String> userToDelete : usersToDelete.entrySet()) {
+            this.nroUsers.remove(userToDelete.getKey());
+        }
+    }
+
+    private int findRowNumber(CreateAppAccessDTO createAppAccessDTO, String userEmail) {
+        for (Map.Entry<Integer, ImportedNROUser> indexedNROUser : this.indexedNROUsers.entrySet()) {
+            if ((Objects.equals(indexedNROUser.getValue().getEmail(), userEmail))
+                && (indexedNROUser.getValue().getIsDefault() == createAppAccessDTO.getDefaultCourt())
+                && (Objects.equals(indexedNROUser.getValue().getUserAccess(), createAppAccessDTO.getRoleId().toString())
+                && (indexedNROUser.getValue().getCourtID() == createAppAccessDTO.getCourtId()))) {
+                return indexedNROUser.getKey();
+            }
+        }
+        return 0;
+    }
+
+    private String findUserEmail(CreateAppAccessDTO createAppAccessDTO) {
+        UUID userID = createAppAccessDTO.getUserId();
+        for (CreateUserDTO createUserDTO : this.nroUsers) {
+            if (createUserDTO.getId() == userID) {
+                return createUserDTO.getEmail();
+            }
+        }
+        return null;
     }
 }

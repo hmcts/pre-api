@@ -34,3 +34,5 @@ DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Secondary,Aylesbu
 DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Secondary,Aylesbury Crown Court,xxx,2
 DuplicateCourtAssignment,User M,exampleUserM@test.com,Primary,Aylesbury Crown Court,xxx,2
 DuplicateCourtAssignment,User M,exampleUserM@test.com,Secondary,Aylesbury Crown Court,xxx,2
+TwoPrimaryCourts,User N,exampleUserN@test.com,Primary,Aylesbury Crown Court,xxx,2
+TwoPrimaryCourts,User N,exampleUserN@test.com,Primary,Basildon Combined Court,xxx,2
