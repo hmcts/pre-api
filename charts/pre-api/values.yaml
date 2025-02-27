@@ -40,6 +40,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: FLOW_CASE_STATE_NOTIFIER_HTTP_API
         - name: flow-case-state-notifier-workflow-id
           alias: CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID
+        - name: flow-case-state-notifier-sig
+          alias: FLOW_CASE_STATE_CHANGE_NOTIFIER_SIG
         - name: flow-close-live-event-email-workflow-id
           alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
         - name: flow-close-live-event-email-sig
