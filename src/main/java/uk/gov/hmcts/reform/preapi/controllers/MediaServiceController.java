@@ -27,6 +27,8 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
@@ -42,6 +44,8 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -395,5 +399,24 @@ public class MediaServiceController extends PreApiController {
         return azureFinalStorageService.doesIsmFileExist(containerName)
             ? ResponseEntity.noContent().build()
             : ResponseEntity.notFound().build();
+    }
+
+    /**
+     * Finds capture session details from specified dates.
+     * Checks that associated recordings with not-zero duration exist for each booking ID in final SA.
+     *
+     * @param date the date to search for missing recordings
+     * @return a List of Booking IDs as strings
+     */
+    public List<String> findMissingRecordingIds(Timestamp date) {
+        List<CaptureSession> captureSessions = captureSessionService.findByDate(date);
+
+        return captureSessions.stream()
+            .map(CaptureSession::getBooking)
+            .map(Booking::getId)
+            .filter(bookingId ->
+                        azureFinalStorageService.getRecordingDuration(bookingId).equals(Duration.ZERO))
+            .map(UUID::toString)
+            .toList();
     }
 }
