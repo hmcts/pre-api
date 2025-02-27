@@ -54,6 +54,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: GOV_NOTIFY_API_KEY
         - name: govnotify-key-test
           alias: GOV_NOTIFY_API_KEY_TEST
+        - name: slack-webhook-url
+          alias: SLACK_WEBHOOK_URL
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
