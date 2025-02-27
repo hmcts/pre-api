@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -177,7 +176,7 @@ public class AddNROUsers extends RobotUserTask {
 
             // if this is the last element, or if the next element is a new email,
             if ((index == (this.importedNROUsers.size() - 1)
-                || !(Objects.equals(this.importedNROUsers.get(index + 1).getEmail(), createUserDTO.getEmail())))) {
+                || !((this.importedNROUsers.get(index + 1).getEmail()).equals(createUserDTO.getEmail())))) {
                 // assign all the app access objects for this user to the current user,
                 createUserDTO.setAppAccess(createAppAccessDTOs);
                 // then add the user to the list of users to upload
@@ -367,14 +366,14 @@ public class AddNROUsers extends RobotUserTask {
             // the current user is:
             UUID currentUser = createAppAccessDTO.getUserId();
 
-            if ((currentUser != previousUser) && (primaryCourtCount == 0) && (index != 0)) {
+            if ((!currentUser.equals(previousUser)) && (primaryCourtCount == 0) && (index != 0)) {
                 // user does not have a primary court, delete them
                 appAccessErrors.append("User has no primary court\n");
                 usersIDsForUsersToDelete.put(previousUser, appAccessErrors.toString());
             }
 
             // reset the secondaryCourtCount for new users
-            if ((currentUser != previousUser)) {
+            if ((!currentUser.equals(previousUser))) {
                 secondaryCourtCount = 0;
                 primaryCourtCount = 0;
             }
@@ -382,7 +381,7 @@ public class AddNROUsers extends RobotUserTask {
             // the current court is:
             UUID currentCourt = createAppAccessDTO.getCourtId();
             // if the user has the same court name in two different app access objects,
-            if ((currentCourt == previousCourt) && (currentUser == previousUser)) {
+            if ((currentCourt.equals(previousCourt)) && (currentUser.equals(previousUser))) {
                 // delete them
                 appAccessErrors.append("User has duplicate court names\n");
                 usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
