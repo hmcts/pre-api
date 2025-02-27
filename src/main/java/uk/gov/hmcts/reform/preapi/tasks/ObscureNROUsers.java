@@ -27,7 +27,7 @@ public class ObscureNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
     private final RoleRepository roleRepository;
-    private String usersFile = "src/integrationTest/resources/Test_NRO_User_Import.csv";
+    private final String usersFile;
     private final Map<String, UUID> userEmailAndIDs = new HashMap<>();
 
 
@@ -35,8 +35,10 @@ public class ObscureNROUsers extends RobotUserTask {
     public ObscureNROUsers(UserService userService,
                            UserAuthenticationService userAuthenticationService,
                            @Value("${cron-user-email}") String cronUserEmail,
-                           CourtRepository courtRepository, RoleRepository roleRepository,
-                           @Value("${nroUsersFilePath}") String usersFile) throws IllegalArgumentException {
+                           CourtRepository courtRepository,
+                           RoleRepository roleRepository,
+                           @Value("${nroUsersFilePath:src/integrationTest/resources/Test_NRO_User_Import.csv}")
+                               String usersFile) throws IllegalArgumentException {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
@@ -156,7 +158,7 @@ public class ObscureNROUsers extends RobotUserTask {
         try {
             this.userEmailAndIDs.put(email, this.userService.findByEmail(email).getUser().getId());
         } catch (NotFoundException | NullPointerException e) {
-            log.info(email + " does not exist in the DB yet!", e);
+            log.info("{} does not exist in the DB yet!", email, e);
         }
     }
 }

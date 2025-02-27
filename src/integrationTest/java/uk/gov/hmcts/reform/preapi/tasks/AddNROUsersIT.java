@@ -106,7 +106,6 @@ public class AddNROUsersIT extends IntegrationTestBase {
 
         // assert the nro users in the csv file which have invalid input are NOT added to the DB
         for (String failureCaseEmail : failureCaseEmails) {
-            System.out.println(failureCaseEmail);
             assertTrue(userRepository
                            .findByEmailIgnoreCaseAndDeletedAtIsNull(failureCaseEmail).isEmpty());
         }

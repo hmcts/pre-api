@@ -1,7 +1,7 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,6 +17,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -30,20 +31,21 @@ import java.util.UUID;
 public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
-    private final Map<String, String> otherUsersNotImported = new HashMap<>();
     private final Map<Integer, ImportedNROUser> indexedNROUsers = new HashMap<>();
     private final List<ImportedNROUser> importedNROUsers = new ArrayList<>();
     private final List<CreateUserDTO> nroUsers = new ArrayList<>();
+    private final Map<String, String> otherUsersNotImported = new HashMap<>();
     private final RoleRepository roleRepository;
-    private String usersFile = "src/integrationTest/java/uk/gov/hmcts/reform/preapi/utils/Test_NRO_User_Import.csv";
-
+    private final String usersFile;
 
     @Autowired
     public AddNROUsers(UserService userService,
                        UserAuthenticationService userAuthenticationService,
-                       @Value("${cron-user-email}") String cronUserEmail, CourtRepository courtRepository,
+                       @Value("${cron-user-email}") String cronUserEmail,
+                       CourtRepository courtRepository,
                        RoleRepository roleRepository,
-                       @Value("${nroUsersFilePath}") String usersFile) {
+                       @Value("${nroUsersFilePath:src/integrationTest/resources/Test_NRO_User_Import.csv}")
+                           String usersFile) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
@@ -53,37 +55,40 @@ public class AddNROUsers extends RobotUserTask {
     @Override
     public void run() throws RuntimeException {
         log.info("Running AddNROUsers task");
-        signInRobotUser();
+        signInRobotUser(); // needed to populate created_by column in audits table
 
-        log.info("Reading in .csv file from path: " + this.usersFile);
+        log.info("Reading in .csv file from path: {}", this.usersFile);
         try {
             this.createImportedNROUserObjects(this.usersFile);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
-        this.deleteInvalidNROUsersForImportation();
+        // removes data for NRO user creation which did not pass initial validation
+        this.deleteInvalidNROUsersForUserCreation();
 
-        // create a new user for each email (with their corresponding app access entries)
+        // create a new user for each valid email (with their corresponding app access entries)
         log.info("Creating new users. . .");
         this.createUsers();
 
-        this.removeDuplicates();
+        // validate the new users created
+        this.validateCourts();
 
+        // log users which will not be upserted
         for (Map.Entry<String, String> unaddedEmailsAndErrors: this.otherUsersNotImported.entrySet()) {
             log.info(unaddedEmailsAndErrors.getValue());
         }
 
         log.info("Upserting createUserDTOs to DB. . .");
         for (CreateUserDTO createUserDTOToUpsert : this.nroUsers) {
-            // add user to DB (assuming they do not exist already)
+            // add user to DB (assuming they do not exist already/that there are no other errors)
             try {
                 this.userService.upsert(createUserDTOToUpsert);
             } catch (Exception e) {
                 // if the upserting of the current user fails, add them to a list of users which have not been uploaded
                 this.otherUsersNotImported.put(createUserDTOToUpsert.getEmail(), e.getMessage());
                 log.error("Upsert failed for user: {}", createUserDTOToUpsert.getEmail());
-                log.error("\nReason for upsert failure:\n" + e.getMessage());
+                log.error("\nReason for upsert failure:\n{}", e.getMessage());
             }
         }
 
@@ -127,7 +132,7 @@ public class AddNROUsers extends RobotUserTask {
 
                 String[] values = ImportedNROUser.parseCsvLine(line);
 
-                ImportedNROUser importedNROUser = this.getNROUser(values, rowNumber);
+                ImportedNROUser importedNROUser = this.validateNROUser(values, rowNumber);
                 if (importedNROUser != null) {
                     this.importedNROUsers.add(importedNROUser);
                 }
@@ -135,7 +140,7 @@ public class AddNROUsers extends RobotUserTask {
                 rowNumber++;
             }
         } catch (IOException e) {
-            log.error("Error: " + e.getMessage());
+            log.error("Error: {}", e.getMessage());
             throw e;
         }
 
@@ -188,7 +193,7 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
-    private void deleteInvalidNROUsersForImportation() {
+    private void deleteInvalidNROUsersForUserCreation() {
         List<ImportedNROUser> importedNROUsersToDelete = new ArrayList<>();
         for (ImportedNROUser importedNROUser : this.importedNROUsers) {
             if (this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
@@ -201,97 +206,121 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
-    private ImportedNROUser getNROUser(String[] values, int rowNumber) {
-        StringBuilder csvErrors = new StringBuilder();
+    private Map<UUID, String> getErrorsAndUsersIDsForUsersToDelete(
+        List<CreateAppAccessDTO> createAppAccessDTOs) {
+        int index = 0;
+        UUID previousCourt = null;
+        UUID previousUser = null;
+        int primaryCourtCount = 0;
+        int secondaryCourtCount = 0;
+        Map<UUID, String> usersIDsForUsersToDeleteAndErrors = new HashMap<>();
 
-        // validate firstName
-        String firstName = values[0];
-        if (firstName.isEmpty()) {
-            csvErrors.append("\nUser is missing First Name from the .csv input")
-                .append(" (from row ")
-                .append(rowNumber)
-                .append(")");
+        // for every app access object
+        for (CreateAppAccessDTO createAppAccessDTO : createAppAccessDTOs) {
+            StringBuilder appAccessErrors = new StringBuilder();
+
+            // the current user is:
+            UUID currentUser = createAppAccessDTO.getUserId();
+
+            // if the current iteration has a new user with no primary court logged in the previous iteration,
+            if ((!currentUser.equals(previousUser)) && (primaryCourtCount == 0) && (index != 0)) {
+                // user does not have a primary court, delete them
+                appAccessErrors.append("User has no primary court\n");
+                usersIDsForUsersToDeleteAndErrors.put(previousUser, appAccessErrors.toString());
+            }
+
+            // the current court is:
+            UUID currentCourt = createAppAccessDTO.getCourtId();
+            // if the user has the same court name in two different app access objects,
+            if ((currentCourt.equals(previousCourt)) && (currentUser.equals(previousUser))) {
+                // delete them
+                appAccessErrors.append("User has duplicate court names\n");
+                usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
+            }
+
+            // reset the primaryCourtCount and secondaryCourtCount for new users,
+            // and increment primary and secondary court counters if either detected respectively
+            List<Integer> courtCountResults = this.incrementCourtCount(primaryCourtCount, secondaryCourtCount,
+                                                                       createAppAccessDTO.getDefaultCourt(),
+                                                                       currentUser, previousUser);
+            primaryCourtCount = courtCountResults.getFirst();
+            secondaryCourtCount = courtCountResults.getLast();
+
+            // if a user has more than 4 secondary courts,
+            if (secondaryCourtCount > 4) {
+                // delete them
+                appAccessErrors.append("User has more than 4 secondary courts\n");
+                usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
+            }
+
+            // if a user has more than 1 primary court,
+            if (primaryCourtCount > 1) {
+                // delete them
+                appAccessErrors.append("User has more than 1 primary court\n");
+                usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
+            }
+
+            // if the last iteration has a new user who has no primary court,
+            if ((index == (createAppAccessDTOs.size() - 1)
+                && (!currentUser.equals(previousUser))
+                && (primaryCourtCount == 0))) {
+                // delete them
+                appAccessErrors.append("User has no primary court\n");
+                usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
+            }
+
+            // re-initialise for the next iteration
+            previousCourt = currentCourt;
+            previousUser = currentUser;
+            index++;
         }
+        return usersIDsForUsersToDeleteAndErrors;
+    }
 
-        // validate lastName
-        String lastName = values[1];
-        if (lastName.isEmpty()) {
-            csvErrors.append("\nUser is missing Last Name from the .csv input")
-                .append(" (from row ")
-                .append(rowNumber)
-                .append(")");
-        }
-
-        // validate email
-        String email = values[2];
-        if (email.isEmpty()) {
-            csvErrors.append("\nUser is missing Email from the .csv input")
-                .append(" (from row ")
-                .append(rowNumber)
-                .append(")");
-        }
-
-        // validate isDefault
-        boolean isDefault = false;
-
-        if (!values[3].toLowerCase().contains("primary") && !values[3].toLowerCase().contains("secondary")) {
-            csvErrors.append("\nUser is missing Primary/Secondary Court Level from the .csv input")
-                .append(" (from row ")
-                .append(rowNumber)
-                .append(")");
-        } else if (values[3].toLowerCase().contains("primary")) {
-            isDefault = true;
-        }
-
-        // validate court
-        String court = values[4];
-        UUID courtID = null;
-        if (this.courtRepository.findFirstByName(court).isEmpty()) {
-            csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file")
-                .append(" (from row ")
-                .append(rowNumber)
-                .append(")");
-        } else {
-            courtID = this.courtRepository.findFirstByName(court).get().getId();
-        }
-
-        // validate role
-        String userLevel = values[6];
-        UUID roleID = null;
-        if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
-            csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file")
-                .append(" (from row ")
-                .append(rowNumber)
-                .append(")");
-        } else {
-            roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
-        }
-
-        this.indexedNROUsers.put(rowNumber, new ImportedNROUser(firstName, lastName, email, court,
-                                                                courtID, isDefault, roleID, userLevel));
-
+    private @Nullable ImportedNROUser getImportedNROUser(int rowNumber, StringBuilder csvErrors, String email,
+                                                         String firstName, String lastName, String court, UUID courtID,
+                                                         boolean isDefault, UUID roleID, String userLevel) {
+        String withEmailString = " with email";
         // if errors exist and the user does not have errors already:
         if (!csvErrors.toString().isEmpty() && !this.otherUsersNotImported.containsKey(email)) {
             csvErrors.insert(0, "User found in row " + rowNumber + " with email '" + email
                 + "' will not be imported:");
             this.otherUsersNotImported.put(email, csvErrors.toString());
             return null;
-        // if errors exist and the user has errors already:
+            // if errors exist and the user has errors already:
         } else if (!csvErrors.toString().isEmpty() && this.otherUsersNotImported.containsKey(email)) {
             csvErrors.insert(0, this.otherUsersNotImported.get(email)
-                .replace(" with email", "," + rowNumber + " with email"));
+                .replace(withEmailString, "," + rowNumber + withEmailString));
             this.otherUsersNotImported.put(email, csvErrors.toString());
             return null;
         } else if (csvErrors.toString().isEmpty() && this.otherUsersNotImported.containsKey(email)) {
-            this.otherUsersNotImported.put(email, this.otherUsersNotImported.get(email)
-                .replace(" with email", "," + rowNumber + " with email"));
+            this.otherUsersNotImported.put(
+                email, this.otherUsersNotImported.get(email)
+                    .replace(withEmailString, "," + rowNumber + withEmailString));
             return null;
         } else {
             return new ImportedNROUser(firstName, lastName, email, court, courtID, isDefault, roleID, userLevel);
         }
     }
 
-    private void removeDuplicates() {
+    private List<Integer> incrementCourtCount(int primaryCourtCount, int secondaryCourtCount, boolean isDefaultCourt,
+                                              UUID currentUserID, UUID previousUserID) {
+        if (!(currentUserID.equals(previousUserID))) {
+            primaryCourtCount = 0;
+            secondaryCourtCount = 0;
+        }
+
+        // increment primary and secondary court counters if either detected respectively
+        if (isDefaultCourt) {
+            primaryCourtCount++;
+        } else {
+            secondaryCourtCount++;
+        }
+
+        return new ArrayList<>(Arrays.asList(primaryCourtCount, secondaryCourtCount));
+    }
+
+    private void validateCourts() {
         // collate all app access DTOs made for the NRO users
         List<CreateAppAccessDTO> createAppAccessDTOs = new ArrayList<>();
         for (CreateUserDTO createUserDTO : this.nroUsers) {
@@ -300,13 +329,12 @@ public class AddNROUsers extends RobotUserTask {
 
         // sort app access objects by user ID and then court ID
         createAppAccessDTOs.sort(Comparator.comparing(CreateAppAccessDTO::getUserId)
-                        .thenComparing(CreateAppAccessDTO::getCourtId));
+                                     .thenComparing(CreateAppAccessDTO::getCourtId));
 
-        createAppAccessDTOs.forEach(System.out::println);
+        // collect user IDs to delete (with their reasons)
+        Map<UUID, String> usersIDsForUsersToDelete = getErrorsAndUsersIDsForUsersToDelete(createAppAccessDTOs);
 
-        // initialise values
-        Map<UUID, String> usersIDsForUsersToDelete = getUsersIDsForUsersToDelete(createAppAccessDTOs);
-
+        // collect users to delete (with their reasons) with the collected user IDs
         Map<CreateUserDTO, String> usersToDelete = new HashMap<>();
         for (CreateUserDTO createUserDTO : this.nroUsers) {
             if (usersIDsForUsersToDelete.containsKey(createUserDTO.getId())) {
@@ -316,6 +344,7 @@ public class AddNROUsers extends RobotUserTask {
             }
         }
 
+        // remove users & collect row indexes and emails for logging:
         List<String> usersToDeleteEmails = new ArrayList<>();
 
         for (Map.Entry<CreateUserDTO, String> userToDelete : usersToDelete.entrySet()) {
@@ -335,7 +364,7 @@ public class AddNROUsers extends RobotUserTask {
                 && (!rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()).isEmpty())) {
                 rowIndexesForUsersToDelete.put(indexedNROUser.getValue().getEmail(),
                                                rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail())
-                                               + "," + indexedNROUser.getKey().toString());
+                                                   + "," + indexedNROUser.getKey().toString());
             }
         }
 
@@ -350,74 +379,87 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
-    private static @NotNull Map<UUID, String> getUsersIDsForUsersToDelete(
-        List<CreateAppAccessDTO> createAppAccessDTOs) {
-        int index = 0;
-        UUID previousCourt = null;
-        UUID previousUser = null;
-        int secondaryCourtCount = 0;
-        int primaryCourtCount = 0;
-        Map<UUID, String> usersIDsForUsersToDelete = new HashMap<>();
+    private ImportedNROUser validateNROUser(String[] values, int rowNumber) {
+        StringBuilder csvErrors = new StringBuilder();
+        String fromRowString = " (from row ";
 
-        // for every app access object
-        for (CreateAppAccessDTO createAppAccessDTO : createAppAccessDTOs) {
-            StringBuilder appAccessErrors = new StringBuilder();
-
-            // the current user is:
-            UUID currentUser = createAppAccessDTO.getUserId();
-
-            if ((!currentUser.equals(previousUser)) && (primaryCourtCount == 0) && (index != 0)) {
-                // user does not have a primary court, delete them
-                appAccessErrors.append("User has no primary court\n");
-                usersIDsForUsersToDelete.put(previousUser, appAccessErrors.toString());
-            }
-
-            // reset the secondaryCourtCount for new users
-            if ((!currentUser.equals(previousUser))) {
-                secondaryCourtCount = 0;
-                primaryCourtCount = 0;
-            }
-
-            // the current court is:
-            UUID currentCourt = createAppAccessDTO.getCourtId();
-            // if the user has the same court name in two different app access objects,
-            if ((currentCourt.equals(previousCourt)) && (currentUser.equals(previousUser))) {
-                // delete them
-                appAccessErrors.append("User has duplicate court names\n");
-                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
-            }
-
-            // if the user has a primary court,
-            if (createAppAccessDTO.getDefaultCourt()) {
-                primaryCourtCount++;
-            } else {
-                secondaryCourtCount++;
-            }
-
-            // if a user has more than 4 secondary courts,
-            if (secondaryCourtCount > 4) {
-                // delete them
-                appAccessErrors.append("User has more than 4 secondary courts\n");
-                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
-            }
-
-            if (primaryCourtCount > 1) {
-                appAccessErrors.append("User has more than 1 primary court\n");
-                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
-            }
-
-            if ((index == (createAppAccessDTOs.size() - 1)
-                && (currentUser != previousUser)
-                && (primaryCourtCount == 0))) {
-                appAccessErrors.append("User has no primary court\n");
-                usersIDsForUsersToDelete.put(currentUser, appAccessErrors.toString());
-            }
-
-            // re-initialise for the next iteration
-            previousCourt = currentCourt;
-            previousUser = currentUser;
-            index++;
+        // validate firstName
+        String firstName = values[0];
+        if (firstName.isEmpty()) {
+            csvErrors.append("\nUser is missing First Name from the .csv input")
+                .append(fromRowString)
+                .append(rowNumber)
+                .append(")");
         }
-        return usersIDsForUsersToDelete;
+
+        // validate lastName
+        String lastName = values[1];
+        if (lastName.isEmpty()) {
+            csvErrors.append("\nUser is missing Last Name from the .csv input")
+                .append(fromRowString)
+                .append(rowNumber)
+                .append(")");
+        }
+
+        // validate email
+        String email = values[2];
+        if (email.isEmpty()) {
+            csvErrors.append("\nUser is missing Email from the .csv input")
+                .append(fromRowString)
+                .append(rowNumber)
+                .append(")");
+        }
+
+        // validate isDefault
+        boolean isDefault = false;
+
+        if (!values[3].toLowerCase().contains("primary") && !values[3].toLowerCase().contains("secondary")) {
+            csvErrors.append("\nUser is missing Primary/Secondary Court Level from the .csv input")
+                .append(fromRowString)
+                .append(rowNumber)
+                .append(")");
+        } else if (values[3].toLowerCase().contains("primary")) {
+            isDefault = true;
+        }
+
+        // validate court
+        String court = values[4];
+        UUID courtID = null;
+        if (this.courtRepository.findFirstByName(court).isEmpty()) {
+            csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file")
+                .append(fromRowString)
+                .append(rowNumber)
+                .append(")");
+        } else {
+            courtID = this.courtRepository.findFirstByName(court).get().getId();
+        }
+
+        // validate role
+        String userLevel = values[6];
+        UUID roleID = null;
+        if (this.roleRepository.findFirstByName("Level " + userLevel).isEmpty()) {
+            csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file")
+                .append(fromRowString)
+                .append(rowNumber)
+                .append(")");
+        } else {
+            roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
+        }
+
+        this.indexedNROUsers.put(rowNumber, new ImportedNROUser(firstName, lastName, email, court,
+                                                                courtID, isDefault, roleID, userLevel));
+
+        return getImportedNROUser(
+            rowNumber,
+            csvErrors,
+            email,
+            firstName,
+            lastName,
+            court,
+            courtID,
+            isDefault,
+            roleID,
+            userLevel
+        );
     }
 }
