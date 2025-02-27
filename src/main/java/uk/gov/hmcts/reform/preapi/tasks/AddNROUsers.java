@@ -277,29 +277,30 @@ public class AddNROUsers extends RobotUserTask {
         return usersIDsForUsersToDeleteAndErrors;
     }
 
-    private @Nullable ImportedNROUser getImportedNROUser(int rowNumber, StringBuilder csvErrors, String email,
-                                                         String firstName, String lastName, String court, UUID courtID,
-                                                         boolean isDefault, UUID roleID, String userLevel) {
+    private @Nullable ImportedNROUser getImportedNROUser(int rowNumber, StringBuilder csvErrors,
+                                                         ImportedNROUser importedNROUser) {
         String withEmailString = " with email";
         // if errors exist and the user does not have errors already:
-        if (!csvErrors.toString().isEmpty() && !this.otherUsersNotImported.containsKey(email)) {
-            csvErrors.insert(0, "User found in row " + rowNumber + " with email '" + email
+        if (!csvErrors.toString().isEmpty() && !this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
+            csvErrors.insert(0, "User found in row " + rowNumber + " with email '" + importedNROUser.getEmail()
                 + "' will not be imported:");
-            this.otherUsersNotImported.put(email, csvErrors.toString());
+            this.otherUsersNotImported.put(importedNROUser.getEmail(), csvErrors.toString());
             return null;
             // if errors exist and the user has errors already:
-        } else if (!csvErrors.toString().isEmpty() && this.otherUsersNotImported.containsKey(email)) {
-            csvErrors.insert(0, this.otherUsersNotImported.get(email)
+        } else if (!csvErrors.toString().isEmpty()
+            && this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
+            csvErrors.insert(0, this.otherUsersNotImported.get(importedNROUser.getEmail())
                 .replace(withEmailString, "," + rowNumber + withEmailString));
-            this.otherUsersNotImported.put(email, csvErrors.toString());
+            this.otherUsersNotImported.put(importedNROUser.getEmail(), csvErrors.toString());
             return null;
-        } else if (csvErrors.toString().isEmpty() && this.otherUsersNotImported.containsKey(email)) {
+        } else if (csvErrors.toString().isEmpty()
+            && this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
             this.otherUsersNotImported.put(
-                email, this.otherUsersNotImported.get(email)
+                importedNROUser.getEmail(), this.otherUsersNotImported.get(importedNROUser.getEmail())
                     .replace(withEmailString, "," + rowNumber + withEmailString));
             return null;
         } else {
-            return new ImportedNROUser(firstName, lastName, email, court, courtID, isDefault, roleID, userLevel);
+            return importedNROUser;
         }
     }
 
@@ -452,14 +453,15 @@ public class AddNROUsers extends RobotUserTask {
         return getImportedNROUser(
             rowNumber,
             csvErrors,
-            email,
+            new ImportedNROUser(
             firstName,
             lastName,
+            email,
             court,
             courtID,
             isDefault,
             roleID,
-            userLevel
+            userLevel)
         );
     }
 }
