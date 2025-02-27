@@ -271,6 +271,7 @@ FROM (
         'Newcastle Moot Hall Annex',
         'Newport (South Wales) Crown Court',
         'Warrington Crown Court'
+    )
 ) AS c;
 
 COMMIT;
