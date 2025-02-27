@@ -30,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,6 +111,12 @@ public class CaptureSessionService {
                 pageable
             )
             .map(CaptureSessionDTO::new);
+    }
+
+    @Transactional
+    public List<CaptureSession> findByDate(Timestamp date) {
+        return captureSessionRepository
+            .findAllByFinishedAtIsAndDeletedAtIsNull(date);
     }
 
     @Transactional
