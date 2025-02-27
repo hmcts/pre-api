@@ -288,6 +288,42 @@ public class MediaKindTest {
         assertThat(results.getLast().getName()).isEqualTo(liveEventName2);
     }
 
+    @DisplayName("Should return a list of all streaming locators with content keys")
+    @Test
+    void getStreamingLocatorsSuccess() {
+        var streamingLocatorName1 = UUID.randomUUID().toString();
+        var streamingLocatorName2 = UUID.randomUUID().toString();
+
+        var contentKeys1 = List.of(mock(MkStreamingLocatorProperties.MkContentKey.class));
+        var contentKeys2 = List.of(mock(MkStreamingLocatorProperties.MkContentKey.class));
+
+        var streamingLocator1 = mock(MkStreamingLocator.class);
+        var streamingLocator2 = mock(MkStreamingLocator.class);
+        var properties1 = mock(MkStreamingLocatorProperties.class);
+        var properties2 = mock(MkStreamingLocatorProperties.class);
+
+        when(streamingLocator1.getName()).thenReturn(streamingLocatorName1);
+        when(streamingLocator2.getName()).thenReturn(streamingLocatorName2);
+        when(streamingLocator1.getProperties()).thenReturn(properties1);
+        when(streamingLocator2.getProperties()).thenReturn(properties2);
+        when(properties1.getContentKeys()).thenReturn(contentKeys1);
+        when(properties2.getContentKeys()).thenReturn(contentKeys2);
+
+        var streamingLocators = List.of(streamingLocator1, streamingLocator2);
+
+        when(mockClient.getStreamingLocators(0))
+                .thenReturn(MkGetListResponse.<MkStreamingLocator>builder()
+                        .value(streamingLocators)
+                        .build());
+
+        var results = mediaKind.getStreamingLocators();
+        assertThat(results).hasSize(2);
+
+        assertThat(results.getFirst().getName()).isEqualTo(streamingLocatorName1);
+        assertThat(results.getLast().getName()).isEqualTo(streamingLocatorName2);
+    }
+
+
     private MkAsset createMkAsset(String name) {
         return MkAsset.builder()
             .name(name)
