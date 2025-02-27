@@ -186,6 +186,8 @@ public class UserServiceTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 false,
                 false,
                 false,
@@ -194,7 +196,7 @@ public class UserServiceTest {
             )
         ).thenReturn(new PageImpl<>(List.of(userEntity, portalUserEntity, appUserEntity)));
 
-        var models = userService.findAllBy(null, null, null, null, null, null, false, null, null);
+        var models = userService.findAllBy(null, null, null, null, null, null, null, null, false, null, null);
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(3);
 
@@ -204,9 +206,12 @@ public class UserServiceTest {
     @DisplayName("Find all users when filtered by first name")
     @Test
     void findAllUsersFirstNameFilterSuccess() {
+        // using name param
         when(
             userRepository.searchAllBy(
                 userEntity.getFirstName(),
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -218,7 +223,19 @@ public class UserServiceTest {
                 null
             )).thenReturn(new PageImpl<>(List.of(userEntity)));
 
-        var models = userService.findAllBy(userEntity.getFirstName(), null, null, null, null, null, false, null, null);
+        var models = userService.findAllBy(
+            userEntity.getFirstName(),
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null
+        );
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -231,6 +248,72 @@ public class UserServiceTest {
         assertThat(model.getAppAccess().stream().toList().getFirst().getCourt().getId()).isEqualTo(appAccessEntity
                                                                                                        .getCourt()
                                                                                                        .getId());
+        // using first name param
+        when(
+            userRepository.searchAllBy(
+                null,
+                userEntity.getFirstName(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                false,
+                null,
+                null
+            )).thenReturn(new PageImpl<>(List.of(userEntity)));
+
+        var models2 = userService
+            .findAllBy(null, userEntity.getFirstName(), null,null, null, null, null, null, false, null, null);
+        assertThat(models2.isEmpty()).isFalse();
+        assertThat(models2.getTotalElements()).isEqualTo(1);
+
+        var model2 = models2.get().toList().getFirst();
+        assertThat(model2.getId()).isEqualTo(userEntity.getId());
+        assertThat(model2.getFirstName()).isEqualTo(userEntity.getFirstName());
+        assertThat(model2.getAppAccess().stream().toList().getFirst().getRole().getId()).isEqualTo(appAccessEntity
+                                                                                                      .getRole()
+                                                                                                      .getId());
+        assertThat(model2.getAppAccess().stream().toList().getFirst().getCourt().getId()).isEqualTo(appAccessEntity
+                                                                                                       .getCourt()
+                                                                                                       .getId());
+    }
+
+    @Test
+    @DisplayName("Find all users when filtered by last name")
+    void findAllUsersLastNameFilterSuccess() {
+        when(
+            userRepository.searchAllBy(
+                null,
+                null,
+                userEntity.getLastName(),
+                null,
+                null,
+                null,
+                null,
+                false,
+                false,
+                false,
+                null,
+                null
+            )).thenReturn(new PageImpl<>(List.of(userEntity)));
+
+        var models = userService
+            .findAllBy(null, null, userEntity.getLastName(),null, null, null, null, null, false, null, null);
+        assertThat(models.isEmpty()).isFalse();
+        assertThat(models.getTotalElements()).isEqualTo(1);
+
+        var model = models.get().toList().getFirst();
+        assertThat(model.getId()).isEqualTo(userEntity.getId());
+        assertThat(model.getLastName()).isEqualTo(userEntity.getLastName());
+        assertThat(model.getAppAccess().stream().toList().getFirst().getRole().getId()).isEqualTo(appAccessEntity
+                                                                                                       .getRole()
+                                                                                                       .getId());
+        assertThat(model.getAppAccess().stream().toList().getFirst().getCourt().getId()).isEqualTo(appAccessEntity
+                                                                                                        .getCourt()
+                                                                                                        .getId());
     }
 
     @DisplayName("Find all users when filtered by email")
@@ -239,10 +322,35 @@ public class UserServiceTest {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
         when(
-            userRepository.searchAllBy(null, userEntity.getEmail(), null, null, null, false, false, false, null,null)
+            userRepository.searchAllBy(
+                null,
+                null,
+                null,
+                userEntity.getEmail(),
+                null,
+                null,
+                null,
+                false,
+                false,
+                false,
+                null,
+                null
+            )
         ).thenReturn(new PageImpl<>(List.of(userEntity)));
 
-        var models = userService.findAllBy(null, userEntity.getEmail(), null, null, null, null, false, null, null);
+        var models = userService.findAllBy(
+            null,
+            null,
+            null,
+            userEntity.getEmail(),
+            null,
+            null,
+            null,
+            null,
+            false,
+            null,
+            null
+        );
         assertThat(models.isEmpty()).isFalse();
         assertThat(models.getTotalElements()).isEqualTo(1);
 
@@ -266,6 +374,8 @@ public class UserServiceTest {
             userRepository.searchAllBy(
                 null,
                 null,
+                null,
+                null,
                 userEntity.getOrganisation(),
                 null,
                 null,
@@ -278,6 +388,8 @@ public class UserServiceTest {
         ).thenReturn(new PageImpl<>(List.of(userEntity)));
 
         var models = userService.findAllBy(
+            null,
+            null,
             null,
             null,
             userEntity.getOrganisation(),
@@ -312,6 +424,8 @@ public class UserServiceTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 appAccessEntity.getCourt().getId(),
                 null,
                 false,
@@ -323,6 +437,8 @@ public class UserServiceTest {
         ).thenReturn(new PageImpl<>(List.of(userEntity, appUserEntity)));
 
         var models = userService.findAllBy(
+            null,
+            null,
             null,
             null,
             null,
@@ -365,8 +481,13 @@ public class UserServiceTest {
     void findAllUsersRoleFilterSuccess() {
         when(courtRepository.existsById(appAccessEntity.getCourt().getId())).thenReturn(true);
         when(roleRepository.existsById(appAccessEntity.getRole().getId())).thenReturn(true);
+        var role = new Role();
+        role.setName("Some Role");
+        when(roleRepository.findById(appAccessEntity.getRole().getId())).thenReturn(Optional.of(role));
         when(
             userRepository.searchAllBy(
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -381,6 +502,8 @@ public class UserServiceTest {
         ).thenReturn(new PageImpl<>(List.of(userEntity, appUserEntity)));
 
         var models = userService.findAllBy(
+            null,
+            null,
             null,
             null,
             null,
@@ -426,12 +549,14 @@ public class UserServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null, courtId, null, null, false, null, null)
+            () -> userService.findAllBy(null, null, null,null, null, courtId, null, null, false, null, null)
         );
 
         verify(courtRepository, times(1)).existsById(courtId);
         verify(roleRepository, never()).existsById(any());
         verify(userRepository, never()).searchAllBy(
+            any(),
+            any(),
             any(),
             any(),
             any(),
@@ -458,12 +583,14 @@ public class UserServiceTest {
 
         assertThrows(
             NotFoundException.class,
-            () -> userService.findAllBy(null, null, null, null, roleId, null, false, null, null)
+            () -> userService.findAllBy(null, null, null,null, null, null, roleId, null, false, null, null)
         );
 
         verify(courtRepository, never()).existsById(any());
-        verify(roleRepository, times(1)).existsById(roleId);
+        verify(roleRepository, times(1)).findById(roleId);
         verify(userRepository, never()).searchAllBy(
+            any(),
+            any(),
             any(),
             any(),
             any(),
