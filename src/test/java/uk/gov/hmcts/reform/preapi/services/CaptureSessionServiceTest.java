@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -24,15 +26,21 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,12 +50,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
+@Slf4j
 @SpringBootTest(classes = CaptureSessionService.class)
 public class CaptureSessionServiceTest {
     @MockBean
@@ -64,6 +69,9 @@ public class CaptureSessionServiceTest {
 
     @MockBean
     private BookingService bookingService;
+
+    @MockBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     private CaptureSessionService captureSessionService;
@@ -84,6 +92,7 @@ public class CaptureSessionServiceTest {
             Timestamp.from(Instant.now().plus(Duration.ofDays(1))),
             null
         );
+        booking.setId(UUID.randomUUID());
 
         user = new User();
         user.setId(UUID.randomUUID());
@@ -647,7 +656,8 @@ public class CaptureSessionServiceTest {
                                                                 captureSessionRepository,
                                                                 bookingRepository,
                                                                 userRepository,
-                                                                bookingService);
+                                                                bookingService,
+                                                                azureFinalStorageService);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),
@@ -819,4 +829,36 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
         verify(captureSessionRepository, never()).deleteById(captureSession.getId());
     }
+
+    @DisplayName("Should filter capture sessions correctly to find missing recordings")
+    @Test
+    void findMissingRecordingsTest() {
+        UUID uuid1 = UUID.randomUUID();
+        Booking booking1 = new Booking();
+        booking1.setId(uuid1);
+        CaptureSession cap1 = new CaptureSession();
+        cap1.setBooking(booking1);
+
+        UUID uuid2 = UUID.randomUUID();
+        Booking booking2 = new Booking();
+        booking2.setId(uuid2);
+        CaptureSession cap2 = new CaptureSession();
+        cap2.setBooking(booking2);
+
+        when(captureSessionRepository.findAllByFinishedAtIsAndDeletedAtIsNull(any())).thenReturn(List.of(captureSession, cap1, cap2));
+        when(azureFinalStorageService.getRecordingDuration(uuid1)).thenReturn(Duration.ZERO);
+        when(azureFinalStorageService.getRecordingDuration(captureSession.getBooking().getId())).thenReturn(Duration.ZERO);
+        when(azureFinalStorageService.getRecordingDuration(uuid2)).thenReturn(Duration.of(11, ChronoUnit.SECONDS));
+
+        List<String> missingBookingIds = captureSessionService.findMissingRecordingIds(Timestamp.valueOf(LocalDateTime.now()));
+
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(uuid1);
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(uuid2);
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(captureSession.getBooking().getId());
+        verifyNoMoreInteractions(azureFinalStorageService);
+        assertThat( missingBookingIds.size()).isEqualTo(2);
+        assertThat(missingBookingIds).contains(uuid1.toString(), captureSession.getBooking().getId().toString());
+    }
+
+
 }

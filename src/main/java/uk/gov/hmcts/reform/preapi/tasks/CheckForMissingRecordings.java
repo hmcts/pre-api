@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessage;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessageSection;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -17,15 +18,15 @@ import java.util.List;
 @Slf4j
 public class CheckForMissingRecordings implements Runnable {
 
-    private final MediaServiceController mediaServiceController;
+    private final CaptureSessionService captureSessionService;
     private final SlackClient slackClient;
     private final String platformEnv;
 
     @Autowired
-    CheckForMissingRecordings(MediaServiceController mediaServiceController,
+    CheckForMissingRecordings(CaptureSessionService captureSessionService,
                               SlackClient slackClient,
                               @Value("${platform-env}") String platformEnv) {
-        this.mediaServiceController = mediaServiceController;
+        this.captureSessionService = captureSessionService;
         this.slackClient = slackClient;
         this.platformEnv = platformEnv;
     }
@@ -35,7 +36,7 @@ public class CheckForMissingRecordings implements Runnable {
         LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
         log.info("Running CheckForMissingRecordings task: looking for missing recordings from {}", yesterday.toLocalDate());
 
-        List<String> missingBookingIds = mediaServiceController.findMissingRecordingIds(Timestamp.valueOf(yesterday));
+        List<String> missingBookingIds = captureSessionService.findMissingRecordingIds(Timestamp.valueOf(yesterday));
 
         if (!missingBookingIds.isEmpty()) {
             log.info("Found missing recordings: {}\nSending alert to Slack channel...", missingBookingIds);

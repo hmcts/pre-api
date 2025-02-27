@@ -69,4 +69,6 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         """
     )
     List<CaptureSession> reportConcurrentCaptureSessions();
+
+    List<CaptureSession> findByDateAndDeletedAtIsNull(Timestamp deletedAt);
 }

@@ -22,12 +22,14 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -43,18 +45,20 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
+    private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
-                                 @Lazy BookingService bookingService) {
+                                 @Lazy BookingService bookingService, AzureFinalStorageService azureFinalStorageService) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
+        this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @Transactional
@@ -292,5 +296,25 @@ public class CaptureSessionService {
         captureSession.setStatus(status);
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
+    }
+
+    /**
+     * Finds capture session details from specified dates.
+     * Checks that associated recordings with not-zero duration exist for each booking ID in final SA.
+     *
+     * @param date the date to search for missing recordings
+     * @return a List of Booking IDs as strings
+     */
+    @Transactional
+    public List<String> findMissingRecordingIds(Timestamp date) {
+        List<CaptureSession> captureSessions = findByDate(date);
+
+        return captureSessions.stream()
+            .map(CaptureSession::getBooking)
+            .map(Booking::getId)
+            .filter(bookingId ->
+                        azureFinalStorageService.getRecordingDuration(bookingId).equals(Duration.ZERO))
+            .map(UUID::toString)
+            .toList();
     }
 }
