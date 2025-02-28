@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.AuditService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
@@ -30,6 +31,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -353,5 +355,34 @@ class AuditControllerTest {
         mockMvc.perform(get("/audit?page=5"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.message").value("Requested page {5} is out of range. Max page is {1}"));
+    }
+
+    @Test
+    @DisplayName("Should get audit by id")
+    public void getAuditByIdSuccess() throws Exception {
+        UUID auditLogId = UUID.randomUUID();
+        var mockAuditDTO = new AuditDTO();
+        mockAuditDTO.setId(auditLogId);
+        when(auditService.findById(auditLogId)).thenReturn(mockAuditDTO);
+
+        mockMvc.perform(get("/audit/" + auditLogId)
+                            .with(csrf()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(auditLogId.toString()));
+    }
+
+    @Test
+    @DisplayName("Should return 404 when audit not found")
+    public void getAuditByIdNotFound() throws Exception {
+        UUID auditLogId = UUID.randomUUID();
+        var mockAuditDTO = new AuditDTO();
+        mockAuditDTO.setId(auditLogId);
+        doThrow(new NotFoundException("Audit: " + auditLogId)).when(auditService).findById(auditLogId);
+
+        mockMvc.perform(get("/audit/" + auditLogId)
+                            .with(csrf()))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message")
+                           .value("Not found: Audit: " + auditLogId));
     }
 }
