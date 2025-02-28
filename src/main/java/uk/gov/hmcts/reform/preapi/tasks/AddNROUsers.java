@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -61,7 +62,7 @@ public class AddNROUsers extends RobotUserTask {
         try {
             this.createImportedNROUserObjects(this.usersFile);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
 
         // removes data for NRO user creation which did not pass initial validation

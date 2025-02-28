@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -83,7 +84,7 @@ public class ObscureNROUsers extends RobotUserTask {
                 this.populateUserEmailsAndIDs(email);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
 
         this.constructAppAccessQuery(this.userEmailAndIDs.values(), obscuringCourtID, obscuringRoleID);
