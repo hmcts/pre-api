@@ -286,14 +286,13 @@ public class AddNROUsers extends RobotUserTask {
             this.otherUsersNotImported.put(importedNROUser.getEmail(), csvErrors.toString());
             return null;
             // if errors exist and the user has errors already:
-        } else if (!csvErrors.toString().isEmpty()
-            && this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
+        } else if (!csvErrors.toString().isEmpty()) {
             csvErrors.insert(0, this.otherUsersNotImported.get(importedNROUser.getEmail())
                 .replace(withEmailString, "," + rowNumber + withEmailString));
             this.otherUsersNotImported.put(importedNROUser.getEmail(), csvErrors.toString());
             return null;
-        } else if (csvErrors.toString().isEmpty()
-            && this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
+            // if new errors do not exist but the user has errors already
+        } else if (this.otherUsersNotImported.containsKey(importedNROUser.getEmail())) {
             this.otherUsersNotImported.put(
                 importedNROUser.getEmail(), this.otherUsersNotImported.get(importedNROUser.getEmail())
                     .replace(withEmailString, "," + rowNumber + withEmailString));
@@ -359,8 +358,7 @@ public class AddNROUsers extends RobotUserTask {
                 && (rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()) == null)) {
                 rowIndexesForUsersToDelete.put(indexedNROUser.getValue().getEmail(),
                                                indexedNROUser.getKey().toString());
-            } else if (usersToDeleteEmails.contains(indexedNROUser.getValue().getEmail())
-                && (rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()) != null)) {
+            } else if (usersToDeleteEmails.contains(indexedNROUser.getValue().getEmail())) {
                 rowIndexesForUsersToDelete.put(indexedNROUser.getValue().getEmail(),
                                                rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail())
                                                    + "," + indexedNROUser.getKey().toString());
