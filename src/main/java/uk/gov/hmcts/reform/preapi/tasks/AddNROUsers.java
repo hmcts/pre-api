@@ -262,7 +262,6 @@ public class AddNROUsers extends RobotUserTask {
 
             // if the last iteration has a new user who has no primary court,
             if ((index == (createAppAccessDTOs.size() - 1)
-                && (!currentUser.equals(previousUser))
                 && (primaryCourtCount == 0))) {
                 // delete them
                 appAccessErrors.append("User has no primary court\n");
@@ -333,7 +332,7 @@ public class AddNROUsers extends RobotUserTask {
                                      .thenComparing(CreateAppAccessDTO::getCourtId));
 
         // collect user IDs to delete (with their reasons)
-        Map<UUID, String> usersIDsForUsersToDelete = getErrorsAndUsersIDsForUsersToDelete(createAppAccessDTOs);
+        Map<UUID, String> usersIDsForUsersToDelete = this.getErrorsAndUsersIDsForUsersToDelete(createAppAccessDTOs);
 
         // collect users to delete (with their reasons) with the collected user IDs
         Map<CreateUserDTO, String> usersToDelete = new HashMap<>();
