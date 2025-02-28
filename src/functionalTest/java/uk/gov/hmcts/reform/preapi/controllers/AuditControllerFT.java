@@ -18,9 +18,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class AuditControllerFT extends FunctionalTestBase {
-
-    @DisplayName("Should fail to update an audit record as they are immutable")
     @Test
+    @DisplayName("Should fail to update an audit record as they are immutable")
     void updateAuditFailure() throws JsonProcessingException {
         var audit = new CreateAuditDTO();
         audit.setId(UUID.randomUUID());
@@ -36,16 +35,8 @@ public class AuditControllerFT extends FunctionalTestBase {
             .isEqualTo("Data is immutable and cannot be changed. Id: " + audit.getId());
     }
 
-    private Response putAudit(CreateAuditDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            AUDIT_ENDPOINT + dto.getId(),
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
-    }
-
-    @DisplayName("Should sort by created at desc")
     @Test
+    @DisplayName("Should sort by created at desc")
     void getAuditLogsSortBy() throws JsonProcessingException {
         var audit1 = new CreateAuditDTO();
         audit1.setId(UUID.randomUUID());
@@ -75,8 +66,8 @@ public class AuditControllerFT extends FunctionalTestBase {
         assertThat(auditLogs1.get(2).getCreatedAt()).isAfter(auditLogs1.getLast().getCreatedAt());
     }
 
-    @ParameterizedTest
     @NullSource
+    @ParameterizedTest
     @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
     @DisplayName("Unauthorised use of endpoints should return 403 (or 401 for null authorisation)")
     void unauthorisedRequestsReturn403Or401(TestingSupportRoles testingSupportRole) throws JsonProcessingException {
@@ -86,5 +77,30 @@ public class AuditControllerFT extends FunctionalTestBase {
         } else {
             assertResponseCode(getAuditLogsResponse, 401);
         }
+    }
+
+    @Test
+    @DisplayName("Should return 404 when trying to get a non-existent audit record")
+    void getNonExistentAudit() {
+        var getAuditResponse = doGetRequest(AUDIT_ENDPOINT + UUID.randomUUID(), TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getAuditResponse, 404);
+    }
+
+    @Test
+    @DisplayName("Should return 200 when getting a valid audit record")
+    void getAuditById() {
+        var getAudits = doGetRequest("/testing-support/latest-audits", TestingSupportRoles.SUPER_USER);
+        var auditId = getAudits.jsonPath().getUUID("_embedded.auditList[0].id");
+
+        var getAuditResponse = doGetRequest(AUDIT_ENDPOINT + auditId, TestingSupportRoles.SUPER_USER);
+        assertResponseCode(getAuditResponse, 200);
+    }
+
+    private Response putAudit(CreateAuditDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            AUDIT_ENDPOINT + dto.getId(),
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
     }
 }
