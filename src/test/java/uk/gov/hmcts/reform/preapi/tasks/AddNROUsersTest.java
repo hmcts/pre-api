@@ -76,6 +76,8 @@ class AddNROUsersTest {
     private static final String TEST_USERS_FILE =
         "src/integrationTest/resources/Test_NRO_User_Import.csv";
 
+    private List<ImportedNROUser> testImportedNROUsers;
+
     @BeforeEach
     void beforeEach() {
         var accessDto = mock(AccessDTO.class);
@@ -87,23 +89,26 @@ class AddNROUsersTest {
 
         var userAuth = mock(UserAuthentication.class);
         when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
-    }
 
-    @DisplayName("Successfully add users from test file to DB")
-    @Test
-    void addNROUsersSuccessfully() {
-        Role testRoleLvl1 = HelperFactory.createRole("Level 1");
-        testRoleLvl1.setDescription("test");
-        testRoleLvl1.setId(UUID.randomUUID());
         Role testRoleLvl2 = HelperFactory.createRole("Level 2");
         testRoleLvl2.setDescription("test");
         testRoleLvl2.setId(UUID.randomUUID());
 
-        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
+        this.testImportedNROUsers = this.getTestImportedNROUsers(testRoleLvl2.getId());
 
         when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
 
-        for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
+        // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
+        Court uncalledTestCourt1 = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
+                                                             null);
+        when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
+            .thenReturn(Optional.of(uncalledTestCourt1));
+        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
+                                                             null);
+        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
+            .thenReturn(Optional.of(uncalledTestCourt2));
+
+        for (ImportedNROUser testImportedNROUser : this.testImportedNROUsers) {
             Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
                                                         null);
             testCourt.setId(UUID.randomUUID());
@@ -113,17 +118,11 @@ class AddNROUsersTest {
             when(this.courtRepository.findFirstByName(testImportedNROUser.getCourt()))
                 .thenReturn(Optional.of(testCourt));
         }
+    }
 
-        // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
-        Court uncalledTestCourt1 = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
-                                                            null);
-        when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
-            .thenReturn(Optional.of(uncalledTestCourt1));
-        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
-                                                             null);
-        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
-            .thenReturn(Optional.of(uncalledTestCourt2));
-
+    @DisplayName("Successfully add users from test file to DB")
+    @Test
+    void addNROUsersSuccessfully() {
         AddNROUsers addNROUsers = new AddNROUsers(userService,
                                                   userAuthenticationService,
                                                   cronUserEmail,
@@ -132,7 +131,6 @@ class AddNROUsersTest {
                                                   TEST_USERS_FILE);
         addNROUsers.run();
 
-        // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
         verify(userService, times(4)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(75)).findFirstByName(any());
@@ -142,35 +140,6 @@ class AddNROUsersTest {
     @DisplayName("Successfully handle exceptions for upsert failures")
     @Test
     void addNROUsersFailure() {
-        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
-        testRoleLvl2.setDescription("test");
-        testRoleLvl2.setId(UUID.randomUUID());
-
-        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
-
-        when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
-
-        for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
-            Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
-                                                        null);
-            testCourt.setId(UUID.randomUUID());
-            testImportedNROUser.setCourt(testCourt.getName());
-            testImportedNROUser.setCourtID(testCourt.getId());
-
-            when(this.courtRepository.findFirstByName(testImportedNROUser.getCourt()))
-                .thenReturn(Optional.of(testCourt));
-        }
-
-        // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
-        Court uncalledTestCourt1 = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
-                                                            null);
-        when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
-            .thenReturn(Optional.of(uncalledTestCourt1));
-        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
-                                                             null);
-        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
-            .thenReturn(Optional.of(uncalledTestCourt2));
-
         when(this.userService.upsert(any(CreateUserDTO.class))).thenThrow(NotFoundException.class);
 
         AddNROUsers addNROUsers = new AddNROUsers(userService,

@@ -78,6 +78,8 @@ class ObscureNROUsersTest {
     @Value("${cron-user-email}")
     private String cronUserEmail;
 
+    private List<ImportedNROUser> testImportedNROUsers;
+
     @BeforeEach
     void beforeEach() {
         var accessDto = mock(AccessDTO.class);
@@ -89,6 +91,38 @@ class ObscureNROUsersTest {
 
         var userAuth = mock(UserAuthentication.class);
         when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+
+        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
+        testRoleLvl2.setDescription("test");
+        testRoleLvl2.setId(UUID.randomUUID());
+
+        this.testImportedNROUsers = this.getTestImportedNROUsers(testRoleLvl2.getId());
+        when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
+
+        for (ImportedNROUser importedNROUser : this.testImportedNROUsers) {
+            var importedNROUserBaseAppAccessDTO = mock(BaseAppAccessDTO.class);
+            when(importedNROUserBaseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+
+            var mockBaseUser = new BaseUserDTO();
+            mockBaseUser.setId(UUID.randomUUID());
+            mockBaseUser.setFirstName(importedNROUser.getFirstName());
+            mockBaseUser.setEmail(importedNROUser.getEmail());
+
+            var mockUser = new UserDTO();
+            mockUser.setId(UUID.randomUUID());
+            mockUser.setFirstName(importedNROUser.getFirstName());
+            mockUser.setEmail(importedNROUser.getEmail());
+
+            var accessDTO = mock(AccessDTO.class);
+
+            when(accessDTO.getUser()).thenReturn(mockBaseUser);
+            when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
+            when(accessDTO.getAppAccess()).thenReturn(Set.of(importedNROUserBaseAppAccessDTO));
+
+            var importedNROUserAuth = mock(UserAuthentication.class);
+            when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(importedNROUserAuth));
+
+        }
     }
 
     @DisplayName("Successfully print obscuring queries for values from test file")
@@ -97,15 +131,9 @@ class ObscureNROUsersTest {
         Role testRoleLvl4 = HelperFactory.createRole("Level 4");
         testRoleLvl4.setDescription("test");
         testRoleLvl4.setId(UUID.randomUUID());
-        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
-        testRoleLvl2.setDescription("test");
-        testRoleLvl2.setId(UUID.randomUUID());
 
-        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
 
-        when(this.roleRepository.findFirstByName("Level 2")).thenReturn(Optional.of(testRoleLvl2));
-
-        for (ImportedNROUser testImportedNROUser : testImportedNROUsers) {
+        for (ImportedNROUser testImportedNROUser : this.testImportedNROUsers) {
             Court testCourt = HelperFactory.createCourt(CourtType.CROWN, testImportedNROUser.getCourt(),
                                                         null);
             testCourt.setId(UUID.randomUUID());
@@ -116,7 +144,6 @@ class ObscureNROUsersTest {
                 .thenReturn(Optional.of(testCourt));
         }
 
-        // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
         // return courts which do exist but otherwise have failure cases (incorrect role or primary/secondary status)
         Court uncalledTestCourt1 = HelperFactory.createCourt(CourtType.CROWN, "Gloucester Crown Court",
                                                              null);
@@ -142,32 +169,6 @@ class ObscureNROUsersTest {
 
         when(this.roleRepository.findFirstByName("Level 4")).thenReturn(Optional.of(testRoleLvl4));
 
-        for (ImportedNROUser importedNROUser : testImportedNROUsers) {
-
-            var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-            when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
-
-            var mockBaseUser = new BaseUserDTO();
-            mockBaseUser.setId(UUID.randomUUID());
-            mockBaseUser.setFirstName(importedNROUser.getFirstName());
-            mockBaseUser.setEmail(importedNROUser.getEmail());
-
-            var mockUser = new UserDTO();
-            mockUser.setId(UUID.randomUUID());
-            mockUser.setFirstName(importedNROUser.getFirstName());
-            mockUser.setEmail(importedNROUser.getEmail());
-
-            var accessDTO = mock(AccessDTO.class);
-
-            when(accessDTO.getUser()).thenReturn(mockBaseUser);
-            when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
-            when(accessDTO.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
-
-            var userAuth = mock(UserAuthentication.class);
-            when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
-
-        }
-
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                   userAuthenticationService,
                                                               cronUserEmail,
@@ -189,39 +190,8 @@ class ObscureNROUsersTest {
         Role testRoleLvl4 = HelperFactory.createRole("Level 4");
         testRoleLvl4.setDescription("test");
         testRoleLvl4.setId(UUID.randomUUID());
-        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
-        testRoleLvl2.setDescription("test");
-        testRoleLvl2.setId(UUID.randomUUID());
-
-        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
 
         when(this.roleRepository.findFirstByName("Level 4")).thenReturn(Optional.of(testRoleLvl4));
-
-        for (ImportedNROUser importedNROUser : testImportedNROUsers) {
-
-            var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-            when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
-
-            var mockBaseUser = new BaseUserDTO();
-            mockBaseUser.setId(UUID.randomUUID());
-            mockBaseUser.setFirstName(importedNROUser.getFirstName());
-            mockBaseUser.setEmail(importedNROUser.getEmail());
-
-            var mockUser = new UserDTO();
-            mockUser.setId(UUID.randomUUID());
-            mockUser.setFirstName(importedNROUser.getFirstName());
-            mockUser.setEmail(importedNROUser.getEmail());
-
-            var accessDTO = mock(AccessDTO.class);
-
-            when(accessDTO.getUser()).thenReturn(mockBaseUser);
-            when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
-            when(accessDTO.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
-
-            var userAuth = mock(UserAuthentication.class);
-            when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
-
-        }
 
         Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
                                                              null);
@@ -247,42 +217,10 @@ class ObscureNROUsersTest {
     @DisplayName("Successfully throw exception when the obscuring role cannot be found in the DB")
     @Test
     void obscureNROUsersNoRole() {
-        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
-        testRoleLvl2.setDescription("test");
-        testRoleLvl2.setId(UUID.randomUUID());
-
-        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
-
         Court obscuringTestCourt = HelperFactory.createCourt(CourtType.CROWN, "Foo Court",
                                                              null);
         when(this.courtRepository.findFirstByName("Foo Court"))
             .thenReturn(Optional.of(obscuringTestCourt));
-
-        for (ImportedNROUser importedNROUser : testImportedNROUsers) {
-
-            var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-            when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
-
-            var mockBaseUser = new BaseUserDTO();
-            mockBaseUser.setId(UUID.randomUUID());
-            mockBaseUser.setFirstName(importedNROUser.getFirstName());
-            mockBaseUser.setEmail(importedNROUser.getEmail());
-
-            var mockUser = new UserDTO();
-            mockUser.setId(UUID.randomUUID());
-            mockUser.setFirstName(importedNROUser.getFirstName());
-            mockUser.setEmail(importedNROUser.getEmail());
-
-            var accessDTO = mock(AccessDTO.class);
-
-            when(accessDTO.getUser()).thenReturn(mockBaseUser);
-            when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
-            when(accessDTO.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
-
-            var userAuth = mock(UserAuthentication.class);
-            when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
-
-        }
 
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                               userAuthenticationService,
@@ -306,11 +244,6 @@ class ObscureNROUsersTest {
         Role testRoleLvl4 = HelperFactory.createRole("Level 4");
         testRoleLvl4.setDescription("test");
         testRoleLvl4.setId(UUID.randomUUID());
-        Role testRoleLvl2 = HelperFactory.createRole("Level 2");
-        testRoleLvl2.setDescription("test");
-        testRoleLvl2.setId(UUID.randomUUID());
-
-        List<ImportedNROUser> testImportedNROUsers = getTestImportedNROUsers(testRoleLvl2.getId());
 
         Court obscuringTestCourt = HelperFactory.createCourt(CourtType.CROWN, "Foo Court",
                                                              null);
@@ -318,32 +251,6 @@ class ObscureNROUsersTest {
             .thenReturn(Optional.of(obscuringTestCourt));
 
         when(this.roleRepository.findFirstByName("Level 4")).thenReturn(Optional.of(testRoleLvl4));
-
-        for (ImportedNROUser importedNROUser : testImportedNROUsers) {
-
-            var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-            when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
-
-            var mockBaseUser = new BaseUserDTO();
-            mockBaseUser.setId(UUID.randomUUID());
-            mockBaseUser.setFirstName(importedNROUser.getFirstName());
-            mockBaseUser.setEmail(importedNROUser.getEmail());
-
-            var mockUser = new UserDTO();
-            mockUser.setId(UUID.randomUUID());
-            mockUser.setFirstName(importedNROUser.getFirstName());
-            mockUser.setEmail(importedNROUser.getEmail());
-
-            var accessDTO = mock(AccessDTO.class);
-
-            when(accessDTO.getUser()).thenReturn(mockBaseUser);
-            when(this.userService.findByEmail(importedNROUser.getEmail())).thenReturn(accessDTO);
-            when(accessDTO.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
-
-            var userAuth = mock(UserAuthentication.class);
-            when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
-
-        }
 
         ObscureNROUsers obscureNROUsers = new ObscureNROUsers(userService,
                                                               userAuthenticationService,
@@ -354,7 +261,6 @@ class ObscureNROUsersTest {
 
         Assertions.assertThrows(RuntimeException.class, obscureNROUsers::run);
 
-        // there should only be 5 viable NRO users to upsert into the DB (5 emails with valid rows in the csv file)
         verify(userService, times(0)).upsert(any(CreateUserDTO.class));
 
         verify(roleRepository, times(2)).findFirstByName(any());
