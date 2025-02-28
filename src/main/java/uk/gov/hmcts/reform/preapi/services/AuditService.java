@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ImmutableDataException;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
@@ -36,6 +37,14 @@ public class AuditService {
         this.portalAccessRepository = portalAccessRepository;
     }
 
+    @Transactional
+    public AuditDTO findById(UUID id) {
+        return auditRepository.findById(id)
+            .map(this::toDto)
+            .orElseThrow(() -> new NotFoundException("Audit: " + id));
+    }
+
+    @Transactional
     public UpsertResult upsert(CreateAuditDTO createAuditDTO, @Nullable UUID createdBy) {
         if (auditRepository.existsById(createAuditDTO.getId())) {
             throw new ImmutableDataException(createAuditDTO.getId().toString());
@@ -70,20 +79,21 @@ public class AuditService {
     ) {
         return auditRepository
             .searchAll(after, before, functionalArea, source, userName, courtId, caseReference, pageable)
-            .map(audit -> {
-                var createdById = audit.getCreatedBy();
-                if (createdById == null) {
-                    return new AuditDTO(audit);
-                }
-                return appAccessRepository.findById(createdById)
-                    .map(aa -> new AuditDTO(audit, aa.getUser()))
-                    .orElseGet(() -> portalAccessRepository.findById(createdById)
-                        .map(pa -> new AuditDTO(audit, pa.getUser()))
-                        .orElseGet(() -> new AuditDTO(audit)));
-            });
+            .map(this::toDto);
     }
 
     public List<Audit> getAuditsByTableRecordId(UUID tableRecordId) {
         return auditRepository.findByTableRecordId(tableRecordId);
+    }
+
+    private AuditDTO toDto(Audit audit) {
+        var createdById = audit.getCreatedBy();
+        return createdById == null
+            ? new AuditDTO(audit)
+            : appAccessRepository.findById(createdById)
+                .map(aa -> new AuditDTO(audit, aa.getUser()))
+                .orElseGet(() -> portalAccessRepository.findById(createdById)
+                    .map(pa -> new AuditDTO(audit, pa.getUser()))
+                    .orElseGet(() -> new AuditDTO(audit)));
     }
 }
