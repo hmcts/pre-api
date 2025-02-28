@@ -4,7 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
@@ -24,10 +24,10 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = AuditService.class)
 class AuditServiceTest {
 
-    @MockBean
+    @MockitoBean
     private AuditRepository auditRepository;
 
-    @MockBean
+    @MockitoBean
     private AppAccessRepository appAccessRepository;
 
     @Autowired
