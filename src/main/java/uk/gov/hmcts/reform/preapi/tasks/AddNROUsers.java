@@ -360,8 +360,7 @@ public class AddNROUsers extends RobotUserTask {
                 rowIndexesForUsersToDelete.put(indexedNROUser.getValue().getEmail(),
                                                indexedNROUser.getKey().toString());
             } else if (usersToDeleteEmails.contains(indexedNROUser.getValue().getEmail())
-                && (rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()) != null)
-                && (!rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()).isEmpty())) {
+                && (rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail()) != null)) {
                 rowIndexesForUsersToDelete.put(indexedNROUser.getValue().getEmail(),
                                                rowIndexesForUsersToDelete.get(indexedNROUser.getValue().getEmail())
                                                    + "," + indexedNROUser.getKey().toString());
