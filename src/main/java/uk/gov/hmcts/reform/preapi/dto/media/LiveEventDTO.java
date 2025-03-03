@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto.media;
 
-import com.azure.resourcemanager.mediaservices.fluent.models.LiveEventInner;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
@@ -34,21 +33,6 @@ public class LiveEventDTO {
 
     @Schema(description = "LiveEventInputRtmp")
     private String inputRtmp;
-
-    public LiveEventDTO(LiveEventInner liveEvent) {
-        id = liveEvent.id();
-        name = liveEvent.name();
-        description = liveEvent.description();
-        resourceState = liveEvent.resourceState().toString();
-        inputRtmp = liveEvent
-            .input()
-            .endpoints()
-            .stream()
-            .filter(e -> e.url().startsWith("rtmps://"))
-            .findFirst()
-            .map(LiveEventEndpoint::url)
-            .orElse(null);
-    }
 
     public LiveEventDTO(MkLiveEvent liveEvent) {
         id = liveEvent.getId();
