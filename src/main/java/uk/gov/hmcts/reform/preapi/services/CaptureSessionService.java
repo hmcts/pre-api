@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,13 +29,12 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -47,20 +45,18 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
-    private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
-                                 @Lazy BookingService bookingService, AzureFinalStorageService azureFinalStorageService) {
+                                 @Lazy BookingService bookingService) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
-        this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @Transactional
@@ -301,26 +297,6 @@ public class CaptureSessionService {
         captureSession.setStatus(status);
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
-    }
-
-    /**
-     * Finds capture session details from specified dates.
-     * Checks that associated recordings with not-zero duration exist for each booking ID in final SA.
-     *
-     * @param date the date to search for missing recordings
-     * @return a List of Booking IDs as strings
-     */
-    @Transactional
-    public List<String> findMissingRecordingIds(LocalDate date) {
-        List<CaptureSession> captureSessions = findAvailableSessionsByDate(date);
-
-        return captureSessions.stream()
-            .map(CaptureSession::getBooking)
-            .map(Booking::getId)
-            .filter(bookingId -> azureFinalStorageService.getRecordingDuration(bookingId) == null ||
-                azureFinalStorageService.getRecordingDuration(bookingId).equals(Duration.ZERO))
-            .map(UUID::toString)
-            .toList();
     }
 
 }
