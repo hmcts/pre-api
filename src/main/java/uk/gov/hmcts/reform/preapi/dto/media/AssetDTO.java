@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto.media;
 
-import com.azure.resourcemanager.mediaservices.fluent.models.AssetInner;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,13 +25,6 @@ public class AssetDTO {
 
     @Schema(description = "AssetStorageAccountName")
     private String storageAccountName;
-
-    public AssetDTO(AssetInner amsAsset) {
-        name = amsAsset.name();
-        description = amsAsset.description();
-        container = amsAsset.container();
-        storageAccountName = amsAsset.storageAccountName();
-    }
 
     public AssetDTO(MkAsset mkAsset) {
         name = mkAsset.getName();

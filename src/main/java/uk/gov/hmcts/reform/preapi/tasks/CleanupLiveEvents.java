@@ -202,11 +202,4 @@ public class CleanupLiveEvents extends RobotUserTask {
             return false;
         }
     }
-
-    private UUID generateUuidFromLiveEventName(String liveEventId) {
-        return new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
-    }
 }
