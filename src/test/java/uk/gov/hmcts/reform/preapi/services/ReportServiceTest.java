@@ -28,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -86,6 +87,8 @@ public class ReportServiceTest {
         courtEntity.setId(UUID.randomUUID());
         courtEntity.setName("Example Court");
         courtEntity.setRegions(Set.of(regionEntity));
+        courtEntity.setCounty("Kent");
+        courtEntity.setPostcode("AB1 2CD");
 
         recordingEntity = new Recording();
         recordingEntity.setId(UUID.randomUUID());
@@ -133,7 +136,7 @@ public class ReportServiceTest {
     @Test
     void captureSessionReportCaptureSessionIncompleteSuccess() {
         captureSessionEntity.setStartedAt(Timestamp.from(Instant.now()));
-        captureSessionEntity.setFinishedAt(Timestamp.from(Instant.now()));
+        captureSessionEntity.setFinishedAt(null);
         captureSessionEntity.setRecordings(Set.of());
         when(captureSessionRepository.reportConcurrentCaptureSessions()).thenReturn(List.of(captureSessionEntity));
 
@@ -144,14 +147,15 @@ public class ReportServiceTest {
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
 
-        assertThat(first.getId()).isEqualTo(captureSessionEntity.getId());
-        assertThat(first.getStartTime()).isEqualTo(captureSessionEntity.getStartedAt());
-        assertThat(first.getEndTime()).isEqualTo(captureSessionEntity.getFinishedAt());
+        assertThat(first.getDate()).isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getStartedAt()));
+        assertThat(first.getStartTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getStartedAt()));
+        assertThat(first.getEndTime()).isNull();
         assertThat(first.getDuration()).isNull();
         assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(first.getRegion().stream().findFirst().isPresent()).isTrue();
-        assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
     }
 
     @DisplayName("Find all capture sessions and return a list of models as a report on concurrent capture sessions")
@@ -170,14 +174,15 @@ public class ReportServiceTest {
         assertThat(report.size()).isEqualTo(1);
         var first = report.getFirst();
 
-        assertThat(first.getId()).isEqualTo(captureSessionEntity.getId());
-        assertThat(first.getStartTime()).isEqualTo(captureSessionEntity.getStartedAt());
-        assertThat(first.getEndTime()).isEqualTo(captureSessionEntity.getFinishedAt());
-        assertThat(first.getDuration()).isEqualTo(recordingEntity.getDuration());
+        assertThat(first.getDate()).isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getStartedAt()));
+        assertThat(first.getStartTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getStartedAt()));
+        assertThat(first.getEndTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getFinishedAt()));
+        assertThat(first.getDurationAsString()).isEqualTo("00:03:00");
         assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(first.getRegion().stream().findFirst().isPresent()).isTrue();
-        assertThat(first.getRegion().stream().findFirst().get().getName()).isEqualTo(regionEntity.getName());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
     }
 
     @DisplayName("Find counts for recordings per case an return a report list")
@@ -189,7 +194,7 @@ public class ReportServiceTest {
         anotherCase.setReference("XYZ456");
 
         when(recordingRepository.countRecordingsPerCase())
-            .thenReturn(List.of(new Object[] { caseEntity, (long) 1 }, new Object[]{ anotherCase, (long) 0 }));
+            .thenReturn(List.of(new Object[] { caseEntity, 1L }, new Object[]{ anotherCase, (long) 0 }));
 
         var report = reportService.reportRecordingsPerCase();
 
@@ -200,14 +205,7 @@ public class ReportServiceTest {
         assertThat(report.get(1).getCount()).isEqualTo(0);
 
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find all edited recordings and return a report list")
@@ -226,21 +224,14 @@ public class ReportServiceTest {
 
         assertThat(report.size()).isEqualTo(2);
 
-        assertThat(report.getFirst().getCreatedAt()).isEqualTo(recordingEntity.getCreatedAt());
+        assertThat(report.getFirst().getEditDate()).isEqualTo(DateTimeUtils.formatDate(recordingEntity.getCreatedAt()));
         assertThat(report.getFirst().getVersion()).isEqualTo(recordingEntity.getVersion());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
 
-        assertThat(report.getLast().getRecordingId()).isEqualTo(recording2.getId());
+        assertThat(report.getFirst().getVersion()).isEqualTo(2);
+        assertThat(report.getLast().getVersion()).isEqualTo(3);
     }
 
     @DisplayName("Find shared bookings and return report list")
@@ -266,29 +257,27 @@ public class ReportServiceTest {
         sharedBooking2.setSharedWith(shareWith);
         sharedBooking2.setSharedBy(shareBy);
 
-        when(shareBookingRepository.searchAll(null, null, null, null))
+        when(shareBookingRepository.searchAll(null, null, null, null, false))
             .thenReturn(List.of(sharedBooking1, sharedBooking2));
 
-        var report = reportService.reportShared(null, null, null, null);
+        var report = reportService.reportShared(null, null, null, null, false);
 
         assertThat(report.size()).isEqualTo(2);
 
-        assertThat(report.getFirst().getSharedAt()).isEqualTo(sharedBooking2.getCreatedAt());
-        assertThat(report.getFirst().getAllocatedTo()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
-        assertThat(report.getFirst().getAllocatedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
+        assertThat(report.getFirst().getShareDate()).isEqualTo(DateTimeUtils.formatDate(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getShareTime()).isEqualTo(DateTimeUtils.formatTime(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(sharedBooking2.getCreatedAt()));
+        assertThat(report.getFirst().getSharedWith()).isEqualTo(sharedBooking2.getSharedWith().getEmail());
+        assertThat(report.getFirst().getGrantedBy()).isEqualTo(sharedBooking2.getSharedBy().getEmail());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
-        assertThat(report.getFirst().getBookingId()).isEqualTo(sharedBooking2.getBooking().getId());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
 
-        assertThat(report.getLast().getSharedAt()).isEqualTo(sharedBooking1.getCreatedAt());
+        assertThat(report.getLast().getShareDate()).isEqualTo(DateTimeUtils.formatDate(sharedBooking1.getCreatedAt()));
+        assertThat(report.getLast().getShareTime()).isEqualTo(DateTimeUtils.formatTime(sharedBooking1.getCreatedAt()));
+        assertThat(report.getLast().getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(sharedBooking1.getCreatedAt()));
     }
 
     @DisplayName("Find all capture sessions with recording available and get report on booking details")
@@ -301,11 +290,13 @@ public class ReportServiceTest {
         captureSessionEntity.setStartedByUser(userEntity);
 
         var otherBooking = new Booking();
+        otherBooking.setCreatedAt(Timestamp.from(Instant.now()));
         otherBooking.setId(UUID.randomUUID());
         otherBooking.setCaseId(caseEntity);
         otherBooking.setScheduledFor(Timestamp.from(Instant.MIN));
 
         captureSessionEntity.getBooking().setScheduledFor(Timestamp.from(Instant.MAX));
+        bookingEntity.setCreatedAt(Timestamp.from(Instant.now()));
 
         var otherCaptureSessionEntity = new CaptureSession();
         otherCaptureSessionEntity.setId(UUID.randomUUID());
@@ -319,12 +310,21 @@ public class ReportServiceTest {
         var report = reportService.reportScheduled();
 
         assertThat(report.size()).isEqualTo(2);
-        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getScheduledFor()).isEqualTo(captureSessionEntity.getBooking().getScheduledFor());
-        assertThat(report.getFirst().getCaptureSessionUser()).isEqualTo(userEntity.getEmail());
+        var first = report.getFirst();
+        assertThat(first.getScheduledDate())
+            .isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getBooking().getScheduledFor()));
+        assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
+        assertThat(first.getDateOfBooking())
+            .isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getBooking().getCreatedAt()));
+        assertThat(first.getUser()).isEqualTo(userEntity.getEmail());
 
-        assertThat(report.get(1).getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.get(1).getScheduledFor()).isEqualTo(otherBooking.getScheduledFor());
+        assertThat(report.getLast().getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(report.getLast().getScheduledDate())
+            .isEqualTo(DateTimeUtils.formatDate(otherBooking.getScheduledFor()));
     }
 
     @DisplayName("Find audits relating to playbacks from the portal and return a report")
@@ -356,20 +356,20 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find audits relating to playbacks from the portal and return a report using erroneous recordinguid")
@@ -394,20 +394,15 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
-        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find audits relating to playbacks from the portal and return a report without recordingid")
@@ -431,12 +426,15 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
-        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
         assertThat(report.getFirst().getCaseReference()).isNullOrEmpty();
-        assertThat(report.getFirst().getCourt()).isNullOrEmpty();
-        assertThat(report.getFirst().getRecordingId()).isNull();
+        assertThat(report.getFirst().getCourtName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCounty()).isNullOrEmpty();
+        assertThat(report.getFirst().getPostcode()).isNullOrEmpty();
+        assertThat(report.getFirst().getRegions()).isNullOrEmpty();
     }
 
     @DisplayName("Find audits relating to playbacks from the portal and return a report without audit details")
@@ -454,12 +452,18 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(AuditLogSource.PORTAL);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isNullOrEmpty();
-        assertThat(report.getFirst().getUserFullName()).isNullOrEmpty();
-        assertThat(report.getFirst().getCaseReference()).isNullOrEmpty(); // has a value???
-        assertThat(report.getFirst().getCourt()).isNullOrEmpty();
-        assertThat(report.getFirst().getRecordingId()).isNull();
+
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getUser()).isNullOrEmpty();
+        assertThat(report.getFirst().getUserOrganisation()).isNullOrEmpty();
+        assertThat(report.getFirst().getCaseReference()).isNullOrEmpty();
+        assertThat(report.getFirst().getCourtName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCounty()).isNullOrEmpty();
+        assertThat(report.getFirst().getPostcode()).isNullOrEmpty();
+        assertThat(report.getFirst().getRegions()).isNullOrEmpty();
     }
 
     @DisplayName("Find audits relating to playbacks from the application and return a report")
@@ -490,21 +494,20 @@ public class ReportServiceTest {
 
         var report = reportService.reportPlayback(AuditLogSource.APPLICATION);
 
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find audits relating to all playback attempts and return a report")
@@ -528,21 +531,20 @@ public class ReportServiceTest {
 
         var report = reportService.reportPlayback(null);
 
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+
+
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(report.getFirst().getPostcode()).isEqualTo(courtEntity.getPostcode());
+
+        assertThat(report.getFirst().getRegions()).isEqualTo(regionEntity.getName());
 
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
@@ -566,12 +568,19 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(null);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTime()).isEqualTo(DateTimeUtils.formatTime(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getPlaybackTimeZone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getUserOrganisation()).isEqualTo(user.getOrganisation());
         assertThat(report.getFirst().getCaseReference()).isEqualTo(null);
-        assertThat(report.getFirst().getCourt()).isEqualTo(null);
-        assertThat(report.getFirst().getRecordingId()).isEqualTo(null);
+        assertThat(report.getFirst().getCourtName()).isNullOrEmpty();
+        assertThat(report.getFirst().getCounty()).isNullOrEmpty();
+        assertThat(report.getFirst().getPostcode()).isNullOrEmpty();
+
+        assertThat(report.getFirst().getRegions()).isNullOrEmpty();
+
 
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
@@ -618,28 +627,29 @@ public class ReportServiceTest {
         defendant.setCaseId(caseEntity);
 
         bookingEntity.setParticipants(Set.of(witness, defendant));
+        bookingEntity.setScheduledFor(Timestamp.from(Instant.now()));
 
         when(recordingRepository.findAllByParentRecordingIsNull()).thenReturn(List.of(recordingEntity));
 
         var report = reportService.reportCompletedCaptureSessions();
 
-        assertThat(report.getFirst().getStartedAt()).isEqualTo(captureSessionEntity.getStartedAt());
-        assertThat(report.getFirst().getFinishedAt()).isEqualTo(captureSessionEntity.getFinishedAt());
-        assertThat(report.getFirst().getDuration()).isEqualTo(recordingEntity.getDuration());
-        assertThat(report.getFirst().getScheduledFor()).isEqualTo(bookingEntity.getScheduledFor());
-        assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.getFirst().getCountDefendants()).isEqualTo(1);
-        assertThat(report.getFirst().getCountWitnesses()).isEqualTo(1);
-        assertThat(report.getFirst().getRecordingStatus()).isEqualTo(captureSessionEntity.getStatus());
-        assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
+        var first = report.getFirst();
+        assertThat(first.getRecordingDate()).isEqualTo(DateTimeUtils.formatDate(captureSessionEntity.getStartedAt()));
+        assertThat(first.getRecordingTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getStartedAt()));
+        assertThat(first.getFinishTime()).isEqualTo(DateTimeUtils.formatTime(captureSessionEntity.getFinishedAt()));
+        assertThat(first.getTimezone())
+            .isEqualTo(DateTimeUtils.getTimezoneAbbreviation(captureSessionEntity.getStartedAt()));
+        assertThat(first.getScheduledDate()).isEqualTo(DateTimeUtils.formatDate(bookingEntity.getScheduledFor()));
+        assertThat(first.getCaseReference()).isEqualTo(caseEntity.getReference());
+        assertThat(first.getStatus()).isEqualTo(captureSessionEntity.getStatus());
+        assertThat(first.getDefendantNames()).isEqualTo(defendant.getFullName());
+        assertThat(first.getDefendant()).isEqualTo(1);
+        assertThat(first.getWitnessNames()).isEqualTo(witness.getFullName());
+        assertThat(first.getWitness()).isEqualTo(1);
+        assertThat(first.getCourt()).isEqualTo(courtEntity.getName());
+        assertThat(first.getCounty()).isEqualTo(courtEntity.getCounty());
+        assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
+        assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
     }
 
     @DisplayName("Find all share booking removals and return a report")
@@ -660,20 +670,12 @@ public class ReportServiceTest {
 
         var report = reportService.reportAccessRemoved();
 
-        assertThat(report.getFirst().getRemovedAt()).isEqualTo(shareBooking.getDeletedAt());
+        assertThat(report.getFirst().getRemovedDate()).isEqualTo(DateTimeUtils.formatDate(shareBooking.getDeletedAt()));
         assertThat(report.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
-        assertThat(report
-                       .getFirst()
-                       .getRegions()
-                       .stream()
-                       .toList()
-                       .getFirst()
-                       .getName()
-        ).isEqualTo(regionEntity.getName());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFirstName() + " " + user.getLastName());
+        assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());
+        assertThat(report.getFirst().getFullName()).isEqualTo(user.getFirstName() + " " + user.getLastName());
         assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getRemovalReason()).isNull();
     }
 
     @DisplayName("Find all participants and the recordings they are linked to")
