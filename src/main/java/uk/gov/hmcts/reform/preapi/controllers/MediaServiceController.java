@@ -261,9 +261,8 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (captureSession.getFinishedAt() != null) {
-            throw new UnprocessableContentException("Resource: Capture Session("
-                                                        + captureSessionId
-                                                        + ") has already finished.");
+            log.info("Resource: Capture Session: {} has already finished.", captureSessionId);
+            return ResponseEntity.ok(captureSession);
         }
 
         if (captureSession.getStartedAt() == null) {
