@@ -227,7 +227,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
     private UUID findTestCourtID(String courtName) throws Exception {
         return courtRepository.findFirstByName(courtName)
             .map(BaseEntity::getId)
-            .orElseThrow(() -> new Exception("Court" + courtName + " is not available in the test DB"));
+            .orElseThrow(() -> new Exception("Court " + courtName + " is not available in the test DB"));
     }
 
     private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) throws Exception {
