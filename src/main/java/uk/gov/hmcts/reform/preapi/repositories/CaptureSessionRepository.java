@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +27,7 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
 
     List<CaptureSession> findAllByStatus(RecordingStatus status);
 
-    List<CaptureSession> findAllByFinishedAtIsAndDeletedAtIsNull(Timestamp finishedAt);
+    List<CaptureSession> findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus status, Timestamp fromTime, Timestamp toTime);
 
     List<CaptureSession> findAllByBookingAndDeletedAtIsNull(Booking booking);
 
@@ -69,6 +70,4 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         """
     )
     List<CaptureSession> reportConcurrentCaptureSessions();
-
-    List<CaptureSession> findByDateAndDeletedAtIsNull(Timestamp deletedAt);
 }

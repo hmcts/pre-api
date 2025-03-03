@@ -845,12 +845,13 @@ public class CaptureSessionServiceTest {
         CaptureSession cap2 = new CaptureSession();
         cap2.setBooking(booking2);
 
-        when(captureSessionRepository.findAllByFinishedAtIsAndDeletedAtIsNull(any())).thenReturn(List.of(captureSession, cap1, cap2));
+        when(captureSessionRepository.findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE, any(), any()))
+            .thenReturn(List.of(captureSession, cap1, cap2));
         when(azureFinalStorageService.getRecordingDuration(uuid1)).thenReturn(Duration.ZERO);
         when(azureFinalStorageService.getRecordingDuration(captureSession.getBooking().getId())).thenReturn(Duration.ZERO);
         when(azureFinalStorageService.getRecordingDuration(uuid2)).thenReturn(Duration.of(11, ChronoUnit.SECONDS));
 
-        List<String> missingBookingIds = captureSessionService.findMissingRecordingIds(Timestamp.valueOf(LocalDateTime.now()));
+        List<String> missingBookingIds = captureSessionService.findMissingRecordingIds(LocalDate.now());
 
         verify(azureFinalStorageService, times(1)).getRecordingDuration(uuid1);
         verify(azureFinalStorageService, times(1)).getRecordingDuration(uuid2);

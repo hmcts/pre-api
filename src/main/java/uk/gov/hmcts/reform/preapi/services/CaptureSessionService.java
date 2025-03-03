@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -31,10 +32,11 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -118,9 +120,12 @@ public class CaptureSessionService {
     }
 
     @Transactional
-    public List<CaptureSession> findByDate(Timestamp date) {
+    public List<CaptureSession> findAvailableSessionsByDate(LocalDate date) {
+        Timestamp fromTime = Timestamp.valueOf(date.atStartOfDay());
+        Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
+
         return captureSessionRepository
-            .findAllByFinishedAtIsAndDeletedAtIsNull(date);
+            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE, fromTime, toTime);
     }
 
     @Transactional
@@ -306,15 +311,16 @@ public class CaptureSessionService {
      * @return a List of Booking IDs as strings
      */
     @Transactional
-    public List<String> findMissingRecordingIds(Timestamp date) {
-        List<CaptureSession> captureSessions = findByDate(date);
+    public List<String> findMissingRecordingIds(LocalDate date) {
+        List<CaptureSession> captureSessions = findAvailableSessionsByDate(date);
 
         return captureSessions.stream()
             .map(CaptureSession::getBooking)
             .map(Booking::getId)
-            .filter(bookingId ->
-                        azureFinalStorageService.getRecordingDuration(bookingId).equals(Duration.ZERO))
+            .filter(bookingId -> azureFinalStorageService.getRecordingDuration(bookingId) == null ||
+                azureFinalStorageService.getRecordingDuration(bookingId).equals(Duration.ZERO))
             .map(UUID::toString)
             .toList();
     }
+
 }
