@@ -1,16 +1,16 @@
 FirstName,LastName,Email,CourtLevel,Full Court Name,Court Code,Level
 Example,User A,exampleUserA@test.com,Primary,Aylesbury Crown Court,xxx,2
 Example,User B,exampleUserB@test.com,Primary,Basildon Combined Court,xxx,2
-Example,User B,exampleUserB@test.com,Secondary,Bolton Combined Court,xxx,2
-Example,User C,exampleUserC@test.com,Primary,Caernarfon Justice Centre,xxx,2
+Example,User B,exampleUserB@test.com,Secondary,Bolton Crown Court,xxx,2
+Example,User C,exampleUserC@test.com,Primary,Chelmsford Crown Court,xxx,2
 Example,User C,exampleUserC@test.com,Secondary,Cambridge Crown Court,xxx,2
 Example,User C,exampleUserC@test.com,Secondary,Canterbury Combined Court,xxx,2
 Example,User C,exampleUserC@test.com,Secondary,Cardiff Crown Court,xxx,2
 Example,User D,exampleUserD@test.com,Primary,Foo Court D,xxx,2
-Example,User D,exampleUserD@test.com,Secondary,Derby Combined Centre,xxx,2
-Example,User E,exampleUserE@test.com,Primary,Doncaster Crown Court (Doncaster Justice Centre South),xxx,2
+Example,User D,exampleUserD@test.com,Secondary,Derby Combined Court,xxx,2
+Example,User E,exampleUserE@test.com,Primary,Hereford Crown Court,xxx,2
 Example,User F,exampleUserF@test.com,Primary,Gloucester Crown Court,xxx,0
-Example,User G,exampleUserG@test.com,Primaaary,Grimsby Combined Court Centre,xxx,2
+Example,User G,exampleUserG@test.com,Primaaary,Great Grimsby Combined Court,xxx,2
 Example,User H,exampleUserH@test.com,Primary,Harrow Crown Court,xxx,2
 ,,,Primary,,xxx,2
 Example,,,Primary,,xxx,2
@@ -23,17 +23,17 @@ PrimaryMissing,User I,exampleUserI@test.com,Primary,Court404,xxx,2
 PrimaryMissing,User I,exampleUserI@test.com,Secondary,Aylesbury Crown Court,xxx,2
 TooManySecondaryCourts,User J,exampleUserJ@test.com,Primary,Aylesbury Crown Court,xxx,2
 TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Basildon Combined Court,xxx,2
-TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Bolton Combined Court,xxx,2
-TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Caernarfon Justice Centre,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Bolton Crown Court,xxx,2
+TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Chelmsford Crown Court,xxx,2
 TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Cambridge Crown Court,xxx,2
 TooManySecondaryCourts,User J,exampleUserJ@test.com,Secondary,Canterbury Combined Court,xxx,2
 DuplicatePrimaryCourtAssignment,User K,exampleUserK@test.com,Primary,Aylesbury Crown Court,xxx,2
 DuplicatePrimaryCourtAssignment,User K,exampleUserK@test.com,Primary,Aylesbury Crown Court,xxx,2
-DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Primary,Bolton Combined Court,xxx,2
+DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Primary,Bolton Crown Court,xxx,2
 DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Secondary,Aylesbury Crown Court,xxx,2
 DuplicateSecondaryCourtAssignment,User L,exampleUserL@test.com,Secondary,Aylesbury Crown Court,xxx,2
 DuplicateCourtAssignment,User M,exampleUserM@test.com,Primary,Aylesbury Crown Court,xxx,2
 DuplicateCourtAssignment,User M,exampleUserM@test.com,Secondary,Aylesbury Crown Court,xxx,2
 TwoPrimaryCourts,User N,exampleUserN@test.com,Primary,Aylesbury Crown Court,xxx,2
 TwoPrimaryCourts,User N,exampleUserN@test.com,Primary,Basildon Combined Court,xxx,2
-TwoPrimaryCourts,User O,exampleUserO@test.com,Secondary,Bolton Combined Court,xxx,2
+TwoPrimaryCourts,User O,exampleUserO@test.com,Secondary,Bolton Crown Court,xxx,2

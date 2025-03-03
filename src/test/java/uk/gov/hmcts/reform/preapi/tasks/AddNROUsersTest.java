@@ -103,9 +103,9 @@ class AddNROUsersTest {
                                                              null);
         when(this.courtRepository.findFirstByName("Gloucester Crown Court"))
             .thenReturn(Optional.of(uncalledTestCourt1));
-        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Centre",
+        Court uncalledTestCourt2 = HelperFactory.createCourt(CourtType.CROWN, "Derby Combined Court",
                                                              null);
-        when(this.courtRepository.findFirstByName("Derby Combined Centre"))
+        when(this.courtRepository.findFirstByName("Derby Combined Court"))
             .thenReturn(Optional.of(uncalledTestCourt2));
 
         for (ImportedNROUser testImportedNROUser : this.testImportedNROUsers) {
@@ -173,7 +173,7 @@ class AddNROUsersTest {
         ImportedNROUser testImportedNROUserBSecondaryCourt1 = new ImportedNROUser("Example",
                                                                                   "User B",
                                                                                   "exampleUserB@test.com",
-                                                                                  "Bolton Combined Court",
+                                                                                  "Bolton Crown Court",
                                                                                   null,
                                                                                   false,
                                                                                   testLvl2ID,
@@ -181,7 +181,7 @@ class AddNROUsersTest {
         ImportedNROUser testImportedNROUserC = new ImportedNROUser("Example",
                                                                    "User C",
                                                                    "exampleUserC@test.com",
-                                                                   "Caernarfon Justice Centre",
+                                                                   "Chelmsford Crown Court",
                                                                    null,
                                                                    true,
                                                                    testLvl2ID,
@@ -213,8 +213,7 @@ class AddNROUsersTest {
         ImportedNROUser testImportedNROUserE = new ImportedNROUser("Example",
                                                                    "User E",
                                                                    "exampleUserE@test.com",
-                                                                   "Doncaster Crown Court "
-                                                                       + "(Doncaster Justice Centre South)",
+                                                                   "Hereford Crown Court",
                                                                    null,
                                                                    true,
                                                                    testLvl2ID,

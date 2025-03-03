@@ -71,7 +71,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
         entityManager.refresh(mockUser);
 
         // NRO objects to test assertions:
-        this.testImportedNROUsers = getTestImportedNROUsers(
+        this.testImportedNROUsers = this.getTestImportedNROUsers(
             this.populateRolesTableAndGetTestRoleIDs().get("Test Level 2 ID")
         );
         this.failureCaseEmails = List.of(
@@ -227,7 +227,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
     private UUID findTestCourtID(String courtName) throws Exception {
         return courtRepository.findFirstByName(courtName)
             .map(BaseEntity::getId)
-            .orElseThrow(() -> new Exception("Court " + courtName + " is not available in the test DB"));
+            .orElseThrow(() -> new Exception("Court '" + courtName + "' is not available in the test DB"));
     }
 
     private List<ImportedNROUser> getTestImportedNROUsers(UUID testLvl2ID) throws Exception {
@@ -254,9 +254,9 @@ public class AddNROUsersIT extends IntegrationTestBase {
         ImportedNROUser testImportedNROUserBSecondaryCourt1 = new ImportedNROUser("Example",
                                                                                   "User B",
                                                                                   "exampleUserB@test.com",
-                                                                                  "Bolton Combined Court",
+                                                                                  "Bolton Crown Court",
                                                                                   findTestCourtID(
-                                                                                      "Bolton Combined Court"
+                                                                                      "Bolton Crown Court"
                                                                                   ),
                                                                                   false,
                                                                                   testLvl2ID,
@@ -264,9 +264,9 @@ public class AddNROUsersIT extends IntegrationTestBase {
         ImportedNROUser testImportedNROUserC = new ImportedNROUser("Example",
                                                                    "User C",
                                                                    "exampleUserC@test.com",
-                                                                   "Caernarfon Justice Centre",
+                                                                   "Chelmsford Crown Court",
                                                                    findTestCourtID(
-                                                                       "Caernarfon Justice Centre"
+                                                                       "Chelmsford Crown Court"
                                                                    ),
                                                                    true,
                                                                    testLvl2ID,
@@ -304,11 +304,9 @@ public class AddNROUsersIT extends IntegrationTestBase {
         ImportedNROUser testImportedNROUserE = new ImportedNROUser("Example",
                                                                    "User E",
                                                                    "exampleUserE@test.com",
-                                                                   "Doncaster Crown Court "
-                                                                       + "(Doncaster Justice Centre South)",
+                                                                   "Hereford Crown Court",
                                                                    findTestCourtID(
-                                                                       "Doncaster Crown Court (Doncaster "
-                                                                           + "Justice Centre South)"),
+                                                                       "Hereford Crown Court"),
                                                                    true,
                                                                    testLvl2ID,
                                                                    "2");
