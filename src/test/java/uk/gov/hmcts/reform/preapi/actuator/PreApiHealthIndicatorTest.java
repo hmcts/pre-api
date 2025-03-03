@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.media.MediaKindAccountsClient;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStorageAccount;
 import uk.gov.hmcts.reform.preapi.media.dto.MkStorageAccounts;
@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = PreApiHealthIndicator.class)
 public class PreApiHealthIndicatorTest {
 
-    @MockBean
+    @MockitoBean
     private MediaKindAccountsClient mediaKindAccountsClient;
 
     @Autowired

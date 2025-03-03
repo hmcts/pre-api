@@ -19,13 +19,13 @@ public interface CourtRepository extends JpaRepository<Court, UUID> {
     @Query(
         """
         SELECT c FROM Court c
-        WHERE (CAST(:courtType as text) IS NULL OR c.courtType = :courtType)
-        AND (:name IS NULL OR c.name ILIKE %:name%)
-        AND (:locationCode IS NULL OR c.locationCode ILIKE %:locationCode%)
+        WHERE (:#{#courtType} IS NULL OR c.courtType = :#{#courtType})
+        AND (:#{#name} IS NULL OR c.name ILIKE %:#{#name}%)
+        AND (:#{#locationCode} IS NULL OR c.locationCode ILIKE %:#{#locationCode}%)
         AND (
-            :regionName IS NULL OR EXISTS (
+            :#{#regionName} IS NULL OR EXISTS (
                 SELECT 1 FROM c.regions r
-                WHERE r.name ILIKE %:regionName%
+                WHERE r.name ILIKE %:#{#regionName}%
             )
         )
 
