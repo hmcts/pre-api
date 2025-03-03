@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 
 import java.sql.Timestamp;
@@ -33,14 +34,38 @@ class AuditDTOTest {
         auditEntity.setCreatedAt(new Timestamp(System.currentTimeMillis()));
     }
 
-    @DisplayName("Should create an Audit model from an Audit entity")
     @Test
+    @DisplayName("Should create an Audit model from an Audit entity")
     void createCaseFromEntity() {
+        assertAuditDtoValid(new AuditDTO(auditEntity));
+    }
 
-        var model = new AuditDTO(auditEntity);
+    @Test
+    @DisplayName("Should create an Audit model from an Audit and User entity")
+    public void createCaseFromAuditAndUser() {
+        var user = new User();
+        user.setId(auditEntity.getCreatedBy());
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+        user.setPhone("1234567890");
+        user.setOrganisation("Example Organisation");
+
+        var model = new AuditDTO(auditEntity, user);
+        assertAuditDtoValid(model);
+
+        var userDto = model.getCreatedBy();
+        assertThat(userDto.getFirstName()).isEqualTo(user.getFirstName());
+        assertThat(userDto.getLastName()).isEqualTo(user.getLastName());
+        assertThat(userDto.getEmail()).isEqualTo(user.getEmail());
+        assertThat(userDto.getPhoneNumber()).isEqualTo(user.getPhone());
+        assertThat(userDto.getOrganisation()).isEqualTo(user.getOrganisation());
+    }
+
+    private void assertAuditDtoValid(AuditDTO model) {
         assertThat(model.getId()).isEqualTo(auditEntity.getId());
         assertThat(model.getCreatedAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(model.getCreatedBy()).isEqualTo(auditEntity.getCreatedBy());
+        assertThat(model.getCreatedBy().getId()).isEqualTo(auditEntity.getCreatedBy());
         assertThat(model.getAuditDetails().get("foo").asText()).isEqualTo("bar");
         assertThat(model.getActivity()).isEqualTo(auditEntity.getActivity());
         assertThat(model.getCategory()).isEqualTo(auditEntity.getCategory());
