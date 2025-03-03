@@ -55,8 +55,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         log.info("Signing in robot user with email {} on env {}", cronUserEmail, platformEnv);
         signInRobotUser();
 
-//        LocalDate yesterday = LocalDate.now().minusDays(1);
-        LocalDate yesterday = LocalDate.of(2025, 02, 03);
+        LocalDate yesterday = LocalDate.now().minusDays(1);
         log.info("Running CheckForMissingRecordings task: looking for missing recordings from {}", yesterday);
 
         List<CaptureSession> captureSessionsFromDate = captureSessionService.findAvailableSessionsByDate(yesterday);
