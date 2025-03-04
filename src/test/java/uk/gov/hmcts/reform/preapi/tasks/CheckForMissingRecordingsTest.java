@@ -19,10 +19,22 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.time.Duration;
 import java.time.LocalDate;
-import java.util.*;
+import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 import static java.lang.String.format;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class CheckForMissingRecordingsTest {
 
@@ -34,23 +46,25 @@ public class CheckForMissingRecordingsTest {
 
     @BeforeEach
     public void setUp() {
-        String platformEnv = "Local-Testing";
-
-        slackClient = mock(SlackClient.class);
-        recordingService = mock(RecordingService.class);
-        UserService userService = mock(UserService.class);
-        UserAuthenticationService userAuthenticationService = mock(UserAuthenticationService.class);
-        captureSessionService = mock(CaptureSessionService.class);
-
         var access = new AccessDTO();
         var appAccess = new BaseAppAccessDTO();
         appAccess.setId(UUID.randomUUID());
         access.setAppAccess(Set.of(appAccess));
-        var userAuth = mock(UserAuthentication.class);
+
+        slackClient = mock(SlackClient.class);
+        recordingService = mock(RecordingService.class);
+        captureSessionService = mock(CaptureSessionService.class);
+
+        UserService userService = mock(UserService.class);
+        UserAuthenticationService userAuthenticationService = mock(UserAuthenticationService.class);
+        UserAuthentication userAuth = mock(UserAuthentication.class);
+
         when(userAuth.isAdmin()).thenReturn(true);
         when(userService.findByEmail(ROBOT_USER_EMAIL)).thenReturn(access);
         when(userAuthenticationService.validateUser(appAccess.getId().toString()))
             .thenReturn(Optional.of(userAuth));
+
+        String platformEnv = "Local-Testing";
 
         checkForMissingRecordingsTask = new CheckForMissingRecordings(
             captureSessionService,
@@ -63,42 +77,37 @@ public class CheckForMissingRecordingsTest {
         );
     }
 
+    private RecordingDTO createRecording(Integer duration, UUID bookingId) {
+        RecordingDTO zeroDurationRecording = new RecordingDTO();
+        zeroDurationRecording.setId(bookingId);
+        zeroDurationRecording.setDuration(Duration.of(duration, ChronoUnit.MINUTES));
+        return zeroDurationRecording;
+    }
+
+    private CaptureSession createCaptureSession(UUID bookingId) {
+        CaptureSession captureSession = new CaptureSession();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        return captureSession;
+    }
+
     @Test
     public void testMissingRecordingsAreFound() {
         UUID zeroId = UUID.randomUUID();
-        UUID happyId = UUID.randomUUID();
-        UUID noCSId = UUID.randomUUID();
+        RecordingDTO zeroDurationRecording = createRecording(0, zeroId);
+        CaptureSession zeroDurationCS = createCaptureSession(zeroId);
+
         UUID noRecId = UUID.randomUUID();
+        CaptureSession csWithoutRecording = createCaptureSession(noRecId);
 
-        RecordingDTO zeroDurationRecording = new RecordingDTO();
-        zeroDurationRecording.setId(zeroId);
-        zeroDurationRecording.setDuration(Duration.ZERO);
+        UUID happyId = UUID.randomUUID();
+        RecordingDTO happyRecording = createRecording(3, happyId);
+        CaptureSession happyCS = createCaptureSession(happyId);
 
-        RecordingDTO happyRecording = new RecordingDTO();
-        happyRecording.setId(happyId);
-        happyRecording.setDuration(Duration.ofMinutes(3));
-
-        RecordingDTO recordingWithoutACaptureSession = new RecordingDTO();
-        recordingWithoutACaptureSession.setId(noCSId);
-        recordingWithoutACaptureSession.setDuration(Duration.ofMinutes(1));
-
-        CaptureSession captureSession1 = new CaptureSession();
-        Booking booking1 = new Booking();
-        booking1.setId(zeroId);
-        captureSession1.setId(UUID.randomUUID());
-        captureSession1.setBooking(booking1);
-
-        CaptureSession captureSession2 = new CaptureSession();
-        Booking booking2 = new Booking();
-        booking2.setId(happyId);
-        captureSession2.setId(UUID.randomUUID());
-        captureSession2.setBooking(booking2);
-
-        CaptureSession captureSession3 = new CaptureSession();
-        Booking booking3 = new Booking();
-        booking3.setId(noRecId);
-        captureSession3.setId(UUID.randomUUID());
-        captureSession3.setBooking(booking3);
+        UUID noCSId = UUID.randomUUID();
+        RecordingDTO recordingWithoutACaptureSession = createRecording(3, noCSId);
 
         when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
             .thenReturn(new PageImpl<>(List.of(
@@ -108,29 +117,32 @@ public class CheckForMissingRecordingsTest {
             )));
 
         when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
-            captureSession1,
-            captureSession2,
-            captureSession3
+            zeroDurationCS,
+            csWithoutRecording,
+            happyCS
         ));
         checkForMissingRecordingsTask.run();
 
         verify(captureSessionService, times(1)).findAvailableSessionsByDate(any(LocalDate.class));
         verify(slackClient, times(1)).postSlackMessage(format(
-            "{\"text\":\":globe_with_meridians: *Environment:* Local-Testing\\n\\n" +
-                ":warning: *Missing Recordings:*" +
-                "\\n\\n\\t:siren: %s :siren:\\n\\n" +
-                ":warning: *Zero-Duration Recordings:*" +
-                "\\n\\n\\t:siren: %s :siren:\\n\\n\"}", noRecId, zeroId
+            "{\"text\":\":globe_with_meridians: *Environment:* Local-Testing\\n\\n"
+                + ":warning: *Missing Recordings:*"
+                + "\\n\\n\\t:siren: %s :siren:\\n\\n"
+                + ":warning: *Zero-Duration Recordings:*"
+                + "\\n\\n\\t:siren: %s :siren:\\n\\n\"}", noRecId, zeroId
         ));
     }
 
     @Test
     public void testNoMissingRecordingsAreFound() {
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class))).thenReturn(Collections.emptyList());
+        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class)))
+            .thenReturn(Collections.emptyList());
         checkForMissingRecordingsTask.run();
 
-        verify(captureSessionService, times(1)).findAvailableSessionsByDate(any(LocalDate.class));
-        verify(recordingService, times(0)).findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged()));
+        verify(captureSessionService, times(1))
+            .findAvailableSessionsByDate(any(LocalDate.class));
+        verify(recordingService, times(0))
+            .findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged()));
         verify(slackClient, times(0)).postSlackMessage(anyString());
     }
 
