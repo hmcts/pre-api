@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@Slf4j
 @SpringBootTest(classes = CaptureSessionService.class)
 public class CaptureSessionServiceTest {
     @MockBean
@@ -84,6 +86,7 @@ public class CaptureSessionServiceTest {
             Timestamp.from(Instant.now().plus(Duration.ofDays(1))),
             null
         );
+        booking.setId(UUID.randomUUID());
 
         user = new User();
         user.setId(UUID.randomUUID());
