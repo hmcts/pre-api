@@ -117,6 +117,9 @@ email:
 portal:
   url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}
 
+slack:
+  webhook: ${SLACK_WEBHOOK_URL:}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
