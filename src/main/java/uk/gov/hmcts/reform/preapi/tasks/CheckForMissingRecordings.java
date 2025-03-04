@@ -18,7 +18,11 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 
 /**
@@ -86,7 +90,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
                     log.error("Unexpected capture session {} without booking", captureSession.getId());
                 }
                 UUID bookingID = captureSession.getBooking().getId();
-                if (bookingID == null){
+                if (bookingID == null) {
                     log.error("Unexpected capture session {} without booking ID", captureSession.getId());
                 } else if (recordingDuration.get(bookingID) == null) {
                     missingRecordings.add(bookingID.toString());

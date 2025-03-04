@@ -22,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -121,7 +120,8 @@ public class CaptureSessionService {
         Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
 
         return captureSessionRepository
-            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE, fromTime, toTime);
+            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE,
+                                                                     fromTime, toTime);
     }
 
     @Transactional
