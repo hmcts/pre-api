@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateUserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
@@ -41,34 +41,34 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = AddNROUsers.class)
 class AddNROUsersTest {
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private AppAccessRepository appAccessRepository;
 
-    @MockBean
+    @MockitoBean
     private RoleRepository roleRepository;
 
-    @MockBean
+    @MockitoBean
     private CourtRepository courtRepository;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private PortalAccessRepository portalAccessRepository;
 
-    @MockBean
+    @MockitoBean
     private AppAccessService appAccessService;
 
-    @MockBean
+    @MockitoBean
     private PortalAccessService portalAccessService;
 
-    @MockBean
+    @MockitoBean
     private TermsAndConditionsRepository termsAndConditionsRepository;
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
     @Value("${cron-user-email}")
