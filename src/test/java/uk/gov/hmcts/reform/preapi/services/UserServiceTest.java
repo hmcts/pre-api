@@ -6,10 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreatePortalAccessDTO;
@@ -60,28 +60,28 @@ public class UserServiceTest {
     private static PortalAccess portalAccessEntity;
     private static PortalAccess portalAccessEntity2;
 
-    @MockBean
+    @MockitoBean
     private AppAccessRepository appAccessRepository;
 
-    @MockBean
+    @MockitoBean
     private RoleRepository roleRepository;
 
-    @MockBean
+    @MockitoBean
     private CourtRepository courtRepository;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private PortalAccessRepository portalAccessRepository;
 
-    @MockBean
+    @MockitoBean
     private AppAccessService appAccessService;
 
-    @MockBean
+    @MockitoBean
     private PortalAccessService portalAccessService;
 
-    @MockBean
+    @MockitoBean
     private TermsAndConditionsRepository termsAndConditionsRepository;
 
     @Autowired
