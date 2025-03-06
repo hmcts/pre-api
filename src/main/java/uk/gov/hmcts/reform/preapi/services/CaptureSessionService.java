@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.microsoft.applicationinsights.TelemetryClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -42,6 +43,8 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
+
+    private final TelemetryClient telemetry = new TelemetryClient();
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
@@ -204,6 +207,7 @@ public class CaptureSessionService {
         captureSession.setFinishedAt(createCaptureSessionDTO.getFinishedAt());
         captureSession.setFinishedByUser(finishedByUser);
         captureSession.setStatus(createCaptureSessionDTO.getStatus());
+        telemetry.trackEvent(captureSession.getStatus().name());
 
         captureSessionRepository.save(captureSession);
 
@@ -237,6 +241,8 @@ public class CaptureSessionService {
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
         captureSession.setStatus(status);
+        telemetry.trackEvent(captureSession.getStatus().name());
+
         captureSession.setIngestAddress(ingestAddress);
 
         captureSessionRepository.save(captureSession);
@@ -253,6 +259,8 @@ public class CaptureSessionService {
 
         log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
+        telemetry.trackEvent(captureSession.getStatus().name());
+
 
         switch (status) {
             case PROCESSING -> {
@@ -283,6 +291,8 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
         captureSession.setStatus(status);
+        telemetry.trackEvent(captureSession.getStatus().name());
+
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
     }

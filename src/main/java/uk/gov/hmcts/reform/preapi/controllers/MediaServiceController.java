@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.azure.resourcemanager.mediaservices.models.JobState;
+import com.microsoft.applicationinsights.TelemetryClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
@@ -56,6 +57,8 @@ public class MediaServiceController extends PreApiController {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AzureIngestStorageService azureIngestStorageService;
     private final RecordingService recordingService;
+
+    private final TelemetryClient telemetry = new TelemetryClient();
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
@@ -243,6 +246,8 @@ public class MediaServiceController extends PreApiController {
         // update captureSession
         captureSession.setLiveOutputUrl(liveOutputUrl);
         captureSession.setStatus(RecordingStatus.RECORDING);
+        telemetry.trackEvent(captureSession.getStatus().name());
+
         captureSessionService.upsert(captureSession);
 
         return ResponseEntity.ok(captureSession);
