@@ -43,7 +43,9 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -246,7 +248,10 @@ public class MediaServiceController extends PreApiController {
         // update captureSession
         captureSession.setLiveOutputUrl(liveOutputUrl);
         captureSession.setStatus(RecordingStatus.RECORDING);
-        telemetry.trackEvent(captureSession.getStatus().name());
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
 
         captureSessionService.upsert(captureSession);
 
