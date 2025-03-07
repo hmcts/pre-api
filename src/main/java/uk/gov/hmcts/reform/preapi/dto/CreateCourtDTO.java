@@ -1,10 +1,10 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
-
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -33,6 +33,13 @@ public class CreateCourtDTO {
     @Schema(description = "CreateCourtLocationCode")
     @NotNull(message = "location_code is required")
     private String locationCode;
+
+    @Schema(description = "CreateCourtCounty")
+    private String county;
+
+    @Schema(description = "CreateCourtPostcode")
+    @Pattern(regexp = "^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$", message = "invalid postcode")
+    private String postcode;
 
     @Schema(description = "CreateCourtRegionIds")
     @Size(min = 1, message = "must contain at least 1")
