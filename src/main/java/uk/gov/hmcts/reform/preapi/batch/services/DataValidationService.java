@@ -43,38 +43,38 @@ public class DataValidationService {
     public ServiceResult<CleansedData> validateCleansedData(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         TestItem testCheck = checkIsTest(archiveItem);
         if (!isDateAfterGoLive(cleansedData)) {
-            return ServiceResultUtil.createFailureReponse(ERROR_PREDATES_GO_LIVE);
+            return ServiceResultUtil.failure(ERROR_PREDATES_GO_LIVE);
         }
 
         if (testCheck.isTest()) {
-            return ServiceResultUtil.createFailureReponse(testCheck.getReason());
+            return ServiceResultUtil.failure(testCheck.getReason());
         }
 
         if (!isFileExtensionValid(cleansedData)) {
-            return ServiceResultUtil.createFailureReponse(ERROR_FILE_EXTENSION);
+            return ServiceResultUtil.failure(ERROR_FILE_EXTENSION);
         }
 
         if (cleansedData.getRecordingTimestamp() == null) {
-            return ServiceResultUtil.createFailureReponse(ERROR_TIMESTAMP);
+            return ServiceResultUtil.failure(ERROR_TIMESTAMP);
         }
 
         if (cleansedData.getCourt() == null) {
-            return ServiceResultUtil.createFailureReponse(ERROR_COURT);
+            return ServiceResultUtil.failure(ERROR_COURT);
         }
 
         if (!cleansedData.isMostRecentVersion()) {
-            return ServiceResultUtil.createFailureReponse(ERROR_MOST_RECENT_VERSION);
+            return ServiceResultUtil.failure(ERROR_MOST_RECENT_VERSION);
         }
 
         if (cleansedData.getCaseReference() == null) {
-            return ServiceResultUtil.createFailureReponse(ERROR_CASE_REFERENCE);
+            return ServiceResultUtil.failure(ERROR_CASE_REFERENCE);
         }
 
         if (cleansedData.getCaseReference().length() > 24){
-            return ServiceResultUtil.createFailureReponse(ERROR_CASE_REFERENCE_LONG);
+            return ServiceResultUtil.failure(ERROR_CASE_REFERENCE_LONG);
         }
 
-        return ServiceResultUtil.createSuccessResponse(cleansedData);
+        return ServiceResultUtil.success(cleansedData);
     }
 
     // =========================

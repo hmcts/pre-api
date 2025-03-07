@@ -3,8 +3,6 @@ package uk.gov.hmcts.reform.preapi.batch.services;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;

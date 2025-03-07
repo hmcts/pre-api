@@ -8,12 +8,11 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
-import uk.gov.hmcts.reform.preapi.batch.processor.RecordingMediaKindTransform;
+import uk.gov.hmcts.reform.preapi.batch.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -45,7 +44,7 @@ public class MigrationGroupBuilderService {
     private final EntityCreationService entityCreationService;
     private final RedisService redisService;
     private final MigrationTrackerService migrationTrackerService;
-    private final RecordingMediaKindTransform recordingMediaKindTransform;
+    private final MediaTransformationService recordingMediaKindTransform;
     private final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
 
 
@@ -55,7 +54,7 @@ public class MigrationGroupBuilderService {
         RedisService redisService,
         MigrationTrackerService migrationTrackerService,
         CaseRepository caseRepository,
-        RecordingMediaKindTransform recordingMediaKindTransform
+        MediaTransformationService recordingMediaKindTransform
     ) {
         this.entityCreationService = entityCreationService;
         this.redisService = redisService;

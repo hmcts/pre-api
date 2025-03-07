@@ -95,22 +95,33 @@ public class CSVArchiveListData {
             return null;
         }
 
-        return DATE_PATTERNS.stream()
-            .map(pattern -> {
-                try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
-                    return LocalDateTime.parse(createTime.trim(), formatter);
-                } catch (DateTimeParseException e) {
-                    logger.debug("Failed to parse date '{}' with pattern '{}'", createTime, pattern);
+        try {
+            long timestamp = Long.parseLong(createTime.trim());
+            return LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochMilli(timestamp),
+                java.time.ZoneId.systemDefault()
+            );
+
+        } catch (NumberFormatException e){
+            return DATE_PATTERNS.stream()
+                .map(pattern -> {
+                    try {
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
+                        return LocalDateTime.parse(createTime.trim(), formatter);
+                    } catch (DateTimeParseException ex) {
+                        logger.debug("Failed to parse date '{}' with pattern '{}'", createTime, pattern);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseGet(() -> {
+                    logger.error("Could not parse create time '{}' with any known pattern", createTime);
                     return null;
-                }
-            })
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElseGet(() -> {
-                logger.error("Could not parse create time '{}' with any known pattern", createTime);
-                return null;
             });
+        }
+
+        
     }
 
     @Override

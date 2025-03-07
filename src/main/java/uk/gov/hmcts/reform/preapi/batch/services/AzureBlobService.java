@@ -1,9 +1,11 @@
 package uk.gov.hmcts.reform.preapi.batch.services;
 
+import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.BlobItem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -136,6 +138,42 @@ public class AzureBlobService {
                 + containerName + uploadFileName + e);
         }
         return false;
+    }
+
+    public void copyBlob(
+        String sourceContainer,
+        String sourceEnvironment, 
+        String destContainer,
+        String destEnvironment,
+        String blobName
+    ) {
+        try {
+            BlobContainerClient sourceContainerClient = getBlobContainerClient(sourceContainer, sourceEnvironment);
+            BlobClient sourceBlobClient = sourceContainerClient.getBlobClient(blobName);
+            
+            BlobContainerClient destContainerClient = getBlobContainerClient(destContainer, destEnvironment);
+            BlobClient destBlobClient = destContainerClient.getBlobClient(blobName);
+            
+            if (!destContainerClient.exists()) {
+                destContainerClient.create();
+            }
+            
+            String sourceUrl = sourceBlobClient.getBlobUrl();
+            SyncPoller<BlobCopyInfo, Void> poller = destBlobClient.beginCopy(sourceUrl, null);
+            
+            poller.waitForCompletion();
+            
+            Logger.getAnonymousLogger().info("Successfully copied blob '{}' from {}/{} to {}/{}"+ 
+                blobName+ sourceContainer+ sourceEnvironment+ destContainer+ destEnvironment);
+                
+        } catch (Exception e) {
+            Logger.getAnonymousLogger().warning("Error copying blob: {}" + e.getMessage() + e);
+            throw e;
+        }
+    }
+
+    private BlobContainerClient getBlobContainerClient(String containerName, String environment) {
+        return getClient(environment).getBlobContainerClient(containerName);
     }
 
 }

@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
@@ -28,10 +27,12 @@ import java.util.stream.Collectors;
 public class PreProcessor {
     private static final Logger logger = LoggerFactory.getLogger(PreProcessor.class);
 
-    private static final String NAMESPACE = "vf:";
-    private static final String COURT_KEY_PREFIX = NAMESPACE + "court:";
-    private static final String CASE_KEY_PREFIX = NAMESPACE + "case:";
-    private static final String USER_KEY_PREFIX = NAMESPACE + "user:";
+    private static final class RedisNamespaces {
+        private static final String NAMESPACE = "vf:";
+        private static final String COURT_KEY_PREFIX = NAMESPACE + "court:";
+        private static final String CASE_KEY_PREFIX = NAMESPACE + "case:";
+        private static final String USER_KEY_PREFIX = NAMESPACE + "user:";
+    }
 
     private final RedisService redisService;
     private final CourtRepository courtRepository;
@@ -62,10 +63,15 @@ public class PreProcessor {
      * Clears any stale data and loads required entities into Redis.
      */
     public void initialize() {
-        logger.info("Starting initialization of temporary storage.");
-        clearTemporaryStorage();
-        loadAllData();
-        logger.info("Initialization completed.");
+        logger.info("Initiating batch environment preparation.");
+        try {
+            clearTemporaryStorage();
+            cacheRequiredEntities();
+            logger.info("Batch environment preparation completed successfully.");
+        } catch (Exception e) {
+            logger.error("Batch environment preparation failed", e);
+            throw new RuntimeException("Failed to prepare batch environment", e);
+        }
     }
 
 
@@ -74,18 +80,18 @@ public class PreProcessor {
     // ==============================
 
     @Transactional(readOnly = true)
-    protected void loadAllData() {   
+    protected void cacheRequiredEntities() {   
         List<Court> courts = courtRepository.findAll();
-        storeEntitiesInRedis(COURT_KEY_PREFIX, courts, Court::getName, court -> court.getId().toString(),"courts");
+        cacheEntityToRedis(RedisNamespaces.COURT_KEY_PREFIX, courts, Court::getName, court -> court.getId().toString(),"courts");
         
         List<Case> cases = caseRepository.findAll();
-        storeEntitiesInRedis(CASE_KEY_PREFIX, cases, Case::getReference, acase -> acase.getId().toString(),"cases");
+        cacheEntityToRedis(RedisNamespaces.CASE_KEY_PREFIX, cases, Case::getReference, acase -> acase.getId().toString(),"cases");
         
         List<User> users = userRepository.findAll();
-        storeEntitiesInRedis(USER_KEY_PREFIX, users, User::getEmail, user -> user.getId().toString(),"users");
+        cacheEntityToRedis(RedisNamespaces.USER_KEY_PREFIX, users, User::getEmail, user -> user.getId().toString(),"users");
     }
 
-    private <T> void storeEntitiesInRedis(
+    private <T> void cacheEntityToRedis(
         String prefix,
         List<T> items,
         Function<T, String> keyFn,
@@ -96,11 +102,11 @@ public class PreProcessor {
             .collect(Collectors.toMap(keyFn, valFn, (existing, replacement) -> existing)); 
 
         redisService.saveHashAll(prefix, map);
-        logger.info("Loaded {} {} records into Redis.", items.size(), entityName);
+        logger.info("Cached {} {} records into Redis.", items.size(), entityName);
     }
 
     public void clearTemporaryStorage() {
         logger.info("Clearing temporary storage...");
-        redisService.clearNamespaceKeys(NAMESPACE);
+        redisService.clearNamespaceKeys(RedisNamespaces.NAMESPACE);
     }
 }

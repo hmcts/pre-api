@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobScope;
@@ -24,24 +26,47 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
 
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.processor.RecordingMetadataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.processor.ReferenceDataProcessor;
-import uk.gov.hmcts.reform.preapi.batch.processor.XmlProcessingService;
+import uk.gov.hmcts.reform.preapi.batch.processor.ArchiveMetadataXmlExtractor;
 import uk.gov.hmcts.reform.preapi.batch.reader.CSVReader;
+import uk.gov.hmcts.reform.preapi.batch.services.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.services.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
+import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.batch.writer.Writer;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
+import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.tasks.RobotUserTaskImpl;
 
-import java.io.File;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableBatchProcessing
@@ -61,12 +86,15 @@ public class BatchConfiguration implements StepExecutionListener {
     private final PreProcessor preProcessor;
     private final RecordingMetadataProcessor recordingPreProcessor;
     private final ReferenceDataProcessor referenceDataProcessor;
+    private final RedisService redisService;
     private final Processor itemProcessor;
     private final Writer itemWriter;
     private final MigrationTrackerService migrationTrackerService;
     private final CaseService caseService;
+    private final CaptureSessionService captureSessionService;
+    private final CaseRepository caseRepository;
     private final RobotUserTaskImpl robotUserTask;
-    private final XmlProcessingService xmlProcessingService;
+    private final ArchiveMetadataXmlExtractor xmlProcessingService;
     
     @Autowired
     public BatchConfiguration(
@@ -76,12 +104,21 @@ public class BatchConfiguration implements StepExecutionListener {
         PreProcessor preProcessor,
         RecordingMetadataProcessor recordingPreProcessor,
         ReferenceDataProcessor referenceDataProcessor,
+        RedisService redisService,
         Processor itemProcessor,
+        EntityCreationService entityCreationService,
         CaseService caseService,
+        BookingService bookingService,
+        CaptureSessionService captureSessionService,
+        CaseRepository caseRepository,
+        BookingRepository bookingRepository,
+        CaptureSessionRepository captureSessionRepository,
+        RecordingRepository recordingRepository,
+        RecordingService recordingService,
         Writer itemWriter,
         MigrationTrackerService migrationTrackerService,
         RobotUserTaskImpl robotUserTask,
-        XmlProcessingService xmlProcessingService
+        ArchiveMetadataXmlExtractor xmlProcessingService
     ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
@@ -90,7 +127,10 @@ public class BatchConfiguration implements StepExecutionListener {
         this.recordingPreProcessor =  recordingPreProcessor;
         this.referenceDataProcessor = referenceDataProcessor;
         this.itemProcessor = itemProcessor;
+        this.redisService = redisService;
         this.caseService = caseService;
+        this.captureSessionService = captureSessionService;
+        this.caseRepository = caseRepository;
         this.itemWriter = itemWriter;
         this.migrationTrackerService = migrationTrackerService;
         this.robotUserTask = robotUserTask;
@@ -113,19 +153,29 @@ public class BatchConfiguration implements StepExecutionListener {
     @Bean
     @Qualifier("importCsvJob")
     public Job processCSVJob() {
+        Step sitesStep = createSitesDataStep();
+        Step channelStep = createChannelUserStep();
+        Step robotStep = createRobotUserSignInStep();
+        Step preProcessStep = createPreProcessStep();
+        Step metadataStep = createPreProcessMetadataStep();
+        Step archiveStep = createArchiveListStep();
+        Step markCasesStep = createMarkCasesClosedStep();
+        Step writeCsvStep = createWriteToCSVStep();
+
         return new JobBuilder("importCsvJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(fileAvailabilityDecider())
             .on("FAILED").end()
             .on("COMPLETED")
-            .to(createSitesDataStep())
-            .next(createChannelUserStep())
-            .next(createRobotUserSignInStep())
-            .next(createPreProcessStep())
-            .next(createPreProcessMetadataStep())
-            .next(createArchiveListStep())
-            // .next(createMarkCasesClosedStep()) 
-            .next(createWriteToCSVStep())
+            .to(sitesStep)
+            .next(channelStep)
+            .next(robotStep)
+            .next(preProcessStep)
+            .next(metadataStep)
+            .next(archiveStep)
+            // .next(createNonTransactionalMarkCasesClosedStep()) 
+            // .next(markCasesStep) 
+            .next(writeCsvStep)
             .end()
             .build();
     }
@@ -169,8 +219,8 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     String containerName = "pre-vodafone-spike"; 
-                    String outputDir = "src/main/batch"; 
-                    xmlProcessingService.processXmlAndWriteCsv(containerName, outputDir);
+                    String outputDir = "src/main/resources/batch"; 
+                    xmlProcessingService.extractAndReportArchiveMetadata(containerName, outputDir);
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
                 .build();
@@ -227,30 +277,13 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-    // protected Step createMarkCasesClosedStep() {
-    //     return new StepBuilder("markCasesClosedStep", jobRepository)
-    //         .tasklet((contribution, chunkContext) -> {
-    //             var validCaseReferences = referenceDataProcessor.fetchChannelUserDataKeys();
-    //             validCaseReferences.forEach(caseReference -> {
-    //                 var foundCase = caseService
-    //                         .searchBy(caseReference, null, false, Pageable.unpaged())
-    //                         .toList();
-    //                 // logger.info("Case reference '{}' returned: {}", caseReference, foundCase);
-    //             });
-    //             return RepeatStatus.FINISHED;
-    //         }, transactionManager)
-    //         .build();
-    // }
-
+    
 
     // =========================
     // Utility and Helper Functions
     // =========================
     protected JobExecutionDecider fileAvailabilityDecider() {
         return (jobExecution, stepExecution) -> {
-            // File sites = new File("src/main/batch/resources/Sites.csv");
-            // File channelReport = new File("src/main/batch/resources/Channel_User_Report.csv");
-            // File archiveList = new File("src/main/batch/resources/Archive_List.csv");
             Resource sites = new ClassPathResource(SITES_CSV);
             Resource channelReport = new ClassPathResource(CHANNEL_USER_CSV);
             Resource archiveList = new ClassPathResource(ARCHIVE_LIST_CSV);
@@ -300,5 +333,279 @@ public class BatchConfiguration implements StepExecutionListener {
     public <T> ItemWriter<T> noOpWriter() {
         return items -> { /*  no-op writer  does nothing */ };
     }
+
+    
+    protected Step createMarkCasesClosedStep() {
+        return new StepBuilder("markCasesClosedStep", jobRepository)
+            .tasklet((contribution, chunkContext) -> {
+                robotUserTask.signIn();
+                
+                Set<String> channelNames = referenceDataProcessor.fetchChannelUserDataKeys();
+                
+                int processedCases = 0;
+                int closedCases = 0;
+                int skippedCases = 0;
+                
+                Page<CaptureSessionDTO> vodafoneOriginSessions = captureSessionService.searchBy(
+                    null,  null, RecordingOrigin.VODAFONE, null,
+                    Optional.empty(), null, Pageable.unpaged()
+                );
+                
+                Page<CaseDTO> allCases = caseService.searchBy(null, null, false, Pageable.unpaged());
+                
+                for (CaseDTO caseDto : allCases.getContent()) {
+                    logger.info("Evaluating case: {}", caseDto.getReference());
+                    try {
+                        boolean hasVodafoneOrigin = checkForVodafoneOrigin(vodafoneOriginSessions, caseDto);
+                        
+                        if (hasVodafoneOrigin) {
+                            boolean hasChannelUser = channelNames
+                            .stream()
+                            .anyMatch(channelName -> channelName.contains(caseDto.getReference()));
+                            
+                            if (!hasChannelUser) {
+                                logger.info("Attempting to close case:", caseDto.getReference());
+                                try {
+                                    if (tryCloseCase(caseDto)) {
+                                        closedCases++;
+                                    }
+                                } catch (Exception e) {
+                                    logger.error("Error closing case {}: {}", caseDto.getReference(), e.getMessage());
+                                    skippedCases++;
+                                }
+                                
+                            }
+                            
+                            processedCases++;
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error processing case {}: {}", caseDto.getReference(), e.getMessage(), e);
+                    }
+                }
+                
+                logger.info("Vodafone Case Closure Summary: {} cases processed, {} cases closed", 
+                    processedCases, closedCases);
+                
+                return RepeatStatus.FINISHED;
+            }, transactionManager)
+            
+            .build();
+    }
+
+    private boolean tryCloseCase(CaseDTO caseDto) {
+        try {
+             Case existingCase = caseRepository.findById(caseDto.getId())
+                    .orElseThrow(() -> new uk.gov.hmcts.reform.preapi.exception.NotFoundException(
+                        "Case not found: " + caseDto.getId()));
+                
+            logger.info("Attempting to close case without channel user: {}", caseDto.getReference());
+
+            
+            CreateCaseDTO updateCaseDto = createCaseUpdateDTO(existingCase, caseDto);
+            
+            try {
+                 caseService.upsert(updateCaseDto);
+                logger.info("Successfully closed case {} with reference {}", 
+                    caseDto.getId(), caseDto.getReference());
+                
+                return true;
+
+            } catch (Exception e){
+                if (e.getMessage() != null && 
+                    (e.getMessage().contains("getCaptureSessions()") || 
+                    e.getCause() != null && e.getCause().getMessage() != null &&
+                    e.getCause().getMessage().contains("getCaptureSessions()"))) {
+                    
+                    logger.warn("Case {} has bookings with null captureSessions - cannot process", 
+                        caseDto.getReference());
+                    return false;
+                } else {
+                    throw e;
+                }
+            }
+           
+        } catch (Exception e) {
+            logger.error("Failed to close case {} (Reference: {}): {}", 
+                caseDto.getId(), caseDto.getReference(), e.getMessage(), e);
+            return false;
+        }
+    }
+
+    private CreateCaseDTO createCaseUpdateDTO(Case existingCase, CaseDTO caseDto) {
+        CreateCaseDTO updateCaseDto = new CreateCaseDTO(existingCase);
+        updateCaseDto.setState(CaseState.CLOSED);
+        updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+        
+        if (caseDto.getParticipants() != null && !caseDto.getParticipants().isEmpty()) {
+            updateCaseDto.setParticipants(
+                caseDto.getParticipants()
+                    .stream()
+                    .map(this::convertDtoToCreateDto)
+                    .collect(Collectors.toSet())
+            );
+        }
+        
+        return updateCaseDto;
+    }
+
+    private boolean checkForVodafoneOrigin(Page<CaptureSessionDTO> vodafoneOriginSessions, CaseDTO caseDto) {
+        return vodafoneOriginSessions.getContent().stream()
+            .anyMatch(session -> session.getOrigin() == RecordingOrigin.VODAFONE);
+    }
+    
+    private CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO participantDTO) {
+        CreateParticipantDTO createParticipantDTO = new CreateParticipantDTO();
+        createParticipantDTO.setId(participantDTO.getId());
+        createParticipantDTO.setFirstName(participantDTO.getFirstName());
+        createParticipantDTO.setLastName(participantDTO.getLastName());
+        createParticipantDTO.setParticipantType(participantDTO.getParticipantType());
+        return createParticipantDTO;
+    }
+
+    
+
+    protected Step createNonTransactionalMarkCasesClosedStep() {
+    return new StepBuilder("nonTransactionalMarkCasesClosedStep", jobRepository)
+        .tasklet((contribution, chunkContext) -> {
+            logger.info("Starting nonTransactionalMarkCasesClosedStep");
+            try {
+                robotUserTask.signIn();
+                logger.info("Robot user signed in successfully");
+                
+                Set<String> channelNames = referenceDataProcessor.fetchChannelUserDataKeys();
+                logger.info("Fetched {} channel user keys", channelNames.size());
+                
+                Page<CaptureSessionDTO> vodafoneOriginSessions = captureSessionService.searchBy(
+                    null, null, RecordingOrigin.VODAFONE, null,
+                    Optional.empty(), null, Pageable.unpaged()
+                );
+                logger.info("Fetched {} Vodafone origin sessions", vodafoneOriginSessions.getTotalElements());
+                
+                Page<CaseDTO> allCases = caseService.searchBy(null, null, false, Pageable.unpaged());
+                logger.info("Fetched {} cases in total", allCases.getTotalElements());
+                
+                int processedCases = 0;
+                int closedCases = 0;
+                int skippedCases = 0;
+                
+                for (CaseDTO caseDto : allCases.getContent()) {
+                    try {
+                        boolean hasVodafoneOrigin = checkForVodafoneOrigin(vodafoneOriginSessions, caseDto);
+                        logger.debug("Case {} has Vodafone origin: {}", caseDto.getReference(), hasVodafoneOrigin);
+                        
+                        if (hasVodafoneOrigin) {
+                            boolean hasChannelUser = channelNames
+                                .stream()
+                                .anyMatch(channelName -> channelName.contains(caseDto.getReference()));
+                            logger.debug("Case {} has channel user: {}", caseDto.getReference(), hasChannelUser);
+                                
+                            if (!hasChannelUser) {
+                                logger.info("Non-transactional: Attempting to close case {}", caseDto.getReference());
+                                
+                                try {
+                                    logger.debug("Before processCaseNonTransactional call for case {}", caseDto.getReference());
+                                    boolean success = processCaseNonTransactional(caseDto);
+                                    logger.debug("After processCaseNonTransactional call for case {}, success={}", 
+                                        caseDto.getReference(), success);
+                                        
+                                    if (success) {
+                                        closedCases++;
+                                        logger.info("Successfully closed case {}", caseDto.getReference());
+                                    } else {
+                                        skippedCases++;
+                                        logger.info("Skipped closing case {}", caseDto.getReference());
+                                    }
+                                } catch (Exception e) {
+                                    logger.error("Error closing case {}: {}", caseDto.getReference(), e.getMessage(), e);
+                                    skippedCases++;
+                                }
+                            }
+                            
+                            processedCases++;
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error evaluating case {}: {}", caseDto.getReference(), e.getMessage(), e);
+                    }
+                }
+                
+                logger.info("Non-transactional Summary: {} processed, {} closed, {} skipped", 
+                    processedCases, closedCases, skippedCases);
+                
+             
+                logger.info("Completed nonTransactionalMarkCasesClosedStep successfully");
+                return RepeatStatus.FINISHED;
+            } catch (Exception e) {
+                logger.error("Fatal error in non-transactional case closure: {}", e.getMessage(), e);
+                throw new NonFatalStepException("Step completed with handled errors", e);
+            }
+        }, transactionManager)
+        .allowStartIfComplete(true)
+        .transactionAttribute(getNoTransactionAttribute())
+        .build();
+}
+
+private DefaultTransactionAttribute getNoTransactionAttribute() {
+    DefaultTransactionAttribute attribute = new DefaultTransactionAttribute();
+    attribute.setPropagationBehavior(TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
+    return attribute;
+}
+
+public static class NonFatalStepException extends RuntimeException {
+    public NonFatalStepException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}
+
+private boolean processCaseNonTransactional(CaseDTO caseDto) {
+    logger.debug("Starting processCaseNonTransactional for case {}", caseDto.getReference());
+    try {
+        logger.debug("Fetching case {} from repository", caseDto.getId());
+        Case existingCase = caseRepository.findById(caseDto.getId())
+            .orElseThrow(() -> new RuntimeException("Case not found"));
+        logger.debug("Successfully fetched case {}", caseDto.getId());
+        
+        logger.debug("Creating update DTO for case {}", caseDto.getId());
+        CreateCaseDTO updateDto = new CreateCaseDTO(existingCase);
+        updateDto.setState(CaseState.CLOSED);
+        updateDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+        
+        if (caseDto.getParticipants() != null && !caseDto.getParticipants().isEmpty()) {
+            logger.debug("Setting {} participants for case {}", 
+                caseDto.getParticipants().size(), caseDto.getId());
+            updateDto.setParticipants(
+                caseDto.getParticipants()
+                    .stream()
+                    .map(this::convertDtoToCreateDto)
+                    .collect(Collectors.toSet())
+            );
+        }
+        
+        try {
+            logger.debug("About to call caseService.upsert for case {}", caseDto.getId());
+            caseService.upsert(updateDto);
+            logger.info("Non-transactional: Successfully closed case {}", caseDto.getReference());
+            return true;
+        } catch (Exception e) {
+            if (e.getMessage() != null && 
+                (e.getMessage().contains("getCaptureSessions()") || 
+                (e.getCause() != null && e.getCause().getMessage() != null &&
+                e.getCause().getMessage().contains("getCaptureSessions()")))) {
+                
+                logger.warn("Non-transactional: Case {} has null captureSessions - skipping", 
+                    caseDto.getReference());
+                return false;
+            }
+            
+            logger.error("Error from caseService.upsert for case {}: {}", 
+                caseDto.getReference(), e.getMessage(), e);
+            throw e;
+        }
+    } catch (Exception e) {
+        logger.error("Non-transactional: Error closing case {}: {}", 
+            caseDto.getReference(), e.getMessage(), e);
+        return false;
+    }
+}
+    
 
 }

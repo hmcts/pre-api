@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -61,14 +60,14 @@ public class DataTransformationService {
 
             this.extracted = extractionService.extractMetadata(archiveItem);
             if (extracted.getCourtReference() == ""){
-                return ServiceResultUtil.createFailureReponse("Regex matching failed");
+                return ServiceResultUtil.failure("Regex matching failed");
             }
             
             CleansedData cleansedData = buildCleansedData();
-            return ServiceResultUtil.createSuccessResponse(cleansedData);
+            return ServiceResultUtil.success(cleansedData);
 
         } catch (Exception e) {
-            return ServiceResultUtil.createFailureReponse(e.getMessage());
+            return ServiceResultUtil.failure(e.getMessage());
         }
     }
 
