@@ -263,6 +263,7 @@ ext.libraries = [
 ext['snakeyaml.version'] = '2.0'
 
 dependencies {
+  implementation 'com.microsoft.azure:applicationinsights-core:3.7.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-web'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-actuator'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop'
