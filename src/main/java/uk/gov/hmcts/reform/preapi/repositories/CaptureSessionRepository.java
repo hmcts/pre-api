@@ -22,8 +22,6 @@ import java.util.UUID;
 public interface CaptureSessionRepository extends JpaRepository<CaptureSession, UUID> {
     Optional<CaptureSession> findByIdAndDeletedAtIsNull(UUID captureSessionId);
 
-    int countAllByBooking_CaseId_IdAndStatus(UUID caseId, RecordingStatus status);
-
     List<CaptureSession> findAllByStatus(RecordingStatus status);
 
     List<CaptureSession> findAllByBookingAndDeletedAtIsNull(Booking booking);
