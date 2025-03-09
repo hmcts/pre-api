@@ -1,13 +1,12 @@
-package uk.gov.hmcts.reform.preapi.batch.processor;
+package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
-
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
-import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
 
 import java.util.ArrayList;
 import java.util.Collections;

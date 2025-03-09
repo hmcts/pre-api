@@ -33,7 +33,8 @@ public class CSVArchiveListData {
     public CSVArchiveListData() {
     }
 
-    public CSVArchiveListData(String archiveName, String createTime, Integer duration, String fileName, String fileSize) {
+    public CSVArchiveListData(
+        String archiveName, String createTime, Integer duration, String fileName, String fileSize) {
         this.archiveName = archiveName;
         this.createTime = createTime;
         this.duration = (duration != null) ? duration : 0;
@@ -102,7 +103,7 @@ public class CSVArchiveListData {
                 java.time.ZoneId.systemDefault()
             );
 
-        } catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
             return DATE_PATTERNS.stream()
                 .map(pattern -> {
                     try {
@@ -118,20 +119,18 @@ public class CSVArchiveListData {
                 .orElseGet(() -> {
                     logger.error("Could not parse create time '{}' with any known pattern", createTime);
                     return null;
-            });
+                });
         }
-
-        
     }
 
     @Override
     public String toString() {
-        return "CSVArchiveListData{" +
-               "archiveName='" + archiveName + '\'' +
-               ", createTime='" + createTime + '\'' +
-               ", duration=" + duration +
-               ", fileName='" + fileName + '\'' +
-               ", fileSize='" + fileSize + '\'' +
-               '}';
+        return "CSVArchiveListData{" 
+               + "archiveName='" + archiveName + '\'' 
+               + ", createTime='" + createTime + '\'' 
+               + ", duration=" + duration 
+               + ", fileName='" + fileName + '\'' 
+               + ", fileSize='" + fileSize + '\'' 
+               + '}';
     }
 }

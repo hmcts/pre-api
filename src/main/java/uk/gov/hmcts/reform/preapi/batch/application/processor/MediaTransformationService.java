@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.processor;
+package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,8 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
-
-import uk.gov.hmcts.reform.preapi.batch.services.AzureBlobService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -108,7 +107,6 @@ public class MediaTransformationService {
      * Saves an input stream to a temporary file.
      * 
      * @param resource Input stream resource
-     * @param fileExtension File extension
      * @return Path to the created temporary file
      * @throws IOException If file creation or writing fails
      */

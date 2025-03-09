@@ -1,18 +1,16 @@
-package uk.gov.hmcts.reform.preapi.batch.services;
+package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
-import uk.gov.hmcts.reform.preapi.batch.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -25,17 +23,15 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.HashSet;
 
 
 @Service
 public class MigrationGroupBuilderService {
-    private static final Logger logger = LoggerFactory.getLogger(MigrationGroupBuilderService.class);
-
     private static final String REDIS_BOOKING_FIELD = "bookingField";
     private static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
     private static final String REDIS_RECORDING_FIELD = "recordingField";
@@ -106,7 +102,6 @@ public class MigrationGroupBuilderService {
         // if (recording != null) {
         //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());  
         // }
-
 
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> invites = new ArrayList<>();
@@ -183,9 +178,9 @@ public class MigrationGroupBuilderService {
     }
 
     private boolean isSameParticipant(CreateParticipantDTO p1, CreateParticipantDTO p2) {
-        return p1.getParticipantType() == p2.getParticipantType() &&
-            Objects.equals(normalizeName(p1.getFirstName()), normalizeName(p2.getFirstName())) &&
-            Objects.equals(normalizeName(p1.getLastName()), normalizeName(p2.getLastName()));
+        return p1.getParticipantType() == p2.getParticipantType()
+            && Objects.equals(normalizeName(p1.getFirstName()), normalizeName(p2.getFirstName()))
+            && Objects.equals(normalizeName(p1.getLastName()), normalizeName(p2.getLastName()));
     }
 
     private String normalizeName(String name) {

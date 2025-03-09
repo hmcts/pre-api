@@ -1,13 +1,14 @@
-package uk.gov.hmcts.reform.preapi.batch.processor;
+package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
-import uk.gov.hmcts.reform.preapi.batch.services.DataTransformationService;
-import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
@@ -19,11 +20,17 @@ import java.util.Map;
  */
 @Component
 public class RecordingMetadataProcessor {
+    private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final RedisService redisService;
 
     @Autowired
-    public RecordingMetadataProcessor(DataTransformationService transformationService, RedisService redisService) {
+    public RecordingMetadataProcessor(
+        DataExtractionService extractionService,
+        DataTransformationService transformationService, 
+        RedisService redisService
+    ) {
+        this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.redisService = redisService;
     }
@@ -34,7 +41,12 @@ public class RecordingMetadataProcessor {
      */
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
-            ServiceResult<CleansedData> result =  transformationService.transformData(archiveItem);
+            ServiceResult<ExtractedMetadata> extracted = extractionService.process(archiveItem);
+            if (extracted.getErrorMessage() != null) {
+                return;
+            }
+
+            ServiceResult<CleansedData> result =  transformationService.transformData(archiveItem, extracted.getData());
             CleansedData cleansedData = (CleansedData) result.getData();
             if (cleansedData == null) {
                 ServiceResultUtil.failure("Data not transformed successfully");

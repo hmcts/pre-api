@@ -1,27 +1,26 @@
-package uk.gov.hmcts.reform.preapi.batch.processor;
+package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationGroupBuilderService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
-import uk.gov.hmcts.reform.preapi.batch.services.DataExtractionService;
-import uk.gov.hmcts.reform.preapi.batch.services.DataTransformationService;
-import uk.gov.hmcts.reform.preapi.batch.services.DataValidationService;
-import uk.gov.hmcts.reform.preapi.batch.services.MigrationGroupBuilderService;
-import uk.gov.hmcts.reform.preapi.batch.services.MigrationTrackerService;
-import uk.gov.hmcts.reform.preapi.batch.services.RedisService;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 
 /**
@@ -29,15 +28,14 @@ import java.util.regex.Matcher;
  */
 @Component
 public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
-    private static final Logger logger = LoggerFactory.getLogger(Processor.class);
-
-    private final DataExtractionService extractionService;
     private final RedisService redisService;
+    private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final DataValidationService validationService;
     private final MigrationTrackerService migrationTrackerService;
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
+    private LoggingService loggingService;
 
     @Autowired
     public Processor(
@@ -47,7 +45,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         DataValidationService validationService,
         ReferenceDataProcessor referenceDataProcessor,
         MigrationGroupBuilderService migrationService,
-        MigrationTrackerService migrationTrackerService
+        MigrationTrackerService migrationTrackerService,
+        LoggingService loggingService
     ) {
         this.redisService = redisService;
         this.extractionService = extractionService;
@@ -56,6 +55,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         this.referenceDataProcessor = referenceDataProcessor;
         this.migrationService = migrationService;
         this.migrationTrackerService = migrationTrackerService;
+        this.loggingService = loggingService;
     }
 
     // =========================
@@ -69,14 +69,19 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             referenceDataProcessor.process(item);
             return null;
         } else {
-            logger.error("Unsuported item type: {}", item.getClass().getName());
+            loggingService.logError("Unsuported item type: %s", item.getClass().getName());
         }
         return null;
     }
 
     private MigratedItemGroup process(CSVArchiveListData archiveItem) {
-        try {            
-            CleansedData cleansedData = transformData(archiveItem);
+        try {  
+            ExtractedMetadata extractedData = extractData(archiveItem);
+            if (extractedData == null){
+                return null;
+            }
+
+            CleansedData cleansedData = transformData(archiveItem, extractedData);
             if (cleansedData == null) {
                 return null;
             }
@@ -90,22 +95,39 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             } 
 
             String pattern = extractPattern(archiveItem);
+            loggingService.incrementProgress();
+            
             return migrationService.createMigratedItemGroup(pattern, archiveItem, cleansedData);
         
         } catch (Exception e) {
             return handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage());
         }
+
     }
 
     
     // =========================
-    // Transformation and Validation
+    // Extraction, Transformation and Validation
     // =========================
-    private CleansedData transformData(CSVArchiveListData archiveItem) {
-        ServiceResult<CleansedData> result = transformationService.transformData(archiveItem);
-        if (checkForError(result, archiveItem)) {
+    private ExtractedMetadata extractData(CSVArchiveListData archiveItem) {
+
+        ServiceResult<ExtractedMetadata> result = extractionService.process(archiveItem);
+        if (checkForError(result, archiveItem)){
+            loggingService.logError("Regex matching failed for archive: %s", archiveItem.getArchiveName());
             return null;
         }
+
+        return (ExtractedMetadata) result.getData();
+    }
+
+    private CleansedData transformData(CSVArchiveListData archiveItem, ExtractedMetadata extractedData) {
+
+        ServiceResult<CleansedData> result = transformationService.transformData(archiveItem, extractedData);
+        if (checkForError(result, archiveItem)) {
+            loggingService.logError("Failed to transform archive: %s", archiveItem.getArchiveName());
+            return null;
+        }
+
         return (CleansedData) result.getData();
     }
 
@@ -129,7 +151,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     //======================
     // Helper Methods
     //======================
-    private boolean checkForError(ServiceResult<CleansedData> result, CSVArchiveListData archiveItem) {
+    private <T>boolean checkForError(ServiceResult<T> result, CSVArchiveListData archiveItem) {
         String errorMessage = (String) result.getErrorMessage();
         if (errorMessage != null) {
             handleError(archiveItem, errorMessage);
@@ -140,8 +162,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     private String extractPattern(CSVArchiveListData archiveItem) {
         try {
-            Map.Entry<String, Matcher> patternMatch = extractionService.matchPattern(archiveItem);
-            return patternMatch != null ? patternMatch.getKey() : null; 
+            Optional<Map.Entry<String, Matcher>> patternMatch = extractionService.matchPattern(archiveItem);
+            return patternMatch.map(Map.Entry::getKey).orElse(null);
         } catch (Exception e) {
             handleError(archiveItem, e.getMessage());
             return null;

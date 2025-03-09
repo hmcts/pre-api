@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.reader;
+package uk.gov.hmcts.reform.preapi.batch.application.reader;
 
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;

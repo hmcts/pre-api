@@ -1,13 +1,12 @@
 
-package uk.gov.hmcts.reform.preapi.batch.services;
+package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -109,7 +108,7 @@ public class EntityCreationService {
         String redisKey,
         CleansedData cleansedData, 
         CreateCaptureSessionDTO captureSession
-        ) {
+    ) {
         var recordingDTO = new CreateRecordingDTO();
         recordingDTO.setId(UUID.randomUUID());
         recordingDTO.setCaptureSessionId(captureSession.getId());

@@ -1,8 +1,7 @@
-package uk.gov.hmcts.reform.preapi.batch.services;
+package uk.gov.hmcts.reform.preapi.batch.application.services;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.method.P;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedWriter;

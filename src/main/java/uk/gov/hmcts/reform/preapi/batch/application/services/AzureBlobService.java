@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.services;
+package uk.gov.hmcts.reform.preapi.batch.application.services;
 
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
@@ -163,8 +163,8 @@ public class AzureBlobService {
             
             poller.waitForCompletion();
             
-            Logger.getAnonymousLogger().info("Successfully copied blob '{}' from {}/{} to {}/{}"+ 
-                blobName+ sourceContainer+ sourceEnvironment+ destContainer+ destEnvironment);
+            Logger.getAnonymousLogger().info("Successfully copied blob '{}' from {}/{} to {}/{}"
+                + blobName + sourceContainer + sourceEnvironment + destContainer + destEnvironment);
                 
         } catch (Exception e) {
             Logger.getAnonymousLogger().warning("Error copying blob: {}" + e.getMessage() + e);

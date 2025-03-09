@@ -1,17 +1,14 @@
-package uk.gov.hmcts.reform.preapi.batch.writer;
+package uk.gov.hmcts.reform.preapi.batch.application.writer;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.batch.services.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -37,9 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @Transactional(propagation = Propagation.REQUIRED)
 public class Writer implements ItemWriter<MigratedItemGroup> {
-
-    private static final Logger logger = LoggerFactory.getLogger(Writer.class);
-
+    private LoggingService loggingService;
     private final CaseService caseService;
     private final BookingService bookingService;
     private final RecordingService recordingService;
@@ -54,6 +49,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
 
     @Autowired
     public Writer(
+        LoggingService loggingService,
         CaseService caseService,
         BookingService bookingService,
         RecordingService recordingService,
@@ -62,6 +58,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         ShareBookingService shareBookingService,
         MigrationTrackerService migrationTrackerService
     ) {
+        this.loggingService = loggingService;
         this.caseService = caseService;
         this.bookingService = bookingService;
         this.recordingService = recordingService;
@@ -81,13 +78,18 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     @Override
     public void write(Chunk<? extends MigratedItemGroup> items) {
         List<MigratedItemGroup> migratedItems = filterValidItems(items);
-        logger.info("Processing chunk with {} migrated items", items.size());
+        loggingService.logInfo("Processing chunk with %d migrated items", items.size());
+
+        if (migratedItems.isEmpty()) {
+            loggingService.logWarning("No valid items found in the current chunk.");
+            return;
+        }
 
         try {
             saveMigratedItems(migratedItems);
             logBatchStatistics();
         } catch (Exception e) {
-            logger.error("error ");
+            loggingService.logError("Error while processing chunk: %s", e.getMessage());
         }
     }
 
@@ -109,14 +111,16 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         }
         
         for (MigratedItemGroup item : migratedItems) {
-
             try {
+                loggingService.logDebug("Processing case: %s", item.getCase().getReference());
+                
                 processItem(item);
                 migrationTrackerService.addMigratedItem(item.getPassItem());
                 successCount.incrementAndGet();
             } catch (Exception e) {
                 failureCount.incrementAndGet();
-                logger.error("Failed to process migrated item: {}", item.getCase().getReference(), e);
+                loggingService.logError("Failed to process migrated item: %s", 
+                    item.getCase().getReference(), e.getMessage());
             }
              
         }
@@ -137,7 +141,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 caseService.upsert(caseData);
             } catch (Exception e) {
-                logger.error("Failed to upsert case. Case id: {}", caseData.getId(), e);
+                loggingService.logError("Failed to upsert case. Case id: %s", caseData.getId(), e);
             }
         }
     }
@@ -147,7 +151,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 bookingService.upsert(bookingData);
             } catch (Exception e) {
-                logger.error("Failed to upsert booking. Booking id: {}", bookingData.getId(), e);
+                loggingService.logError("Failed to upsert booking. Booking id: %s", bookingData.getId(), e);
             }
         }
     }
@@ -157,7 +161,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 captureSessionService.upsert(captureSessionData);
             } catch (Exception e) {
-                logger.error("Failed to upsert capture session. Capture Session id: {}", captureSessionData.getId(), e);
+                loggingService.logError("Failed to upsert capture session. Capture Session id: %s", captureSessionData.getId(), e);
             }
         }
     }
@@ -167,7 +171,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 recordingService.upsert(recordingData);
             } catch (Exception e) {
-                logger.info("Failed to upsert recording. Recording id: {}", recordingData.getId(), e);
+                loggingService.logError("Failed to upsert recording. Recording id: %s", recordingData.getId(), e);
             }
         }
     }
@@ -178,7 +182,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 try {
                     inviteService.upsert(invite);
                 } catch (Exception e) {
-                    logger.error("Failed to upsert invite. Invite email: {}", invite.getEmail(), e);
+                    loggingService.logError("Failed to upsert invite. Invite email: %s", invite.getEmail(), e);
                 }
             }
         }
@@ -190,15 +194,16 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 try {
                     shareBookingService.shareBookingById(shareBooking);
                 } catch (Exception e) {
-                    logger.error("Failed to upsert share booking: {}", shareBooking.getId(), e);
+                    loggingService.logError("Failed to upsert share booking: %s", shareBooking.getId(), e);
                 }
             }
         }
     }
 
     private void logBatchStatistics() {
-        logger.info("Batch processing - Successful: {}, Failed: {}", 
+        loggingService.logInfo("Batch processing - Successful: %d, Failed: %d", 
             successCount.get(), failureCount.get());
+       
     }
     
 }

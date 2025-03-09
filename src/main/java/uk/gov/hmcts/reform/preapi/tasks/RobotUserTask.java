@@ -1,29 +1,34 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
-@Slf4j
 public abstract class RobotUserTask implements Runnable {
+    protected final String cronUserEmail;
     protected final UserService userService;
     protected final UserAuthenticationService userAuthenticationService;
-    protected final String cronUserEmail;
+    private final LoggingService loggingService;
 
-    protected RobotUserTask(UserService userService,
-                            UserAuthenticationService userAuthenticationService,
-                            @Value("${vodafone-user-email}") String cronUserEmail) {
+    protected RobotUserTask(
+        @Value("${vodafone-user-email}") String cronUserEmail,
+        UserService userService,
+        UserAuthenticationService userAuthenticationService,
+        LoggingService loggingService 
+    ) {
         this.userService = userService;
         this.userAuthenticationService = userAuthenticationService;
         this.cronUserEmail = cronUserEmail;
+        this.loggingService = loggingService; 
     }
 
     protected void signInRobotUser() {
-        log.info("Sign in as robot user");
+        loggingService.logInfo("Sign in as robot user");
+        
         var user = userService.findByEmail(cronUserEmail);
-
         var appAccess = user.getAppAccess().stream().findFirst()
             .orElseThrow(() -> new RuntimeException(
                 "Failed to authenticate as cron user with email " + cronUserEmail)

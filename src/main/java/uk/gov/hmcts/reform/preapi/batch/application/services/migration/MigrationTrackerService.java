@@ -1,10 +1,8 @@
-package uk.gov.hmcts.reform.preapi.batch.services;
+package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
+import uk.gov.hmcts.reform.preapi.batch.application.services.ReportingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
@@ -24,16 +22,18 @@ import java.util.List;
  */
 @Service
 public class MigrationTrackerService {
-
-    private static final Logger logger = LoggerFactory.getLogger(MigrationTrackerService.class);
-
     private List<PassItem> migratedItems = new ArrayList<>();
     private List<FailedItem> failedItems = new ArrayList<>();
     private List<CreateInviteDTO> invitedUsers = new ArrayList<>();
     private final ReportingService reportingService;
+    private LoggingService loggingService;
 
-    public MigrationTrackerService(ReportingService reportingService) {
+    public MigrationTrackerService(
+        ReportingService reportingService,
+        LoggingService loggingService
+    ) {
         this.reportingService = reportingService;
+        this.loggingService = loggingService;
     }
     
     public void addMigratedItem(PassItem item) {
@@ -54,7 +54,7 @@ public class MigrationTrackerService {
         try {
             reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
         } catch (IOException e) {
-            logger.error("Failed to write migrated items to CSV: {}", e.getMessage());
+            loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
     }
 
@@ -64,7 +64,7 @@ public class MigrationTrackerService {
         try {
             reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
         } catch (IOException e) {
-            logger.error("Failed to write migrated items to CSV: {}", e.getMessage());
+            loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
     }
 
@@ -74,7 +74,7 @@ public class MigrationTrackerService {
         try {
             reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
         } catch (IOException e) {
-            logger.error("Failed to write migrated items to CSV: {}", e.getMessage());
+            loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
     }
 
@@ -86,9 +86,10 @@ public class MigrationTrackerService {
         writeMigratedItemsToCsv("Migrated","Migration Reports");
         writeFailedItemsToCsv("Failed","Migration Reports");
         writeInvitedUsersToCsv("Invited_users","Migration Reports");
-        logger.info("Total Migrated Items: {}", migratedItems.size());
-        logger.info("Total Failed Items: {}", failedItems.size());
-        logger.info("Total Invited Items: {}", invitedUsers.size());
+        loggingService.setTotalMigrated(migratedItems.size());
+        loggingService.setTotalFailed(failedItems.size());
+        loggingService.setTotalInvited(invitedUsers.size());
+        loggingService.logSummary();
     }
 
     // ==================================

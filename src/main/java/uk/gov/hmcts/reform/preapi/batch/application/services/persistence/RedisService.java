@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.batch.services;
+package uk.gov.hmcts.reform.preapi.batch.application.services.persistence;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +83,7 @@ public class RedisService {
     public boolean checkHashKeyExists(String key, String hashKey) {
         try {
             return Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(key, hashKey));
-        } catch (Exception e){
+        } catch (Exception e) {
             logger.error("Error checking if hash key exists: {}:{}", key, hashKey, e);
             throw e;
         }
@@ -110,8 +110,8 @@ public class RedisService {
         backoff = @Backoff(delay = 1000, multiplier = 2)
     )
     public void saveHashAll(String key, Map<String, ?> data) {
-        try{
-            if (data == null && data.isEmpty()) {
+        try {
+            if (data == null) {
                 return;
             }
 

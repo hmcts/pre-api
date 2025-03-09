@@ -1,15 +1,13 @@
-package uk.gov.hmcts.reform.preapi.batch.processor;
+package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import uk.gov.hmcts.reform.preapi.batch.services.AzureBlobService;
-import uk.gov.hmcts.reform.preapi.batch.services.ReportingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.ReportingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,21 +25,21 @@ import javax.xml.parsers.DocumentBuilderFactory;
  */
 @Service
 public class ArchiveMetadataXmlExtractor {
-
-    private static final Logger logger = LoggerFactory.getLogger(ArchiveMetadataXmlExtractor.class);
-
     private static final String ENV_DEV = "dev";
     private static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("0.00");
 
     private final AzureBlobService azureBlobService;
     private final ReportingService reportingService;
+    private final LoggingService loggingService;
 
     public ArchiveMetadataXmlExtractor(
         AzureBlobService azureBlobService, 
-        ReportingService reportingService
+        ReportingService reportingService,
+        LoggingService loggingService
     ) {
         this.azureBlobService = azureBlobService;
         this.reportingService = reportingService;
+        this.loggingService = loggingService;
     }
 
     /**
@@ -51,15 +49,29 @@ public class ArchiveMetadataXmlExtractor {
      */
     public void extractAndReportArchiveMetadata(String containerName, String outputDir) {
         try {
+            loggingService.logInfo("Starting extraction for container: %s", containerName);
+
             List<String> blobNames = azureBlobService.fetchBlobNames(containerName, ENV_DEV);
+            loggingService.logDebug("Found %d blobs in container: %s", blobNames.size(), containerName);
+
+            if (blobNames.isEmpty()) {
+                loggingService.logWarning("No XML blobs found in container: "+ containerName);
+                return;
+            }
+
             List<List<String>> allArchiveMetadata = extractMetadataFromBlobs(containerName, blobNames);
+            loggingService.logDebug("Extracted metadata for %d recordings", allArchiveMetadata.size());
 
             if (!allArchiveMetadata.isEmpty()) {
+                loggingService.logDebug("Generating archive metadata report in %s", outputDir);
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir);
+                loggingService.logInfo("Successfully generated Archive_List.csv with " + allArchiveMetadata.size() + " entries");
+            } else {
+                loggingService.logWarning("No archive metadata found to generate report");
             }
 
         } catch (Exception e) {
-            logger.error("Error processing XML and writing to CSV: {}", e.getMessage());
+            loggingService.logError("Error processing XML and writing to CSV: %s", e.getMessage());
         }
     }
 
@@ -72,16 +84,22 @@ public class ArchiveMetadataXmlExtractor {
      */
     private List<List<String>> extractMetadataFromBlobs(String containerName, List<String> blobNames) {
         List<List<String>> allArchiveMetadata = new ArrayList<>();
-
         for (String blobName : blobNames) {
-            try (InputStream xmlStream = azureBlobService.fetchSingleXmlBlob(containerName, ENV_DEV, blobName).getInputStream()) {
+            try (InputStream xmlStream = azureBlobService.fetchSingleXmlBlob(
+                    containerName, ENV_DEV, blobName).getInputStream()) {
+
                 List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream);
-                allArchiveMetadata.addAll(blobMetadata);
+                if (!blobMetadata.isEmpty()) {
+                    allArchiveMetadata.addAll(blobMetadata);
+                    loggingService.logDebug("Processing blob: %s - %s", allArchiveMetadata.get(0).get(0), blobName);
+                } else {
+                    loggingService.logWarning("Blob contains no metadata: " + blobName);
+                }
+
             } catch (Exception e) {
-                logger.warn("Failed to process blob: {}", blobName, e);
+                loggingService.logError("Failed to process blob: %s", blobName, e);
             }
         }
-
         return allArchiveMetadata;
     }
 
@@ -92,7 +110,9 @@ public class ArchiveMetadataXmlExtractor {
      * @param outputDirectory Directory for report
      * @throws IOException 
      */
-    private void generateArchiveMetadataReport(List<List<String>> archiveMetadata, String outputDirectory) throws IOException {
+    private void generateArchiveMetadataReport(List<List<String>> archiveMetadata, 
+        String outputDirectory) throws IOException {
+
         List<String> headers = List.of(
             "archive_name", 
             "create_time", 
@@ -137,14 +157,21 @@ public class ArchiveMetadataXmlExtractor {
 
         for (int i = 0; i < archiveFileNodes.getLength(); i++) {
             Node archiveNode = archiveFileNodes.item(i);
-            if (archiveNode.getNodeType() != Node.ELEMENT_NODE) continue;
+            if (archiveNode.getNodeType() != Node.ELEMENT_NODE) {
+                continue;
+            }
 
             Element archiveElement = (Element) archiveNode;
-            
             String displayName = extractTextContent(archiveElement, "DisplayName");
             String createTime = extractTextContent(archiveElement, "CreatTime");
             String duration = extractTextContent(archiveElement, "Duration");
 
+            if (displayName.isEmpty()) {
+                loggingService.logWarning("Missing DisplayName in ArchiveFiles element.");
+            }
+            if (createTime.isEmpty()) {
+                loggingService.logWarning("Missing CreatTime for archive: " + displayName);
+            }
             metadataRows.addAll(processMP4Files(archiveElement, displayName, createTime, duration));
         }
         return metadataRows;
@@ -178,6 +205,10 @@ public class ArchiveMetadataXmlExtractor {
                 String fileName = extractTextContent(fileElement, "Name");
                 String fileSizeKb = extractTextContent(fileElement, "Size");
 
+                if (fileName.isEmpty() || fileSizeKb.isEmpty()) {
+                    loggingService.logWarning("MP4 file missing required fields: Name=%s, Size=%s" + fileName + fileSizeKb);
+                    continue;
+                }
                 if (isValidMP4File(fileName)) {
                     String formattedFileSize = formatFileSize(fileSizeKb);
                     fileRows.add(List.of(displayName, createTime, duration, fileName, formattedFileSize));
@@ -206,11 +237,11 @@ public class ArchiveMetadataXmlExtractor {
      */
     private String extractTextContent(Element element, String tagName) {
         return Optional.ofNullable(element.getElementsByTagName(tagName).item(0))
-                       .map(Node::getTextContent)
-                       .orElse("");
+            .map(Node::getTextContent)
+            .orElse("");
     }
 
-     /**
+    /**
      * Formats file size from KB to MB with two decimal places.
      * 
      * @param fileSizeKb File size in kilobytes
@@ -222,7 +253,7 @@ public class ArchiveMetadataXmlExtractor {
             double sizeInMb = sizeInKb / 1024.0;
             return FILE_SIZE_FORMAT.format(sizeInMb) + " MB";
         } catch (NumberFormatException e) {
-            logger.warn("Invalid file size: {}", fileSizeKb);
+            loggingService.logWarning("Invalid file size: " + fileSizeKb);
             return "0.00 MB";
         }
     }
