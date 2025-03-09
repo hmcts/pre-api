@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -8,21 +9,18 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 public class DataExtractionService {
     private LoggingService loggingService;
-    private static final String PATTERN_MATCH_ERROR = "Failed to match any recording pattern";
-    private static final Set<String> VALID_VERSION_TYPES = Set.of("ORIG", "COPY", "CPY", "ORG", "ORI");
-    private static final Set<String> VALID_EXTENSIONS = Set.of("mp4", "raw", "RAW");
-
     private static final Map<String, Pattern> NAMED_PATTERNS = initializePatterns();
 
     public DataExtractionService(LoggingService loggingService) {
@@ -30,11 +28,33 @@ public class DataExtractionService {
     }
 
     public ServiceResult<ExtractedMetadata> process(CSVArchiveListData archiveItem) {
+        // pre-extraction validation
+        if (archiveItem == null) {
+            loggingService.logError("Received null archiveItem");
+            return ServiceResultUtil.failure("Failed to process: archiveItem is null", "Invalid Data");
+        }
+        
+        if (!isDateAfterGoLive(archiveItem)) {
+            loggingService.logError(Constants.ErrorMessages.PREDATES_GO_LIVE, archiveItem.getArchiveName());
+            return ServiceResultUtil.failure(Constants.ErrorMessages.PREDATES_GO_LIVE, "Pre-Go-Live");
+        }
+
+        if(!isTest(archiveItem)){
+            loggingService.logError(Constants.ErrorMessages.TEST_ITEM_NAME, archiveItem.getArchiveName());
+            return ServiceResultUtil.failure(Constants.ErrorMessages.TEST_ITEM_NAME, "Test");
+        }
+
+        if(!isValidDuration(archiveItem)){
+            loggingService.logError(Constants.ErrorMessages.TEST_DURATION, archiveItem.getArchiveName());
+            return ServiceResultUtil.failure(Constants.ErrorMessages.TEST_DURATION, "Test");
+        }
+
+        // find a pattern match
         Optional<Map.Entry<String, Matcher>> patternMatch = matchPattern(archiveItem);
 
         if (patternMatch.isEmpty()) {
-            loggingService.logError(PATTERN_MATCH_ERROR, archiveItem.getArchiveName());
-            throw new IllegalStateException(PATTERN_MATCH_ERROR);
+            loggingService.logError(Constants.ErrorMessages.PATTERN_MATCH, archiveItem.getArchiveName());
+            throw new IllegalStateException(Constants.ErrorMessages.PATTERN_MATCH);
         }
 
         Matcher matcher = patternMatch.get().getValue();
@@ -81,6 +101,7 @@ public class DataExtractionService {
     // =========================
 
     public Optional<Map.Entry<String, Matcher>> matchPattern(CSVArchiveListData archiveItem) {
+        loggingService.logDebug("ARCHIVE ITEM: %s",archiveItem);
         if (archiveItem == null || archiveItem.getArchiveName() == null) {
             loggingService.logWarning("Invalid archive item or name");
             return Optional.empty();
@@ -118,6 +139,21 @@ public class DataExtractionService {
     // Validation
     // =========================
 
+    private boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
+        LocalDateTime recordingTimestamp = archiveItem.getCreateTimeAsLocalDateTime();
+        
+        if (recordingTimestamp == null) {
+            loggingService.logError("Failed to extract date for %s | Raw createTime: %s", 
+                archiveItem.getArchiveName(), archiveItem.getCreateTime());
+            return false;
+        }
+
+        LocalDate recordingDate = recordingTimestamp.toLocalDate();
+        boolean isAfterGoLive = !recordingDate.isBefore(Constants.GO_LIVE_DATE);
+
+        return isAfterGoLive;
+    }
+
     public boolean validateMetadata(ExtractedMetadata metadata) {
         if (metadata == null) {
             loggingService.logWarning("Metadata is null");
@@ -143,30 +179,38 @@ public class DataExtractionService {
     }
 
     private boolean isValidVersion(String versionType, String versionNumber) {
-        if (!isNonEmpty(versionType) || !VALID_VERSION_TYPES.contains(versionType)) {
+        if ( !Constants.VALID_VERSION_TYPES.contains(versionType)) {
             loggingService.logDebug("Invalid version type: %s", versionType);
             return false;
         }
         
-        if (isNonEmpty(versionNumber)) {
-            try {
-                Double.parseDouble(versionNumber);
-            } catch (NumberFormatException e) {
-                loggingService.logDebug("Invalid version number format: %s", versionNumber);
-                return false;
-            }
-        }
         return true;
     }
 
     private boolean isValidExtension(String ext) {
-        boolean isValid = ext != null && VALID_EXTENSIONS.contains(ext);
+        boolean isValid = ext != null && Constants.VALID_EXTENSIONS.contains(ext);
         if (!isValid) {
             loggingService.logDebug("Invalid file extension: %s", ext);
         }
         return isValid;
     }
 
+    private boolean isTest(CSVArchiveListData archiveItem){
+        String lowerName = archiveItem.getArchiveName().toLowerCase();
+        for (String keyword : Constants.TEST_KEYWORDS) {
+            if (lowerName.contains(keyword)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isValidDuration(CSVArchiveListData archiveItem){
+        if (archiveItem.getDuration() < Constants.MIN_RECORDING_DURATION) {
+            return false;
+        }
+        return true;
+    }
     // =========================
     // Utility: Archive Name Cleaning
     // =========================

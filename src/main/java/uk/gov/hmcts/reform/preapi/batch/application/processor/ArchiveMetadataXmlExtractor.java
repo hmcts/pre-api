@@ -5,13 +5,13 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -26,7 +26,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 @Service
 public class ArchiveMetadataXmlExtractor {
     private static final String ENV_DEV = "dev";
-    private static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("0.00");
 
     private final AzureBlobService azureBlobService;
     private final ReportingService reportingService;
@@ -251,7 +250,7 @@ public class ArchiveMetadataXmlExtractor {
         try {
             double sizeInKb = Double.parseDouble(fileSizeKb);
             double sizeInMb = sizeInKb / 1024.0;
-            return FILE_SIZE_FORMAT.format(sizeInMb) + " MB";
+            return Constants.FILE_SIZE_FORMAT.format(sizeInMb) + " MB";
         } catch (NumberFormatException e) {
             loggingService.logWarning("Invalid file size: " + fileSizeKb);
             return "0.00 MB";

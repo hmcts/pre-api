@@ -8,11 +8,15 @@ import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.List;
 
 /**
@@ -22,8 +26,8 @@ import java.util.List;
  */
 @Service
 public class MigrationTrackerService {
+    private final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
     private List<PassItem> migratedItems = new ArrayList<>();
-    private List<FailedItem> failedItems = new ArrayList<>();
     private List<CreateInviteDTO> invitedUsers = new ArrayList<>();
     private final ReportingService reportingService;
     private LoggingService loggingService;
@@ -41,7 +45,12 @@ public class MigrationTrackerService {
     }
 
     public void addFailedItem(FailedItem item) {
-        failedItems.add(item);
+        categorizedFailures
+            .computeIfAbsent(item.getFailureCategory(), k -> new ArrayList<>())
+            .add(item);
+
+        loggingService.logInfo("Added failed item: Category = %s | Filename = %s", 
+            item.getFailureCategory(), item.getArchiveItem().getFileName()); 
     }
 
     public void addInvitedUser(CreateInviteDTO user) {
@@ -52,27 +61,36 @@ public class MigrationTrackerService {
         List<String> headers = getMigratedItemsHeaders();
         List<List<String>> rows = buildMigratedItemsRows(migratedItems);
         try {
-            reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
+            reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
     }
 
-    public void writeFailedItemsToCsv(String fileName, String outputDir) {
-        List<String> headers = getFailedItemsHeaders();
-        List<List<String>> rows = buildFailedItemsRows(failedItems);
-        try {
-            reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
-        } catch (IOException e) {
-            loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
-        }
+    public void writeCategorizedFailureReports(String outputDir) {
+        categorizedFailures.forEach((category, failedItemsList) -> {
+            loggingService.logInfo("Writing failure report for category: %s | %d items", category, failedItemsList.size()); 
+
+            String fileName = sanitizeFileName(category); 
+            List<String> headers = getFailedItemsHeaders();
+            List<List<String>> rows = buildFailedItemsRows(failedItemsList);
+
+            loggingService.logInfo("Rows built for %s: %d", category, rows.size()); 
+
+            try {
+                reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
+            } catch (IOException e) {
+                loggingService.logError("Failed to write failure report for %s: %s", category, e.getMessage());
+            }
+        });
     }
+
 
     public void writeInvitedUsersToCsv(String fileName, String outputDir) {
         List<String> headers = getInvitedUsersHeaders();
         List<List<String>> rows = buildInvitedUserRows(invitedUsers);
         try {
-            reportingService.writeToCsv(headers, rows, fileName, outputDir, true);
+            reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
@@ -83,11 +101,20 @@ public class MigrationTrackerService {
      * and generates all reports at once.
      */
     public void writeAllToCsv() {
-        writeMigratedItemsToCsv("Migrated","Migration Reports");
-        writeFailedItemsToCsv("Failed","Migration Reports");
-        writeInvitedUsersToCsv("Invited_users","Migration Reports");
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss"));
+        String outputDir = "Migration Reports/" + timestamp;
+        new File(outputDir).mkdirs();
+
+        String failureDir = outputDir + "/Failure Reports";
+        new File(failureDir).mkdirs();
+        
+        writeMigratedItemsToCsv("Migrated",outputDir);
+        writeFailureSummary(outputDir);
+        writeCategorizedFailureReports(failureDir);
+        writeInvitedUsersToCsv("Invited_users",outputDir);
+        
         loggingService.setTotalMigrated(migratedItems.size());
-        loggingService.setTotalFailed(failedItems.size());
+        loggingService.setTotalFailed(categorizedFailures);
         loggingService.setTotalInvited(invitedUsers.size());
         loggingService.logSummary();
     }
@@ -132,21 +159,37 @@ public class MigrationTrackerService {
 
     public List<List<String>> buildFailedItemsRows(List<FailedItem> items) {
         List<List<String>> rows = new ArrayList<>();
+        loggingService.logDebug("Building rows for failed items: %d items", items.size()); 
 
-        for (FailedItem item : failedItems) {
+        for (FailedItem item : items) {
             CSVArchiveListData archiveItem = item.getArchiveItem();
             String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-            rows.add(List.of(
+            List<String> row = List.of(
                 getValueOrEmpty(item.getReason()), 
                 getValueOrEmpty(archiveItem.getArchiveName()),
                 getValueOrEmpty(archiveItem.getFileName()),
                 getValueOrEmpty(archiveItem.getFileSize()),
                 failureTime
-                )
             );
+
+            loggingService.logDebug("Adding row: %s", row); 
+            rows.add(row);
         }
         return rows;
+    }
+
+    private void writeFailureSummary(String outputDir) {
+        List<String> headers = List.of("Failure Category", "Count");
+        List<List<String>> rows = categorizedFailures.entrySet().stream()
+            .map(entry -> List.of(entry.getKey(), String.valueOf(entry.getValue().size())))
+            .collect(Collectors.toList());
+
+        try {
+            reportingService.writeToCsv(headers, rows, "Failures", outputDir, false);
+        } catch (IOException e) {
+            loggingService.logError("Failed to write failure summary: %s", e.getMessage());
+        }
     }
 
     private List<String> getInvitedUsersHeaders() {
@@ -169,7 +212,6 @@ public class MigrationTrackerService {
         return rows;
     }
 
-
     private String getValueOrEmpty(Object value) {
         return value != null ? value.toString() : "";
     }
@@ -182,6 +224,10 @@ public class MigrationTrackerService {
         long minutes = duration.toMinutes() % 60;
         long seconds = duration.getSeconds() % 60;
         return String.format("%02d:%02d:%02d", hours, minutes, seconds);
+    }
+
+    private String sanitizeFileName(String category) {
+        return category.replaceAll("[^a-zA-Z0-9_\\-]", "_");
     }
 
 }

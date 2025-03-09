@@ -7,8 +7,8 @@ public final class ServiceResultUtil {
     private ServiceResultUtil() {
     }
 
-    public static <T> ServiceResult<T> failure(String errorMessage) {
-        return new ServiceResult<>(errorMessage);
+    public static <T> ServiceResult<T> failure(String errorMessage, String category) {
+        return new ServiceResult<>(errorMessage, category);
     }
 
     public static <T> ServiceResult<T> success(T data) {

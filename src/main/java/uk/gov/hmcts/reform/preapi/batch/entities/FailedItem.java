@@ -4,10 +4,16 @@ public class FailedItem {
 
     private CSVArchiveListData archiveItem;
     private String reason;
+    private String failureCategory;
 
-    public FailedItem(CSVArchiveListData archiveItem, String reason) {
+    public FailedItem(
+        CSVArchiveListData archiveItem, 
+        String reason,
+        String failureCategory
+    ) {
         this.archiveItem = archiveItem;
         this.reason = reason;
+        this.failureCategory = failureCategory;
     }
 
     public CSVArchiveListData getArchiveItem() {
@@ -16,5 +22,9 @@ public class FailedItem {
 
     public String getReason() {
         return reason;
+    }
+
+    public String getFailureCategory() {
+        return failureCategory;
     }
 }

@@ -1,7 +1,5 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.persistence;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
@@ -10,6 +8,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class RedisService {
-    private static final Logger logger = LoggerFactory.getLogger(RedisService.class);
+    private LoggingService loggingService;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${redis.default.ttl:86400}")
@@ -28,8 +27,12 @@ public class RedisService {
     private int maxRetryAttempts;
 
     @Autowired
-    public RedisService(RedisTemplate<String, Object> redisTemplate) {
+    public RedisService(
+        RedisTemplate<String, Object> redisTemplate,
+        LoggingService loggingService
+    ) {
         this.redisTemplate = redisTemplate;
+        this.loggingService = loggingService;
     }
 
     // =========================
@@ -46,7 +49,7 @@ public class RedisService {
             redisTemplate.opsForValue().set(key, value);
             redisTemplate.expire(key, defaultTtl, TimeUnit.SECONDS);
         } catch (Exception e) {
-            logger.error("Error saving value for key: {}", key, e);
+            loggingService.logError("Error saving value for key: %s - %s", key, e);
             throw e;
         }
     }
@@ -65,7 +68,7 @@ public class RedisService {
             
             return value != null ? clazz.cast(value) : null;
         } catch (Exception e) {
-            logger.error("Error getting value for key: {}", key, e);
+            loggingService.logError("Error getting value for key: %s - %s", key, e);
             throw e;
         }
        
@@ -84,7 +87,7 @@ public class RedisService {
         try {
             return Boolean.TRUE.equals(redisTemplate.opsForHash().hasKey(key, hashKey));
         } catch (Exception e) {
-            logger.error("Error checking if hash key exists: {}:{}", key, hashKey, e);
+            loggingService.logError("Error checking if hash key exists: %s:%s - %s", key, hashKey, e);
             throw e;
         }
     }
@@ -99,7 +102,7 @@ public class RedisService {
             redisTemplate.opsForHash().put(key, hashKey, value);
             redisTemplate.expire(key, defaultTtl, TimeUnit.SECONDS);
         } catch (Exception e) {
-            logger.error("Error saving hash value for {}:{}", key, hashKey, e);
+            loggingService.logError("Error saving hash value for %s:%s - %s", key, hashKey, e);
             throw e;
         }
     }
@@ -118,7 +121,7 @@ public class RedisService {
             redisTemplate.opsForHash().putAll(key, data);
             redisTemplate.expire(key, defaultTtl, TimeUnit.SECONDS);
         } catch (Exception e) {
-            logger.error("Error saving hash entries to key: {}", key, e);
+            loggingService.logError("Error saving hash entries to key: %s - %s", key, e);
             throw e;
         }
         
@@ -139,7 +142,7 @@ public class RedisService {
                 return null;
             }
         } catch (Exception e) {
-            logger.error("Error getting hash value for {}:{}", key, hashKey, e);
+            loggingService.logError("Error getting hash value for %s:%s", key, hashKey, e);
             throw e;
         } 
     }
@@ -155,7 +158,7 @@ public class RedisService {
             Map<K, V> result = new HashMap<>();
 
             if (redisMap.isEmpty()) {
-                logger.debug("No hash entries found for key: {}", key);
+                loggingService.logDebug("No hash entries found for key: %s", key);
                 return result;
             }
 
@@ -168,7 +171,7 @@ public class RedisService {
             redisTemplate.expire(key, defaultTtl, TimeUnit.SECONDS);
             return result;
         } catch (Exception e) {
-            logger.error("Error retrieving all hash entries for key: {}", key, e);
+            loggingService.logError("Error retrieving all hash entries for key: %s - %s", key, e);
             throw e;
         }
     }
@@ -186,7 +189,7 @@ public class RedisService {
                 redisTemplate.delete(keys);
             }
         } catch (Exception e) {
-            logger.error("Error clearing keys with namespace: {}", namespace, e);
+            loggingService.logError("Error clearing keys with namespace: %s - %s", namespace, e);
             throw e;
         }
         

@@ -100,7 +100,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return migrationService.createMigratedItemGroup(pattern, archiveItem, cleansedData);
         
         } catch (Exception e) {
-            return handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage());
+            return handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
         }
 
     }
@@ -142,7 +142,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private boolean checkMigrated(CleansedData cleansedData, CSVArchiveListData archiveItem) {
         boolean alreadyMigrated = redisService.checkHashKeyExists("vf:case:", cleansedData.getCaseReference());
         if (alreadyMigrated) {
-            handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference());
+            handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;
         }
         return false;
@@ -153,8 +153,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     //======================
     private <T>boolean checkForError(ServiceResult<T> result, CSVArchiveListData archiveItem) {
         String errorMessage = (String) result.getErrorMessage();
+        String category = (String) result.getCategory();
         if (errorMessage != null) {
-            handleError(archiveItem, errorMessage);
+            handleError(archiveItem, errorMessage, category );
             return true;
         }
         return false;
@@ -165,13 +166,13 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             Optional<Map.Entry<String, Matcher>> patternMatch = extractionService.matchPattern(archiveItem);
             return patternMatch.map(Map.Entry::getKey).orElse(null);
         } catch (Exception e) {
-            handleError(archiveItem, e.getMessage());
+            handleError(archiveItem, e.getMessage(),"Error");
             return null;
         }
     }
 
-    private MigratedItemGroup handleError(CSVArchiveListData archiveItem, String message) {
-        migrationTrackerService.addFailedItem(new FailedItem(archiveItem, message));
+    private MigratedItemGroup handleError(CSVArchiveListData archiveItem, String message, String category) {
+        migrationTrackerService.addFailedItem(new FailedItem(archiveItem, message, category));
         return null;
     }
 }

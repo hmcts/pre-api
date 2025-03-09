@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -24,13 +25,6 @@ import java.util.stream.Collectors;
 @Component
 public class PreProcessor {
     private LoggingService loggingService;
-
-    private static final class RedisNamespaces {
-        private static final String NAMESPACE = "vf:";
-        private static final String COURT_KEY_PREFIX = NAMESPACE + "court:";
-        private static final String CASE_KEY_PREFIX = NAMESPACE + "case:";
-        private static final String USER_KEY_PREFIX = NAMESPACE + "user:";
-    }
 
     private final RedisService redisService;
     private final CourtRepository courtRepository;
@@ -84,17 +78,17 @@ public class PreProcessor {
     protected void cacheRequiredEntities() {   
         List<Court> courts = courtRepository.findAll();
         cacheEntityToRedis(
-            RedisNamespaces.COURT_KEY_PREFIX, 
+            Constants.RedisKeys.COURTS_PREFIX, 
             courts, Court::getName, court -> court.getId().toString(),"courts");
         
         List<Case> cases = caseRepository.findAll();
         cacheEntityToRedis(
-            RedisNamespaces.CASE_KEY_PREFIX, 
+            Constants.RedisKeys.CASES_PREFIX, 
             cases, Case::getReference, acase -> acase.getId().toString(),"cases");
         
         List<User> users = userRepository.findAll();
         cacheEntityToRedis(
-            RedisNamespaces.USER_KEY_PREFIX, 
+            Constants.RedisKeys.USERS_PREFIX, 
             users, User::getEmail, user -> user.getId().toString(),"users");
     }
 
@@ -119,6 +113,6 @@ public class PreProcessor {
 
     public void clearTemporaryStorage() {
         loggingService.logInfo("Clearing temporary storage...");
-        redisService.clearNamespaceKeys(RedisNamespaces.NAMESPACE);
+        redisService.clearNamespaceKeys(Constants.RedisKeys.NAMESPACE);
     }
 }

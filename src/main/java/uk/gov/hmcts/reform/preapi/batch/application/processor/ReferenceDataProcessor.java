@@ -1,9 +1,9 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
@@ -19,14 +19,12 @@ import java.util.Set;
  */
 @Component
 public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
-    private static final Logger logger = LoggerFactory.getLogger(ReferenceDataProcessor.class);
-    private static final String SITES = "sites_data";
-    private static final String CHANNEL = "channel_data";
-
     private final RedisService redisService;
+    private LoggingService loggingService;
 
-    public ReferenceDataProcessor(RedisService redisService) {
+    public ReferenceDataProcessor(RedisService redisService, LoggingService loggingService) {
         this.redisService = redisService;
+        this.loggingService = loggingService;
     }
 
     @Override
@@ -37,10 +35,10 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
             } else if (item instanceof CSVChannelData) {
                 processChannelUserData((CSVChannelData) item);
             } else {
-                logger.error("Unsupported reference data type: {}", item.getClass().getName());
+                loggingService.logError("Unsupported reference data type: %s", item.getClass().getName());
             }
         } catch (Exception e) {
-            logger.error("Error processing reference data: {}", e.getMessage(), e);
+            loggingService.logError("Error processing reference data: %s - %s", e.getMessage(), e);
         }
         return null;
     }
@@ -50,14 +48,14 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // =========================================
     private void processSitesData(CSVSitesData sitesItem) {
         redisService.saveHashValue(
-            SITES, 
+            Constants.RedisKeys.SITES_DATA, 
             sitesItem.getSiteReference(), 
             sitesItem.getCourtName()
         );
     }
 
     public Map<String, String> fetchSitesData() {
-        return redisService.getHashAll(SITES, String.class, String.class);
+        return redisService.getHashAll(Constants.RedisKeys.SITES_DATA, String.class, String.class);
     }
 
 
@@ -69,7 +67,7 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
         channelList.add(createChannelUserEntry(channelDataItem));
 
         redisService.saveHashValue(
-            CHANNEL, 
+            Constants.RedisKeys.CHANNEL_DATA, 
             channelDataItem.getChannelName(), 
             channelList
         );
@@ -78,20 +76,20 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     @SuppressWarnings("unchecked")
     public Map<String, List<String[]>> fetchChannelUserDataMap() {
         return (Map<String, List<String[]>>)
-            (Map<?, ?>) redisService.getHashAll(CHANNEL, String.class, List.class);
+            (Map<?, ?>) redisService.getHashAll(Constants.RedisKeys.CHANNEL_DATA, String.class, List.class);
     }
 
     @SuppressWarnings("unchecked")
     public Set<String> fetchChannelUserDataKeys() {
         Map<String, List<String[]>> channelDataMap = (Map<String, List<String[]>>)
-            (Map<?, ?>) redisService.getHashAll(CHANNEL, String.class, List.class);
+            (Map<?, ?>) redisService.getHashAll(Constants.RedisKeys.CHANNEL_DATA, String.class, List.class);
         return (channelDataMap != null) ? channelDataMap.keySet() : Collections.emptySet();
     }
 
     @SuppressWarnings("unchecked")
     private List<String[]> getExistingChannelList(String channelName) {
         List<String[]> channelList = redisService.getHashValue(
-            CHANNEL,
+            Constants.RedisKeys.CHANNEL_DATA,
             channelName,
             List.class
         );

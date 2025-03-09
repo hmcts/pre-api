@@ -1,11 +1,11 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -18,48 +18,48 @@ import java.util.UUID;
 
 @Service
 public class MediaTransformationService {
-    private static final Logger logger = LoggerFactory.getLogger(MediaTransformationService.class);
+    private LoggingService loggingService;
 
-    private static final String SOURCE_CONTAINER = "pre-vodafone-spike";
-    private static final String SOURCE_ENVIRONMENT = "dev";
-    private static final String INGEST_ENVIRONMENT = "stagingIngest";
-    private static final String INPUT_CONTAINER_SUFFIX = "-input";
-    
     private final AzureBlobService azureBlobService;
     private final MediaKind mediaKindService;
 
     @Autowired
-    public MediaTransformationService(AzureBlobService azureBlobService, MediaKind mediaKindService) {
+    public MediaTransformationService(
+        AzureBlobService azureBlobService, 
+        MediaKind mediaKindService,
+        LoggingService loggingService
+    ) {
         this.azureBlobService = azureBlobService;
         this.mediaKindService = mediaKindService;
+        this.loggingService = loggingService;
     }
 
     public void processMedia(String mp4FileName, UUID recordingId) {
         try {
             String localFilePath = downloadFile(mp4FileName);
             if (localFilePath == null) {
-                logger.error("Failed to download media file: {}", mp4FileName);
+                loggingService.logError("Failed to download media file: %s", mp4FileName);
                 return;
             }
             boolean copied = copyBlobBetweenContainers(
-                SOURCE_CONTAINER, 
-                SOURCE_ENVIRONMENT, 
+                Constants.Environment.SOURCE_CONTAINER, 
+                Constants.Environment.SOURCE_ENVIRONMENT, 
                 recordingId.toString(),
-                INGEST_ENVIRONMENT,
+                Constants.Environment.INGEST_CONTAINER_STG,
                 mp4FileName
             );
             
             if (!copied) {
-                logger.error("Failed to copy media file: {}", mp4FileName);
+                loggingService.logError("Failed to copy media file: %s", mp4FileName);
                 return;
             }
-            String ingestContainerName = recordingId + INPUT_CONTAINER_SUFFIX;
+            String ingestContainerName = recordingId + Constants.Environment.RECORDING_INPUT_CONTAINER_SUFFIX;
             transferMediaToIngestContainer(localFilePath, ingestContainerName, mp4FileName);
 
             processInMediaKind(recordingId, mp4FileName);
 
         } catch (Exception e) {
-            logger.error("Failed to process media: {}", e.getMessage());
+            loggingService.logError("Failed to process media: %s", e.getMessage());
         }
     }
 
@@ -80,7 +80,7 @@ public class MediaTransformationService {
             );
             return true;
         } catch (Exception e) {
-            logger.error("Error copying blob between containers: {}", e.getMessage(), e);
+            loggingService.logError("Error copying blob between containers: %s - %s", e.getMessage(), e);
             return false;
         }
     }
@@ -88,17 +88,19 @@ public class MediaTransformationService {
     private String downloadFile(String blobName) {
         try {
             InputStreamResource resource = azureBlobService.fetchSingleXmlBlob(
-                SOURCE_CONTAINER, SOURCE_ENVIRONMENT, blobName
+                Constants.Environment.SOURCE_CONTAINER, 
+                Constants.Environment.SOURCE_ENVIRONMENT, 
+                blobName
             );
 
             if (resource == null) {
-                logger.error("No resource found for blob: {}", blobName);
+                loggingService.logError("No resource found for blob: %s", blobName);
                 return null;
             }
 
             return saveInputStreamToTempFile(resource);
         } catch (Exception e) {
-            logger.error("Error downloading media file: {}", blobName, e);
+            loggingService.logError("Error downloading media file: %s - %s", blobName, e);
             return null;
         }
     }
@@ -118,7 +120,7 @@ public class MediaTransformationService {
                 return tempFile.getAbsolutePath();
             }
         } catch (IOException e) {
-            logger.error("Error saving file locally: {}", e.getMessage());
+            loggingService.logError("Error saving file locally: %s", e.getMessage());
             return null;
         }
     }
@@ -136,10 +138,14 @@ public class MediaTransformationService {
         String fileName
     ) {
         try {
-            
-            azureBlobService.uploadBlob(localFilePath, ingestContainerName, INGEST_ENVIRONMENT, fileName);
+            azureBlobService.uploadBlob(
+                localFilePath,
+                ingestContainerName, 
+                Constants.Environment.INGEST_CONTAINER_STG, 
+                fileName
+            );
         } catch (Exception e) {
-            logger.error("Failed to upload media to ingest container: {}", ingestContainerName, e);
+            loggingService.logError("Failed to upload media to ingest container: %s - %s", ingestContainerName, e);
         }
     }
 
@@ -160,7 +166,7 @@ public class MediaTransformationService {
             GenerateAssetResponseDTO response = mediaKindService.importAsset(generateAssetDTO);
 
         } catch (Exception e) {
-            logger.error("Failed to process media: {}", e.getMessage(),e);
+            loggingService.logError("Failed to process media: %s - %s", e.getMessage(),e);
         }   
     }
 }

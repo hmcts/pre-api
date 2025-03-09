@@ -21,7 +21,9 @@ public class CSVArchiveListData {
         "dd-MM-yyyy HH:mm", "dd-MM-yyyy H:mm",
         "d-MM-yyyy HH:mm", "d-MM-yyyy H:mm",
         "dd-M-yyyy HH:mm", "dd-M-yyyy H:mm",
-        "d-M-yyyy HH:mm", "d-M-yyyy H:mm"
+        "d-M-yyyy HH:mm", "d-M-yyyy H:mm",
+        "yyyy-MM-dd HH:mm:ss"  
+
     );
 
     private String archiveName = "";
@@ -93,11 +95,13 @@ public class CSVArchiveListData {
 
     public LocalDateTime getCreateTimeAsLocalDateTime() {
         if (createTime == null || createTime.isEmpty()) {
+            logger.info("Invalid createTime");
             return null;
         }
 
         try {
             long timestamp = Long.parseLong(createTime.trim());
+            logger.info("timestamp created: ",timestamp);
             return LocalDateTime.ofInstant(
                 java.time.Instant.ofEpochMilli(timestamp),
                 java.time.ZoneId.systemDefault()

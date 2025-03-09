@@ -2,6 +2,8 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
 import org.springframework.stereotype.Service;
 
+import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.FileWriter;
@@ -11,6 +13,9 @@ import java.io.File;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
 
 @Service
 public class LoggingService {
@@ -22,6 +27,8 @@ public class LoggingService {
     private int processedRecords = 0;
     private int totalMigrated = 0;
     private int totalFailed = 0;
+    private Map<String, Integer> failedCategoryCounts = new HashMap<>();
+
     private int unaccountedRecords = 0;
     private int totalInvited = 0;
     
@@ -103,12 +110,11 @@ public class LoggingService {
         return debugEnabled;
     }
     
-
     // ==============================
     // PROGRESS TRACKING
     // ==============================
     public void setTotalRecords(int count) {
-        this.totalRecords = Math.max(count, 1);  // Prevent division by zero
+        this.totalRecords = Math.max(count, 1);  
     }
 
     public void incrementProgress() {
@@ -132,7 +138,12 @@ public class LoggingService {
     // METRICS TRACKING
     // ==============================
     public void setTotalMigrated(int count) { this.totalMigrated = count; }
-    public void setTotalFailed(int count) { this.totalFailed = count; }
+    public void setTotalFailed(Map<String, List<FailedItem>> categorizedFailures) { 
+        // this.totalFailed = count; 
+        this.totalFailed = categorizedFailures.values().stream().mapToInt(List::size).sum();
+        failedCategoryCounts.clear();
+        categorizedFailures.forEach((category, items) -> failedCategoryCounts.put(category, items.size()));
+    }
     public void checkAllAccounted(int count) { this.unaccountedRecords = this.totalRecords - this.totalMigrated - this.totalFailed; }
     public void setTotalInvited(int count) { this.totalInvited = count; }
 
@@ -183,10 +194,10 @@ public class LoggingService {
         try (BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)))) {
             long lineCount = reader.lines()
                 .skip(1) // Skip header
-                .filter(line -> !line.trim().isEmpty()) // Ignore empty lines
+                .filter(line -> !line.trim().isEmpty()) 
                 .count();
 
-            this.totalRecords = Math.max((int) lineCount, 1); // Ensure at least 1 to prevent division by zero
+            this.totalRecords = Math.max((int) lineCount, 1); 
             logInfo("Total records set from file '%s': %d", filePath, this.totalRecords);
 
         } catch (IOException e) {

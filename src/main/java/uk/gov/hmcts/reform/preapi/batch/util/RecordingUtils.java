@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.util;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.experimental.UtilityClass;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,9 +13,6 @@ import java.util.Optional;
 @UtilityClass
 public final class RecordingUtils {
     private static final String REDIS_RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
-
-    public static final String VERSION_TYPE_ORIGINAL = "ORIG";
-    public static final String VERSION_TYPE_COPY = "COPY";
 
     private static final String KEY_ORIG_VERSION_NUMBER = "origVersionNumber";
     private static final String KEY_COPY_VERSION_NUMBER = "copyVersionNumber";
@@ -50,7 +48,7 @@ public final class RecordingUtils {
         // String versionType = recordingVersion;
         String versionType = Optional.ofNullable(recordingVersion)
                                      .map(String::toUpperCase)
-                                     .filter(v -> v.equals(VERSION_TYPE_ORIGINAL) || v.equals(VERSION_TYPE_COPY))
+                                     .filter(Constants.VALID_VERSION_TYPES::contains)
                                     .orElseThrow(() -> new IllegalArgumentException(
                                         "Invalid recording version: " + recordingVersion
                                     ));
@@ -63,7 +61,7 @@ public final class RecordingUtils {
     }
 
     public int getRecordingVersionNumber(String recordingVersion) {
-        return VERSION_TYPE_ORIGINAL.equalsIgnoreCase(recordingVersion) ? 1 : 2;
+        return Constants.VALID_ORIG_TYPES.contains(recordingVersion.toUpperCase()) ? 1 : 2;
     }
 
     public String getValidVersionNumber(String versionNumStr) {
@@ -75,7 +73,7 @@ public final class RecordingUtils {
         String currentVersion, 
         Map<String, String> existingData
     ) {
-        String key = VERSION_TYPE_ORIGINAL.equalsIgnoreCase(versionType) 
+        String key = Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase()) 
             ? KEY_ORIG_VERSION_NUMBER 
             : KEY_COPY_VERSION_NUMBER;
 
@@ -123,13 +121,13 @@ public final class RecordingUtils {
         Map<String, String> updatedMetadata = new HashMap<>(existingMetadata);
         String validVersionNumber = getValidVersionNumber(versionNumber);
 
-        if (VERSION_TYPE_ORIGINAL.equalsIgnoreCase(versionType)) {
+        if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())) {
             String existingVersion = existingMetadata.get(KEY_ORIG_VERSION_NUMBER);
             if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
                 updatedMetadata.put(KEY_ORIG_ARCHIVE_NAME, archiveName);
                 updatedMetadata.put(KEY_ORIG_VERSION_NUMBER, validVersionNumber);
             }
-        } else if (VERSION_TYPE_COPY.equalsIgnoreCase(versionType)) {
+        } else if (Constants.VALID_COPY_TYPES.contains(versionType.toUpperCase())) {
             String existingVersion = existingMetadata.get(KEY_COPY_VERSION_NUMBER);
             if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
                 updatedMetadata.put(KEY_COPY_ARCHIVE_NAME, archiveName);

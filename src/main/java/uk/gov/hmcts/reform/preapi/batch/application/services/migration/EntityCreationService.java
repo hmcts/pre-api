@@ -2,10 +2,10 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
@@ -34,10 +34,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
-    private static final Logger logger = LoggerFactory.getLogger(EntityCreationService.class);
-
-    static final String DEFAULT_NAME = "Unknown";
-    static final String REDIS_USER_KEY_PREFIX = "vf:user:";
+    private LoggingService loggingService;
     static final String REDIS_BOOKING_FIELD = "bookingField";
     static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
     static final String REDIS_RECORDING_FIELD = "recordingField";
@@ -152,8 +149,8 @@ public class EntityCreationService {
         var participantDTO = new CreateParticipantDTO();
         participantDTO.setId(UUID.randomUUID());
         participantDTO.setParticipantType(type);
-        participantDTO.setFirstName(firstName != null ? firstName : DEFAULT_NAME);
-        participantDTO.setLastName(lastName != null ? lastName : DEFAULT_NAME);
+        participantDTO.setFirstName(firstName != null ? firstName : Constants.DEFAULT_NAME);
+        participantDTO.setLastName(lastName != null ? lastName : Constants.DEFAULT_NAME);
         return participantDTO;
     }
 
@@ -205,7 +202,7 @@ public class EntityCreationService {
                 sharedWith = createUser(firstName, lastName, email, UUID.randomUUID()); 
                 inviteDTO = createInvite(sharedWith);
                 userInvites.add(inviteDTO);
-                redisService.saveHashValue(REDIS_USER_KEY_PREFIX, email, sharedWith.getId().toString());    
+                redisService.saveHashValue(Constants.RedisKeys.USERS_PREFIX, email, sharedWith.getId().toString());    
             }
             
             String redisBookingKey = REDIS_SHARE_BOOKING_FIELD + booking.getId().toString();
@@ -223,7 +220,7 @@ public class EntityCreationService {
             redisService.saveHashValue(redisBookingKey, sharedWith.getId().toString(), sharedWith.getId().toString());
             shareBookings.add(createShareBooking(booking, sharedWith, sharedBy));
         } catch (Exception e) {
-            logger.error("Failed to create share booking: ", e.getMessage(), e);
+            loggingService.logError("Failed to create share booking: %s - %s", e.getMessage(), e);
         }
     }
 
@@ -242,7 +239,7 @@ public class EntityCreationService {
     }
 
     public String getUserIdFromRedis(String email) {
-        return redisService.getHashValue(REDIS_USER_KEY_PREFIX, email, String.class);
+        return redisService.getHashValue(Constants.RedisKeys.USERS_PREFIX, email, String.class);
     }
 
     public CreateUserDTO getUserById(String userId) {
@@ -255,7 +252,7 @@ public class EntityCreationService {
         try {
             return userService.findByEmail(email).getUser().getId();
         } catch (Exception e) {
-            logger.warn("Could not find user by email: {}", email, e);
+            loggingService.logWarning("Could not find user by email: %s - %s", email, e);
             return null; 
         }
     }

@@ -49,7 +49,7 @@ public class RecordingMetadataProcessor {
             ServiceResult<CleansedData> result =  transformationService.transformData(archiveItem, extracted.getData());
             CleansedData cleansedData = (CleansedData) result.getData();
             if (cleansedData == null) {
-                ServiceResultUtil.failure("Data not transformed successfully");
+                ServiceResultUtil.failure("Data not transformed successfully", "Missing data");
                 return;
             }
 
@@ -74,7 +74,7 @@ public class RecordingMetadataProcessor {
             redisService.saveHashAll(redisKey, updatedMetadata);
 
         } catch (Exception e) {
-            ServiceResultUtil.failure(e.getMessage());
+            ServiceResultUtil.failure(e.getMessage(), "Error");
         }
     }
 }

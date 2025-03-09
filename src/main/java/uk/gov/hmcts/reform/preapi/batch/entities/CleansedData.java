@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
@@ -97,11 +98,11 @@ public class CleansedData {
     }
 
     public boolean isOrig() { 
-        return "ORIG".equalsIgnoreCase(this.getRecordingVersion()); 
+        return Constants.VALID_ORIG_TYPES.contains(this.getRecordingVersion().toUpperCase());
     }
 
     public boolean isCopy() { 
-        return "COPY".equalsIgnoreCase(this.getRecordingVersion()); 
+        return Constants.VALID_COPY_TYPES.contains(this.getRecordingVersion().toUpperCase());
     }
 
     public Duration getDuration() { 

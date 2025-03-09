@@ -1,10 +1,10 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor; 
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
@@ -25,27 +25,25 @@ import java.util.HashMap;
 import java.util.UUID;
 
 @Service
-public class DataTransformationService {
-    private static final Logger logger = LoggerFactory.getLogger(DataTransformationService.class);
-    
-    public static final String REDIS_COURTS_KEY = "vf:court:";
-    public static final String REDIS_RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
-    private static final String SITES_DATA_KEY = "sites_data";
+public class DataTransformationService {    
     private static final String UNKNOWN_COURT = "Unknown Court";
 
     private final RedisService redisService;
     private final CourtRepository courtRepository;
     private final ReferenceDataProcessor referenceDataProcessor;
+    private LoggingService loggingService;
 
     @Autowired
     public DataTransformationService(
         RedisService redisService,
         CourtRepository courtRepository,
-        ReferenceDataProcessor referenceDataProcessor
+        ReferenceDataProcessor referenceDataProcessor,
+        LoggingService loggingService
     ) {
         this.redisService = redisService;
         this.courtRepository = courtRepository;
         this.referenceDataProcessor = referenceDataProcessor;
+        this.loggingService = loggingService;
     }
     
     /**
@@ -58,23 +56,23 @@ public class DataTransformationService {
      */
     public ServiceResult<CleansedData> transformData(CSVArchiveListData archiveItem, ExtractedMetadata extracted) {
         if (archiveItem == null) {
-            logger.error("Archive item is null");
-            return ServiceResultUtil.failure("Archive item cannot be null");
+            loggingService.logError("Archive item is null");
+            return ServiceResultUtil.failure("Archive item cannot be null", "Missing data");
         }
 
         try {
-            logger.debug("Starting data transformation for archive: {}", archiveItem.getArchiveName());
+            loggingService.logDebug("Starting data transformation for archive: %s", archiveItem.getArchiveName());
             
             Map<String, String> sitesDataMap = getSitesData();
 
             CleansedData cleansedData = buildCleansedData(archiveItem, extracted, sitesDataMap);
 
-            logger.debug("Data transformation completed successfully for archive: {}", archiveItem.getArchiveName());
+            loggingService.logDebug("Data transformation completed successfully for archive: %s", archiveItem.getArchiveName());
             return ServiceResultUtil.success(cleansedData);
 
         } catch (Exception e) {
-            logger.error("Data transformation failed for archive: {}", archiveItem.getArchiveName(), e);
-            return ServiceResultUtil.failure(e.getMessage());
+            loggingService.logError("Data transformation failed for archive: %s - %s", archiveItem.getArchiveName(), e);
+            return ServiceResultUtil.failure(e.getMessage(), "Error");
         }
     }
 
@@ -89,7 +87,7 @@ public class DataTransformationService {
      */
     private CleansedData buildCleansedData(
         CSVArchiveListData archiveItem, ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
-        logger.debug("Building cleansed data for archive: {}", archiveItem.getArchiveName());
+        loggingService.logDebug("Building cleansed data for archive: %s", archiveItem.getArchiveName());
         
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem);
 
@@ -105,7 +103,7 @@ public class DataTransformationService {
 
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
-            logger.warn("Court not found for reference: {}", extracted.getCourtReference());
+            loggingService.logWarning("Court not found for reference: %s", extracted.getCourtReference());
         }
 
         return new CleansedData.Builder()
@@ -139,15 +137,15 @@ public class DataTransformationService {
     private Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
-            logger.error("Court reference is null or empty");
+            loggingService.logError("Court reference is null or empty");
             throw new IllegalArgumentException("Court reference cannot be null or empty");
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
-        Map<String, String> courtsData = redisService.getHashAll(REDIS_COURTS_KEY, String.class, String.class);
+        Map<String, String> courtsData = redisService.getHashAll(Constants.RedisKeys.COURTS_PREFIX, String.class, String.class);
         
         if (courtsData == null || courtsData.isEmpty()) {
-            logger.error("Courts data not found in Redis");
+            loggingService.logError("Courts data not found in Redis");
             throw new IllegalStateException("Courts data not found in Redis");
         }
 
@@ -157,12 +155,12 @@ public class DataTransformationService {
                 UUID courtId = UUID.fromString(courtIdString);
                 return courtRepository.findById(courtId).orElse(null);
             } catch (IllegalArgumentException e) {
-                logger.error("Invalid court ID format: {}", courtIdString, e);
+                loggingService.logError("Invalid court ID format: $s - $s", courtIdString, e);
                 throw new IllegalArgumentException("Court ID parsing failed for: " + courtIdString, e);
             }
         }
         
-        logger.warn("Court ID not found for court name: {}", fullCourtName);
+        loggingService.logWarning("Court ID not found for court name: %s", fullCourtName);
         return null;
     }
 
@@ -186,7 +184,7 @@ public class DataTransformationService {
             contactsList.add(contact);
         }
         
-        logger.debug("Built {} share booking contacts for archive: {}", contactsList.size(), archiveName);
+        loggingService.logDebug("Built {} share booking contacts for archive: %d - %s", contactsList.size(), archiveName);
         return contactsList;
     }
 
@@ -199,7 +197,7 @@ public class DataTransformationService {
     private List<String[]> getUsersAndEmails(String key) {
         Map<String, List<String[]>> channelUserDataMap = referenceDataProcessor.fetchChannelUserDataMap();
         if (channelUserDataMap == null) {
-            logger.warn("Channel user data map is null");
+            loggingService.logWarning("Channel user data map is null");
             return new ArrayList<>();
         }
         return channelUserDataMap.getOrDefault(key, new ArrayList<>());
@@ -212,9 +210,9 @@ public class DataTransformationService {
      * @throws IllegalStateException if sites data is not found in Redis
      */
     private Map<String, String> getSitesData() {
-        Map<String, String> sitesDataMap = redisService.getHashAll(SITES_DATA_KEY, String.class, String.class);
+        Map<String, String> sitesDataMap = redisService.getHashAll(Constants.RedisKeys.SITES_DATA, String.class, String.class);
         if (sitesDataMap == null || sitesDataMap.isEmpty()) {
-            logger.error("Sites data not found in Redis");
+            loggingService.logError("Sites data not found in Redis");
             throw new IllegalStateException("Sites data not found in Redis");
         }
         return sitesDataMap;

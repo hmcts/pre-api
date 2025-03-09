@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Service
 public class ReportingService {
     private static final Logger logger = LoggerFactory.getLogger(ReportingService.class);
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm");
 
     /**
      * Writes data to a CSV file.
