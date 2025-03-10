@@ -112,7 +112,7 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.21.3'
+  toolVersion = '10.21.4'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
@@ -307,7 +307,7 @@ dependencies {
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.9.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.10.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.7:all'
