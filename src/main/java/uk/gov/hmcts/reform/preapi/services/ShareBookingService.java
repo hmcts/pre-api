@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,10 +10,12 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -27,7 +30,9 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+@Slf4j
 @Service
 public class ShareBookingService {
 
@@ -37,12 +42,15 @@ public class ShareBookingService {
 
     private final UserRepository userRepository;
 
+    private final EmailServiceFactory emailServiceFactory;
+
     @Autowired
     public ShareBookingService(ShareBookingRepository shareBookingRepository, BookingRepository bookingRepository,
-                               UserRepository userRepository) {
+                               UserRepository userRepository, EmailServiceFactory emailServiceFactory) {
         this.shareBookingRepository = shareBookingRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Transactional
@@ -79,6 +87,8 @@ public class ShareBookingService {
         shareBookingEntity.setSharedBy(sharedByUser);
         shareBookingEntity.setSharedWith(sharedWithUser);
         shareBookingRepository.save(shareBookingEntity);
+
+        onBookingShared(shareBookingEntity);
 
         return UpsertResult.CREATED;
     }
@@ -149,5 +159,24 @@ public class ShareBookingService {
         return shareBookingRepository
             .findByBooking_IdOrderBySharedWith_FirstNameAsc(bookingId, pageable)
             .map(ShareBookingDTO::new);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
+    public void onBookingShared(ShareBooking s) {
+        // only send an email if there is a recording for this booking
+        if (emailServiceFactory.isEnabled()
+            && Stream.ofNullable(s.getBooking().getCaptureSessions())
+                     .flatMap(Set::stream)
+                     .anyMatch(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))) {
+
+            try {
+                log.info("onBookingShared: Booking({})", s.getBooking().getId());
+                emailServiceFactory.getEnabledEmailService()
+                                   .recordingReady(s.getSharedWith(), s.getBooking().getCaseId());
+            } catch (Exception e) {
+                log.error("Failed to notify user " + s.getSharedWith().getId()
+                              + " of shared booking: " + s.getBooking().getId());
+            }
+        }
     }
 }
