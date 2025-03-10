@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -16,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
+import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
@@ -706,5 +708,40 @@ public class ReportServiceTest {
         assertThat(result.getFirst().getCourtName()).isEqualTo(courtEntity.getName());
         assertThat(result.getFirst().getCaseReference()).isEqualTo(caseEntity.getReference());
         assertThat(result.getFirst().getRecordingId()).isEqualTo(recordingEntity.getId());
+    }
+
+    @DisplayName("Find all app users with their first and last name, primary court, role, active status and "
+        + "last access time and return a report")
+    @Test
+    void reportUserPrimaryCourts() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        user.setEmail("example@example.com");
+
+        var appAccess = new AppAccess();
+        appAccess.setUser(user);
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setCourt(courtEntity);
+        appAccess.setActive(true);
+        appAccess.setDefaultCourt(true);
+        appAccess.setLastAccess(Timestamp.from(Instant.now()));
+
+        Role roleEntity = new Role();
+        roleEntity.setName("Level 4");
+
+        appAccess.setRole(roleEntity);
+
+        when(appAccessRepository.findAll()).thenReturn(List.of(appAccess));
+
+        var report = reportService.reportUserPrimaryCourts();
+
+        assertThat(report.getFirst().getFirstName()).isEqualTo(user.getFirstName());
+        assertThat(report.getFirst().getLastName()).isEqualTo(user.getLastName());
+        assertThat(report.getFirst().getPrimaryCourtName()).isEqualTo(courtEntity.getName());
+        assertThat(report.getFirst().getActive()).isEqualTo("Active");
+        assertThat(report.getFirst().getRoleName()).isEqualTo(appAccess.getRole().getName());
+        assertThat(report.getFirst().getLastAccess()).isEqualTo(appAccess.getLastAccess());
     }
 }
