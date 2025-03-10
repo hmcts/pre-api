@@ -211,7 +211,7 @@ public class ReportService {
 
         List<UserPrimaryCourtReportDTO> userPrimaryCourtReportDTOs = new ArrayList<>();
 
-        for (AppAccess appAccessObj : this.appAccessRepository.findAll()) {
+        for (AppAccess appAccessObj : this.appAccessRepository.findAllByOrderByUser_LastNameAsc()) {
             UserPrimaryCourtReportDTO userPrimaryCourtReportDTO = new UserPrimaryCourtReportDTO(
                 appAccessObj.getUser().getFirstName(),
                 appAccessObj.getUser().getLastName(),
@@ -223,9 +223,6 @@ public class ReportService {
 
             userPrimaryCourtReportDTOs.add(userPrimaryCourtReportDTO);
         }
-
-        userPrimaryCourtReportDTOs.sort((user1, user2) ->
-                                            user1.getLastName().compareTo(user2.getLastName()));
 
         return userPrimaryCourtReportDTOs;
     }
