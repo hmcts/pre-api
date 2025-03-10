@@ -114,6 +114,11 @@ public class RecordingController extends PreApiController {
         schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
+        name = "caseOpen",
+        description = "The case status to search by",
+        schema = @Schema(implementation = Boolean.class)
+    )
+    @Parameter(
         name = "sort",
         description = "Sort by",
         schema = @Schema(implementation = String.class),
@@ -150,7 +155,6 @@ public class RecordingController extends PreApiController {
         }
 
         return ResponseEntity.ok(assembler.toModel(resultPage));
-
     }
 
     @PutMapping("/{recordingId}")

@@ -29,6 +29,7 @@ public class SearchRecordings {
     private Timestamp startedAtUntil;
     private List<UUID> authorisedBookings;
     private UUID authorisedCourt;
+    private Boolean caseOpen;
 
     public String getCaseReference() {
         return caseReference != null && !caseReference.isEmpty() ? caseReference : null;
@@ -44,5 +45,10 @@ public class SearchRecordings {
 
     public String getId() {
         return id != null && !id.isEmpty() ? id : null;
+    }
+
+    // used in recordingRepository.searchAllBy()
+    public boolean isCaseOpen() {
+        return caseOpen == null || caseOpen;
     }
 }
