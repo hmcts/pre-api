@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.microsoft.applicationinsights.TelemetryClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -30,6 +31,8 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,6 +45,8 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
+
+    private final TelemetryClient telemetry = new TelemetryClient();
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
@@ -204,6 +209,10 @@ public class CaptureSessionService {
         captureSession.setFinishedAt(createCaptureSessionDTO.getFinishedAt());
         captureSession.setFinishedByUser(finishedByUser);
         captureSession.setStatus(createCaptureSessionDTO.getStatus());
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
 
         captureSessionRepository.save(captureSession);
 
@@ -237,6 +246,11 @@ public class CaptureSessionService {
         captureSession.setStartedAt(Timestamp.from(Instant.now()));
 
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
+
         captureSession.setIngestAddress(ingestAddress);
 
         captureSessionRepository.save(captureSession);
@@ -253,6 +267,10 @@ public class CaptureSessionService {
 
         log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
 
         switch (status) {
             case PROCESSING -> {
@@ -283,6 +301,11 @@ public class CaptureSessionService {
             .findByIdAndDeletedAtIsNull(captureSessionId)
             .orElseThrow(() -> new NotFoundException("Capture Session: " + captureSessionId));
         captureSession.setStatus(status);
+        Map<String, String> properties = new HashMap<String, String>();
+        properties.put("captureSession_ID", captureSession.getId().toString());
+        properties.put("captureSession_STATUS", captureSession.getStatus().name());
+        telemetry.trackEvent(properties.toString());
+
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
     }
