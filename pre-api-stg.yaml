@@ -3634,8 +3634,9 @@ paths:
               $ref: '#/definitions/UserPrimaryCourtReportDTO'
             type: array
       summary: >-
-        Get report on users, their role, their active status and their primary
-        court
+        Get report on app users: their first and last name, their role, their
+        active status, their primary court and their last access time (if
+        available)
       tags:
         - report-controller
   /roles:
