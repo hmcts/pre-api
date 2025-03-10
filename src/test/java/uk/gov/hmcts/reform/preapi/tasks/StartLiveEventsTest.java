@@ -4,8 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
@@ -41,19 +41,19 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = StartLiveEvents.class)
 public class StartLiveEventsTest {
 
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private MediaServiceBroker mediaServiceBroker;
 
-    @MockBean
+    @MockitoBean
     private BookingService bookingService;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
