@@ -30,4 +30,6 @@ public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
         """
     )
     Optional<AppAccess> findByIdValidUser(@Param("userId") UUID userId);
+
+    List<AppAccess> findAllByOrderByUser_LastNameAsc();
 }
