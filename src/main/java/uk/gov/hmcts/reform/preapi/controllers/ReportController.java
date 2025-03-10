@@ -149,7 +149,8 @@ public class ReportController {
     @GetMapping("/user-primary-courts")
     @Operation(
         operationId = "reportUserPrimaryCourts",
-        summary = "Get report on users, their role, their active status and their primary court")
+        summary = "Get report on app users: their first and last name, their role, their active status, " +
+            "their primary court and their last access time (if available)")
     public ResponseEntity<List<UserPrimaryCourtReportDTO>> reportUserPrimaryCourts() {
         return ResponseEntity.ok(reportService.reportUserPrimaryCourts());
     }
