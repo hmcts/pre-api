@@ -29,11 +29,11 @@ withPipeline(type, product, component) {
   enableDbMigration('pre-hmctskv')
 
   afterAlways('functionalTest:dev') {
-    steps.archiveArtifacts allowEmptyArchive: true, artifacts: '**/*'
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/test-results/functional/*.xml'
   }
 
   afterAlways('functionalTest:stg') {
-    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'functional-output/**/*'
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/test-results/functional/*.xml'
   }
 
 }
