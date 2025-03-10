@@ -222,10 +222,11 @@ public class ReportService {
             );
 
             userPrimaryCourtReportDTOs.add(userPrimaryCourtReportDTO);
-
-            userPrimaryCourtReportDTOs.sort((user1, user2) ->
-                                                user1.getLastName().compareTo(user2.getLastName()));
         }
+
+        userPrimaryCourtReportDTOs.sort((user1, user2) ->
+                                            user1.getLastName().compareTo(user2.getLastName()));
+
         return userPrimaryCourtReportDTOs;
     }
 }
