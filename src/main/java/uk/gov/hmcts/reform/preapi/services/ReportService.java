@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -26,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -203,5 +205,24 @@ public class ReportService {
                 ? recordingRepository.findById(recordingId).orElse(null)
                 : null
         );
+    }
+
+    public List<UserPrimaryCourtReportDTO> reportUserPrimaryCourts() {
+
+        List<UserPrimaryCourtReportDTO> userPrimaryCourtReportDTOs = new ArrayList<UserPrimaryCourtReportDTO>();
+
+        for (AppAccess appAccessObj : this.appAccessRepository.findAll()) {
+            UserPrimaryCourtReportDTO userPrimaryCourtReportDTO = new UserPrimaryCourtReportDTO(
+                appAccessObj.getUser().getFirstName(),
+                appAccessObj.getUser().getLastName(),
+                appAccessObj.getCourt().getName(),
+                appAccessObj.isActive(),
+                appAccessObj.getRole().getName(),
+                appAccessObj.getLastAccess()
+            );
+
+            userPrimaryCourtReportDTOs.add(userPrimaryCourtReportDTO);
+        }
+        return userPrimaryCourtReportDTOs;
     }
 }
