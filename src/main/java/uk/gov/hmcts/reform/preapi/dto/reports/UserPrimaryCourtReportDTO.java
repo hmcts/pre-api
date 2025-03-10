@@ -41,7 +41,8 @@ public class UserPrimaryCourtReportDTO {
             this.active = "Active";
         } else {
             this.active = "Inactive";
-        }this.roleName = roleName;
+        }
+        this.roleName = roleName;
         this.lastAccess = lastAccess;
     }
 }
