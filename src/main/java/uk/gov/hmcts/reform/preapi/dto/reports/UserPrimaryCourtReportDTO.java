@@ -32,7 +32,7 @@ public class UserPrimaryCourtReportDTO {
     @Schema(description = "UserPrimaryCourtReportLastAccess")
     private Timestamp lastAccess;
 
-    public UserPrimaryCourtReportDTO(String firstName, String lastName, String primaryCourtName, Boolean active,
+    public UserPrimaryCourtReportDTO(String firstName, String lastName, String primaryCourtName, boolean active,
                                      String roleName, Timestamp lastAccess) {
         this.firstName = firstName;
         this.lastName = lastName;

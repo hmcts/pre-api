@@ -209,7 +209,7 @@ public class ReportService {
 
     public List<UserPrimaryCourtReportDTO> reportUserPrimaryCourts() {
 
-        List<UserPrimaryCourtReportDTO> userPrimaryCourtReportDTOs = new ArrayList<UserPrimaryCourtReportDTO>();
+        List<UserPrimaryCourtReportDTO> userPrimaryCourtReportDTOs = new ArrayList<>();
 
         for (AppAccess appAccessObj : this.appAccessRepository.findAll()) {
             UserPrimaryCourtReportDTO userPrimaryCourtReportDTO = new UserPrimaryCourtReportDTO(
