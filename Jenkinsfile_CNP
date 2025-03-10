@@ -1,4 +1,6 @@
 #!groovy
+import groovy.io.FileType
+
 @Library("Infrastructure")
 def type = "java"
 def product = "pre"
@@ -25,4 +27,13 @@ withPipeline(type, product, component) {
   syncBranchesWithMaster(['perftest', 'demo'])
   enableSlackNotifications('#pre-builds')
   enableDbMigration('pre-hmctskv')
+
+  afterAlways('functionalTest:dev') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/test-results/functional/*.xml'
+  }
+
+  afterAlways('functionalTest:stg') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/test-results/functional/*.xml'
+  }
+
 }
