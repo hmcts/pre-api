@@ -29,7 +29,9 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,6 +112,16 @@ public class CaptureSessionService {
                 pageable
             )
             .map(CaptureSessionDTO::new);
+    }
+
+    @Transactional
+    public List<CaptureSession> findAvailableSessionsByDate(LocalDate date) {
+        Timestamp fromTime = Timestamp.valueOf(date.atStartOfDay());
+        Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
+
+        return captureSessionRepository
+            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE,
+                                                                     fromTime, toTime);
     }
 
     @Transactional
@@ -286,4 +298,5 @@ public class CaptureSessionService {
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
     }
+
 }
