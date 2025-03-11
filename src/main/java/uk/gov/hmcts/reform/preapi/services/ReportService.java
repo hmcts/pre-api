@@ -27,7 +27,6 @@ import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -210,22 +209,14 @@ public class ReportService {
     @Transactional
     public List<UserPrimaryCourtReportDTO> reportUserPrimaryCourts() {
 
-        List<UserPrimaryCourtReportDTO> userPrimaryCourtReportDTOs = new ArrayList<>();
-
-        for (AppAccess appAccessObj : this.appAccessRepository.getUserPrimaryCourtsForReport()) {
-            UserPrimaryCourtReportDTO userPrimaryCourtReportDTO = new UserPrimaryCourtReportDTO(
-                appAccessObj.getUser().getFirstName(),
-                appAccessObj.getUser().getLastName(),
-                appAccessObj.getCourt().getName(),
-                appAccessObj.isActive(),
-                appAccessObj.getRole().getName(),
-                appAccessObj.getLastAccess()
-            );
-
-            userPrimaryCourtReportDTOs.add(userPrimaryCourtReportDTO);
-
-        }
-
-        return userPrimaryCourtReportDTOs;
+        return this.appAccessRepository.getUserPrimaryCourtsForReport()
+            .stream()
+            .map(access -> new UserPrimaryCourtReportDTO(access.getUser().getFirstName(),
+                                                         access.getUser().getLastName(),
+                                                         access.getCourt().getName(),
+                                                         access.isActive(),
+                                                         access.getRole().getName(),
+                                                         access.getLastAccess()))
+            .toList();
     }
 }
