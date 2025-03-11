@@ -21,11 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.interceptor.DefaultTransactionAttribute;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.RecordingMetadataProcessor;
@@ -41,30 +37,17 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.entities.Case;
-import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
-import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.enums.CaseState;
-import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
-import uk.gov.hmcts.reform.preapi.tasks.RobotUserTaskImpl;
+import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
 import java.io.IOException;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Configuration
 @EnableBatchProcessing
@@ -89,7 +72,7 @@ public class BatchConfiguration implements StepExecutionListener {
     private final CaseService caseService;
     private final CaptureSessionService captureSessionService;
     private final CaseRepository caseRepository;
-    private final RobotUserTaskImpl robotUserTask;
+    private final BatchRobotUserTask robotUserTask;
     private final ArchiveMetadataXmlExtractor xmlProcessingService;
     private LoggingService loggingService;
 
@@ -114,7 +97,7 @@ public class BatchConfiguration implements StepExecutionListener {
         RecordingService recordingService,
         Writer itemWriter,
         MigrationTrackerService migrationTrackerService,
-        RobotUserTaskImpl robotUserTask,
+        BatchRobotUserTask robotUserTask,
         ArchiveMetadataXmlExtractor xmlProcessingService,
         LoggingService loggingService
     ) {
@@ -146,7 +129,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return new JobBuilder("fetchXmlJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(startLogging())
-            .next(createXmlFetchStep()) 
+            .next(createXmlFetchStep())
             .build();
     }
 
@@ -175,8 +158,8 @@ public class BatchConfiguration implements StepExecutionListener {
             .next(preProcessStep)
             .next(metadataStep)
             .next(archiveStep)
-            // .next(createNonTransactionalMarkCasesClosedStep()) 
-            // .next(markCasesStep) 
+            // .next(createNonTransactionalMarkCasesClosedStep())
+            // .next(markCasesStep)
             .next(writeCsvStep)
             .end()
             .build();
@@ -227,7 +210,7 @@ public class BatchConfiguration implements StepExecutionListener {
                     loggingService.setDebugEnabled(debug);
                     loggingService.initializeLogFile();
                     loggingService.logInfo("Job started with debug mode: " + debug);
-                    
+
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
                 .build();
@@ -238,8 +221,8 @@ public class BatchConfiguration implements StepExecutionListener {
     protected Step createXmlFetchStep() {
         return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
-                    String containerName = "pre-vodafone-spike"; 
-                    String outputDir = "src/main/resources/batch"; 
+                    String containerName = "pre-vodafone-spike";
+                    String outputDir = "src/main/resources/batch";
                     xmlProcessingService.extractAndReportArchiveMetadata(containerName, outputDir);
                     return RepeatStatus.FINISHED;
                 }, transactionManager)
@@ -269,7 +252,7 @@ public class BatchConfiguration implements StepExecutionListener {
 
                 CSVArchiveListData item;
                 while ((item = reader.read()) != null) {
-                    recordingPreProcessor.processRecording(item); 
+                    recordingPreProcessor.processRecording(item);
                 }
 
                 reader.close();
@@ -297,7 +280,7 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-    
+
 
     // =========================
     // Utility and Helper Functions
@@ -317,10 +300,10 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     protected <T> Step createReadStep(
-        String stepName, 
-        Resource filePath, 
-        String[] fieldNames, 
-        Class<T> targetClass, 
+        String stepName,
+        Resource filePath,
+        String[] fieldNames,
+        Class<T> targetClass,
         boolean writeToCsv
     ) {
         FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
@@ -334,10 +317,10 @@ public class BatchConfiguration implements StepExecutionListener {
             .skip(Exception.class)
             .build();
     }
- 
+
     private <T> FlatFileItemReader<T> createCsvReader(
-        Resource inputFile, 
-        String[] fieldNames, 
+        Resource inputFile,
+        String[] fieldNames,
         Class<T> targetClass
     ) {
         try {
@@ -358,31 +341,31 @@ public class BatchConfiguration implements StepExecutionListener {
     //     return new StepBuilder("markCasesClosedStep", jobRepository)
     //         .tasklet((contribution, chunkContext) -> {
     //             robotUserTask.signIn();
-                
+
     //             Set<String> channelNames = referenceDataProcessor.fetchChannelUserDataKeys();
-                
+
     //             int processedCases = 0;
     //             int closedCases = 0;
     //             int skippedCases = 0;
-                
+
     //             Page<CaptureSessionDTO> vodafoneOriginSessions = captureSessionService.searchBy(
     //                 null,  null, RecordingOrigin.VODAFONE, null,
     //                 Optional.empty(), null, Pageable.unpaged()
     //             );
-                
+
     //             Page<CaseDTO> allCases = caseService.searchBy(null, null, false, Pageable.unpaged());
-                
+
     //             for (CaseDTO caseDto : allCases.getContent()) {
     //                 loggingService.logInfo("Evaluating case: {}"+ caseDto.getReference());
     //                 // logger.info("Evaluating case: {}", caseDto.getReference());
     //                 try {
     //                     boolean hasVodafoneOrigin = checkForVodafoneOrigin(vodafoneOriginSessions, caseDto);
-                        
+
     //                     if (hasVodafoneOrigin) {
     //                         boolean hasChannelUser = channelNames
     //                             .stream()
     //                             .anyMatch(channelName -> channelName.contains(caseDto.getReference()));
-                            
+
     //                         if (!hasChannelUser) {
     //                             loggingService.logInfo("Attempting to close case:"+ caseDto.getReference());
     //                             // logger.info("Attempting to close case:", caseDto.getReference());
@@ -395,9 +378,9 @@ public class BatchConfiguration implements StepExecutionListener {
     //                                 // logger.error("Error closing case {}: {}", caseDto.getReference(), e.getMessage());
     //                                 skippedCases++;
     //                             }
-                                
+
     //                         }
-                            
+
     //                         processedCases++;
     //                     }
     //                 } catch (Exception e) {
@@ -405,14 +388,14 @@ public class BatchConfiguration implements StepExecutionListener {
     //                     // logger.error("Error processing case {}: {}", caseDto.getReference(), e.getMessage(), e);
     //                 }
     //             }
-    //             loggingService.logInfo("Vodafone Case Closure Summary: {} cases processed, {} cases closed"+ 
+    //             loggingService.logInfo("Vodafone Case Closure Summary: {} cases processed, {} cases closed"+
     //                 processedCases + closedCases);
-    //             // logger.info("Vodafone Case Closure Summary: {} cases processed, {} cases closed", 
+    //             // logger.info("Vodafone Case Closure Summary: {} cases processed, {} cases closed",
     //             //     processedCases, closedCases);
-                
+
     //             return RepeatStatus.FINISHED;
     //         }, transactionManager)
-            
+
     //         .build();
     // }
 
@@ -421,42 +404,42 @@ public class BatchConfiguration implements StepExecutionListener {
     //         Case existingCase = caseRepository.findById(caseDto.getId())
     //             .orElseThrow(() -> new uk.gov.hmcts.reform.preapi.exception.NotFoundException(
     //                 "Case not found: " + caseDto.getId()));
-            
+
     //         loggingService.logInfo("Attempting to close case without channel user: {}" + caseDto.getReference());
     //         // logger.info("Attempting to close case without channel user: {}", caseDto.getReference());
 
-            
+
     //         CreateCaseDTO updateCaseDto = createCaseUpdateDTO(existingCase, caseDto);
-            
+
     //         try {
     //             caseService.upsert(updateCaseDto);
-    //             loggingService.logInfo("Successfully closed case {} with reference {}" + 
+    //             loggingService.logInfo("Successfully closed case {} with reference {}" +
     //                 caseDto.getId() + caseDto.getReference());
-    //             // logger.info("Successfully closed case {} with reference {}", 
+    //             // logger.info("Successfully closed case {} with reference {}",
     //             //     caseDto.getId(), caseDto.getReference());
-                
+
     //             return true;
 
     //         } catch (Exception e) {
-    //             if (e.getMessage() != null 
-    //                 && (e.getMessage().contains("getCaptureSessions()")   
-    //                 || e.getCause() != null && e.getCause().getMessage() != null 
+    //             if (e.getMessage() != null
+    //                 && (e.getMessage().contains("getCaptureSessions()")
+    //                 || e.getCause() != null && e.getCause().getMessage() != null
     //                 && e.getCause().getMessage().contains("getCaptureSessions()"))) {
-                    
+
     //                 loggingService.logWarning("Case {} has bookings with null captureSessions - cannot process" +
     //                     caseDto.getReference());
-    //                 // logger.warn("Case {} has bookings with null captureSessions - cannot process", 
+    //                 // logger.warn("Case {} has bookings with null captureSessions - cannot process",
     //                 //     caseDto.getReference());
     //                 return false;
     //             } else {
     //                 throw e;
     //             }
     //         }
-           
+
     //     } catch (Exception e) {
     //         loggingService.logError("Failed to close case {} (Reference: {}): {}" +
     //             caseDto.getId() + caseDto.getReference() + e.getMessage() + e);
-    //         // logger.error("Failed to close case {} (Reference: {}): {}", 
+    //         // logger.error("Failed to close case {} (Reference: {}): {}",
     //         //     caseDto.getId(), caseDto.getReference(), e.getMessage(), e);
     //         return false;
     //     }
@@ -466,7 +449,7 @@ public class BatchConfiguration implements StepExecutionListener {
     //     CreateCaseDTO updateCaseDto = new CreateCaseDTO(existingCase);
     //     updateCaseDto.setState(CaseState.CLOSED);
     //     updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
-        
+
     //     if (caseDto.getParticipants() != null && !caseDto.getParticipants().isEmpty()) {
     //         updateCaseDto.setParticipants(
     //             caseDto.getParticipants()
@@ -475,7 +458,7 @@ public class BatchConfiguration implements StepExecutionListener {
     //                 .collect(Collectors.toSet())
     //         );
     //     }
-        
+
     //     return updateCaseDto;
     // }
 
@@ -483,7 +466,7 @@ public class BatchConfiguration implements StepExecutionListener {
     //     return vodafoneOriginSessions.getContent().stream()
     //         .anyMatch(session -> session.getOrigin() == RecordingOrigin.VODAFONE);
     // }
-    
+
     // private CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO participantDTO) {
     //     CreateParticipantDTO createParticipantDTO = new CreateParticipantDTO();
     //     createParticipantDTO.setId(participantDTO.getId());
@@ -493,7 +476,7 @@ public class BatchConfiguration implements StepExecutionListener {
     //     return createParticipantDTO;
     // }
 
-    
+
     // protected Step createNonTransactionalMarkCasesClosedStep() {
     //     return new StepBuilder("nonTransactionalMarkCasesClosedStep", jobRepository)
     //         .tasklet((contribution, chunkContext) -> {
@@ -501,43 +484,43 @@ public class BatchConfiguration implements StepExecutionListener {
     //             try {
     //                 robotUserTask.signIn();
     //                 logger.info("Robot user signed in successfully");
-                    
+
     //                 Set<String> channelNames = referenceDataProcessor.fetchChannelUserDataKeys();
     //                 logger.info("Fetched {} channel user keys", channelNames.size());
-                    
+
     //                 Page<CaptureSessionDTO> vodafoneOriginSessions = captureSessionService.searchBy(
     //                     null, null, RecordingOrigin.VODAFONE, null,
     //                     Optional.empty(), null, Pageable.unpaged()
     //                 );
     //                 logger.info("Fetched {} Vodafone origin sessions", vodafoneOriginSessions.getTotalElements());
-                    
+
     //                 Page<CaseDTO> allCases = caseService.searchBy(null, null, false, Pageable.unpaged());
     //                 logger.info("Fetched {} cases in total", allCases.getTotalElements());
-                    
+
     //                 int processedCases = 0;
     //                 int closedCases = 0;
     //                 int skippedCases = 0;
-                    
+
     //                 for (CaseDTO caseDto : allCases.getContent()) {
     //                     try {
     //                         boolean hasVodafoneOrigin = checkForVodafoneOrigin(vodafoneOriginSessions, caseDto);
     //                         logger.debug("Case {} has Vodafone origin: {}", caseDto.getReference(), hasVodafoneOrigin);
-                            
+
     //                         if (hasVodafoneOrigin) {
     //                             boolean hasChannelUser = channelNames
     //                                 .stream()
     //                                 .anyMatch(channelName -> channelName.contains(caseDto.getReference()));
     //                             logger.debug("Case {} has channel user: {}", caseDto.getReference(), hasChannelUser);
-                                    
+
     //                             if (!hasChannelUser) {
     //                                 logger.info("Non-transactional: Attempting to close case {}", caseDto.getReference());
-                                    
+
     //                                 try {
     //                                     logger.debug("Before processCaseNonTransactional call for case {}", caseDto.getReference());
     //                                     boolean success = processCaseNonTransactional(caseDto);
-    //                                     logger.debug("After processCaseNonTransactional call for case {}, success={}", 
+    //                                     logger.debug("After processCaseNonTransactional call for case {}, success={}",
     //                                         caseDto.getReference(), success);
-                                            
+
     //                                     if (success) {
     //                                         closedCases++;
     //                                         logger.info("Successfully closed case {}", caseDto.getReference());
@@ -550,18 +533,18 @@ public class BatchConfiguration implements StepExecutionListener {
     //                                     skippedCases++;
     //                                 }
     //                             }
-                                
+
     //                             processedCases++;
     //                         }
     //                     } catch (Exception e) {
     //                         logger.error("Error evaluating case {}: {}", caseDto.getReference(), e.getMessage(), e);
     //                     }
     //                 }
-                    
-    //                 logger.info("Non-transactional Summary: {} processed, {} closed, {} skipped", 
+
+    //                 logger.info("Non-transactional Summary: {} processed, {} closed, {} skipped",
     //                     processedCases, closedCases, skippedCases);
-                    
-                
+
+
     //                 logger.info("Completed nonTransactionalMarkCasesClosedStep successfully");
     //                 return RepeatStatus.FINISHED;
     //             } catch (Exception e) {
@@ -593,14 +576,14 @@ public class BatchConfiguration implements StepExecutionListener {
     //         Case existingCase = caseRepository.findById(caseDto.getId())
     //             .orElseThrow(() -> new RuntimeException("Case not found"));
     //         logger.debug("Successfully fetched case {}", caseDto.getId());
-            
+
     //         logger.debug("Creating update DTO for case {}", caseDto.getId());
     //         CreateCaseDTO updateDto = new CreateCaseDTO(existingCase);
     //         updateDto.setState(CaseState.CLOSED);
     //         updateDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
-            
+
     //         if (caseDto.getParticipants() != null && !caseDto.getParticipants().isEmpty()) {
-    //             logger.debug("Setting {} participants for case {}", 
+    //             logger.debug("Setting {} participants for case {}",
     //                 caseDto.getParticipants().size(), caseDto.getId());
     //             updateDto.setParticipants(
     //                 caseDto.getParticipants()
@@ -609,32 +592,32 @@ public class BatchConfiguration implements StepExecutionListener {
     //                     .collect(Collectors.toSet())
     //             );
     //         }
-            
+
     //         try {
     //             logger.debug("About to call caseService.upsert for case {}", caseDto.getId());
     //             caseService.upsert(updateDto);
     //             logger.info("Non-transactional: Successfully closed case {}", caseDto.getReference());
     //             return true;
     //         } catch (Exception e) {
-    //             if (e.getMessage() != null 
-    //                 && (e.getMessage().contains("getCaptureSessions()")  
+    //             if (e.getMessage() != null
+    //                 && (e.getMessage().contains("getCaptureSessions()")
     //                 || (e.getCause() != null && e.getCause().getMessage() != null
     //                 && e.getCause().getMessage().contains("getCaptureSessions()")))) {
-                    
-    //                 logger.warn("Non-transactional: Case {} has null captureSessions - skipping", 
+
+    //                 logger.warn("Non-transactional: Case {} has null captureSessions - skipping",
     //                     caseDto.getReference());
     //                 return false;
     //             }
-                
-    //             logger.error("Error from caseService.upsert for case {}: {}", 
+
+    //             logger.error("Error from caseService.upsert for case {}: {}",
     //                 caseDto.getReference(), e.getMessage(), e);
     //             throw e;
     //         }
     //     } catch (Exception e) {
-    //         logger.error("Non-transactional: Error closing case {}: {}", 
+    //         logger.error("Non-transactional: Error closing case {}: {}",
     //             caseDto.getReference(), e.getMessage(), e);
     //         return false;
     //     }
     // }
-    
+
 }

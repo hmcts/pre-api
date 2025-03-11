@@ -5,21 +5,25 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
- 
+
 
 @Component
-public class RobotUserTaskImpl extends RobotUserTask {
+public class BatchRobotUserTask extends RobotUserTask {
 
-    public RobotUserTaskImpl(
+    private final LoggingService loggingService;
+
+    public BatchRobotUserTask(
         @Value("${vodafone-user-email}") String cronUserEmail,
         UserService userService,
         UserAuthenticationService userAuthenticationService,
         LoggingService loggingService
     ) {
-        super(cronUserEmail, userService, userAuthenticationService, loggingService);
+        super(userService, userAuthenticationService, cronUserEmail);
+        this.loggingService = loggingService;
     }
 
     public void signIn() {
+        loggingService.logInfo("Sign in as robot user");
         signInRobotUser();
     }
 
