@@ -750,4 +750,38 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @Test
+    @DisplayName("Should grant access when caseOpen param is null")
+    void canSearchByCaseClosedCaseOpenNull() {
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, null));
+    }
+
+    @Test
+    @DisplayName("Should grant access when caseOpen param is true")
+    void canSearchByCaseClosedCaseOpenTrue() {
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, true));
+    }
+
+    @Test
+    @DisplayName("Should grant access when caseOpen param is false and user is admin")
+    void canSearchByCaseClosedCaseOpenFalseIsAdmin() {
+        when(authenticationUser.isAdmin()).thenReturn(true);
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, false));
+    }
+
+    @Test
+    @DisplayName("Should grant access when caseOpen param is false and user is level 2")
+    void canSearchByCaseClosedCaseOpenFalseIsLevel2() {
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_2")));
+        assertTrue(authorisationService.canSearchByCaseClosed(authenticationUser, false));
+    }
+
+    @Test
+    @DisplayName("Should not grant access when caseOpen param is false and user is not admin or level 2")
+    void canSearchByCaseClosedCaseOpenFalseIsNotAdminOrLevel2() {
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_3")));
+        assertFalse(authorisationService.canSearchByCaseClosed(authenticationUser, false));
+    }
 }

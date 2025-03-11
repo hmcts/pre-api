@@ -219,7 +219,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
+        caseEntity.setReference(RandomStringUtils.randomAlphabetic(9));
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
@@ -418,7 +418,7 @@ class TestingSupportController {
 
         return ResponseEntity.ok(assembler.toModel(resultPage));
     }
-  
+
     @PostMapping(value = "/booking-scheduled-for-past/{bookingId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookingDTO> bookingScheduledForPast(@PathVariable UUID bookingId) {
         var booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)

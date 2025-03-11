@@ -46,9 +46,4 @@ public class SearchRecordings {
     public String getId() {
         return id != null && !id.isEmpty() ? id : null;
     }
-
-    // used in recordingRepository.searchAllBy()
-    public boolean isCaseOpen() {
-        return caseOpen == null || caseOpen;
-    }
 }

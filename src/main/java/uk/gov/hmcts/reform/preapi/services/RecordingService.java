@@ -63,7 +63,7 @@ public class RecordingService {
     @PreAuthorize(
         """
         (!#includeDeleted or @authorisationService.canViewDeleted(authentication))
-        and @authorisationService.canSearchByCaseClosed(authentication, #params.isCaseOpen())
+        and @authorisationService.canSearchByCaseClosed(authentication, #params.getCaseOpen())
         """
     )
     public Page<RecordingDTO> findAll(
