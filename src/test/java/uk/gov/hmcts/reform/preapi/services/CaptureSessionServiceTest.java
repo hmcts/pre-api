@@ -6,9 +6,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -24,7 +24,6 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -51,19 +50,19 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = CaptureSessionService.class)
 public class CaptureSessionServiceTest {
-    @MockBean
+    @MockitoBean
     private RecordingService recordingService;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private BookingService bookingService;
 
     @Autowired
@@ -140,6 +139,7 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should delete all attached recordings before marking capture session as deleted")
     @Test
     void deleteCascadeSuccess() {
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
         when(captureSessionRepository.findAllByBookingAndDeletedAtIsNull(booking)).thenReturn(List.of(captureSession));
 
         captureSessionService.deleteCascade(booking);
@@ -236,6 +236,7 @@ public class CaptureSessionServiceTest {
     @DisplayName("Should delete a capture session by id")
     @Test
     void deleteByIdSuccess() {
+        captureSession.setStatus(RecordingStatus.NO_RECORDING);
         when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
             .thenReturn(Optional.of(captureSession));
 
@@ -629,42 +630,6 @@ public class CaptureSessionServiceTest {
         verify(captureSessionRepository, times(1)).saveAndFlush(any());
     }
 
-    @DisplayName("Should update capture session when status is RECORDING_AVAILABLE")
-    @Test
-    void stopCaptureSessionRecordingAvailable() {
-        captureSession.setStatus(RecordingStatus.STANDBY);
-        var mockAuth = mock(UserAuthentication.class);
-        when(mockAuth.getUserId()).thenReturn(user.getId());
-        SecurityContextHolder.getContext().setAuthentication(mockAuth);
-
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
-            .thenReturn(Optional.of(captureSession));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-
-        var recordingId = UUID.randomUUID();
-
-        var captureSessionServiceAMS = new CaptureSessionService(recordingService,
-                                                                captureSessionRepository,
-                                                                bookingRepository,
-                                                                userRepository,
-                                                                bookingService,
-                                                                MediaServiceBroker.MEDIA_SERVICE_AMS);
-        var model = captureSessionServiceAMS.stopCaptureSession(
-            captureSession.getId(),
-            RecordingStatus.RECORDING_AVAILABLE,
-            recordingId
-        );
-
-        var createRecordingDTOArgument = ArgumentCaptor.forClass(CreateRecordingDTO.class);
-
-        assertThat(model.getId()).isEqualTo(captureSession.getId());
-        assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
-
-        verify(recordingService, times(1)).upsert(createRecordingDTOArgument.capture());
-        assertThat(createRecordingDTOArgument.getValue().getFilename()).isEqualTo("video_2000000_1280x720_4500.mp4");
-        verify(captureSessionRepository, times(1)).saveAndFlush(any());
-    }
-
     @DisplayName("Should update capture session when status is RECORDING_AVAILABLE MK")
     @Test
     void stopCaptureSessionRecordingAvailableMk() {
@@ -682,8 +647,7 @@ public class CaptureSessionServiceTest {
                                                                 captureSessionRepository,
                                                                 bookingRepository,
                                                                 userRepository,
-                                                                bookingService,
-                                                                MediaServiceBroker.MEDIA_SERVICE_MK);
+                                                                bookingService);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),
@@ -807,5 +771,52 @@ public class CaptureSessionServiceTest {
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: CaptureSession: " + liveEventId);
+    }
+
+    @Test
+    @DisplayName("Should throw resource wrong stage exception when attempting to delete capture session in wrong state")
+    void deleteCaptureSessionWrongState() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> captureSessionService.deleteById(captureSession.getId())
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo(
+                "Capture Session ("
+                    + captureSession.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+
+        verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(captureSession.getId());
+        verify(captureSessionRepository, never()).deleteById(captureSession.getId());
+    }
+
+    @Test
+    @DisplayName("Should throw resource wrong stage exception when attempting to delete capture session in wrong state")
+    void deleteCascadeCaptureSessionWrongState() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(captureSessionRepository.findAllByBookingAndDeletedAtIsNull(booking)).thenReturn(List.of(captureSession));
+
+        var message = assertThrows(
+            ResourceInWrongStateException.class,
+            () -> captureSessionService.deleteCascade(booking)
+        ).getMessage();
+
+        assertThat(message)
+            .isEqualTo(
+                "Capture Session ("
+                    + captureSession.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY");
+
+        verify(captureSessionRepository, times(1)).findAllByBookingAndDeletedAtIsNull(booking);
+        verify(captureSessionRepository, never()).deleteById(captureSession.getId());
     }
 }

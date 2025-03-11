@@ -1,13 +1,36 @@
 #!groovy
-
 @Library("Infrastructure")
-
 def type = "java"
 def product = "pre"
 def component = "api"
 
+def secrets = [
+  'pre-hmctskv-${env}': [
+    secret('govnotify-key-test', 'GOV_NOTIFY_API_KEY_TEST'),
+    secret('api-MKIO-TOKEN', 'MEDIA_KIND_TOKEN')
+  ]
+]
+
+static LinkedHashMap<String, Object> secret(String secretName, String envVar) {
+  [$class     : 'AzureKeyVaultSecret',
+   secretType : 'Secret',
+   name       : secretName,
+   version    : '',
+   envVariable: envVar
+  ]
+}
+
 withPipeline(type, product, component) {
+  loadVaultSecrets(secrets)
   syncBranchesWithMaster(['perftest', 'demo'])
   enableSlackNotifications('#pre-builds')
   enableDbMigration('pre-hmctskv')
+
+  afterSuccess('functionalTest:dev') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
+  }
+
+  afterSuccess('functionalTest:stg') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
+  }
 }

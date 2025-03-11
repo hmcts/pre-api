@@ -38,6 +38,11 @@ public class XUserIdFilter extends GenericFilterBean {
             return;
         }
 
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            filterChain.doFilter(servletRequest, servletResponse);
+            return;
+        }
+
         try {
             var id = request.getHeader(X_USER_ID_HEADER);
             Authentication authentication = userAuthenticationService.loadAppUserById(id);

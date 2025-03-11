@@ -1102,6 +1102,10 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
       url:
         description: RecordingURL
         type: string
@@ -1498,13 +1502,6 @@ definitions:
       court:
         description: PlaybackReportCourt
         type: string
-      duration:
-        description: PlaybackReportDuration
-        type: string
-      finished_at:
-        description: PlaybackReportFinishTime
-        format: date-time
-        type: string
       playback_at:
         description: PlaybackReportPlaybackAt
         format: date-time
@@ -1604,6 +1601,10 @@ definitions:
         items:
           $ref: '#/definitions/ParticipantDTO'
         type: array
+      total_version_count:
+        description: RecordingTotalVersionCount
+        format: int32
+        type: integer
       url:
         description: RecordingURL
         type: string
@@ -1978,6 +1979,23 @@ paths:
           in: query
           name: hasRecordings
           type: boolean
+        - description: >-
+            Search bookings with at least one associated capture session with
+            one of the statuses listed
+          in: query
+          name: captureSessionStatusIn
+          type: string
+        - description: >-
+            Bookings where the associated capture sessions do not match status
+            or bookings without sessions
+          in: query
+          name: captureSessionStatusNotIn
+          type: string
+        - description: Sort by
+          in: query
+          name: sort
+          type: string
+          x-example: 'createdAt,desc'
         - description: The page number of search result to return
           format: int32
           in: query

@@ -14,9 +14,9 @@ public abstract class RobotUserTask implements Runnable {
     private final LoggingService loggingService;
 
     protected RobotUserTask(
-        @Value("${vodafone-user-email}") String cronUserEmail,
         UserService userService,
         UserAuthenticationService userAuthenticationService,
+        @Value("${cron-user-email}") String cronUserEmail,
         LoggingService loggingService 
     ) {
         this.userService = userService;
@@ -26,9 +26,9 @@ public abstract class RobotUserTask implements Runnable {
     }
 
     protected void signInRobotUser() {
-        loggingService.logInfo("Sign in as robot user");
-        
+        loggingService.logInfo("Sign in as robot user");        
         var user = userService.findByEmail(cronUserEmail);
+      
         var appAccess = user.getAppAccess().stream().findFirst()
             .orElseThrow(() -> new RuntimeException(
                 "Failed to authenticate as cron user with email " + cronUserEmail)

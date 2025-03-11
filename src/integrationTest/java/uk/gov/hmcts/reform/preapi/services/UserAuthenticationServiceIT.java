@@ -137,4 +137,50 @@ public class UserAuthenticationServiceIT extends IntegrationTestBase {
 
         assertEquals(message, "Unauthorised user: " + id);
     }
+
+    @Test
+    @Transactional
+    public void loadUserByIdAppInactive() {
+        appAccess.setActive(false);
+        entityManager.persist(appAccess);
+        var id = appAccess.getId().toString();
+
+        var message = assertThrows(
+            BadCredentialsException.class,
+            () ->  userAuthenticationService.loadAppUserById(id)
+        ).getMessage();
+
+        assertEquals(message, "Unauthorised user: " + id);
+    }
+
+    @Test
+    @Transactional
+    public void loadUserByIdAppDeleted() {
+        appAccess.setDeletedAt(Timestamp.from(Instant.now()));
+        entityManager.persist(appAccess);
+        var id = appAccess.getId().toString();
+
+        var message = assertThrows(
+            BadCredentialsException.class,
+            () ->  userAuthenticationService.loadAppUserById(id)
+        ).getMessage();
+
+        assertEquals(message, "Unauthorised user: " + id);
+    }
+
+    @Test
+    @Transactional
+    public void loadUserByIdAppUserDeleted() {
+        var user = appAccess.getUser();
+        user.setDeletedAt(Timestamp.from(Instant.now()));
+        entityManager.persist(user);
+        var id = appAccess.getId().toString();
+
+        var message = assertThrows(
+            BadCredentialsException.class,
+            () ->  userAuthenticationService.loadAppUserById(id)
+        ).getMessage();
+
+        assertEquals(message, "Unauthorised user: " + id);
+    }
 }

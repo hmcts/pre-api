@@ -24,10 +24,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
         - name: apim-sub-smoketest-secondary-key
           alias: APIM_SUB_SMOKETEST_SECONDARY_KEY
         - name: app-insights-connection-string
-        - name: pp-clientid
-          alias: AZ_AMS_CLIENT_ID
-        - name: client-secret
-          alias: AZ_AMS_CLIENT_SECRET
         - name: api-MKIO-TOKEN
           alias: MEDIA_KIND_TOKEN
         - name: finalsa-storage-account-connection-string
@@ -40,10 +36,14 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: SYMMETRIC_KEY
         - name: pp-authorization
           alias: FLOW_KEY
-        - name: flow-http-api
-          alias: FLOW_HTTP_API
+        - name: flow-close-live-event-http-api
+          alias: FLOW_CLOSE_LIVE_EVENT_HTTP_API
         - name: flow-case-state-notifier-http-api
           alias: FLOW_CASE_STATE_NOTIFIER_HTTP_API
+        - name: flow-case-state-notifier-workflow-id
+          alias: CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID
+        - name: flow-case-state-notifier-sig
+          alias: FLOW_CASE_STATE_CHANGE_NOTIFIER_SIG
         - name: flow-close-live-event-email-workflow-id
           alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
         - name: flow-close-live-event-email-sig
@@ -52,19 +52,25 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: MEDIA_KIND_SUBSCRIPTION_ID
         - name: api-MK-CUSTOMER-ID
           alias: MEDIA_KIND_CUSTOMER_ID
+        - name: govnotify-key
+          alias: GOV_NOTIFY_API_KEY
+        - name: govnotify-key-test
+          alias: GOV_NOTIFY_API_KEY_TEST
+        - name: slack-webhook-url
+          alias: SLACK_WEBHOOK_URL
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
     APIM_URI: https://sds-api-mgmt.platform.hmcts.net
-    AZURE_MEDIA_SERVICES_ACCOUNT_NAME: "preams{{ .Values.global.environment }}"
-    AZURE_RESOURCE_GROUP: "pre-{{ .Values.global.environment }}"
-    AZURE_SUBSCRIPTION_ID: 5ca62022-6aa2-4cee-aaa7-e7536c8d566c
     MEDIA_KIND_SUBSCRIPTION: "pre-mediakind-{{ .Values.global.environment }}"
     AZURE_INGEST_SA: "preingestsa{{ .Values.global.environment }}"
     AZURE_FINAL_SA: "prefinalsa{{ .Values.global.environment }}"
     PLATFORM_ENV_TAG: Production
     CRON_USER_EMAIL: "dts-pre-app-{{ .Values.global.environment }}@hmcts.net"
     ISSUER: https://sts.windows.net/531ff96d-0ae9-462a-8d2d-bec7c0b42082/
+    EMAIL_SERVICE: GovNotify
+    ENABLE_NEW_EMAIL_SERVICE: false
+    ENABLE_STREAMING_LOCATOR_ON_START: false
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues

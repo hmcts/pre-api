@@ -7,6 +7,7 @@ import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
@@ -22,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.entities.listeners.RecordingListener;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -36,6 +38,9 @@ public class Recording extends BaseEntity implements ISoftDeletable {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "parent_recording_id")
     private Recording parentRecording;
+
+    @OneToMany(mappedBy = "parentRecording")
+    private Set<Recording> recordings;
 
     @Column(name = "version", nullable = false)
     private int version;

@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,7 +22,6 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -32,12 +30,11 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-@Service
 @Slf4j
+@Service
 public class CaptureSessionService {
 
     private final RecordingService recordingService;
@@ -45,21 +42,18 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
-    private final String mediaService;
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
-                                 @Lazy BookingService bookingService,
-                                 @Value("${media-service}") String mediaService) {
+                                 @Lazy BookingService bookingService) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
-        this.mediaService = mediaService;
     }
 
     @Transactional
@@ -124,6 +118,18 @@ public class CaptureSessionService {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + id));
+
+        if (captureSession.getStatus() != RecordingStatus.RECORDING_AVAILABLE
+            && captureSession.getStatus() != RecordingStatus.NO_RECORDING
+            && captureSession.getStatus() != RecordingStatus.FAILURE) {
+            throw new ResourceInWrongStateException(
+                "Capture Session ("
+                    + id
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                    + captureSession.getStatus()
+            );
+        }
+
         recordingService.deleteCascade(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
@@ -135,6 +141,16 @@ public class CaptureSessionService {
         captureSessionRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
             .forEach(captureSession -> {
+                if (captureSession.getStatus() != RecordingStatus.RECORDING_AVAILABLE
+                    && captureSession.getStatus() != RecordingStatus.NO_RECORDING
+                    && captureSession.getStatus() != RecordingStatus.FAILURE) {
+                    throw new ResourceInWrongStateException(
+                        "Capture Session ("
+                            + captureSession.getId()
+                            + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                            + captureSession.getStatus()
+                    );
+                }
                 recordingService.deleteCascade(captureSession);
                 captureSession.setDeleteOperation(true);
                 captureSession.setDeletedAt(Timestamp.from(Instant.now()));
@@ -251,9 +267,7 @@ public class CaptureSessionService {
                 recording.setId(recordingId);
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
-                recording.setFilename(Objects.equals(mediaService, MediaServiceBroker.MEDIA_SERVICE_AMS)
-                                          ? "video_2000000_1280x720_4500.mp4"
-                                          : "index_1280x720_4500k.mp4");
+                recording.setFilename("index_1280x720_4500k.mp4");
                 recordingService.upsert(recording);
             }
             default -> {

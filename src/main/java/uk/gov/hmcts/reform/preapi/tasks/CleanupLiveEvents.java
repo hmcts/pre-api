@@ -5,11 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -25,25 +25,17 @@ import java.util.UUID;
 
 @Component
 @Slf4j
-public class CleanupLiveEvents implements Runnable {
+public class CleanupLiveEvents extends RobotUserTask {
 
     private final MediaServiceBroker mediaServiceBroker;
-
     private final CaptureSessionService captureSessionService;
-
     private final BookingService bookingService;
-
     private final RecordingService recordingService;
-
-    private final UserService userService;
-
-    private final UserAuthenticationService userAuthenticationService;
-
-    private final String cronUserEmail;
+    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
 
     private final String platformEnv;
 
-    private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
+    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
@@ -54,34 +46,21 @@ public class CleanupLiveEvents implements Runnable {
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
                       @Value("${platform-env}") String platformEnv,
-                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient) {
+                      StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient,
+                      EmailServiceFactory emailServiceFactory) {
+        super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.bookingService = bookingService;
         this.recordingService = recordingService;
-        this.userService = userService;
-        this.userAuthenticationService = userAuthenticationService;
-        this.cronUserEmail = cronUserEmail;
         this.platformEnv = platformEnv;
         this.stopLiveEventNotifierFlowClient = stopLiveEventNotifierFlowClient;
+        this.emailServiceFactory = emailServiceFactory;
     }
 
     @Override
     public void run() throws RuntimeException {
-        log.info("Sign in as robot user");
-        var user = userService.findByEmail(cronUserEmail);
-
-        var appAccess = user.getAppAccess().stream().findFirst()
-                            .orElseThrow(() -> new RuntimeException(
-                                "Failed to authenticate as cron user with email " + cronUserEmail)
-                            );
-        var userAuth = userAuthenticationService.validateUser(appAccess.getId().toString())
-                                                .orElseThrow(() -> new RuntimeException(
-                                                    "Failed to authenticate as cron user with email "
-                                                        + cronUserEmail)
-                                                );
-        SecurityContextHolder.getContext().setAuthentication(userAuth);
-
+        signInRobotUser();
         log.info("Running CleanupLiveEvents task");
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();
@@ -134,7 +113,9 @@ public class CleanupLiveEvents implements Runnable {
                               try {
                                   var booking = bookingService.findById(captureSession.getBookingId());
 
-                                  var toNotify = booking.getShares().stream()
+                                  var shares = booking.getShares();
+                                  // @todo simplify this after 4.3 goes live S28-3692
+                                  var toNotify = shares.stream()
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
                                                         )
@@ -142,13 +123,18 @@ public class CleanupLiveEvents implements Runnable {
                                                             .builder()
                                                             .email(u.getEmail())
                                                             .firstName(u.getFirstName())
+                                                            .lastName(u.getLastName())
                                                             .caseReference(booking.getCaseDTO().getReference())
                                                             .courtName(booking.getCaseDTO().getCourt().getName())
                                                             .build())
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
-                                      log.info("Sending email notifications to {} user(s)", toNotify.size());
-                                      stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
+                                      if (!emailServiceFactory.isEnabled()) {
+                                          log.info("Sending email notifications to {} user(s)", toNotify.size());
+                                          stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
+                                      }
+                                      // if GovNotify is enabled, users are notified via the
+                                      // RecordingListener.onRecordingCreated method
                                   } else {
                                       log.info("No users to notify for capture session {}", captureSession.getId());
                                   }
@@ -215,12 +201,5 @@ public class CleanupLiveEvents implements Runnable {
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             return false;
         }
-    }
-
-    private UUID generateUuidFromLiveEventName(String liveEventId) {
-        return new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
     }
 }

@@ -5,12 +5,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.filter.XUserIdFilter;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -30,7 +31,7 @@ import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_H
 @SpringBootTest(classes = XUserIdFilter.class)
 public class XUserIdFilterTest {
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
     @Autowired
@@ -110,5 +111,29 @@ public class XUserIdFilterTest {
         verify(writer).flush();
         verify(writer).close();
         verify(filterChain, never()).doFilter(request, response);
+    }
+
+    @DisplayName("Should continue filter chain when already has authentication object")
+    @Test
+    void doFilterAlreadyHasAuthenticationObjectSuccess() throws Exception {
+        var request = mock(MockHttpServletRequest.class);
+        var auth = mock(UserAuthentication.class);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        var id = UUID.randomUUID();
+
+        when(request.getRequestURI()).thenReturn("/example-uri");
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());
+        when(request.getServletPath()).thenReturn("/example-uri");
+        when(request.getPathInfo()).thenReturn("/example-uri");
+
+        var response = mock(MockHttpServletResponse.class);
+        var filterChain = mock(MockFilterChain.class);
+
+        filter.doFilter(request, response, filterChain);
+
+        verify(userAuthenticationService, never()).loadAppUserById(id.toString());
+        verify(response, never()).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        verify(filterChain, times(1)).doFilter(request, response);
     }
 }

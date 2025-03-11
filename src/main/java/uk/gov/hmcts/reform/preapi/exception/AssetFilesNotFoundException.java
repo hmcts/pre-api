@@ -8,4 +8,8 @@ public class AssetFilesNotFoundException extends RuntimeException {
     public AssetFilesNotFoundException(UUID id) {
         super("Asset for capture session: " + id + " found with no .ism file");
     }
+
+    public AssetFilesNotFoundException(String name) {
+        super("Asset with name: " + name + " not found");
+    }
 }

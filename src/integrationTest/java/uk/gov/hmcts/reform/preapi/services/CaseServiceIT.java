@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.dto.ParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -26,6 +27,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class CaseServiceIT extends IntegrationTestBase {
     @Autowired
@@ -180,7 +183,7 @@ public class CaseServiceIT extends IntegrationTestBase {
             null,
             null,
             null,
-            null,
+            RecordingStatus.RECORDING_AVAILABLE,
             null
         );
         entityManager.persist(captureSession);
@@ -293,5 +296,78 @@ public class CaseServiceIT extends IntegrationTestBase {
             () -> caseService.upsert(dto)
         ).getMessage();
         Assertions.assertEquals("Conflict: Case reference is already in use for this court", message);
+    }
+
+    @Test
+    @Transactional
+    void closeCaseWithEmptyCaptureSessions() {
+        mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var booking1 = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking1);
+        var booking2 = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking2);
+        var booking3 = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking3);
+
+        var captureSessionNoRecording = HelperFactory.createCaptureSession(
+            booking1,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.NO_RECORDING,
+            null
+        );
+        entityManager.persist(captureSessionNoRecording);
+        var captureSessionFailure = HelperFactory.createCaptureSession(
+            booking2,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.FAILURE,
+            null
+        );
+        entityManager.persist(captureSessionFailure);
+        var captureSessionRecordingAvailable = HelperFactory.createCaptureSession(
+            booking3,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            RecordingStatus.RECORDING_AVAILABLE,
+            null
+        );
+        entityManager.persist(captureSessionRecordingAvailable);
+        entityManager.flush();
+
+        entityManager.refresh(booking1);
+        entityManager.refresh(booking2);
+        entityManager.refresh(booking3);
+
+        caseService.onCaseClosed(caseEntity);
+
+        assertThat(booking1.getDeletedAt()).isNotNull();
+        assertThat(captureSessionNoRecording.getDeletedAt()).isNotNull();
+        assertThat(booking2.getDeletedAt()).isNotNull();
+        assertThat(captureSessionFailure.getDeletedAt()).isNotNull();
+        assertThat(booking3.getDeletedAt()).isNull();
+        assertThat(captureSessionRecordingAvailable.getDeletedAt()).isNull();
     }
 }

@@ -72,7 +72,7 @@ public class UserAuthenticationService {
         }
 
         var user = appAccessRepository
-            .findByIdAndDeletedAtNullAndUser_DeletedAtNull(id)
+            .findByIdValidUser(id)
             .map(this::getAuthentication);
 
         return user.isPresent()

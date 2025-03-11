@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
@@ -68,16 +68,17 @@ import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFO
     "platform-env=Staging",
     "mediakind.subscription=pre-mediakind-stg",
     "mediakind.issuer=testIssuer",
-    "mediakind.symmetricKey=testSymmetricKey"
+    "mediakind.symmetricKey=testSymmetricKey",
+    "mediakind.streaming-locator-on-start=true",
 })
 public class MediaKindTest {
-    @MockBean
+    @MockitoBean
     private MediaKindClient mockClient;
 
-    @MockBean
+    @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
 
-    @MockBean
+    @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
     @Autowired
@@ -333,10 +334,11 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
-    @DisplayName("Should return the capture session when successfully started the live event")
     @Test
+    @DisplayName("Should return the capture session when successfully started the live event")
     void startLiveEventLiveEventConflictSuccess() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
@@ -352,6 +354,31 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).createStreamingLocator(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should return the capture session when successfully started the live event (feature flag off)")
+    void startLiveEventLiveEventConflictSuccessNoStreamingLocatorCreated() {
+        mediaKind.enableStreamingLocatorOnStart = false;
+
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.putLiveEvent(any(), any()))
+            .thenThrow(mock(ConflictException.class));
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+
+        mediaKind.startLiveEvent(captureSession);
+
+        verify(mockClient, times(1)).putLiveEvent(any(), any());
+        verify(mockClient, times(1)).getLiveEvent(any());
+        verify(mockClient, times(1)).putAsset(any(), any());
+        verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
+
+        mediaKind.enableStreamingLocatorOnStart = true;
     }
 
     @DisplayName("Should throw not found error when live event cannot be found after creation")
@@ -370,6 +397,7 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 409 error when asset already exists")
@@ -391,6 +419,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 409 error when live output already exists")
@@ -413,6 +442,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 404 error when creating a live output but cannot find live event")
@@ -435,6 +465,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 404 error when attempting to start live event that cannot be found (after setup)")
@@ -457,6 +488,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @Test
@@ -477,7 +509,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
         verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(mockClient, never()).putAsset(any(), any());
-
     }
 
     @Test
@@ -999,7 +1030,7 @@ public class MediaKindTest {
 
     @DisplayName("Should return the playback urls for the asset when content key policy didn't exist")
     @Test
-    void playAssetContentKeyNotFoundSuccess() throws InterruptedException {
+    void playAssetContentKeyNotFoundSuccess() throws InterruptedException, JsonProcessingException {
         var assetName = UUID.randomUUID().toString();
         var userId = UUID.randomUUID().toString();
         var asset = createMkAsset(assetName);
@@ -1052,7 +1083,14 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).getAsset(assetName);
         verify(mockClient, times(1)).getContentKeyPolicy(userId);
-        verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), any(MkContentKeyPolicy.class));
+
+        var mkContentKeyPolicyArgument = ArgumentCaptor.forClass(MkContentKeyPolicy.class);
+        verify(mockClient, times(1)).putContentKeyPolicy(eq(userId), mkContentKeyPolicyArgument.capture());
+        var om = new JacksonConfiguration().getMapper();
+
+        assertThat(om.writeValueAsString(mkContentKeyPolicyArgument.getValue())).isNotNull();
+
+
         verify(mockClient, times(1)).getStreamingPolicy("Predefined_ClearKey");
         verify(mockClient, times(1)).getStreamingEndpointByName("default");
         verify(mockClient, times(1)).getStreamingLocatorPaths(userId + "_" + assetName);

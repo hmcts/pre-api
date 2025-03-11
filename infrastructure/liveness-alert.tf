@@ -11,7 +11,7 @@ module "pre-api-liveness-alert" {
   app_insights_query = <<EOF
 requests
 | where name == "GET /health" and resultCode != "200"
-| where cloud_RoleName == "pre-api"
+| where cloud_RoleInstance startswith "pre-api-java"
 EOF
 
   frequency_in_minutes       = "15"

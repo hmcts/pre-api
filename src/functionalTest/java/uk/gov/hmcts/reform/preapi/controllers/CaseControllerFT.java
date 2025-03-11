@@ -605,7 +605,7 @@ class CaseControllerFT extends FunctionalTestBase {
         assertBookingExists(booking.getId(), true);
 
         var captureSession = createCaptureSession(booking.getId());
-        captureSession.setStatus(RecordingStatus.NO_RECORDING);
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         var putCaptureSession = putCaptureSession(captureSession);
         assertResponseCode(putCaptureSession, 201);
 

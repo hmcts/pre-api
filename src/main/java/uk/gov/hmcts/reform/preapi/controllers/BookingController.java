@@ -7,7 +7,9 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.data.web.SortDefault;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
@@ -37,6 +39,7 @@ import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -98,6 +101,22 @@ public class BookingController extends PreApiController {
         schema = @Schema(implementation = Boolean.class)
     )
     @Parameter(
+        name = "captureSessionStatusIn",
+        description = "Search bookings with at least one associated capture session with one of the statuses listed",
+        schema = @Schema(implementation = List.class)
+    )
+    @Parameter(
+        name = "captureSessionStatusNotIn",
+        description = "Bookings where the associated capture sessions do not match status or bookings without sessions",
+        schema = @Schema(implementation = List.class)
+    )
+    @Parameter(
+        name = "sort",
+        description = "Sort by",
+        schema = @Schema(implementation = String.class),
+        example = "createdAt,desc"
+    )
+    @Parameter(
         name = "page",
         description = "The page number of search result to return",
         schema = @Schema(implementation = Integer.class),
@@ -112,7 +131,9 @@ public class BookingController extends PreApiController {
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
     public HttpEntity<PagedModel<EntityModel<BookingDTO>>> searchByCaseId(
         @Parameter(hidden = true) @ModelAttribute SearchBookings params,
-        @Parameter(hidden = true) Pageable pageable,
+        @SortDefault.SortDefaults(
+            @SortDefault(sort = "scheduledFor", direction = Sort.Direction.ASC)
+        ) @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<BookingDTO> assembler) {
 
         final Page<BookingDTO> resultPage = bookingService.searchBy(
@@ -124,6 +145,12 @@ public class BookingController extends PreApiController {
                 : Optional.empty(),
             params.getParticipantId(),
             params.getHasRecordings(),
+            params.getCaptureSessionStatusIn() == null || params.getCaptureSessionStatusIn().isEmpty()
+                ? null
+                : params.getCaptureSessionStatusIn(),
+            params.getCaptureSessionStatusNotIn() == null || params.getCaptureSessionStatusNotIn().isEmpty()
+                ? null
+                : params.getCaptureSessionStatusNotIn(),
             pageable
         );
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
