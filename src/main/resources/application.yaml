@@ -17,6 +17,8 @@ springdoc:
   paths-to-exclude:
     - /info
     - /health/*
+  api-docs:
+    version: openapi_3_0
 
 spring:
   config:
@@ -117,6 +119,9 @@ email:
 portal:
   url: ${PORTAL_URL:https://pre-portal.staging.platform.hmcts.net/}
 
+slack:
+  webhook: ${SLACK_WEBHOOK_URL:}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
@@ -143,3 +148,4 @@ portal:
 #        jdbc: DEBUG
 #        transaction:
 #          interceptor: trace
+
