@@ -6,25 +6,25 @@ import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
-import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class DataExtractionService {
     private LoggingService loggingService;
-    private static final Map<String, Pattern> NAMED_PATTERNS = initializePatterns();
+    private PatternMatcherService patternMatcher;
 
-    public DataExtractionService(LoggingService loggingService) {
+    public DataExtractionService(
+        LoggingService loggingService,
+        PatternMatcherService patternMatcher
+    ) {
         this.loggingService = loggingService;
+        this.patternMatcher = patternMatcher;
     }
 
     public ServiceResult<ExtractedMetadata> process(CSVArchiveListData archiveItem) {
@@ -50,7 +50,7 @@ public class DataExtractionService {
         }
 
         // find a pattern match
-        Optional<Map.Entry<String, Matcher>> patternMatch = matchPattern(archiveItem);
+        Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(archiveItem.getArchiveName());
 
         if (patternMatch.isEmpty()) {
             loggingService.logError(Constants.ErrorMessages.PATTERN_MATCH, archiveItem.getArchiveName());
@@ -81,53 +81,6 @@ public class DataExtractionService {
             archiveItem.getFileSize()
         );
         return ServiceResultUtil.success(extractedData);
-    }
-
-    // =========================
-    // Pattern Management
-    // =========================
-
-    private static Map<String, Pattern> initializePatterns() {
-        Map<String, Pattern> patterns = new LinkedHashMap<>();
-        patterns.put("Standard", RegexPatterns.STANDARD_PATTERN);
-        patterns.put("StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS);
-        patterns.put("SpecificT", RegexPatterns.SPECIFIC_T_PATTERN);
-        patterns.put("SpecialCase", RegexPatterns.SPECIAL_CASE_PATTERN);
-        patterns.put("DoubleURN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN);
-        patterns.put("DoubleExhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN);
-        patterns.put("Prefix", RegexPatterns.PREFIX_PATTERN);
-        patterns.put("Flexible", RegexPatterns.FLEXIBLE_PATTERN);
-        return Collections.unmodifiableMap(patterns);
-    }
-
-    // =========================
-    // Pattern Matching
-    // =========================
-
-    public Optional<Map.Entry<String, Matcher>> matchPattern(CSVArchiveListData archiveItem) {
-        loggingService.logDebug("ARCHIVE ITEM: %s", archiveItem);
-        if (archiveItem == null || archiveItem.getArchiveName() == null) {
-            loggingService.logWarning("Invalid archive item or name");
-            return Optional.empty();
-        }
-
-        String cleanedArchiveName = cleanArchiveName(archiveItem.getArchiveName());
-        loggingService.logDebug("Cleaned archive name: %s", cleanedArchiveName);
-
-        for (Map.Entry<String, Pattern> entry : NAMED_PATTERNS.entrySet()) {
-            Matcher matcher = entry.getValue().matcher(cleanedArchiveName);
-            if (matcher.matches()) {
-                loggingService.logDebug(
-                    "Pattern %s matched for file: %s",
-                    entry.getKey(),
-                    archiveItem.getArchiveName()
-                );
-                return Optional.of(Map.entry(entry.getKey(), matcher));
-            }
-        }
-
-        loggingService.logWarning("No pattern match found for file: %s", archiveItem.getArchiveName());
-        return Optional.empty();
     }
 
     // =========================

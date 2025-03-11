@@ -1,10 +1,33 @@
 package uk.gov.hmcts.reform.preapi.batch.util;
 
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public final class RegexPatterns {
 
     private RegexPatterns() {
+    }
+    
+    public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(_\\d+)*$");
+    public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
+
+    public static final Map<String, Pattern> TEST_PATTERNS = Map.of(
+        "Digit Only", DIGIT_ONLY_PATTERN,
+        "Test Keyword", TEST_KEYWORDS_PATTERN
+    );
+
+    private static Pattern buildTestKeywordsPattern() {
+        Set<String> keywords = Constants.TEST_KEYWORDS;
+
+        String keywordRegex = keywords.stream()
+            .map(Pattern::quote)  
+            .collect(Collectors.joining("|"));
+
+        return Pattern.compile(".*(" + keywordRegex + ").*", Pattern.CASE_INSENSITIVE);
     }
     
     // =========================
@@ -156,5 +179,16 @@ public final class RegexPatterns {
         + "(?<witnessFirstName>[A-Za-z0-9]+)" + SEPARATOR_ONE 
         + "(?<defendantLastName>[A-Za-z0-9]+(?:[-\\s][A-Za-z0-9]+)*)" 
         + "(?:" + EXTENSION_PATTERN + ")?$"
+    );
+
+    public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.of(
+        "Standard", RegexPatterns.STANDARD_PATTERN,
+        "StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS,
+        "SpecificT", RegexPatterns.SPECIFIC_T_PATTERN,
+        "SpecialCase", RegexPatterns.SPECIAL_CASE_PATTERN,
+        "DoubleURN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN,
+        "DoubleExhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN,
+        "Prefix", RegexPatterns.PREFIX_PATTERN,
+        "Flexible", RegexPatterns.FLEXIBLE_PATTERN
     );
 }

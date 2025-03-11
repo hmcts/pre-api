@@ -4,6 +4,7 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.PatternMatcherService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationGroupBuilderService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
@@ -29,6 +30,7 @@ import java.util.regex.Matcher;
 @Component
 public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final RedisService redisService;
+    private final PatternMatcherService patternMatcher;
     private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final DataValidationService validationService;
@@ -40,6 +42,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     @Autowired
     public Processor(
         RedisService redisService,
+        PatternMatcherService patternMatcher,
         DataExtractionService extractionService,
         DataTransformationService transformationService,
         DataValidationService validationService,
@@ -49,6 +52,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         LoggingService loggingService
     ) {
         this.redisService = redisService;
+        this.patternMatcher = patternMatcher;
         this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.validationService = validationService;
@@ -163,7 +167,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     private String extractPattern(CSVArchiveListData archiveItem) {
         try {
-            Optional<Map.Entry<String, Matcher>> patternMatch = extractionService.matchPattern(archiveItem);
+            Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(archiveItem.getArchiveName());
             return patternMatch.map(Map.Entry::getKey).orElse(null);
         } catch (Exception e) {
             handleError(archiveItem, e.getMessage(), "Error");
