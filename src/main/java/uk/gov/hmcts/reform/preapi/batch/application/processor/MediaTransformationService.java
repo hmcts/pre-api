@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -25,7 +25,7 @@ public class MediaTransformationService {
 
     @Autowired
     public MediaTransformationService(
-        AzureBlobService azureBlobService, 
+        AzureBlobService azureBlobService,
         MediaKind mediaKindService,
         LoggingService loggingService
     ) {
@@ -42,13 +42,13 @@ public class MediaTransformationService {
                 return;
             }
             boolean copied = copyBlobBetweenContainers(
-                Constants.Environment.SOURCE_CONTAINER, 
-                Constants.Environment.SOURCE_ENVIRONMENT, 
+                Constants.Environment.SOURCE_CONTAINER,
+                Constants.Environment.SOURCE_ENVIRONMENT,
                 recordingId.toString(),
                 Constants.Environment.INGEST_CONTAINER_STG,
                 mp4FileName
             );
-            
+
             if (!copied) {
                 loggingService.logError("Failed to copy media file: %s", mp4FileName);
                 return;
@@ -72,10 +72,10 @@ public class MediaTransformationService {
     ) {
         try {
             azureBlobService.copyBlob(
-                sourceContainer, 
-                sourceEnvironment, 
-                destContainer, 
-                destEnvironment, 
+                sourceContainer,
+                sourceEnvironment,
+                destContainer,
+                destEnvironment,
                 blobName
             );
             return true;
@@ -88,8 +88,8 @@ public class MediaTransformationService {
     private String downloadFile(String blobName) {
         try {
             InputStreamResource resource = azureBlobService.fetchSingleXmlBlob(
-                Constants.Environment.SOURCE_CONTAINER, 
-                Constants.Environment.SOURCE_ENVIRONMENT, 
+                Constants.Environment.SOURCE_CONTAINER,
+                Constants.Environment.SOURCE_ENVIRONMENT,
                 blobName
             );
 
@@ -107,7 +107,7 @@ public class MediaTransformationService {
 
     /**
      * Saves an input stream to a temporary file.
-     * 
+     *
      * @param resource Input stream resource
      * @return Path to the created temporary file
      * @throws IOException If file creation or writing fails
@@ -127,21 +127,21 @@ public class MediaTransformationService {
 
     /**
      * Transfers media file to ingest container.
-     * 
-     * @param localFilePath Path to the local media file
+     *
+     * @param localFilePath       Path to the local media file
      * @param ingestContainerName Name of the ingest container
-     * @param fileName Name of the file to use in the container
+     * @param fileName            Name of the file to use in the container
      */
     private void transferMediaToIngestContainer(
-        String localFilePath, 
-        String ingestContainerName, 
+        String localFilePath,
+        String ingestContainerName,
         String fileName
     ) {
         try {
             azureBlobService.uploadBlob(
                 localFilePath,
-                ingestContainerName, 
-                Constants.Environment.INGEST_CONTAINER_STG, 
+                ingestContainerName,
+                Constants.Environment.INGEST_CONTAINER_STG,
                 fileName
             );
         } catch (Exception e) {
@@ -166,8 +166,8 @@ public class MediaTransformationService {
             GenerateAssetResponseDTO response = mediaKindService.importAsset(generateAssetDTO);
 
         } catch (Exception e) {
-            loggingService.logError("Failed to process media: %s - %s", e.getMessage(),e);
-        }   
+            loggingService.logError("Failed to process media: %s - %s", e.getMessage(), e);
+        }
     }
 }
 

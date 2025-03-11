@@ -5,17 +5,16 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -32,7 +31,7 @@ public class ArchiveMetadataXmlExtractor {
     private final LoggingService loggingService;
 
     public ArchiveMetadataXmlExtractor(
-        AzureBlobService azureBlobService, 
+        AzureBlobService azureBlobService,
         ReportingService reportingService,
         LoggingService loggingService
     ) {
@@ -43,8 +42,9 @@ public class ArchiveMetadataXmlExtractor {
 
     /**
      * Process XML files from a specified Azure Blob container and write extracted data to CSV.
+     *
      * @param containerName The Azure Blob container name.
-     * @param outputDir The directory where the CSV files will be written.
+     * @param outputDir     The directory where the CSV files will be written.
      */
     public void extractAndReportArchiveMetadata(String containerName, String outputDir) {
         try {
@@ -54,7 +54,7 @@ public class ArchiveMetadataXmlExtractor {
             loggingService.logDebug("Found %d blobs in container: %s", blobNames.size(), containerName);
 
             if (blobNames.isEmpty()) {
-                loggingService.logWarning("No XML blobs found in container: "+ containerName);
+                loggingService.logWarning("No XML blobs found in container: " + containerName);
                 return;
             }
 
@@ -64,7 +64,9 @@ public class ArchiveMetadataXmlExtractor {
             if (!allArchiveMetadata.isEmpty()) {
                 loggingService.logDebug("Generating archive metadata report in %s", outputDir);
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir);
-                loggingService.logInfo("Successfully generated Archive_List.csv with " + allArchiveMetadata.size() + " entries");
+                loggingService.logInfo(
+                    "Successfully generated Archive_List.csv with " + allArchiveMetadata.size() + " entries"
+                );
             } else {
                 loggingService.logWarning("No archive metadata found to generate report");
             }
@@ -76,16 +78,16 @@ public class ArchiveMetadataXmlExtractor {
 
     /**
      * Extracts metadata from XML blobs.
-     * 
+     *
      * @param containerName Azure Blob container name
-     * @param blobNames List of blob names to process
+     * @param blobNames     List of blob names to process
      * @return List of metadata rows
      */
     private List<List<String>> extractMetadataFromBlobs(String containerName, List<String> blobNames) {
         List<List<String>> allArchiveMetadata = new ArrayList<>();
         for (String blobName : blobNames) {
             try (InputStream xmlStream = azureBlobService.fetchSingleXmlBlob(
-                    containerName, ENV_DEV, blobName).getInputStream()) {
+                containerName, ENV_DEV, blobName).getInputStream()) {
 
                 List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream);
                 if (!blobMetadata.isEmpty()) {
@@ -102,35 +104,29 @@ public class ArchiveMetadataXmlExtractor {
         return allArchiveMetadata;
     }
 
-    /**
-     * Generates a CSV report of archive metadata.
-     * 
-     * @param archiveMetadata Extracted metadata
-     * @param outputDirectory Directory for report
-     * @throws IOException 
-     */
-    private void generateArchiveMetadataReport(List<List<String>> archiveMetadata, 
-        String outputDirectory) throws IOException {
+    private void generateArchiveMetadataReport(List<List<String>> extractedArchiveMetadata,
+                                               String reportOutputDirectory) throws IOException {
 
         List<String> headers = List.of(
-            "archive_name", 
-            "create_time", 
-            "duration", 
-            "file_name", 
+            "archive_name",
+            "create_time",
+            "duration",
+            "file_name",
             "file_size"
         );
 
         reportingService.writeToCsv(
-            headers, 
-            archiveMetadata, 
-            "Archive_List", 
-            outputDirectory, 
+            headers,
+            extractedArchiveMetadata,
+            "Archive_List",
+            reportOutputDirectory,
             false
         );
     }
 
     /**
      * Parses XML content from an InputStream to extract data as rows.
+     *
      * @param inputStream The InputStream containing the XML data.
      * @return A list of lists, each list being a row of data.
      * @throws Exception If there is an error during XML parsing.
@@ -146,7 +142,7 @@ public class ArchiveMetadataXmlExtractor {
 
     /**
      * Extracts detailed metadata for archive files.
-     * 
+     *
      * @param document Parsed XML document
      * @return List of metadata rows
      */
@@ -178,17 +174,17 @@ public class ArchiveMetadataXmlExtractor {
 
     /**
      * Processes MP4 files within an archive element.
-     * 
+     *
      * @param archiveElement Archive XML element
-     * @param displayName Archive display name
-     * @param createTime Creation time
-     * @param duration Recording duration
+     * @param displayName    Archive display name
+     * @param createTime     Creation time
+     * @param duration       Recording duration
      * @return List of metadata rows for MP4 files
      */
     private List<List<String>> processMP4Files(
-        Element archiveElement, 
-        String displayName, 
-        String createTime, 
+        Element archiveElement,
+        String displayName,
+        String createTime,
         String duration
     ) {
         List<List<String>> fileRows = new ArrayList<>();
@@ -200,12 +196,14 @@ public class ArchiveMetadataXmlExtractor {
 
             for (int k = 0; k < mp4Files.getLength(); k++) {
                 Element fileElement = (Element) mp4Files.item(k);
-                
+
                 String fileName = extractTextContent(fileElement, "Name");
                 String fileSizeKb = extractTextContent(fileElement, "Size");
 
                 if (fileName.isEmpty() || fileSizeKb.isEmpty()) {
-                    loggingService.logWarning("MP4 file missing required fields: Name=%s, Size=%s" + fileName + fileSizeKb);
+                    loggingService.logWarning(
+                        "MP4 file missing required fields: Name=%s, Size=%s" + fileName + fileSizeKb
+                    );
                     continue;
                 }
                 if (isValidMP4File(fileName)) {
@@ -219,7 +217,7 @@ public class ArchiveMetadataXmlExtractor {
 
     /**
      * Checks if the file is a valid MP4 file.
-     * 
+     *
      * @param fileName File name to validate
      * @return true if valid, false otherwise
      */
@@ -229,20 +227,20 @@ public class ArchiveMetadataXmlExtractor {
 
     /**
      * Extracts text content from a specific tag within an element.
-     * 
+     *
      * @param element Parent XML element
      * @param tagName Tag to extract
      * @return Extracted text content or empty string
      */
     private String extractTextContent(Element element, String tagName) {
         return Optional.ofNullable(element.getElementsByTagName(tagName).item(0))
-            .map(Node::getTextContent)
-            .orElse("");
+                       .map(Node::getTextContent)
+                       .orElse("");
     }
 
     /**
      * Formats file size from KB to MB with two decimal places.
-     * 
+     *
      * @param fileSizeKb File size in kilobytes
      * @return Formatted file size in MB
      */

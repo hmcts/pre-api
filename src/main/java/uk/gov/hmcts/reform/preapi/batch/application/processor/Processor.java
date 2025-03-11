@@ -75,9 +75,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private MigratedItemGroup process(CSVArchiveListData archiveItem) {
-        try {  
+        try {
             ExtractedMetadata extractedData = extractData(archiveItem);
-            if (extractedData == null){
+            if (extractedData == null) {
                 return null;
             }
 
@@ -89,30 +89,30 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (checkMigrated(cleansedData, archiveItem)) {
                 return null;
             }
-            
+
             if (!validateData(cleansedData, archiveItem)) {
                 return null;
-            } 
+            }
 
             String pattern = extractPattern(archiveItem);
             loggingService.incrementProgress();
-            
+
             return migrationService.createMigratedItemGroup(pattern, archiveItem, cleansedData);
-        
+
         } catch (Exception e) {
             return handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
         }
 
     }
 
-    
+
     // =========================
     // Extraction, Transformation and Validation
     // =========================
     private ExtractedMetadata extractData(CSVArchiveListData archiveItem) {
 
         ServiceResult<ExtractedMetadata> result = extractionService.process(archiveItem);
-        if (checkForError(result, archiveItem)){
+        if (checkForError(result, archiveItem)) {
             loggingService.logError("Regex matching failed for archive: %s", archiveItem.getArchiveName());
             return null;
         }
@@ -151,11 +151,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     //======================
     // Helper Methods
     //======================
-    private <T>boolean checkForError(ServiceResult<T> result, CSVArchiveListData archiveItem) {
+    private <T> boolean checkForError(ServiceResult<T> result, CSVArchiveListData archiveItem) {
         String errorMessage = (String) result.getErrorMessage();
         String category = (String) result.getCategory();
         if (errorMessage != null) {
-            handleError(archiveItem, errorMessage, category );
+            handleError(archiveItem, errorMessage, category);
             return true;
         }
         return false;
@@ -166,7 +166,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             Optional<Map.Entry<String, Matcher>> patternMatch = extractionService.matchPattern(archiveItem);
             return patternMatch.map(Map.Entry::getKey).orElse(null);
         } catch (Exception e) {
-            handleError(archiveItem, e.getMessage(),"Error");
+            handleError(archiveItem, e.getMessage(), "Error");
             return null;
         }
     }

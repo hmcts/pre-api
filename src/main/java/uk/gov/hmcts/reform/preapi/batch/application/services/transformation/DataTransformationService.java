@@ -2,10 +2,10 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor; 
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -18,14 +18,14 @@ import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.util.List;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class DataTransformationService {    
+public class DataTransformationService {
     private static final String UNKNOWN_COURT = "Unknown Court";
 
     private final RedisService redisService;
@@ -45,7 +45,7 @@ public class DataTransformationService {
         this.referenceDataProcessor = referenceDataProcessor;
         this.loggingService = loggingService;
     }
-    
+
     /**
      * Transforms CSV archive data into cleansed data for migration.
      * This method handles the extraction of metadata, validation of required fields,
@@ -62,12 +62,15 @@ public class DataTransformationService {
 
         try {
             loggingService.logDebug("Starting data transformation for archive: %s", archiveItem.getArchiveName());
-            
+
             Map<String, String> sitesDataMap = getSitesData();
 
             CleansedData cleansedData = buildCleansedData(archiveItem, extracted, sitesDataMap);
 
-            loggingService.logDebug("Data transformation completed successfully for archive: %s", archiveItem.getArchiveName());
+            loggingService.logDebug(
+                "Data transformation completed successfully for archive: %s",
+                archiveItem.getArchiveName()
+            );
             return ServiceResultUtil.success(cleansedData);
 
         } catch (Exception e) {
@@ -80,21 +83,21 @@ public class DataTransformationService {
      * Builds a CleansedData object from the extracted metadata and archive item.
      * This method handles the construction of all required fields and relationships.
      *
-     * @param archiveItem The original archive item
-     * @param extracted The extracted metadata
+     * @param archiveItem  The original archive item
+     * @param extracted    The extracted metadata
      * @param sitesDataMap The sites data map from Redis
      * @return A fully constructed CleansedData object
      */
     private CleansedData buildCleansedData(
         CSVArchiveListData archiveItem, ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", archiveItem.getArchiveName());
-        
+
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem);
 
         String redisKey = RecordingUtils.buildMetadataPreprocessKey(
             extracted.getUrn(), extracted.getDefendantLastName(), extracted.getWitnessFirstName()
         );
-        
+
         Map<String, String> existingData = redisService.getHashAll(redisKey, String.class, String.class);
         RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
             extracted.getRecordingVersion(), extracted.getRecordingVersionNumber(),
@@ -130,7 +133,7 @@ public class DataTransformationService {
     /**
      * Fetches the court entity from the database using the extracted court reference.
      *
-     * @param extracted The extracted metadata containing the court reference
+     * @param extracted    The extracted metadata containing the court reference
      * @param sitesDataMap The sites data map from Redis
      * @return The Court entity or null if not found
      */
@@ -142,8 +145,12 @@ public class DataTransformationService {
         }
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
-        Map<String, String> courtsData = redisService.getHashAll(Constants.RedisKeys.COURTS_PREFIX, String.class, String.class);
-        
+        Map<String, String> courtsData = redisService.getHashAll(
+            Constants.RedisKeys.COURTS_PREFIX,
+            String.class,
+            String.class
+        );
+
         if (courtsData == null || courtsData.isEmpty()) {
             loggingService.logError("Courts data not found in Redis");
             throw new IllegalStateException("Courts data not found in Redis");
@@ -159,7 +166,7 @@ public class DataTransformationService {
                 throw new IllegalArgumentException("Court ID parsing failed for: " + courtIdString, e);
             }
         }
-        
+
         loggingService.logWarning("Court ID not found for court name: %s", fullCourtName);
         return null;
     }
@@ -174,7 +181,7 @@ public class DataTransformationService {
         String archiveName = archiveItem.getArchiveNameNoExt();
         List<String[]> usersAndEmails = getUsersAndEmails(archiveName);
         List<Map<String, String>> contactsList = new ArrayList<>();
-        
+
         for (String[] userInfo : usersAndEmails) {
             String[] nameParts = userInfo[0].split("\\.");
             Map<String, String> contact = new HashMap<>();
@@ -183,8 +190,12 @@ public class DataTransformationService {
             contact.put("email", userInfo[1]);
             contactsList.add(contact);
         }
-        
-        loggingService.logDebug("Built {} share booking contacts for archive: %d - %s", contactsList.size(), archiveName);
+
+        loggingService.logDebug(
+            "Built {} share booking contacts for archive: %d - %s",
+            contactsList.size(),
+            archiveName
+        );
         return contactsList;
     }
 
@@ -210,7 +221,11 @@ public class DataTransformationService {
      * @throws IllegalStateException if sites data is not found in Redis
      */
     private Map<String, String> getSitesData() {
-        Map<String, String> sitesDataMap = redisService.getHashAll(Constants.RedisKeys.SITES_DATA, String.class, String.class);
+        Map<String, String> sitesDataMap = redisService.getHashAll(
+            Constants.RedisKeys.SITES_DATA,
+            String.class,
+            String.class
+        );
         if (sitesDataMap == null || sitesDataMap.isEmpty()) {
             loggingService.logError("Sites data not found in Redis");
             throw new IllegalStateException("Sites data not found in Redis");

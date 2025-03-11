@@ -23,9 +23,9 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -46,7 +46,7 @@ public class MigrationGroupBuilderService {
 
     @Autowired
     public MigrationGroupBuilderService(
-        EntityCreationService entityCreationService, 
+        EntityCreationService entityCreationService,
         RedisService redisService,
         MigrationTrackerService migrationTrackerService,
         CaseRepository caseRepository,
@@ -63,7 +63,7 @@ public class MigrationGroupBuilderService {
     // Initialization
     // =========================
     @EventListener(ContextRefreshedEvent.class)
-    @Transactional  
+    @Transactional
     public void init() {
         loadCaseCache();
     }
@@ -81,7 +81,7 @@ public class MigrationGroupBuilderService {
     // =========================
     @SuppressWarnings("unchecked")
     public MigratedItemGroup createMigratedItemGroup(
-        String pattern, 
+        String pattern,
         CSVArchiveListData archiveItem,
         CleansedData cleansedData
     ) {
@@ -90,8 +90,8 @@ public class MigrationGroupBuilderService {
         if (acase == null) {
             return null;
         }
-        
-        String participantPair =  cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
+
+        String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
         String baseKey = redisService.generateBaseKey(acase.getReference(), participantPair);
 
         CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
@@ -100,13 +100,13 @@ public class MigrationGroupBuilderService {
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
 
         // if (recording != null) {
-        //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());  
+        //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
         // }
 
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> invites = new ArrayList<>();
         List<Object> shareBookingResult = entityCreationService.createShareBookings(cleansedData, booking);
-        
+
         if (shareBookingResult != null && shareBookingResult.size() == 2) {
             shareBookings = (List<CreateShareBookingDTO>) shareBookingResult.get(0);
             invites = (List<CreateInviteDTO>) shareBookingResult.get(1);
@@ -119,12 +119,14 @@ public class MigrationGroupBuilderService {
 
         PassItem passItem = new PassItem(pattern, archiveItem, cleansedData);
 
-        return new MigratedItemGroup(acase, booking, captureSession, recording, participants, 
-            shareBookings, invites, passItem);
+        return new MigratedItemGroup(
+            acase, booking, captureSession, recording, participants,
+            shareBookings, invites, passItem
+        );
     }
 
     private CreateCaseDTO createCaseIfOrig(CleansedData cleansedData) {
-        String caseReference = cleansedData.getCaseReference();    
+        String caseReference = cleansedData.getCaseReference();
 
         if (caseReference == null || caseReference.isBlank()) {
             return null;
@@ -132,7 +134,7 @@ public class MigrationGroupBuilderService {
 
         if (caseCache.containsKey(caseReference)) {
             CreateCaseDTO existingCase = caseCache.get(caseReference);
-            
+
             if (existingCase == null) {
                 return null;
             }
@@ -145,17 +147,17 @@ public class MigrationGroupBuilderService {
             Set<CreateParticipantDTO> newParticipants = entityCreationService.createParticipants(cleansedData);
             Set<CreateParticipantDTO> updatedParticipants = new HashSet<>(currentParticipants);
             boolean changed = false;
-            
+
             for (CreateParticipantDTO newParticipant : newParticipants) {
                 boolean exists = false;
-                
+
                 for (CreateParticipantDTO existingParticipant : currentParticipants) {
                     if (isSameParticipant(existingParticipant, newParticipant)) {
                         exists = true;
                         break;
                     }
                 }
-                
+
                 if (!exists) {
                     updatedParticipants.add(newParticipant);
                     changed = true;
@@ -164,7 +166,7 @@ public class MigrationGroupBuilderService {
 
             if (changed) {
                 existingCase.setParticipants(updatedParticipants);
-            } 
+            }
             return existingCase;
         }
 
@@ -190,8 +192,8 @@ public class MigrationGroupBuilderService {
     private CreateBookingDTO processBooking(String baseKey, CleansedData cleansedData, CreateCaseDTO acase) {
         if (redisService.checkHashKeyExists(baseKey, REDIS_BOOKING_FIELD)) {
             CreateBookingDTO bookingDTO = redisService.getHashValue(
-                baseKey, 
-                REDIS_BOOKING_FIELD, 
+                baseKey,
+                REDIS_BOOKING_FIELD,
                 CreateBookingDTO.class
             );
             return bookingDTO;
@@ -201,36 +203,36 @@ public class MigrationGroupBuilderService {
 
     private CreateCaptureSessionDTO processCaptureSession(
         String baseKey,
-        CleansedData cleansedData, 
+        CleansedData cleansedData,
         CreateBookingDTO booking
     ) {
         if (redisService.checkHashKeyExists(baseKey, REDIS_CAPTURE_SESSION_FIELD)) {
             CreateCaptureSessionDTO captureSessionDTO = redisService.getHashValue(
                 baseKey,
-                REDIS_CAPTURE_SESSION_FIELD, 
+                REDIS_CAPTURE_SESSION_FIELD,
                 CreateCaptureSessionDTO.class
             );
             return captureSessionDTO;
         }
-        return  entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
+        return entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
     }
 
     private CreateRecordingDTO processRecording(
         String baseKey,
-        CSVArchiveListData archiveItem, 
-        CleansedData cleansedItem, 
-        String redisKey, 
+        CSVArchiveListData archiveItem,
+        CleansedData cleansedItem,
+        String redisKey,
         CreateCaptureSessionDTO captureSession
     ) {
         if (redisService.checkHashKeyExists(baseKey, REDIS_RECORDING_FIELD)) {
             CreateRecordingDTO recordingDTO = redisService.getHashValue(
                 baseKey,
-                REDIS_RECORDING_FIELD, 
+                REDIS_RECORDING_FIELD,
                 CreateRecordingDTO.class
             );
             return recordingDTO;
         }
-        CreateRecordingDTO recording = entityCreationService.createRecording(baseKey,cleansedItem, captureSession);
+        CreateRecordingDTO recording = entityCreationService.createRecording(baseKey, cleansedItem, captureSession);
         return recording;
     }
 }

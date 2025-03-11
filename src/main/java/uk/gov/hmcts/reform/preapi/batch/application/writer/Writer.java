@@ -72,6 +72,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
      * Writes a chunk of MigratedItemGroup items to the database.
      * This method processes each item in the chunk, saves it to the appropriate
      * repository, and tracks successful migrations.
+     *
      * @param items The chunk of  MigratedItemGroup items to be written.
      * @throws Exception If an error occurs during the write operation.
      */
@@ -95,13 +96,14 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
 
     private List<MigratedItemGroup> filterValidItems(Chunk<? extends MigratedItemGroup> items) {
         return items.getItems().stream()
-            .filter(item -> item != null)
-            .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                    .filter(item -> item != null)
+                    .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
 
     /**
      * This method processes each item, saves its associated entities (e.g., cases,
      * bookings, participants, etc.) to their respective repositories.
+     *
      * @param migratedItems The list of MigratedItemGroup items to be saved.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -109,20 +111,22 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         if (migratedItems.isEmpty()) {
             return;
         }
-        
+
         for (MigratedItemGroup item : migratedItems) {
             try {
                 loggingService.logDebug("Processing case: %s", item.getCase().getReference());
-                
+
                 processItem(item);
                 migrationTrackerService.addMigratedItem(item.getPassItem());
                 successCount.incrementAndGet();
             } catch (Exception e) {
                 failureCount.incrementAndGet();
-                loggingService.logError("Failed to process migrated item: %s", 
-                    item.getCase().getReference(), e.getMessage());
+                loggingService.logError(
+                    "Failed to process migrated item: %s",
+                    item.getCase().getReference(), e.getMessage()
+                );
             }
-             
+
         }
     }
 
@@ -161,7 +165,11 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 captureSessionService.upsert(captureSessionData);
             } catch (Exception e) {
-                loggingService.logError("Failed to upsert capture session. Capture Session id: %s", captureSessionData.getId(), e);
+                loggingService.logError(
+                    "Failed to upsert capture session. Capture Session id: %s",
+                    captureSessionData.getId(),
+                    e
+                );
             }
         }
     }
@@ -201,9 +209,11 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     }
 
     private void logBatchStatistics() {
-        loggingService.logInfo("Batch processing - Successful: %d, Failed: %d", 
-            successCount.get(), failureCount.get());
-       
+        loggingService.logInfo(
+            "Batch processing - Successful: %d, Failed: %d",
+            successCount.get(), failureCount.get()
+        );
+
     }
-    
+
 }

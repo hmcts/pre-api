@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.media.storage;
 
-import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 

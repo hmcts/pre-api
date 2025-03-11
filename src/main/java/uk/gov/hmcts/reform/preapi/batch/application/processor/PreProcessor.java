@@ -3,9 +3,9 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -30,7 +30,7 @@ public class PreProcessor {
     private final CourtRepository courtRepository;
     private final CaseRepository caseRepository;
     private final UserRepository userRepository;
-    
+
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
 
@@ -75,21 +75,24 @@ public class PreProcessor {
     // ==============================
 
     @Transactional(readOnly = true)
-    protected void cacheRequiredEntities() {   
+    protected void cacheRequiredEntities() {
         List<Court> courts = courtRepository.findAll();
         cacheEntityToRedis(
-            Constants.RedisKeys.COURTS_PREFIX, 
-            courts, Court::getName, court -> court.getId().toString(),"courts");
-        
+            Constants.RedisKeys.COURTS_PREFIX,
+            courts, Court::getName, court -> court.getId().toString(), "courts"
+        );
+
         List<Case> cases = caseRepository.findAll();
         cacheEntityToRedis(
-            Constants.RedisKeys.CASES_PREFIX, 
-            cases, Case::getReference, acase -> acase.getId().toString(),"cases");
-        
+            Constants.RedisKeys.CASES_PREFIX,
+            cases, Case::getReference, acase -> acase.getId().toString(), "cases"
+        );
+
         List<User> users = userRepository.findAll();
         cacheEntityToRedis(
-            Constants.RedisKeys.USERS_PREFIX, 
-            users, User::getEmail, user -> user.getId().toString(),"users");
+            Constants.RedisKeys.USERS_PREFIX,
+            users, User::getEmail, user -> user.getId().toString(), "users"
+        );
     }
 
     private <T> void cacheEntityToRedis(
@@ -105,7 +108,7 @@ public class PreProcessor {
         }
 
         Map<String, String> map = items.stream()
-            .collect(Collectors.toMap(keyFn, valFn, (existing, replacement) -> existing)); 
+                                       .collect(Collectors.toMap(keyFn, valFn, (existing, replacement) -> existing));
 
         redisService.saveHashAll(prefix, map);
         loggingService.logInfo("Cached %d %s records into Redis.", items.size(), entityName);

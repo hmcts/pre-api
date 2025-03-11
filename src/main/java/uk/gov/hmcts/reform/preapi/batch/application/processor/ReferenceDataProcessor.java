@@ -2,9 +2,9 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 
@@ -42,14 +42,14 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
         }
         return null;
     }
-   
+
     // =========================================
-    // Site reference data 
+    // Site reference data
     // =========================================
     private void processSitesData(CSVSitesData sitesItem) {
         redisService.saveHashValue(
-            Constants.RedisKeys.SITES_DATA, 
-            sitesItem.getSiteReference(), 
+            Constants.RedisKeys.SITES_DATA,
+            sitesItem.getSiteReference(),
             sitesItem.getCourtName()
         );
     }
@@ -67,8 +67,8 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
         channelList.add(createChannelUserEntry(channelDataItem));
 
         redisService.saveHashValue(
-            Constants.RedisKeys.CHANNEL_DATA, 
-            channelDataItem.getChannelName(), 
+            Constants.RedisKeys.CHANNEL_DATA,
+            channelDataItem.getChannelName(),
             channelList
         );
     }

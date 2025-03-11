@@ -1,8 +1,8 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -33,18 +33,18 @@ public class DataExtractionService {
             loggingService.logError("Received null archiveItem");
             return ServiceResultUtil.failure("Failed to process: archiveItem is null", "Invalid Data");
         }
-        
+
         if (!isDateAfterGoLive(archiveItem)) {
             loggingService.logError(Constants.ErrorMessages.PREDATES_GO_LIVE, archiveItem.getArchiveName());
             return ServiceResultUtil.failure(Constants.ErrorMessages.PREDATES_GO_LIVE, "Pre-Go-Live");
         }
 
-        if(!isTest(archiveItem)){
+        if (!isTest(archiveItem)) {
             loggingService.logError(Constants.ErrorMessages.TEST_ITEM_NAME, archiveItem.getArchiveName());
             return ServiceResultUtil.failure(Constants.ErrorMessages.TEST_ITEM_NAME, "Test");
         }
 
-        if(!isValidDuration(archiveItem)){
+        if (!isValidDuration(archiveItem)) {
             loggingService.logError(Constants.ErrorMessages.TEST_DURATION, archiveItem.getArchiveName());
             return ServiceResultUtil.failure(Constants.ErrorMessages.TEST_DURATION, "Test");
         }
@@ -59,9 +59,13 @@ public class DataExtractionService {
 
         Matcher matcher = patternMatch.get().getValue();
         String patternName = patternMatch.get().getKey();
-        loggingService.logDebug("Extracting metadata using pattern %s for file: %s", patternName, archiveItem.getArchiveName());
-        
-        var extractedData =  new ExtractedMetadata(
+        loggingService.logDebug(
+            "Extracting metadata using pattern %s for file: %s",
+            patternName,
+            archiveItem.getArchiveName()
+        );
+
+        var extractedData = new ExtractedMetadata(
             getMatcherGroup(matcher, "court"),
             getMatcherGroup(matcher, "date"),
             getMatcherGroup(matcher, "urn"),
@@ -101,7 +105,7 @@ public class DataExtractionService {
     // =========================
 
     public Optional<Map.Entry<String, Matcher>> matchPattern(CSVArchiveListData archiveItem) {
-        loggingService.logDebug("ARCHIVE ITEM: %s",archiveItem);
+        loggingService.logDebug("ARCHIVE ITEM: %s", archiveItem);
         if (archiveItem == null || archiveItem.getArchiveName() == null) {
             loggingService.logWarning("Invalid archive item or name");
             return Optional.empty();
@@ -113,11 +117,15 @@ public class DataExtractionService {
         for (Map.Entry<String, Pattern> entry : NAMED_PATTERNS.entrySet()) {
             Matcher matcher = entry.getValue().matcher(cleanedArchiveName);
             if (matcher.matches()) {
-                 loggingService.logDebug("Pattern %s matched for file: %s", entry.getKey(), archiveItem.getArchiveName());
+                loggingService.logDebug(
+                    "Pattern %s matched for file: %s",
+                    entry.getKey(),
+                    archiveItem.getArchiveName()
+                );
                 return Optional.of(Map.entry(entry.getKey(), matcher));
             }
         }
-        
+
         loggingService.logWarning("No pattern match found for file: %s", archiveItem.getArchiveName());
         return Optional.empty();
     }
@@ -141,10 +149,12 @@ public class DataExtractionService {
 
     private boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
         LocalDateTime recordingTimestamp = archiveItem.getCreateTimeAsLocalDateTime();
-        
+
         if (recordingTimestamp == null) {
-            loggingService.logError("Failed to extract date for %s | Raw createTime: %s", 
-                archiveItem.getArchiveName(), archiveItem.getCreateTime());
+            loggingService.logError(
+                "Failed to extract date for %s | Raw createTime: %s",
+                archiveItem.getArchiveName(), archiveItem.getCreateTime()
+            );
             return false;
         }
 
@@ -160,12 +170,12 @@ public class DataExtractionService {
             return false;
         }
 
-        boolean isValid = isNonEmpty(metadata.getCourtReference()) 
-                        && (isNonEmpty(metadata.getUrn()) || isNonEmpty(metadata.getExhibitReference())) 
-                        && isNonEmpty(metadata.getDefendantLastName()) 
-                        && isNonEmpty(metadata.getWitnessFirstName()) 
-                        && isValidVersion(metadata.getRecordingVersion(), metadata.getRecordingVersionNumber()) 
-                        && isValidExtension(metadata.getFileExtension());
+        boolean isValid = isNonEmpty(metadata.getCourtReference())
+            && (isNonEmpty(metadata.getUrn()) || isNonEmpty(metadata.getExhibitReference()))
+            && isNonEmpty(metadata.getDefendantLastName())
+            && isNonEmpty(metadata.getWitnessFirstName())
+            && isValidVersion(metadata.getRecordingVersion(), metadata.getRecordingVersionNumber())
+            && isValidExtension(metadata.getFileExtension());
 
         if (!isValid) {
             loggingService.logWarning("Metadata validation failed for file: %s", metadata.getFileName());
@@ -179,11 +189,11 @@ public class DataExtractionService {
     }
 
     private boolean isValidVersion(String versionType, String versionNumber) {
-        if ( !Constants.VALID_VERSION_TYPES.contains(versionType)) {
+        if (!Constants.VALID_VERSION_TYPES.contains(versionType)) {
             loggingService.logDebug("Invalid version type: %s", versionType);
             return false;
         }
-        
+
         return true;
     }
 
@@ -195,7 +205,7 @@ public class DataExtractionService {
         return isValid;
     }
 
-    private boolean isTest(CSVArchiveListData archiveItem){
+    private boolean isTest(CSVArchiveListData archiveItem) {
         String lowerName = archiveItem.getArchiveName().toLowerCase();
         for (String keyword : Constants.TEST_KEYWORDS) {
             if (lowerName.contains(keyword)) {
@@ -205,7 +215,7 @@ public class DataExtractionService {
         return true;
     }
 
-    private boolean isValidDuration(CSVArchiveListData archiveItem){
+    private boolean isValidDuration(CSVArchiveListData archiveItem) {
         if (archiveItem.getDuration() < Constants.MIN_RECORDING_DURATION) {
             return false;
         }

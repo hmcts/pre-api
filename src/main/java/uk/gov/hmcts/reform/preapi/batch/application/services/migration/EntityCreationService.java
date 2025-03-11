@@ -4,9 +4,9 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -80,11 +80,11 @@ public class EntityCreationService {
     }
 
     public CreateCaptureSessionDTO createCaptureSession(
-        CleansedData cleansedData, 
-        CreateBookingDTO booking, 
+        CleansedData cleansedData,
+        CreateBookingDTO booking,
         String redisKey
     ) {
-        var vodafoneUser =  getUserByEmail(vodafoneUserEmail);
+        var vodafoneUser = getUserByEmail(vodafoneUserEmail);
 
         var captureSessionDTO = new CaptureSessionDTO();
         captureSessionDTO.setId(UUID.randomUUID());
@@ -103,7 +103,7 @@ public class EntityCreationService {
 
     public CreateRecordingDTO createRecording(
         String redisKey,
-        CleansedData cleansedData, 
+        CleansedData cleansedData,
         CreateCaptureSessionDTO captureSession
     ) {
         var recordingDTO = new CreateRecordingDTO();
@@ -118,12 +118,12 @@ public class EntityCreationService {
         UUID parentRecordingId = null;
         if (existingMetadata != null) {
             String[] parts = existingMetadata.split(":");
-            parentRecordingId = UUID.fromString(parts[0]);  
+            parentRecordingId = UUID.fromString(parts[0]);
         }
 
         if (recordingDTO.getVersion() > 1 && parentRecordingId != null) {
             recordingDTO.setParentRecordingId(parentRecordingId);
-        } 
+        }
 
         String recordingMetadata = recordingDTO.getId().toString() + ":" + recordingDTO.getVersion();
         redisService.saveHashValue(redisKey, "recordingMetadata", recordingMetadata);
@@ -133,15 +133,15 @@ public class EntityCreationService {
 
     public Set<CreateParticipantDTO> createParticipants(CleansedData cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
-        
+
         if (cleansedData.getWitnessFirstName() != null && !cleansedData.getWitnessFirstName().trim().isEmpty()) {
             participants.add(createParticipant(ParticipantType.WITNESS, cleansedData.getWitnessFirstName(), ""));
         }
-        
+
         if (cleansedData.getDefendantLastName() != null && !cleansedData.getDefendantLastName().trim().isEmpty()) {
             participants.add(createParticipant(ParticipantType.DEFENDANT, "", cleansedData.getDefendantLastName()));
         }
-        
+
         return participants;
     }
 
@@ -158,13 +158,18 @@ public class EntityCreationService {
         if (cleansedData == null || booking == null) {
             return null;
         }
-        
+
         List<Object> results = new ArrayList<>();
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> userInvites = new ArrayList<>();
 
-        cleansedData.getShareBookingContacts().forEach(contactInfo -> 
-            processShareBookingContact(contactInfo, booking, shareBookings, userInvites)
+        cleansedData.getShareBookingContacts().forEach(contactInfo ->
+                                                           processShareBookingContact(
+                                                               contactInfo,
+                                                               booking,
+                                                               shareBookings,
+                                                               userInvites
+                                                           )
         );
 
         if (shareBookings.isEmpty()) {
@@ -182,40 +187,40 @@ public class EntityCreationService {
         List<CreateShareBookingDTO> shareBookings,
         List<CreateInviteDTO> userInvites
     ) {
-        
+
         String email = contactInfo.get("email").toLowerCase();
         String firstName = contactInfo.getOrDefault("firstName", "Unknown");
         String lastName = contactInfo.getOrDefault("lastName", "Unknown");
 
-        try {            
+        try {
             String existingUserId = getUserIdFromRedis(email);
             String vodafoneUser = getUserIdFromRedis(vodafoneUserEmail);
 
             CreateUserDTO sharedWith;
             CreateInviteDTO inviteDTO;
-            
+
             if (existingUserId != null) {
                 sharedWith = new CreateUserDTO();
                 sharedWith.setId(UUID.fromString(existingUserId));
                 sharedWith.setEmail(email);
             } else {
-                sharedWith = createUser(firstName, lastName, email, UUID.randomUUID()); 
+                sharedWith = createUser(firstName, lastName, email, UUID.randomUUID());
                 inviteDTO = createInvite(sharedWith);
                 userInvites.add(inviteDTO);
-                redisService.saveHashValue(Constants.RedisKeys.USERS_PREFIX, email, sharedWith.getId().toString());    
+                redisService.saveHashValue(Constants.RedisKeys.USERS_PREFIX, email, sharedWith.getId().toString());
             }
-            
+
             String redisBookingKey = REDIS_SHARE_BOOKING_FIELD + booking.getId().toString();
             String existingSharedWith = redisService.getHashValue(
-                redisBookingKey, 
-                sharedWith.getId().toString(), 
+                redisBookingKey,
+                sharedWith.getId().toString(),
                 String.class
             );
 
             if (existingSharedWith != null && existingSharedWith.equals(sharedWith.getId().toString())) {
-                return; 
+                return;
             }
-            
+
             CreateUserDTO sharedBy = getUserById(vodafoneUser);
             redisService.saveHashValue(redisBookingKey, sharedWith.getId().toString(), sharedWith.getId().toString());
             shareBookings.add(createShareBooking(booking, sharedWith, sharedBy));
@@ -225,8 +230,8 @@ public class EntityCreationService {
     }
 
     public CreateShareBookingDTO createShareBooking(
-        CreateBookingDTO bookingDTO, 
-        CreateUserDTO sharedWith, 
+        CreateBookingDTO bookingDTO,
+        CreateUserDTO sharedWith,
         CreateUserDTO sharedBy
     ) {
         var shareBookingDTO = new CreateShareBookingDTO();
@@ -234,8 +239,8 @@ public class EntityCreationService {
         shareBookingDTO.setBookingId(bookingDTO.getId());
         shareBookingDTO.setSharedByUser(sharedBy.getId());
         shareBookingDTO.setSharedWithUser(sharedWith.getId());
-        
-        return shareBookingDTO;    
+
+        return shareBookingDTO;
     }
 
     public String getUserIdFromRedis(String email) {
@@ -244,7 +249,7 @@ public class EntityCreationService {
 
     public CreateUserDTO getUserById(String userId) {
         var user = userService.findById(UUID.fromString(userId));
-        CreateUserDTO userDTO = createUser(user.getFirstName(), user.getLastName(), user.getEmail(), user.getId()); 
+        CreateUserDTO userDTO = createUser(user.getFirstName(), user.getLastName(), user.getEmail(), user.getId());
         return userDTO;
     }
 
@@ -253,7 +258,7 @@ public class EntityCreationService {
             return userService.findByEmail(email).getUser().getId();
         } catch (Exception e) {
             loggingService.logWarning("Could not find user by email: %s - %s", email, e);
-            return null; 
+            return null;
         }
     }
 
@@ -269,7 +274,7 @@ public class EntityCreationService {
         userDTO.setEmail(email);
         userDTO.setPortalAccess(Set.of());
         userDTO.setAppAccess(null);
-        
+
         return userDTO;
     }
 

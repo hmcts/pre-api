@@ -1,21 +1,20 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
 import org.springframework.stereotype.Service;
-
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 
-import java.io.PrintWriter;
-import java.io.IOException;
-import java.io.FileWriter;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class LoggingService {
@@ -23,15 +22,15 @@ public class LoggingService {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private boolean debugEnabled = false;
-    private int totalRecords;  
+    private int totalRecords;
     private int processedRecords = 0;
     private int totalMigrated = 0;
     private int totalFailed = 0;
-    private Map<String, Integer> failedCategoryCounts = new HashMap<>();
+    private final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
     private int unaccountedRecords = 0;
     private int totalInvited = 0;
-    
+
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
@@ -46,12 +45,12 @@ public class LoggingService {
             System.err.println("Failed to initialize output.log: " + e.getMessage());
         }
     }
-    
+
     public synchronized void log(String level, String message) {
         String timestamp = LocalDateTime.now().format(FORMATTER);
-        
+
         String logMessage = String.format("%s [%s] %s", timestamp, level, message);
-        
+
         try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
             printWriter.println(logMessage);
@@ -65,33 +64,33 @@ public class LoggingService {
         log("INFO", message);
     }
 
-    public void logWarning(String format, Object... args) { 
+    public void logWarning(String format, Object... args) {
         String message = String.format(format, args);
-        log("WARN", message); 
+        log("WARN", message);
     }
-    
-    public void logError(String format, Object... args) { 
+
+    public void logError(String format, Object... args) {
         String message = String.format(format, args);
-        log("ERROR", message); 
+        log("ERROR", message);
     }
-    
+
     public void logDebug(String format, Object... args) {
         if (!debugEnabled) {
-            return; 
+            return;
         }
         String message = String.format(format, args);
         String callerInfo = getCallerInfo();
         log("DEBUG", String.format("%s - %s", callerInfo, message));
     }
-    
+
 
     private String getCallerInfo() {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (int i = 2; i < stackTrace.length; i++) {
             StackTraceElement element = stackTrace[i];
             String className = element.getClassName();
-            if (!className.equals(LoggingService.class.getName()) && 
-                !className.equals(Thread.class.getName())) {
+            if (!className.equals(LoggingService.class.getName())
+                && !className.equals(Thread.class.getName())) {
                 String simpleClassName = className.substring(className.lastIndexOf('.') + 1);
                 return String.format("[%s.%s]", simpleClassName, element.getMethodName());
             }
@@ -105,16 +104,16 @@ public class LoggingService {
             log("INFO", "Debug logging enabled");
         }
     }
-    
+
     public boolean isDebugEnabled() {
         return debugEnabled;
     }
-    
+
     // ==============================
     // PROGRESS TRACKING
     // ==============================
     public void setTotalRecords(int count) {
-        this.totalRecords = Math.max(count, 1);  
+        this.totalRecords = Math.max(count, 1);
     }
 
     public void incrementProgress() {
@@ -137,37 +136,48 @@ public class LoggingService {
     // ==============================
     // METRICS TRACKING
     // ==============================
-    public void setTotalMigrated(int count) { this.totalMigrated = count; }
-    public void setTotalFailed(Map<String, List<FailedItem>> categorizedFailures) { 
-        // this.totalFailed = count; 
+    public void setTotalMigrated(int count) {
+        this.totalMigrated = count;
+    }
+
+    public void setTotalFailed(Map<String, List<FailedItem>> categorizedFailures) {
+        // this.totalFailed = count;
         this.totalFailed = categorizedFailures.values().stream().mapToInt(List::size).sum();
         failedCategoryCounts.clear();
         categorizedFailures.forEach((category, items) -> failedCategoryCounts.put(category, items.size()));
     }
-    public void checkAllAccounted(int count) { this.unaccountedRecords = this.totalRecords - this.totalMigrated - this.totalFailed; }
-    public void setTotalInvited(int count) { this.totalInvited = count; }
+
+    public void checkAllAccounted(int count) {
+        this.unaccountedRecords = this.totalRecords - this.totalMigrated - this.totalFailed;
+    }
+
+    public void setTotalInvited(int count) {
+        this.totalInvited = count;
+    }
 
     public void logSummary() {
         if (startTime == null) {
             logWarning("Start time was not set. Using current time as fallback.");
             startTime = LocalDateTime.now();
         }
-        
+
         endTime = LocalDateTime.now();
         Duration duration = Duration.between(startTime, endTime);
         long seconds = duration.getSeconds();
 
         String summary = String.format(
-            "\n=====================================================\n" +
-            "                   BATCH SUMMARY                     \n" +
-            "=====================================================\n" +
-            "| %-25s | %10d \n" +
-            "| %-25s | %10d \n" +
-            "| %-25s | %10d \n" +
-            "| %-25s | %10d \n" +
-            "| %-25s | %10d \n" +
-            "| %-25s | %10s sec \n" + 
-            "=====================================================\n",
+            """
+                =====================================================
+                                   BATCH SUMMARY                    \s
+                =====================================================
+                | %-25s | %10d\s
+                | %-25s | %10d\s
+                | %-25s | %10d\s
+                | %-25s | %10d\s
+                | %-25s | %10d\s
+                | %-25s | %10s sec\s
+                =====================================================
+                """,
             "Total Records Processed", totalRecords,
             "Total Migrated Items", totalMigrated,
             "Total Failed Items", totalFailed,
@@ -178,7 +188,7 @@ public class LoggingService {
 
 
         try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
-            PrintWriter printWriter = new PrintWriter(fileWriter)) {
+             PrintWriter printWriter = new PrintWriter(fileWriter)) {
             printWriter.println(summary);
         } catch (IOException e) {
             System.err.println("Failed to write summary to output.log: " + e.getMessage());
@@ -193,11 +203,11 @@ public class LoggingService {
     public void setTotalRecordsFromFile(String filePath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)))) {
             long lineCount = reader.lines()
-                .skip(1) // Skip header
-                .filter(line -> !line.trim().isEmpty()) 
-                .count();
+                                   .skip(1) // Skip header
+                                   .filter(line -> !line.trim().isEmpty())
+                                   .count();
 
-            this.totalRecords = Math.max((int) lineCount, 1); 
+            this.totalRecords = Math.max((int) lineCount, 1);
             logInfo("Total records set from file '%s': %d", filePath, this.totalRecords);
 
         } catch (IOException e) {

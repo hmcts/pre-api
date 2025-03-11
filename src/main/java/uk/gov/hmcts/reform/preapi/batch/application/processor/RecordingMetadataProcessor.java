@@ -2,8 +2,8 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
@@ -27,7 +27,7 @@ public class RecordingMetadataProcessor {
     @Autowired
     public RecordingMetadataProcessor(
         DataExtractionService extractionService,
-        DataTransformationService transformationService, 
+        DataTransformationService transformationService,
         RedisService redisService
     ) {
         this.extractionService = extractionService;
@@ -37,6 +37,7 @@ public class RecordingMetadataProcessor {
 
     /**
      * Processes a list of CSVArchiveListData items and caches the metadata in Redis.
+     *
      * @param archiveItem List of CSVArchiveListData to process.
      */
     public void processRecording(CSVArchiveListData archiveItem) {
@@ -46,7 +47,7 @@ public class RecordingMetadataProcessor {
                 return;
             }
 
-            ServiceResult<CleansedData> result =  transformationService.transformData(archiveItem, extracted.getData());
+            ServiceResult<CleansedData> result = transformationService.transformData(archiveItem, extracted.getData());
             CleansedData cleansedData = (CleansedData) result.getData();
             if (cleansedData == null) {
                 ServiceResultUtil.failure("Data not transformed successfully", "Missing data");
@@ -58,7 +59,7 @@ public class RecordingMetadataProcessor {
                 cleansedData.getDefendantLastName(),
                 cleansedData.getWitnessFirstName()
             );
-            
+
             Map<String, String> existingMetadata = redisService.getHashAll(redisKey, String.class, String.class);
             if (existingMetadata == null) {
                 existingMetadata = new HashMap<>();

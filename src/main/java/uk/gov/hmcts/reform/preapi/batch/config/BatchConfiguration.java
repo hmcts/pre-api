@@ -22,11 +22,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
+import uk.gov.hmcts.reform.preapi.batch.application.processor.ArchiveMetadataXmlExtractor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.RecordingMetadataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.ArchiveMetadataXmlExtractor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
@@ -41,10 +41,10 @@ import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
-import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
+import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
+import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
 import java.io.IOException;
@@ -105,7 +105,7 @@ public class BatchConfiguration implements StepExecutionListener {
         this.transactionManager = transactionManager;
         this.csvReader = csvReader;
         this.preProcessor = preProcessor;
-        this.recordingPreProcessor =  recordingPreProcessor;
+        this.recordingPreProcessor = recordingPreProcessor;
         this.referenceDataProcessor = referenceDataProcessor;
         this.itemProcessor = itemProcessor;
         this.redisService = redisService;
@@ -200,10 +200,11 @@ public class BatchConfiguration implements StepExecutionListener {
 
     protected Step startLogging() {
         return new StepBuilder("loggingStep", jobRepository)
-                .tasklet((contribution, chunkContext) -> {
+            .tasklet(
+                (contribution, chunkContext) -> {
                     String debugParam = (String) chunkContext.getStepContext()
-                    .getJobParameters()
-                    .get("debug");
+                                                             .getJobParameters()
+                                                             .get("debug");
 
                     boolean debug = Boolean.parseBoolean(debugParam);
 
@@ -212,74 +213,84 @@ public class BatchConfiguration implements StepExecutionListener {
                     loggingService.logInfo("Job started with debug mode: " + debug);
 
                     return RepeatStatus.FINISHED;
-                }, transactionManager)
-                .build();
+                }, transactionManager
+            )
+            .build();
     }
 
     @Bean
     @JobScope
     protected Step createXmlFetchStep() {
         return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
-                .tasklet((contribution, chunkContext) -> {
+            .tasklet(
+                (contribution, chunkContext) -> {
                     String containerName = "pre-vodafone-spike";
                     String outputDir = "src/main/resources/batch";
                     xmlProcessingService.extractAndReportArchiveMetadata(containerName, outputDir);
                     return RepeatStatus.FINISHED;
-                }, transactionManager)
-                .build();
+                }, transactionManager
+            )
+            .build();
     }
 
     protected Step createPreProcessStep() {
         return new StepBuilder("preProcessStep", jobRepository)
-                .tasklet((contribution, chunkContext) -> {
+            .tasklet(
+                (contribution, chunkContext) -> {
                     preProcessor.initialize();
                     return RepeatStatus.FINISHED;
-                }, transactionManager)
-                .build();
+                }, transactionManager
+            )
+            .build();
     }
 
     protected Step createPreProcessMetadataStep() {
         return new StepBuilder("preProcessMetadataStep", jobRepository)
-            .tasklet((contribution, chunkContext) -> {
-                Resource resource = new ClassPathResource(ARCHIVE_LIST_CSV);
-                String[] fieldNames = {"archive_name", "create_time", "duration", "file_name", "file_size"};
+            .tasklet(
+                (contribution, chunkContext) -> {
+                    Resource resource = new ClassPathResource(ARCHIVE_LIST_CSV);
+                    String[] fieldNames = {"archive_name", "create_time", "duration", "file_name", "file_size"};
 
-                FlatFileItemReader<CSVArchiveListData> reader = csvReader.createReader(
-                    resource, fieldNames, CSVArchiveListData.class
-                );
+                    FlatFileItemReader<CSVArchiveListData> reader = csvReader.createReader(
+                        resource, fieldNames, CSVArchiveListData.class
+                    );
 
-                reader.open(new ExecutionContext());
+                    reader.open(new ExecutionContext());
 
-                CSVArchiveListData item;
-                while ((item = reader.read()) != null) {
-                    recordingPreProcessor.processRecording(item);
-                }
+                    CSVArchiveListData item;
+                    while ((item = reader.read()) != null) {
+                        recordingPreProcessor.processRecording(item);
+                    }
 
-                reader.close();
+                    reader.close();
 
-                return RepeatStatus.FINISHED;
-            }, transactionManager)
+                    return RepeatStatus.FINISHED;
+                }, transactionManager
+            )
             .build();
     }
 
     protected Step createWriteToCSVStep() {
         return new StepBuilder("writeToCSVStep", jobRepository)
-                .tasklet((contribution, chunkContext) -> {
+            .tasklet(
+                (contribution, chunkContext) -> {
                     migrationTrackerService.writeAllToCsv();
                     return RepeatStatus.FINISHED;
-                }, transactionManager)
-                .build();
+                }, transactionManager
+            )
+            .build();
     }
 
     protected Step createRobotUserSignInStep() {
         return new StepBuilder("signInRobotUserStep", jobRepository)
-            .tasklet((contribution, chunkContext) -> {
-                robotUserTask.signIn();
-                return RepeatStatus.FINISHED;
-            }, transactionManager)
+            .tasklet(
+                (contribution, chunkContext) -> {
+                    robotUserTask.signIn();
+                    return RepeatStatus.FINISHED;
+                }, transactionManager
+            )
             .build();
     }
-
 
 
     // =========================
@@ -374,8 +385,10 @@ public class BatchConfiguration implements StepExecutionListener {
     //                                     closedCases++;
     //                                 }
     //                             } catch (Exception e) {
-    //                                 loggingService.logError("Error closing case {}: {}" + caseDto.getReference() + e.getMessage());
-    //                                 // logger.error("Error closing case {}: {}", caseDto.getReference(), e.getMessage());
+    //                                 loggingService.logError(
+    //                                     "Error closing case {}: {}" + caseDto.getReference() + e.getMessage());
+    //                                 // logger.error(
+    //                                     "Error closing case {}: {}", caseDto.getReference(), e.getMessage());
     //                                 skippedCases++;
     //                             }
 
@@ -384,7 +397,8 @@ public class BatchConfiguration implements StepExecutionListener {
     //                         processedCases++;
     //                     }
     //                 } catch (Exception e) {
-    //                     loggingService.logError("Error processing case {}: {}" + caseDto.getReference() + e.getMessage() + e);
+    //                     loggingService.logError(
+    //                         "Error processing case {}: {}" + caseDto.getReference() + e.getMessage() + e);
     //                     // logger.error("Error processing case {}: {}", caseDto.getReference(), e.getMessage(), e);
     //                 }
     //             }
@@ -504,7 +518,8 @@ public class BatchConfiguration implements StepExecutionListener {
     //                 for (CaseDTO caseDto : allCases.getContent()) {
     //                     try {
     //                         boolean hasVodafoneOrigin = checkForVodafoneOrigin(vodafoneOriginSessions, caseDto);
-    //                         logger.debug("Case {} has Vodafone origin: {}", caseDto.getReference(), hasVodafoneOrigin);
+    //                         logger.debug(
+    //                             "Case {} has Vodafone origin: {}", caseDto.getReference(), hasVodafoneOrigin);
 
     //                         if (hasVodafoneOrigin) {
     //                             boolean hasChannelUser = channelNames
@@ -513,13 +528,17 @@ public class BatchConfiguration implements StepExecutionListener {
     //                             logger.debug("Case {} has channel user: {}", caseDto.getReference(), hasChannelUser);
 
     //                             if (!hasChannelUser) {
-    //                                 logger.info("Non-transactional: Attempting to close case {}", caseDto.getReference());
+    //                                 logger.info(
+    //                                     "Non-transactional: Attempting to close case {}", caseDto.getReference());
 
     //                                 try {
-    //                                     logger.debug("Before processCaseNonTransactional call for case {}", caseDto.getReference());
+    //                                     logger.debug("Before processCaseNonTransactional call for case {}",
+    //                                                  caseDto.getReference());
     //                                     boolean success = processCaseNonTransactional(caseDto);
-    //                                     logger.debug("After processCaseNonTransactional call for case {}, success={}",
-    //                                         caseDto.getReference(), success);
+    //                                     logger.debug("After processCaseNonTransactional call for case {},
+    //                                                  success={}",
+    //                                                  caseDto.getReference(),
+    //                                                  success);
 
     //                                     if (success) {
     //                                         closedCases++;
@@ -529,7 +548,8 @@ public class BatchConfiguration implements StepExecutionListener {
     //                                         logger.info("Skipped closing case {}", caseDto.getReference());
     //                                     }
     //                                 } catch (Exception e) {
-    //                                     logger.error("Error closing case {}: {}", caseDto.getReference(), e.getMessage(), e);
+    //                                     logger.error(
+    //                                         "Error closing case {}: {}", caseDto.getReference(), e.getMessage(), e);
     //                                     skippedCases++;
     //                                 }
     //                             }
