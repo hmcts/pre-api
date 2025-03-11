@@ -3220,6 +3220,10 @@ paths:
           in: query
           name: includeDeleted
           type: boolean
+        - description: The case status to search by
+          in: query
+          name: caseOpen
+          type: boolean
         - description: Sort by
           in: query
           name: sort
