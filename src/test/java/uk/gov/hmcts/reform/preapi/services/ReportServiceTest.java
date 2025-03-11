@@ -748,7 +748,7 @@ public class ReportServiceTest {
         appAccess2.setLastAccess(Timestamp.from(Instant.now()));
         appAccess2.setRole(roleEntity);
 
-        when(appAccessRepository.findAll()).thenReturn(List.of(appAccess1, appAccess2));
+        when(appAccessRepository.getUserPrimaryCourtsForReport()).thenReturn(List.of(appAccess1, appAccess2));
 
         var report = reportService.reportUserPrimaryCourts();
 

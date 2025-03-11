@@ -207,11 +207,12 @@ public class ReportService {
         );
     }
 
+    @Transactional
     public List<UserPrimaryCourtReportDTO> reportUserPrimaryCourts() {
 
         List<UserPrimaryCourtReportDTO> userPrimaryCourtReportDTOs = new ArrayList<>();
 
-        for (AppAccess appAccessObj : this.appAccessRepository.findAllByOrderByUser_LastNameAsc()) {
+        for (AppAccess appAccessObj : this.appAccessRepository.getUserPrimaryCourtsForReport()) {
             UserPrimaryCourtReportDTO userPrimaryCourtReportDTO = new UserPrimaryCourtReportDTO(
                 appAccessObj.getUser().getFirstName(),
                 appAccessObj.getUser().getLastName(),
@@ -222,6 +223,7 @@ public class ReportService {
             );
 
             userPrimaryCourtReportDTOs.add(userPrimaryCourtReportDTO);
+
         }
 
         return userPrimaryCourtReportDTOs;

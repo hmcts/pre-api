@@ -31,5 +31,12 @@ public interface AppAccessRepository extends JpaRepository<AppAccess, UUID> {
     )
     Optional<AppAccess> findByIdValidUser(@Param("userId") UUID userId);
 
-    List<AppAccess> findAllByOrderByUser_LastNameAsc();
+    @Query(
+        """
+        SELECT a FROM AppAccess a
+        WHERE a.defaultCourt IS TRUE
+        ORDER BY a.user.lastName ASC
+        """
+    )
+    List<AppAccess> getUserPrimaryCourtsForReport();
 }
