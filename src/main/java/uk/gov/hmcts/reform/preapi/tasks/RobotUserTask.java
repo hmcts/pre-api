@@ -8,9 +8,9 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 @Slf4j
 public abstract class RobotUserTask implements Runnable {
-    protected final String cronUserEmail;
     protected final UserService userService;
     protected final UserAuthenticationService userAuthenticationService;
+    protected final String cronUserEmail;
 
     protected RobotUserTask(UserService userService,
                             UserAuthenticationService userAuthenticationService,
