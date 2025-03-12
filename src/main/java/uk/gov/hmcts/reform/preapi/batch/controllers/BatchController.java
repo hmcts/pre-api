@@ -45,9 +45,8 @@ public class BatchController {
             return ResponseEntity.ok("Successfully completed Fetch XML batch job ");
 
         } catch (Exception e) {
-            loggingService.logError("Error starting fetch XML batch job: {}", e.getMessage());
-            loggingService.logDebug("Exception details:", e);
-            return ResponseEntity.status(500).body("Failed to start fetch XML batch job: " + e.getMessage());
+            loggingService.logError("Error starting fetch XML batch job: {}", e);
+            return ResponseEntity.status(500).body("Failed to start fetch XML batch job");
         }
     }
 
@@ -60,13 +59,11 @@ public class BatchController {
             jobParametersBuilder.addString("debug", String.valueOf(debug));
 
             jobLauncher.run(importCsvJob, jobParametersBuilder.toJobParameters());
-
             return ResponseEntity.ok("Successfully completed Transform batch job ");
 
         } catch (Exception e) {
-            loggingService.logError("Error starting Transform batch job: {}", e.getMessage());
-            loggingService.logDebug("Exception details:", e); 
-            return ResponseEntity.status(500).body("Failed to start batch job: " + e.getMessage());
+            loggingService.logError("Error starting Transform batch job: {}", e);
+            return ResponseEntity.status(500).body("Failed to start batch job");
         }
     }
 
