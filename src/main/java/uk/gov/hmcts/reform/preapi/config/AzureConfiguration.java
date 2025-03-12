@@ -27,11 +27,17 @@ public class AzureConfiguration {
     @Value("${azure.ingestStorage.connectionString}")
     private String ingestConnectionString;
 
+    @Value("${azure.vodafoneStorage.connectionString}")
+    private String vodafoneConnectionString;
+
     @Value("${azure.finalStorage.accountName}")
     private String finalStorageAccountName;
 
     @Value("${azure.ingestStorage.accountName}")
     private String ingestStorageAccountName;
+
+    @Value("${azure.vodafoneStorage.accountName}")
+    private String vodafoneStorageAccountName;
 
     @Value("${azure.managedIdentityClientId}")
     private String managedIdentityClientId;
@@ -57,6 +63,17 @@ public class AzureConfiguration {
         }
         log.info("Using connection string to authenticate with final storage account");
         return getBlobServiceClientUsingConnectionString(finalConnectionString, finalStorageAccountName);
+    }
+
+    @Bean
+    public BlobServiceClient vodafoneStorageClient() {
+        if (!managedIdentityClientId.isEmpty()) {
+            log.info("Using managed identity to authenticate with final storage account with clientId: {}",
+                     managedIdentityClientId);
+            return getBlobServiceClientUsingManagedIdentity(vodafoneStorageAccountName);
+        }
+        log.info("Using connection string to authenticate with final storage account");
+        return getBlobServiceClientUsingConnectionString(vodafoneConnectionString, vodafoneStorageAccountName);
     }
 
     @Nullable

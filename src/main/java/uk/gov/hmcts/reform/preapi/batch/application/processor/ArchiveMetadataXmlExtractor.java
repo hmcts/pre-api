@@ -1,14 +1,15 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,18 +25,18 @@ import javax.xml.parsers.DocumentBuilderFactory;
  */
 @Service
 public class ArchiveMetadataXmlExtractor {
-    private static final String ENV_DEV = "dev";
 
-    private final AzureBlobService azureBlobService;
+    private final AzureVodafoneStorageService azureVodafoneStorageService;
     private final ReportingService reportingService;
     private final LoggingService loggingService;
 
+    @Autowired
     public ArchiveMetadataXmlExtractor(
-        AzureBlobService azureBlobService,
+        AzureVodafoneStorageService azureVodafoneStorageService,
         ReportingService reportingService,
         LoggingService loggingService
     ) {
-        this.azureBlobService = azureBlobService;
+        this.azureVodafoneStorageService = azureVodafoneStorageService;
         this.reportingService = reportingService;
         this.loggingService = loggingService;
     }
@@ -50,7 +51,7 @@ public class ArchiveMetadataXmlExtractor {
         try {
             loggingService.logInfo("Starting extraction for container: %s", containerName);
 
-            List<String> blobNames = azureBlobService.fetchBlobNames(containerName, ENV_DEV);
+            List<String> blobNames = azureVodafoneStorageService.fetchBlobNames(containerName);
             loggingService.logDebug("Found %d blobs in container: %s", blobNames.size(), containerName);
 
             if (blobNames.isEmpty()) {
@@ -86,8 +87,8 @@ public class ArchiveMetadataXmlExtractor {
     private List<List<String>> extractMetadataFromBlobs(String containerName, List<String> blobNames) {
         List<List<String>> allArchiveMetadata = new ArrayList<>();
         for (String blobName : blobNames) {
-            try (InputStream xmlStream = azureBlobService.fetchSingleXmlBlob(
-                containerName, ENV_DEV, blobName).getInputStream()) {
+            try (InputStream xmlStream = azureVodafoneStorageService.fetchSingleXmlBlob(
+                containerName, blobName).getInputStream()) {
 
                 List<List<String>> blobMetadata = parseArchiveMetadataFromXml(xmlStream);
                 if (!blobMetadata.isEmpty()) {
