@@ -284,7 +284,7 @@ dependencies {
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.3.4'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.3.4'
   implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.5'
-  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.3'
+  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.5'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 
