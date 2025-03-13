@@ -157,4 +157,11 @@ public class CaptureSessionController extends PreApiController {
         captureSessionService.undelete(captureSessionId);
         return ResponseEntity.ok().build();
     }
+
+    @GetMapping("/live-event/{liveEventId}")
+    @Operation(operationId = "getCaptureSessionByLiveEventId", summary = "Get Capture Session by Live Event ID")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    public ResponseEntity<CaptureSessionDTO> getCaptureSessionByLiveEventId(@PathVariable String liveEventId) {
+        return ResponseEntity.ok(captureSessionService.findByLiveEventId(liveEventId));
+    }
 }
