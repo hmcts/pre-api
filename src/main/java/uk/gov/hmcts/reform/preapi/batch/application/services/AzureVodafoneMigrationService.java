@@ -15,12 +15,12 @@ import java.util.logging.Logger;
 public class AzureVodafoneMigrationService {
 
     private final BlobServiceClient vodafoneStorageClient;
-    private final BlobServiceClient finalStorageClient;
+    private final BlobServiceClient ingestStorageClient;
 
     @Autowired
     public AzureVodafoneMigrationService(AzureConfiguration configuration) {
         this.vodafoneStorageClient = configuration.vodafoneStorageClient();
-        this.finalStorageClient = configuration.finalStorageClient();
+        this.ingestStorageClient = configuration.ingestStorageClient();
     }
 
     public void copyBlob(
@@ -32,7 +32,7 @@ public class AzureVodafoneMigrationService {
             var sourceContainerClient = this.vodafoneStorageClient.getBlobContainerClient(sourceContainer);
             var sourceBlobClient = sourceContainerClient.getBlobClient(blobName);
 
-            var destContainerClient = this.finalStorageClient.getBlobContainerClient(destContainer);
+            var destContainerClient = this.ingestStorageClient.getBlobContainerClient(destContainer);
             var destBlobClient = destContainerClient.getBlobClient(blobName);
 
             if (!destContainerClient.exists()) {
@@ -45,7 +45,7 @@ public class AzureVodafoneMigrationService {
             poller.waitForCompletion();
 
             log.info(
-                "Successfully copied blob '{}' from vodafone/{} to final/{}",
+                "Successfully copied blob '{}' from vodafone/{} to ingest/{}",
                 blobName,
                 sourceContainer,
                 destContainer
