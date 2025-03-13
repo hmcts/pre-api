@@ -4,12 +4,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
-import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.AzureVodafoneMigrationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -20,16 +21,19 @@ import java.util.UUID;
 public class MediaTransformationService {
     private LoggingService loggingService;
 
-    private final AzureBlobService azureBlobService;
+    private final AzureVodafoneMigrationService azureVodafoneMigrationService;
+    private final AzureVodafoneStorageService azureVodafoneStorageService;
     private final MediaKind mediaKindService;
 
     @Autowired
     public MediaTransformationService(
-        AzureBlobService azureBlobService,
+        AzureVodafoneMigrationService azureVodafoneMigrationService,
+        AzureVodafoneStorageService azureVodafoneStorageService,
         MediaKind mediaKindService,
         LoggingService loggingService
     ) {
-        this.azureBlobService = azureBlobService;
+        this.azureVodafoneMigrationService = azureVodafoneMigrationService;
+        this.azureVodafoneStorageService = azureVodafoneStorageService;
         this.mediaKindService = mediaKindService;
         this.loggingService = loggingService;
     }
@@ -43,9 +47,7 @@ public class MediaTransformationService {
             }
             boolean copied = copyBlobBetweenContainers(
                 Constants.Environment.SOURCE_CONTAINER,
-                Constants.Environment.SOURCE_ENVIRONMENT,
                 recordingId.toString(),
-                Constants.Environment.INGEST_CONTAINER_STG,
                 mp4FileName
             );
 
@@ -53,8 +55,6 @@ public class MediaTransformationService {
                 loggingService.logError("Failed to copy media file: %s", mp4FileName);
                 return;
             }
-            String ingestContainerName = recordingId + Constants.Environment.RECORDING_INPUT_CONTAINER_SUFFIX;
-            transferMediaToIngestContainer(localFilePath, ingestContainerName, mp4FileName);
 
             processInMediaKind(recordingId, mp4FileName);
 
@@ -65,17 +65,13 @@ public class MediaTransformationService {
 
     private boolean copyBlobBetweenContainers(
         String sourceContainer,
-        String sourceEnvironment,
         String destContainer,
-        String destEnvironment,
         String blobName
     ) {
         try {
-            azureBlobService.copyBlob(
+            azureVodafoneMigrationService.copyBlob(
                 sourceContainer,
-                sourceEnvironment,
                 destContainer,
-                destEnvironment,
                 blobName
             );
             return true;
@@ -87,9 +83,8 @@ public class MediaTransformationService {
 
     private String downloadFile(String blobName) {
         try {
-            InputStreamResource resource = azureBlobService.fetchSingleXmlBlob(
+            InputStreamResource resource = azureVodafoneStorageService.fetchSingleXmlBlob(
                 Constants.Environment.SOURCE_CONTAINER,
-                Constants.Environment.SOURCE_ENVIRONMENT,
                 blobName
             );
 
@@ -122,30 +117,6 @@ public class MediaTransformationService {
         } catch (IOException e) {
             loggingService.logError("Error saving file locally: %s", e.getMessage());
             return null;
-        }
-    }
-
-    /**
-     * Transfers media file to ingest container.
-     *
-     * @param localFilePath       Path to the local media file
-     * @param ingestContainerName Name of the ingest container
-     * @param fileName            Name of the file to use in the container
-     */
-    private void transferMediaToIngestContainer(
-        String localFilePath,
-        String ingestContainerName,
-        String fileName
-    ) {
-        try {
-            azureBlobService.uploadBlob(
-                localFilePath,
-                ingestContainerName,
-                Constants.Environment.INGEST_CONTAINER_STG,
-                fileName
-            );
-        } catch (Exception e) {
-            loggingService.logError("Failed to upload media to ingest container: %s - %s", ingestContainerName, e);
         }
     }
 
