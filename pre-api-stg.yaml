@@ -175,6 +175,9 @@ definitions:
         description: CaptureSessionCaseClosedAt
         format: date-time
         type: string
+      case_reference:
+        description: CaptureSessionCaseReference
+        type: string
       case_state:
         description: CaptureSessionCaseState
         enum:
@@ -889,6 +892,9 @@ definitions:
       case_closed_at:
         description: CaptureSessionCaseClosedAt
         format: date-time
+        type: string
+      case_reference:
+        description: CaptureSessionCaseReference
         type: string
       case_state:
         description: CaptureSessionCaseState
@@ -2286,6 +2292,31 @@ paths:
           schema:
             $ref: '#/definitions/PagedModelEntityModelCaptureSessionDTO'
       summary: Search All Capture Sessions
+      tags:
+        - capture-session-controller
+  '/capture-sessions/live-event/{liveEventId}':
+    get:
+      operationId: getCaptureSessionByLiveEventId
+      parameters:
+        - in: path
+          name: liveEventId
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/CaptureSessionDTO'
+      summary: Get Capture Session by Live Event ID
       tags:
         - capture-session-controller
   '/capture-sessions/{captureSessionId}':
