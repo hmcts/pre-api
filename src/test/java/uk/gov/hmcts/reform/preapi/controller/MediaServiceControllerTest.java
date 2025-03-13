@@ -8,11 +8,11 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.MediaServiceController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
@@ -64,28 +64,28 @@ public class MediaServiceControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private MediaServiceBroker mediaServiceBroker;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
-    @MockBean
+    @MockitoBean
     private RecordingService recordingService;
 
-    @MockBean
+    @MockitoBean
     private MediaKind mediaService;
 
-    @MockBean
+    @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
-    @MockBean
+    @MockitoBean
     private UserAuthenticationService userAuthenticationService;
 
-    @MockBean
+    @MockitoBean
     private ScheduledTaskRunner taskRunner;
 
-    @MockBean
+    @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
