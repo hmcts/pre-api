@@ -1,5 +1,5 @@
 pandas==2.2.3
 psycopg2-binary==2.9.10
 pytz==2025.1
-azure-storage-blob==12.24.1
+azure-storage-blob==12.25.0
 azure-core==1.32.0
