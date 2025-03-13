@@ -6,13 +6,16 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -268,6 +271,34 @@ public class RecordingControllerFT extends FunctionalTestBase {
         // check parent recording
         var getRecording3 = assertRecordingExists(details.recordingId, true);
         assertThat(getRecording3.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Should show recording length in search results")
+    void getRecordingLengths() throws JsonProcessingException {
+        CreateRecordingResponse details = createRecording();
+
+        CreateRecordingDTO recording = createRecording(details.captureSessionId);
+        recording.setParentRecordingId(details.recordingId);
+        var putRecording = putRecording(recording);
+        assertResponseCode(putRecording, 201);
+
+        var getRecording = assertRecordingExists(recording.getId(), true);
+        assertThat(getRecording.getBody().as(RecordingDTO.class).getDuration())
+            .isEqualTo(Duration.of(10, ChronoUnit.MINUTES));
+
+        var getRecordingsList = doGetRequest(
+            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId,
+            TestingSupportRoles.SUPER_USER
+        );
+
+        assertResponseCode(getRecordingsList, 200);
+        var recordingsList = getRecordingsList.jsonPath().getList("_embedded.recordingDTOList", RecordingDTO.class);
+
+        // default sort by createdAt desc
+        assertThat(recordingsList.size()).isEqualTo(2);
+        assertThat(recordingsList.getFirst().getId()).isEqualTo(recording.getId());
+        assertThat(recordingsList.getFirst().getDuration()).isEqualTo(Duration.of(10, ChronoUnit.MINUTES));
     }
 
     @DisplayName("Should throw 400 error when sort param is invalid")

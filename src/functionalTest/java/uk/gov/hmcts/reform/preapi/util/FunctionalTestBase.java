@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,6 +30,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -72,6 +74,7 @@ public class FunctionalTestBase {
     @BeforeAll
     static void beforeAll() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+        OBJECT_MAPPER.registerModule(new JavaTimeModule());
     }
 
     private static Map<String, String> getRequestHeaders(
@@ -420,6 +423,7 @@ public class FunctionalTestBase {
     protected CreateRecordingDTO createRecording(UUID captureSessionId) {
         var dto = new CreateRecordingDTO();
         dto.setId(UUID.randomUUID());
+        dto.setDuration(Duration.ofMinutes(10));
         dto.setCaptureSessionId(captureSessionId);
         dto.setEditInstructions("{}");
         dto.setVersion(1);
@@ -435,4 +439,5 @@ public class FunctionalTestBase {
             TestingSupportRoles.SUPER_USER
         );
     }
+
 }
