@@ -134,6 +134,17 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
+    @Qualifier("postMigrationJob")
+    public Job processPostMigration() {
+        return new JobBuilder("postMigrationJob", jobRepository)
+            .incrementer(new RunIdIncrementer())
+            .start(startLogging())
+            // .next(createNonTransactionalMarkCasesClosedStep())
+            // .next(markCasesStep)
+            .build();
+    }
+
+    @Bean
     @Qualifier("importCsvJob")
     public Job processCSVJob() {
         Step startLogStep = startLogging();
@@ -143,7 +154,6 @@ public class BatchConfiguration implements StepExecutionListener {
         Step preProcessStep = createPreProcessStep();
         Step metadataStep = createPreProcessMetadataStep();
         Step archiveStep = createArchiveListStep();
-        // Step markCasesStep = createMarkCasesClosedStep();
         Step writeCsvStep = createWriteToCSVStep();
 
         return new JobBuilder("importCsvJob", jobRepository)
@@ -158,8 +168,6 @@ public class BatchConfiguration implements StepExecutionListener {
             .next(preProcessStep)
             .next(metadataStep)
             .next(archiveStep)
-            // .next(createNonTransactionalMarkCasesClosedStep())
-            // .next(markCasesStep)
             .next(writeCsvStep)
             .end()
             .build();

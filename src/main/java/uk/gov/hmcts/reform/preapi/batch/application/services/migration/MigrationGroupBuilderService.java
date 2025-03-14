@@ -5,6 +5,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
@@ -32,6 +33,7 @@ import java.util.Set;
 
 @Service
 public class MigrationGroupBuilderService {
+    private LoggingService loggingService;
     private static final String REDIS_BOOKING_FIELD = "bookingField";
     private static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
     private static final String REDIS_RECORDING_FIELD = "recordingField";
@@ -46,12 +48,14 @@ public class MigrationGroupBuilderService {
 
     @Autowired
     public MigrationGroupBuilderService(
+        LoggingService loggingService,
         EntityCreationService entityCreationService,
         RedisService redisService,
         MigrationTrackerService migrationTrackerService,
         CaseRepository caseRepository,
         MediaTransformationService recordingMediaKindTransform
     ) {
+        this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.redisService = redisService;
         this.migrationTrackerService = migrationTrackerService;
@@ -118,6 +122,7 @@ public class MigrationGroupBuilderService {
         }
 
         PassItem passItem = new PassItem(pattern, archiveItem, cleansedData);
+        loggingService.logInfo("Migration group created...");
 
         return new MigratedItemGroup(
             acase, booking, captureSession, recording, participants,

@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
 import java.util.Map;
 import java.util.Optional;
@@ -80,11 +81,25 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     private MigratedItemGroup process(CSVArchiveListData archiveItem) {
         try {
-            ExtractedMetadata extractedData = extractData(archiveItem);
-            if (extractedData == null) {
-                return null;
+            // ServiceResult<ExtractedMetadata> extractionResult  = extractData(archiveItem);
+            ServiceResult<?> extractionResult = extractionService.process(archiveItem);
+
+            if (extractionResult.isTest()) {
+                TestItem testItem = extractionResult.getTestItem();
+                if (testItem != null) {
+                    // handleTest(testItem);
+                    migrationTrackerService.addTestItem(testItem);  
+                    loggingService.logDebug("Skipping test item: %s", testItem.getArchiveItem().getArchiveName());
+                }
+                return null; 
             }
 
+            if (!extractionResult.isSuccess()) {
+                loggingService.logError("Extraction failed: %s", extractionResult.getErrorMessage());
+                return handleError(archiveItem, extractionResult.getErrorMessage(), extractionResult.getCategory());
+            }
+            
+            ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
             CleansedData cleansedData = transformData(archiveItem, extractedData);
             if (cleansedData == null) {
                 return null;
@@ -113,16 +128,16 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     // Extraction, Transformation and Validation
     // =========================
-    private ExtractedMetadata extractData(CSVArchiveListData archiveItem) {
+    // private ExtractedMetadata extractData(CSVArchiveListData archiveItem) {
+    //     ServiceResult<ExtractedMetadata> result = extractionService.process(archiveItem);
 
-        ServiceResult<ExtractedMetadata> result = extractionService.process(archiveItem);
-        if (checkForError(result, archiveItem)) {
-            loggingService.logError("Regex matching failed for archive: %s", archiveItem.getArchiveName());
-            return null;
-        }
+    //     if (checkForError(result, archiveItem)) {
+    //         loggingService.logError("Regex matching failed for archive: %s", archiveItem.getArchiveName());
+    //         return null;
+    //     }
 
-        return (ExtractedMetadata) result.getData();
-    }
+    //     return (ExtractedMetadata) result.getData();
+    // }
 
     private CleansedData transformData(CSVArchiveListData archiveItem, ExtractedMetadata extractedData) {
 
@@ -156,8 +171,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // Helper Methods
     //======================
     private <T> boolean checkForError(ServiceResult<T> result, CSVArchiveListData archiveItem) {
+        // boolean checkTest = result.isTest();
         String errorMessage = (String) result.getErrorMessage();
         String category = (String) result.getCategory();
+
         if (errorMessage != null) {
             handleError(archiveItem, errorMessage, category);
             return true;
@@ -167,7 +184,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     private String extractPattern(CSVArchiveListData archiveItem) {
         try {
-            Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(archiveItem.getArchiveName());
+            Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(
+                archiveItem.getArchiveName());
             return patternMatch.map(Map.Entry::getKey).orElse(null);
         } catch (Exception e) {
             handleError(archiveItem, e.getMessage(), "Error");
@@ -179,5 +197,12 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         migrationTrackerService.addFailedItem(new FailedItem(archiveItem, message, category));
         return null;
     }
+
+    // private MigratedItemGroup handleTest(TestItem testItem) {
+    //     migrationTrackerService.addTestItem(testItem);
+    //     return null;
+    // }
+
+    
 }
 

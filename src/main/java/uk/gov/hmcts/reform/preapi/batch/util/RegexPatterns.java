@@ -13,11 +13,17 @@ public final class RegexPatterns {
     }
     
     public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(_\\d+)*$");
+    public static final Pattern UUID_FILENAME_PATTERN = Pattern.compile(
+    "^[a-zA-Z0-9]+_\\d{15}_\\d+_[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}(?:\\.(mp4|mov|avi|mkv))?$",
+        Pattern.CASE_INSENSITIVE
+    );
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
+
 
     public static final Map<String, Pattern> TEST_PATTERNS = Map.of(
         "Digit Only", DIGIT_ONLY_PATTERN,
-        "Test Keyword", TEST_KEYWORDS_PATTERN
+        "Test Keyword", TEST_KEYWORDS_PATTERN,
+        "UUID Pattern", UUID_FILENAME_PATTERN
     );
 
     private static Pattern buildTestKeywordsPattern() {
@@ -130,14 +136,15 @@ public final class RegexPatterns {
     public static final Pattern DOUBLE_EXHIBIT_NO_URN_PATTERN = Pattern.compile(
         "^" + COURT_PATTERN + SEPARATOR_ONE 
         + DATE_PATTERN + SEPARATOR_ONE 
-        + "(?<urn>\\d+[A-Za-z]+\\d+)?" + SEPARATOR_ZERO 
-        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?" 
-        + "(?<exhibitRef2>(?:[TU]\\d+|\\d{2}[A-Z]{2}\\d+|\\d+))" + SEPARATOR_ONE   
+        + "(?!\\d+[A-Za-z]+\\d+)"  
+        + "(?<exhibitRef>[A-Za-z]*\\d+)" + SEPARATOR_ONE 
+        + "(?<exhibitRef2>[A-Za-z]*\\d+)" + SEPARATOR_ONE 
         + NAMES_PATTERN + SEPARATOR_ONE 
         + VERSION_PATTERN 
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
-    
+
+        
     /**
      * Pattern for files with S28/NEW/QC prefixes.
      * Format: [S28/NEW/QC] Court Date URN [Exhibit] Defendant Witness Version [.ext]
@@ -181,6 +188,7 @@ public final class RegexPatterns {
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
+    
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.of(
         "Standard", RegexPatterns.STANDARD_PATTERN,
         "StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS,

@@ -57,7 +57,7 @@ public class DataTransformationService {
     public ServiceResult<CleansedData> transformData(CSVArchiveListData archiveItem, ExtractedMetadata extracted) {
         if (archiveItem == null) {
             loggingService.logError("Archive item is null");
-            return ServiceResultUtil.failure("Archive item cannot be null", "Missing data");
+            return ServiceResultUtil.failure("Archive item cannot be null", Constants.Reports.FILE_MISSING_DATA);
         }
 
         try {
@@ -75,7 +75,7 @@ public class DataTransformationService {
 
         } catch (Exception e) {
             loggingService.logError("Data transformation failed for archive: %s - %s", archiveItem.getArchiveName(), e);
-            return ServiceResultUtil.failure(e.getMessage(), "Error");
+            return ServiceResultUtil.failure(e.getMessage(), Constants.Reports.FILE_ERROR);
         }
     }
 

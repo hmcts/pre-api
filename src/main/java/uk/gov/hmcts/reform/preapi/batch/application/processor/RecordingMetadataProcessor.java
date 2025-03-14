@@ -42,12 +42,17 @@ public class RecordingMetadataProcessor {
      */
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
-            ServiceResult<ExtractedMetadata> extracted = extractionService.process(archiveItem);
+            ServiceResult<?> extracted = extractionService.process(archiveItem);
             if (extracted.getErrorMessage() != null) {
                 return;
             }
 
-            ServiceResult<CleansedData> result = transformationService.transformData(archiveItem, extracted.getData());
+            if (extracted.isTest()) {        
+                return;  
+            }
+
+            ExtractedMetadata extractedData = (ExtractedMetadata) extracted.getData();
+            ServiceResult<CleansedData> result = transformationService.transformData(archiveItem, extractedData);
             CleansedData cleansedData = (CleansedData) result.getData();
             if (cleansedData == null) {
                 ServiceResultUtil.failure("Data not transformed successfully", "Missing data");

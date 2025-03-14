@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -28,7 +29,7 @@ public class LoggingService {
     private int totalFailed = 0;
     private final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
-    private int unaccountedRecords = 0;
+    private int unaccountedRecords = this.totalRecords - this.totalMigrated - this.totalFailed;
     private int totalInvited = 0;
 
     private LocalDateTime startTime;
@@ -140,9 +141,9 @@ public class LoggingService {
         this.totalMigrated = count;
     }
 
-    public void setTotalFailed(Map<String, List<FailedItem>> categorizedFailures) {
-        // this.totalFailed = count;
-        this.totalFailed = categorizedFailures.values().stream().mapToInt(List::size).sum();
+    public void setTotalFailed(Map<String, List<FailedItem>> categorizedFailures, List<TestItem> testFailures) {
+        int totalTests = testFailures.size();
+        this.totalFailed = categorizedFailures.values().stream().mapToInt(List::size).sum() + totalTests;
         failedCategoryCounts.clear();
         categorizedFailures.forEach((category, items) -> failedCategoryCounts.put(category, items.size()));
     }

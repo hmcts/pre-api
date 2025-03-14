@@ -6,8 +6,8 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import uk.gov.hmcts.reform.preapi.batch.application.services.AzureBlobService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
 import java.io.IOException;

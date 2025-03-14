@@ -18,11 +18,12 @@ public class ExtractedMetadata {
     private int duration;  
     private String fileName;  
     private String fileSize;  
+    private String sanitizedName;
 
     public ExtractedMetadata(String courtReference, String date, String urn, String exhibitReference,
                              String defendantLastName, String witnessFirstName, String recordingVersion,
                              String recordingVersionNumber, String fileExtension, LocalDateTime createTime,
-                             int duration, String fileName, String fileSize) {
+                             int duration, String fileName, String fileSize, String sanitizedName) {
         this.courtReference = courtReference;
         this.date = date;
         this.urn = urn;
@@ -36,6 +37,7 @@ public class ExtractedMetadata {
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
+        this.sanitizedName = sanitizedName;
     }
 
     public String getCourtReference() { 
@@ -88,6 +90,10 @@ public class ExtractedMetadata {
     
     public String getFileSize() { 
         return fileSize; 
+    } 
+
+    public String getSanitizedName() { 
+        return sanitizedName; 
     } 
 
     private String formatName(String name) {

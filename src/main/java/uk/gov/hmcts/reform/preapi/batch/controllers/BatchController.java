@@ -67,4 +67,21 @@ public class BatchController {
         }
     }
 
+    @PostMapping("/postMigrationJob")
+    public ResponseEntity<String> postMigration(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
+        try {   
+            
+            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
+            jobParametersBuilder.addLong("time", System.currentTimeMillis()); 
+            jobParametersBuilder.addString("debug", String.valueOf(debug));
+
+            jobLauncher.run(importCsvJob, jobParametersBuilder.toJobParameters());
+            return ResponseEntity.ok("Successfully completed Post Migration batch job ");
+
+        } catch (Exception e) {
+            loggingService.logError("Error starting Post Migration batch job: {}", e);
+            return ResponseEntity.status(500).body("Failed to start batch job");
+        }
+    }
+
 }

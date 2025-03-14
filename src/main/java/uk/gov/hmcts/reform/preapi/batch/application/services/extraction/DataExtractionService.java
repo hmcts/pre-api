@@ -6,10 +6,11 @@ import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -17,44 +18,44 @@ import java.util.regex.Matcher;
 @Service
 public class DataExtractionService {
     private LoggingService loggingService;
+    private MetadataValidator validator;
     private PatternMatcherService patternMatcher;
 
     public DataExtractionService(
         LoggingService loggingService,
+        MetadataValidator validator,
         PatternMatcherService patternMatcher
     ) {
         this.loggingService = loggingService;
+        this.validator = validator;
         this.patternMatcher = patternMatcher;
     }
 
-    public ServiceResult<ExtractedMetadata> process(CSVArchiveListData archiveItem) {
+    public ServiceResult<?> process(CSVArchiveListData archiveItem) {
         // pre-extraction validation
         if (archiveItem == null) {
-            loggingService.logError("Received null archiveItem");
-            return ServiceResultUtil.failure("Failed to process: archiveItem is null", "Invalid Data");
+            loggingService.logError("Failed to process: archiveItem is null");
+            return ServiceResultUtil.failure("Failed to process: archiveItem is null", 
+                Constants.Reports.FILE_MISSING_DATA);
         }
 
-        if (!isDateAfterGoLive(archiveItem)) {
-            loggingService.logError(Constants.ErrorMessages.PREDATES_GO_LIVE, archiveItem.getArchiveName());
-            return ServiceResultUtil.failure(Constants.ErrorMessages.PREDATES_GO_LIVE, "Pre-Go-Live");
+        if (!validator.isDateAfterGoLive(archiveItem)) {
+            // loggingService.logError(Constants.ErrorMessages.PREDATES_GO_LIVE, archiveItem.getArchiveName());
+            return ServiceResultUtil.failure(Constants.ErrorMessages.PREDATES_GO_LIVE, 
+                Constants.Reports.FILE_PRE_GO_LIVE);
         }
 
-        if (!isTest(archiveItem)) {
-            loggingService.logError(Constants.ErrorMessages.TEST_ITEM_NAME, archiveItem.getArchiveName());
-            return ServiceResultUtil.failure(Constants.ErrorMessages.TEST_ITEM_NAME, "Test");
+        ServiceResult<TestItem> testValidationResult = validateTest(archiveItem);
+        if (testValidationResult != null) {
+            return testValidationResult;
         }
 
-        if (!isValidDuration(archiveItem)) {
-            loggingService.logError(Constants.ErrorMessages.TEST_DURATION, archiveItem.getArchiveName());
-            return ServiceResultUtil.failure(Constants.ErrorMessages.TEST_DURATION, "Test");
-        }
-
-        // find a pattern match
-        Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(archiveItem.getArchiveName());
+        String sanitizedArchiveName = cleanArchiveName(archiveItem.getArchiveName());
+        loggingService.logDebug("Sanitized name: "+ sanitizedArchiveName);
+        Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(sanitizedArchiveName);
 
         if (patternMatch.isEmpty()) {
             loggingService.logError(Constants.ErrorMessages.PATTERN_MATCH, archiveItem.getArchiveName());
-            throw new IllegalStateException(Constants.ErrorMessages.PATTERN_MATCH);
         }
 
         Matcher matcher = patternMatch.get().getValue();
@@ -64,8 +65,52 @@ public class DataExtractionService {
             patternName,
             archiveItem.getArchiveName()
         );
+        
+        var extractedData = extractMetaData(matcher, archiveItem, sanitizedArchiveName);
 
-        var extractedData = new ExtractedMetadata(
+        loggingService.logDebug("Extracted metadata in extraction service: " + extractedData);
+        if (extractedData == null){
+            return ServiceResultUtil.failure(Constants.ErrorMessages.PATTERN_MATCH, 
+                "Regex_Issues");
+        }
+       
+        if (!isValidExtension(extractedData.getFileExtension())) {
+            return ServiceResultUtil.failure(Constants.ErrorMessages.INVALID_FILE_EXTENSION, 
+                Constants.Reports.FILE_INVALID_FORMAT);
+        }
+
+        List<String> missingFields = validator.getMissingMetadataFields(extractedData);
+        if (!missingFields.isEmpty()) {
+            return ServiceResultUtil.failure(
+                "Missing required metadata fields: " + String.join(", ", missingFields),
+                "Invalid Metadata"
+            );
+        }
+
+        
+        // if (!validator.hasRequiredMetadata(extractedData)) {
+        //     return ServiceResultUtil.failure("Missing required metadata fields", "Invalid Metadata");
+        // }
+
+       
+
+        return ServiceResultUtil.success(extractedData);
+    }
+
+    // =========================
+    // Metadata Extraction
+    // =========================
+
+    private String getMatcherGroup(Matcher matcher, String groupName) {
+        try {
+            return matcher.group(groupName);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private ExtractedMetadata extractMetaData(Matcher matcher, CSVArchiveListData archiveItem, String sanitizedName) {
+        return new ExtractedMetadata(
             getMatcherGroup(matcher, "court"),
             getMatcherGroup(matcher, "date"),
             getMatcherGroup(matcher, "urn"),
@@ -78,77 +123,48 @@ public class DataExtractionService {
             archiveItem.getCreateTimeAsLocalDateTime(),
             archiveItem.getDuration(),
             archiveItem.getFileName(),
-            archiveItem.getFileSize()
+            archiveItem.getFileSize(),
+            sanitizedName
         );
-        return ServiceResultUtil.success(extractedData);
     }
-
-    // =========================
-    // Metadata Extraction
-    // =========================
-
-    private String getMatcherGroup(Matcher matcher, String groupName) {
-        try {
-            return matcher.group(groupName);
-        } catch (Exception e) {
-            loggingService.logDebug("Group %s not found in pattern for file.", groupName);
-            return "";
-        }
-    }
-
     // =========================
     // Validation
     // =========================
 
-    private boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
-        LocalDateTime recordingTimestamp = archiveItem.getCreateTimeAsLocalDateTime();
+    private ServiceResult<TestItem> validateTest(CSVArchiveListData archiveItem) {
+        boolean keywordCheck = !isTest(archiveItem);
+        boolean durationCheck = !validator.isValidDuration(archiveItem);
+        StringBuilder failureReasons = new StringBuilder();
 
-        if (recordingTimestamp == null) {
-            loggingService.logError(
-                "Failed to extract date for %s | Raw createTime: %s",
-                archiveItem.getArchiveName(), archiveItem.getCreateTime()
+        if (keywordCheck) {
+            failureReasons.append(Constants.ErrorMessages.TEST_ITEM_NAME).append("; ");
+        }
+
+        if (durationCheck) {
+            failureReasons.append(Constants.ErrorMessages.TEST_DURATION).append("; ");
+        }
+
+        if (failureReasons.length() > 0) {
+            String keywordFound = keywordCheck ? extractTestKeywords(archiveItem.getArchiveName()) : "N/A";
+            
+            TestItem testItem = new TestItem(
+                archiveItem,
+                failureReasons.toString().trim(),
+                durationCheck,
+                archiveItem.getDuration(),
+                keywordCheck,
+                keywordFound
             );
-            return false;
+
+            loggingService.logError("Test validation failed: %s | File: %s",
+                failureReasons.toString().trim(), archiveItem.getArchiveName());
+
+            return ServiceResultUtil.test(testItem, true);  
         }
 
-        LocalDate recordingDate = recordingTimestamp.toLocalDate();
-        boolean isAfterGoLive = !recordingDate.isBefore(Constants.GO_LIVE_DATE);
-
-        return isAfterGoLive;
+        return null;
     }
 
-    public boolean validateMetadata(ExtractedMetadata metadata) {
-        if (metadata == null) {
-            loggingService.logWarning("Metadata is null");
-            return false;
-        }
-
-        boolean isValid = isNonEmpty(metadata.getCourtReference())
-            && (isNonEmpty(metadata.getUrn()) || isNonEmpty(metadata.getExhibitReference()))
-            && isNonEmpty(metadata.getDefendantLastName())
-            && isNonEmpty(metadata.getWitnessFirstName())
-            && isValidVersion(metadata.getRecordingVersion(), metadata.getRecordingVersionNumber())
-            && isValidExtension(metadata.getFileExtension());
-
-        if (!isValid) {
-            loggingService.logWarning("Metadata validation failed for file: %s", metadata.getFileName());
-        }
-
-        return isValid;
-    }
-
-    private boolean isNonEmpty(String value) {
-        return value != null && !value.trim().isEmpty();
-    }
-
-    private boolean isValidVersion(String versionType, String versionNumber) {
-        if (!Constants.VALID_VERSION_TYPES.contains(versionType)) {
-            loggingService.logDebug("Invalid version type: %s", versionType);
-            return false;
-        }
-
-        return true;
-    }
 
     private boolean isValidExtension(String ext) {
         boolean isValid = ext != null && Constants.VALID_EXTENSIONS.contains(ext);
@@ -168,12 +184,24 @@ public class DataExtractionService {
         return true;
     }
 
-    private boolean isValidDuration(CSVArchiveListData archiveItem) {
-        if (archiveItem.getDuration() < Constants.MIN_RECORDING_DURATION) {
-            return false;
+    private String extractTestKeywords(String archiveName) {
+        if (archiveName == null || archiveName.isBlank()) {
+            return "N/A";
         }
-        return true;
+
+        List<String> foundKeywords = new ArrayList<>();
+
+        for (String keyword : Constants.TEST_KEYWORDS) {
+            if (archiveName.toLowerCase().contains(keyword.toLowerCase())) {
+                foundKeywords.add(keyword);
+            }
+        }
+
+        return foundKeywords.isEmpty() ? "N/A" : foundKeywords.toString();
     }
+
+
+   
     // =========================
     // Utility: Archive Name Cleaning
     // =========================
