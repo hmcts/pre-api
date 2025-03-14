@@ -30,11 +30,15 @@ public class CaptureSessionDTO extends CreateCaptureSessionDTO {
     @Schema(description = "CaptureSessionCaseClosedAt")
     private Timestamp caseClosedAt;
 
+    @Schema(description = "CaptureSessionCaseReference")
+    private String caseReference;
+
     public CaptureSessionDTO(CaptureSession captureSession) {
         super(captureSession);
         deletedAt = captureSession.getDeletedAt();
         courtName = captureSession.getBooking().getCaseId().getCourt().getName();
         caseState = captureSession.getBooking().getCaseId().getState();
         caseClosedAt = captureSession.getBooking().getCaseId().getClosedAt();
+        caseReference = captureSession.getBooking().getCaseId().getReference();
     }
 }
