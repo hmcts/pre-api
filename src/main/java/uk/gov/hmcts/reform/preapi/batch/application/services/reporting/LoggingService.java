@@ -62,17 +62,17 @@ public class LoggingService {
 
     public void logInfo(String format, Object... args) {
         String message = String.format(format, args);
-        log("INFO", message);
+        log("INFO", String.format("%s - %s", getCallerInfo(), message));
     }
 
     public void logWarning(String format, Object... args) {
         String message = String.format(format, args);
-        log("WARN", message);
+        log("WARN", String.format("%s - %s", getCallerInfo(), message));
     }
 
     public void logError(String format, Object... args) {
         String message = String.format(format, args);
-        log("ERROR", message);
+        log("ERROR", String.format("%s - %s", getCallerInfo(), message));
     }
 
     public void logDebug(String format, Object... args) {

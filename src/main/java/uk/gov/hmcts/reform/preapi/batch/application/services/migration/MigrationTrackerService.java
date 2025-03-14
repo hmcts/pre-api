@@ -48,6 +48,10 @@ public class MigrationTrackerService {
 
     public void addTestItem(TestItem item) {
         testFailures.add(item);
+        loggingService.logInfo(
+            "Adding test item: Category = %s | Filename = %s",
+            "Test", item.getArchiveItem().getFileName()
+        );
     }
 
     public void addFailedItem(FailedItem item) {
@@ -56,7 +60,7 @@ public class MigrationTrackerService {
             .add(item);
 
         loggingService.logInfo(
-            "Added failed item: Category = %s | Filename = %s",
+            "Adding failed item: Category = %s | Filename = %s",
             item.getFailureCategory(), item.getArchiveItem().getFileName()
         );
     }
@@ -97,8 +101,6 @@ public class MigrationTrackerService {
             String fileName = sanitizeFileName(category);
             List<String> headers = getFailedItemsHeaders();
             List<List<String>> rows = buildFailedItemsRows(failedItemsList);
-
-            loggingService.logInfo("Rows built for %s: %d", category, rows.size());
 
             try {
                 reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
@@ -148,7 +150,7 @@ public class MigrationTrackerService {
 
     private List<String> getMigratedItemsHeaders() {
         return List.of(
-            "Regex Pattern", "Display Name", "Case Reference", "Scheduled For",
+            "Display Name", "Case Reference","Witness", "Defendant" ,"Scheduled For",
             "Case State", "Version", "File Name", "Duration", "File Size",
             "Date / Time migrated"
         );
@@ -160,9 +162,11 @@ public class MigrationTrackerService {
             String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             rows.add(List.of(
-                         getValueOrEmpty(item.getRegexPattern()),
+                        //  getValueOrEmpty(item.getRegexPattern()),
                          getValueOrEmpty(item.getArchiveName()),
                          getValueOrEmpty(item.getCaseReference()),
+                         getValueOrEmpty(item.getWitnessName()),
+                         getValueOrEmpty(item.getDefendantName()),
                          getValueOrEmpty(item.getScheduledFor()),
                          getValueOrEmpty(item.getState()),
                          getValueOrEmpty(item.getVersion()),
@@ -180,7 +184,7 @@ public class MigrationTrackerService {
         return List.of(
             "Display Name", "Filename", "File Size", "Date / Time",
             "Duration Check Fail", "Duration (in seconds)", "Keyword Check Fail",
-            "Keyword Found"
+            "Keyword Found", "Test Pattern"
         );
     }
 
@@ -198,7 +202,8 @@ public class MigrationTrackerService {
                 String.valueOf(item.isDurationCheck()),         
                 String.valueOf(item.getDurationInSeconds()),    
                 String.valueOf(item.isKeywordCheck()),          
-                getValueOrEmpty(item.getKeywordFound())                                              
+                getValueOrEmpty(item.getKeywordFound()),
+                getValueOrEmpty(item.isRegexFailure())                                               
             ));
         }
         return rows;
@@ -210,7 +215,6 @@ public class MigrationTrackerService {
 
     public List<List<String>> buildFailedItemsRows(List<FailedItem> items) {
         List<List<String>> rows = new ArrayList<>();
-        loggingService.logDebug("Building rows for failed items: %d items", items.size());
 
         for (FailedItem item : items) {
             CSVArchiveListData archiveItem = item.getArchiveItem();
@@ -224,7 +228,6 @@ public class MigrationTrackerService {
                 failureTime
             );
 
-            loggingService.logDebug("Adding row: %s", row);
             rows.add(row);
         }
         return rows;

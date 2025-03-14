@@ -1,8 +1,5 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -10,9 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-public class CSVArchiveListData {
-    private static final Logger logger = LoggerFactory.getLogger(CSVArchiveListData.class);
-    
+public class CSVArchiveListData {    
     private static final List<String> DATE_PATTERNS = List.of(
         "dd/MM/yyyy HH:mm", "dd/MM/yyyy H:mm",
         "d/MM/yyyy HH:mm", "d/MM/yyyy H:mm",
@@ -27,6 +22,7 @@ public class CSVArchiveListData {
     );
 
     private String archiveName = "";
+    private String sanitizedArchiveName = "";
     private String createTime = "";
     private Integer duration = 0;
     private String fileName = "";
@@ -35,8 +31,8 @@ public class CSVArchiveListData {
     public CSVArchiveListData() {
     }
 
-    public CSVArchiveListData(
-        String archiveName, String createTime, Integer duration, String fileName, String fileSize) {
+    public CSVArchiveListData(String archiveName, String createTime, Integer duration, 
+        String fileName, String fileSize) {
         this.archiveName = archiveName;
         this.createTime = createTime;
         this.duration = (duration != null) ? duration : 0;
@@ -50,7 +46,31 @@ public class CSVArchiveListData {
 
     public void setArchiveName(String archiveName) {
         this.archiveName = archiveName;
+        this.sanitizedArchiveName = computeSanitizedName(archiveName);
     }
+
+    public String getSanitizedArchiveName() {
+        return sanitizedArchiveName;
+    }
+
+
+    private String computeSanitizedName(String archiveName) {
+        if (archiveName == null || archiveName.isEmpty()) {
+            return "";
+        }
+        
+        String sanitized = archiveName
+            .replaceAll("^QC[_\\d]?", "")
+            .replaceAll("^QC(?![A-Za-z])", "")
+            .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
+            .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
+            .replaceAll("_(?=\\.[^.]+$)", "")
+            .replaceAll("[-_\\s]{2,}", "-")
+            .trim();
+
+        return sanitized;
+    }
+
 
     public String getCreateTime() {
         return createTime;
@@ -95,13 +115,11 @@ public class CSVArchiveListData {
 
     public LocalDateTime getCreateTimeAsLocalDateTime() {
         if (createTime == null || createTime.isEmpty()) {
-            logger.info("Invalid createTime");
             return null;
         }
 
         try {
             long timestamp = Long.parseLong(createTime.trim());
-            logger.info("timestamp created: ",timestamp);
             return LocalDateTime.ofInstant(
                 java.time.Instant.ofEpochMilli(timestamp),
                 java.time.ZoneId.systemDefault()
@@ -114,14 +132,12 @@ public class CSVArchiveListData {
                         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern, Locale.UK);
                         return LocalDateTime.parse(createTime.trim(), formatter);
                     } catch (DateTimeParseException ex) {
-                        logger.debug("Failed to parse date '{}' with pattern '{}'", createTime, pattern);
                         return null;
                     }
                 })
                 .filter(Objects::nonNull)
                 .findFirst()
                 .orElseGet(() -> {
-                    logger.error("Could not parse create time '{}' with any known pattern", createTime);
                     return null;
                 });
         }
@@ -131,6 +147,7 @@ public class CSVArchiveListData {
     public String toString() {
         return "CSVArchiveListData{" 
                + "archiveName='" + archiveName + '\'' 
+               + ", sanitizedName='" + sanitizedArchiveName + '\''  
                + ", createTime='" + createTime + '\'' 
                + ", duration=" + duration 
                + ", fileName='" + fileName + '\'' 

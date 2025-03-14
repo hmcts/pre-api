@@ -122,7 +122,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             } catch (Exception e) {
                 failureCount.incrementAndGet();
                 loggingService.logError(
-                    "Failed to process migrated item: %s",
+                    "Failed to process migrated item: %s | %s",
                     item.getCase().getReference(), e.getMessage()
                 );
             }
@@ -145,7 +145,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 caseService.upsert(caseData);
             } catch (Exception e) {
-                loggingService.logError("Failed to upsert case. Case id: %s", caseData.getId(), e);
+                loggingService.logError("Failed to upsert case. Case id: %s | %s", caseData.getId(), e);
             }
         }
     }
@@ -155,7 +155,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 bookingService.upsert(bookingData);
             } catch (Exception e) {
-                loggingService.logError("Failed to upsert booking. Booking id: %s", bookingData.getId(), e);
+                loggingService.logError("Failed to upsert booking. Booking id: %s | %s", bookingData.getId(), e);
             }
         }
     }
@@ -166,10 +166,8 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 captureSessionService.upsert(captureSessionData);
             } catch (Exception e) {
                 loggingService.logError(
-                    "Failed to upsert capture session. Capture Session id: %s",
-                    captureSessionData.getId(),
-                    e
-                );
+                    "Failed to upsert capture session. Capture Session id: %s | %s",
+                    captureSessionData.getId(), e);
             }
         }
     }
@@ -179,7 +177,8 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 recordingService.upsert(recordingData);
             } catch (Exception e) {
-                loggingService.logError("Failed to upsert recording. Recording id: %s", recordingData.getId(), e);
+                loggingService.logError("Failed to upsert recording. Recording id: %s | %s", 
+                    recordingData.getId(), e);
             }
         }
     }
@@ -190,7 +189,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 try {
                     inviteService.upsert(invite);
                 } catch (Exception e) {
-                    loggingService.logError("Failed to upsert invite. Invite email: %s", invite.getEmail(), e);
+                    loggingService.logError("Failed to upsert invite. Invite email: %s | %s", invite.getEmail(), e);
                 }
             }
         }
@@ -202,7 +201,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 try {
                     shareBookingService.shareBookingById(shareBooking);
                 } catch (Exception e) {
-                    loggingService.logError("Failed to upsert share booking: %s", shareBooking.getId(), e);
+                    loggingService.logError("Failed to upsert share booking: %s | %s", shareBooking.getId(), e);
                 }
             }
         }

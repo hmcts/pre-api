@@ -85,7 +85,7 @@ public class MigrationGroupBuilderService {
     // =========================
     @SuppressWarnings("unchecked")
     public MigratedItemGroup createMigratedItemGroup(
-        String pattern,
+        // String pattern,
         CSVArchiveListData archiveItem,
         CleansedData cleansedData
     ) {
@@ -121,13 +121,13 @@ public class MigrationGroupBuilderService {
             }
         }
 
-        PassItem passItem = new PassItem(pattern, archiveItem, cleansedData);
-        loggingService.logInfo("Migration group created...");
-
-        return new MigratedItemGroup(
+        PassItem passItem = new PassItem(archiveItem, cleansedData);
+        MigratedItemGroup migrationGroup = new MigratedItemGroup(
             acase, booking, captureSession, recording, participants,
             shareBookings, invites, passItem
         );
+        loggingService.logInfo("Migrating group: %s", migrationGroup);
+        return migrationGroup;
     }
 
     private CreateCaseDTO createCaseIfOrig(CleansedData cleansedData) {

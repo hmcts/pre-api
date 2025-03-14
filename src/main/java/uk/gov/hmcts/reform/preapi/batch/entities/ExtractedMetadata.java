@@ -18,12 +18,11 @@ public class ExtractedMetadata {
     private int duration;  
     private String fileName;  
     private String fileSize;  
-    private String sanitizedName;
 
     public ExtractedMetadata(String courtReference, String date, String urn, String exhibitReference,
                              String defendantLastName, String witnessFirstName, String recordingVersion,
                              String recordingVersionNumber, String fileExtension, LocalDateTime createTime,
-                             int duration, String fileName, String fileSize, String sanitizedName) {
+                             int duration, String fileName, String fileSize) {
         this.courtReference = courtReference;
         this.date = date;
         this.urn = urn;
@@ -37,7 +36,6 @@ public class ExtractedMetadata {
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
-        this.sanitizedName = sanitizedName;
     }
 
     public String getCourtReference() { 
@@ -92,26 +90,24 @@ public class ExtractedMetadata {
         return fileSize; 
     } 
 
-    public String getSanitizedName() { 
-        return sanitizedName; 
-    } 
-
     private String formatName(String name) {
         return name != null ? StringUtils.capitalize(name.toLowerCase()) : null;
     }
 
     public String createCaseReference() {
-        StringBuilder referenceBuilder = new StringBuilder();
-        if (urn != null && !urn.isEmpty()) {
-            referenceBuilder.append(urn);
+        if ((urn == null || urn.isEmpty()) && (exhibitReference == null || exhibitReference.isEmpty())) {
+            return ""; 
         }
-        if (exhibitReference != null && !exhibitReference.isEmpty()) {
-            if (referenceBuilder.length() > 0) {
-                referenceBuilder.append("-");
-            }
-            referenceBuilder.append(exhibitReference);
+
+        if (urn == null || urn.isEmpty()) {
+            return exhibitReference; 
         }
-        return referenceBuilder.toString();
+
+        if (exhibitReference == null || exhibitReference.isEmpty()) {
+            return urn; 
+        }
+
+        return urn + "-" + exhibitReference;
     }
 
     @Override

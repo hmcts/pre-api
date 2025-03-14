@@ -2,9 +2,14 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.*;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.*;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
+import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,9 +24,118 @@ public class MetadataValidator {
         this.loggingService = loggingService;
     }
 
-    /**
-     * Validates if the archive item's date is after the go-live date.
-     */
+    public ServiceResult<?> validateTest(CSVArchiveListData archiveItem){
+        loggingService.logDebug("Validating %s for test", archiveItem.getSanitizedArchiveName());
+
+        if (!isDateAfterGoLive(archiveItem)) {
+            loggingService.logError(PREDATES_GO_LIVE, archiveItem.getArchiveName());
+            return ServiceResultUtil.failure(PREDATES_GO_LIVE, FILE_PRE_GO_LIVE);
+        }
+
+        TestItem test = isTestRecording(archiveItem);
+        if (test != null) {
+            return ServiceResultUtil.test(test, true);  
+        }
+
+        loggingService.logDebug("Passed test validation", archiveItem.getSanitizedArchiveName());
+        return ServiceResultUtil.success(archiveItem);
+    }
+
+    public ServiceResult<?> validateExtension(String extension ){
+        if(!isValidExtension(extension)){
+            return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
+        }
+
+        return ServiceResultUtil.success(extension);
+    }
+
+    public ServiceResult<?> validateExtractedMetadata(ExtractedMetadata extractedData ){
+        List<String> missingFields = getMissingMetadataFields(extractedData);
+        if (!missingFields.isEmpty()) {
+            loggingService.logError("Missing required metadata fields: %s", String.join(", ", missingFields));
+            return ServiceResultUtil.failure(
+                "Missing required metadata fields: " + String.join(", ", missingFields),
+                FILE_MISSING_DATA
+            );
+        }       
+        
+        return ServiceResultUtil.success(extractedData);
+    }
+
+    // checks for test (duration and keywords)
+    private TestItem isTestRecording(CSVArchiveListData archiveItem) {
+        boolean keywordCheck = !hasTestKeywords(archiveItem);
+        boolean durationCheck = !isValidDuration(archiveItem);
+        StringBuilder failureReasons = new StringBuilder();
+
+        if (keywordCheck) {
+            failureReasons.append(TEST_ITEM_NAME).append("; ");
+        }
+
+        if (durationCheck) {
+            failureReasons.append(TEST_DURATION).append("; ");
+        }
+
+        if (failureReasons.length() > 0) {
+            String keywordFound = keywordCheck ? extractTestKeywords(archiveItem.getArchiveName()) : "N/A";
+            
+            TestItem testItem = new TestItem(
+                archiveItem,
+                failureReasons.toString().trim(),
+                durationCheck,
+                archiveItem.getDuration(),
+                keywordCheck,
+                keywordFound,
+                false
+            );
+
+            loggingService.logError("Test keyword validation failed: %s | Keywords: %s",
+                failureReasons.toString().trim(), keywordFound);
+
+            return testItem;  
+        }
+
+        return null;
+    }
+
+    private boolean hasTestKeywords(CSVArchiveListData archiveItem) {
+        String lowerName = archiveItem.getSanitizedArchiveName().toLowerCase();
+        for (String keyword : Constants.TEST_KEYWORDS) {
+            if (lowerName.contains(keyword)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String extractTestKeywords(String archiveName) {
+        if (archiveName == null || archiveName.isBlank()) {
+            return "N/A";
+        }
+
+        List<String> foundKeywords = new ArrayList<>();
+
+        for (String keyword : Constants.TEST_KEYWORDS) {
+            if (archiveName.toLowerCase().contains(keyword.toLowerCase())) {
+                foundKeywords.add(keyword);
+            }
+        }
+
+        return foundKeywords.isEmpty() ? "N/A" : foundKeywords.toString();
+    }
+    
+    public boolean isValidDuration(CSVArchiveListData archiveItem) {
+        int duration = archiveItem.getDuration();
+
+        if (duration < Constants.MIN_RECORDING_DURATION) {
+            loggingService.logError("File duration too short: %s | Duration: %d sec (Min Required: %d sec)",
+                archiveItem.getArchiveName(), duration, Constants.MIN_RECORDING_DURATION);
+            return false;
+        }
+        return true;
+    }
+    
+    // Check if the create time pre-dates the go-live date
     public boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
         Optional<LocalDateTime> recordingTimestamp = Optional.ofNullable(archiveItem.getCreateTimeAsLocalDateTime());
 
@@ -41,44 +155,26 @@ public class MetadataValidator {
         return isAfterGoLive;
     }
 
-    /**
-     * Checks if the file duration meets the minimum required threshold.
-     */
-    public boolean isValidDuration(CSVArchiveListData archiveItem) {
-        int duration = archiveItem.getDuration();
-
-        if (duration < Constants.MIN_RECORDING_DURATION) {
-            loggingService.logError("File duration too short: %s | Duration: %d sec (Min Required: %d sec)",
-                archiveItem.getArchiveName(), duration, Constants.MIN_RECORDING_DURATION);
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Checks if the file extension is valid.
-     */
+    // Check for invalid extensions (not .mp4)
     public boolean isValidExtension(String ext) {
-        if (isEmpty(ext)) {
-            loggingService.logError("File extension is missing.");
+        if (ext == null || ext.isBlank()) {
+            loggingService.logError("File extension is missing or null for archive.");
             return false;
         }
 
         boolean isValid = Constants.VALID_EXTENSIONS.contains(ext.toLowerCase());
-
         if (!isValid) {
-            loggingService.logError("Invalid file extension: %s | Allowed extensions: %s",
+            loggingService.logDebug("Invalid file extension: %s | Allowed extensions: %s",
                 ext, Constants.VALID_EXTENSIONS);
         }
 
         return isValid;
     }
 
- 
+    // Checks for any missing metadata not extracted
     public List<String> getMissingMetadataFields(ExtractedMetadata metadata) {
         List<String> missingFields = new ArrayList<>();
-        loggingService.logDebug("Metadata: ", metadata);
-
+        
         if (metadata == null) {
             missingFields.add("Metadata object is null");
             return missingFields;
@@ -101,27 +197,13 @@ public class MetadataValidator {
         if (isEmpty(metadata.getFileExtension())) {
             missingFields.add("File Extension");
         }
-
-        // boolean isValid = isNonEmpty(metadata.getCourtReference()) 
-        //         && (isNonEmpty(metadata.getUrn()) || isNonEmpty(metadata.getExhibitReference())) 
-        //         && isNonEmpty(metadata.getDefendantLastName())
-        //         && isNonEmpty(metadata.getWitnessFirstName()) 
-        //         && isNonEmpty(metadata.getRecordingVersion()) 
-        //         && isNonEmpty(metadata.getFileExtension());
+        
         return missingFields;
-        // if (!isValid) {
-        //     loggingService.logWarning("Metadata validation failed for file: %s | Missing required fields.",
-        //         metadata.getFileName());
-        // }
-
-        // return isValid;
     }
 
+    // Helpers
     private boolean isEmpty(String value) {
         return value == null || value.isBlank();
     }
 
-    private boolean isNonEmpty(String value) {
-        return value != null && !value.isBlank();
-    }
 }

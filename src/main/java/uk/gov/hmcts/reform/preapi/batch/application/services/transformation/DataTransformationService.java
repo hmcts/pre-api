@@ -61,16 +61,12 @@ public class DataTransformationService {
         }
 
         try {
-            loggingService.logDebug("Starting data transformation for archive: %s", archiveItem.getArchiveName());
+            loggingService.logDebug("Starting data transformation for archive: %s", archiveItem.getSanitizedArchiveName());
 
             Map<String, String> sitesDataMap = getSitesData();
 
             CleansedData cleansedData = buildCleansedData(archiveItem, extracted, sitesDataMap);
-
-            loggingService.logDebug(
-                "Data transformation completed successfully for archive: %s",
-                archiveItem.getArchiveName()
-            );
+            
             return ServiceResultUtil.success(cleansedData);
 
         } catch (Exception e) {
@@ -90,7 +86,7 @@ public class DataTransformationService {
      */
     private CleansedData buildCleansedData(
         CSVArchiveListData archiveItem, ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
-        loggingService.logDebug("Building cleansed data for archive: %s", archiveItem.getArchiveName());
+        loggingService.logDebug("Building cleansed data for archive: %s", archiveItem.getSanitizedArchiveName());
 
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem);
 
@@ -192,7 +188,7 @@ public class DataTransformationService {
         }
 
         loggingService.logDebug(
-            "Built {} share booking contacts for archive: %d - %s",
+            "Built %d share booking contacts for archive: %s",
             contactsList.size(),
             archiveName
         );

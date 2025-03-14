@@ -43,6 +43,7 @@ public final class RegexPatterns {
     private static final String SEPARATOR_ONE = "[-_\\s]+";
     private static final String SEPARATOR_ZERO = "[-_\\s]?";
     private static final String OPTIONAL_PREFIX = "(?:\\d{1,5}[-_]?)?";
+    private static final String OPTIONAL_SUFFIX = "(?:\\d{19}[-_]?)?";
 
     private static final String DATE_PATTERN = 
         "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})";
@@ -74,7 +75,7 @@ public final class RegexPatterns {
      * Standard pattern with optional numeric prefix.
      * Format: [Number-]Court Date URN [Exhibit] Defendant Witness Version [.ext]
      */
-    public static final Pattern STANDARD_PATTERN_WITH_NUMBERS = Pattern.compile(
+    public static final Pattern STANDARD_PATTERN_WITH_NUMBERS_PREFIX = Pattern.compile(
         "^" + COURT_PATTERN + SEPARATOR_ONE 
         + DATE_PATTERN + SEPARATOR_ONE 
         + OPTIONAL_PREFIX 
@@ -191,7 +192,7 @@ public final class RegexPatterns {
     
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.of(
         "Standard", RegexPatterns.STANDARD_PATTERN,
-        "StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS,
+        "StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS_PREFIX,
         "SpecificT", RegexPatterns.SPECIFIC_T_PATTERN,
         "SpecialCase", RegexPatterns.SPECIAL_CASE_PATTERN,
         "DoubleURN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN,

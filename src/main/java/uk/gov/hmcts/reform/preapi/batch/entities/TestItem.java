@@ -7,6 +7,7 @@ public class TestItem {
     private int durationInSeconds;
     private boolean keywordCheck;
     private String keywordFound;
+    private boolean regexFailure;
 
     public TestItem(
         CSVArchiveListData archiveItem,
@@ -14,7 +15,8 @@ public class TestItem {
         boolean durationCheck,
         int durationInSeconds,
         boolean keywordCheck,
-        String keywordFound
+        String keywordFound,
+        boolean regexFailure
     ) {
         this.archiveItem = archiveItem;
         this.reason = reason;
@@ -22,6 +24,7 @@ public class TestItem {
         this.durationInSeconds = durationInSeconds;
         this.keywordCheck = keywordCheck;
         this.keywordFound = keywordFound;
+        this.regexFailure = regexFailure;
     }
 
     public CSVArchiveListData getArchiveItem() {
@@ -48,5 +51,8 @@ public class TestItem {
         return keywordFound;
     }
 
+    public boolean isRegexFailure() {
+        return regexFailure;
+    }
    
 }

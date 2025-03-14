@@ -18,45 +18,35 @@ public class PatternMatcherService {
     }
 
     public Optional<Map.Entry<String, Matcher>> findMatchingPattern(String archiveName) {
-        if (archiveName == null || archiveName.isBlank()) {
-            loggingService.logWarning("Invalid or empty archive name received.");
-            return Optional.empty();
+        Optional<Map.Entry<String, Matcher>> testMatch = findMatch(archiveName, RegexPatterns.TEST_PATTERNS, "TEST");
+        if (testMatch.isPresent()) {
+            return testMatch;
         }
 
-        // String sanitizedFiledName = cleanArchiveName(archiveName);
-        loggingService.logDebug("Checking patterns for: %s", archiveName);
-
-        // Check test patterns first
-        for (Map.Entry<String, Pattern> testPattern : RegexPatterns.TEST_PATTERNS.entrySet()) {
-            Matcher matcher = testPattern.getValue().matcher(archiveName);
-            if (matcher.matches()) {
-                loggingService.logDebug("Matched TEST pattern: %s", testPattern.getKey());
-                return Optional.of(Map.entry(testPattern.getKey(), matcher));
-            }
+        Optional<Map.Entry<String, Matcher>> validMatch = findMatch(archiveName, RegexPatterns.LEGITAMITE_PATTERNS, "VALID");
+        if (!validMatch.isPresent()) {
+            loggingService.logDebug("No pattern matched for file: %s", archiveName);
         }
-
-        // Check named patterns
-        for (Map.Entry<String, Pattern> validPattern : RegexPatterns.LEGITAMITE_PATTERNS.entrySet()) {
-            Matcher matcher = validPattern.getValue().matcher(archiveName);
-            if (matcher.matches()) {
-                loggingService.logDebug("Matched VALID pattern: %s for file: %s", validPattern.getKey(), archiveName);
-                return Optional.of(Map.entry(validPattern.getKey(), matcher));
-            }
-        }
-
-        loggingService.logWarning("No pattern match found for file: %s", archiveName);
-        return Optional.empty();
+        
+        return validMatch;
     }
 
-
-    // private static String cleanArchiveName(String archiveName) {
-    //     return archiveName
-    //         .replaceAll("^QC[_\\d]?", "")
-    //         .replaceAll("^QC(?![A-Za-z])", "")
-    //         .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
-    //         .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
-    //         .replaceAll("_(?=\\.[^.]+$)", "")
-    //         .replaceAll("[-_\\s]{2,}", "-")
-    //         .trim();
-    // }
+    private Optional<Map.Entry<String, Matcher>> findMatch(
+            String archiveName, 
+            Map<String, Pattern> patternMap, 
+            String patternType
+        ) {
+        
+        for (Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
+            Matcher matcher = entry.getValue().matcher(archiveName);
+            if (matcher.matches()) {
+                String patternName = entry.getKey();
+                loggingService.logDebug("Matched %s pattern: %s for file: %s", 
+                        patternType, patternName, archiveName);
+                return Optional.of(Map.entry(patternName, matcher));
+            }
+        }
+        
+        return Optional.empty();
+    }
 }

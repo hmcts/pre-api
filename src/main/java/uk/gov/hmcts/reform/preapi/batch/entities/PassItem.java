@@ -6,23 +6,23 @@ import java.sql.Timestamp;
 import java.time.Duration;
 
 public class PassItem {
-    private String regexPattern;
+    // private String regexPattern;
     private CSVArchiveListData archiveItem;
     private CleansedData cleansedData;
 
     public PassItem(
-        String regexPattern,
+        // String regexPattern,
         CSVArchiveListData archiveItem, 
         CleansedData cleansedData
     ) {
-        this.regexPattern = regexPattern;
+        // this.regexPattern = regexPattern;
         this.archiveItem = archiveItem;
         this.cleansedData = cleansedData;
     }
 
-    public String getRegexPattern() {
-        return regexPattern;
-    }
+    // public String getRegexPattern() {
+    //     return regexPattern;
+    // }
 
     public String getArchiveName() {
         return archiveItem.getArchiveName();
@@ -30,6 +30,14 @@ public class PassItem {
 
     public String getCaseReference() {
         return cleansedData.getCaseReference();
+    }
+
+    public String getWitnessName(){
+        return cleansedData.getWitnessFirstName();
+    }
+
+    public String getDefendantName(){
+        return cleansedData.getDefendantLastName();
     }
 
     public Timestamp getScheduledFor() {
@@ -60,9 +68,11 @@ public class PassItem {
     @Override
     public String toString() {
         return "PassItem{" 
-                + "regexPattern='" + regexPattern 
+                // + "regexPattern='" + regexPattern 
                 + ", archiveName='" + archiveItem.getArchiveName()  
                 + ", caseReference='" + cleansedData.getCaseReference()
+                + ", witness='" + cleansedData.getWitnessFirstName()
+                + ", defendant='" + cleansedData.getDefendantLastName()
                 + ", scheduledFor=" + cleansedData.getRecordingTimestamp() 
                 + ", state='" + cleansedData.getState()  
                 + ", version=" + cleansedData.getRecordingVersionNumber()
