@@ -38,6 +38,10 @@ public class SecurityConfig {
         new AntPathRequestMatcher("/invites/redeem", "POST"),
         new AntPathRequestMatcher("/app-terms-and-conditions/latest"),
         new AntPathRequestMatcher("/portal-terms-and-conditions/latest"),
+        new AntPathRequestMatcher("/batch", "POST"),
+        new AntPathRequestMatcher("/batch/start", "POST"),
+        new AntPathRequestMatcher("/batch/startXml", "POST"),
+        new AntPathRequestMatcher("/batch/startTransform", "POST"),
     };
 
     @Autowired

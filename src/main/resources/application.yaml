@@ -60,12 +60,15 @@ azure:
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
+
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
+  storage:
+    accountName: ${AZURE_VF_SA:}
+    connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
   tenantId: ${AZURE_TENANT_ID:}
-
 
 hibernate:
   show_sql: true
@@ -93,6 +96,7 @@ media-service: ${MEDIA_SERVICE:MediaKind}
 platform-env: ${PLATFORM_ENV_TAG:Staging}
 
 cron-user-email: ${CRON_USER_EMAIL:test@test.com}
+vodafone-user-email: ${VODAFONE_USER_EMAIL:vodafone@test.com}
 
 flow:
   workflow:
