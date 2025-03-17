@@ -7,6 +7,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.media.dto.MkJob;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +26,8 @@ public interface IMediaService {
     LiveEventDTO getLiveEvent(String liveEventId);
 
     List<LiveEventDTO> getLiveEvents();
+
+    List<MkJob> getJobs();
 
     void startLiveEvent(CaptureSessionDTO captureSession);
 

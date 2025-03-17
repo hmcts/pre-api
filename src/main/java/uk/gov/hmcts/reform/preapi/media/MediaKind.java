@@ -330,6 +330,10 @@ public class MediaKind implements IMediaService {
             .toList();
     }
 
+    public List<MkJob> getJobs() {
+        return getAllMkList(mediaKindClient::getJobs).toList();
+    }
+
     @Override
     @Transactional(dontRollbackOn = Exception.class)
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
