@@ -25,7 +25,9 @@ public final class Constants {
     public static final Set<String> TEST_KEYWORDS = Set.of(
         "test", "demo", "unknown", "training", "t35t",
         "sample", "mock", "dummy", "example", "playback", "predefined",
-        "fig_room", "failover", "viw", "support"
+        "fig_room", "failover", "viw", "support", "wrong", "rmx006",
+        "rmx005", "recording", "rpms", "rmx-load", "snoc morning check",
+        "s28 rpcs room", "rpp1 user"
     );
 
     public static final class Environment {
