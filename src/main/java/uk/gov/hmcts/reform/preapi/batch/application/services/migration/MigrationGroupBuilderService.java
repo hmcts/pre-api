@@ -101,11 +101,10 @@ public class MigrationGroupBuilderService {
         CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, archiveItem, cleansedData, baseKey, captureSession);
-        Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
 
-        // if (recording != null) {
-        //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
-        // }
+        if (recording != null) {
+            recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
+        }
 
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> invites = new ArrayList<>();
@@ -120,7 +119,7 @@ public class MigrationGroupBuilderService {
                 migrationTrackerService.addInvitedUser(invite);
             }
         }
-
+        Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
         PassItem passItem = new PassItem(archiveItem, cleansedData);
         MigratedItemGroup migrationGroup = new MigratedItemGroup(
             acase, booking, captureSession, recording, participants,

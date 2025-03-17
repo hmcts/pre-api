@@ -64,7 +64,7 @@ azure:
   finalStorage:
     accountName: ${AZURE_FINAL_SA:}
     connectionString: ${AZURE_FINAL_SA_CONNECTION_STRING:}
-  storage:
+  vodafoneStorage:
     accountName: ${AZURE_VF_SA:}
     connectionString: ${AZURE_VF_SA_CONNECTION_STRING:}
   managedIdentityClientId: ${AZURE_CLIENT_ID:}
