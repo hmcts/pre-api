@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.Data
 import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -19,6 +20,9 @@ import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Processes various CSV data types and transforms them into MigratedItemGroup for further processing.
@@ -67,6 +71,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         if (item instanceof CSVArchiveListData) {
             return processArchiveItem((CSVArchiveListData) item);
+        } else if (item instanceof CSVExemptionListData) {
+            return processExemptionItem((CSVExemptionListData) item);
         } else if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
             referenceDataProcessor.process(item);
             return null;
@@ -74,6 +80,29 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.logError("Unsuported item type: %s", item.getClass().getName());
         }
         return null;
+    }
+
+    private MigratedItemGroup processExemptionItem(CSVExemptionListData exemptionItem){
+        loggingService.logDebug("===============================================");
+        loggingService.logDebug("Processing Exemption Item: %s", exemptionItem);
+
+        ExtractedMetadata extractedData = convertToExtractedMetadata(exemptionItem);
+        try {
+            if (extractedData == null) {
+                return null;
+            }
+
+            CleansedData cleansedData = transformData(extractedData);
+            if (cleansedData == null) {
+                return null;
+            }
+            return migrationService.createMigratedItemGroup(extractedData, cleansedData);
+
+        } catch (Exception e) { 
+            loggingService.logError("Error processing archive %s: %s", extractedData.getArchiveName(), e.getMessage(), e);
+            return handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
+        }
+        
     }
 
     private MigratedItemGroup processArchiveItem(CSVArchiveListData archiveItem) {
@@ -88,7 +117,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             }
 
             // Transformation
-            CleansedData cleansedData = transformData(archiveItem, extractedData);
+            CleansedData cleansedData = transformData(extractedData);
             if (cleansedData == null) {
                 return null;
             }
@@ -104,7 +133,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             }
 
             loggingService.incrementProgress();
-            return migrationService.createMigratedItemGroup(archiveItem, cleansedData);
+            return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
         } catch (Exception e) {
             loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
@@ -137,10 +166,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
 
-    private CleansedData transformData(CSVArchiveListData archiveItem, ExtractedMetadata extractedData) {
-        ServiceResult<CleansedData> result = transformationService.transformData(archiveItem, extractedData);
-        if (checkForError(result, archiveItem)) {
-            loggingService.logError("Failed to transform archive: %s", archiveItem.getSanitizedArchiveName());
+    private CleansedData transformData(ExtractedMetadata extractedData) {
+        ServiceResult<CleansedData> result = transformationService.transformData(extractedData);
+        if (checkForError(result, extractedData)) {
+            loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
             return null;
         }
 
@@ -170,29 +199,68 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     //======================
     // Helper Methods
     //======================
-    private <T> boolean checkForError(ServiceResult<T> result, CSVArchiveListData archiveItem) {
+    private <T> boolean checkForError(ServiceResult<T> result, Object item) {
         String errorMessage = (String) result.getErrorMessage();
         String category = (String) result.getCategory();
 
         if (errorMessage != null) {
-            handleError(archiveItem, errorMessage, category);
+            handleError(item, errorMessage, category);
             return true;
         }
         return false;
     }
 
-    private MigratedItemGroup handleError(CSVArchiveListData archiveItem, String message, String category) {
-        migrationTrackerService.addFailedItem(new FailedItem(archiveItem, message, category));
-        // loggingService.logDebug("Error processing item [%s]: %s", category, message);
+    private MigratedItemGroup handleError(Object item, String message, String category) {
+        migrationTrackerService.addFailedItem(new FailedItem(item, message, category));
         return null;
     }
 
     private MigratedItemGroup handleTest(TestItem testItem) {
         migrationTrackerService.addTestItem(testItem);
-        // loggingService.logDebug("Skipping test item: %s", testItem.getArchiveItem().getArchiveName());
         return null;
     }
 
+    private ExtractedMetadata convertToExtractedMetadata(CSVExemptionListData exemptionItem) {
+        if (exemptionItem == null) {
+            loggingService.logWarning("🚨 Received NULL exemption item for conversion!");
+            return null;
+        }
+
+        loggingService.logInfo("🔄 Converting Exemption Item to ExtractedMetadata: " + exemptionItem);
+
+        LocalDateTime parsedCreateTime = parseDateTime(exemptionItem.getCreateTime());
+
+        return new ExtractedMetadata(
+            exemptionItem.getCourtReference(),      
+            exemptionItem.getUrn(),                 
+            exemptionItem.getExhibitReference(),    
+            exemptionItem.getDefendantName(),      
+            exemptionItem.getWitnessName(),       
+            exemptionItem.getRecordingVersion(),    
+            String.valueOf(exemptionItem.getRecordingVersionNumber()), 
+            exemptionItem.getFileExtension(),       
+            parsedCreateTime,                       
+            exemptionItem.getDuration(),             
+            exemptionItem.getFileName(),            
+            exemptionItem.getFileSize(),
+            exemptionItem.getArchiveName()             
+        );
+    }
+
+    private LocalDateTime parseDateTime(String dateTimeStr) {
+        if (dateTimeStr == null || dateTimeStr.trim().isEmpty()) {
+            loggingService.logWarning("Empty or NULL date received for parsing.");
+            return null;
+        }
+
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            return LocalDateTime.parse(dateTimeStr, formatter);
+        } catch (Exception e) {
+            loggingService.logError("Failed to parse date: " + dateTimeStr, e);
+            return null;
+        }
+    }
     
 }
 

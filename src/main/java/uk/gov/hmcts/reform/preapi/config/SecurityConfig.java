@@ -39,9 +39,11 @@ public class SecurityConfig {
         new AntPathRequestMatcher("/app-terms-and-conditions/latest"),
         new AntPathRequestMatcher("/portal-terms-and-conditions/latest"),
         new AntPathRequestMatcher("/batch", "POST"),
-        new AntPathRequestMatcher("/batch/start", "POST"),
-        new AntPathRequestMatcher("/batch/startXml", "POST"),
-        new AntPathRequestMatcher("/batch/startTransform", "POST"),
+        new AntPathRequestMatcher("/batch/fetch-xml", "POST"),
+        new AntPathRequestMatcher("/batch/process-migration", "POST"),
+        new AntPathRequestMatcher("/batch/post-migration-tasks", "POST"),
+        new AntPathRequestMatcher("/batch/migrate-exclusions", "POST"),
+
     };
 
     @Autowired

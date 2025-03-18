@@ -8,8 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
@@ -85,8 +85,7 @@ public class MigrationGroupBuilderService {
     // =========================
     @SuppressWarnings("unchecked")
     public MigratedItemGroup createMigratedItemGroup(
-        // String pattern,
-        CSVArchiveListData archiveItem,
+        ExtractedMetadata item,
         CleansedData cleansedData
     ) {
 
@@ -100,7 +99,7 @@ public class MigrationGroupBuilderService {
 
         CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
-        CreateRecordingDTO recording = processRecording(baseKey, archiveItem, cleansedData, baseKey, captureSession);
+        CreateRecordingDTO recording = processRecording(baseKey, cleansedData, baseKey, captureSession);
 
         if (recording != null) {
             recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
@@ -120,7 +119,7 @@ public class MigrationGroupBuilderService {
             }
         }
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
-        PassItem passItem = new PassItem(archiveItem, cleansedData);
+        PassItem passItem = new PassItem(item, cleansedData);
         MigratedItemGroup migrationGroup = new MigratedItemGroup(
             acase, booking, captureSession, recording, participants,
             shareBookings, invites, passItem
@@ -223,7 +222,6 @@ public class MigrationGroupBuilderService {
 
     private CreateRecordingDTO processRecording(
         String baseKey,
-        CSVArchiveListData archiveItem,
         CleansedData cleansedItem,
         String redisKey,
         CreateCaptureSessionDTO captureSession

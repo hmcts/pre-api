@@ -52,7 +52,7 @@ public class RecordingMetadataProcessor {
             }
 
             ExtractedMetadata extractedData = (ExtractedMetadata) extracted.getData();
-            ServiceResult<CleansedData> result = transformationService.transformData(archiveItem, extractedData);
+            ServiceResult<CleansedData> result = transformationService.transformData(extractedData);
             CleansedData cleansedData = (CleansedData) result.getData();
             if (cleansedData == null) {
                 ServiceResultUtil.failure("Data not transformed successfully", "Missing data");

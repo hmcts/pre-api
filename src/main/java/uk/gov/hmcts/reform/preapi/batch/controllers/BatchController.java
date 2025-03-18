@@ -19,69 +19,59 @@ public class BatchController {
     private final JobLauncher jobLauncher;
     private final Job importCsvJob;
     private final Job fetchXmlJob;
+    private final Job postMigrationJob;
+    private final Job processExclusionsJob;
     private LoggingService loggingService;
 
     @Autowired
     public BatchController(JobLauncher jobLauncher,
                            @Qualifier("importCsvJob") Job importCsvJob,
                            @Qualifier("fetchXmlJob") Job fetchXmlJob,
+                           @Qualifier("postMigrationJob") Job postMigrationJob,
+                           @Qualifier("processExclusionsJob") Job processExclusionsJob,
                            LoggingService loggingService
                            ) {
         this.jobLauncher = jobLauncher;
         this.importCsvJob = importCsvJob;
         this.fetchXmlJob = fetchXmlJob;
+        this.postMigrationJob = postMigrationJob;
+        this.processExclusionsJob = processExclusionsJob;
         this.loggingService = loggingService;
     }
 
-    @PostMapping("/startXml")
+    private ResponseEntity<String> startJob(Job job, String jobName, boolean debug) {
+        try {
+            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder()
+                    .addLong("time", System.currentTimeMillis())
+                    .addString("debug", String.valueOf(debug));
+
+            jobLauncher.run(job, jobParametersBuilder.toJobParameters());
+            return ResponseEntity.ok("Successfully completed " + jobName + " batch job");
+
+        } catch (Exception e) {
+            loggingService.logError("Error starting " + jobName + " batch job: {}", e);
+            return ResponseEntity.status(500).body("Failed to start " + jobName + " batch job");
+        }
+    }
+
+    @PostMapping("/fetch-xml")
     public ResponseEntity<String> startXmlBatch(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
-        try {   
-            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
-            jobParametersBuilder.addLong("time", System.currentTimeMillis()); 
-            jobParametersBuilder.addString("debug", String.valueOf(debug));
-
-            jobLauncher.run(fetchXmlJob, jobParametersBuilder.toJobParameters());
-            
-            return ResponseEntity.ok("Successfully completed Fetch XML batch job ");
-
-        } catch (Exception e) {
-            loggingService.logError("Error starting fetch XML batch job: {}", e);
-            return ResponseEntity.status(500).body("Failed to start fetch XML batch job");
-        }
+        return startJob(fetchXmlJob, "Fetch XML", debug);
     }
 
-    @PostMapping("/startTransform")
+    @PostMapping("/process-migration")
     public ResponseEntity<String> startBatch(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
-        try {   
-            
-            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
-            jobParametersBuilder.addLong("time", System.currentTimeMillis()); 
-            jobParametersBuilder.addString("debug", String.valueOf(debug));
-
-            jobLauncher.run(importCsvJob, jobParametersBuilder.toJobParameters());
-            return ResponseEntity.ok("Successfully completed Transform batch job ");
-
-        } catch (Exception e) {
-            loggingService.logError("Error starting Transform batch job: {}", e);
-            return ResponseEntity.status(500).body("Failed to start batch job");
-        }
+        return startJob(importCsvJob, "Transform", debug);
     }
 
-    @PostMapping("/postMigrationJob")
+    @PostMapping("/post-migration-tasks")
     public ResponseEntity<String> postMigration(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
-        try {   
-            
-            JobParametersBuilder jobParametersBuilder = new JobParametersBuilder();
-            jobParametersBuilder.addLong("time", System.currentTimeMillis()); 
-            jobParametersBuilder.addString("debug", String.valueOf(debug));
+        return startJob(postMigrationJob, "Post Migration", debug);
+    }
 
-            jobLauncher.run(importCsvJob, jobParametersBuilder.toJobParameters());
-            return ResponseEntity.ok("Successfully completed Post Migration batch job ");
-
-        } catch (Exception e) {
-            loggingService.logError("Error starting Post Migration batch job: {}", e);
-            return ResponseEntity.status(500).body("Failed to start batch job");
-        }
+    @PostMapping("/migrate-exclusions")
+    public ResponseEntity<String> processExclusions(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
+        return startJob(processExclusionsJob, "Process Exclusions", debug);
     }
 
 }

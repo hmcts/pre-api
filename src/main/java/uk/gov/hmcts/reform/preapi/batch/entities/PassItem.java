@@ -6,26 +6,19 @@ import java.sql.Timestamp;
 import java.time.Duration;
 
 public class PassItem {
-    // private String regexPattern;
-    private CSVArchiveListData archiveItem;
+    private ExtractedMetadata item;
     private CleansedData cleansedData;
 
     public PassItem(
-        // String regexPattern,
-        CSVArchiveListData archiveItem, 
+        ExtractedMetadata item, 
         CleansedData cleansedData
     ) {
-        // this.regexPattern = regexPattern;
-        this.archiveItem = archiveItem;
+        this.item = item;
         this.cleansedData = cleansedData;
     }
 
-    // public String getRegexPattern() {
-    //     return regexPattern;
-    // }
-
     public String getArchiveName() {
-        return archiveItem.getArchiveName();
+        return item.getArchiveName();
     }
 
     public String getCaseReference() {
@@ -53,7 +46,7 @@ public class PassItem {
     }
 
     public String getFileName() {
-        return archiveItem.getFileName();
+        return item.getFileName();
     }
 
     public Duration getDuration() {
@@ -61,23 +54,22 @@ public class PassItem {
     }
 
     public String getFileSize() {
-        return archiveItem.getFileSize();
+        return item.getFileSize();
     }
   
 
     @Override
     public String toString() {
         return "PassItem{" 
-                // + "regexPattern='" + regexPattern 
-                + ", archiveName='" + archiveItem.getArchiveName()  
-                + ", caseReference='" + cleansedData.getCaseReference()
-                + ", witness='" + cleansedData.getWitnessFirstName()
-                + ", defendant='" + cleansedData.getDefendantLastName()
-                + ", scheduledFor=" + cleansedData.getRecordingTimestamp() 
-                + ", state='" + cleansedData.getState()  
-                + ", version=" + cleansedData.getRecordingVersionNumber()
-                + ", fileName='" + archiveItem.getFileName()  
-                + ", duration=" + cleansedData.getDuration() 
+            + ", archiveName='" + item.getArchiveName()  
+            + ", caseReference='" + cleansedData.getCaseReference()
+            + ", witness='" + cleansedData.getWitnessFirstName()
+            + ", defendant='" + cleansedData.getDefendantLastName()
+            + ", scheduledFor=" + cleansedData.getRecordingTimestamp() 
+            + ", state='" + cleansedData.getState()  
+            + ", version=" + cleansedData.getRecordingVersionNumber()
+            + ", fileName='" + item.getFileName()  
+            + ", duration=" + cleansedData.getDuration() 
             + '}';   
     }
 }

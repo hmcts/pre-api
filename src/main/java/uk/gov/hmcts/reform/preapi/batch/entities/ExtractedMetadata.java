@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 
 public class ExtractedMetadata {
     private String courtReference;
-    private String date;
     private String urn;
     private String exhibitReference;
     private String defendantLastName;
@@ -18,13 +17,25 @@ public class ExtractedMetadata {
     private int duration;  
     private String fileName;  
     private String fileSize;  
+    private String archiveName;
+    private String sanitizedArchiveName = "";
 
-    public ExtractedMetadata(String courtReference, String date, String urn, String exhibitReference,
-                             String defendantLastName, String witnessFirstName, String recordingVersion,
-                             String recordingVersionNumber, String fileExtension, LocalDateTime createTime,
-                             int duration, String fileName, String fileSize) {
+    public ExtractedMetadata(
+        String courtReference, 
+        String urn, 
+        String exhibitReference,
+        String defendantLastName, 
+        String witnessFirstName, 
+        String recordingVersion,
+        String recordingVersionNumber, 
+        String fileExtension, 
+        LocalDateTime createTime,
+        int duration, 
+        String fileName, 
+        String fileSize, 
+        String archiveName
+    ) {
         this.courtReference = courtReference;
-        this.date = date;
         this.urn = urn;
         this.exhibitReference = exhibitReference;
         this.defendantLastName = formatName(defendantLastName.toLowerCase());
@@ -36,14 +47,12 @@ public class ExtractedMetadata {
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
+
+        this.archiveName = archiveName;
     }
 
     public String getCourtReference() { 
         return courtReference; 
-    }
-
-    public String getDate() { 
-        return date; 
     }
 
     public String getUrn() { 
@@ -94,6 +103,41 @@ public class ExtractedMetadata {
         return name != null ? StringUtils.capitalize(name.toLowerCase()) : null;
     }
 
+    public String getArchiveName() {
+        return archiveName;
+    }
+
+    public String getArchiveNameNoExt() {
+        if (archiveName == null || archiveName.isEmpty()) {
+            return archiveName;
+        }
+        
+        int lastDotIndex = archiveName.lastIndexOf('.');
+        return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
+    }
+
+    public String getSanitizedArchiveName() {
+        return sanitizedArchiveName;
+    }
+
+
+    // private String computeSanitizedName(String archiveName) {
+    //     if (archiveName == null || archiveName.isEmpty()) {
+    //         return "";
+    //     }
+        
+    //     String sanitized = archiveName
+    //         .replaceAll("^QC[_\\d]?", "")
+    //         .replaceAll("^QC(?![A-Za-z])", "")
+    //         .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
+    //         .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
+    //         .replaceAll("_(?=\\.[^.]+$)", "")
+    //         .replaceAll("[-_\\s]{2,}", "-")
+    //         .trim();
+
+    //     return sanitized;
+    // }
+
     public String createCaseReference() {
         if ((urn == null || urn.isEmpty()) && (exhibitReference == null || exhibitReference.isEmpty())) {
             return ""; 
@@ -115,7 +159,6 @@ public class ExtractedMetadata {
         StringBuilder sb = new StringBuilder();
         sb.append("ExtractedMetadata {");
         sb.append("courtReference='").append(courtReference).append('\'');
-        sb.append(", date='").append(date).append('\'');
         sb.append(", urn='").append(urn).append('\'');
         sb.append(", exhibitReference='").append(exhibitReference).append('\'');
         sb.append(", defendantLastName='").append(defendantLastName).append('\'');

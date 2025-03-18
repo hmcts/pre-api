@@ -6,7 +6,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProce
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -46,49 +45,32 @@ public class DataTransformationService {
         this.loggingService = loggingService;
     }
 
-    /**
-     * Transforms CSV archive data into cleansed data for migration.
-     * This method handles the extraction of metadata, validation of required fields,
-     * and construction of the cleansed data object.
-     *
-     * @param archiveItem The CSV archive data to transform
-     * @return A ServiceResult containing either the cleansed data or an error message
-     */
-    public ServiceResult<CleansedData> transformData(CSVArchiveListData archiveItem, ExtractedMetadata extracted) {
-        if (archiveItem == null) {
-            loggingService.logError("Archive item is null");
-            return ServiceResultUtil.failure("Archive item cannot be null", Constants.Reports.FILE_MISSING_DATA);
+    public ServiceResult<CleansedData> transformData(ExtractedMetadata extracted) {
+        if (extracted == null) {
+            loggingService.logError("Extracted item is null");
+            return ServiceResultUtil.failure("Extracted item cannot be null", Constants.Reports.FILE_MISSING_DATA);
         }
 
         try {
-            loggingService.logDebug("Starting data transformation for archive: %s", archiveItem.getSanitizedArchiveName());
+            loggingService.logDebug("Starting data transformation for archive: %s", extracted.getSanitizedArchiveName());
 
             Map<String, String> sitesDataMap = getSitesData();
 
-            CleansedData cleansedData = buildCleansedData(archiveItem, extracted, sitesDataMap);
+            CleansedData cleansedData = buildCleansedData(extracted, sitesDataMap);
             
             return ServiceResultUtil.success(cleansedData);
 
         } catch (Exception e) {
-            loggingService.logError("Data transformation failed for archive: %s - %s", archiveItem.getArchiveName(), e);
+            loggingService.logError("Data transformation failed for archive: %s - %s", extracted.getArchiveName(), e);
             return ServiceResultUtil.failure(e.getMessage(), Constants.Reports.FILE_ERROR);
         }
     }
 
-    /**
-     * Builds a CleansedData object from the extracted metadata and archive item.
-     * This method handles the construction of all required fields and relationships.
-     *
-     * @param archiveItem  The original archive item
-     * @param extracted    The extracted metadata
-     * @param sitesDataMap The sites data map from Redis
-     * @return A fully constructed CleansedData object
-     */
     private CleansedData buildCleansedData(
-        CSVArchiveListData archiveItem, ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
-        loggingService.logDebug("Building cleansed data for archive: %s", archiveItem.getSanitizedArchiveName());
+        ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+        loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
-        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(archiveItem);
+        List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
 
         String redisKey = RecordingUtils.buildMetadataPreprocessKey(
             extracted.getUrn(), extracted.getDefendantLastName(), extracted.getWitnessFirstName()
@@ -118,7 +100,7 @@ public class DataTransformationService {
             .setState(determineState(shareBookingContacts))
             .setShareBookingContacts(shareBookingContacts)
             .setFileExtension(extracted.getFileExtension())
-            .setFileName(archiveItem.getFileName())
+            .setFileName(extracted.getFileName())
             .setRecordingVersion(versionDetails.getVersionType())
             .setRecordingVersionNumberStr(versionDetails.getVersionNumberStr())
             .setRecordingVersionNumber(versionDetails.getVersionNumber())
@@ -167,14 +149,8 @@ public class DataTransformationService {
         return null;
     }
 
-    /**
-     * Builds a list of share booking contacts from the archive item.
-     *
-     * @param archiveItem The archive item containing the contact information
-     * @return A list of contact maps containing first name, last name, and email
-     */
-    private List<Map<String, String>> buildShareBookingContacts(CSVArchiveListData archiveItem) {
-        String archiveName = archiveItem.getArchiveNameNoExt();
+    private List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
+        String archiveName = extracted.getArchiveNameNoExt();
         List<String[]> usersAndEmails = getUsersAndEmails(archiveName);
         List<Map<String, String>> contactsList = new ArrayList<>();
 

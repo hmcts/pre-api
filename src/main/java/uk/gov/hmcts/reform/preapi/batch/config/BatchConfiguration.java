@@ -34,6 +34,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisSe
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.Writer;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
@@ -58,6 +59,8 @@ public class BatchConfiguration implements StepExecutionListener {
     private static final String SITES_CSV = BASE_PATH + "Sites.csv";
     private static final String CHANNEL_USER_CSV = BASE_PATH + "Channel_User_Report.csv";
     private static final String ARCHIVE_LIST_CSV = BASE_PATH + "Archive_List.csv";
+    private static final String EXCEMPTIONS_LIST_CSV = BASE_PATH + "Excemption_List.csv";
+
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
@@ -134,17 +137,6 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
-    @Qualifier("postMigrationJob")
-    public Job processPostMigration() {
-        return new JobBuilder("postMigrationJob", jobRepository)
-            .incrementer(new RunIdIncrementer())
-            .start(startLogging())
-            // .next(createNonTransactionalMarkCasesClosedStep())
-            // .next(markCasesStep)
-            .build();
-    }
-
-    @Bean
     @Qualifier("importCsvJob")
     public Job processCSVJob() {
         Step startLogStep = startLogging();
@@ -170,6 +162,29 @@ public class BatchConfiguration implements StepExecutionListener {
             .next(archiveStep)
             .next(writeCsvStep)
             .end()
+            .build();
+    }
+
+    @Bean
+    @Qualifier("postMigrationJob")
+    public Job processPostMigration() {
+        return new JobBuilder("postMigrationJob", jobRepository)
+            .incrementer(new RunIdIncrementer())
+            .start(startLogging())
+            .next(createRobotUserSignInStep())
+            // .next(createNonTransactionalMarkCasesClosedStep())
+            // .next(markCasesStep)
+            .build();
+    }
+
+    @Bean
+    @Qualifier("processExclusionsJob")
+    public Job processExclusions() {
+        return new JobBuilder("processExclusionsJob", jobRepository)
+            .incrementer(new RunIdIncrementer())
+            .start(startLogging())
+            .next(createRobotUserSignInStep())
+            .next(createExcemptionListStep())
             .build();
     }
 
@@ -205,6 +220,19 @@ public class BatchConfiguration implements StepExecutionListener {
             true
         );
     }
+
+    private Step createExcemptionListStep() {
+        return createExcemptionReadStep(
+            "excemptionListDataStep",
+            new ClassPathResource(EXCEMPTIONS_LIST_CSV),
+            new String[]{"archive_name","create_time","duration","court_reference","urn",
+            "exhibit_reference","defendant_name","witness_name","recording_version",
+            "recording_version_number","file_extension","file_name","file_size","reason","added_by"},
+            CSVExemptionListData.class,
+            true
+        );
+    }
+
 
     protected Step startLogging() {
         return new StepBuilder("loggingStep", jobRepository)
@@ -317,6 +345,27 @@ public class BatchConfiguration implements StepExecutionListener {
             }
         };
     }
+
+    protected <T> Step createExcemptionReadStep(
+        String stepName,
+        Resource filePath,
+        String[] fieldNames,
+        Class<T> targetClass,
+        boolean writeToCsv
+    ) {
+        FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
+        return new StepBuilder(stepName, jobRepository)
+            .<T, MigratedItemGroup>chunk(CHUNK_SIZE, transactionManager)
+            .reader(reader)
+            .processor(itemProcessor)
+            .writer(writeToCsv ? itemWriter : noOpWriter())
+            .faultTolerant()
+            .skipLimit(SKIP_LIMIT)
+            .skip(Exception.class)
+            .build();
+    }
+
+
 
     protected <T> Step createReadStep(
         String stepName,

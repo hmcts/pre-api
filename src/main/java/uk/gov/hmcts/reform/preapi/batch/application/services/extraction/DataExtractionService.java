@@ -105,7 +105,6 @@ public class DataExtractionService {
     private ExtractedMetadata extractMetaData(Matcher matcher, CSVArchiveListData archiveItem) {
         return new ExtractedMetadata(
             getMatcherGroup(matcher, "court"),
-            getMatcherGroup(matcher, "date"),
             getMatcherGroup(matcher, "urn"),
             getMatcherGroup(matcher, "exhibitRef"),
             getMatcherGroup(matcher, "defendantLastName"),
@@ -116,7 +115,8 @@ public class DataExtractionService {
             archiveItem.getCreateTimeAsLocalDateTime(),
             archiveItem.getDuration(),
             archiveItem.getFileName(),
-            archiveItem.getFileSize()
+            archiveItem.getFileSize(),
+            archiveItem.getArchiveName()
         );
     }
 

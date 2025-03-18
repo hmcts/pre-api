@@ -61,7 +61,7 @@ public class MigrationTrackerService {
 
         loggingService.logInfo(
             "Adding failed item: Category = %s | Filename = %s",
-            item.getFailureCategory(), item.getArchiveItem().getFileName()
+            item.getFailureCategory(), item.getFileName()
         );
     }
 
@@ -217,7 +217,7 @@ public class MigrationTrackerService {
         List<List<String>> rows = new ArrayList<>();
 
         for (FailedItem item : items) {
-            CSVArchiveListData archiveItem = item.getArchiveItem();
+            CSVArchiveListData archiveItem = (CSVArchiveListData) item.getItem();
             String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             List<String> row = List.of(
