@@ -73,9 +73,9 @@ tasks.withType(JavaCompile) {
 }
 
 // https://github.com/gradle/gradle/issues/16791
-tasks.withType(JavaExec).configureEach {
-  javaLauncher.set(javaToolchains.launcherFor(java.toolchain))
-}
+//tasks.withType(JavaExec).configureEach {
+//  javaLauncher.set(javaToolchains.launcherFor(java.toolchain))
+//}
 
 tasks.withType(Test) {
   useJUnitPlatform()
@@ -274,6 +274,8 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.4.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-batch'
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-redis'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.8'
@@ -310,7 +312,7 @@ dependencies {
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.10.Final')
-
+  developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.7:all'
   testImplementation 'org.springframework.security:spring-security-test:6.4.3'
