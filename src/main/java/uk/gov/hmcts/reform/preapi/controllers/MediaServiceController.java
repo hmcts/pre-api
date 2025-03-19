@@ -22,24 +22,26 @@ import uk.gov.hmcts.reform.preapi.controllers.base.PreApiController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
-import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
+import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 
 import java.util.List;
@@ -56,19 +58,22 @@ public class MediaServiceController extends PreApiController {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AzureIngestStorageService azureIngestStorageService;
     private final RecordingService recordingService;
+    private final EncodeJobService encodeJobService;
 
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
                                   RecordingService recordingService,
                                   AzureFinalStorageService azureFinalStorageService,
-                                  AzureIngestStorageService azureIngestStorageService) {
+                                  AzureIngestStorageService azureIngestStorageService,
+                                  EncodeJobService encodeJobService) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
         this.recordingService = recordingService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
+        this.encodeJobService = encodeJobService;
     }
 
     @GetMapping("/health")
@@ -188,19 +193,31 @@ public class MediaServiceController extends PreApiController {
         }
 
         var recordingId = UUID.randomUUID();
-        dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
-
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
-            var status = mediaService.stopLiveEvent(dto, recordingId);
-            if (status == RecordingStatus.FAILURE) {
-                throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
-                                                     + captureSessionId
-                                                     + ")");
+            mediaService.stopLiveEvent(dto, recordingId);
+            var jobName = mediaService.triggerProcessingStep1(
+                dto,
+                dto.getId().toString().replace("-", ""),
+                recordingId
+            );
+            if (jobName == null) {
+                dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.NO_RECORDING, null);
+            } else {
+                var encodeJob = new EncodeJobDTO();
+                encodeJob.setCaptureSessionId(captureSessionId);
+                encodeJob.setJobName(jobName);
+                encodeJob.setRecordingId(recordingId);
+                encodeJob.setTransform(EncodeTransform.ENCODE_FROM_INGEST);
+                encodeJobService.upsert(encodeJob);
+                dto = captureSessionService.stopCaptureSession(
+                    captureSessionId,
+                    RecordingStatus.PROCESSING,
+                    recordingId
+                );
             }
-            dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
         } catch (Exception e) {
-            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, recordingId);
+            captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
             throw e;
         }
 

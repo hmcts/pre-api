@@ -183,7 +183,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                 recordingId
             );
             log.info("Stopping live event {}", liveEventId);
-            var status = mediaService.stopLiveEvent(updatedCaptureSession, recordingId);
+            var status = mediaService.stopLiveEventAndProcess(updatedCaptureSession, recordingId);
             var stoppedCaptureSession = captureSessionService.stopCaptureSession(
                 updatedCaptureSession.getId(),
                 status,

@@ -170,9 +170,9 @@ public class CleanupLiveEventsTest {
                                                       mockRecording2.getId()))
             .thenReturn(mockCaptureSessionProcessing);
 
-        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording.getId()))
+        when(mediaService.stopLiveEventAndProcess(mockCaptureSessionProcessing, mockRecording.getId()))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording2.getId()))
+        when(mediaService.stopLiveEventAndProcess(mockCaptureSessionProcessing, mockRecording2.getId()))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionService.stopCaptureSession(captureSessionId,
@@ -207,8 +207,8 @@ public class CleanupLiveEventsTest {
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor = ArgumentCaptor.forClass(CaptureSessionDTO.class);
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor2 = ArgumentCaptor.forClass(CaptureSessionDTO.class);
 
-        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor.capture(), eq(mockRecording.getId()));
-        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor2.capture(), eq(mockRecording2.getId()));
+        verify(mediaService, times(1)).stopLiveEventAndProcess(captureSessionCaptor.capture(), eq(mockRecording.getId()));
+        verify(mediaService, times(1)).stopLiveEventAndProcess(captureSessionCaptor2.capture(), eq(mockRecording2.getId()));
 
         Assertions.assertEquals(captureSessionId, captureSessionCaptor.getValue().getId());
         Assertions.assertEquals(captureSessionId, captureSessionCaptor2.getValue().getId());
@@ -354,7 +354,7 @@ public class CleanupLiveEventsTest {
         var mockRecording2 = new RecordingDTO();
         mockRecording2.setId(UUID.randomUUID());
 
-        when(mediaService.stopLiveEvent(captureSession, mockRecording.getId()))
+        when(mediaService.stopLiveEventAndProcess(captureSession, mockRecording.getId()))
             .thenThrow(InterruptedException.class);
 
         when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
@@ -575,9 +575,9 @@ public class CleanupLiveEventsTest {
                                                       mockRecording2.getId()))
             .thenReturn(mockCaptureSessionProcessing);
 
-        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording.getId()))
+        when(mediaService.stopLiveEventAndProcess(mockCaptureSessionProcessing, mockRecording.getId()))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording2.getId()))
+        when(mediaService.stopLiveEventAndProcess(mockCaptureSessionProcessing, mockRecording2.getId()))
             .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
 
         when(captureSessionService.stopCaptureSession(captureSessionId,
@@ -612,8 +612,8 @@ public class CleanupLiveEventsTest {
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor = ArgumentCaptor.forClass(CaptureSessionDTO.class);
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor2 = ArgumentCaptor.forClass(CaptureSessionDTO.class);
 
-        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor.capture(), eq(mockRecording.getId()));
-        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor2.capture(), eq(mockRecording2.getId()));
+        verify(mediaService, times(1)).stopLiveEventAndProcess(captureSessionCaptor.capture(), eq(mockRecording.getId()));
+        verify(mediaService, times(1)).stopLiveEventAndProcess(captureSessionCaptor2.capture(), eq(mockRecording2.getId()));
 
         Assertions.assertEquals(captureSessionId, captureSessionCaptor.getValue().getId());
         Assertions.assertEquals(captureSessionId, captureSessionCaptor2.getValue().getId());
