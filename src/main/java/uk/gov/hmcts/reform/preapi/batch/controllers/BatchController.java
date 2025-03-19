@@ -39,11 +39,12 @@ public class BatchController {
         this.loggingService = loggingService;
     }
 
-    private ResponseEntity<String> startJob(Job job, String jobName, boolean debug) {
+    private ResponseEntity<String> startJob(Job job, String jobName, boolean debug, String migrationType) {
         try {
             JobParametersBuilder jobParametersBuilder = new JobParametersBuilder()
                     .addLong("time", System.currentTimeMillis())
-                    .addString("debug", String.valueOf(debug));
+                    .addString("debug", String.valueOf(debug))
+                    .addString("migrationType", migrationType);
 
             jobLauncher.run(job, jobParametersBuilder.toJobParameters());
             return ResponseEntity.ok("Successfully completed " + jobName + " batch job");
@@ -55,23 +56,33 @@ public class BatchController {
     }
 
     @PostMapping("/fetch-xml")
-    public ResponseEntity<String> startXmlBatch(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
-        return startJob(fetchXmlJob, "Fetch XML", debug);
+    public ResponseEntity<String> startXmlBatch(
+        @RequestParam(value = "debug", defaultValue = "false") boolean debug,
+        @RequestParam(value = "migrationType", defaultValue = "first") String migrationType
+    ) {
+        return startJob(fetchXmlJob, "Fetch XML", debug, migrationType);
     }
 
     @PostMapping("/process-migration")
-    public ResponseEntity<String> startBatch(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
-        return startJob(importCsvJob, "Transform", debug);
+    public ResponseEntity<String> startBatch(
+        @RequestParam(value = "debug", defaultValue = "false") boolean debug,
+        @RequestParam(value = "migrationType", defaultValue = "first") String migrationType
+    ) {
+        return startJob(importCsvJob, "Transform", debug, migrationType);
     }
 
     @PostMapping("/post-migration-tasks")
-    public ResponseEntity<String> postMigration(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
-        return startJob(postMigrationJob, "Post Migration", debug);
+    public ResponseEntity<String> postMigration(
+        @RequestParam(value = "debug", defaultValue = "false") boolean debug
+    ) {
+        return startJob(postMigrationJob, "Post Migration", debug, "first");
     }
 
     @PostMapping("/migrate-exclusions")
-    public ResponseEntity<String> processExclusions(@RequestParam(value = "debug", defaultValue = "false") boolean debug) {
-        return startJob(processExclusionsJob, "Process Exclusions", debug);
+    public ResponseEntity<String> processExclusions(
+        @RequestParam(value = "debug", defaultValue = "false") boolean debug
+    ) {
+        return startJob(processExclusionsJob, "Process Exclusions", debug, "first");
     }
 
 }

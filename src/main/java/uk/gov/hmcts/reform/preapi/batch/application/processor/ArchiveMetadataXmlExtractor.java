@@ -6,7 +6,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-// import uk.gov.hmcts.reform.preapi.batch.application.services.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -48,7 +47,7 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
-    public void extractAndReportArchiveMetadata(String containerName, String outputDir) {
+    public void extractAndReportArchiveMetadata(String containerName, String outputDir, String filename) {
         try {
             loggingService.logInfo("Starting extraction for container: %s", containerName);
 
@@ -65,9 +64,9 @@ public class ArchiveMetadataXmlExtractor {
 
             if (!allArchiveMetadata.isEmpty()) {
                 loggingService.logDebug("Generating archive metadata report in %s", outputDir);
-                generateArchiveMetadataReport(allArchiveMetadata, outputDir);
+                generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
-                    "Successfully generated Archive_List.csv with " + allArchiveMetadata.size() + " entries"
+                    "Successfully generated " + filename + " with " + allArchiveMetadata.size() + " entries"
                 );
             } else {
                 loggingService.logWarning("No archive metadata found to generate report");
@@ -107,7 +106,8 @@ public class ArchiveMetadataXmlExtractor {
     }
 
     private void generateArchiveMetadataReport(List<List<String>> extractedArchiveMetadata,
-                                               String reportOutputDirectory) throws IOException {
+                                               String reportOutputDirectory,
+                                               String filename) throws IOException {
 
         List<String> headers = List.of(
             "archive_name",
@@ -120,7 +120,7 @@ public class ArchiveMetadataXmlExtractor {
         reportingService.writeToCsv(
             headers,
             extractedArchiveMetadata,
-            "Archive_List",
+            filename,
             reportOutputDirectory,
             false
         );

@@ -35,8 +35,8 @@ public class LoggingService {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    public void initializeLogFile() {
-        setTotalRecordsFromFile("src/main/resources/batch/Archive_List.csv");
+    public void initializeLogFile(String migrationType ) {
+        setTotalRecordsFromFile(migrationType);
         startTime = LocalDateTime.now();
         try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE_PATH, false))) {
             writer.println("=====================================================");
@@ -201,10 +201,18 @@ public class LoggingService {
     // ==============================
     // SETTING RECORDS FROM FILE
     // ==============================
-    public void setTotalRecordsFromFile(String filePath) {
+    public void setTotalRecordsFromFile(String migrationType) {
+        String filePath;
+    
+        if ("second".equalsIgnoreCase(migrationType)) {
+            filePath = "src/main/resources/batch/Archive_List_delta.csv"; 
+        } else {
+            filePath = "src/main/resources/batch/Archive_List_initial.csv"; 
+        }
+
         try (BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)))) {
             long lineCount = reader.lines()
-                                   .skip(1) // Skip header
+                                   .skip(1) 
                                    .filter(line -> !line.trim().isEmpty())
                                    .count();
 

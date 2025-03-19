@@ -101,9 +101,9 @@ public class MigrationGroupBuilderService {
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, cleansedData, baseKey, captureSession);
 
-        if (recording != null) {
-            recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
-        }
+        // if (recording != null) {
+        //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
+        // }
 
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> invites = new ArrayList<>();
