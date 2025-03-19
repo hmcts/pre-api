@@ -575,7 +575,8 @@ public class MediaServiceControllerTest {
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class))).thenReturn("jobName");
+        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class)))
+            .thenReturn("jobName");
         when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any()))
             .thenReturn(dto2);
 
@@ -589,9 +590,12 @@ public class MediaServiceControllerTest {
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(mediaService, times(1)).stopLiveEvent(eq(dto), any(UUID.class));
         verify(mediaService, times(1)).triggerProcessingStep1(eq(dto), anyString(), any(UUID.class));
-        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
-        verify(captureSessionService, never()).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
-        verify(captureSessionService, never()).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any(UUID.class));
+        verify(captureSessionService, never())
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
+        verify(captureSessionService, never())
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
     }
 
     @DisplayName("Should successfully stop capture session and return 200 when no recording found")
@@ -608,7 +612,8 @@ public class MediaServiceControllerTest {
 
         when(captureSessionService.findById(captureSessionId)).thenReturn(dto);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class))).thenReturn(null);
+        when(mediaService.triggerProcessingStep1(eq(dto), eq(dto.getId().toString().replace("-", "")), any(UUID.class)))
+            .thenReturn(null);
         when(captureSessionService.stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), any()))
             .thenReturn(dto2);
 
@@ -622,7 +627,8 @@ public class MediaServiceControllerTest {
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
         verify(mediaService, times(1)).stopLiveEvent(eq(dto), any(UUID.class));
         verify(mediaService, times(1)).triggerProcessingStep1(eq(dto), anyString(), any(UUID.class));
-        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), isNull());
     }
 
     @Test
@@ -682,7 +688,8 @@ public class MediaServiceControllerTest {
         verify(captureSessionService, times(1)).findById(captureSessionId);
         verify(mediaService, times(1)).stopLiveEvent(any(CaptureSessionDTO.class), any(UUID.class));
         verify(mediaService, times(1)).triggerProcessingStep1(any(), any(), any());
-        verify(captureSessionService, times(1)).stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
+        verify(captureSessionService, times(1))
+            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.FAILURE), isNull());
     }
 
     @Test
