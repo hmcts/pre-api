@@ -4,8 +4,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
   image: 'sdshmctspublic.azurecr.io/pre/api:latest'
   ingressHost: pre-api-{{ .Values.global.environment }}.service.core-compute-{{ .Values.global.environment }}.internal
   aadIdentityName: pre
-  memoryRequests: '3Gi'
-  memoryLimits: '3Gi'
   keyVaults:
     pre-hmctskv:
       secrets:
