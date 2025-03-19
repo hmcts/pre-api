@@ -21,6 +21,8 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.EncodeJobService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -93,7 +95,7 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(encodeJobService, times(1)).findAllProcessing();
+        verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, dto.getJobName());
     }
 
@@ -108,7 +110,7 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(encodeJobService, times(1)).findAllProcessing();
+        verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, dto.getJobName());
         verify(encodeJobService, times(1)).delete(dto.getId());
         verify(captureSessionService, times(1))
@@ -125,7 +127,7 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(encodeJobService, times(1)).findAllProcessing();
+        verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, dto.getJobName());
         verify(encodeJobService, times(1)).delete(dto.getId());
         verify(captureSessionService, times(1))
@@ -146,7 +148,7 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(encodeJobService, times(1)).findAllProcessing();
+        verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, "jobName");
         verify(mediaService, times(1)).triggerProcessingStep2(dto.getRecordingId());
 
@@ -169,7 +171,7 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(encodeJobService, times(1)).findAllProcessing();
+        verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, "jobName");
         verify(mediaService, times(1)).triggerProcessingStep2(dto.getRecordingId());
         verify(encodeJobService, never()).upsert(any());
@@ -191,7 +193,7 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(encodeJobService, times(1)).findAllProcessing();
+        verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, "jobName");
         verify(encodeJobService, times(1)).delete(any());
         verify(captureSessionService, times(1)).stopCaptureSession(
@@ -214,7 +216,7 @@ public class ProcessCaptureSessionsTest {
         processCaptureSessions.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(encodeJobService, times(1)).findAllProcessing();
+        verify(encodeJobService, times(2)).findAllProcessing();
         verify(mediaService, times(1)).hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, "jobName");
         verify(encodeJobService, times(1)).delete(any());
         verify(captureSessionService, times(1))
@@ -228,6 +230,7 @@ public class ProcessCaptureSessionsTest {
         dto.setRecordingId(UUID.randomUUID());
         dto.setJobName("jobName");
         dto.setTransform(transform);
+        dto.setCreatedAt(Timestamp.from(Instant.now()));
         return dto;
     }
 }
