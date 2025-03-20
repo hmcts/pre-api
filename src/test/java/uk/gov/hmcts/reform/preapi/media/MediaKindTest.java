@@ -1419,9 +1419,14 @@ public class MediaKindTest {
     @Test
     @DisplayName("Should return failure on MediaKind job error")
     void hasJobCompletedOnMkError() {
+        var jobOutputAsset = mock(JobOutputAsset.class);
+        var jobError = mock(JobError.class);
+        when(jobError.message()).thenReturn("error message");
+        when(jobOutputAsset.error()).thenReturn(jobError);
         var mkJob = MkJob.builder()
             .properties(MkJob.MkJobProperties.builder()
                             .state(JobState.ERROR)
+                            .outputs(List.of(jobOutputAsset))
                             .build())
             .build();
         when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
