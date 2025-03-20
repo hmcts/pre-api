@@ -1401,4 +1401,60 @@ public class MediaKindTest {
         verify(mockClient, times(1)).stopLiveEvent(liveEventId);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventId);
     }
+
+    @Test
+    @DisplayName("Should return recording available when job has completed")
+    void hasJobCompletedOnMkFinished() {
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.FINISHED)
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("Should return failure on MediaKind job error")
+    void hasJobCompletedOnMkError() {
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.ERROR)
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.FAILURE);
+    }
+
+    @Test
+    @DisplayName("Should return failure on MediaKind job cancelled")
+    void hasJobCompletedOnMkCancelled() {
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.CANCELED)
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.FAILURE);
+    }
+
+    @Test
+    @DisplayName("Should return processing on MediaKind job if not finished, cancelled or errored")
+    void hasJobCompletedOnMkProcessing() {
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.PROCESSING)
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.PROCESSING);
+    }
 }
