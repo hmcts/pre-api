@@ -105,7 +105,8 @@ public class GovNotifyTest {
             "portalUrl",
             "guideLink",
             "processGuideLink",
-            "faqsLink"
+            "faqsLink",
+            "editingRequestForm"
         );
         assertThat(template.getTemplateId()).isEqualTo("e04adfb8-58e0-44be-ab42-bd6d896ccfb7");
     }

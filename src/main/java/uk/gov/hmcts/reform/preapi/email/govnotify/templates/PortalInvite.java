@@ -9,7 +9,8 @@ public class PortalInvite extends BaseTemplate {
                         String portalUrl,
                         String userGuideLink,
                         String processGuideLink,
-                        String faqsLink) {
+                        String faqsLink,
+                        String editRequestFormLink) {
         super(
             to,
             Map.of(
@@ -18,7 +19,8 @@ public class PortalInvite extends BaseTemplate {
                 "portal_url", portalUrl,
                 "user_guide_link", userGuideLink,
                 "process_guide_link", processGuideLink,
-                "faqs_link", faqsLink
+                "faqs_link", faqsLink,
+                "edit_request_form_link", editRequestFormLink
             )
         );
     }
