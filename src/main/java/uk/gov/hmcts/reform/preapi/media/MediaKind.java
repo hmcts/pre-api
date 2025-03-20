@@ -348,44 +348,24 @@ public class MediaKind implements IMediaService {
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
-        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
-            log.info("No valid asset files found for capture session [{}] in container named [{}]",
-                     captureSession.getId(),
-                     captureSession.getBookingId().toString()
-            );
+        var jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
+        if (jobName == null) {
             return RecordingStatus.NO_RECORDING;
         }
-
-        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
-        var recordingTempAssetName = recordingNoHyphen + "_temp";
-        var recordingAssetName = recordingNoHyphen + "_output";
-
-        createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
-        createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-
-        var jobName = encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
         var encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
         if (encodeFromIngestJobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
         }
 
-        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
-        if (filename == null) {
-            log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
+        var jobName2 = triggerProcessingStep2(recordingId);
+        if (jobName2 == null) {
             return RecordingStatus.FAILURE;
         }
-
-        var jobName2 = encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
         var encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
         if (encodeFromMp4JobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
         }
-        if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
-            log.error("Final asset .ism file not found for asset [{}] in container [{}]",
-                      recordingAssetName, recordingId);
-            return RecordingStatus.FAILURE;
-        }
-        return RecordingStatus.RECORDING_AVAILABLE;
+        return verifyFinalAssetExists(recordingId);
     }
 
     @Override
