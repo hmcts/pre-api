@@ -3,6 +3,8 @@ package uk.gov.hmcts.reform.preapi.email.govnotify.templates;
 import java.util.Map;
 
 public class PortalInvite extends BaseTemplate {
+
+    @SuppressWarnings("java:S107")
     public PortalInvite(String to,
                         String firstName,
                         String lastName,
