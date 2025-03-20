@@ -36,7 +36,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private final MigrationTrackerService migrationTrackerService;
     private final ReferenceDataProcessor referenceDataProcessor;
     private final MigrationGroupBuilderService migrationService;
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
 
     @Autowired
     public Processor(
@@ -82,7 +82,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return null;
     }
 
-    private MigratedItemGroup processExemptionItem(CSVExemptionListData exemptionItem){
+    private MigratedItemGroup processExemptionItem(CSVExemptionListData exemptionItem) {
         loggingService.logDebug("===============================================");
         loggingService.logDebug("Processing Exemption Item: %s", exemptionItem);
 
@@ -98,11 +98,16 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             }
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
-        } catch (Exception e) { 
-            loggingService.logError("Error processing archive %s: %s", extractedData.getArchiveName(), e.getMessage(), e);
+        } catch (Exception e) {
+            loggingService.logError(
+                "Error processing archive %s: %s",
+                extractedData.getArchiveName(),
+                e.getMessage(),
+                e
+            );
             return handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
         }
-        
+
     }
 
     private MigratedItemGroup processArchiveItem(CSVArchiveListData archiveItem) {
@@ -121,7 +126,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (cleansedData == null) {
                 return null;
             }
-            
+
             // Check if already migrated
             if (isMigrated(cleansedData, archiveItem)) {
                 return null;
@@ -153,13 +158,13 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (extractionResult.isTest()) {
             TestItem testItem = extractionResult.getTestItem();
             handleTest(testItem);
-            return null; 
+            return null;
         }
 
         // Handle extraction errors
         if (!extractionResult.isSuccess()) {
             handleError(archiveItem, extractionResult.getErrorMessage(), extractionResult.getCategory());
-            return null;  
+            return null;
         }
 
         return (ExtractedMetadata) extractionResult.getData();
@@ -231,19 +236,19 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         LocalDateTime parsedCreateTime = parseDateTime(exemptionItem.getCreateTime());
 
         return new ExtractedMetadata(
-            exemptionItem.getCourtReference(),      
-            exemptionItem.getUrn(),                 
-            exemptionItem.getExhibitReference(),    
-            exemptionItem.getDefendantName(),      
-            exemptionItem.getWitnessName(),       
-            exemptionItem.getRecordingVersion(),    
-            String.valueOf(exemptionItem.getRecordingVersionNumber()), 
-            exemptionItem.getFileExtension(),       
-            parsedCreateTime,                       
-            exemptionItem.getDuration(),             
-            exemptionItem.getFileName(),            
+            exemptionItem.getCourtReference(),
+            exemptionItem.getUrn(),
+            exemptionItem.getExhibitReference(),
+            exemptionItem.getDefendantName(),
+            exemptionItem.getWitnessName(),
+            exemptionItem.getRecordingVersion(),
+            String.valueOf(exemptionItem.getRecordingVersionNumber()),
+            exemptionItem.getFileExtension(),
+            parsedCreateTime,
+            exemptionItem.getDuration(),
+            exemptionItem.getFileName(),
             exemptionItem.getFileSize(),
-            exemptionItem.getArchiveName()             
+            exemptionItem.getArchiveName()
         );
     }
 
@@ -261,6 +266,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
     }
-    
+
 }
 

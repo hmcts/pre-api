@@ -52,12 +52,15 @@ public class DataTransformationService {
         }
 
         try {
-            loggingService.logDebug("Starting data transformation for archive: %s", extracted.getSanitizedArchiveName());
+            loggingService.logDebug(
+                "Starting data transformation for archive: %s",
+                extracted.getSanitizedArchiveName()
+            );
 
             Map<String, String> sitesDataMap = getSitesData();
 
             CleansedData cleansedData = buildCleansedData(extracted, sitesDataMap);
-            
+
             return ServiceResultUtil.success(cleansedData);
 
         } catch (Exception e) {

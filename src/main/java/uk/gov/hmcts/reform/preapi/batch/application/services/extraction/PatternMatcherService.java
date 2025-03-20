@@ -23,30 +23,31 @@ public class PatternMatcherService {
             return testMatch;
         }
 
-        Optional<Map.Entry<String, Matcher>> validMatch = findMatch(archiveName, RegexPatterns.LEGITAMITE_PATTERNS, "VALID");
-        if (!validMatch.isPresent()) {
+        Optional<Map.Entry<String, Matcher>> validMatch =
+            findMatch(archiveName, RegexPatterns.LEGITAMITE_PATTERNS, "VALID");
+        if (validMatch.isEmpty()) {
             loggingService.logDebug("No pattern matched for file: %s", archiveName);
         }
-        
+
         return validMatch;
     }
 
     private Optional<Map.Entry<String, Matcher>> findMatch(
-            String archiveName, 
-            Map<String, Pattern> patternMap, 
+            String archiveName,
+            Map<String, Pattern> patternMap,
             String patternType
-        ) {
-        
+    ) {
+
         for (Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
             Matcher matcher = entry.getValue().matcher(archiveName);
             if (matcher.matches()) {
                 String patternName = entry.getKey();
-                loggingService.logDebug("Matched %s pattern: %s for file: %s", 
+                loggingService.logDebug("Matched %s pattern: %s for file: %s",
                         patternType, patternName, archiveName);
                 return Optional.of(Map.entry(patternName, matcher));
             }
         }
-        
+
         return Optional.empty();
     }
 }

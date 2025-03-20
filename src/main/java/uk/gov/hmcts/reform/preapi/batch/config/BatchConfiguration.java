@@ -35,8 +35,8 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisSe
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.Writer;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -157,14 +157,14 @@ public class BatchConfiguration implements StepExecutionListener {
             .next(createChannelUserStep())
             .next(createRobotUserSignInStep())
             .next(createPreProcessStep())
-            
+
             .next(deltaProcessingDecider())
             .on("FULL").to(createPreProcessMetadataStep())
                                 .next(createPreProcessMetadataStep())
                                 .next(createArchiveListStep())
                                 .next(createWriteToCSVStep())
 
-            .from(deltaProcessingDecider()) 
+            .from(deltaProcessingDecider())
             .on("DELTA").to(createDeltaProcessingStep())
                                 .next(createPreProcessMetadataStep())
                                 .next(createDeltaListStep())
@@ -258,9 +258,11 @@ public class BatchConfiguration implements StepExecutionListener {
         return createExcemptionReadStep(
             "excemptionListDataStep",
             new ClassPathResource(EXCEMPTIONS_LIST_CSV),
-            new String[]{"archive_name","create_time","duration","court_reference","urn",
-            "exhibit_reference","defendant_name","witness_name","recording_version",
-            "recording_version_number","file_extension","file_name","file_size","reason","added_by"},
+            new String[] {
+                "archive_name","create_time","duration","court_reference","urn",
+                "exhibit_reference","defendant_name","witness_name","recording_version",
+                "recording_version_number","file_extension","file_name","file_size","reason","added_by"
+            },
             CSVExemptionListData.class,
             true
         );
@@ -299,16 +301,13 @@ public class BatchConfiguration implements StepExecutionListener {
                     String migrationType = (String) chunkContext.getStepContext()
                         .getJobParameters()
                         .get("migrationType");
-    
-                    String containerName = CONTAINER_NAME;
-                    String outputDir = FULL_PATH;
 
-                    String outputFileName = "Archive_List_initial"; 
+                    String outputFileName = "Archive_List_initial";
                     if ("second".equalsIgnoreCase(migrationType)) {
-                        outputFileName = "Archive_List_updated"; 
+                        outputFileName = "Archive_List_updated";
                     }
 
-                    xmlProcessingService.extractAndReportArchiveMetadata(containerName, outputDir, outputFileName);
+                    xmlProcessingService.extractAndReportArchiveMetadata(CONTAINER_NAME, FULL_PATH, outputFileName);
                     return RepeatStatus.FINISHED;
                 }, transactionManager
             )
@@ -335,7 +334,7 @@ public class BatchConfiguration implements StepExecutionListener {
                                                    .get("migrationType");
 
                     String filePath = "FULL".equalsIgnoreCase(migrationType)
-                        ? ARCHIVE_LIST_INITAL  
+                        ? ARCHIVE_LIST_INITAL
                         : DELTA_RECORDS_CSV;
 
                     Resource resource = new ClassPathResource(filePath);
@@ -392,9 +391,9 @@ public class BatchConfiguration implements StepExecutionListener {
             String migrationType = (String) jobExecution.getJobParameters().getString("migrationType");
 
             if ("second".equalsIgnoreCase(migrationType)) {
-                return new FlowExecutionStatus("DELTA"); 
+                return new FlowExecutionStatus("DELTA");
             } else {
-                return new FlowExecutionStatus("FULL"); 
+                return new FlowExecutionStatus("FULL");
             }
         };
     }

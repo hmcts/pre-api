@@ -6,11 +6,11 @@ import java.sql.Timestamp;
 import java.time.Duration;
 
 public class PassItem {
-    private ExtractedMetadata item;
-    private CleansedData cleansedData;
+    private final ExtractedMetadata item;
+    private final CleansedData cleansedData;
 
     public PassItem(
-        ExtractedMetadata item, 
+        ExtractedMetadata item,
         CleansedData cleansedData
     ) {
         this.item = item;
@@ -25,11 +25,11 @@ public class PassItem {
         return cleansedData.getCaseReference();
     }
 
-    public String getWitnessName(){
+    public String getWitnessName() {
         return cleansedData.getWitnessFirstName();
     }
 
-    public String getDefendantName(){
+    public String getDefendantName() {
         return cleansedData.getDefendantLastName();
     }
 
@@ -56,20 +56,20 @@ public class PassItem {
     public String getFileSize() {
         return item.getFileSize();
     }
-  
+
 
     @Override
     public String toString() {
-        return "PassItem{" 
-            + ", archiveName='" + item.getArchiveName()  
+        return "PassItem{"
+            + ", archiveName='" + item.getArchiveName()
             + ", caseReference='" + cleansedData.getCaseReference()
             + ", witness='" + cleansedData.getWitnessFirstName()
             + ", defendant='" + cleansedData.getDefendantLastName()
-            + ", scheduledFor=" + cleansedData.getRecordingTimestamp() 
-            + ", state='" + cleansedData.getState()  
+            + ", scheduledFor=" + cleansedData.getRecordingTimestamp()
+            + ", state='" + cleansedData.getState()
             + ", version=" + cleansedData.getRecordingVersionNumber()
-            + ", fileName='" + item.getFileName()  
-            + ", duration=" + cleansedData.getDuration() 
-            + '}';   
+            + ", fileName='" + item.getFileName()
+            + ", duration=" + cleansedData.getDuration()
+            + '}';
     }
 }

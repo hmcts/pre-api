@@ -150,7 +150,7 @@ public class MigrationTrackerService {
 
     private List<String> getMigratedItemsHeaders() {
         return List.of(
-            "Display Name", "Case Reference","Witness", "Defendant" ,"Scheduled For",
+            "Display Name", "Case Reference","Witness", "Defendant", "Scheduled For",
             "Case State", "Version", "File Name", "Duration", "File Size",
             "Date / Time migrated"
         );
@@ -162,7 +162,7 @@ public class MigrationTrackerService {
             String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             rows.add(List.of(
-                        //  getValueOrEmpty(item.getRegexPattern()),
+                         // getValueOrEmpty(item.getRegexPattern()),
                          getValueOrEmpty(item.getArchiveName()),
                          getValueOrEmpty(item.getCaseReference()),
                          getValueOrEmpty(item.getWitnessName()),
@@ -195,15 +195,15 @@ public class MigrationTrackerService {
             String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             rows.add(List.of(
-                getValueOrEmpty(archiveItem.getArchiveName()),  
-                getValueOrEmpty(archiveItem.getFileName()),     
-                getValueOrEmpty(archiveItem.getFileSize()) + " MB", 
-                failureTime,                                    
-                String.valueOf(item.isDurationCheck()),         
-                String.valueOf(item.getDurationInSeconds()),    
-                String.valueOf(item.isKeywordCheck()),          
+                getValueOrEmpty(archiveItem.getArchiveName()),
+                getValueOrEmpty(archiveItem.getFileName()),
+                getValueOrEmpty(archiveItem.getFileSize()) + " MB",
+                failureTime,
+                String.valueOf(item.isDurationCheck()),
+                String.valueOf(item.getDurationInSeconds()),
+                String.valueOf(item.isKeywordCheck()),
                 getValueOrEmpty(item.getKeywordFound()),
-                getValueOrEmpty(item.isRegexFailure())                                               
+                getValueOrEmpty(item.isRegexFailure())
             ));
         }
         return rows;
@@ -242,9 +242,9 @@ public class MigrationTrackerService {
                                                      ))
                                                      .collect(Collectors.toList());
 
-        if (!testFailures.isEmpty()) {  
+        if (!testFailures.isEmpty()) {
             rows.add(List.of("Test Failures", String.valueOf(testFailures.size())));
-        }     
+        }
 
         try {
             reportingService.writeToCsv(headers, rows, "Failures", outputDir, false);

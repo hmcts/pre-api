@@ -11,10 +11,10 @@ public final class RegexPatterns {
 
     private RegexPatterns() {
     }
-    
+
     public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(_\\d+)*$");
     public static final Pattern UUID_FILENAME_PATTERN = Pattern.compile(
-    "^[a-zA-Z0-9]+_\\d{15}_\\d+_[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}(?:\\.(mp4|mov|avi|mkv))?$",
+        "^[a-zA-Z0-9]+_\\d{15}_\\d+_[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}(?:\\.(mp4|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
     );
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
@@ -30,12 +30,12 @@ public final class RegexPatterns {
         Set<String> keywords = Constants.TEST_KEYWORDS;
 
         String keywordRegex = keywords.stream()
-            .map(Pattern::quote)  
+            .map(Pattern::quote)
             .collect(Collectors.joining("|"));
 
         return Pattern.compile(".*(" + keywordRegex + ").*", Pattern.CASE_INSENSITIVE);
     }
-    
+
     // =========================
     // Common Pattern Components
     // =========================
@@ -45,29 +45,29 @@ public final class RegexPatterns {
     private static final String OPTIONAL_PREFIX = "(?:\\d{1,5}[-_]?)?";
     private static final String OPTIONAL_SUFFIX = "(?:\\d{19}[-_]?)?";
 
-    private static final String DATE_PATTERN = 
+    private static final String DATE_PATTERN =
         "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})";
     private static final String COURT_PATTERN = "(?<court>[A-Za-z]+(?:d|fd)?)";
     private static final String URN_PATTERN = "(?<urn>\\d+[A-Za-z]+\\d+)";
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>(?:[A-Za-z]+\\d+|\\d{2}[A-Z]{2}\\d+|\\d+))?";
-    private static final String VERSION_PATTERN = 
+    private static final String VERSION_PATTERN =
         "(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?";
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
-    private static final String NAMES_PATTERN = "(?<defendantLastName>[A-Za-z]+(?:[-\\s][A-Za-z]+)*)" 
+    private static final String NAMES_PATTERN = "(?<defendantLastName>[A-Za-z]+(?:[-\\s][A-Za-z]+)*)"
                                                 + SEPARATOR_ONE + "(?<witnessFirstName>[A-Za-z]+)";
 
-    
+
     /**
      * Standard pattern for most common recording names.
      * Format: Court Date URN [Exhibit] Defendant Witness Version [.ext]
      */
     public static final Pattern STANDARD_PATTERN = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE 
-        + DATE_PATTERN + SEPARATOR_ONE 
-        + URN_PATTERN + SEPARATOR_ONE 
-        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?" 
-        + NAMES_PATTERN + SEPARATOR_ONE 
-        + VERSION_PATTERN 
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
@@ -76,27 +76,27 @@ public final class RegexPatterns {
      * Format: [Number-]Court Date URN [Exhibit] Defendant Witness Version [.ext]
      */
     public static final Pattern STANDARD_PATTERN_WITH_NUMBERS_PREFIX = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE 
-        + DATE_PATTERN + SEPARATOR_ONE 
-        + OPTIONAL_PREFIX 
-        + URN_PATTERN + SEPARATOR_ONE 
-        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?" 
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + OPTIONAL_PREFIX
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
         + NAMES_PATTERN + SEPARATOR_ONE
-        + VERSION_PATTERN 
+        + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
-    
+
     /**
      * Pattern for T-prefixed exhibit references.
      * Format: Court Date URN T-Exhibit Defendant Witness Version [.ext]
      */
     public static final Pattern SPECIFIC_T_PATTERN = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE 
-        + DATE_PATTERN + SEPARATOR_ONE 
-        + "(?<urn>\\d+[A-Za-z]+\\d+)" + SEPARATOR_ONE 
-        + "(?<exhibitRef>T\\d+)" + SEPARATOR_ONE 
-        + NAMES_PATTERN + SEPARATOR_ONE 
-        + VERSION_PATTERN 
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + "(?<urn>\\d+[A-Za-z]+\\d+)" + SEPARATOR_ONE
+        + "(?<exhibitRef>T\\d+)" + SEPARATOR_ONE
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
@@ -105,28 +105,28 @@ public final class RegexPatterns {
      * Format: Court Date URN T-Exhibit Defendant Witness Version [_QC] [.ext]
      */
     public static final Pattern SPECIAL_CASE_PATTERN = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE 
-        + "(?<date>\\d{5})" + SEPARATOR_ONE 
-        + "(?<urn>\\d+)" + SEPARATOR_ONE 
-        + "(?<exhibitRef>T\\d+)" + SEPARATOR_ONE 
-        + NAMES_PATTERN + SEPARATOR_ONE 
-        + VERSION_PATTERN 
-        + "(?:_QC)?" 
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + "(?<date>\\d{5})" + SEPARATOR_ONE
+        + "(?<urn>\\d+)" + SEPARATOR_ONE
+        + "(?<exhibitRef>T\\d+)" + SEPARATOR_ONE
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
+        + "(?:_QC)?"
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
-    
+
     /**
      * Pattern for cases with two URNs.
      * Format: Court Date URN1 URN2 Defendant Witness Version [.ext]
      */
     public static final Pattern DOUBLE_URN_NO_EXHIBIT_PATTERN = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE 
-        + DATE_PATTERN + SEPARATOR_ONE 
-        + URN_PATTERN + SEPARATOR_ONE 
-        + "(?<urn2>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE  
-        + NAMES_PATTERN + SEPARATOR_ONE 
-        + VERSION_PATTERN 
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?<urn2>\\d+[A-Za-z]{1,2}\\d+)" + SEPARATOR_ONE
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
@@ -135,29 +135,29 @@ public final class RegexPatterns {
      * Format: Court Date [URN] Exhibit1 Exhibit2 Defendant Witness Version [.ext]
      */
     public static final Pattern DOUBLE_EXHIBIT_NO_URN_PATTERN = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE 
-        + DATE_PATTERN + SEPARATOR_ONE 
-        + "(?!\\d+[A-Za-z]+\\d+)"  
-        + "(?<exhibitRef>[A-Za-z]*\\d+)" + SEPARATOR_ONE 
-        + "(?<exhibitRef2>[A-Za-z]*\\d+)" + SEPARATOR_ONE 
-        + NAMES_PATTERN + SEPARATOR_ONE 
-        + VERSION_PATTERN 
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + "(?!\\d+[A-Za-z]+\\d+)"
+        + "(?<exhibitRef>[A-Za-z]*\\d+)" + SEPARATOR_ONE
+        + "(?<exhibitRef2>[A-Za-z]*\\d+)" + SEPARATOR_ONE
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
-        
+
     /**
      * Pattern for files with S28/NEW/QC prefixes.
      * Format: [S28/NEW/QC] Court Date URN [Exhibit] Defendant Witness Version [.ext]
      */
     public static final Pattern PREFIX_PATTERN = Pattern.compile(
-        "^(?:(?:S28|NEW|QC)[_\\s-]+)?" 
-        + COURT_PATTERN + SEPARATOR_ONE 
+        "^(?:(?:S28|NEW|QC)[_\\s-]+)?"
+        + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ONE
-        + URN_PATTERN + SEPARATOR_ONE 
-        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?" 
-        + NAMES_PATTERN + SEPARATOR_ONE 
-        + VERSION_PATTERN 
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ONE + ")?"
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
@@ -167,13 +167,13 @@ public final class RegexPatterns {
      * Format: Court Date [URN] [URN2] [Exhibit] Defendant Witness Version [.ext]
      */
     public static final Pattern FLEXIBLE_PATTERN = Pattern.compile(
-        "^" + COURT_PATTERN + SEPARATOR_ONE 
-        + DATE_PATTERN + SEPARATOR_ZERO 
-        + "(?<urn>[A-Za-z0-9]+)" 
-        + "(?:[-_\\s](?<urn2>[A-Za-z0-9]+))?" + SEPARATOR_ZERO 
-        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ZERO + ")?" 
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ZERO
+        + "(?<urn>[A-Za-z0-9]+)"
+        + "(?:[-_\\s](?<urn2>[A-Za-z0-9]+))?" + SEPARATOR_ZERO
+        + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ZERO + ")?"
         + NAMES_PATTERN + SEPARATOR_ZERO
-        + VERSION_PATTERN 
+        + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
@@ -182,14 +182,14 @@ public final class RegexPatterns {
      * Format: DD-MM-YYYY-HHMM PostType Witness Defendant [.ext]
      */
     public static final Pattern DATE_TIME_PATTERN = Pattern.compile(
-        "^(?<date>\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE 
-        + "(?<exhibitRef>Post[A-Za-z]+)" + SEPARATOR_ONE 
-        + "(?<witnessFirstName>[A-Za-z0-9]+)" + SEPARATOR_ONE 
-        + "(?<defendantLastName>[A-Za-z0-9]+(?:[-\\s][A-Za-z0-9]+)*)" 
+        "^(?<date>\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE
+        + "(?<exhibitRef>Post[A-Za-z]+)" + SEPARATOR_ONE
+        + "(?<witnessFirstName>[A-Za-z0-9]+)" + SEPARATOR_ONE
+        + "(?<defendantLastName>[A-Za-z0-9]+(?:[-\\s][A-Za-z0-9]+)*)"
         + "(?:" + EXTENSION_PATTERN + ")?$"
     );
 
-    
+
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.of(
         "Standard", RegexPatterns.STANDARD_PATTERN,
         "StandardWithNumbers", RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS_PREFIX,

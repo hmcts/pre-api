@@ -2,8 +2,6 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.*;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.*;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -11,9 +9,10 @@ import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
-import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Matcher;
+
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
 @Service
 public class DataExtractionService {
@@ -41,27 +40,27 @@ public class DataExtractionService {
         // TEST validation (validate for pre-go-live, duration check and test keywords)
         ServiceResult<?> validationResult = validator.validateTest(archiveItem);
         if (!validationResult.isSuccess()) {
-            return validationResult; 
+            return validationResult;
         }
 
-        Optional<Map.Entry<String, Matcher>> patternMatch = patternMatcher.findMatchingPattern(archiveItem.getSanitizedArchiveName());
+        var patternMatch = patternMatcher.findMatchingPattern(archiveItem.getSanitizedArchiveName());
         if (patternMatch.isEmpty()) {
             return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
         }
 
-        if (patternMatch.isPresent() && RegexPatterns.TEST_PATTERNS.containsKey(patternMatch.get().getKey())) {
+        if (RegexPatterns.TEST_PATTERNS.containsKey(patternMatch.get().getKey())) {
             loggingService.logError("Test pattern match found for file: %s | Pattern: %s",
                     archiveItem.getSanitizedArchiveName(), patternMatch.get().getKey());
-                TestItem testItem = new TestItem(
-                    archiveItem,
-                    "Matched TEST regex pattern",
-                    false,
-                    archiveItem.getDuration(),
-                    false,
-                    "[]",
-                    true
-                    
-                );
+            var testItem = new TestItem(
+                archiveItem,
+                "Matched TEST regex pattern",
+                false,
+                archiveItem.getDuration(),
+                false,
+                "[]",
+                true
+
+            );
             return ServiceResultUtil.test(testItem, true);
         }
 
@@ -69,12 +68,12 @@ public class DataExtractionService {
         Matcher matcher = patternMatch.get().getValue();
         var extractedData = extractMetaData(matcher, archiveItem);
 
-        if (extractedData == null || patternMatch.isEmpty()){
+        if (extractedData == null || patternMatch.isEmpty()) {
             return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
         }
 
         loggingService.logDebug("Extracted metadata in extraction service: " + extractedData);
-       
+
         // Validate file extension
         ServiceResult<?> extensionCheckResult = validator.validateExtension(extractedData.getFileExtension());
         if (!extensionCheckResult.isSuccess()) {
@@ -85,7 +84,7 @@ public class DataExtractionService {
         ServiceResult<?> metadataCheckResult = validator.validateExtractedMetadata(extractedData);
         if (!metadataCheckResult.isSuccess()) {
             return metadataCheckResult;
-        }   
+        }
 
         return ServiceResultUtil.success(extractedData);
     }

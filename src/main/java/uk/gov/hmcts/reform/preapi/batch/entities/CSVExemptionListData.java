@@ -16,14 +16,16 @@ public class CSVExemptionListData {
     private String fileName;
     private String fileSize;
     private String reason;
-    private String addedBy; 
+    private String addedBy;
 
 
-    public CSVExemptionListData() {}
+    public CSVExemptionListData() {
 
-    public CSVExemptionListData(String archiveName, String createTime, int duration, String courtReference, 
-                            String urn, String exhibitReference, String defendantName, String witnessName, 
-                            String recordingVersion, int recordingVersionNumber, String fileExtension, 
+    }
+
+    public CSVExemptionListData(String archiveName, String createTime, int duration, String courtReference,
+                            String urn, String exhibitReference, String defendantName, String witnessName,
+                            String recordingVersion, int recordingVersionNumber, String fileExtension,
                             String fileName, String fileSize, String reason, String addedBy) {
         this.archiveName = archiveName;
         this.createTime = createTime;
@@ -164,22 +166,22 @@ public class CSVExemptionListData {
 
     @Override
     public String toString() {
-        return "CSVExemptionListData{" 
-                + "archiveName='" + archiveName + '\'' 
-                + ", createTime='" + createTime + '\'' 
-                + ", duration=" + duration 
-                + ", courtReference='" + courtReference + '\'' 
-                + ", urn='" + urn + '\'' 
+        return "CSVExemptionListData{"
+                + "archiveName='" + archiveName + '\''
+                + ", createTime='" + createTime + '\''
+                + ", duration=" + duration
+                + ", courtReference='" + courtReference + '\''
+                + ", urn='" + urn + '\''
                 + ", exhibitReference='" + exhibitReference + '\''
-                + ", defendantName='" + defendantName + '\'' 
-                + ", witnessName='" + witnessName + '\'' 
-                + ", recordingVersion='" + recordingVersion + '\'' 
-                + ", recordingVersionNumber=" + recordingVersionNumber 
-                + ", reason='" + reason + '\'' 
-                + ", addedBy='" + addedBy + '\'' 
-                + ", fileExtension='" + fileExtension + '\'' 
-                + ", fileName='" + fileName + '\'' 
-                + ", fileSize='" + fileSize + '\'' 
+                + ", defendantName='" + defendantName + '\''
+                + ", witnessName='" + witnessName + '\''
+                + ", recordingVersion='" + recordingVersion + '\''
+                + ", recordingVersionNumber=" + recordingVersionNumber
+                + ", reason='" + reason + '\''
+                + ", addedBy='" + addedBy + '\''
+                + ", fileExtension='" + fileExtension + '\''
+                + ", fileName='" + fileName + '\''
+                + ", fileSize='" + fileSize + '\''
                 + '}';
     }
 }

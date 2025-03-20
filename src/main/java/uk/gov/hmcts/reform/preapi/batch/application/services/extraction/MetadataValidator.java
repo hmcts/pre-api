@@ -2,19 +2,25 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.*;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.*;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
-import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
+import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PREDATES_GO_LIVE;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_DURATION;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.TEST_ITEM_NAME;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_MISSING_DATA;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_PRE_GO_LIVE;
 
 @Service
 public class MetadataValidator {
@@ -24,7 +30,7 @@ public class MetadataValidator {
         this.loggingService = loggingService;
     }
 
-    public ServiceResult<?> validateTest(CSVArchiveListData archiveItem){
+    public ServiceResult<?> validateTest(CSVArchiveListData archiveItem) {
         loggingService.logDebug("Validating %s for test", archiveItem.getSanitizedArchiveName());
 
         if (!isDateAfterGoLive(archiveItem)) {
@@ -34,22 +40,22 @@ public class MetadataValidator {
 
         TestItem test = isTestRecording(archiveItem);
         if (test != null) {
-            return ServiceResultUtil.test(test, true);  
+            return ServiceResultUtil.test(test, true);
         }
 
         loggingService.logDebug("Passed test validation", archiveItem.getSanitizedArchiveName());
         return ServiceResultUtil.success(archiveItem);
     }
 
-    public ServiceResult<?> validateExtension(String extension ){
-        if(!isValidExtension(extension)){
+    public ServiceResult<?> validateExtension(String extension) {
+        if (!isValidExtension(extension)) {
             return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
         }
 
         return ServiceResultUtil.success(extension);
     }
 
-    public ServiceResult<?> validateExtractedMetadata(ExtractedMetadata extractedData ){
+    public ServiceResult<?> validateExtractedMetadata(ExtractedMetadata extractedData) {
         List<String> missingFields = getMissingMetadataFields(extractedData);
         if (!missingFields.isEmpty()) {
             loggingService.logError("Missing required metadata fields: %s", String.join(", ", missingFields));
@@ -57,8 +63,8 @@ public class MetadataValidator {
                 "Missing required metadata fields: " + String.join(", ", missingFields),
                 FILE_MISSING_DATA
             );
-        }       
-        
+        }
+
         return ServiceResultUtil.success(extractedData);
     }
 
@@ -76,9 +82,9 @@ public class MetadataValidator {
             failureReasons.append(TEST_DURATION).append("; ");
         }
 
-        if (failureReasons.length() > 0) {
+        if (!failureReasons.isEmpty()) {
             String keywordFound = keywordCheck ? extractTestKeywords(archiveItem.getArchiveName()) : "N/A";
-            
+
             TestItem testItem = new TestItem(
                 archiveItem,
                 failureReasons.toString().trim(),
@@ -92,7 +98,7 @@ public class MetadataValidator {
             loggingService.logError("Test keyword validation failed: %s | Keywords: %s",
                 failureReasons.toString().trim(), keywordFound);
 
-            return testItem;  
+            return testItem;
         }
 
         return null;
@@ -123,7 +129,7 @@ public class MetadataValidator {
 
         return foundKeywords.isEmpty() ? "N/A" : foundKeywords.toString();
     }
-    
+
     public boolean isValidDuration(CSVArchiveListData archiveItem) {
         int duration = archiveItem.getDuration();
 
@@ -134,7 +140,7 @@ public class MetadataValidator {
         }
         return true;
     }
-    
+
     // Check if the create time pre-dates the go-live date
     public boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
         Optional<LocalDateTime> recordingTimestamp = Optional.ofNullable(archiveItem.getCreateTimeAsLocalDateTime());
@@ -148,7 +154,7 @@ public class MetadataValidator {
         boolean isAfterGoLive = !recordingTimestamp.get().toLocalDate().isBefore(Constants.GO_LIVE_DATE);
 
         if (!isAfterGoLive) {
-            loggingService.logError("File predates go-live date: %s | Extracted Date: %s", 
+            loggingService.logError("File predates go-live date: %s | Extracted Date: %s",
                 archiveItem.getArchiveName(), recordingTimestamp.get());
         }
 
@@ -174,7 +180,7 @@ public class MetadataValidator {
     // Checks for any missing metadata not extracted
     public List<String> getMissingMetadataFields(ExtractedMetadata metadata) {
         List<String> missingFields = new ArrayList<>();
-        
+
         if (metadata == null) {
             missingFields.add("Metadata object is null");
             return missingFields;
@@ -182,9 +188,9 @@ public class MetadataValidator {
         if (isEmpty(metadata.getCourtReference())) {
             missingFields.add("Court Reference");
         }
-        if (isEmpty(metadata.getUrn()) && isEmpty(metadata.getExhibitReference())){
+        if (isEmpty(metadata.getUrn()) && isEmpty(metadata.getExhibitReference())) {
             missingFields.add("URN and Exhibit Reference");
-        } 
+        }
         if (isEmpty(metadata.getDefendantLastName())) {
             missingFields.add("Defendant Last Name");
         }
@@ -197,7 +203,7 @@ public class MetadataValidator {
         if (isEmpty(metadata.getFileExtension())) {
             missingFields.add("File Extension");
         }
-        
+
         return missingFields;
     }
 
