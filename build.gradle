@@ -309,7 +309,7 @@ dependencies {
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.11.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.10.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.7:all'
