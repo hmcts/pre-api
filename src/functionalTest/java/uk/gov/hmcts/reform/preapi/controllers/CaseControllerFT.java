@@ -76,7 +76,6 @@ class CaseControllerFT extends FunctionalTestBase {
         dto.setState(CaseState.OPEN);
         dto.setClosedAt(null);
         var putCase2 = putCase(dto);
-        putCase2.prettyPrint();
         assertResponseCode(putCase2, 204);
         assertMatchesDto(dto);
     }

@@ -226,7 +226,7 @@ class TestingSupportController {
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
+        caseEntity.setReference(RandomStringUtils.randomAlphabetic(9));
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
