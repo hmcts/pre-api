@@ -1,6 +1,6 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
-import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
+import com.azure.resourcemanager.mediaservices.models.JobInputClip;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import lombok.Builder;
@@ -18,7 +18,7 @@ public class MkJob {
     @Builder
     public static class MkJobProperties {
         private String description;
-        private JobInputAsset input;
+        private JobInputClip input;
         private List<JobOutputAsset> outputs;
         private JobState state;
     }

@@ -332,51 +332,36 @@ public class MediaKind implements IMediaService {
 
     @Override
     @Transactional(dontRollbackOn = Exception.class)
-    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
-    public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
+    public void stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) {
+        var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
+        cleanupStoppedLiveEvent(captureSessionNoHyphen);
+    }
+
+    @Override
+    @Transactional(dontRollbackOn = Exception.class)
+    public RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
-
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
-        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
-            log.info("No valid asset files found for capture session [{}] in container named [{}]",
-                     captureSession.getId(),
-                     captureSession.getBookingId().toString()
-            );
+        var jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
+        if (jobName == null) {
             return RecordingStatus.NO_RECORDING;
         }
-
-        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
-        var recordingTempAssetName = recordingNoHyphen + "_temp";
-        var recordingAssetName = recordingNoHyphen + "_output";
-
-        createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
-        createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-
-        var jobName = encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
         var encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
         if (encodeFromIngestJobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
         }
 
-        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
-        if (filename == null) {
-            log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
+        var jobName2 = triggerProcessingStep2(recordingId);
+        if (jobName2 == null) {
             return RecordingStatus.FAILURE;
         }
-
-        var jobName2 = encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
         var encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
         if (encodeFromMp4JobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
         }
-        if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
-            log.error("Final asset .ism file not found for asset [{}] in container [{}]",
-                      recordingAssetName, recordingId);
-            return RecordingStatus.FAILURE;
-        }
-        return RecordingStatus.RECORDING_AVAILABLE;
+        return verifyFinalAssetExists(recordingId);
     }
 
     @Override
@@ -431,6 +416,81 @@ public class MediaKind implements IMediaService {
         } catch (NotFoundException e) {
             throw new NotFoundException("Live Event: " + liveEventName);
         }
+    }
+
+    @Override
+    public String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen,
+                                         UUID recordingId) {
+        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
+            log.info("No valid asset files found for capture session [{}] in container named [{}]",
+                     captureSession.getId(),
+                     captureSession.getBookingId().toString()
+            );
+            return null;
+        }
+
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        var recordingTempAssetName = recordingNoHyphen + "_temp";
+        var recordingAssetName = recordingNoHyphen + "_output";
+
+        createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
+        createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
+
+        return encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
+    }
+
+    @Override
+    public String triggerProcessingStep2(UUID recordingId) {
+        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
+        if (filename == null) {
+            log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
+            return null;
+        }
+
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        var recordingTempAssetName = recordingNoHyphen + "_temp";
+        var recordingAssetName = recordingNoHyphen + "_output";
+
+        return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
+    }
+
+    @Override
+    public RecordingStatus verifyFinalAssetExists(UUID recordingId) {
+        var recordingAssetName = getSanitisedLiveEventId(recordingId) + "_output";
+
+        if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
+            log.error("Final asset .ism file not found for asset [{}] in container [{}]",
+                      recordingAssetName, recordingId);
+            return RecordingStatus.FAILURE;
+        }
+        return RecordingStatus.RECORDING_AVAILABLE;
+    }
+
+    @Override
+    public RecordingStatus hasJobCompleted(String transformName, String jobName) {
+        var job = mediaKindClient.getJob(transformName, jobName);
+        return hasJobCompleted(job) && job.getProperties().getState() == JobState.FINISHED
+            ? RecordingStatus.RECORDING_AVAILABLE
+            : (job.getProperties().getState() == JobState.ERROR || job.getProperties().getState() == JobState.CANCELED
+            ? RecordingStatus.FAILURE
+            : RecordingStatus.PROCESSING);
+    }
+
+    private boolean hasJobCompleted(MkJob job) {
+        var state = job.getProperties().getState();
+        var jobName = job.getName();
+
+        if (state.equals(JobState.ERROR)) {
+            log.error("Job [{}] failed with error [{}]",
+                      jobName,
+                      job.getProperties().getOutputs().getLast().error().message());
+        } else if (state.equals(JobState.CANCELED)) {
+            log.error("Job [{}] was cancelled", jobName);
+        }
+
+        return state.equals(JobState.FINISHED)
+            || state.equals(JobState.ERROR)
+            || state.equals(JobState.CANCELED);
     }
 
     private void stopAndDeleteLiveEvent(String liveEventName) {

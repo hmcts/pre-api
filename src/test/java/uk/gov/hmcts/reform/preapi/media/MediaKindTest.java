@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media;
 
 import com.azure.resourcemanager.mediaservices.models.JobError;
+import com.azure.resourcemanager.mediaservices.models.JobInputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobOutputAsset;
 import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.azure.resourcemanager.mediaservices.models.LiveEventEndpoint;
@@ -493,14 +494,14 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should successfully stop live event when there is not a recording found")
-    void stopLiveEventNoRecording() throws InterruptedException {
+    void stopLiveEventAndProcessNoRecording() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
 
         when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
             .thenReturn(false);
 
-        var res = mediaKind.stopLiveEvent(captureSession, recordingId);
+        var res = mediaKind.stopLiveEventAndProcess(captureSession, recordingId);
         assertThat(res).isEqualTo(RecordingStatus.NO_RECORDING);
 
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -513,7 +514,7 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should successfully stop live event when there is a recording found")
-    void stopLiveEventRecordingAvailable() throws InterruptedException {
+    void stopLiveEventAndProcessRecordingAvailable() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var tempName = recordingId.toString().replace("-", "");
@@ -534,7 +535,8 @@ public class MediaKindTest {
         when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
-        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId)).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+        assertThat(mediaKind.stopLiveEventAndProcess(captureSession, recordingId))
+            .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
@@ -561,7 +563,7 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should throw error for stop live event when file cannot be found after first encode job")
-    void stopLiveEventRecordingEncodingJobNoFileNameFound() throws InterruptedException {
+    void stopLiveEventAndProcessRecordingEncodingJobNoFileNameFound() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var mockJob1 = mock(MkJob.class);
@@ -576,7 +578,7 @@ public class MediaKindTest {
             .thenReturn(true);
         when(azureIngestStorageService.tryGetMp4FileName(recordingId.toString())).thenReturn(null);
 
-        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId)).isEqualTo(RecordingStatus.FAILURE);
+        assertThat(mediaKind.stopLiveEventAndProcess(captureSession, recordingId)).isEqualTo(RecordingStatus.FAILURE);
 
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventName);
@@ -591,7 +593,7 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should throw error when error occurs creating asset")
-    void stopLiveEventAssetCreateError() {
+    void stopLiveEventAndProcessAssetCreateError() {
         var recordingId = UUID.randomUUID();
 
         when(azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString()))
@@ -600,7 +602,7 @@ public class MediaKindTest {
         when(mockClient.putAsset(any(), any())).thenThrow(FeignException.class);
         assertThrows(
             FeignException.class,
-            () -> mediaKind.stopLiveEvent(captureSession, recordingId)
+            () -> mediaKind.stopLiveEventAndProcess(captureSession, recordingId)
         );
 
         verify(mockClient, times(1)).putAsset(any(), any());
@@ -609,7 +611,7 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should create the EncodeFromIngest transform if it doesn't exist")
-    void stopLiveEventRecordingFoundRunEncodeTransform() throws InterruptedException {
+    void stopLiveEventAndProcessRecordingFoundRunEncodeTransform() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var tempName = recordingId.toString().replace("-", "");
@@ -632,7 +634,7 @@ public class MediaKindTest {
         when(azureIngestStorageService.tryGetMp4FileName(any())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
-        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
+        assertThat(mediaKind.stopLiveEventAndProcess(captureSession, recordingId))
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
         verify(mockClient, times(2)).putAsset(any(), any());
@@ -652,7 +654,7 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should create the EncodeFromMp4 transform if it doesn't exist")
-    void stopLiveEventRecordingFoundRunEncodeTransform2() throws InterruptedException {
+    void stopLiveEventAndProcessRecordingFoundRunEncodeTransform2() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
         var tempName = recordingId.toString().replace("-", "");
@@ -676,7 +678,7 @@ public class MediaKindTest {
         when(azureIngestStorageService.tryGetMp4FileName(any())).thenReturn("index.mp4");
         when(azureFinalStorageService.doesIsmFileExist(recordingId.toString())).thenReturn(true);
 
-        assertThat(mediaKind.stopLiveEvent(captureSession, recordingId))
+        assertThat(mediaKind.stopLiveEventAndProcess(captureSession, recordingId))
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
         verify(mockClient, times(2)).putAsset(any(), any());
@@ -698,7 +700,7 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should throw not found when live event cannot be found to stop")
-    void stopLiveEventLiveEventNotFound() {
+    void stopLiveEventAndProcessLiveEventNotFound() {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
 
@@ -717,7 +719,7 @@ public class MediaKindTest {
 
     @Test
     @DisplayName("Should successfully stop live event when there is not a streaming endpoint to stop/delete")
-    void stopLiveEventEndpointNotFound() throws InterruptedException {
+    void stopLiveEventAndProcessEndpointNotFound() throws InterruptedException {
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var recordingId = UUID.randomUUID();
 
@@ -725,7 +727,7 @@ public class MediaKindTest {
             .thenReturn(false);
         doThrow(NotFoundException.class).when(mockClient).stopStreamingEndpoint(any());
 
-        var res = mediaKind.stopLiveEvent(captureSession, recordingId);
+        var res = mediaKind.stopLiveEventAndProcess(captureSession, recordingId);
         assertThat(res).isEqualTo(RecordingStatus.NO_RECORDING);
 
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -790,7 +792,7 @@ public class MediaKindTest {
 
         assertThat(jobArgument.getValue()).startsWith(generateAssetDTO.getTempAsset());
 
-        assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
+        assertThat(((JobInputAsset) jobInnerArgument.getValue().getProperties().getInput()).assetName())
             .isEqualTo(generateAssetDTO.getTempAsset());
         assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
             .isEqualTo(generateAssetDTO.getFinalAsset());
@@ -851,7 +853,7 @@ public class MediaKindTest {
             );
 
         assertThat(jobName.getValue()).startsWith(generateAssetDTO.getTempAsset());
-        assertThat(jobInnerArgument.getValue().getProperties().getInput().assetName())
+        assertThat(((JobInputAsset) jobInnerArgument.getValue().getProperties().getInput()).assetName())
             .isEqualTo(generateAssetDTO.getTempAsset());
         assertThat(jobInnerArgument.getValue().getProperties().getOutputs().getFirst().assetName())
             .isEqualTo(generateAssetDTO.getFinalAsset());
@@ -1398,5 +1400,66 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventId, liveEventId);
         verify(mockClient, times(1)).stopLiveEvent(liveEventId);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventId);
+    }
+
+    @Test
+    @DisplayName("Should return recording available when job has completed")
+    void hasJobCompletedOnMkFinished() {
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.FINISHED)
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
+    }
+
+    @Test
+    @DisplayName("Should return failure on MediaKind job error")
+    void hasJobCompletedOnMkError() {
+        var jobOutputAsset = mock(JobOutputAsset.class);
+        var jobError = mock(JobError.class);
+        when(jobError.message()).thenReturn("error message");
+        when(jobOutputAsset.error()).thenReturn(jobError);
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.ERROR)
+                            .outputs(List.of(jobOutputAsset))
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.FAILURE);
+    }
+
+    @Test
+    @DisplayName("Should return failure on MediaKind job cancelled")
+    void hasJobCompletedOnMkCancelled() {
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.CANCELED)
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.FAILURE);
+    }
+
+    @Test
+    @DisplayName("Should return processing on MediaKind job if not finished, cancelled or errored")
+    void hasJobCompletedOnMkProcessing() {
+        var mkJob = MkJob.builder()
+            .properties(MkJob.MkJobProperties.builder()
+                            .state(JobState.PROCESSING)
+                            .build())
+            .build();
+        when(mockClient.getJob("transform1", "job1")).thenReturn(mkJob);
+
+        var status = mediaKind.hasJobCompleted("transform1", "job1");
+        assertThat(status).isEqualTo(RecordingStatus.PROCESSING);
     }
 }
