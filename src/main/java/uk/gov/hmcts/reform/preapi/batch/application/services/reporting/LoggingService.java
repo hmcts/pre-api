@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
@@ -35,7 +36,7 @@ public class LoggingService {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
 
-    public void initializeLogFile(String migrationType) {
+    public void initializeLogFile(MigrationType migrationType) {
         setTotalRecordsFromFile(migrationType);
         startTime = LocalDateTime.now();
         try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE_PATH, false))) {
@@ -201,10 +202,10 @@ public class LoggingService {
     // ==============================
     // SETTING RECORDS FROM FILE
     // ==============================
-    public void setTotalRecordsFromFile(String migrationType) {
+    public void setTotalRecordsFromFile(MigrationType migrationType) {
         String filePath;
 
-        if ("second".equalsIgnoreCase(migrationType)) {
+        if (migrationType.equals(MigrationType.SECOND)) {
             filePath = "src/main/resources/batch/Archive_List_delta.csv";
         } else {
             filePath = "src/main/resources/batch/Archive_List_initial.csv";
