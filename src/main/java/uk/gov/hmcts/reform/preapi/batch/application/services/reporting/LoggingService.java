@@ -205,7 +205,7 @@ public class LoggingService {
     public void setTotalRecordsFromFile(MigrationType migrationType) {
         String filePath;
 
-        if (migrationType.equals(MigrationType.SECOND)) {
+        if (migrationType.equals(MigrationType.DELTA)) {
             filePath = "src/main/resources/batch/Archive_List_delta.csv";
         } else {
             filePath = "src/main/resources/batch/Archive_List_initial.csv";

@@ -24,7 +24,7 @@ public abstract class BaseTask extends RobotUserTask {
                     UserAuthenticationService userAuthenticationService,
                     @Value("${cron-user-email}") String cronUserEmail,
                     JobLauncher jobLauncher, LoggingService loggingService,
-                    @Value("${migration:debug") boolean debug) {
+                    @Value("${migration.debug}") boolean debug) {
 
         super(userService, userAuthenticationService, cronUserEmail);
         this.jobLauncher = jobLauncher;

@@ -128,7 +128,7 @@ slack:
 
 migration:
   debug: ${MIGRATION_DEBUG:false}
-  type: ${MIGRATION_TYPE:FIRST}
+  type: ${MIGRATION_TYPE:FULL}
 
 #logging:
 #  level:

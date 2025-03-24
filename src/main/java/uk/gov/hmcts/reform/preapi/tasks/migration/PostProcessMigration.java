@@ -18,7 +18,7 @@ public class PostProcessMigration extends BaseTask {
                                 @Value("${cron-user-email}") String cronUserEmail,
                                 JobLauncher jobLauncher,
                                 LoggingService loggingService,
-                                @Value("${migration:debug") boolean debug,
+                                @Value("${migration.debug") boolean debug,
                                 @Qualifier("postMigrationJob") Job postMigrationJob) {
         super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug);
         this.postMigrationJob = postMigrationJob;
@@ -26,6 +26,6 @@ public class PostProcessMigration extends BaseTask {
 
     @Override
     public void run() throws RuntimeException {
-        startJob(postMigrationJob, "Post Migration", MigrationType.FIRST);
+        startJob(postMigrationJob, "Post Migration", MigrationType.FULL);
     }
 }

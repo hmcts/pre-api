@@ -300,7 +300,7 @@ public class BatchConfiguration implements StepExecutionListener {
                                                                                       .get("migrationType"));
 
                     String outputFileName = "Archive_List_initial";
-                    if (migrationType.equals(MigrationType.SECOND)) {
+                    if (migrationType.equals(MigrationType.DELTA)) {
                         outputFileName = "Archive_List_updated";
                     }
 
@@ -388,7 +388,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 (String) Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))
             );
 
-            if (migrationType.equals(MigrationType.SECOND)) {
+            if (migrationType.equals(MigrationType.DELTA)) {
                 return new FlowExecutionStatus("DELTA");
             } else {
                 return new FlowExecutionStatus("FULL");
