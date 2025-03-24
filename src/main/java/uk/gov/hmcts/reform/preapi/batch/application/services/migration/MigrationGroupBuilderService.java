@@ -6,7 +6,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -34,13 +34,13 @@ import java.util.Set;
 @Service
 public class MigrationGroupBuilderService {
     private LoggingService loggingService;
-    private static final String REDIS_BOOKING_FIELD = "bookingField";
-    private static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
-    private static final String REDIS_RECORDING_FIELD = "recordingField";
+    private static final String BOOKING_FIELD = "bookingField";
+    private static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    private static final String RECORDING_FIELD = "recordingField";
     private final CaseRepository caseRepository;
 
     private final EntityCreationService entityCreationService;
-    private final RedisService redisService;
+    private final InMemoryCacheService cacheService;
     private final MigrationTrackerService migrationTrackerService;
     private final MediaTransformationService recordingMediaKindTransform;
     private final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
@@ -50,14 +50,14 @@ public class MigrationGroupBuilderService {
     public MigrationGroupBuilderService(
         LoggingService loggingService,
         EntityCreationService entityCreationService,
-        RedisService redisService,
+        InMemoryCacheService cacheService,
         MigrationTrackerService migrationTrackerService,
         CaseRepository caseRepository,
         MediaTransformationService recordingMediaKindTransform
     ) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
-        this.redisService = redisService;
+        this.cacheService = cacheService;
         this.migrationTrackerService = migrationTrackerService;
         this.caseRepository = caseRepository;
         this.recordingMediaKindTransform = recordingMediaKindTransform;
@@ -95,11 +95,10 @@ public class MigrationGroupBuilderService {
         }
 
         String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
-        String baseKey = redisService.generateBaseKey(acase.getReference(), participantPair);
-
+        String baseKey = cacheService.generateBaseKey(acase.getReference(), participantPair);
         CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
-        CreateRecordingDTO recording = processRecording(baseKey, cleansedData, baseKey, captureSession);
+        CreateRecordingDTO recording = processRecording(baseKey, cleansedData, captureSession);
 
         // if (recording != null) {
         //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
@@ -193,12 +192,8 @@ public class MigrationGroupBuilderService {
     }
 
     private CreateBookingDTO processBooking(String baseKey, CleansedData cleansedData, CreateCaseDTO acase) {
-        if (redisService.checkHashKeyExists(baseKey, REDIS_BOOKING_FIELD)) {
-            CreateBookingDTO bookingDTO = redisService.getHashValue(
-                baseKey,
-                REDIS_BOOKING_FIELD,
-                CreateBookingDTO.class
-            );
+        if(cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)){
+            CreateBookingDTO bookingDTO = cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
             return bookingDTO;
         }
         return entityCreationService.createBooking(cleansedData, acase, baseKey);
@@ -209,10 +204,10 @@ public class MigrationGroupBuilderService {
         CleansedData cleansedData,
         CreateBookingDTO booking
     ) {
-        if (redisService.checkHashKeyExists(baseKey, REDIS_CAPTURE_SESSION_FIELD)) {
-            CreateCaptureSessionDTO captureSessionDTO = redisService.getHashValue(
+        if(cacheService.checkHashKeyExists(baseKey, CAPTURE_SESSION_FIELD)){
+            CreateCaptureSessionDTO captureSessionDTO = cacheService.getHashValue(
                 baseKey,
-                REDIS_CAPTURE_SESSION_FIELD,
+                CAPTURE_SESSION_FIELD,
                 CreateCaptureSessionDTO.class
             );
             return captureSessionDTO;
@@ -223,15 +218,15 @@ public class MigrationGroupBuilderService {
     private CreateRecordingDTO processRecording(
         String baseKey,
         CleansedData cleansedItem,
-        String redisKey,
         CreateCaptureSessionDTO captureSession
     ) {
-        if (redisService.checkHashKeyExists(baseKey, REDIS_RECORDING_FIELD)) {
-            CreateRecordingDTO recordingDTO = redisService.getHashValue(
+        if(cacheService.checkHashKeyExists(baseKey, RECORDING_FIELD)){
+            CreateRecordingDTO recordingDTO = cacheService.getHashValue(
                 baseKey,
-                REDIS_RECORDING_FIELD,
+                RECORDING_FIELD,
                 CreateRecordingDTO.class
             );
+        
             return recordingDTO;
         }
         CreateRecordingDTO recording = entityCreationService.createRecording(baseKey, cleansedItem, captureSession);

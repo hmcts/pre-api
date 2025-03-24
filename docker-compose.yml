@@ -12,12 +12,6 @@ services:
     ports:
       - 5432:5432
 
-  redis:
-    image: redis:latest
-    restart: always
-    ports:
-      - "6379:6379"
-
   adminer:
     image: adminer
     restart: always

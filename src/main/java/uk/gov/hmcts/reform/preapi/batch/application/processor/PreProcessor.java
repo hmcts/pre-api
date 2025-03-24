@@ -3,7 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -19,14 +19,14 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Handles pre-processing tasks for batch jobs, including loading data into Redis
+ * Handles pre-processing tasks for batch jobs, including loading data into Cache
  * and fetching XML metadata from Azure Blob Storage.
  */
 @Component
 public class PreProcessor {
     private LoggingService loggingService;
 
-    private final RedisService redisService;
+    private final InMemoryCacheService cacheService;
     private final CourtRepository courtRepository;
     private final CaseRepository caseRepository;
     private final UserRepository userRepository;
@@ -36,13 +36,13 @@ public class PreProcessor {
 
     public PreProcessor(
         LoggingService loggingService,
-        RedisService redisService,
+        InMemoryCacheService cacheService,
         CourtRepository courtRepository,
         CaseRepository caseRepository,
         UserRepository userRepository
     ) {
         this.loggingService = loggingService;
-        this.redisService = redisService;
+        this.cacheService = cacheService;
         this.courtRepository = courtRepository;
         this.caseRepository = caseRepository;
         this.userRepository = userRepository;
@@ -54,7 +54,7 @@ public class PreProcessor {
 
     /**
      * Initializes the temporary storage for the batch job.
-     * Clears any stale data and loads required entities into Redis.
+     * Clears any stale data and loads required entities into Cache.
      */
     public void initialize() {
         loggingService.logInfo("Initiating batch environment preparation.");
@@ -77,25 +77,25 @@ public class PreProcessor {
     @Transactional(readOnly = true)
     protected void cacheRequiredEntities() {
         List<Court> courts = courtRepository.findAll();
-        cacheEntityToRedis(
-            Constants.RedisKeys.COURTS_PREFIX,
+        cacheEntity(
+            Constants.CacheKeys.COURTS_PREFIX,
             courts, Court::getName, court -> court.getId().toString(), "courts"
         );
 
         List<Case> cases = caseRepository.findAll();
-        cacheEntityToRedis(
-            Constants.RedisKeys.CASES_PREFIX,
+        cacheEntity(
+            Constants.CacheKeys.CASES_PREFIX,
             cases, Case::getReference, acase -> acase.getId().toString(), "cases"
         );
 
         List<User> users = userRepository.findAll();
-        cacheEntityToRedis(
-            Constants.RedisKeys.USERS_PREFIX,
+        cacheEntity(
+            Constants.CacheKeys.USERS_PREFIX,
             users, User::getEmail, user -> user.getId().toString(), "users"
         );
     }
 
-    private <T> void cacheEntityToRedis(
+    private <T> void cacheEntity(
         String prefix,
         List<T> items,
         Function<T, String> keyFn,
@@ -103,19 +103,19 @@ public class PreProcessor {
         String entityName
     ) {
         if (items.isEmpty()) {
-            loggingService.logWarning("No %s found to cache in Redis.", entityName);
+            loggingService.logWarning("No %s found to cache.", entityName);
             return;
         }
 
-        Map<String, String> map = items.stream()
+        Map<String, Object> map = items.stream()
                                        .collect(Collectors.toMap(keyFn, valFn, (existing, replacement) -> existing));
 
-        redisService.saveHashAll(prefix, map);
-        loggingService.logInfo("Cached %d %s records into Redis.", items.size(), entityName);
+        cacheService.saveHashAll(prefix, map);
+        loggingService.logInfo("Cached %d %s records.", items.size(), entityName);
     }
 
     public void clearTemporaryStorage() {
         loggingService.logInfo("Clearing temporary storage...");
-        redisService.clearNamespaceKeys(Constants.RedisKeys.NAMESPACE);
+        cacheService.clearNamespaceKeys(Constants.CacheKeys.NAMESPACE);
     }
 }

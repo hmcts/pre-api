@@ -3,7 +3,8 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
@@ -16,32 +17,36 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Processes recording metadata from CSVArchiveListData and caches it in Redis.
+ * Processes recording metadata from CSVArchiveListData and caches it.
  */
 @Component
 public class RecordingMetadataProcessor {
+    private LoggingService loggingService;
     private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
-    private final RedisService redisService;
+    private final InMemoryCacheService cacheService;
 
     @Autowired
     public RecordingMetadataProcessor(
+        LoggingService loggingService,
         DataExtractionService extractionService,
         DataTransformationService transformationService,
-        RedisService redisService
+        InMemoryCacheService cacheService
     ) {
+        this.loggingService = loggingService;
         this.extractionService = extractionService;
         this.transformationService = transformationService;
-        this.redisService = redisService;
+        this.cacheService = cacheService;
     }
 
     /**
-     * Processes a list of CSVArchiveListData items and caches the metadata in Redis.
+     * Processes a list of CSVArchiveListData items and caches the metadata.
      *
      * @param archiveItem List of CSVArchiveListData to process.
      */
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
+            loggingService.logInfo("IN RECORDING METADATA PREPROCESSOR");
             ServiceResult<?> extracted = extractionService.process(archiveItem);
             if (extracted.getErrorMessage() != null) {
                 return;
@@ -59,26 +64,27 @@ public class RecordingMetadataProcessor {
                 return;
             }
 
-            String redisKey = RecordingUtils.buildMetadataPreprocessKey(
+            String key = RecordingUtils.buildMetadataPreprocessKey(
                 cleansedData.getUrn(),
                 cleansedData.getDefendantLastName(),
                 cleansedData.getWitnessFirstName()
             );
 
-            Map<String, String> existingMetadata = redisService.getHashAll(redisKey, String.class, String.class);
+            Map<String, Object> existingMetadata = cacheService.getHashAll(key);
             if (existingMetadata == null) {
                 existingMetadata = new HashMap<>();
             }
 
-            Map<String, String> updatedMetadata = RecordingUtils.updateVersionMetadata(
+            System.out.println("Existing metadata: "+existingMetadata);
+
+            Map<String, Object> updatedMetadata = RecordingUtils.updateVersionMetadata(
                 cleansedData.getRecordingVersion(),
                 cleansedData.getRecordingVersionNumberStr(),
                 archiveItem.getArchiveName(),
                 existingMetadata
             );
 
-            redisService.saveHashAll(redisKey, updatedMetadata);
-
+            cacheService.saveHashAll(key, updatedMetadata);
         } catch (Exception e) {
             ServiceResultUtil.failure(e.getMessage(), "Error");
         }

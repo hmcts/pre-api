@@ -31,7 +31,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProce
 import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.Writer;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
@@ -50,6 +49,7 @@ import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Configuration
 @EnableBatchProcessing
@@ -72,7 +72,6 @@ public class BatchConfiguration implements StepExecutionListener {
     private final PreProcessor preProcessor;
     private final RecordingMetadataProcessor recordingPreProcessor;
     private final ReferenceDataProcessor referenceDataProcessor;
-    private final RedisService redisService;
     private final Processor itemProcessor;
     private final Writer itemWriter;
     private final MigrationTrackerService migrationTrackerService;
@@ -92,7 +91,6 @@ public class BatchConfiguration implements StepExecutionListener {
         PreProcessor preProcessor,
         RecordingMetadataProcessor recordingPreProcessor,
         ReferenceDataProcessor referenceDataProcessor,
-        RedisService redisService,
         Processor itemProcessor,
         EntityCreationService entityCreationService,
         CaseService caseService,
@@ -117,7 +115,6 @@ public class BatchConfiguration implements StepExecutionListener {
         this.recordingPreProcessor = recordingPreProcessor;
         this.referenceDataProcessor = referenceDataProcessor;
         this.itemProcessor = itemProcessor;
-        this.redisService = redisService;
         this.caseService = caseService;
         this.captureSessionService = captureSessionService;
         this.caseRepository = caseRepository;
@@ -160,7 +157,6 @@ public class BatchConfiguration implements StepExecutionListener {
 
             .next(deltaProcessingDecider())
             .on("FULL").to(createPreProcessMetadataStep())
-                                .next(createPreProcessMetadataStep())
                                 .next(createArchiveListStep())
                                 .next(createWriteToCSVStep())
 
@@ -303,7 +299,7 @@ public class BatchConfiguration implements StepExecutionListener {
                         .get("migrationType");
 
                     String outputFileName = "Archive_List_initial";
-                    if ("second".equalsIgnoreCase(migrationType)) {
+                    if ("DELTA".equalsIgnoreCase(migrationType)) {
                         outputFileName = "Archive_List_updated";
                     }
 
@@ -329,9 +325,8 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("preProcessMetadataStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
-                    String migrationType = (String) chunkContext.getStepContext()
-                                                   .getJobParameters()
-                                                   .get("migrationType");
+                    String migrationType = Optional.ofNullable((String) chunkContext.getStepContext()
+                                    .getJobParameters().get("migrationType")).orElse("FULL");
 
                     String filePath = "FULL".equalsIgnoreCase(migrationType)
                         ? ARCHIVE_LIST_INITAL
@@ -390,7 +385,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return (jobExecution, stepExecution) -> {
             String migrationType = (String) jobExecution.getJobParameters().getString("migrationType");
 
-            if ("second".equalsIgnoreCase(migrationType)) {
+            if ("DELTA".equalsIgnoreCase(migrationType)) {
                 return new FlowExecutionStatus("DELTA");
             } else {
                 return new FlowExecutionStatus("FULL");

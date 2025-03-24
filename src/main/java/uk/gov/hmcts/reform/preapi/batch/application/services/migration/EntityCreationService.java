@@ -4,7 +4,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
@@ -35,15 +35,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class EntityCreationService {
     private LoggingService loggingService;
-    static final String REDIS_BOOKING_FIELD = "bookingField";
-    static final String REDIS_CAPTURE_SESSION_FIELD = "captureSessionField";
-    static final String REDIS_RECORDING_FIELD = "recordingField";
-    static final String REDIS_SHARE_BOOKING_FIELD = "vf:shareBooking:";
+    static final String BOOKING_FIELD = "bookingField";
+    static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    static final String RECORDING_FIELD = "recordingField";
+    static final String SHARE_BOOKING_FIELD = "vf:shareBooking:";
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
 
-    private final RedisService redisService;
+    private final InMemoryCacheService cacheService;
     private final UserService userService;
 
     // =========================
@@ -68,21 +68,21 @@ public class EntityCreationService {
         return caseDTO;
     }
 
-    public CreateBookingDTO createBooking(CleansedData cleansedData, CreateCaseDTO acase, String redisKey) {
+    public CreateBookingDTO createBooking(CleansedData cleansedData, CreateCaseDTO acase, String key) {
         var bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(UUID.randomUUID());
         bookingDTO.setCaseId(acase.getId());
         bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
         bookingDTO.setParticipants(acase.getParticipants());
 
-        redisService.saveHashValue(redisKey, REDIS_BOOKING_FIELD, bookingDTO);
+        cacheService.saveHashValue(key, BOOKING_FIELD, bookingDTO);
         return bookingDTO;
     }
 
     public CreateCaptureSessionDTO createCaptureSession(
         CleansedData cleansedData,
         CreateBookingDTO booking,
-        String redisKey
+        String key
     ) {
         var vodafoneUser = getUserByEmail(vodafoneUserEmail);
 
@@ -97,12 +97,12 @@ public class EntityCreationService {
         captureSessionDTO.setCaseState(CaseState.OPEN);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
-        redisService.saveHashValue(redisKey, REDIS_CAPTURE_SESSION_FIELD, captureSessionDTO);
+        cacheService.saveHashValue(key, CAPTURE_SESSION_FIELD, captureSessionDTO);
         return captureSessionDTO;
     }
 
     public CreateRecordingDTO createRecording(
-        String redisKey,
+        String key,
         CleansedData cleansedData,
         CreateCaptureSessionDTO captureSession
     ) {
@@ -114,7 +114,7 @@ public class EntityCreationService {
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
 
-        String existingMetadata = redisService.getHashValue(redisKey, "recordingMetadata", String.class);
+        String existingMetadata = cacheService.getHashValue(key, "recordingMetadata", String.class);
         UUID parentRecordingId = null;
         if (existingMetadata != null) {
             String[] parts = existingMetadata.split(":");
@@ -126,7 +126,7 @@ public class EntityCreationService {
         }
 
         String recordingMetadata = recordingDTO.getId().toString() + ":" + recordingDTO.getVersion();
-        redisService.saveHashValue(redisKey, "recordingMetadata", recordingMetadata);
+        cacheService.saveHashValue(key, "recordingMetadata", recordingMetadata);
 
         return recordingDTO;
     }
@@ -193,8 +193,8 @@ public class EntityCreationService {
         String lastName = contactInfo.getOrDefault("lastName", "Unknown");
 
         try {
-            String existingUserId = getUserIdFromRedis(email);
-            String vodafoneUser = getUserIdFromRedis(vodafoneUserEmail);
+            String existingUserId = getUserIdFromCache(email);
+            String vodafoneUser = getUserIdFromCache(vodafoneUserEmail);
 
             CreateUserDTO sharedWith;
             CreateInviteDTO inviteDTO;
@@ -207,12 +207,12 @@ public class EntityCreationService {
                 sharedWith = createUser(firstName, lastName, email, UUID.randomUUID());
                 inviteDTO = createInvite(sharedWith);
                 userInvites.add(inviteDTO);
-                redisService.saveHashValue(Constants.RedisKeys.USERS_PREFIX, email, sharedWith.getId().toString());
+                cacheService.saveHashValue(Constants.CacheKeys.USERS_PREFIX, email, sharedWith.getId().toString());
             }
 
-            String redisBookingKey = REDIS_SHARE_BOOKING_FIELD + booking.getId().toString();
-            String existingSharedWith = redisService.getHashValue(
-                redisBookingKey,
+            String cacheBookingKey = SHARE_BOOKING_FIELD + booking.getId().toString();
+            String existingSharedWith = cacheService.getHashValue(
+                cacheBookingKey,
                 sharedWith.getId().toString(),
                 String.class
             );
@@ -222,7 +222,7 @@ public class EntityCreationService {
             }
 
             CreateUserDTO sharedBy = getUserById(vodafoneUser);
-            redisService.saveHashValue(redisBookingKey, sharedWith.getId().toString(), sharedWith.getId().toString());
+            cacheService.saveHashValue(cacheBookingKey, sharedWith.getId().toString(), sharedWith.getId().toString());
             shareBookings.add(createShareBooking(booking, sharedWith, sharedBy));
         } catch (Exception e) {
             loggingService.logError("Failed to create share booking: %s - %s", e.getMessage(), e);
@@ -243,8 +243,8 @@ public class EntityCreationService {
         return shareBookingDTO;
     }
 
-    public String getUserIdFromRedis(String email) {
-        return redisService.getHashValue(Constants.RedisKeys.USERS_PREFIX, email, String.class);
+    public String getUserIdFromCache(String email) {
+        return cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, email, String.class);
     }
 
     public CreateUserDTO getUserById(String userId) {

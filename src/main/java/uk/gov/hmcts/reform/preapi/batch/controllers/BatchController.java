@@ -58,7 +58,7 @@ public class BatchController {
     @PostMapping("/fetch-xml")
     public ResponseEntity<String> startXmlBatch(
         @RequestParam(value = "debug", defaultValue = "false") boolean debug,
-        @RequestParam(value = "migrationType", defaultValue = "first") String migrationType
+        @RequestParam(value = "migrationType", defaultValue = "FULL") String migrationType
     ) {
         return startJob(fetchXmlJob, "Fetch XML", debug, migrationType);
     }
@@ -66,7 +66,7 @@ public class BatchController {
     @PostMapping("/process-migration")
     public ResponseEntity<String> startBatch(
         @RequestParam(value = "debug", defaultValue = "false") boolean debug,
-        @RequestParam(value = "migrationType", defaultValue = "first") String migrationType
+        @RequestParam(value = "migrationType", defaultValue = "FULL") String migrationType
     ) {
         return startJob(importCsvJob, "Transform", debug, migrationType);
     }
@@ -75,14 +75,14 @@ public class BatchController {
     public ResponseEntity<String> postMigration(
         @RequestParam(value = "debug", defaultValue = "false") boolean debug
     ) {
-        return startJob(postMigrationJob, "Post Migration", debug, "first");
+        return startJob(postMigrationJob, "Post Migration", debug, "FULL");
     }
 
     @PostMapping("/migrate-exclusions")
     public ResponseEntity<String> processExclusions(
         @RequestParam(value = "debug", defaultValue = "false") boolean debug
     ) {
-        return startJob(processExclusionsJob, "Process Exclusions", debug, "first");
+        return startJob(processExclusionsJob, "Process Exclusions", debug, "FULL");
     }
 
 }

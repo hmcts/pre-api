@@ -12,7 +12,7 @@ import java.util.Optional;
 
 @UtilityClass
 public final class RecordingUtils {
-    private static final String REDIS_RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
+    private static final String RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
 
     private static final String KEY_ORIG_VERSION_NUMBER = "origVersionNumber";
     private static final String KEY_COPY_VERSION_NUMBER = "copyVersionNumber";
@@ -41,11 +41,10 @@ public final class RecordingUtils {
         String urn, 
         String defendant, 
         String witness,
-        Map<String, String> existingRedisData
+        Map<String, Object> existingCacheData
     ) {
-        Map<String, String> redisDatMap = existingRedisData != null ? existingRedisData : Collections.emptyMap();
+        Map<String, Object> dataMap = existingCacheData != null ? existingCacheData : Collections.emptyMap();
 
-        // String versionType = recordingVersion;
         String versionType = Optional.ofNullable(recordingVersion)
                                      .map(String::toUpperCase)
                                      .filter(Constants.VALID_VERSION_TYPES::contains)
@@ -55,7 +54,7 @@ public final class RecordingUtils {
                                      
         String validVersionNumber = getValidVersionNumber(versionNumberStr);
         int versionNumber = getRecordingVersionNumber(versionType);
-        boolean isMostRecent = isMostRecentVersion(versionType, validVersionNumber, redisDatMap);
+        boolean isMostRecent = isMostRecentVersion(versionType, validVersionNumber, dataMap);
 
         return new VersionDetails(versionType, validVersionNumber, versionNumber, isMostRecent);
     }
@@ -71,19 +70,19 @@ public final class RecordingUtils {
     public static boolean isMostRecentVersion(
         String versionType, 
         String currentVersion, 
-        Map<String, String> existingData
+        Map<String, Object> existingData
     ) {
         String key = Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase()) 
             ? KEY_ORIG_VERSION_NUMBER 
             : KEY_COPY_VERSION_NUMBER;
 
-        String storedVersion = existingData.get(key);
+        String storedVersion = (String) existingData.get(key);
         return storedVersion == null || compareVersionStrings(currentVersion, storedVersion) >= 0;
     }
     
 
     public String buildMetadataPreprocessKey(String urn, String defendant, String witness) {
-        return String.format(REDIS_RECORDING_METADATA_KEY, urn, defendant, witness);
+        return String.format(RECORDING_METADATA_KEY, urn, defendant, witness);
     }
 
     private static int compareVersionStrings(String v1, String v2) {
@@ -112,23 +111,23 @@ public final class RecordingUtils {
         return 0; 
     }
 
-    public Map<String, String> updateVersionMetadata(
+    public Map<String, Object> updateVersionMetadata(
         String versionType,
         String versionNumber,
         String archiveName,
-        Map<String, String> existingMetadata
+        Map<String, Object> existingMetadata
     ) {
-        Map<String, String> updatedMetadata = new HashMap<>(existingMetadata);
+        Map<String, Object> updatedMetadata = new HashMap<>(existingMetadata);
         String validVersionNumber = getValidVersionNumber(versionNumber);
 
         if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())) {
-            String existingVersion = existingMetadata.get(KEY_ORIG_VERSION_NUMBER);
+            String existingVersion = (String) existingMetadata.get(KEY_ORIG_VERSION_NUMBER);
             if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
                 updatedMetadata.put(KEY_ORIG_ARCHIVE_NAME, archiveName);
                 updatedMetadata.put(KEY_ORIG_VERSION_NUMBER, validVersionNumber);
             }
         } else if (Constants.VALID_COPY_TYPES.contains(versionType.toUpperCase())) {
-            String existingVersion = existingMetadata.get(KEY_COPY_VERSION_NUMBER);
+            String existingVersion = (String) existingMetadata.get(KEY_COPY_VERSION_NUMBER);
             if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
                 updatedMetadata.put(KEY_COPY_ARCHIVE_NAME, archiveName);
                 updatedMetadata.put(KEY_COPY_VERSION_NUMBER, validVersionNumber);

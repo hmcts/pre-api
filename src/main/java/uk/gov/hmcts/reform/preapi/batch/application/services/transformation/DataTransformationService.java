@@ -3,7 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
@@ -27,19 +27,19 @@ import java.util.UUID;
 public class DataTransformationService {
     private static final String UNKNOWN_COURT = "Unknown Court";
 
-    private final RedisService redisService;
+    private final InMemoryCacheService cacheService;
     private final CourtRepository courtRepository;
     private final ReferenceDataProcessor referenceDataProcessor;
     private LoggingService loggingService;
 
     @Autowired
     public DataTransformationService(
-        RedisService redisService,
+        InMemoryCacheService cacheService,
         CourtRepository courtRepository,
         ReferenceDataProcessor referenceDataProcessor,
         LoggingService loggingService
     ) {
-        this.redisService = redisService;
+        this.cacheService = cacheService;
         this.courtRepository = courtRepository;
         this.referenceDataProcessor = referenceDataProcessor;
         this.loggingService = loggingService;
@@ -57,7 +57,7 @@ public class DataTransformationService {
                 extracted.getSanitizedArchiveName()
             );
 
-            Map<String, String> sitesDataMap = getSitesData();
+            Map<String, Object> sitesDataMap = getSitesData();
 
             CleansedData cleansedData = buildCleansedData(extracted, sitesDataMap);
 
@@ -70,16 +70,16 @@ public class DataTransformationService {
     }
 
     private CleansedData buildCleansedData(
-        ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+        ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
 
-        String redisKey = RecordingUtils.buildMetadataPreprocessKey(
+        String key = RecordingUtils.buildMetadataPreprocessKey(
             extracted.getUrn(), extracted.getDefendantLastName(), extracted.getWitnessFirstName()
         );
 
-        Map<String, String> existingData = redisService.getHashAll(redisKey, String.class, String.class);
+        Map<String, Object> existingData = cacheService.getHashAll(key);
         RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
             extracted.getRecordingVersion(), extracted.getRecordingVersionNumber(),
             extracted.getUrn(), extracted.getDefendantLastName(), extracted.getWitnessFirstName(), existingData
@@ -115,29 +115,26 @@ public class DataTransformationService {
      * Fetches the court entity from the database using the extracted court reference.
      *
      * @param extracted    The extracted metadata containing the court reference
-     * @param sitesDataMap The sites data map from Redis
+     * @param sitesDataMap The sites data map from Cache
      * @return The Court entity or null if not found
      */
-    private Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+    private Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
             loggingService.logError("Court reference is null or empty");
             throw new IllegalArgumentException("Court reference cannot be null or empty");
         }
 
-        String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
-        Map<String, String> courtsData = redisService.getHashAll(
-            Constants.RedisKeys.COURTS_PREFIX,
-            String.class,
-            String.class
-        );
+        Object fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
+        Map<String, Object> courtsData = cacheService.getHashAll(
+            Constants.CacheKeys.COURTS_PREFIX);
 
         if (courtsData == null || courtsData.isEmpty()) {
-            loggingService.logError("Courts data not found in Redis");
-            throw new IllegalStateException("Courts data not found in Redis");
+            loggingService.logError("Courts data not found in Cache");
+            throw new IllegalStateException("Courts data not found in Cache");
         }
 
-        String courtIdString = courtsData.get(fullCourtName);
+        String courtIdString = (String) courtsData.get(fullCourtName);
         if (courtIdString != null) {
             try {
                 UUID courtId = UUID.fromString(courtIdString);
@@ -190,20 +187,19 @@ public class DataTransformationService {
     }
 
     /**
-     * Retrieves sites data from Redis.
+     * Retrieves sites data from Cache.
      *
      * @return A map of site data
-     * @throws IllegalStateException if sites data is not found in Redis
+     * @throws IllegalStateException if sites data is not found in Cache
      */
-    private Map<String, String> getSitesData() {
-        Map<String, String> sitesDataMap = redisService.getHashAll(
-            Constants.RedisKeys.SITES_DATA,
-            String.class,
-            String.class
+    private Map<String, Object> getSitesData() {
+        Map<String, Object> sitesDataMap = cacheService.getHashAll(
+            Constants.CacheKeys.SITES_DATA
         );
+    
         if (sitesDataMap == null || sitesDataMap.isEmpty()) {
-            loggingService.logError("Sites data not found in Redis");
-            throw new IllegalStateException("Sites data not found in Redis");
+            loggingService.logError("Sites data not found in Cache");
+            throw new IllegalStateException("Sites data not found in Cache");
         }
         return sitesDataMap;
     }

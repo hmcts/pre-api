@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationGroupBuilderService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.validation.DataValidationService;
@@ -29,7 +29,7 @@ import java.time.format.DateTimeFormatter;
  */
 @Component
 public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
-    private final RedisService redisService;
+    private final InMemoryCacheService cacheService;
     private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final DataValidationService validationService;
@@ -40,7 +40,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     @Autowired
     public Processor(
-        RedisService redisService,
+        InMemoryCacheService cacheService,
         DataExtractionService extractionService,
         DataTransformationService transformationService,
         DataValidationService validationService,
@@ -49,7 +49,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         MigrationTrackerService migrationTrackerService,
         LoggingService loggingService
     ) {
-        this.redisService = redisService;
+        this.cacheService = cacheService;
         this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.validationService = validationService;
@@ -138,6 +138,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             }
 
             loggingService.incrementProgress();
+            cacheService.dumpToFile();
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
         } catch (Exception e) {
@@ -193,7 +194,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private boolean isMigrated(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        boolean alreadyMigrated = redisService.checkHashKeyExists("vf:case:", cleansedData.getCaseReference());
+        boolean alreadyMigrated = cacheService.checkHashKeyExists("vf:case:", cleansedData.getCaseReference());
         if (alreadyMigrated) {
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;

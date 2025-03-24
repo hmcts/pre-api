@@ -2,13 +2,12 @@ package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
-import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.RedisService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -19,11 +18,14 @@ import java.util.Set;
  */
 @Component
 public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
-    private final RedisService redisService;
+    private final InMemoryCacheService cacheService;
     private LoggingService loggingService;
 
-    public ReferenceDataProcessor(RedisService redisService, LoggingService loggingService) {
-        this.redisService = redisService;
+    public ReferenceDataProcessor(
+        InMemoryCacheService cacheService,
+        LoggingService loggingService
+    ) {
+        this.cacheService = cacheService;
         this.loggingService = loggingService;
     }
 
@@ -47,15 +49,15 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // Site reference data
     // =========================================
     private void processSitesData(CSVSitesData sitesItem) {
-        redisService.saveHashValue(
-            Constants.RedisKeys.SITES_DATA,
+        cacheService.saveHashValue(
+            Constants.CacheKeys.SITES_DATA,
             sitesItem.getSiteReference(),
             sitesItem.getCourtName()
         );
     }
 
-    public Map<String, String> fetchSitesData() {
-        return redisService.getHashAll(Constants.RedisKeys.SITES_DATA, String.class, String.class);
+    public Map<String, Object> fetchSitesData() {
+        return cacheService.getHashAll(Constants.CacheKeys.SITES_DATA);
     }
 
 
@@ -63,11 +65,15 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // Channel user reference data
     // ==================================================
     private void processChannelUserData(CSVChannelData channelDataItem) {
-        List<String[]> channelList = getExistingChannelList(channelDataItem.getChannelName());
+        List<String[]> channelList = cacheService.getAsStringArrayList(
+            Constants.CacheKeys.CHANNEL_DATA,
+            channelDataItem.getChannelName()
+        );
+
         channelList.add(createChannelUserEntry(channelDataItem));
 
-        redisService.saveHashValue(
-            Constants.RedisKeys.CHANNEL_DATA,
+        cacheService.saveHashValue(
+            Constants.CacheKeys.CHANNEL_DATA,
             channelDataItem.getChannelName(),
             channelList
         );
@@ -75,25 +81,13 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
 
     @SuppressWarnings("unchecked")
     public Map<String, List<String[]>> fetchChannelUserDataMap() {
-        return (Map<String, List<String[]>>)
-            (Map<?, ?>) redisService.getHashAll(Constants.RedisKeys.CHANNEL_DATA, String.class, List.class);
+        Map<String, List<String[]>> channelDataMap = cacheService.getAllAsType(Constants.CacheKeys.CHANNEL_DATA, Map.class);
+        return channelDataMap;
     }
 
-    @SuppressWarnings("unchecked")
     public Set<String> fetchChannelUserDataKeys() {
-        Map<String, List<String[]>> channelDataMap = (Map<String, List<String[]>>)
-            (Map<?, ?>) redisService.getHashAll(Constants.RedisKeys.CHANNEL_DATA, String.class, List.class);
-        return (channelDataMap != null) ? channelDataMap.keySet() : Collections.emptySet();
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<String[]> getExistingChannelList(String channelName) {
-        List<String[]> channelList = redisService.getHashValue(
-            Constants.RedisKeys.CHANNEL_DATA,
-            channelName,
-            List.class
-        );
-        return channelList != null ? channelList : new ArrayList<>();
+        Map<String, List<String[]>> channelDataMap = fetchChannelUserDataMap();
+        return channelDataMap != null ? channelDataMap.keySet() : Collections.emptySet();
     }
 
     private String[] createChannelUserEntry(CSVChannelData channelData) {

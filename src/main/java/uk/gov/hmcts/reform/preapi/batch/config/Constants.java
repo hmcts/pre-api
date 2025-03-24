@@ -41,9 +41,9 @@ public final class Constants {
 
     }
 
-    // Redis cache keys
-    public static final class RedisKeys {
-        private RedisKeys() {
+    // Cache keys
+    public static final class CacheKeys {
+        private CacheKeys() {
         }
 
         public static final String NAMESPACE = "vf:";
