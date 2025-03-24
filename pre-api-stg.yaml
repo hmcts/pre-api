@@ -100,9 +100,11 @@ definitions:
     properties:
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -110,6 +112,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -118,10 +121,7 @@ definitions:
         description: UserPhoneNumber
         type: string
     required:
-      - email
-      - first_name
       - id
-      - last_name
     type: object
   BookingDTO:
     description: BookingDTO
@@ -300,7 +300,7 @@ definitions:
         description: CompletedCaptureSessionReportCourtName
         type: string
       duration:
-        description: CompletedCaptureSessionReportDuration
+        example: PT2H30M
         type: string
       finished_at:
         description: CompletedCaptureSessionReportFinishedAt
@@ -342,7 +342,7 @@ definitions:
         description: CaptureSessionCourtName
         type: string
       duration:
-        description: CaptureSessionDuration
+        example: PT2H30M
         type: string
       end_time:
         description: CaptureSessionEndTime
@@ -638,12 +638,15 @@ definitions:
     properties:
       email:
         description: InviteEmail
+        minLength: 1
         type: string
       first_name:
         description: InviteFirstName
+        minLength: 1
         type: string
       last_name:
         description: InviteLastName
+        minLength: 1
         type: string
       organisation:
         description: InviteOrganisation
@@ -656,9 +659,6 @@ definitions:
         format: uuid
         type: string
     required:
-      - email
-      - first_name
-      - last_name
       - user_id
     type: object
   CreateParticipantDTO:
@@ -720,8 +720,7 @@ definitions:
         format: uuid
         type: string
       duration:
-        description: RecordingDuration
-        example: PT3M
+        example: PT2H30M
         type: string
       edit_instructions:
         description: RecordingEditInstructions
@@ -777,9 +776,11 @@ definitions:
         uniqueItems: true
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -787,6 +788,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -802,10 +804,7 @@ definitions:
         uniqueItems: true
     required:
       - app_access
-      - email
-      - first_name
       - id
-      - last_name
       - portal_access
     type: object
   EditReportDTO:
@@ -1077,8 +1076,7 @@ definitions:
         format: date-time
         type: string
       duration:
-        description: RecordingDuration
-        example: PT3M
+        example: PT2H30M
         type: string
       edit_instructions:
         description: RecordingEditInstructions
@@ -1159,9 +1157,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1169,6 +1169,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1192,10 +1193,7 @@ definitions:
         description: UserTermsAccepted
         type: object
     required:
-      - email
-      - first_name
       - id
-      - last_name
     type: object
   GenerateAssetDTO:
     description: GenerateAssetDTO
@@ -1576,8 +1574,7 @@ definitions:
         format: date-time
         type: string
       duration:
-        description: RecordingDuration
-        example: PT3M
+        example: PT2H30M
         type: string
       edit_instructions:
         description: RecordingEditInstructions
@@ -1820,9 +1817,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1830,6 +1829,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1853,10 +1853,7 @@ definitions:
         description: UserTermsAccepted
         type: object
     required:
-      - email
-      - first_name
       - id
-      - last_name
     type: object
 externalDocs:
   description: README
