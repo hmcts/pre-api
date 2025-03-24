@@ -49,6 +49,7 @@ import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
 
 @Configuration
@@ -272,9 +273,9 @@ public class BatchConfiguration implements StepExecutionListener {
                                                              .getJobParameters()
                                                              .get("debug");
 
-                    String migrationType = (String) chunkContext.getStepContext()
-                                                   .getJobParameters()
-                                                   .get("migrationType");
+                    var migrationType = MigrationType.fromString((String) chunkContext.getStepContext()
+                                                                                      .getJobParameters()
+                                                                                      .get("migrationType"));
 
                     boolean debug = Boolean.parseBoolean(debugParam);
 
@@ -294,12 +295,12 @@ public class BatchConfiguration implements StepExecutionListener {
         return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
-                    String migrationType = (String) chunkContext.getStepContext()
-                        .getJobParameters()
-                        .get("migrationType");
+                    var migrationType = MigrationType.fromString((String) chunkContext.getStepContext()
+                                                                                      .getJobParameters()
+                                                                                      .get("migrationType"));
 
                     String outputFileName = "Archive_List_initial";
-                    if ("DELTA".equalsIgnoreCase(migrationType)) {
+                    if (migrationType.equals(MigrationType.DELTA)) {
                         outputFileName = "Archive_List_updated";
                     }
 
@@ -383,9 +384,11 @@ public class BatchConfiguration implements StepExecutionListener {
     @Bean
     public JobExecutionDecider deltaProcessingDecider() {
         return (jobExecution, stepExecution) -> {
-            String migrationType = (String) jobExecution.getJobParameters().getString("migrationType");
+            var migrationType = MigrationType.fromString(
+                (String) Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))
+            );
 
-            if ("DELTA".equalsIgnoreCase(migrationType)) {
+            if (migrationType.equals(MigrationType.DELTA)) {
                 return new FlowExecutionStatus("DELTA");
             } else {
                 return new FlowExecutionStatus("FULL");

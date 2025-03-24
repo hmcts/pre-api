@@ -126,6 +126,10 @@ portal:
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
+migration:
+  debug: ${MIGRATION_DEBUG:false}
+  type: ${MIGRATION_TYPE:FULL}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
