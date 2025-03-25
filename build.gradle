@@ -312,7 +312,7 @@ dependencies {
   annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.10.Final')
 
 
-  testImplementation 'com.github.hmcts:fortify-client:1.4.7:all'
+  testImplementation 'com.github.hmcts:fortify-client:1.4.6:all'
   testImplementation 'org.springframework.security:spring-security-test:6.4.4'
   testImplementation libraries.junit5
 
