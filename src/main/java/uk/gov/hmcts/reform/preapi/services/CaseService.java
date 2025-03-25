@@ -273,19 +273,21 @@ public class CaseService {
         log.info("onCaseClosed: Case({})", c.getId());
         var shares = shareBookingService.deleteCascade(c);
 
-        try {
-            if (!emailServiceFactory.isEnabled()) {
-                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
-                    shares
-                        .stream()
-                        .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
-                        .toList());
-            } else {
-                var emailService = emailServiceFactory.getEnabledEmailService();
-                shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
+        if (!shares.isEmpty()) {
+            try {
+                if (!emailServiceFactory.isEnabled()) {
+                    caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
+                        shares
+                            .stream()
+                            .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
+                            .toList());
+                } else {
+                    var emailService = emailServiceFactory.getEnabledEmailService();
+                    shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
+                }
+            } catch (Exception e) {
+                log.error("Failed to notify users of case closure: {}", c.getId());
             }
-        } catch (Exception e) {
-            log.error("Failed to notify users of case closure: {}", c.getId());
         }
 
         bookingRepository
@@ -304,6 +306,10 @@ public class CaseService {
     public void onCaseClosureCancellation(Case c) {
         log.info("onCaseClosureCancellation: Case({})", c.getId());
         var shares = shareBookingService.getSharesForCase(c);
+
+        if (shares.isEmpty()) {
+            return;
+        }
 
         try {
             if (!emailServiceFactory.isEnabled()) {
@@ -327,6 +333,10 @@ public class CaseService {
         log.info("onCasePendingClosure: Case({})", c.getId());
         var shares = shareBookingService.getSharesForCase(c);
 
+        if (shares.isEmpty()) {
+            return;
+        }
+
         try {
             if (!emailServiceFactory.isEnabled()) {
                 caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
@@ -338,7 +348,7 @@ public class CaseService {
             } else {
                 var emailService = emailServiceFactory.getEnabledEmailService();
                 shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c,
-                                                                        c.getClosedAt().toString()));
+                                                                        c.getClosedAt()));
             }
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: {}", c.getId());

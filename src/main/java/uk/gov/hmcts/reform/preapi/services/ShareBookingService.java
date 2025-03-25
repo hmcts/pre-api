@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -161,18 +163,20 @@ public class ShareBookingService {
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void onBookingShared(ShareBooking s) {
-        log.info("onBookingShared: Booking({})", s.getBooking().getId());
+        // only send an email if there is a recording for this booking
+        if (emailServiceFactory.isEnabled()
+            && Stream.ofNullable(s.getBooking().getCaptureSessions())
+                     .flatMap(Set::stream)
+                     .anyMatch(c -> c.getStatus().equals(RecordingStatus.RECORDING_AVAILABLE))) {
 
-        try {
-            if (!emailServiceFactory.isEnabled()) {
-                return;
-            } else {
-                var emailService = emailServiceFactory.getEnabledEmailService();
-                emailService.recordingReady(s.getSharedWith(), s.getBooking().getCaseId());
+            try {
+                log.info("onBookingShared: Booking({})", s.getBooking().getId());
+                emailServiceFactory.getEnabledEmailService()
+                                   .recordingReady(s.getSharedWith(), s.getBooking().getCaseId());
+            } catch (Exception e) {
+                log.error("Failed to notify user " + s.getSharedWith().getId()
+                              + " of shared booking: " + s.getBooking().getId());
             }
-        } catch (Exception e) {
-            log.error("Failed to notify user " + s.getSharedWith().getId()
-                          + " of shared booking: " + s.getBooking().getId());
         }
     }
 }

@@ -7,11 +7,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -70,34 +70,34 @@ class CaseServiceTest {
 
     private static List<Case> allCaseEntities = new ArrayList<>();
 
-    @MockBean
+    @MockitoBean
     private CaseRepository caseRepository;
 
-    @MockBean
+    @MockitoBean
     private CourtRepository courtRepository;
 
-    @MockBean
+    @MockitoBean
     private ParticipantRepository participantRepository;
 
-    @MockBean
+    @MockitoBean
     private BookingService bookingService;
 
-    @MockBean
+    @MockitoBean
     private ShareBookingService shareBookingService;
 
-    @MockBean
+    @MockitoBean
     private CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private EmailServiceFactory emailServiceFactory;
 
-    @MockBean
+    @MockitoBean
     private NotificationClient notificationClient;
 
-    @MockBean
+    @MockitoBean
     private GovNotify govNotify;
 
     @Autowired
@@ -389,6 +389,31 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
         verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseRepository, times(1)).saveAndFlush(any());
+        verify(caseRepository, times(0)).save(any());
+    }
+
+    @Test
+    @DisplayName("Should send not try to send email updating case and cancelling closure with no shares")
+    void updateCaseCancelClosureNoSharesSuccess() {
+        caseEntity.setState(CaseState.PENDING_CLOSURE);
+        var caseDTOModel = new CreateCaseDTO(caseEntity);
+        var share = createShare();
+        share.setId(UUID.randomUUID());
+        caseDTOModel.setState(CaseState.OPEN);
+        caseDTOModel.setClosedAt(null);
+
+        when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
+            Optional.of(caseEntity.getCourt()));
+        when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
+        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of());
+
+        caseService.upsert(caseDTOModel);
+
+        verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
+        verify(caseRepository, times(1)).findById(caseDTOModel.getId());
+        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(0)).save(any());
     }
@@ -709,7 +734,7 @@ class CaseServiceTest {
         verify(caseRepository).findAllByStateAndClosedAtBefore(eq(CaseState.PENDING_CLOSURE), any());
         verify(caseRepository).save(pendingCase);
         verify(shareBookingService).deleteCascade(pendingCase);
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(any());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(any());
         verify(bookingRepository, times(1)).findAllByCaseIdAndDeletedAtIsNull(pendingCase);
     }
 

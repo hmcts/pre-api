@@ -4,16 +4,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -26,6 +28,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -40,19 +43,19 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = ShareBookingService.class)
 public class ShareBookingServiceTest {
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private ShareBookingRepository shareBookingRepository;
 
-    @MockBean
+    @MockitoBean
     private EmailServiceFactory emailServiceFactory;
 
-    @MockBean
+    @MockitoBean
     private GovNotify govNotify;
 
     @Autowired
@@ -463,6 +466,43 @@ public class ShareBookingServiceTest {
 
     @DisplayName(("Should notify user by email on booking shared when email service is enabled"))
     @Test
+    void doNotNotifyUserByEmailOnBookingShared() {
+        var shareBookingDTO = new CreateShareBookingDTO();
+        shareBookingDTO.setId(UUID.randomUUID());
+        shareBookingDTO.setBookingId(UUID.randomUUID());
+        shareBookingDTO.setSharedByUser(UUID.randomUUID());
+        shareBookingDTO.setSharedWithUser(UUID.randomUUID());
+
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setState(CaseState.OPEN);
+        var bookingEntity = new Booking();
+        bookingEntity.setId(shareBookingDTO.getBookingId());
+        bookingEntity.setCaseId(aCase);
+
+        var sharedByUser = new User();
+        var sharedWithUser = new User();
+
+        when(
+            bookingRepository.findById(shareBookingDTO.getBookingId())
+        ).thenReturn(Optional.of(bookingEntity));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedByUser())
+        ).thenReturn(Optional.of(sharedByUser));
+        when(
+            userRepository.findById(shareBookingDTO.getSharedWithUser())
+        ).thenReturn(Optional.of(sharedWithUser));
+
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(govNotify);
+
+        shareBookingService.shareBookingById(shareBookingDTO);
+
+        verify(govNotify, times(0)).recordingReady(any(), any());
+    }
+
+    @DisplayName(("Should notify user by email on booking shared when email service is enabled"))
+    @Test
     void notifyUserByEmailOnBookingShared() {
         var shareBookingDTO = new CreateShareBookingDTO();
         shareBookingDTO.setId(UUID.randomUUID());
@@ -476,6 +516,11 @@ public class ShareBookingServiceTest {
         var bookingEntity = new Booking();
         bookingEntity.setId(shareBookingDTO.getBookingId());
         bookingEntity.setCaseId(aCase);
+
+        // add a capture session with recording to the booking entity
+        var captureSession = new CaptureSession();
+        captureSession.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+        bookingEntity.setCaptureSessions(Set.of(captureSession));
 
         var sharedByUser = new User();
         var sharedWithUser = new User();

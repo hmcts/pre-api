@@ -117,6 +117,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                                   var booking = bookingService.findById(captureSession.getBookingId());
 
                                   var shares = booking.getShares();
+                                  // @todo simplify this after 4.3 goes live S28-3692
                                   var toNotify = shares.stream()
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
@@ -125,29 +126,18 @@ public class CleanupLiveEvents extends RobotUserTask {
                                                             .builder()
                                                             .email(u.getEmail())
                                                             .firstName(u.getFirstName())
+                                                            .lastName(u.getLastName())
                                                             .caseReference(booking.getCaseDTO().getReference())
                                                             .courtName(booking.getCaseDTO().getCourt().getName())
                                                             .build())
                                                         .toList();
                                   if (!toNotify.isEmpty()) {
-                                      log.info("Sending email notifications to {} user(s)", toNotify.size());
                                       if (!emailServiceFactory.isEnabled()) {
+                                          log.info("Sending email notifications to {} user(s)", toNotify.size());
                                           stopLiveEventNotifierFlowClient.emailAfterStoppingLiveEvents(toNotify);
-                                      } else {
-                                          var forCase = new Case();
-                                          forCase.setReference(booking.getCaseDTO().getReference());
-                                          var court = new Court();
-                                          court.setName(booking.getCaseDTO().getCourt().getName());
-                                          forCase.setCourt(court);
-                                          var emailService = emailServiceFactory.getEnabledEmailService();
-                                          shares.forEach(share -> {
-                                              var emailUser = new User();
-                                              emailUser.setEmail(share.getSharedWithUser().getEmail());
-                                              emailUser.setFirstName(share.getSharedWithUser().getFirstName());
-                                              emailUser.setLastName(share.getSharedWithUser().getLastName());
-                                              emailService.recordingReady(emailUser, forCase);
-                                          });
                                       }
+                                      // if GovNotify is enabled, users are notified via the
+                                      // RecordingListener.onRecordingCreated method
                                   } else {
                                       log.info("No users to notify for capture session {}", captureSession.getId());
                                   }
@@ -214,12 +204,5 @@ public class CleanupLiveEvents extends RobotUserTask {
             captureSessionService.stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, recordingId);
             return false;
         }
-    }
-
-    private UUID generateUuidFromLiveEventName(String liveEventId) {
-        return new UUID(
-            Long.parseUnsignedLong(liveEventId.substring(0, 16), 16),
-            Long.parseUnsignedLong(liveEventId.substring(16), 16)
-        );
     }
 }

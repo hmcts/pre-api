@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -486,5 +487,137 @@ public class CleanupLiveEventsTest {
         verify(recordingService, never()).findAll(any(), eq(false), any());
         verify(mediaService, never()).getAsset(any());
         verify(mediaService, never()).stopLiveEvent(any(), any());
+    }
+
+    @DisplayName("Test CleanupLiveEvents run method with GovNotify enabled")
+    @Test
+    @SuppressWarnings({"checkstyle:VariableDeclarationUsageDistance", "unchecked", "checkstyle:LineLength"})
+    public void testRunWithGovNotifyEmails() throws InterruptedException, JsonProcessingException {
+
+        var captureSessionId = UUID.randomUUID();
+        var liveEventDTO = new LiveEventDTO();
+        liveEventDTO.setId(captureSessionId.toString().replace("-", ""));
+        liveEventDTO.setName(liveEventDTO.getId());
+        liveEventDTO.setResourceState("Running");
+        List<LiveEventDTO> liveEventDTOList = new ArrayList<>();
+        liveEventDTOList.add(liveEventDTO);
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(liveEventDTOList);
+
+        when(emailServiceFactory.isEnabled()).thenReturn(true);
+        var mockEmailService = mock(GovNotify.class);
+        when(emailServiceFactory.getEnabledEmailService()).thenReturn(mockEmailService);
+
+        var bookingId = UUID.randomUUID();
+
+        var mockCaptureSession = new CaptureSessionDTO();
+        mockCaptureSession.setId(captureSessionId);
+        mockCaptureSession.setBookingId(bookingId);
+        mockCaptureSession.setStatus(RecordingStatus.RECORDING);
+
+        var mockRecording = new RecordingDTO();
+        mockRecording.setId(UUID.randomUUID());
+
+        var mockRecording2 = new RecordingDTO();
+        mockRecording2.setId(UUID.randomUUID());
+
+        var mockBaseUser = new BaseUserDTO();
+        mockBaseUser.setId(UUID.randomUUID());
+        mockBaseUser.setFirstName("Foo");
+        mockBaseUser.setLastName("Bar");
+        mockBaseUser.setEmail("foo@bar.org");
+
+        var mockUser = new UserDTO();
+        mockUser.setId(UUID.randomUUID());
+        mockUser.setFirstName("Foo");
+        mockUser.setLastName("Bar");
+        mockUser.setEmail("foo@bar.org");
+
+        var mockShareBooking = new ShareBookingDTO();
+        mockShareBooking.setId(UUID.randomUUID());
+        mockShareBooking.setSharedWithUser(mockBaseUser);
+
+        var mockCourt = new CourtDTO();
+        mockCourt.setName("Test Court");
+
+        var mockCaseDTO = new CaseDTO();
+        mockCaseDTO.setReference("123456");
+        mockCaseDTO.setCourt(mockCourt);
+
+        var mockBooking = new BookingDTO();
+        mockBooking.setId(bookingId);
+        mockBooking.setShares(List.of(
+            mockShareBooking
+        ));
+        mockBooking.setCaseDTO(mockCaseDTO);
+
+        var mockCaptureSessionProcessing = new CaptureSessionDTO();
+        mockCaptureSessionProcessing.setId(captureSessionId);
+        mockCaptureSessionProcessing.setBookingId(bookingId);
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.PROCESSING);
+
+        var mockCaptureSessionRecordingAvailable =  new CaptureSessionDTO();
+        mockCaptureSessionProcessing.setId(captureSessionId);
+        mockCaptureSessionProcessing.setBookingId(bookingId);
+        mockCaptureSessionProcessing.setStatus(RecordingStatus.RECORDING_AVAILABLE);
+
+        when(captureSessionService.findByLiveEventId(liveEventDTO.getName()))
+            .thenReturn(mockCaptureSession, mockCaptureSessionRecordingAvailable);
+        when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
+            .thenReturn(new PageImpl<>(List.of(mockRecording, mockRecording2)));
+
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.PROCESSING,
+                                                      mockRecording.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.PROCESSING,
+                                                      mockRecording2.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+
+        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording.getId()))
+            .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+        when(mediaService.stopLiveEvent(mockCaptureSessionProcessing, mockRecording2.getId()))
+            .thenReturn(RecordingStatus.RECORDING_AVAILABLE);
+
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.RECORDING_AVAILABLE,
+                                                      mockRecording.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+        when(captureSessionService.stopCaptureSession(captureSessionId,
+                                                      RecordingStatus.RECORDING_AVAILABLE,
+                                                      mockRecording2.getId()))
+            .thenReturn(mockCaptureSessionProcessing);
+
+        when(bookingService.findById(bookingId)).thenReturn(mockBooking);
+
+        when(userService.findById(mockShareBooking.getSharedWithUser().getId())).thenReturn(mockUser);
+
+        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
+                                                                    captureSessionService,
+                                                                    bookingService,
+                                                                    recordingService,
+                                                                    userService,
+                                                                    userAuthenticationService,
+                                                                    CRON_USER_EMAIL,
+                                                                    CRON_PLATFORM_ENV,
+                                                                    stopLiveEventNotifierFlowClient,
+                                                                    emailServiceFactory);
+
+        cleanupLiveEvents.run();
+
+        verify(mediaServiceBroker, times(1)).getEnabledMediaService();
+        verify(mediaService, times(1)).getLiveEvents();
+
+        ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor = ArgumentCaptor.forClass(CaptureSessionDTO.class);
+        ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor2 = ArgumentCaptor.forClass(CaptureSessionDTO.class);
+
+        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor.capture(), eq(mockRecording.getId()));
+        verify(mediaService, times(1)).stopLiveEvent(captureSessionCaptor2.capture(), eq(mockRecording2.getId()));
+
+        Assertions.assertEquals(captureSessionId, captureSessionCaptor.getValue().getId());
+        Assertions.assertEquals(captureSessionId, captureSessionCaptor2.getValue().getId());
+
+        verify(stopLiveEventNotifierFlowClient, times(0)).emailAfterStoppingLiveEvents(any());
     }
 }

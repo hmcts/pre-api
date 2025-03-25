@@ -40,7 +40,7 @@ class CreateRecordingDTOTest extends IntegrationTestBase {
         CaptureSession captureSession = HelperFactory.createCaptureSession(
             booking,
             RecordingOrigin.PRE,
-            "TestIngrestAddress",
+            "TestIngressAddress",
             "TestLiveOutputAddress",
             new Timestamp(System.currentTimeMillis()),
             user,

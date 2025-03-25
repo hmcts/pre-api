@@ -1,9 +1,7 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
@@ -17,9 +15,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(classes = Application.class)
 public class UserTermsAcceptedTest extends IntegrationTestBase {
-
-    @Autowired
-    private EntityManager entityManager;
 
     @Test
     @Transactional

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosed;
 import uk.gov.hmcts.reform.preapi.email.govnotify.templates.CaseClosureCancelled;
@@ -20,6 +21,7 @@ import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,7 +37,7 @@ import static org.mockito.Mockito.when;
 })
 public class GovNotifyTest {
 
-    @MockBean
+    @MockitoBean
     NotificationClient mockGovNotifyClient;
 
     private final String govNotifyEmailResponse = """
@@ -65,7 +67,7 @@ public class GovNotifyTest {
     @DisplayName("Should create RecordingEdited template")
     @Test
     void shouldCreateRecordingEditedTemplate() {
-        var template = new RecordingEdited("to", "firstName", "caseRef", "courtName", "portalLink");
+        var template = new RecordingEdited("to", "firstName", "lastName", "caseRef", "courtName", "portalLink");
         assertThat(template.getTemplateId()).isEqualTo("1da03824-84e8-425d-b913-c2bac661e64a");
     }
 
@@ -79,21 +81,34 @@ public class GovNotifyTest {
     @DisplayName("Should create RecordingReady template")
     @Test
     void shouldCreateRecordingReadyTemplate() {
-        var template = new RecordingReady("to", "firstName", "caseRef", "courtName", "portalLink");
+        var template = new RecordingReady("to", "firstName", "lastName", "caseRef", "courtName", "portalLink");
         assertThat(template.getTemplateId()).isEqualTo("6ad8d468-4a18-4180-9c08-c6fae055a385");
     }
 
     @DisplayName("Should create CasePendingClosure template")
     @Test
     void shouldCreateCasePendingClosureTemplate() {
-        var template = new CasePendingClosure("to", "firstName", "lastName", "caseRef", "closureDate");
+        var template = new CasePendingClosure("to",
+                                              "firstName",
+                                              "lastName",
+                                              "caseRef",
+                                              Timestamp.valueOf("2025-01-01 00:00:00.0"));
         assertThat(template.getTemplateId()).isEqualTo("5322ba5c-f4c4-4d1b-807c-16f56f0d8d0c");
     }
 
     @DisplayName("Should create PortalInvite template")
     @Test
     void shouldCreatePortalInviteTemplate() {
-        var template = new PortalInvite("to", "firstName", "lastName", "caseRef", "courtName", "portalLink");
+        var template = new PortalInvite(
+            "to",
+            "firstName",
+            "lastName",
+            "portalUrl",
+            "guideLink",
+            "processGuideLink",
+            "faqsLink",
+            "editingRequestForm"
+        );
         assertThat(template.getTemplateId()).isEqualTo("e04adfb8-58e0-44be-ab42-bd6d896ccfb7");
     }
 
@@ -190,7 +205,7 @@ public class GovNotifyTest {
         when(mockGovNotifyClient.sendEmail(any(), any(), any(), any()))
             .thenReturn(new SendEmailResponse(govNotifyEmailResponse));
 
-        var response = govNotify.casePendingClosure(getUser(), getCase(), "closureDate");
+        var response = govNotify.casePendingClosure(getUser(), getCase(), Timestamp.valueOf("2025-01-01 00:00:00.0"));
 
         assertThat(response.getFromEmail()).isEqualTo("SENDER EMAIL");
         assertThat(response.getSubject()).isEqualTo("SUBJECT TEXT");
@@ -272,7 +287,9 @@ public class GovNotifyTest {
             .thenThrow(mock(NotificationClientException.class));
 
         var message = assertThrows(EmailFailedToSendException.class,
-                                   () -> govNotify.casePendingClosure(getUser(), getCase(), "closureDate"))
+                                   () -> govNotify.casePendingClosure(getUser(),
+                                                                      getCase(),
+                                                                      Timestamp.valueOf("2025-01-01 00:00:00.0")))
             .getMessage();
 
         assertThat(message).isEqualTo("Failed to send email to: " + getUser().getEmail());

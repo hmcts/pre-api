@@ -1,7 +1,14 @@
 java:
-  devmemoryLimits: '2048Mi'
+  devmemoryLimits: '3Gi'
+  devmemoryRequests: '3Gi'
   postgresql:
     enabled: true
+    primary:
+      initdb:
+        user: "postgres"
+        scripts:
+          init.sql: |-
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: true
     POSTGRES_HOST: "{{ .Release.Name }}-postgresql"
@@ -16,6 +23,7 @@ java:
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
     ENABLE_NEW_EMAIL_SERVICE: true
+    ENABLE_STREAMING_LOCATOR_ON_START: true
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}

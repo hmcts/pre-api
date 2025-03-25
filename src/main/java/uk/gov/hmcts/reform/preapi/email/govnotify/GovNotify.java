@@ -20,6 +20,8 @@ import uk.gov.service.notify.NotificationClient;
 import uk.gov.service.notify.NotificationClientException;
 import uk.gov.service.notify.SendEmailResponse;
 
+import java.sql.Timestamp;
+
 @Slf4j
 @Service
 public class GovNotify implements IEmailService {
@@ -37,7 +39,7 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingReady(User to, Case forCase) {
-        var template = new RecordingReady(to.getEmail(), to.getFirstName(), forCase.getReference(),
+        var template = new RecordingReady(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference(),
                                           forCase.getCourt().getName(), portalUrl);
         try {
             log.info("Recording ready email sent to {}", to.getEmail());
@@ -50,7 +52,7 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse recordingEdited(User to, Case forCase) {
-        var template = new RecordingEdited(to.getEmail(), to.getFirstName(), forCase.getReference(),
+        var template = new RecordingEdited(to.getEmail(), to.getFirstName(), to.getLastName(), forCase.getReference(),
                                            forCase.getCourt().getName(), portalUrl);
         try {
             log.info("Recording edited email sent to {}", to.getEmail());
@@ -63,10 +65,11 @@ public class GovNotify implements IEmailService {
 
     @Override
     public EmailResponse portalInvite(User to) {
-        var template = new PortalInvite(to.getEmail(), to.getFirstName(), portalUrl,
+        var template = new PortalInvite(to.getEmail(), to.getFirstName(), to.getLastName(), portalUrl,
                                         portalUrl + "/assets/files/user-guide.pdf",
                                         portalUrl + "/assets/files/process-guide.pdf",
-                                        portalUrl + "/assets/files/faqs.pdf");
+                                        portalUrl + "/assets/files/faqs.pdf",
+                                        portalUrl + "/assets/files/pre-editing-request-form.xlsx");
         try {
             log.info("Portal invite email sent to {}", to.getEmail());
             return EmailResponse.fromGovNotifyResponse(sendEmail(template));
@@ -77,7 +80,7 @@ public class GovNotify implements IEmailService {
     }
 
     @Override
-    public EmailResponse casePendingClosure(User to, Case forCase, String date) {
+    public EmailResponse casePendingClosure(User to, Case forCase, Timestamp date) {
         var template = new CasePendingClosure(to.getEmail(), to.getFirstName(), to.getLastName(),
                                               forCase.getReference(), date);
         try {

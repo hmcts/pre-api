@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.component.CommandExecutor;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
@@ -34,13 +34,13 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = FfmpegService.class)
 public class FfmpegServiceTest {
-    @MockBean
+    @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
-    @MockBean
+    @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
 
-    @MockBean
+    @MockitoBean
     private CommandExecutor commandExecutor;
 
     @Autowired

@@ -68,11 +68,13 @@ public class BookingService {
             .orElseThrow(() -> new NotFoundException("BookingDTO not found"));
     }
 
+    @Transactional
     public Page<BookingDTO> findAllByCaseId(UUID caseId, Pageable pageable) {
         return bookingRepository.findByCaseId_IdAndDeletedAtIsNull(caseId, pageable)
             .map(BookingDTO::new);
     }
 
+    @Transactional
     public Page<BookingDTO> searchBy(
         UUID caseId,
         String caseReference,
