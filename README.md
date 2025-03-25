@@ -232,6 +232,15 @@ docker image rm <image-id>
 
 There is no need to remove postgres and java or similar core images.
 
+To create a fresh database, get the container ID and then execute the SQL scripts against it:
+
+```bash
+docker ps
+cat src/main/resources/db/migration/*.sql | docker exec -i 1f7bdbc91eb0 psql -U pre -d api
+```
+
+To hit local endpoints, turn off Global Protect.
+
 ## How to generate a Power Platform Custom Connector
 Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 

@@ -365,3 +365,9 @@ rootProject.tasks.named("processSmokeTestResources") {
 wrapper {
   distributionType = Wrapper.DistributionType.ALL
 }
+
+bootRun {
+  debugOptions {
+    port = 2025
+  }
+}
