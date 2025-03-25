@@ -744,6 +744,33 @@ class CaseControllerFT extends FunctionalTestBase {
         }
     }
 
+    @Test
+    @DisplayName("Create a case without participants")
+    void createCaseWithoutParticipants() throws JsonProcessingException {
+        var dto = createCase();
+        dto.setParticipants(Set.of());
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 400);
+
+        assertThat(putResponse.jsonPath().getString("participants"))
+            .isEqualTo("Participants must consist of at least 1 defendant and 1 witness");
+    }
+
+    @Test
+    @DisplayName("Update a case without participants")
+    void updateCaseWithoutParticipants() throws JsonProcessingException {
+        var dto = createCase();
+        var putResponse = putCase(dto);
+        assertResponseCode(putResponse, 201);
+        assertMatchesDto(dto);
+
+        dto.setParticipants(Set.of());
+        var putResponse2 = putCase(dto);
+
+        assertThat(putResponse2.jsonPath().getString("participants"))
+            .isEqualTo("Participants must consist of at least 1 defendant and 1 witness");
+    }
+
     private Response putCase(CreateCaseDTO dto, TestingSupportRoles role) throws JsonProcessingException {
         return doPutRequest(
             CASES_ENDPOINT + "/" + dto.getId(),
