@@ -1,24 +1,20 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
-class CreateParticipantDTOTest {
-
-    @Autowired
-    private EntityManager entityManager;
+class CreateParticipantDTOTest extends IntegrationTestBase {
 
     @Test
     @Transactional
@@ -47,7 +43,7 @@ class CreateParticipantDTOTest {
         assertEquals(
             testParticipant.getParticipantType(),
             retrievedParticipant.getParticipantType(),
-            "ParticipantDTO type should match"
+            "Participant type should match"
         );
         assertEquals(testParticipant.getFirstName(), retrievedParticipant.getFirstName(), "First names should match");
         assertEquals(testParticipant.getLastName(), retrievedParticipant.getLastName(), "Last name should match");

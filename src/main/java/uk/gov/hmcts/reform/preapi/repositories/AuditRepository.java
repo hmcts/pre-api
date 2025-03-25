@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.repositories;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -25,4 +27,7 @@ public interface AuditRepository extends JpaRepository<Audit, UUID> {
     List<Audit> findAllAccessAttempts();
 
     List<Audit> findByTableRecordId(UUID tableRecordId);
+
+    @Query("SELECT a FROM Audit a ORDER BY a.createdAt DESC")
+    Page<Audit> findLatest(Pageable pageable);
 }
