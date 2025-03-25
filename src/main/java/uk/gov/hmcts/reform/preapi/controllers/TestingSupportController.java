@@ -98,7 +98,6 @@ class TestingSupportController {
     private final ScheduledTaskRunner scheduledTaskRunner;
     private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
-    private final ScheduledTaskRunner scheduledTaskRunner;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -117,8 +116,7 @@ class TestingSupportController {
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
                              final EditRequestService editRequestService,
-                             final AzureFinalStorageService azureFinalStorageService,
-                             final ScheduledTaskRunner scheduledTaskRunner) {
+                             final AzureFinalStorageService azureFinalStorageService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -136,7 +134,6 @@ class TestingSupportController {
         this.auditRepository = auditRepository;
         this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
-        this.scheduledTaskRunner = scheduledTaskRunner;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -486,18 +483,6 @@ class TestingSupportController {
             "request", request,
             "recording", recording
         ));
-    }
-
-    @PostMapping(value = "/trigger-task/{taskName}")
-    public ResponseEntity<Void> triggerTask(@PathVariable String taskName) {
-        final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
-        var task = scheduledTaskRunner.getTask(beanName);
-        if (task == null) {
-            throw new NotFoundException("Task: " + taskName);
-        }
-        task.run();
-
-        return ResponseEntity.noContent().build();
     }
 
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
