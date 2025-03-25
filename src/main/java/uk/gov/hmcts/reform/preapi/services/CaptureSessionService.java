@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -42,18 +43,21 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
+    private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
-                                 @Lazy BookingService bookingService) {
+                                 @Lazy BookingService bookingService,
+                                 AzureFinalStorageService azureFinalStorageService) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
+        this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @Transactional
@@ -118,6 +122,18 @@ public class CaptureSessionService {
         var captureSession = captureSessionRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("CaptureSession: " + id));
+
+        if (captureSession.getStatus() != RecordingStatus.RECORDING_AVAILABLE
+            && captureSession.getStatus() != RecordingStatus.NO_RECORDING
+            && captureSession.getStatus() != RecordingStatus.FAILURE) {
+            throw new ResourceInWrongStateException(
+                "Capture Session ("
+                    + id
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                    + captureSession.getStatus()
+            );
+        }
+
         recordingService.deleteCascade(captureSession);
         captureSession.setDeleteOperation(true);
         captureSession.setDeletedAt(Timestamp.from(Instant.now()));
@@ -129,6 +145,16 @@ public class CaptureSessionService {
         captureSessionRepository
             .findAllByBookingAndDeletedAtIsNull(booking)
             .forEach(captureSession -> {
+                if (captureSession.getStatus() != RecordingStatus.RECORDING_AVAILABLE
+                    && captureSession.getStatus() != RecordingStatus.NO_RECORDING
+                    && captureSession.getStatus() != RecordingStatus.FAILURE) {
+                    throw new ResourceInWrongStateException(
+                        "Capture Session ("
+                            + captureSession.getId()
+                            + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is "
+                            + captureSession.getStatus()
+                    );
+                }
                 recordingService.deleteCascade(captureSession);
                 captureSession.setDeleteOperation(true);
                 captureSession.setDeletedAt(Timestamp.from(Instant.now()));
@@ -245,7 +271,11 @@ public class CaptureSessionService {
                 recording.setId(recordingId);
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
-                recording.setFilename("index_1280x720_4500k.mp4");
+                try {
+                    recording.setFilename(azureFinalStorageService.getMp4FileName(recordingId.toString()));
+                } catch (Exception e) {
+                    log.error("Failed to get recording filename for capture session {}", captureSessionId);
+                }
                 recordingService.upsert(recording);
             }
             default -> {
