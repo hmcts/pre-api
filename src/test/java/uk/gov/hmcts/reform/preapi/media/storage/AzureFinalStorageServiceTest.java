@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -42,7 +42,7 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = AzureFinalStorageService.class)
 public class AzureFinalStorageServiceTest {
-    @MockBean
+    @MockitoBean
     private BlobServiceClient finalStorageClient;
 
     @Mock

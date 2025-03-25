@@ -6,8 +6,8 @@ import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -46,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
-@SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
@@ -65,8 +65,10 @@ public class FunctionalTestBase {
 
     protected static Map<TestingSupportRoles, AuthUserDetails> authenticatedUserIds;
 
-    @Value("${TEST_URL:http://localhost:4550}")
-    protected String testUrl;
+    @LocalServerPort
+    private int port;
+
+    public String testUrl = "";
 
     @BeforeAll
     static void beforeAll() {
@@ -97,6 +99,7 @@ public class FunctionalTestBase {
 
     @BeforeEach
     void setUp() {
+        testUrl = String.format("http://localhost:%s", port);
         RestAssured.baseURI = testUrl;
 
         if (authenticatedUserIds == null) {
