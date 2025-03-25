@@ -12,7 +12,6 @@ import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
-import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.util.Set;
 import java.util.stream.Stream;
