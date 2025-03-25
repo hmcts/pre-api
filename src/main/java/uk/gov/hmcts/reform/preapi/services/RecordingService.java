@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -29,6 +30,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class RecordingService {
 
@@ -132,8 +134,7 @@ public class RecordingService {
 
         recordingRepository.save(recordingEntity);
 
-        var isUpdate = recording.isPresent();
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional
