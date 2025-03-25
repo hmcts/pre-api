@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.PessimisticLockingFailureException;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
@@ -57,10 +57,10 @@ public class EditRequestServiceTest {
     @MockitoBean
     private RecordingRepository recordingRepository;
 
-    @MockBean
+    @MockitoBean
     private FfmpegService ffmpegService;
 
-    @MockBean
+    @MockitoBean
     private RecordingService recordingService;
 
     @Autowired

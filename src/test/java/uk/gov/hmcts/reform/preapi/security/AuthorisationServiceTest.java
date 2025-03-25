@@ -58,7 +58,7 @@ public class AuthorisationServiceTest {
     @MockitoBean
     private RecordingRepository recordingRepository;
 
-    @MockBean
+    @MockitoBean
     private EditRequestRepository editRequestRepository;
 
     @Autowired
