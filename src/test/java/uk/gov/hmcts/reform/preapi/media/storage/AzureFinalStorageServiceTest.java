@@ -18,7 +18,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.io.InputStream;
 import java.time.Duration;
@@ -337,8 +336,7 @@ public class AzureFinalStorageServiceTest {
 
         var containerName = "test-container";
         var downloadPath = "input.mp4";
-
-        azureFinalStorageService.downloadBlob(containerName, blobName, downloadPath);
+        assertTrue(azureFinalStorageService.downloadBlob(containerName, blobName, downloadPath));
 
         verify(blobClient, times(1)).downloadToFile(downloadPath, true);
     }
@@ -358,11 +356,6 @@ public class AzureFinalStorageServiceTest {
         var containerName = "test-container";
         var downloadPath = "input.mp4";
 
-        var message = assertThrows(
-            UnknownServerException.class,
-            () -> azureFinalStorageService.downloadBlob(containerName, blobName, downloadPath)
-        ).getMessage();
-        assertThat(message)
-            .isEqualTo("Unknown Server Exception: Error downloading blob video.mp4 from container: test-container");
+        assertFalse(azureFinalStorageService.downloadBlob(containerName, blobName, downloadPath));
     }
 }

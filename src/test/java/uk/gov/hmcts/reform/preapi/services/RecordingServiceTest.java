@@ -591,4 +591,14 @@ class RecordingServiceTest {
         verify(captureSessionService, times(1)).undelete(captureSession.getId());
         verify(recordingRepository, never()).save(recording);
     }
+
+    @Test
+    @DisplayName("Should return the next version number for recordings")
+    void getNextVersionNumberSuccess() {
+        var id = UUID.randomUUID();
+        when(recordingRepository.countByParentRecording_Id(id))
+            .thenReturn(0);
+
+        assertThat(recordingService.getNextVersionNumber(id)).isEqualTo(2);
+    }
 }
