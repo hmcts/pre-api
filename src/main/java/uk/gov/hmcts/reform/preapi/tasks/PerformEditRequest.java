@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
@@ -31,13 +32,17 @@ public class PerformEditRequest extends RobotUserTask {
         signInRobotUser();
         log.info("Running PerformEditRequest task");
 
-        editRequestService.getPendingEditRequests()
-            .forEach(this::attemptPerformEditRequest);
+        // claims the oldest existing pending request and performs edit
+        editRequestService.getNextPendingEditRequest()
+            .ifPresentOrElse(
+                this::attemptPerformEditRequest,
+                () -> log.info("No pending edit requests found"));
     }
 
     private void attemptPerformEditRequest(EditRequest editRequest) {
         log.info("Attempting to perform EditRequest {}", editRequest.getId());
         try {
+            editRequestService.updateEditRequestStatus(editRequest.getId(), EditRequestStatus.PROCESSING);
             editRequestService.performEdit(editRequest.getId());
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
             // edit request is locked or has already been updated to a different state so it is skipped
