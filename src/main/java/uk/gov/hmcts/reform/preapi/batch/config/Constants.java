@@ -26,7 +26,7 @@ public final class Constants {
         "test", "demo", "unknown", "training", "t35t",
         "sample", "mock", "dummy", "example", "playback", "predefined",
         "fig_room", "failover", "viw", "support", "wrong", "rmx006",
-        "rmx005", "recording", "rpms", "rmx-load", "snoc morning check",
+        "rmx005", "recording", "rpms", "rmx-load", "snoc",
         "s28 rpcs room", "rpp1 user"
     );
 

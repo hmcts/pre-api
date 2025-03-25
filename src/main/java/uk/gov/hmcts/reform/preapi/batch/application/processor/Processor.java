@@ -232,7 +232,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
 
-        loggingService.logInfo("🔄 Converting Exemption Item to ExtractedMetadata: " + exemptionItem);
+        loggingService.logInfo("Converting Exemption Item to ExtractedMetadata: " + exemptionItem);
 
         LocalDateTime parsedCreateTime = parseDateTime(exemptionItem.getCreateTime());
 

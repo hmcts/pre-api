@@ -13,6 +13,10 @@ public final class RegexPatterns {
     }
 
     public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(_\\d+)*$");
+    public static final Pattern S28_PATTERN = Pattern.compile(
+        "^(?:S28[_\\s])[A-Za-z0-9_]+_\\d{15,18}(?:\\.(mp4|raw|mov|avi|mkv))?$",
+        Pattern.CASE_INSENSITIVE
+    );
     public static final Pattern UUID_FILENAME_PATTERN = Pattern.compile(
         "^[a-zA-Z0-9]+_\\d{15}_\\d+_[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}(?:\\.(mp4|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
@@ -23,6 +27,7 @@ public final class RegexPatterns {
     public static final Map<String, Pattern> TEST_PATTERNS = Map.of(
         "Digit Only", DIGIT_ONLY_PATTERN,
         "Test Keyword", TEST_KEYWORDS_PATTERN,
+        "S28 Pattern", S28_PATTERN,
         "UUID Pattern", UUID_FILENAME_PATTERN
     );
 

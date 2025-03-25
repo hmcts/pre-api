@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
@@ -182,7 +183,7 @@ public class MigrationTrackerService {
 
     private List<String> getTestFailureHeaders() {
         return List.of(
-            "Display Name", "Filename", "File Size", "Date / Time",
+            "Display Name","Create Time","Filename", "File Size", "Migration Date / Time",
             "Duration Check Fail", "Duration (in seconds)", "Keyword Check Fail",
             "Keyword Found", "Test Pattern"
         );
@@ -196,6 +197,7 @@ public class MigrationTrackerService {
 
             rows.add(List.of(
                 getValueOrEmpty(archiveItem.getArchiveName()),
+                getValueOrEmpty(archiveItem.getCreateTime()),
                 getValueOrEmpty(archiveItem.getFileName()),
                 getValueOrEmpty(archiveItem.getFileSize()) + " MB",
                 failureTime,
@@ -210,25 +212,37 @@ public class MigrationTrackerService {
     }
 
     private List<String> getFailedItemsHeaders() {
-        return List.of("Reason for Failure", "Display Name", "Filename", "File Size", "Date / Time");
+        return List.of("Reason for Failure", "Display Name","Create Time","Filename", "File Size", "Date / Time");
     }
 
     public List<List<String>> buildFailedItemsRows(List<FailedItem> items) {
         List<List<String>> rows = new ArrayList<>();
-
+        
         for (FailedItem item : items) {
-            CSVArchiveListData archiveItem = (CSVArchiveListData) item.getItem();
+            Object itemData = item.getItem();
             String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-
-            List<String> row = List.of(
-                getValueOrEmpty(item.getReason()),
-                getValueOrEmpty(archiveItem.getArchiveName()),
-                getValueOrEmpty(archiveItem.getFileName()),
-                getValueOrEmpty(archiveItem.getFileSize()),
-                failureTime
-            );
-
-            rows.add(row);
+            
+            if (itemData instanceof CSVArchiveListData archiveItem) {
+                rows.add(List.of(
+                    getValueOrEmpty(item.getReason()),
+                    getValueOrEmpty(archiveItem.getArchiveName()),
+                    getValueOrEmpty(archiveItem.getCreateTime()),
+                    getValueOrEmpty(archiveItem.getFileName()),
+                    getValueOrEmpty(archiveItem.getFileSize()),
+                    failureTime
+                ));
+            } else if (itemData instanceof ExtractedMetadata metadata) {
+                rows.add(List.of(
+                    getValueOrEmpty(item.getReason()),
+                    getValueOrEmpty(metadata.getArchiveName()),
+                    getValueOrEmpty(metadata.getCreateTime() != null ? metadata.getCreateTime().toString() : ""),
+                    getValueOrEmpty(metadata.getFileName()),
+                    getValueOrEmpty(metadata.getFileSize()),
+                    failureTime
+                ));
+            } else {
+                loggingService.logWarning("Skipping unknown item type: %s", itemData.getClass().getSimpleName());
+            }
         }
         return rows;
     }

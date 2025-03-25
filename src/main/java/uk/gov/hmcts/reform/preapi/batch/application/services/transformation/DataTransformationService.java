@@ -53,6 +53,11 @@ public class DataTransformationService {
 
         try {
             loggingService.logDebug(
+                "Extracted data : %s",
+                extracted
+            );
+
+            loggingService.logDebug(
                 "Starting data transformation for archive: %s",
                 extracted.getSanitizedArchiveName()
             );

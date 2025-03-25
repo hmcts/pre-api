@@ -188,8 +188,12 @@ public class BatchConfiguration implements StepExecutionListener {
         return new JobBuilder("processExclusionsJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(startLogging())
+            .next(createSitesDataStep())
+            .next(createChannelUserStep())
             .next(createRobotUserSignInStep())
+            .next(createPreProcessStep())
             .next(createExcemptionListStep())
+            .next(createWriteToCSVStep())
             .build();
     }
 

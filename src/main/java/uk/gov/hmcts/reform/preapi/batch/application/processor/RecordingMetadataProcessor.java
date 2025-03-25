@@ -46,7 +46,6 @@ public class RecordingMetadataProcessor {
      */
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
-            loggingService.logInfo("IN RECORDING METADATA PREPROCESSOR");
             ServiceResult<?> extracted = extractionService.process(archiveItem);
             if (extracted.getErrorMessage() != null) {
                 return;
@@ -74,8 +73,6 @@ public class RecordingMetadataProcessor {
             if (existingMetadata == null) {
                 existingMetadata = new HashMap<>();
             }
-
-            System.out.println("Existing metadata: "+existingMetadata);
 
             Map<String, Object> updatedMetadata = RecordingUtils.updateVersionMetadata(
                 cleansedData.getRecordingVersion(),
