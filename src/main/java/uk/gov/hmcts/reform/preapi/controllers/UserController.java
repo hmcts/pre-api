@@ -73,6 +73,16 @@ public class UserController extends PreApiController {
         schema = @Schema(implementation = String.class)
     )
     @Parameter(
+        name = "firstName",
+        description = "The first name of the user to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
+        name = "lastName",
+        description = "The last name of the user to search by",
+        schema = @Schema(implementation = String.class)
+    )
+    @Parameter(
         name = "email",
         description = "The email of the user to search by",
         example = "example@example.com",
@@ -130,6 +140,8 @@ public class UserController extends PreApiController {
     ) {
         var resultPage = userService.findAllBy(
             params.getName(),
+            params.getFirstName(),
+            params.getLastName(),
             params.getEmail(),
             params.getOrganisation(),
             params.getCourtId(),
