@@ -2,13 +2,12 @@ package uk.gov.hmcts.reform.preapi.entities;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.util.UUID;
 
@@ -16,10 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = Application.class)
 @SuppressWarnings("PMD - JUnit5TestShouldBePackagePrivate")
-class AuditTest {
-
-    @Autowired
-    private EntityManager entityManager;
+class AuditTest extends IntegrationTestBase {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 

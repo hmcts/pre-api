@@ -16,8 +16,8 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class CaptureSessionControllerFT extends FunctionalTestBase {
-    @DisplayName("Scenario: Delete capture session with recordings")
     @Test
+    @DisplayName("Scenario: Delete capture session with recordings")
     void shouldNotDeleteCaptureSessionWithRecordings() {
         var postResponseData = doPostRequest("/testing-support/should-delete-recordings-for-booking", null)
             .body().jsonPath();
@@ -36,8 +36,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(captureSessionId, true);
     }
 
-    @DisplayName("Scenario: Delete capture session without recordings")
     @Test
+    @DisplayName("Scenario: Delete capture session without recordings")
     void shouldDeleteCaptureSessionWithoutRecordings() {
         var postResponseData = doPostRequest("/testing-support/should-delete-recordings-for-booking", null)
             .body().jsonPath();
@@ -58,10 +58,11 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(captureSessionId, false);
     }
 
-    @DisplayName("Scenario: Delete capture session")
     @Test
+    @DisplayName("Scenario: Delete capture session")
     void shouldDeleteCaptureSession() throws JsonProcessingException {
         var dto = createCaptureSession();
+        dto.setStatus(RecordingStatus.NO_RECORDING);
 
         // create capture session
         var putResponse = putCaptureSession(dto);
@@ -88,8 +89,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertThat(searchCaptureSessionResponse.getBody().jsonPath().getInt("page.totalElements")).isEqualTo(0);
     }
 
-    @DisplayName("Scenario: Create and update a capture session")
     @Test
+    @DisplayName("Scenario: Create and update a capture session")
     void shouldCreateCaptureSession() throws JsonProcessingException {
         var bookingId = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
@@ -117,8 +118,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             .isEqualTo(RecordingStatus.RECORDING_AVAILABLE.toString());
     }
 
-    @DisplayName("Scenario: Create and update a capture session when case is closed")
     @Test
+    @DisplayName("Scenario: Create and update a capture session when case is closed")
     void shouldCreateCaptureSessionCaseClosed() throws JsonProcessingException {
         var res = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
@@ -164,8 +165,8 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             );
     }
 
-    @DisplayName("Scenario: Create and update a capture session when case is pending closure")
     @Test
+    @DisplayName("Scenario: Create and update a capture session when case is pending closure")
     void shouldCreateCaptureSessionCasePendingClosure() throws JsonProcessingException {
         var res = doPostRequest("/testing-support/create-well-formed-booking", null)
             .body()
@@ -211,11 +212,12 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
             );
     }
 
-    @DisplayName("Scenario: Restore capture session")
     @Test
+    @DisplayName("Scenario: Restore capture session")
     void undeleteCaptureSession() throws JsonProcessingException {
         // create capture session
         var dto = createCaptureSession();
+        dto.setStatus(RecordingStatus.NO_RECORDING);
         var putResponse = putCaptureSession(dto);
         assertResponseCode(putResponse, 201);
         assertCaptureSessionExists(dto.getId(), true);
@@ -237,5 +239,75 @@ public class CaptureSessionControllerFT extends FunctionalTestBase {
         assertCaptureSessionExists(dto.getId(), true);
         assertBookingExists(dto.getBookingId(), true);
         assertCaseExists(caseId, true);
+    }
+
+    @Test
+    @DisplayName("Should return 400 when trying to delete a capture session in incorrect state")
+    void deleteCaptureSessionWrongState() throws JsonProcessingException {
+        // capture session state: RECORDING
+        var dto1 = createCaptureSession();
+        dto1.setStatus(RecordingStatus.RECORDING);
+        var putResponse1 = putCaptureSession(dto1);
+        assertResponseCode(putResponse1, 201);
+        assertCaptureSessionExists(dto1.getId(), true);
+
+        var deleteCaptureSessionRecording =
+            doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto1.getId(), TestingSupportRoles.SUPER_USER);
+        assertResponseCode(deleteCaptureSessionRecording, 400);
+        assertThat(deleteCaptureSessionRecording.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Capture Session (" + dto1.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is RECORDING"
+            );
+
+        // capture session state: STANDBY
+        var dto2 = createCaptureSession();
+        dto2.setStatus(RecordingStatus.STANDBY);
+        var putResponse2 = putCaptureSession(dto2);
+        assertResponseCode(putResponse2, 201);
+        assertCaptureSessionExists(dto2.getId(), true);
+
+        var deleteCaptureSessionStandby =
+            doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto2.getId(), TestingSupportRoles.SUPER_USER);
+        assertResponseCode(deleteCaptureSessionStandby, 400);
+        assertThat(deleteCaptureSessionStandby.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Capture Session (" + dto2.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. Current state is STANDBY"
+            );
+
+        // capture session state: INITIALISING
+        var dto3 = createCaptureSession();
+        dto3.setStatus(RecordingStatus.INITIALISING);
+        var putResponse3 = putCaptureSession(dto3);
+        assertResponseCode(putResponse3, 201);
+        assertCaptureSessionExists(dto3.getId(), true);
+
+        var deleteCaptureSessionInit =
+            doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto3.getId(), TestingSupportRoles.SUPER_USER);
+        assertResponseCode(deleteCaptureSessionInit, 400);
+        assertThat(deleteCaptureSessionInit.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Capture Session (" + dto3.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. "
+                    + "Current state is INITIALISING"
+            );
+
+        // capture session state: PROCESSING
+        var dto4 = createCaptureSession();
+        dto4.setStatus(RecordingStatus.PROCESSING);
+        var putResponse4 = putCaptureSession(dto4);
+        assertResponseCode(putResponse4, 201);
+        assertCaptureSessionExists(dto4.getId(), true);
+
+        var deleteCaptureSessionProcessing =
+            doDeleteRequest(CAPTURE_SESSIONS_ENDPOINT + "/" + dto4.getId(), TestingSupportRoles.SUPER_USER);
+        assertResponseCode(deleteCaptureSessionProcessing, 400);
+        assertThat(deleteCaptureSessionProcessing.getBody().jsonPath().getString("message"))
+            .isEqualTo(
+                "Capture Session (" + dto4.getId()
+                    + ") must be in state RECORDING_AVAILABLE or NO_RECORDING to be deleted. "
+                    + "Current state is PROCESSING"
+            );
     }
 }

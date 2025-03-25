@@ -183,7 +183,7 @@ public class CaseServiceIT extends IntegrationTestBase {
             null,
             null,
             null,
-            null,
+            RecordingStatus.RECORDING_AVAILABLE,
             null
         );
         entityManager.persist(captureSession);
