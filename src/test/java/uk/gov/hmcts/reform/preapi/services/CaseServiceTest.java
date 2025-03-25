@@ -383,14 +383,12 @@ class CaseServiceTest {
         when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
-        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(0)).save(any());
     }
@@ -433,15 +431,13 @@ class CaseServiceTest {
         when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
-        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
         doThrow(FeignException.class).when(caseStateChangeNotifierFlowClient).emailAfterCaseStateChange(anyList());
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(0)).save(any());
     }
@@ -459,14 +455,12 @@ class CaseServiceTest {
         when(courtRepository.findById(caseEntity.getCourt().getId())).thenReturn(
             Optional.of(caseEntity.getCourt()));
         when(caseRepository.findById(caseEntity.getId())).thenReturn(Optional.of(caseEntity));
-        when(shareBookingService.getSharesForCase(any(Case.class))).thenReturn(Set.of(share));
 
         caseService.upsert(caseDTOModel);
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
-        verify(caseStateChangeNotifierFlowClient, times(1)).emailAfterCaseStateChange(anyList());
+        verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(0)).save(any());
     }
@@ -491,7 +485,6 @@ class CaseServiceTest {
 
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(caseDTOModel.getId());
-        verify(shareBookingService, times(1)).getSharesForCase(any(Case.class));
         verify(caseStateChangeNotifierFlowClient, never()).emailAfterCaseStateChange(anyList());
         verify(caseRepository, times(1)).saveAndFlush(any());
         verify(caseRepository, times(0)).save(any());

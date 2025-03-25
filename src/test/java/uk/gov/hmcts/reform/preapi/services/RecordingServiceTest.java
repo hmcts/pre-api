@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -600,5 +600,18 @@ class RecordingServiceTest {
             .thenReturn(0);
 
         assertThat(recordingService.getNextVersionNumber(id)).isEqualTo(2);
+    }
+
+    private ShareBooking createShare() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setFirstName(user.getId().toString());
+        user.setLastName(user.getId().toString());
+        user.setEmail(user.getId() + "@example.com");
+
+        var share = new ShareBooking();
+        share.setId(UUID.randomUUID());
+        share.setSharedWith(user);
+        return share;
     }
 }
