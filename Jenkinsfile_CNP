@@ -25,4 +25,12 @@ withPipeline(type, product, component) {
   syncBranchesWithMaster(['perftest', 'demo'])
   enableSlackNotifications('#pre-builds')
   enableDbMigration('pre-hmctskv')
+
+  afterSuccess('functionalTest:dev') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
+  }
+
+  afterSuccess('functionalTest:stg') {
+    steps.archiveArtifacts allowEmptyArchive: true, artifacts: 'build/reports/**/*'
+  }
 }
