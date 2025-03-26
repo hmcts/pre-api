@@ -110,6 +110,7 @@ public class HelperFactory {
         testCase.setCourt(court);
         testCase.setReference(reference);
         testCase.setTest(test);
+        testCase.setOrigin(RecordingOrigin.PRE);
         testCase.setDeletedAt(deletedAt);
         testCase.setState(CaseState.OPEN);
         return testCase;
