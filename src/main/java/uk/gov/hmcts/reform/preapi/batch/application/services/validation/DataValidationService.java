@@ -43,9 +43,15 @@ public class DataValidationService {
                 Constants.Reports.FILE_MISSING_DATA);
         }
 
-        if (cleansedData.getCaseReference().length() > 24) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
+        String caseReference = cleansedData.getCaseReference();
+        if (caseReference == null || caseReference.length() < 9) {
+            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
                 Constants.Reports.FILE_MISSING_DATA);
+        }  else if (caseReference.length() > 24) {
+            return ServiceResultUtil.failure(
+                Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
+                Constants.Reports.FILE_MISSING_DATA
+            );
         }
 
         return ServiceResultUtil.success(cleansedData);

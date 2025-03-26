@@ -48,13 +48,15 @@ public final class RegexPatterns {
     private static final String SEPARATOR_ONE = "[-_\\s]+";
     private static final String SEPARATOR_ZERO = "[-_\\s]?";
     private static final String OPTIONAL_PREFIX = "(?:\\d{1,5}[-_]?)?";
-    private static final String OPTIONAL_SUFFIX = "(?:\\d{19}[-_]?)?";
 
     private static final String DATE_PATTERN =
         "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})";
     private static final String COURT_PATTERN = "(?<court>[A-Za-z]+(?:d|fd)?)";
-    private static final String URN_PATTERN = "(?<urn>\\d+[A-Za-z]+\\d+)";
-    private static final String EXHIBIT_PATTERN = "(?<exhibitRef>(?:[A-Za-z]+\\d+|\\d{2}[A-Z]{2}\\d+|\\d+))?";
+    // private static final String URN_PATTERN = "(?<urn>\\d+[A-Za-z]+\\d+)";
+    // private static final String EXHIBIT_PATTERN = "(?<exhibitRef>(?:[A-Za-z]+\\d+|\\d{2}[A-Z]{2}\\d+|\\d+))?";
+
+    private static final String URN_PATTERN = "(?<urn>[A-Za-z0-9]{11})";
+    private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{8})";
     private static final String VERSION_PATTERN =
         "(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?";
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
@@ -98,8 +100,8 @@ public final class RegexPatterns {
     public static final Pattern SPECIFIC_T_PATTERN = Pattern.compile(
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ONE
-        + "(?<urn>\\d+[A-Za-z]+\\d+)" + SEPARATOR_ONE
-        + "(?<exhibitRef>T\\d+)" + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + EXHIBIT_PATTERN + SEPARATOR_ONE
         + NAMES_PATTERN + SEPARATOR_ONE
         + VERSION_PATTERN
         + "(?:" + EXTENSION_PATTERN + ")?$"
@@ -112,8 +114,8 @@ public final class RegexPatterns {
     public static final Pattern SPECIAL_CASE_PATTERN = Pattern.compile(
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + "(?<date>\\d{5})" + SEPARATOR_ONE
-        + "(?<urn>\\d+)" + SEPARATOR_ONE
-        + "(?<exhibitRef>T\\d+)" + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + EXHIBIT_PATTERN + SEPARATOR_ONE
         + NAMES_PATTERN + SEPARATOR_ONE
         + VERSION_PATTERN
         + "(?:_QC)?"
@@ -143,7 +145,7 @@ public final class RegexPatterns {
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ONE
         + "(?!\\d+[A-Za-z]+\\d+)"
-        + "(?<exhibitRef>[A-Za-z]*\\d+)" + SEPARATOR_ONE
+        + EXHIBIT_PATTERN + SEPARATOR_ONE
         + "(?<exhibitRef2>[A-Za-z]*\\d+)" + SEPARATOR_ONE
         + NAMES_PATTERN + SEPARATOR_ONE
         + VERSION_PATTERN
@@ -174,7 +176,7 @@ public final class RegexPatterns {
     public static final Pattern FLEXIBLE_PATTERN = Pattern.compile(
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ZERO
-        + "(?<urn>[A-Za-z0-9]+)"
+        + URN_PATTERN
         + "(?:[-_\\s](?<urn2>[A-Za-z0-9]+))?" + SEPARATOR_ZERO
         + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ZERO + ")?"
         + NAMES_PATTERN + SEPARATOR_ZERO

@@ -64,6 +64,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     @Override
     public MigratedItemGroup process(Object item) throws Exception {
+        
         if (item == null) {
             loggingService.logWarning("Received null item to process");
             return null;

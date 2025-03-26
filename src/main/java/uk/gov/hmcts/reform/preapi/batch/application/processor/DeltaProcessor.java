@@ -30,7 +30,7 @@ public class DeltaProcessor {
             newRecords.keySet().removeAll(previousRecords.keySet());
 
             writeNewRecords(deltaFile, headers, newRecords);
-            loggingService.logInfo("New delta records written to: ", deltaFile);
+            loggingService.logInfo("New delta records written to: %s", deltaFile);
         } catch (IOException e) {
             e.printStackTrace();
         }

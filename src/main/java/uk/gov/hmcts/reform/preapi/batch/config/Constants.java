@@ -76,7 +76,7 @@ public final class Constants {
 
         // Court validation errors
         public static final String MISSING_COURT =
-            "No valid court is associated with this recording.";
+            "No valid court is associated with this recording.";        
 
         // Version validation errors
         public static final String NOT_MOST_RECENT_VERSION =
@@ -87,6 +87,8 @@ public final class Constants {
             "Missing or invalid case reference.";
         public static final String CASE_REFERENCE_TOO_LONG =
             "Case reference exceeds the 24-character limit.";
+        public static final String CASE_REFERENCE_TOO_SHORT =
+            "Case reference is less than 9-characters.";
 
         // Archive validation errors
         public static final String INVALID_ARCHIVE_NAME =
