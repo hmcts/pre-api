@@ -81,6 +81,8 @@ public final class Constants {
         // Version validation errors
         public static final String NOT_MOST_RECENT_VERSION =
             "The recording is not the most recent version.";
+        public static final String NO_PARENT_FOUND =
+            "The recording is not the most recent version.";
 
         // Case reference validation errors
         public static final String MISSING_CASE_REFERENCE =

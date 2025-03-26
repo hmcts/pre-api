@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
 import org.springframework.stereotype.Service;
+
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
@@ -10,12 +12,14 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 @Service
 public class DataValidationService {
-
+    private InMemoryCacheService cacheService;
     private LoggingService loggingService;
 
     public DataValidationService(
+        InMemoryCacheService cacheService,
         LoggingService loggingService
     ) {
+        this.cacheService = cacheService;
         this.loggingService = loggingService;
     }
 
@@ -52,6 +56,19 @@ public class DataValidationService {
                 Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
                 Constants.Reports.FILE_MISSING_DATA
             );
+        }
+
+        String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
+        String baseKey = cacheService.generateBaseKey(cleansedData.getCaseReference(), participantPair);
+        
+        if (cleansedData.getRecordingVersionNumber() > 1) {
+            String existingMetadata = cacheService.getHashValue(baseKey, "recordingMetadata", String.class);
+            if (existingMetadata == null) {
+                return ServiceResultUtil.failure(
+                    Constants.ErrorMessages.NO_PARENT_FOUND,
+                    Constants.Reports.FILE_MISSING_DATA
+                );
+            }
         }
 
         return ServiceResultUtil.success(cleansedData);
