@@ -82,7 +82,7 @@ public final class Constants {
         public static final String NOT_MOST_RECENT_VERSION =
             "The recording is not the most recent version.";
         public static final String NO_PARENT_FOUND =
-            "The recording is not the most recent version.";
+            "No parent recording found in cache, but version > 1";
 
         // Case reference validation errors
         public static final String MISSING_CASE_REFERENCE =
