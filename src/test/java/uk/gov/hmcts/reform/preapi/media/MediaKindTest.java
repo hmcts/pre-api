@@ -419,6 +419,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
+        verify(mockClient, times(1)).deleteLiveEvent(any());
         verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
