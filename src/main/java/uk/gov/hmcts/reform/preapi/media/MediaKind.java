@@ -417,7 +417,14 @@ public class MediaKind implements IMediaService {
         var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
-        createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
+
+        try {
+            createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
+        } catch (ConflictException e) {
+            mediaKindClient.deleteLiveEvent(liveEventName);
+            throw e;
+        }
+
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
         if (enableStreamingLocatorOnStart) {
