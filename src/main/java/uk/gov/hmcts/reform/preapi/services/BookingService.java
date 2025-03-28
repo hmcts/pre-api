@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
-@SuppressWarnings("PMD.SingularField")
+@SuppressWarnings({"PMD.SingularField", "PMD.CouplingBetweenObjects"})
 public class BookingService {
 
     private final BookingRepository bookingRepository;
@@ -86,14 +86,14 @@ public class BookingService {
         List<RecordingStatus> notStatuses,
         Pageable pageable
     ) {
-        var until = scheduledFor.isEmpty()
+        Timestamp until = scheduledFor.isEmpty()
             ? null
             : scheduledFor.map(
                 t -> Timestamp.from(t.toInstant().plus(86399, ChronoUnit.SECONDS))).orElse(null);
 
-        var auth = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication());
-        var authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
-        var authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
+        UserAuthentication auth = (UserAuthentication) SecurityContextHolder.getContext().getAuthentication();
+        List<UUID> authorisedBookings = auth.isAdmin() || auth.isAppUser() ? null : auth.getSharedBookings();
+        UUID authorisedCourt = auth.isPortalUser() || auth.isAdmin() ? null : auth.getCourtId();
 
         return bookingRepository
             .searchBookingsBy(
@@ -122,10 +122,10 @@ public class BookingService {
             throw new ResourceInDeletedStateException("BookingDTO", createBookingDTO.getId().toString());
         }
 
-        var optBooking = bookingRepository.findById(createBookingDTO.getId());
-        var bookingEntity = optBooking.orElse(new Booking());
+        Optional<Booking> optBooking = bookingRepository.findById(createBookingDTO.getId());
+        Booking bookingEntity = optBooking.orElse(new Booking());
 
-        var caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
+        Case caseEntity = caseRepository.findByIdAndDeletedAtIsNull(createBookingDTO.getCaseId())
             .orElseThrow(() -> new NotFoundException("Case: " + createBookingDTO.getCaseId()));
 
         if (caseEntity.getState() != CaseState.OPEN) {
@@ -148,7 +148,7 @@ public class BookingService {
         bookingEntity.setParticipants(
             Stream.ofNullable(createBookingDTO.getParticipants())
                 .flatMap(participants -> participants.stream().map(model -> {
-                    var entity = participantRepository.findById(model.getId()).orElse(new Participant());
+                    Participant entity = participantRepository.findById(model.getId()).orElse(new Participant());
 
                     if (entity.getDeletedAt() != null) {
                         throw new ResourceInDeletedStateException("Participant", entity.getId().toString());
@@ -165,9 +165,7 @@ public class BookingService {
         bookingEntity.setScheduledFor(createBookingDTO.getScheduledFor());
 
         bookingRepository.save(bookingEntity);
-
-        var isUpdate = optBooking.isPresent();
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return optBooking.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     private boolean bookingAlreadyDeleted(UUID id) {
@@ -177,7 +175,7 @@ public class BookingService {
     @Transactional
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void markAsDeleted(UUID id) {
-        var booking = bookingRepository
+        Booking booking = bookingRepository
             .findByIdAndDeletedAtIsNull(id)
             .orElseThrow(() -> new NotFoundException("Booking: " + id));
         captureSessionService.deleteCascade(booking);
@@ -190,7 +188,7 @@ public class BookingService {
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
     public void undelete(UUID id) {
-        var entity = bookingRepository.findById(id).orElseThrow(() -> new NotFoundException("Booking: " + id));
+        Booking entity = bookingRepository.findById(id).orElseThrow(() -> new NotFoundException("Booking: " + id));
         caseService.undelete(entity.getCaseId().getId());
         if (!entity.isDeleted()) {
             return;

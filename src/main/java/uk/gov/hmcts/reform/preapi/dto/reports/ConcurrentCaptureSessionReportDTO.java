@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -50,8 +52,8 @@ public class ConcurrentCaptureSessionReportDTO {
         id = entity.getId();
         startTime = entity.getStartedAt();
         endTime = entity.getFinishedAt();
-        var caseEntity = entity.getBooking().getCaseId();
-        var courtEntity = caseEntity.getCourt();
+        Case caseEntity = entity.getBooking().getCaseId();
+        Court courtEntity = caseEntity.getCourt();
         court = courtEntity.getName();
         caseReference = caseEntity.getReference();
         region = Stream.ofNullable(caseEntity.getCourt().getRegions())

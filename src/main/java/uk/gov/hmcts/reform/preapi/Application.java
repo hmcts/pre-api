@@ -20,8 +20,8 @@ public class Application implements CommandLineRunner {
     ScheduledTaskRunner taskRunner;
 
     public static void main(final String[] args) {
-        final var application = new SpringApplication(Application.class);
-        final var instance = application.run(args);
+        final SpringApplication application = new SpringApplication(Application.class);
+        final var instance = application.run(args); //NOPMD - suppressed CloseResource
 
         if (System.getenv("TASK_NAME") != null) {
             instance.close();

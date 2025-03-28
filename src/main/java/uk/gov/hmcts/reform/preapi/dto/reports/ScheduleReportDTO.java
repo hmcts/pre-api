@@ -6,7 +6,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 
 import java.sql.Timestamp;
 import java.util.Set;
@@ -38,8 +40,8 @@ public class ScheduleReportDTO {
     private Set<RegionDTO> regions;
 
     public ScheduleReportDTO(CaptureSession captureSession) {
-        var bookingEntity = captureSession.getBooking();
-        var caseEntity = bookingEntity.getCaseId();
+        Booking bookingEntity = captureSession.getBooking();
+        Case caseEntity = bookingEntity.getCaseId();
         scheduledFor = bookingEntity.getScheduledFor();
         bookingCreatedAt = bookingEntity.getCreatedAt();
         caseReference = caseEntity.getReference();

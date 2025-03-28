@@ -46,7 +46,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
 @SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
+@SuppressWarnings({"PMD.JUnit5TestShouldBePackagePrivate", "PMD.GodClass"})
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
     protected static final String COURTS_ENDPOINT = "/courts";

@@ -39,8 +39,8 @@ public class BookingScheduledForNotPastOrNotChangedValidator
             return false;
         }
 
-        var localDateField = toLocalDate(booking.getScheduledFor());
-        var today = LocalDate.now();
+        LocalDate localDateField = toLocalDate(booking.getScheduledFor());
+        LocalDate today = LocalDate.now();
 
         return !localDateField.isBefore(today)
             || bookingRepository.findById(booking.getId())

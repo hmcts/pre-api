@@ -10,6 +10,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.util.MultiValueMap;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,9 +19,11 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
-@ControllerAdvice
 @Slf4j
+@ControllerAdvice
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ShortVariable", "PMD.TooManyMethods"})
 public class GlobalControllerExceptionHandler {
 
     private static final String MESSAGE = "message";
@@ -70,10 +74,10 @@ public class GlobalControllerExceptionHandler {
     ResponseEntity<String> onMethodArgumentNotValidException(final MethodArgumentNotValidException e)
         throws JsonProcessingException {
 
-        var error = new HashMap<String, String>();
-        HttpHeaders responseHeaders = new HttpHeaders();
+        Map<String, String> error = new HashMap<>();
+        MultiValueMap<String, String> responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
-        for (var fieldError : e.getBindingResult().getFieldErrors()) {
+        for (FieldError fieldError : e.getBindingResult().getFieldErrors()) {
             error.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
@@ -203,8 +207,8 @@ public class GlobalControllerExceptionHandler {
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 
-        HashMap<String, String> error = new HashMap<>();
-        HttpHeaders responseHeaders = new HttpHeaders();
+        Map<String, String> error = new HashMap<>();
+        MultiValueMap<String, String> responseHeaders = new HttpHeaders();
         responseHeaders.set(CONTENT_TYPE, APPLICATION_JSON);
         error.put(MESSAGE, message);
         return new ResponseEntity<>(new ObjectMapper().writeValueAsString(error),

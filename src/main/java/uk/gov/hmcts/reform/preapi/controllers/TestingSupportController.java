@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.EntityModel;
@@ -60,7 +61,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -69,6 +70,7 @@ import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.ExcessiveImports", "PMD.TestClassWithoutTestCases"})
 @ConditionalOnExpression("${testing-support-endpoints.enabled:false}")
 class TestingSupportController {
 
@@ -89,6 +91,7 @@ class TestingSupportController {
     private final ScheduledTaskRunner scheduledTaskRunner;
 
     @Autowired
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     TestingSupportController(final BookingRepository bookingRepository,
                              final CaptureSessionRepository captureSessionRepository,
                              final CaseRepository caseRepository,
@@ -123,7 +126,7 @@ class TestingSupportController {
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> createRoom(@RequestParam(required = false) String roomName) {
-        var room = new Room();
+        Room room = new Room();
         room.setName(roomName == null || roomName.isEmpty()  ? "Example Room" : roomName);
         roomRepository.save(room);
 
@@ -132,7 +135,7 @@ class TestingSupportController {
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> createRegion(@RequestParam(required = false) String regionName) {
-        var region = new Region();
+        Region region = new Region();
         region.setName(regionName == null || regionName.isEmpty()  ? "Example Region" : regionName);
         regionRepository.save(region);
 
@@ -141,28 +144,23 @@ class TestingSupportController {
 
     @PostMapping(path = "/create-court", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> createCourt() {
-        var court = createTestCourt();
+        Court court = createTestCourt();
 
-        var response = new HashMap<String, String>() {
-            {
-                put("courtId", court.getId().toString());
-            }
-        };
-
+        Map<String, String> response = Map.of("courtId", court.getId().toString());
         return ResponseEntity.ok(response);
     }
 
     @PostMapping(path = "/create-well-formed-booking", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> shouldNotHavePastScheduledForDate() {
-        var court = createTestCourt();
+        Court court = createTestCourt();
 
-        var region = new Region();
+        Region region = new Region();
         region.setName("Foo Region");
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
+        Room room = new Room();
         room.setName("Foo Room");
         room.setCourts(Set.of(court));
         roomRepository.save(room);
@@ -171,20 +169,20 @@ class TestingSupportController {
         court.setRooms(Set.of(room));
         courtRepository.save(court);
 
-        var caseEntity = new Case();
+        Case caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
-        var participant1 = new Participant();
+        Participant participant1 = new Participant();
         participant1.setId(UUID.randomUUID());
         participant1.setParticipantType(ParticipantType.WITNESS);
         participant1.setCaseId(caseEntity);
         participant1.setFirstName("John");
         participant1.setLastName("Smith");
-        var participant2 = new Participant();
+        Participant participant2 = new Participant();
         participant2.setId(UUID.randomUUID());
         participant2.setParticipantType(ParticipantType.DEFENDANT);
         participant2.setCaseId(caseEntity);
@@ -192,53 +190,51 @@ class TestingSupportController {
         participant2.setLastName("Doe");
         participantRepository.saveAll(Set.of(participant1, participant2));
 
-        var booking = new Booking();
+        Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseEntity);
         booking.setParticipants(Set.of(participant1, participant2));
         booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
         bookingRepository.save(booking);
 
-        var response = new HashMap<String, String>() {
-            {
-                put("bookingId", booking.getId().toString());
-                put("courtId", court.getId().toString());
-                put("caseId", caseEntity.getId().toString());
-            }
-        };
-
+        Map<String, String> response = Map.of(
+            "bookingId", booking.getId().toString(),
+            "courtId", court.getId().toString(),
+            "caseId", caseEntity.getId().toString()
+        );
         return ResponseEntity.ok(response);
     }
 
+    @SuppressWarnings("PMD.NcssCount")
     @PostMapping(path = "/should-delete-recordings-for-booking", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> shouldDeleteRecordingsForBooking() {
-        var court = createTestCourt();
+        Court court = createTestCourt();
 
-        var region = new Region();
+        Region region = new Region();
         region.setName("Region " + RandomStringUtils.randomAlphabetic(5));
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
+        Room room = new Room();
         room.setName("Room " + RandomStringUtils.randomAlphabetic(5));
         room.setCourts(Set.of(court));
         roomRepository.save(room);
 
-        var caseEntity = new Case();
+        Case caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
         caseEntity.setCourt(court);
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
-        var participant1 = new Participant();
+        Participant participant1 = new Participant();
         participant1.setId(UUID.randomUUID());
         participant1.setParticipantType(ParticipantType.WITNESS);
         participant1.setCaseId(caseEntity);
         participant1.setFirstName("John");
         participant1.setLastName("Smith");
-        var participant2 = new Participant();
+        Participant participant2 = new Participant();
         participant2.setId(UUID.randomUUID());
         participant2.setParticipantType(ParticipantType.DEFENDANT);
         participant2.setCaseId(caseEntity);
@@ -246,22 +242,22 @@ class TestingSupportController {
         participant2.setLastName("Doe");
         participantRepository.saveAll(Set.of(participant1, participant2));
 
-        var booking = new Booking();
+        Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseEntity);
         booking.setParticipants(Set.of(participant1, participant2));
-        var scheduledFor = OffsetDateTime.now().plusWeeks(1);
+        OffsetDateTime scheduledFor = OffsetDateTime.now().plusWeeks(1);
         booking.setScheduledFor(Timestamp.from(scheduledFor.toInstant()));
         bookingRepository.save(booking);
 
-        var finishUser = new User();
+        User finishUser = new User();
         finishUser.setId(UUID.randomUUID());
         finishUser.setEmail("finishuser@justice.local");
         finishUser.setPhone(RandomStringUtils.randomNumeric(11));
         finishUser.setOrganisation("Gov Org");
         finishUser.setFirstName("Finish");
         finishUser.setLastName("User");
-        var startUser = new User();
+        User startUser = new User();
         startUser.setId(UUID.randomUUID());
         startUser.setEmail("startuser@justice.local");
         startUser.setPhone(RandomStringUtils.randomNumeric(11));
@@ -270,7 +266,7 @@ class TestingSupportController {
         startUser.setLastName("User");
         userRepository.saveAll(Set.of(finishUser, startUser));
 
-        var captureSession = new CaptureSession();
+        CaptureSession captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(RecordingOrigin.PRE);
@@ -283,7 +279,7 @@ class TestingSupportController {
         captureSession.setLiveOutputUrl("http://localhost:8080/live");
         captureSessionRepository.save(captureSession);
 
-        var recording = new Recording();
+        Recording recording = new Recording();
         recording.setId(UUID.randomUUID());
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
@@ -293,15 +289,12 @@ class TestingSupportController {
 
         recordingRepository.save(recording);
 
-        var response = new HashMap<String, String>() {
-            {
-                put("caseId", caseEntity.getId().toString());
-                put("bookingId", booking.getId().toString());
-                put("recordingId", recording.getId().toString());
-                put("captureSessionId", captureSession.getId().toString());
-            }
-        };
-
+        Map<String, String> response = Map.of(
+            "caseId", caseEntity.getId().toString(),
+            "bookingId", booking.getId().toString(),
+            "recordingId", recording.getId().toString(),
+            "captureSessionId", captureSession.getId().toString()
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -323,8 +316,8 @@ class TestingSupportController {
             default -> roleStr = "Other Role";
         }
 
-        var role = createRole(roleStr);
-        var response = Map.of("roleId", role.getId().toString());
+        Role role = createRole(roleStr);
+        Map<String, String> response = Map.of("roleId", role.getId().toString());
         return ResponseEntity.ok(response);
     }
 
@@ -339,9 +332,9 @@ class TestingSupportController {
             case LEVEL_4 -> roleName = "Level 4";
             default -> throw new IllegalArgumentException("Invalid role");
         }
-        var r = roleRepository.findFirstByName(roleName)
+        Role roleEntity = roleRepository.findFirstByName(roleName)
             .orElse(createRole(roleName));
-        var appAccess = createAppAccess(r);
+        AppAccess appAccess = createAppAccess(roleEntity);
         return ResponseEntity.ok(Map.of(
             "accessId", appAccess.getId().toString(),
             "courtId", appAccess.getCourt().getId().toString()
@@ -350,20 +343,20 @@ class TestingSupportController {
 
     @PostMapping(value = "/create-ready-to-use-booking/{caseReference}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> createReadyToUseBooking(@PathVariable String caseReference) {
-        var cases = caseRepository.findAllByReference(caseReference);
+        List<Case> cases = caseRepository.findAllByReference(caseReference);
         if (cases.isEmpty()) {
             throw new NotFoundException("Only use this endpoint for cases that already exist");
         }
-        var aCase = cases.getFirst();
+        Case aCase = cases.getFirst();
 
-        var booking = new Booking();
+        Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(aCase);
         booking.setParticipants(aCase.getParticipants());
         booking.setScheduledFor(Timestamp.from(Instant.now()));
         bookingRepository.save(booking);
 
-        var captureSession = new CaptureSession();
+        CaptureSession captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(RecordingOrigin.PRE);
@@ -381,7 +374,7 @@ class TestingSupportController {
     public ResponseEntity<Map<String, String>> createTermsAndConditions(
         @PathVariable TermsAndConditionsType termsType
     ) {
-        var terms = new TermsAndConditions();
+        TermsAndConditions terms = new TermsAndConditions();
         terms.setId(UUID.randomUUID());
         terms.setType(termsType);
         terms.setContent("some terms and conditions content");
@@ -419,7 +412,7 @@ class TestingSupportController {
         @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<Audit> assembler
     ) {
-        var resultPage = auditRepository.findLatest(pageable);
+        Page<Audit> resultPage = auditRepository.findLatest(pageable);
 
         if (pageable.getPageNumber() > resultPage.getTotalPages()) {
             throw new RequestedPageOutOfRangeException(pageable.getPageNumber(), resultPage.getTotalPages());
@@ -430,7 +423,7 @@ class TestingSupportController {
 
     @PostMapping(value = "/booking-scheduled-for-past/{bookingId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookingDTO> bookingScheduledForPast(@PathVariable UUID bookingId) {
-        var booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
+        Booking booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
             .orElseThrow(() -> new NotFoundException("Booking: " + bookingId));
 
         booking.setScheduledFor(Timestamp.from(booking.getScheduledFor().toInstant().minusSeconds(31536000)));
@@ -441,8 +434,8 @@ class TestingSupportController {
 
     @PostMapping(value = "/trigger-task/{taskName}")
     public ResponseEntity<Void> triggerTask(@PathVariable String taskName) {
-        final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
-        var task = scheduledTaskRunner.getTask(beanName);
+        final String beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
+        Runnable task = scheduledTaskRunner.getTask(beanName);
         if (task == null) {
             throw new NotFoundException("Task: " + taskName);
         }
@@ -452,7 +445,7 @@ class TestingSupportController {
     }
 
     private Court createTestCourt() {
-        var court = new Court();
+        Court court = new Court();
         court.setId(UUID.randomUUID());
         court.setName("Foo Court");
         court.setCourtType(CourtType.CROWN);
@@ -462,20 +455,8 @@ class TestingSupportController {
         return court;
     }
 
-    private AppAccess createAppAccess(String role) {
-        var access = new AppAccess();
-        access.setUser(createUser());
-        access.setCourt(createTestCourt());
-        access.setRole(createRole(role));
-        access.setActive(true);
-        access.setDefaultCourt(true);
-        appAccessRepository.save(access);
-
-        return access;
-    }
-
     private AppAccess createAppAccess(Role role) {
-        var access = new AppAccess();
+        AppAccess access = new AppAccess();
         access.setUser(createUser());
         access.setCourt(createTestCourt());
         access.setRole(role);
@@ -487,7 +468,7 @@ class TestingSupportController {
     }
 
     private User createUser() {
-        var user = new User();
+        User user = new User();
         user.setId(UUID.randomUUID());
         user.setEmail(user.getId() + "@example.com");
         user.setFirstName("Example");
@@ -499,10 +480,10 @@ class TestingSupportController {
         return user;
     }
 
-    private Role createRole(String r) {
-        var role = new Role();
+    private Role createRole(String roleName) {
+        Role role = new Role();
         role.setId(UUID.randomUUID());
-        role.setName(r);
+        role.setName(roleName);
         roleRepository.save(role);
 
         return role;

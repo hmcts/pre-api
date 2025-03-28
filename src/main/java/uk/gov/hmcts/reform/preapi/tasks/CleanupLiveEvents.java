@@ -4,11 +4,16 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -21,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -36,6 +42,8 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final String platformEnv;
 
     private final EmailServiceFactory emailServiceFactory;
+
+    private static final String ENV_PRODUCTION = "Production";
 
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
@@ -59,28 +67,30 @@ public class CleanupLiveEvents extends RobotUserTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    @SuppressWarnings("PMD.CognitiveComplexity")
+    public void run() {
         signInRobotUser();
         log.info("Running CleanupLiveEvents task");
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
 
         // Find all Live events currently running and stop and delete them along with their streaming endpoints and
         // locators
-        var liveEvents = mediaService.getLiveEvents();
+        List<LiveEventDTO> liveEvents = mediaService.getLiveEvents();
         liveEvents.stream()
                   .filter(liveEventDTO -> liveEventDTO
                       .getResourceState().equals(LiveEventResourceState.RUNNING.toString())
                   )
                   .forEach(liveEventDTO -> {
                       log.info("Finding capture session by live event id {}", liveEventDTO.getName());
-                      var sendNotification = false;
+                      boolean sendNotification;
                       try {
-                          var captureSession = captureSessionService.findByLiveEventId(liveEventDTO.getName());
-                          var search = new SearchRecordings();
+                          CaptureSessionDTO captureSession = captureSessionService
+                              .findByLiveEventId(liveEventDTO.getName());
+                          SearchRecordings search = new SearchRecordings();
                           log.info("Finding recordings by capture session {}", captureSession.getId());
                           search.setCaptureSessionId(captureSession.getId());
-                          var recordings = recordingService.findAll(search, false, Pageable.unpaged());
+                          Page<RecordingDTO> recordings = recordingService.findAll(search, false, Pageable.unpaged());
 
                           if (recordings.isEmpty()) {
                               log.info("No recordings found for capture session {}", captureSession.getId());
@@ -111,11 +121,11 @@ public class CleanupLiveEvents extends RobotUserTask {
 
                           if (sendNotification) {
                               try {
-                                  var booking = bookingService.findById(captureSession.getBookingId());
+                                  BookingDTO booking = bookingService.findById(captureSession.getBookingId());
 
-                                  var shares = booking.getShares();
+                                  List<ShareBookingDTO> shares = booking.getShares();
                                   // @todo simplify this after 4.3 goes live S28-3692
-                                  var toNotify = shares.stream()
+                                  List<StoppedLiveEventsNotificationDTO> toNotify = shares.stream()
                                                         .map(shareBooking -> userService.findById(
                                                             shareBooking.getSharedWithUser().getId())
                                                         )
@@ -143,7 +153,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                               }
                           }
                       } catch (NotFoundException e) {
-                          if (platformEnv.equals("Production")) {
+                          if (platformEnv.equals(ENV_PRODUCTION)) {
                               log.error("Error stopping live event {}", liveEventDTO.getName(), e);
                               return;
                           }
@@ -177,14 +187,14 @@ public class CleanupLiveEvents extends RobotUserTask {
                 mediaService.cleanupStoppedLiveEvent(liveEventId);
                 return false;
             }
-            var updatedCaptureSession = captureSessionService.stopCaptureSession(
+            CaptureSessionDTO updatedCaptureSession = captureSessionService.stopCaptureSession(
                 captureSession.getId(),
                 RecordingStatus.PROCESSING,
                 recordingId
             );
             log.info("Stopping live event {}", liveEventId);
-            var status = mediaService.stopLiveEvent(updatedCaptureSession, recordingId);
-            var stoppedCaptureSession = captureSessionService.stopCaptureSession(
+            RecordingStatus status = mediaService.stopLiveEvent(updatedCaptureSession, recordingId);
+            CaptureSessionDTO stoppedCaptureSession = captureSessionService.stopCaptureSession(
                 updatedCaptureSession.getId(),
                 status,
                 recordingId

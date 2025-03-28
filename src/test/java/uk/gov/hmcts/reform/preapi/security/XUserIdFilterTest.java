@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.security;
 
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Cleanup;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,7 +89,7 @@ public class XUserIdFilterTest {
         var request = mock(MockHttpServletRequest.class);
         var response = mock(MockHttpServletResponse.class);
         var id = UUID.randomUUID();
-        var writer = mock(PrintWriter.class);
+        @Cleanup var writer = mock(PrintWriter.class);
         when(response.getWriter()).thenReturn(writer);
         when(request.getRequestURI()).thenReturn("/example-uri");
         when(request.getHeader(X_USER_ID_HEADER)).thenReturn(id.toString());

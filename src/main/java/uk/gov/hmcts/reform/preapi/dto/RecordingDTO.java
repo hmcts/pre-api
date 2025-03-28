@@ -8,12 +8,14 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseRecordingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,12 +52,13 @@ public class RecordingDTO extends BaseRecordingDTO {
     private int totalVersionCount;
 
     public RecordingDTO(Recording recording) {
+        super();
         id = recording.getId();
         captureSession = new CaptureSessionDTO(recording.getCaptureSession());
-        parentRecordingId = recording.getParentRecording() != null
-            ? recording.getParentRecording().getId()
-            : null;
-        var versions = recording.getParentRecording() != null
+        if (recording.getParentRecording() != null) {
+            parentRecordingId = recording.getParentRecording().getId();
+        }
+        Set<Recording> versions = recording.getParentRecording() != null
             ? recording.getParentRecording().getRecordings()
             : recording.getRecordings();
         totalVersionCount = versions != null ? versions.size() + 1 : 1;
@@ -65,7 +68,7 @@ public class RecordingDTO extends BaseRecordingDTO {
         editInstructions = recording.getEditInstruction();
         deletedAt = recording.getDeletedAt();
         createdAt = recording.getCreatedAt();
-        var caseEntity = recording.getCaptureSession().getBooking().getCaseId();
+        Case caseEntity = recording.getCaptureSession().getBooking().getCaseId();
         caseId = caseEntity.getId();
         caseReference = caseEntity.getReference();
         isTestCase = caseEntity.isTest();

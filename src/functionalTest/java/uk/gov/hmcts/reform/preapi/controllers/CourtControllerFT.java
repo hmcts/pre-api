@@ -7,7 +7,7 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class CourtControllerFT extends FunctionalTestBase {
+class CourtControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Create and update a court")
     @Test
     void createAndUpdateCourt() throws JsonProcessingException {

@@ -6,6 +6,8 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Cleanup;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.config.SecurityConfig;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
 
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
@@ -24,14 +27,16 @@ public class XUserIdFilter extends GenericFilterBean {
 
     private final UserAuthenticationService userAuthenticationService;
 
+    @Autowired
     public XUserIdFilter(UserAuthenticationService userAuthenticationService) {
+        super();
         this.userAuthenticationService = userAuthenticationService;
     }
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
         throws IOException, ServletException {
-        var request = (HttpServletRequest) servletRequest;
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
 
         if (!applyAuth(request)) {
             filterChain.doFilter(servletRequest, servletResponse);
@@ -44,7 +49,7 @@ public class XUserIdFilter extends GenericFilterBean {
         }
 
         try {
-            var id = request.getHeader(X_USER_ID_HEADER);
+            String id = request.getHeader(X_USER_ID_HEADER);
             Authentication authentication = userAuthenticationService.loadAppUserById(id);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception e) {
@@ -59,12 +64,11 @@ public class XUserIdFilter extends GenericFilterBean {
             .noneMatch(antPathRequestMatcher -> antPathRequestMatcher.matches(request));
     }
 
-    private void writeErrorResponse(Exception e, HttpServletResponse response) throws IOException {
+    private void writeErrorResponse(Exception exception, HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        var writer = response.getWriter();
-        writer.print("{\"message\": \"" + e.getMessage() + "\"}");
+        @Cleanup PrintWriter writer = response.getWriter();
+        writer.print("{\"message\": \"" + exception.getMessage() + "\"}");
         writer.flush();
-        writer.close();
     }
 }

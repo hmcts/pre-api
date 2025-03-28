@@ -1,8 +1,12 @@
 package uk.gov.hmcts.reform.preapi.media.storage;
 
 import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.models.BlobItem;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
+import java.util.Optional;
+
+@SuppressWarnings("PMD.AbstractClassWithoutAbstractMethod")
 public abstract class AzureStorageService {
 
     protected final BlobServiceClient client;
@@ -25,7 +29,7 @@ public abstract class AzureStorageService {
     }
 
     public String getMp4FileName(String containerName) {
-        var blob = client.getBlobContainerClient(containerName)
+        Optional<BlobItem> blob = client.getBlobContainerClient(containerName)
                          .listBlobs()
                          .stream()
                          .filter(blobItem -> blobItem.getName().endsWith(".mp4"))

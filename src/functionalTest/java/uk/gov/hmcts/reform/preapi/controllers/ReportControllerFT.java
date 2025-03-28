@@ -9,7 +9,7 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ReportControllerFT extends FunctionalTestBase {
+class ReportControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Should format Duration and date correctly")
     @Test
     void shouldFormatDurationAndDateCorrectly() throws JsonProcessingException {

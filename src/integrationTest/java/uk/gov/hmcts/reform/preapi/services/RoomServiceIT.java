@@ -13,7 +13,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.util.Set;
 
-public class RoomServiceIT extends IntegrationTestBase {
+class RoomServiceIT extends IntegrationTestBase {
     @Autowired
     private RoomService roomService;
 
@@ -39,7 +39,7 @@ public class RoomServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void getAllRooms() {
+    void getAllRooms() {
         var rooms = roomService.getAllRooms(null);
 
         Assertions.assertEquals(2, rooms.size());
@@ -49,7 +49,7 @@ public class RoomServiceIT extends IntegrationTestBase {
 
     @Transactional
     @Test
-    public void getAllRoomsForCourt() {
+    void getAllRoomsForCourt() {
         var rooms = roomService.getAllRooms(court1.getId());
 
         Assertions.assertEquals(1, rooms.size());

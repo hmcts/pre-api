@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -139,7 +140,7 @@ public class RecordingController extends PreApiController {
         ) @Parameter(hidden = true) Pageable pageable,
         @Parameter(hidden = true) PagedResourcesAssembler<RecordingDTO> assembler
     ) {
-        var resultPage = recordingService.findAll(
+        Page<RecordingDTO> resultPage = recordingService.findAll(
             params,
             params.getIncludeDeleted() != null && params.getIncludeDeleted(),
             pageable

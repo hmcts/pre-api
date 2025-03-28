@@ -8,13 +8,14 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
+import java.net.URI;
 import java.util.UUID;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PreApiController {
 
     protected ResponseEntity<Void> getUpsertResponse(UpsertResult result, UUID id) {
-        var location = ServletUriComponentsBuilder
+        URI location = ServletUriComponentsBuilder
             .fromCurrentRequest()
             .path("")
             .buildAndExpand(id)

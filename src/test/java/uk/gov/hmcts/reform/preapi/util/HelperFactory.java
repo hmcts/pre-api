@@ -35,8 +35,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import javax.annotation.Nullable;
 
-@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 @UtilityClass
+@SuppressWarnings({ "checkstyle:HideUtilityClassConstructor", "PMD.CouplingBetweenObjects" })
 public class HelperFactory {
     public static User createDefaultTestUser() {
         return createUser("Test", "User", "example@example.com", new Timestamp(System.currentTimeMillis()), null, null);

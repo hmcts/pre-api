@@ -13,7 +13,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UserControllerFT extends FunctionalTestBase {
+class UserControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Create/update a user")
     @Test
     void shouldCreateUser() throws JsonProcessingException {
