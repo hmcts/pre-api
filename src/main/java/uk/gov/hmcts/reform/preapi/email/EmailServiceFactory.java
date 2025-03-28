@@ -29,15 +29,19 @@ public class EmailServiceFactory {
             emailServices.put(service.getClass().getSimpleName(), service);
         }
 
-        this.enabledEmailService = getEnabledEmailService(emailServiceName);
+        this.enabledEmailService = findEmailService(emailServiceName);
         this.isEnabled = isEnabled;
     }
 
-    private IEmailService getEnabledEmailService(String name) {
+    private IEmailService findEmailService(String name) {
         if (emailServices.containsKey(name)) {
             return emailServices.get(name);
         } else {
             throw new IllegalArgumentException("Unknown email service: " + name);
         }
+    }
+
+    public IEmailService getEnabledEmailService(String emailServiceName) {
+        return findEmailService(emailServiceName);
     }
 }
