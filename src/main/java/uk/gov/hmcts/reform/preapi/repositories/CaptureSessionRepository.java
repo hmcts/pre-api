@@ -26,6 +26,10 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
 
     List<CaptureSession> findAllByStatus(RecordingStatus status);
 
+    List<CaptureSession> findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus status,
+                                                                                 Timestamp fromTime,
+                                                                                 Timestamp toTime);
+
     List<CaptureSession> findAllByBookingAndDeletedAtIsNull(Booking booking);
 
     @Query(
