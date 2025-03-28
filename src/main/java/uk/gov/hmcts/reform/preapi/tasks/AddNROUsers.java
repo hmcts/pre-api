@@ -14,9 +14,11 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -121,7 +123,7 @@ public class AddNROUsers extends RobotUserTask {
     private void createImportedNROUserObjects(String usersFilePath) throws IOException {
         int rowNumber = 1;
         // Read from CSV file
-        try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
+        try (BufferedReader br = Files.newBufferedReader(Path.of(usersFilePath), StandardCharsets.UTF_8)) {
             String line;
             // Read each line
             while ((line = br.readLine()) != null) {
@@ -303,12 +305,10 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
-    private List<Integer> incrementCourtCount(int primaryCourtCount, int secondaryCourtCount, boolean isDefaultCourt,
+    private List<Integer> incrementCourtCount(int primaryCount, int secondaryCount, boolean isDefaultCourt,
                                               UUID currentUserID, UUID previousUserID) {
-        if (!(currentUserID.equals(previousUserID))) {
-            primaryCourtCount = 0;
-            secondaryCourtCount = 0;
-        }
+        int primaryCourtCount = (currentUserID.equals(previousUserID)) ? primaryCount : 0;
+        int secondaryCourtCount = (currentUserID.equals(previousUserID)) ? secondaryCount : 0;
 
         // increment primary and secondary court counters if either detected respectively
         if (isDefaultCourt) {

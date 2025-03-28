@@ -38,7 +38,7 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         admin = authorities.stream().anyMatch(a ->
                                                   a.getAuthority().equals("ROLE_SUPER_USER")
                                                       || a.getAuthority().equals("ROLE_LEVEL_1"));
-        setAuthenticated(true);
+        super.setAuthenticated(true);
     }
 
     public UserAuthentication(
@@ -56,7 +56,7 @@ public class UserAuthentication extends AbstractAuthenticationToken {
         appUser = false;
         portalUser = true;
         admin = false;
-        setAuthenticated(true);
+        super.setAuthenticated(true);
     }
 
     @Override

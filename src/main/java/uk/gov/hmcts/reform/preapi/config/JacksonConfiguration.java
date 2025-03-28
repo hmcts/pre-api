@@ -53,7 +53,7 @@ public class JacksonConfiguration {
         return mapper;
     }
 
-    private static class TimestampDeserializer extends JsonDeserializer<Timestamp> {
+    private static final class TimestampDeserializer extends JsonDeserializer<Timestamp> {
         @Override
         public Timestamp deserialize(JsonParser p, DeserializationContext cxt) throws IOException {
             String timestampStr = p.getText();
