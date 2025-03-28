@@ -3,6 +3,8 @@ package uk.gov.hmcts.reform.preapi.batch.entities;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class ExtractedMetadata {
     private String courtReference;
@@ -100,7 +102,13 @@ public class ExtractedMetadata {
     } 
 
     private String formatName(String name) {
-        return name != null ? StringUtils.capitalize(name.toLowerCase()) : null;
+        if (name == null) {
+            return null;
+        }
+
+        return Arrays.stream(name.split("-"))
+            .map(n -> StringUtils.capitalize(n.toLowerCase()))
+            .collect(Collectors.joining("-"));
     }
 
     public String getArchiveName() {
