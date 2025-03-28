@@ -135,6 +135,7 @@ public class AddNROUsers extends RobotUserTask {
                 // Skip header if there is one
                 if (line.contains("FirstName")) {
                     rowNumber++;
+                    line = br.readLine();
                     continue;
                 }
 

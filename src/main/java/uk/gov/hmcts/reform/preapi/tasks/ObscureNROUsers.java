@@ -78,6 +78,7 @@ public class ObscureNROUsers extends RobotUserTask {
             while (line != null) {
                 // Skip header if there is one
                 if (line.contains("FirstName")) {
+                    line = br.readLine();
                     continue;
                 }
                 String[] values = ImportedNROUser.parseCsvLine(line);
