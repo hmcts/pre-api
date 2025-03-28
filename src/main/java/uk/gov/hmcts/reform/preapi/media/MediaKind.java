@@ -320,7 +320,7 @@ public class MediaKind implements IMediaService {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         }
     }
 
@@ -417,7 +417,14 @@ public class MediaKind implements IMediaService {
         var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
-        createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
+
+        try {
+            createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
+        } catch (ConflictException e) {
+            mediaKindClient.deleteLiveEvent(liveEventName);
+            throw e;
+        }
+
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
         if (enableStreamingLocatorOnStart) {
@@ -429,7 +436,7 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         }
     }
 
@@ -437,7 +444,7 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.stopLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         } catch (FeignException.BadRequest e) {
             // live output still exists (only occurs on manually created live events)
             log.info("Skipped stopping live event. The live event will be cleaned up by deletion.");
@@ -570,7 +577,7 @@ public class MediaKind implements IMediaService {
         } catch (ConflictException e) {
             throw new ConflictException("Live Output: " + liveOutputName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         }
     }
 
@@ -777,5 +784,9 @@ public class MediaKind implements IMediaService {
                + "."
                + LOCATION
                + ".streaming.mediakind.com";
+    }
+
+    private String getLiveEventNotFoundExceptionMessage(String liveEventName) {
+        return "Live Event: " + liveEventName;
     }
 }
