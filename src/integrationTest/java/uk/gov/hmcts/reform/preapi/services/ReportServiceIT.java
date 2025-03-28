@@ -26,6 +26,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -124,10 +125,9 @@ public class ReportServiceIT extends IntegrationTestBase {
         audit.setCreatedBy(user.getId());
         audit.setSource(AuditLogSource.APPLICATION);
         ObjectMapper mapper = new ObjectMapper();
-        audit.setAuditDetails(mapper.valueToTree(Map.of(
-            "description", "Playback on recording has started",
-            "recordingId", null)
-        ));
+        Map<String, String> details = new HashMap<>();
+        details.put("description", "Playback on recording has started");
+        audit.setAuditDetails(mapper.valueToTree(details));
         entityManager.persist(audit);
 
         var response = reportService.reportPlayback(null);

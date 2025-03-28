@@ -243,7 +243,8 @@ class AuditServiceIT extends IntegrationTestBase {
         var auditResultsCreated = auditService.getAuditsByTableRecordId(recording.getId());
         recordingService.deleteById(recording.getId());
 
-        var auditResults = auditService.getAuditsByTableRecordId(recording.getId());
+        var auditResults = auditService.getAuditsByTableRecordId(recording.getId()).stream()
+            .sorted(Comparator.comparing(Audit::getCreatedAt)).toList();
         Assertions.assertEquals(0, auditResultsEmpty.size());
         Assertions.assertEquals(1, auditResultsCreated.size());
         Assertions.assertEquals(2, auditResults.size());
