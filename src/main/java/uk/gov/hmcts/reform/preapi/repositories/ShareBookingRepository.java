@@ -70,9 +70,12 @@ public interface ShareBookingRepository extends JpaRepository<ShareBooking, UUID
     )
     List<ShareBooking> findAllSharesForUserByCourt(UUID userId, UUID courtId);
 
+    @SuppressWarnings("PMD.MethodNamingConventions")
     Page<ShareBooking> findByBooking_IdOrderBySharedWith_FirstNameAsc(UUID bookingId, Pageable pageable);
 
+    @SuppressWarnings("PMD.MethodNamingConventions")
     List<ShareBooking> findAllBySharedWith_IdAndDeletedAtIsNull(UUID userId);
 
+    @SuppressWarnings("PMD.MethodNamingConventions")
     boolean existsBySharedWith_IdAndBooking_IdAndDeletedAtIsNull(UUID userId, UUID bookingId);
 }

@@ -33,7 +33,7 @@ public class EmailServiceFactory {
         this.isEnabled = isEnabled;
     }
 
-    public IEmailService getEnabledEmailService(String name) {
+    private IEmailService getEnabledEmailService(String name) {
         if (emailServices.containsKey(name)) {
             return emailServices.get(name);
         } else {

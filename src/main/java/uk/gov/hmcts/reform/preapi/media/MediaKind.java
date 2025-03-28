@@ -542,12 +542,15 @@ public class MediaKind implements IMediaService {
     }
 
     private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {
+        var streamingEndpoint = endpoint;
         var endpointName = endpoint.getName();
-        while (endpoint.getProperties().getResourceState() != MkStreamingEndpointProperties.ResourceState.Running) {
+
+        while (streamingEndpoint.getProperties().getResourceState()
+            != MkStreamingEndpointProperties.ResourceState.Running) {
             TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            endpoint = mediaKindClient.getStreamingEndpointByName(endpointName);
+            streamingEndpoint = mediaKindClient.getStreamingEndpointByName(endpointName);
         }
-        return endpoint;
+        return streamingEndpoint;
     }
 
     private void createLiveOutput(String liveEventName, String liveOutputName) {

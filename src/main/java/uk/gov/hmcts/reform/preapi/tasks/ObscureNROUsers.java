@@ -11,9 +11,11 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -70,7 +72,7 @@ public class ObscureNROUsers extends RobotUserTask {
         }
 
         // Collate user emails
-        try (BufferedReader br = new BufferedReader(new FileReader(this.usersFile))) {
+        try (BufferedReader br = Files.newBufferedReader(Path.of(this.usersFile), StandardCharsets.UTF_8)) {
             String line;
             // Read each line
             while ((line = br.readLine()) != null) {
