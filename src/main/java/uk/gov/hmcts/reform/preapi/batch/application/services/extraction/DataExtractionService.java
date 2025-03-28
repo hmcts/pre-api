@@ -49,7 +49,6 @@ public class DataExtractionService {
         String sanitisedName = archiveItem.getSanitizedArchiveName();
         String ext = validator.parseExtension(sanitisedName);
         if (ext.isBlank()) {
-            // Means no valid extension
             return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
         }
 

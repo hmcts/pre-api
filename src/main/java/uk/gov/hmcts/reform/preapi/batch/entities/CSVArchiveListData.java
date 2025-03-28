@@ -66,6 +66,7 @@ public class CSVArchiveListData {
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
+            .replaceAll("CP_", "")
             .trim();
 
         return sanitized;
