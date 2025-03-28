@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
@@ -86,7 +86,7 @@ public class MigrationGroupBuilderService {
     @SuppressWarnings("unchecked")
     public MigratedItemGroup createMigratedItemGroup(
         ExtractedMetadata item,
-        CleansedData cleansedData
+        ProcessedRecording cleansedData
     ) {
 
         CreateCaseDTO acase = createCaseIfOrig(cleansedData);
@@ -127,7 +127,7 @@ public class MigrationGroupBuilderService {
         return migrationGroup;
     }
 
-    private CreateCaseDTO createCaseIfOrig(CleansedData cleansedData) {
+    private CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
 
         if (caseReference == null || caseReference.isBlank()) {
@@ -191,7 +191,7 @@ public class MigrationGroupBuilderService {
         return name == null ? "" : name.trim().toLowerCase();
     }
 
-    private CreateBookingDTO processBooking(String baseKey, CleansedData cleansedData, CreateCaseDTO acase) {
+    private CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO acase) {
         if(cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)){
             CreateBookingDTO bookingDTO = cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
             return bookingDTO;
@@ -201,7 +201,7 @@ public class MigrationGroupBuilderService {
 
     private CreateCaptureSessionDTO processCaptureSession(
         String baseKey,
-        CleansedData cleansedData,
+        ProcessedRecording cleansedData,
         CreateBookingDTO booking
     ) {
         if(cacheService.checkHashKeyExists(baseKey, CAPTURE_SESSION_FIELD)){
@@ -217,7 +217,7 @@ public class MigrationGroupBuilderService {
 
     private CreateRecordingDTO processRecording(
         String baseKey,
-        CleansedData cleansedItem,
+        ProcessedRecording cleansedItem,
         CreateCaptureSessionDTO captureSession
     ) {
         if(cacheService.checkHashKeyExists(baseKey, RECORDING_FIELD)){

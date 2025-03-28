@@ -11,18 +11,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
-public class CleansedData {
+public class ProcessedRecording {
     private String courtReference;
-    private String fullCourtName;
+    private String courtName;
     private Court court;
     private CaseState state;
     private Timestamp recordingTimestamp;
     private String urn;
     private String exhibitReference;
+    private String caseReference;
     private String defendantLastName;
     private String witnessFirstName;
     private String recordingVersion;
-    private String caseReference;
     private String recordingVersionNumberStr;
     private int recordingVersionNumber;
     private Duration duration;
@@ -32,9 +32,9 @@ public class CleansedData {
     private List<Map<String, String>> shareBookingContacts;
     
     
-    private CleansedData(Builder builder) {
+    private ProcessedRecording(Builder builder) {
         this.courtReference = builder.courtReference;
-        this.fullCourtName = builder.fullCourtName;
+        this.courtName = builder.courtName;
         this.court = builder.court;
         this.state = builder.state;
         this.recordingTimestamp = builder.recordingTimestamp;
@@ -58,7 +58,7 @@ public class CleansedData {
     }
 
     public String getFullCourtName() { 
-        return fullCourtName; 
+        return courtName; 
     }
 
     public Timestamp getRecordingTimestamp() { 
@@ -147,9 +147,9 @@ public class CleansedData {
 
     @Override
     public String toString() {
-        return new StringJoiner(", ", CleansedData.class.getSimpleName() + "{", "}")
+        return new StringJoiner(", ", ProcessedRecording.class.getSimpleName() + "{", "}")
             .add("courtReference='" + courtReference + "'")
-            .add("fullCourtName='" + fullCourtName + "'")
+            .add("courtName='" + courtName + "'")
             .add("court=" + court)
             .add("state=" + state)
             .add("recordingTimestamp=" + recordingTimestamp)
@@ -172,7 +172,7 @@ public class CleansedData {
 
     public static class Builder {
         private String courtReference;
-        private String fullCourtName;
+        private String courtName;
         private Court court;
         private CaseState state;
         private Timestamp recordingTimestamp;
@@ -195,8 +195,8 @@ public class CleansedData {
             return this;
         }
 
-        public Builder setFullCourtName(String fullCourtName) {
-            this.fullCourtName = fullCourtName;
+        public Builder setFullCourtName(String courtName) {
+            this.courtName = courtName;
             return this;
         }
 
@@ -280,8 +280,8 @@ public class CleansedData {
             return this;
         }
 
-        public CleansedData build() {
-            return new CleansedData(this);
+        public ProcessedRecording build() {
+            return new ProcessedRecording(this);
         }
     }
 }

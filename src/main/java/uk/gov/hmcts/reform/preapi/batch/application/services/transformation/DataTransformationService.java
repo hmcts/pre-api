@@ -6,7 +6,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProce
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
@@ -45,7 +45,7 @@ public class DataTransformationService {
         this.loggingService = loggingService;
     }
 
-    public ServiceResult<CleansedData> transformData(ExtractedMetadata extracted) {
+    public ServiceResult<ProcessedRecording> transformData(ExtractedMetadata extracted) {
         if (extracted == null) {
             loggingService.logError("Extracted item is null");
             return ServiceResultUtil.failure("Extracted item cannot be null", Constants.Reports.FILE_MISSING_DATA);
@@ -64,7 +64,7 @@ public class DataTransformationService {
 
             Map<String, Object> sitesDataMap = getSitesData();
 
-            CleansedData cleansedData = buildCleansedData(extracted, sitesDataMap);
+            ProcessedRecording cleansedData = buildProcessedRecording(extracted, sitesDataMap);
 
             return ServiceResultUtil.success(cleansedData);
 
@@ -74,7 +74,7 @@ public class DataTransformationService {
         }
     }
 
-    private CleansedData buildCleansedData(
+    private ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
@@ -95,7 +95,7 @@ public class DataTransformationService {
             loggingService.logWarning("Court not found for reference: %s", extracted.getCourtReference());
         }
 
-        return new CleansedData.Builder()
+        return new ProcessedRecording.Builder()
             .setUrn(extracted.getUrn())
             .setExhibitReference(extracted.getExhibitReference())
             .setCaseReference(extracted.createCaseReference())

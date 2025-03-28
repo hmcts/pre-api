@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -49,9 +49,9 @@ public class EntityCreationService {
     // =========================
     // Entity Creation Methods
     // =========================
-    public CreateCaseDTO createCase(CleansedData cleansedData) {
+    public CreateCaseDTO createCase(ProcessedRecording cleansedData) {
         if (cleansedData == null) {
-            throw new IllegalArgumentException("CleansedData cannot be null");
+            throw new IllegalArgumentException("ProcessedRecording cannot be null");
         }
         if (cleansedData.getCourt() == null || cleansedData.getCourt().getId() == null) {
             throw new IllegalArgumentException("Court information is missing");
@@ -68,7 +68,7 @@ public class EntityCreationService {
         return caseDTO;
     }
 
-    public CreateBookingDTO createBooking(CleansedData cleansedData, CreateCaseDTO acase, String key) {
+    public CreateBookingDTO createBooking(ProcessedRecording cleansedData, CreateCaseDTO acase, String key) {
         var bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(UUID.randomUUID());
         bookingDTO.setCaseId(acase.getId());
@@ -80,7 +80,7 @@ public class EntityCreationService {
     }
 
     public CreateCaptureSessionDTO createCaptureSession(
-        CleansedData cleansedData,
+        ProcessedRecording cleansedData,
         CreateBookingDTO booking,
         String key
     ) {
@@ -103,7 +103,7 @@ public class EntityCreationService {
 
     public CreateRecordingDTO createRecording(
         String key,
-        CleansedData cleansedData,
+        ProcessedRecording cleansedData,
         CreateCaptureSessionDTO captureSession
     ) {
         var recordingDTO = new CreateRecordingDTO();
@@ -131,7 +131,7 @@ public class EntityCreationService {
         return recordingDTO;
     }
 
-    public Set<CreateParticipantDTO> createParticipants(CleansedData cleansedData) {
+    public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
         if (cleansedData.getWitnessFirstName() != null && !cleansedData.getWitnessFirstName().trim().isEmpty()) {
@@ -154,7 +154,7 @@ public class EntityCreationService {
         return participantDTO;
     }
 
-    public List<Object> createShareBookings(CleansedData cleansedData, CreateBookingDTO booking) {
+    public List<Object> createShareBookings(ProcessedRecording cleansedData, CreateBookingDTO booking) {
         if (cleansedData == null || booking == null) {
             return null;
         }

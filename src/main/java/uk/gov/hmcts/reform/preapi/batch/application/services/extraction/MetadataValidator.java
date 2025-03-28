@@ -212,4 +212,16 @@ public class MetadataValidator {
         return value == null || value.isBlank();
     }
 
+    public String parseExtension(String filename) {
+        if (filename == null) {
+            return "";
+        }
+        String lower = filename.toLowerCase();
+        if (lower.endsWith(".mp4")) {
+            return "mp4";
+        }
+        return "";
+    }
+
+
 }

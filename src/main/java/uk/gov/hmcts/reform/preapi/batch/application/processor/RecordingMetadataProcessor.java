@@ -7,7 +7,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
@@ -56,8 +56,8 @@ public class RecordingMetadataProcessor {
             }
 
             ExtractedMetadata extractedData = (ExtractedMetadata) extracted.getData();
-            ServiceResult<CleansedData> result = transformationService.transformData(extractedData);
-            CleansedData cleansedData = (CleansedData) result.getData();
+            ServiceResult<ProcessedRecording> result = transformationService.transformData(extractedData);
+            ProcessedRecording cleansedData = (ProcessedRecording) result.getData();
             if (cleansedData == null) {
                 ServiceResultUtil.failure("Data not transformed successfully", "Missing data");
                 return;

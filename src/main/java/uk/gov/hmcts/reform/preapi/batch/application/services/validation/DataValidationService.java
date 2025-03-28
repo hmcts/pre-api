@@ -6,7 +6,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
@@ -29,8 +29,8 @@ public class DataValidationService {
      * @param archiveItem The original archive item for reference.
      * @return A ServiceResult containing either the validated data or an error message.
      */
-    public ServiceResult<CleansedData> validateCleansedData(
-            CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    public ServiceResult<ProcessedRecording> validateProcessedRecording(
+            ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
 
         if (cleansedData.getCourt() == null) {
             return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,

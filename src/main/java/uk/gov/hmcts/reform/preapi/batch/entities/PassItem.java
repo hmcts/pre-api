@@ -7,11 +7,11 @@ import java.time.Duration;
 
 public class PassItem {
     private final ExtractedMetadata item;
-    private final CleansedData cleansedData;
+    private final ProcessedRecording cleansedData;
 
     public PassItem(
         ExtractedMetadata item,
-        CleansedData cleansedData
+        ProcessedRecording cleansedData
     ) {
         this.item = item;
         this.cleansedData = cleansedData;

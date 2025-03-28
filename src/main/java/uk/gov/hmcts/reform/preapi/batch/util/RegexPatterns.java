@@ -21,6 +21,12 @@ public final class RegexPatterns {
         "^[a-zA-Z0-9]+_\\d{15}_\\d+_[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}(?:\\.(mp4|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
     );
+
+    public static final Pattern FILENAME_PATTERN = Pattern.compile(
+        "^0x[A-Fa-f0-9]+_[A-Za-z0-9]+_\\d+_\\d+_[A-Fa-f0-9]+(?:\\.(?:mp4|raw|mov|avi|mkv))?$",
+        Pattern.CASE_INSENSITIVE
+    );
+
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
 
 
@@ -28,7 +34,8 @@ public final class RegexPatterns {
         "Digit Only", DIGIT_ONLY_PATTERN,
         "Test Keyword", TEST_KEYWORDS_PATTERN,
         "S28 Pattern", S28_PATTERN,
-        "UUID Pattern", UUID_FILENAME_PATTERN
+        "UUID Pattern", UUID_FILENAME_PATTERN,
+        "Filename Pattern", FILENAME_PATTERN
     );
 
     private static Pattern buildTestKeywordsPattern() {
@@ -52,18 +59,15 @@ public final class RegexPatterns {
     private static final String DATE_PATTERN =
         "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})";
     private static final String COURT_PATTERN = "(?<court>[A-Za-z]+(?:d|fd)?)";
-    // private static final String URN_PATTERN = "(?<urn>\\d+[A-Za-z]+\\d+)";
-    // private static final String EXHIBIT_PATTERN = "(?<exhibitRef>(?:[A-Za-z]+\\d+|\\d{2}[A-Z]{2}\\d+|\\d+))?";
-
     private static final String URN_PATTERN = "(?<urn>[A-Za-z0-9]{11})";
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{8})";
     private static final String VERSION_PATTERN =
-        "(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?";
+        "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
-    private static final String NAMES_PATTERN = "(?<defendantLastName>[A-Za-z]+(?:[-\\s][A-Za-z]+)*)"
-                                                + SEPARATOR_ONE + "(?<witnessFirstName>[A-Za-z]+)";
 
-
+    private static final String NAMES_PATTERN = "(?<defendantLastName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*)"
+                                                + SEPARATOR_ONE 
+                                                + "(?<witnessFirstName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*)";
     /**
      * Standard pattern for most common recording names.
      * Format: Court Date URN [Exhibit] Defendant Witness Version [.ext]

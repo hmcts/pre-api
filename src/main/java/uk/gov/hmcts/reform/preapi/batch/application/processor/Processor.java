@@ -14,7 +14,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CleansedData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
@@ -93,7 +93,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 return null;
             }
 
-            CleansedData cleansedData = transformData(extractedData);
+            ProcessedRecording cleansedData = transformData(extractedData);
             if (cleansedData == null) {
                 return null;
             }
@@ -123,7 +123,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             }
 
             // Transformation
-            CleansedData cleansedData = transformData(extractedData);
+            ProcessedRecording cleansedData = transformData(extractedData);
             if (cleansedData == null) {
                 return null;
             }
@@ -173,8 +173,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
 
-    private CleansedData transformData(ExtractedMetadata extractedData) {
-        ServiceResult<CleansedData> result = transformationService.transformData(extractedData);
+    private ProcessedRecording transformData(ExtractedMetadata extractedData) {
+        ServiceResult<ProcessedRecording> result = transformationService.transformData(extractedData);
         if (checkForError(result, extractedData)) {
             loggingService.logError("Failed to transform archive: %s", extractedData.getSanitizedArchiveName());
             return null;
@@ -184,8 +184,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return result.getData();
     }
 
-    private boolean isValidated(CleansedData cleansedData, CSVArchiveListData archiveItem) {
-        ServiceResult<CleansedData> result = validationService.validateCleansedData(cleansedData, archiveItem);
+    private boolean isValidated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
+        ServiceResult<ProcessedRecording> result = validationService.validateProcessedRecording(cleansedData, archiveItem);
         if (checkForError(result, archiveItem)) {
             return false;
         }
@@ -194,7 +194,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return true;
     }
 
-    private boolean isMigrated(CleansedData cleansedData, CSVArchiveListData archiveItem) {
+    private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
         boolean alreadyMigrated = cacheService.checkHashKeyExists("vf:case:", cleansedData.getCaseReference());
         if (alreadyMigrated) {
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
@@ -229,7 +229,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     private ExtractedMetadata convertToExtractedMetadata(CSVExemptionListData exemptionItem) {
         if (exemptionItem == null) {
-            loggingService.logWarning("🚨 Received NULL exemption item for conversion!");
+            loggingService.logWarning("Received NULL exemption item for conversion!");
             return null;
         }
 
