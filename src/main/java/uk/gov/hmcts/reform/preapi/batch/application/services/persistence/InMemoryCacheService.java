@@ -2,8 +2,8 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.persistence;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
 
 import java.io.IOException;
 import java.util.ArrayList;

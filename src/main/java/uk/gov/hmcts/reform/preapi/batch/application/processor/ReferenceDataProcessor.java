@@ -81,7 +81,10 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
 
     @SuppressWarnings("unchecked")
     public Map<String, List<String[]>> fetchChannelUserDataMap() {
-        Map<String, List<String[]>> channelDataMap = cacheService.getAllAsType(Constants.CacheKeys.CHANNEL_DATA, Map.class);
+        Map<String, List<String[]>> channelDataMap = cacheService.getAllAsType(
+            Constants.CacheKeys.CHANNEL_DATA,
+            Map.class
+        );
         return channelDataMap;
     }
 

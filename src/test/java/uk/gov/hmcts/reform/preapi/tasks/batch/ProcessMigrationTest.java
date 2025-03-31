@@ -76,7 +76,7 @@ public class ProcessMigrationTest {
             jobLauncher,
             loggingService,
             false,
-            MigrationType.FIRST.name(),
+            MigrationType.FULL.name(),
             importCsvJob
         );
         processMigration.run();
@@ -91,7 +91,7 @@ public class ProcessMigrationTest {
         );
 
         Assertions.assertEquals(
-            MigrationType.FIRST.name(),
+            MigrationType.FULL.name(),
             jobParameters.getValue().getString("migrationType")
         );
 
@@ -112,7 +112,7 @@ public class ProcessMigrationTest {
             jobLauncher,
             loggingService,
             false,
-            MigrationType.SECOND.name(),
+            MigrationType.DELTA.name(),
             importCsvJob
         );
         processMigration.run();
@@ -127,7 +127,7 @@ public class ProcessMigrationTest {
         );
 
         Assertions.assertEquals(
-            MigrationType.SECOND.name(),
+            MigrationType.DELTA.name(),
             jobParameters.getValue().getString("migrationType")
         );
 
@@ -151,7 +151,7 @@ public class ProcessMigrationTest {
             jobLauncher,
             loggingService,
             false,
-            MigrationType.FIRST.name(),
+            MigrationType.FULL.name(),
             importCsvJob
         );
         processMigration.run();

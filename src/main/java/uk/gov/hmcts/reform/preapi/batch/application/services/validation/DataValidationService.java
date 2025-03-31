@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
 import org.springframework.stereotype.Service;
-
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -57,7 +56,7 @@ public class DataValidationService {
 
         String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
         String baseKey = cacheService.generateBaseKey(cleansedData.getCaseReference(), participantPair);
-        
+
         if (cleansedData.getRecordingVersionNumber() > 1) {
             String existingMetadata = cacheService.getHashValue(baseKey, "recordingMetadata", String.class);
             if (existingMetadata == null) {

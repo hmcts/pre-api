@@ -75,7 +75,7 @@ public class FetchXMLTest {
                                     jobLauncher,
                                     loggingService,
                                     false,
-                                    MigrationType.FIRST.name(),
+                                    MigrationType.FULL.name(),
                                     fetchXmlJob);
         fetchXML.run();
 
@@ -86,7 +86,7 @@ public class FetchXMLTest {
         Assertions.assertEquals(String.valueOf(false),
                                 jobParameters.getValue().getString("debug"));
 
-        Assertions.assertEquals(MigrationType.FIRST.name(),
+        Assertions.assertEquals(MigrationType.FULL.name(),
                                 jobParameters.getValue().getString("migrationType"));
 
         verify(loggingService, times(1)).logInfo("Successfully completed Fetch XML batch job");
@@ -105,7 +105,7 @@ public class FetchXMLTest {
                                     jobLauncher,
                                     loggingService,
                                     false,
-                                    MigrationType.SECOND.name(),
+                                    MigrationType.DELTA.name(),
                                     fetchXmlJob);
         fetchXML.run();
 
@@ -116,7 +116,7 @@ public class FetchXMLTest {
         Assertions.assertEquals(String.valueOf(false),
                                 jobParameters.getValue().getString("debug"));
 
-        Assertions.assertEquals(MigrationType.SECOND.name(),
+        Assertions.assertEquals(MigrationType.DELTA.name(),
                                 jobParameters.getValue().getString("migrationType"));
 
         verify(loggingService, times(1)).logInfo("Successfully completed Fetch XML batch job");
@@ -138,7 +138,7 @@ public class FetchXMLTest {
                                     jobLauncher,
                                     loggingService,
                                     false,
-                                    MigrationType.FIRST.name(),
+                                    MigrationType.FULL.name(),
                                     fetchXmlJob);
         fetchXML.run();
 

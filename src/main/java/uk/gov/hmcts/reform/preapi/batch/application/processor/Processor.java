@@ -14,10 +14,10 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
-import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
@@ -64,7 +64,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     @Override
     public MigratedItemGroup process(Object item) throws Exception {
-        
+
         if (item == null) {
             loggingService.logWarning("Received null item to process");
             return null;
@@ -185,7 +185,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private boolean isValidated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
-        ServiceResult<ProcessedRecording> result = validationService.validateProcessedRecording(cleansedData, archiveItem);
+        ServiceResult<ProcessedRecording> result = validationService.validateProcessedRecording(
+            cleansedData,
+            archiveItem
+        );
         if (checkForError(result, archiveItem)) {
             return false;
         }

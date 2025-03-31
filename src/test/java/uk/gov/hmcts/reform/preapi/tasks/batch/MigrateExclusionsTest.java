@@ -85,7 +85,7 @@ public class MigrateExclusionsTest {
         Assertions.assertEquals(String.valueOf(false),
                                 jobParameters.getValue().getString("debug"));
 
-        Assertions.assertEquals(MigrationType.FIRST.name(),
+        Assertions.assertEquals(MigrationType.FULL.name(),
                                 jobParameters.getValue().getString("migrationType"));
 
         verify(loggingService, times(1)).logInfo("Successfully completed Process Exclusions batch job");

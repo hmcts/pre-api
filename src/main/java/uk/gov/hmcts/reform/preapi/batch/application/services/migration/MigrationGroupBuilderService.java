@@ -8,10 +8,10 @@ import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -192,7 +192,7 @@ public class MigrationGroupBuilderService {
     }
 
     private CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO acase) {
-        if(cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)){
+        if (cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)) {
             CreateBookingDTO bookingDTO = cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
             return bookingDTO;
         }
@@ -204,7 +204,7 @@ public class MigrationGroupBuilderService {
         ProcessedRecording cleansedData,
         CreateBookingDTO booking
     ) {
-        if(cacheService.checkHashKeyExists(baseKey, CAPTURE_SESSION_FIELD)){
+        if (cacheService.checkHashKeyExists(baseKey, CAPTURE_SESSION_FIELD)) {
             CreateCaptureSessionDTO captureSessionDTO = cacheService.getHashValue(
                 baseKey,
                 CAPTURE_SESSION_FIELD,
@@ -220,13 +220,13 @@ public class MigrationGroupBuilderService {
         ProcessedRecording cleansedItem,
         CreateCaptureSessionDTO captureSession
     ) {
-        if(cacheService.checkHashKeyExists(baseKey, RECORDING_FIELD)){
+        if (cacheService.checkHashKeyExists(baseKey, RECORDING_FIELD)) {
             CreateRecordingDTO recordingDTO = cacheService.getHashValue(
                 baseKey,
                 RECORDING_FIELD,
                 CreateRecordingDTO.class
             );
-        
+
             return recordingDTO;
         }
         CreateRecordingDTO recording = entityCreationService.createRecording(baseKey, cleansedItem, captureSession);

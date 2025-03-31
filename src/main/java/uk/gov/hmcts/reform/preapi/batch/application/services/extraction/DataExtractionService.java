@@ -11,10 +11,10 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 import java.util.regex.Matcher;
 
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
-import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
 @Service
 public class DataExtractionService {
@@ -38,29 +38,31 @@ public class DataExtractionService {
         if (archiveItem.getSanitizedArchiveName().isEmpty()) {
             loggingService.logWarning("Sanitized archive name is missing for: %s", archiveItem.getArchiveName());
         }
-        
+
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
         ServiceResult<?> validationResult = validator.validateTest(archiveItem);
         if (!validationResult.isSuccess()) {
             return validationResult;
         }
-        
-        // --2 
+
+        // --2
         String sanitisedName = archiveItem.getSanitizedArchiveName();
         String ext = validator.parseExtension(sanitisedName);
         if (ext.isBlank()) {
             return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
         }
 
-         // -- 3. Pattern match
+        // -- 3. Pattern match
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
         if (patternMatch.isEmpty()) {
             return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
         }
 
         if (RegexPatterns.TEST_PATTERNS.containsKey(patternMatch.get().getKey())) {
-            loggingService.logError("Test pattern match found for file: %s | Pattern: %s",
-                    archiveItem.getSanitizedArchiveName(), patternMatch.get().getKey());
+            loggingService.logError(
+                "Test pattern match found for file: %s | Pattern: %s",
+                archiveItem.getSanitizedArchiveName(), patternMatch.get().getKey()
+            );
             var testItem = new TestItem(
                 archiveItem,
                 "Matched TEST regex pattern",

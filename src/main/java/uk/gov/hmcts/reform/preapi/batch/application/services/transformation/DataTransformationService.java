@@ -6,8 +6,8 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProce
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
-import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
@@ -201,7 +201,7 @@ public class DataTransformationService {
         Map<String, Object> sitesDataMap = cacheService.getHashAll(
             Constants.CacheKeys.SITES_DATA
         );
-    
+
         if (sitesDataMap == null || sitesDataMap.isEmpty()) {
             loggingService.logError("Sites data not found in Cache");
             throw new IllegalStateException("Sites data not found in Cache");

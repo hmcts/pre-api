@@ -90,7 +90,7 @@ public class PostProcessMigrationTest {
         );
 
         Assertions.assertEquals(
-            MigrationType.FIRST.name(),
+            MigrationType.FULL.name(),
             jobParameters.getValue().getString("migrationType")
         );
 
