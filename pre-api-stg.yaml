@@ -263,6 +263,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
       participants:
         description: CaseParticipants
         items:
@@ -562,6 +568,12 @@ definitions:
       id:
         description: CreateCaseId
         format: uuid
+        type: string
+      origin:
+        description: CreateCaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
         type: string
       participants:
         description: CaseParticipants
@@ -978,6 +990,12 @@ definitions:
       modified_at:
         description: CaseModifiedAt
         format: date-time
+        type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
         type: string
       participants:
         description: CaseParticipants
@@ -1942,81 +1960,6 @@ paths:
       summary: Create an Audit Entry
       tags:
         - audit-controller
-  /batch/postMigrationJob:
-    post:
-      operationId: postMigration
-      parameters:
-        - default: false
-          in: query
-          name: debug
-          required: false
-          type: boolean
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-      tags:
-        - batch-controller
-  /batch/startTransform:
-    post:
-      operationId: startBatch
-      parameters:
-        - default: false
-          in: query
-          name: debug
-          required: false
-          type: boolean
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-      tags:
-        - batch-controller
-  /batch/startXml:
-    post:
-      operationId: startXmlBatch
-      parameters:
-        - default: false
-          in: query
-          name: debug
-          required: false
-          type: boolean
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-      tags:
-        - batch-controller
   /bookings:
     get:
       operationId: searchBookings

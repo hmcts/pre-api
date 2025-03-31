@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -168,6 +169,12 @@ public class CaseService {
             newCase.setReference(createCaseDTO.getReference());
         }
         newCase.setTest(createCaseDTO.isTest());
+
+        if (createCaseDTO.getOrigin() != null) {
+            newCase.setOrigin(createCaseDTO.getOrigin());
+        } else if (!isUpdate) {
+            newCase.setOrigin(RecordingOrigin.PRE);
+        }
 
         // todo update once CreateCaseDTO.state is made not nullable (currently breaking)
         newCase.setState(createCaseDTO.getState() == null ? CaseState.OPEN : createCaseDTO.getState());
