@@ -23,8 +23,8 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.UUID;
 
-@Component
 @Slf4j
+@Component
 public class CleanupLiveEvents extends RobotUserTask {
 
     private final MediaServiceBroker mediaServiceBroker;
