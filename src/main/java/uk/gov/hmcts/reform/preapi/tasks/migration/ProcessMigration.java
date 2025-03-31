@@ -14,7 +14,7 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 public class ProcessMigration extends BaseTask {
 
     private final MigrationType migrationType;
-    private final Job importCsvJob;
+    private final Job processCSVJob;
 
     public ProcessMigration(UserService userService,
                             UserAuthenticationService userAuthenticationService,
@@ -23,14 +23,14 @@ public class ProcessMigration extends BaseTask {
                             LoggingService loggingService,
                             @Value("${migration.debug}") boolean debug,
                             @Value("${migration.type}") String migrationType,
-                            @Qualifier("importCsvJob") Job importCsvJob) {
+                            @Qualifier("processCSVJob") Job processCSVJob) {
         super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug);
         this.migrationType = MigrationType.fromString(migrationType);
-        this.importCsvJob = importCsvJob;
+        this.processCSVJob = processCSVJob;
     }
 
     @Override
     public void run() throws RuntimeException {
-        startJob(importCsvJob, "Transform", migrationType);
+        startJob(processCSVJob, "Transform", migrationType);
     }
 }

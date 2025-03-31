@@ -106,7 +106,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
      *
      * @param migratedItems The list of MigratedItemGroup items to be saved.
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private void saveMigratedItems(List<MigratedItemGroup> migratedItems) {
         if (migratedItems.isEmpty()) {
             return;

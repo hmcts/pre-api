@@ -136,6 +136,9 @@ public class MediaTransformationService {
 
             GenerateAssetResponseDTO response = mediaKindService.importAsset(generateAssetDTO);
 
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            loggingService.logError("Media processing was interrupted: %s", e.getMessage());    
         } catch (Exception e) {
             loggingService.logError("Failed to process media: %s - %s", e.getMessage(), e);
         }

@@ -35,16 +35,16 @@ public class CSVReader {
             throw new IllegalArgumentException("Target class must not be null.");
         }
         try {
+            BeanWrapperFieldSetMapper<T> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+            fieldSetMapper.setTargetType(targetClass);
+
             return new FlatFileItemReaderBuilder<T>()
                     .name(targetClass.getSimpleName() + "Reader") 
                     .resource(resource) 
                     .linesToSkip(1) 
                     .delimited().delimiter(",")
                     .names(fieldNames) 
-                    .fieldSetMapper(new BeanWrapperFieldSetMapper<T>() {{
-                            setTargetType(targetClass);
-                        }
-                    })
+                    .fieldSetMapper(fieldSetMapper)
                     .strict(false)
                     .build();
         } catch (Exception e) {

@@ -46,7 +46,6 @@ public class DeltaProcessor {
         Map<String, String> records = new LinkedHashMap<>();
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
-            br.readLine();
             while ((line = br.readLine()) != null) {
                 String key = line.split(",")[0];
                 records.put(key, line);

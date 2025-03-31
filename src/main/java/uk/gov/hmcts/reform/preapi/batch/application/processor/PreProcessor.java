@@ -74,7 +74,6 @@ public class PreProcessor {
     // Data Loading Logic & Helpers
     // ==============================
 
-    @Transactional(readOnly = true)
     protected void cacheRequiredEntities() {
         List<Court> courts = courtRepository.findAll();
         cacheEntity(

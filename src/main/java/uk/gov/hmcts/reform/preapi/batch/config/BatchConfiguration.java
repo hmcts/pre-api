@@ -16,7 +16,6 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -132,7 +131,6 @@ public class BatchConfiguration implements StepExecutionListener {
     // =========================
 
     @Bean
-    @Qualifier("fetchXmlJob")
     public Job fetchXmlJob() {
         return new JobBuilder("fetchXmlJob", jobRepository)
             .incrementer(new RunIdIncrementer())
@@ -142,10 +140,8 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
-    @Qualifier("importCsvJob")
     public Job processCSVJob() {
-
-        return new JobBuilder("importCsvJob", jobRepository)
+        return new JobBuilder("processCSVJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(fileAvailabilityDecider())
             .on("FAILED").end()
@@ -171,8 +167,7 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
-    @Qualifier("postMigrationJob")
-    public Job processPostMigration() {
+    public Job postMigrationJob() {
         return new JobBuilder("postMigrationJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(startLogging())
@@ -183,8 +178,7 @@ public class BatchConfiguration implements StepExecutionListener {
     }
 
     @Bean
-    @Qualifier("processExclusionsJob")
-    public Job processExclusions() {
+    public Job processExclusionsJob() {
         return new JobBuilder("processExclusionsJob", jobRepository)
             .incrementer(new RunIdIncrementer())
             .start(startLogging())
