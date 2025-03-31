@@ -52,6 +52,7 @@ class RegexPatternsTest {
             assertNotNull(entry.getValue());
         }
     }
+
     @Test
     void testDateTimePattern() {
         assertTrue(RegexPatterns.DATE_TIME_PATTERN.matcher("01-01-2020-1200 PostType Witness Defendant.mp4").matches());
