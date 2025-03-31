@@ -52,56 +52,6 @@ class RegexPatternsTest {
             assertNotNull(entry.getValue());
         }
     }
-
-    /*
-        @Test
-        void testStandardPattern() {
-            assertTrue(RegexPatterns.STANDARD_PATTERN.matcher("Court 01-01-2020 URN Exhibit Defendant Witness ORIG.mp4").matches());
-            assertFalse(RegexPatterns.STANDARD_PATTERN.matcher("Court 01-01-2020 URN Exhibit Defendant Witness.mp4").matches());
-        }
-
-        @Test
-        void testStandardPatternWithNumbersPrefix() {
-            assertTrue(RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS_PREFIX.matcher("Court 01-01-2020 12345 URN Exhibit Defendant Witness ORIG.mp4").matches());
-            assertFalse(RegexPatterns.STANDARD_PATTERN_WITH_NUMBERS_PREFIX.matcher("Court 01-01-2020 URN Exhibit Defendant Witness.mp4").matches());
-        }
-
-        @Test
-        void testSpecificTPattern() {
-            assertTrue(RegexPatterns.SPECIFIC_T_PATTERN.matcher("Court 01-01-2020 URN Exhibit Defendant Witness ORIG.mp4").matches());
-            assertFalse(RegexPatterns.SPECIFIC_T_PATTERN.matcher("Court 01-01-2020 URN Defendant Witness ORIG.mp4").matches());
-        }
-
-        @Test
-        void testSpecialCasePattern() {
-            assertTrue(RegexPatterns.SPECIAL_CASE_PATTERN.matcher("Court 12345 URN Exhibit Defendant Witness ORIG_QC.mp4").matches());
-            assertFalse(RegexPatterns.SPECIAL_CASE_PATTERN.matcher("Court 12345 URN Exhibit Defendant Witness ORIG.mp4").matches());
-        }
-
-        @Test
-        void testDoubleUrnNoExhibitPattern() {
-            assertTrue(RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN.matcher("Court 01-01-2020 URN1 URN2 Defendant Witness ORIG.mp4").matches());
-            assertFalse(RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN.matcher("Court 01-01-2020 URN1 Defendant Witness ORIG.mp4").matches());
-        }
-
-        @Test
-        void testDoubleExhibitNoUrnPattern() {
-            assertTrue(RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN.matcher("Court 01-01-2020 Exhibit1 Exhibit2 Defendant Witness ORIG.mp4").matches());
-            assertFalse(RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN.matcher("Court 01-01-2020 Exhibit1 Defendant Witness ORIG.mp4").matches());
-        }
-
-        @Test
-        void testPrefixPattern() {
-            assertTrue(RegexPatterns.PREFIX_PATTERN.matcher("S28 Court 01-01-2020 URN Exhibit Defendant Witness ORIG.mp4").matches());
-            assertFalse(RegexPatterns.PREFIX_PATTERN.matcher("Court 01-01-2020 URN Exhibit Defendant Witness ORIG.mp4").matches());
-        }
-
-        @Test
-        void testFlexiblePattern() {
-            assertTrue(RegexPatterns.FLEXIBLE_PATTERN.matcher("Court 01-01-2020 URN Exhibit Defendant Witness ORIG.mp4").matches());
-            assertFalse(RegexPatterns.FLEXIBLE_PATTERN.matcher("Court 01-01-2020 URN Defendant Witness ORIG.mp4").matches());
-        }
-    */
     @Test
     void testDateTimePattern() {
         assertTrue(RegexPatterns.DATE_TIME_PATTERN.matcher("01-01-2020-1200 PostType Witness Defendant.mp4").matches());
