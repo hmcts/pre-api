@@ -8,6 +8,7 @@ import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
@@ -32,14 +33,15 @@ class CaseDTOTest {
         court.setRegions(Set.of(new Region()));
         caseEntity.setCourt(court);
         caseEntity.setReference("1234567890");
-        caseEntity.setTest(false);;
+        caseEntity.setTest(false);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseEntity.setDeletedAt(null);
         caseEntity.setCreatedAt(Timestamp.from(Instant.now()));
         caseEntity.setModifiedAt(Timestamp.from(Instant.now()));
     }
 
-    @DisplayName("CaseDTO.participants should be sorted by participant first name")
     @Test
+    @DisplayName("CaseDTO.participants should be sorted by participant first name")
     public void testParticipantSorting() {
         var aCase = HelperFactory.createCase(
             HelperFactory.createCourt(CourtType.CROWN, "Example Court", "123"),
@@ -61,8 +63,8 @@ class CaseDTOTest {
         assertEquals("CCC", participants.get(2).getFirstName());
     }
 
-    @DisplayName("Should create a case from entity")
     @Test
+    @DisplayName("Should create a case from entity")
     void createCaseFromEntity() {
         var model = new CaseDTO(caseEntity);
 
