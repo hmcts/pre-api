@@ -62,8 +62,8 @@ public class DeltaProcessor {
                 writer.write(header);
                 writer.newLine();
             }
-            for (String record : records.values()) {
-                writer.write(record);
+            for (String entry : records.values()) {
+                writer.write(entry);
                 writer.newLine();
             }
         }

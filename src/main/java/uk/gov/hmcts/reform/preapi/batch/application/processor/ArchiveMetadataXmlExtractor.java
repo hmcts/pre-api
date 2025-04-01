@@ -6,6 +6,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
+
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -19,6 +21,7 @@ import java.util.Optional;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 
 /**
  * Service for processing XML files and writing data to CSV.
@@ -134,7 +137,8 @@ public class ArchiveMetadataXmlExtractor {
      * @return A list of lists, each list being a row of data.
      * @throws Exception If there is an error during XML parsing.
      */
-    private List<List<String>> parseArchiveMetadataFromXml(InputStream inputStream) throws Exception {
+    private List<List<String>> parseArchiveMetadataFromXml(InputStream inputStream) 
+        throws IOException, SAXException, ParserConfigurationException {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         dbFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();

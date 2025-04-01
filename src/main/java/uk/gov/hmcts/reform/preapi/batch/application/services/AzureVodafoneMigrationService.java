@@ -53,7 +53,11 @@ public class AzureVodafoneMigrationService {
 
         } catch (Exception e) {
             Logger.getAnonymousLogger().warning("Error copying blob: {}" + e.getMessage() + e);
-            throw e;
+            throw new RuntimeException(
+                String.format("Failed to copy blob '%s' from '%s' to '%s': %s",
+                    blobName, sourceContainer, destContainer, e.getMessage()),
+                e
+            );
         }
     }
 

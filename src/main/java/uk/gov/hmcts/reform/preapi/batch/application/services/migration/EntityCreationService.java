@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +157,7 @@ public class EntityCreationService {
 
     public List<Object> createShareBookings(ProcessedRecording cleansedData, CreateBookingDTO booking) {
         if (cleansedData == null || booking == null) {
-            return null;
+            return Collections.emptyList();
         }
 
         List<Object> results = new ArrayList<>();
@@ -173,7 +174,7 @@ public class EntityCreationService {
         );
 
         if (shareBookings.isEmpty()) {
-            return null;
+            return Collections.emptyList();
         }
 
         results.add(shareBookings);
@@ -249,8 +250,7 @@ public class EntityCreationService {
 
     public CreateUserDTO getUserById(String userId) {
         var user = userService.findById(UUID.fromString(userId));
-        CreateUserDTO userDTO = createUser(user.getFirstName(), user.getLastName(), user.getEmail(), user.getId());
-        return userDTO;
+        return createUser(user.getFirstName(), user.getLastName(), user.getEmail(), user.getId());
     }
 
     public UUID getUserByEmail(String email) {

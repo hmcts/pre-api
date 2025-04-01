@@ -80,7 +80,7 @@ public class DataExtractionService {
         Matcher matcher = patternMatch.get().getValue();
         var extractedData = extractMetaData(matcher, archiveItem);
 
-        if (extractedData == null || patternMatch.isEmpty()) {
+        if (patternMatch.isEmpty()) {
             return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
         }
 

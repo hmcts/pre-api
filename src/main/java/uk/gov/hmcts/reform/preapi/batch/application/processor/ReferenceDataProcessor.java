@@ -32,10 +32,10 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     @Override
     public Object process(Object item) {
         try {
-            if (item instanceof CSVSitesData) {
-                processSitesData((CSVSitesData) item);
-            } else if (item instanceof CSVChannelData) {
-                processChannelUserData((CSVChannelData) item);
+            if (item instanceof CSVSitesData csvSitesData) {
+                processSitesData(csvSitesData);
+            } else if (item instanceof CSVChannelData csvChannelData) {
+                processChannelUserData(csvChannelData);
             } else {
                 loggingService.logError("Unsupported reference data type: %s", item.getClass().getName());
             }
@@ -81,11 +81,10 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
 
     @SuppressWarnings("unchecked")
     public Map<String, List<String[]>> fetchChannelUserDataMap() {
-        Map<String, List<String[]>> channelDataMap = cacheService.getAllAsType(
+        return cacheService.getAllAsType(
             Constants.CacheKeys.CHANNEL_DATA,
             Map.class
         );
-        return channelDataMap;
     }
 
     public Set<String> fetchChannelUserDataKeys() {

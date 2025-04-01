@@ -83,7 +83,7 @@ public class InMemoryCacheService {
 
     public String getAsString(String key, String hashKey) {
         Object value = getHashValue(key, hashKey, Object.class);
-        return value instanceof String ? (String) value : null;
+        return (value instanceof String stringVal) ? stringVal : null;
     }
 
     @SuppressWarnings("unchecked")

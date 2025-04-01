@@ -70,10 +70,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
 
-        if (item instanceof CSVArchiveListData) {
-            return processArchiveItem((CSVArchiveListData) item);
-        } else if (item instanceof CSVExemptionListData) {
-            return processExemptionItem((CSVExemptionListData) item);
+        if (item instanceof CSVArchiveListData csvArchiveListData) {
+            return processArchiveItem(csvArchiveListData);
+        } else if (item instanceof CSVExemptionListData csvExemptionListData) {
+            return processExemptionItem(csvExemptionListData);
         } else if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
             referenceDataProcessor.process(item);
             return null;
@@ -210,8 +210,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // Helper Methods
     //======================
     private <T> boolean checkForError(ServiceResult<T> result, Object item) {
-        String errorMessage = (String) result.getErrorMessage();
-        String category = (String) result.getCategory();
+        String errorMessage = result.getErrorMessage();
+        String category = result.getCategory();
 
         if (errorMessage != null) {
             handleError(item, errorMessage, category);

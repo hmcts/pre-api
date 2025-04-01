@@ -72,7 +72,7 @@ public class MigrationTrackerService {
 
     public void writeMigratedItemsToCsv(String fileName, String outputDir) {
         List<String> headers = getMigratedItemsHeaders();
-        List<List<String>> rows = buildMigratedItemsRows(migratedItems);
+        List<List<String>> rows = buildMigratedItemsRows();
         try {
             reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
         } catch (IOException e) {
@@ -113,7 +113,7 @@ public class MigrationTrackerService {
 
     public void writeInvitedUsersToCsv(String fileName, String outputDir) {
         List<String> headers = getInvitedUsersHeaders();
-        List<List<String>> rows = buildInvitedUserRows(invitedUsers);
+        List<List<String>> rows = buildInvitedUserRows();
         try {
             reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
         } catch (IOException e) {
@@ -157,25 +157,24 @@ public class MigrationTrackerService {
         );
     }
 
-    private List<List<String>> buildMigratedItemsRows(List<PassItem> items) {
+    private List<List<String>> buildMigratedItemsRows() {
         List<List<String>> rows = new ArrayList<>();
         for (PassItem item : migratedItems) {
             String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
             rows.add(List.of(
-                         // getValueOrEmpty(item.getRegexPattern()),
-                         getValueOrEmpty(item.getArchiveName()),
-                         getValueOrEmpty(item.getCaseReference()),
-                         getValueOrEmpty(item.getWitnessName()),
-                         getValueOrEmpty(item.getDefendantName()),
-                         getValueOrEmpty(item.getScheduledFor()),
-                         getValueOrEmpty(item.getState()),
-                         getValueOrEmpty(item.getVersion()),
-                         getValueOrEmpty(item.getFileName()),
-                         formatDuration(item.getDuration()),
-                         getValueOrEmpty(item.getFileSize()),
-                         migratedTime
-                     )
+                    getValueOrEmpty(item.getArchiveName()),
+                    getValueOrEmpty(item.getCaseReference()),
+                    getValueOrEmpty(item.getWitnessName()),
+                    getValueOrEmpty(item.getDefendantName()),
+                    getValueOrEmpty(item.getScheduledFor()),
+                    getValueOrEmpty(item.getState()),
+                    getValueOrEmpty(item.getVersion()),
+                    getValueOrEmpty(item.getFileName()),
+                    formatDuration(item.getDuration()),
+                    getValueOrEmpty(item.getFileSize()),
+                    migratedTime
+                )
             );
         }
         return rows;
@@ -271,7 +270,7 @@ public class MigrationTrackerService {
         return List.of("user_id", "First Name", "Last Name", "Email");
     }
 
-    public List<List<String>> buildInvitedUserRows(List<CreateInviteDTO> items) {
+    public List<List<String>> buildInvitedUserRows() {
         List<List<String>> rows = new ArrayList<>();
 
         for (CreateInviteDTO item : invitedUsers) {

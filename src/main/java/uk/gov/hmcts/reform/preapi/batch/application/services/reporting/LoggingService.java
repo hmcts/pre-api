@@ -34,7 +34,6 @@ public class LoggingService {
     private int totalInvited = 0;
 
     private LocalDateTime startTime;
-    private LocalDateTime endTime;
 
     public void initializeLogFile(MigrationType migrationType) {
         setTotalRecordsFromFile(migrationType);
@@ -149,7 +148,7 @@ public class LoggingService {
         categorizedFailures.forEach((category, items) -> failedCategoryCounts.put(category, items.size()));
     }
 
-    public void checkAllAccounted(int count) {
+    public void checkAllAccounted() {
         this.unaccountedRecords = this.totalRecords - this.totalMigrated - this.totalFailed;
     }
 
@@ -163,7 +162,7 @@ public class LoggingService {
             startTime = LocalDateTime.now();
         }
 
-        endTime = LocalDateTime.now();
+        var endTime = LocalDateTime.now();
         Duration duration = Duration.between(startTime, endTime);
         long seconds = duration.getSeconds();
 

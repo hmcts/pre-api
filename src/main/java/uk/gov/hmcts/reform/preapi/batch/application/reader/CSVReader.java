@@ -48,9 +48,13 @@ public class CSVReader {
                     .strict(false)
                     .build();
         } catch (Exception e) {
-            Logger.getAnonymousLogger().severe("Failed to create CSV reader for resource: "
-                + resource.getFilename() + " Reason: " + e.getMessage());
-            throw new IOException("Error while reading the CSV file: " + e.getMessage(), e);
+            String errorMsg = String.format(
+        "Failed to create CSV reader for resource '%s'. Reason: %s",
+                resource.getFilename(),
+                e.getMessage()
+            );
+            Logger.getAnonymousLogger().severe(errorMsg);
+            throw new IOException(errorMsg, e);
         }
     }
 }

@@ -205,12 +205,11 @@ public class MigrationGroupBuilderService {
         CreateBookingDTO booking
     ) {
         if (cacheService.checkHashKeyExists(baseKey, CAPTURE_SESSION_FIELD)) {
-            CreateCaptureSessionDTO captureSessionDTO = cacheService.getHashValue(
+            return cacheService.getHashValue(
                 baseKey,
                 CAPTURE_SESSION_FIELD,
                 CreateCaptureSessionDTO.class
             );
-            return captureSessionDTO;
         }
         return entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
     }
@@ -221,15 +220,13 @@ public class MigrationGroupBuilderService {
         CreateCaptureSessionDTO captureSession
     ) {
         if (cacheService.checkHashKeyExists(baseKey, RECORDING_FIELD)) {
-            CreateRecordingDTO recordingDTO = cacheService.getHashValue(
+            return cacheService.getHashValue(
                 baseKey,
                 RECORDING_FIELD,
                 CreateRecordingDTO.class
             );
-
-            return recordingDTO;
         }
-        CreateRecordingDTO recording = entityCreationService.createRecording(baseKey, cleansedItem, captureSession);
-        return recording;
+
+        return entityCreationService.createRecording(baseKey, cleansedItem, captureSession);
     }
 }

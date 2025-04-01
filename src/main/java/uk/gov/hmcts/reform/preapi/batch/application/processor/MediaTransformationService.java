@@ -134,7 +134,7 @@ public class MediaTransformationService {
             generateAssetDTO.setFinalAsset(finalAsset);
             generateAssetDTO.setParentRecordingId(containerUUID);
 
-            GenerateAssetResponseDTO response = mediaKindService.importAsset(generateAssetDTO);
+            mediaKindService.importAsset(generateAssetDTO);
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

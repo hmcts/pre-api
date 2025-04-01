@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.extraction.DataExtractionService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.transformation.DataTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -21,19 +20,16 @@ import java.util.Map;
  */
 @Component
 public class RecordingMetadataProcessor {
-    private LoggingService loggingService;
     private final DataExtractionService extractionService;
     private final DataTransformationService transformationService;
     private final InMemoryCacheService cacheService;
 
     @Autowired
     public RecordingMetadataProcessor(
-        LoggingService loggingService,
         DataExtractionService extractionService,
         DataTransformationService transformationService,
         InMemoryCacheService cacheService
     ) {
-        this.loggingService = loggingService;
         this.extractionService = extractionService;
         this.transformationService = transformationService;
         this.cacheService = cacheService;
@@ -57,7 +53,7 @@ public class RecordingMetadataProcessor {
 
             ExtractedMetadata extractedData = (ExtractedMetadata) extracted.getData();
             ServiceResult<ProcessedRecording> result = transformationService.transformData(extractedData);
-            ProcessedRecording cleansedData = (ProcessedRecording) result.getData();
+            ProcessedRecording cleansedData = result.getData();
             if (cleansedData == null) {
                 ServiceResultUtil.failure("Data not transformed successfully", "Missing data");
                 return;

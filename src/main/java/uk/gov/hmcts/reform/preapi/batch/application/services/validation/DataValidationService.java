@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
@@ -12,14 +11,11 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 @Service
 public class DataValidationService {
     private InMemoryCacheService cacheService;
-    private LoggingService loggingService;
 
     public DataValidationService(
-        InMemoryCacheService cacheService,
-        LoggingService loggingService
+        InMemoryCacheService cacheService
     ) {
         this.cacheService = cacheService;
-        this.loggingService = loggingService;
     }
 
     /**

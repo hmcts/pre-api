@@ -64,7 +64,7 @@ public class PreProcessor {
             loggingService.logInfo("Batch environment preparation completed successfully.");
         } catch (Exception e) {
             loggingService.logError("Batch environment preparation failed: %s", e);
-            throw new RuntimeException("Failed to prepare batch environment", e);
+            throw new IllegalStateException("Failed to prepare batch environment", e);
         }
     }
 
