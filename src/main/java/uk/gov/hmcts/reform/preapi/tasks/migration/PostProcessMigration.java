@@ -4,11 +4,13 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+@Component("postMigration")
 public class PostProcessMigration extends BaseTask {
 
     private final Job postMigrationJob;
@@ -18,7 +20,7 @@ public class PostProcessMigration extends BaseTask {
                                 @Value("${cron-user-email}") String cronUserEmail,
                                 JobLauncher jobLauncher,
                                 LoggingService loggingService,
-                                @Value("${migration.debug") boolean debug,
+                                @Value("${migration.debug}") boolean debug,
                                 @Qualifier("postMigrationJob") Job postMigrationJob) {
         super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug);
         this.postMigrationJob = postMigrationJob;
