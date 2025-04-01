@@ -52,7 +52,7 @@ public class AzureVodafoneStorageServiceTest {
         when(xmlItem.getName()).thenReturn("testfile.xml");
         var vidItem = mock(BlobItem.class);
         when(vidItem.getName()).thenReturn("testfile.mp4");
-        when(pagedIterable.iterator()).thenReturn(Stream.of(xmlItem, vidItem).iterator());
+        when(pagedIterable.stream()).thenReturn(Stream.of(xmlItem, vidItem));
 
         assertEquals(List.of("testfile.xml"), azureVodafoneStorageService.fetchBlobNames("test-container"));
     }
