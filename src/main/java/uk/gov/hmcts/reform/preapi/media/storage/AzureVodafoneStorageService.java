@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -21,18 +20,12 @@ public class AzureVodafoneStorageService extends AzureStorageService {
     }
 
     public List<String> fetchBlobNames(String containerName) {
-        List<String> blobNames = new ArrayList<>();
+        var containerClient = client.getBlobContainerClient(containerName);
 
-        BlobContainerClient containerClient = client.getBlobContainerClient(containerName);
-
-        for (BlobItem blobItem : containerClient.listBlobs()) {
-            String blobName = blobItem.getName();
-            if (blobName.endsWith(".xml")) {
-                blobNames.add(blobName);
-            }
-        }
-
-        return blobNames;
+        return containerClient.listBlobs().stream()
+                              .map(BlobItem::getName)
+                              .filter(name -> name.endsWith(".xml"))
+                              .toList();
     }
 
     public InputStreamResource fetchSingleXmlBlob(String containerName, String blobName) {

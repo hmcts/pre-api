@@ -6,7 +6,6 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.specialized.BlobInputStream;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +58,6 @@ public class AzureFinalStorageServiceTest {
     private static MockedStatic<DocumentBuilderFactory> documentBuilderFactoryMock;
 
 
-    
     @BeforeEach
     void setUp() {
         when(finalStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
@@ -72,7 +70,7 @@ public class AzureFinalStorageServiceTest {
     }
 
     @AfterAll
-    static void tearDownAll(){
+    static void tearDownAll() {
         if (documentBuilderFactoryMock != null) {
             documentBuilderFactoryMock.close();
         }
