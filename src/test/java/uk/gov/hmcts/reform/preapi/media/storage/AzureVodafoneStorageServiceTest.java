@@ -6,10 +6,12 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.specialized.BlobInputStream;
-import org.junit.jupiter.api.BeforeAll;
+
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.InputStreamResource;
@@ -42,15 +44,21 @@ public class AzureVodafoneStorageServiceTest {
     @Autowired
     private AzureVodafoneStorageService azureVodafoneStorageService;
 
+    private static MockedStatic<DocumentBuilderFactory> documentBuilderFactoryMock;
+
     @BeforeEach
     void setUp() {
         when(vodaStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
+
+        documentBuilderFactoryMock = mockStatic(DocumentBuilderFactory.class);
     }
 
-    @BeforeAll
-    static void setUpAll() {
-        mockStatic(DocumentBuilderFactory.class);
+    @AfterAll
+    static void tearDownAll(){
+        if (documentBuilderFactoryMock != null) {
+            documentBuilderFactoryMock.close();
+        }
     }
 
     @Test
