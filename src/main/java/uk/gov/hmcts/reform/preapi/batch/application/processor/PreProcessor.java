@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class PreProcessor {
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
 
     private final InMemoryCacheService cacheService;
     private final CourtRepository courtRepository;
