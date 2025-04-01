@@ -6,11 +6,14 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.specialized.BlobInputStream;
+
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -53,6 +56,10 @@ public class AzureFinalStorageServiceTest {
     @Autowired
     private AzureFinalStorageService azureFinalStorageService;
 
+    private static MockedStatic<DocumentBuilderFactory> documentBuilderFactoryMock;
+
+
+    
     @BeforeEach
     void setUp() {
         when(finalStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
@@ -61,7 +68,14 @@ public class AzureFinalStorageServiceTest {
 
     @BeforeAll
     static void setUpAll() {
-        mockStatic(DocumentBuilderFactory.class);
+        documentBuilderFactoryMock = mockStatic(DocumentBuilderFactory.class);
+    }
+
+    @AfterAll
+    static void tearDownAll(){
+        if (documentBuilderFactoryMock != null) {
+            documentBuilderFactoryMock.close();
+        }
     }
 
     @Test

@@ -6,8 +6,8 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.specialized.BlobInputStream;
-
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -46,12 +46,15 @@ public class AzureVodafoneStorageServiceTest {
 
     private static MockedStatic<DocumentBuilderFactory> documentBuilderFactoryMock;
 
+    @BeforeAll
+    static void setUpAll() {
+        documentBuilderFactoryMock = mockStatic(DocumentBuilderFactory.class);
+    }
+
     @BeforeEach
     void setUp() {
         when(vodaStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
-
-        documentBuilderFactoryMock = mockStatic(DocumentBuilderFactory.class);
     }
 
     @AfterAll
@@ -69,7 +72,7 @@ public class AzureVodafoneStorageServiceTest {
         var vidItem = mock(BlobItem.class);
         when(blobContainerClient.exists()).thenReturn(true);
         when(vidItem.getName()).thenReturn("testfile.mp4");
-        when(pagedIterable.stream()).thenReturn(Stream.of(xmlItem, vidItem));
+        when(pagedIterable.iterator()).thenReturn(Stream.of(xmlItem, vidItem).iterator());
 
         assertEquals(azureVodafoneStorageService.fetchBlobNames("test-container"), List.of("testfile.xml"));
     }
