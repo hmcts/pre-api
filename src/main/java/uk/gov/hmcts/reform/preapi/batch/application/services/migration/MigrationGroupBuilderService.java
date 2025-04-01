@@ -214,8 +214,7 @@ public class MigrationGroupBuilderService {
 
     private CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO acase) {
         if (cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)) {
-            CreateBookingDTO bookingDTO = cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
-            return bookingDTO;
+            return cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
         }
         return entityCreationService.createBooking(cleansedData, acase, baseKey);
     }

@@ -59,17 +59,16 @@ public class CSVArchiveListData {
             return "";
         }
         
-        String sanitized = archiveName
+        return archiveName
             .replaceAll("^QC[_\\d]?", "")
             .replaceAll("^QC(?![A-Za-z])", "")
             .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
-            .replaceAll("CP_", "")
+            .replace("CP_", "")
             .trim();
 
-        return sanitized;
     }
 
 
@@ -138,9 +137,7 @@ public class CSVArchiveListData {
                 })
                 .filter(Objects::nonNull)
                 .findFirst()
-                .orElseGet(() -> {
-                    return null;
-                });
+                .orElse(null);
         }
     }
 

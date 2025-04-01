@@ -78,8 +78,7 @@ public class ReportingService {
     }
 
     private <T> String formatDataRow(T dataRow) {
-        if (dataRow instanceof List<?>) {
-            List<?> list = (List<?>) dataRow;
+        if (dataRow instanceof List<?> list) {
             return list.stream()
                 .map(String::valueOf)  
                 .collect(Collectors.joining(",")); 
