@@ -22,7 +22,7 @@ public class CSVReader {
      */
     public <T> FlatFileItemReader<T> createReader(
         Resource resource,
-        String[] fieldNames, 
+        String[] fieldNames,
         Class<T> targetClass
     ) throws IOException {
         if (resource == null || !resource.exists()) {
@@ -39,17 +39,16 @@ public class CSVReader {
             fieldSetMapper.setTargetType(targetClass);
 
             return new FlatFileItemReaderBuilder<T>()
-                    .name(targetClass.getSimpleName() + "Reader") 
-                    .resource(resource) 
-                    .linesToSkip(1) 
+                    .name(targetClass.getSimpleName() + "Reader")
+                    .resource(resource)
+                    .linesToSkip(1)
                     .delimited().delimiter(",")
-                    .names(fieldNames) 
+                    .names(fieldNames)
                     .fieldSetMapper(fieldSetMapper)
                     .strict(false)
                     .build();
         } catch (Exception e) {
-            String errorMsg = String.format(
-        "Failed to create CSV reader for resource '%s'. Reason: %s",
+            String errorMsg = String.format("Failed to create CSV reader for resource '%s'. Reason: %s",
                 resource.getFilename(),
                 e.getMessage()
             );
