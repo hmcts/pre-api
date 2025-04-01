@@ -108,7 +108,6 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 blobName,
                 azureVodafoneStorageService.getBlobUrlWithSasForCopy(vfSourceContainer, blobName)
             );
-
             return true;
         } catch (Exception e) {
             log.error("Failed to copy blob '{}' between containers: {} -> {}",
