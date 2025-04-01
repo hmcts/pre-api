@@ -8,7 +8,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.AzureVodafoneMigrat
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
-import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
@@ -19,7 +18,7 @@ import java.util.UUID;
 
 @Service
 public class MediaTransformationService {
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
 
     private final AzureVodafoneMigrationService azureVodafoneMigrationService;
     private final AzureVodafoneStorageService azureVodafoneStorageService;
@@ -138,7 +137,7 @@ public class MediaTransformationService {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            loggingService.logError("Media processing was interrupted: %s", e.getMessage());    
+            loggingService.logError("Media processing was interrupted: %s", e.getMessage());
         } catch (Exception e) {
             loggingService.logError("Failed to process media: %s - %s", e.getMessage(), e);
         }
