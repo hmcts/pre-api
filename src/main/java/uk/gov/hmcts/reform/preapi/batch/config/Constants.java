@@ -13,6 +13,7 @@ public final class Constants {
 
     // Global  constants
     public static final LocalDate GO_LIVE_DATE = LocalDate.of(2019, 5, 23);
+    public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     public static final int MIN_RECORDING_DURATION = 10;
     public static final Set<String> VALID_VERSION_TYPES = Set.of("ORIG", "COPY", "CPY", "ORG", "ORI", "COP");
     public static final Set<String> VALID_ORIG_TYPES = Set.of("ORIG", "ORG", "ORI");
@@ -123,6 +124,15 @@ public final class Constants {
         public static final String FILE_REGEX = "Regex_Matching_Errors";
         
 
+    }
+
+    public static final class XmlFields {
+        private XmlFields() {
+        }
+        
+        public static final String DISPLAY_NAME = "Display Name";
+        public static final String FILE_SIZE = "File Size";
+        public static final String CREATE_TIME = "Create Time";
     }
 
 }
