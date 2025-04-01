@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.dto;
 
-
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -34,5 +33,15 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
         filename = recording.getFilename();
         duration = recording.getDuration();
         editInstructions = recording.getEditInstruction();
+    }
+
+    public CreateRecordingDTO(RecordingDTO recordingDTO) {
+        id = recordingDTO.getId();
+        captureSessionId = recordingDTO.getCaptureSession().getId();
+        parentRecordingId = recordingDTO.getParentRecordingId();
+        version = recordingDTO.getVersion();
+        filename = recordingDTO.getFilename();
+        duration = recordingDTO.getDuration();
+        editInstructions = recordingDTO.getEditInstructions();
     }
 }

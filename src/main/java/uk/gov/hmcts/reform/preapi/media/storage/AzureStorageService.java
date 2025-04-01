@@ -1,14 +1,27 @@
 package uk.gov.hmcts.reform.preapi.media.storage;
 
+import com.azure.core.util.polling.SyncPoller;
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.models.BlobCopyInfo;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
+import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
+import java.time.OffsetDateTime;
+
+@Slf4j
 public abstract class AzureStorageService {
 
     protected final BlobServiceClient client;
 
     public AzureStorageService(BlobServiceClient client) {
         this.client = client;
+    }
+
+    public String getStorageAccountName() {
+        return client.getAccountName();
     }
 
     public boolean doesContainerExist(String containerName) {
@@ -51,5 +64,49 @@ public abstract class AzureStorageService {
                 .listBlobs()
                 .stream()
                 .anyMatch(blobItem -> blobItem.getName().equalsIgnoreCase(blobName));
+    }
+
+    protected String getBlobSasToken(String containerName,
+                                  String blobName,
+                                  OffsetDateTime expiryTime,
+                                  BlobSasPermission permission) {
+        if (!doesBlobExist(containerName, blobName)) {
+            throw new NotFoundException("Blob not found in container " + containerName);
+        }
+
+        return client.getBlobContainerClient(containerName)
+            .getBlobClient(blobName)
+            .generateSas(new BlobServiceSasSignatureValues(expiryTime, permission));
+    }
+
+    public String getBlobUrlWithSasForCopy(String containerName, String blobName) {
+        if (!doesBlobExist(containerName, blobName)) {
+            throw new NotFoundException("Blob in container " + containerName);
+        }
+        return client.getBlobContainerClient(containerName).getBlobClient(blobName).getBlobUrl()
+            + "?"
+            + getBlobSasToken(
+                containerName,
+                blobName,
+                OffsetDateTime.now().plusHours(1),
+                new BlobSasPermission().setReadPermission(true));
+    }
+
+    public void copyBlob(String destinationContainerName, String destinationBlobName, String sourceUrl) {
+        BlobContainerClient destinationContainerClient = client.getBlobContainerClient(destinationContainerName);
+        if (!destinationContainerClient.exists()) {
+            destinationContainerClient.create();
+        }
+
+        SyncPoller<BlobCopyInfo, Void> poller = destinationContainerClient.getBlobClient(destinationBlobName)
+            .beginCopy(sourceUrl, null);
+        poller.waitForCompletion();
+
+        log.info(
+            "Successfully copied blob '{}/{}' to {}",
+            destinationContainerName,
+            destinationBlobName,
+            getStorageAccountName()
+        );
     }
 }

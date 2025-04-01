@@ -4,11 +4,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
-import uk.gov.hmcts.reform.preapi.batch.application.services.AzureVodafoneMigrationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureStorageService;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
 import java.io.File;
@@ -20,19 +20,19 @@ import java.util.UUID;
 public class MediaTransformationService {
     private final LoggingService loggingService;
 
-    private final AzureVodafoneMigrationService azureVodafoneMigrationService;
     private final AzureVodafoneStorageService azureVodafoneStorageService;
+    private final AzureStorageService azureIngestStorageService;
     private final MediaKind mediaKindService;
 
     @Autowired
     public MediaTransformationService(
-        AzureVodafoneMigrationService azureVodafoneMigrationService,
         AzureVodafoneStorageService azureVodafoneStorageService,
+        AzureStorageService azureIngestStorageService,
         MediaKind mediaKindService,
         LoggingService loggingService
     ) {
-        this.azureVodafoneMigrationService = azureVodafoneMigrationService;
         this.azureVodafoneStorageService = azureVodafoneStorageService;
+        this.azureIngestStorageService = azureIngestStorageService;
         this.mediaKindService = mediaKindService;
         this.loggingService = loggingService;
     }
@@ -68,10 +68,10 @@ public class MediaTransformationService {
         String blobName
     ) {
         try {
-            azureVodafoneMigrationService.copyBlob(
-                sourceContainer,
+            azureIngestStorageService.copyBlob(
                 destContainer,
-                blobName
+                blobName,
+                azureVodafoneStorageService.getBlobUrlWithSasForCopy(sourceContainer, blobName)
             );
             return true;
         } catch (Exception e) {

@@ -29,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.AssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
@@ -286,6 +287,23 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public boolean importAsset(RecordingDTO recordingDTO, boolean isFinal) {
+        String assetName = recordingDTO.getId().toString().replace("-", "") + (isFinal ? "_output" : "_temp");
+        try {
+            createAsset(
+                assetName,
+                recordingDTO.getId().toString(),
+                recordingDTO.getId() + (isFinal ? "" : "-input"),
+                isFinal
+            );
+        } catch (Exception e) {
+            log.info("Failed creating asset: {}", assetName);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public AssetDTO getAsset(String assetName) {
         try {
             return new AssetDTO(mediaKindClient.getAsset(assetName));
@@ -439,6 +457,63 @@ public class MediaKind implements IMediaService {
             throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         }
     }
+
+    @Override
+    public String triggerProcessingStep2(UUID recordingId, boolean isImport) {
+        var filename = azureIngestStorageService.tryGetMp4FileName(
+            recordingId.toString()
+                + (isImport ? "-input" : ""));
+        if (filename == null) {
+            log.error("Mp4 file not found for recording {}", recordingId);
+            return null;
+        }
+
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        var recordingTempAssetName = recordingNoHyphen + "_temp";
+        var recordingAssetName = recordingNoHyphen + "_output";
+
+        return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
+    }
+
+    @Override
+    public RecordingStatus verifyFinalAssetExists(UUID recordingId) {
+        var recordingAssetName = getSanitisedLiveEventId(recordingId) + "_output";
+
+        if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
+            log.error("Final asset .ism file not found for asset [{}] in container [{}]",
+                      recordingAssetName, recordingId);
+            return RecordingStatus.FAILURE;
+        }
+        return RecordingStatus.RECORDING_AVAILABLE;
+    }
+
+    @Override
+    public RecordingStatus hasJobCompleted(String transformName, String jobName) {
+        var job = mediaKindClient.getJob(transformName, jobName);
+        return hasJobCompleted(job) && job.getProperties().getState() == JobState.FINISHED
+            ? RecordingStatus.RECORDING_AVAILABLE
+            : (job.getProperties().getState() == JobState.ERROR || job.getProperties().getState() == JobState.CANCELED
+            ? RecordingStatus.FAILURE
+            : RecordingStatus.PROCESSING);
+    }
+
+    private boolean hasJobCompleted(MkJob job) {
+        var state = job.getProperties().getState();
+        var jobName = job.getName();
+
+        if (state.equals(JobState.ERROR)) {
+            log.error("Job [{}] failed with error [{}]",
+                      jobName,
+                      job.getProperties().getOutputs().getLast().error().message());
+        } else if (state.equals(JobState.CANCELED)) {
+            log.error("Job [{}] was cancelled", jobName);
+        }
+
+        return state.equals(JobState.FINISHED)
+            || state.equals(JobState.ERROR)
+            || state.equals(JobState.CANCELED);
+    }
+
 
     private void stopAndDeleteLiveEvent(String liveEventName) {
         try {
