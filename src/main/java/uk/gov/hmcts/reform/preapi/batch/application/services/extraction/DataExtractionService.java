@@ -42,6 +42,7 @@ public class DataExtractionService {
 
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
         ServiceResult<?> validationResult = validator.validateTest(archiveItem);
+        loggingService.logDebug("Validation result in extraction %s", validationResult.isSuccess());
         if (!validationResult.isSuccess()) {
             return validationResult;
         }
@@ -56,6 +57,7 @@ public class DataExtractionService {
         // -- 3. Pattern match
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
         if (patternMatch.isEmpty()) {
+            loggingService.logDebug("No pattern matched for file: %s", archiveItem);
             return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
         }
 
@@ -80,10 +82,6 @@ public class DataExtractionService {
 
         Matcher matcher = patternMatch.get().getValue();
         var extractedData = extractMetaData(matcher, archiveItem);
-
-        if (patternMatch.isEmpty()) {
-            return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
-        }
 
         loggingService.logDebug("Extracted metadata in extraction service: " + extractedData);
 
