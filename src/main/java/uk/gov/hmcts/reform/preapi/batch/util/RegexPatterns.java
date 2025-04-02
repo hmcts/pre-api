@@ -68,7 +68,7 @@ public final class RegexPatterns {
 
     private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z0-9]+)(?>[-\s][A-Za-z0-9]+)*)"
                                                 + SEPARATOR_ONE 
-                                                + "(?<witnessFirstName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*)";
+                                                + "(?<witnessFirstName>[?>A-Za-z0-9&']+(?>[-'\\s][A-Za-z]+)*)";
     /**
      * Standard pattern for most common recording names.
      * Format: Court Date URN [Exhibit] Defendant Witness Version [.ext]
