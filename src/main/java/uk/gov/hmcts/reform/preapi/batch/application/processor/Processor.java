@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
@@ -169,7 +170,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
 
-        return (ExtractedMetadata) extractionResult.getData();
+        ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
+        checkAndCreateNotifyItem(extractedData);
+        return extractedData;
     }
 
 
@@ -269,6 +272,21 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         } catch (Exception e) {
             loggingService.logError("Failed to parse date: " + dateTimeStr, e);
             return null;
+        }
+    }
+
+    // =========================
+    // Notifications
+    // =========================
+    private void checkAndCreateNotifyItem(ExtractedMetadata extractedData) {
+        if (extractedData.getDefendantLastName().contains("-")) {
+            loggingService.logDebug("Double-barrelled defendant detected: %s", extractedData.getDefendantLastName());
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled defendant",extractedData));
+        }
+
+        if (extractedData.getWitnessFirstName().contains("-")) {
+            loggingService.logDebug("Double-barrelled witness detected: %s", extractedData.getDefendantLastName());
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled witness",extractedData));
         }
     }
 
