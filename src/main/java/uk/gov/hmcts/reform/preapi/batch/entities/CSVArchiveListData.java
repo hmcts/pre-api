@@ -60,13 +60,13 @@ public class CSVArchiveListData {
         }
         
         return archiveName
-            .replaceAll("^QC[_\\d]?", "")
-            .replaceAll("^QC(?![A-Za-z])", "")
-            .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
-            .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
+            .replaceAll("(?i)^QC[_\\d]?", "")
+            .replaceAll("(?i)^QC(?![A-Za-z])", "")
+            .replaceAll("(?i)[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
+            .replaceAll("(?i)(?:CP[\\s-_]*Case|AS URN)", "")
+            .replaceAll("(?i)CP[-_\\s]", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
-            .replace("CP_", "")
             .trim();
 
     }

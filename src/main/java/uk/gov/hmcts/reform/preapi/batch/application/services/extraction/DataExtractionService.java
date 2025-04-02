@@ -40,6 +40,7 @@ public class DataExtractionService {
             loggingService.logWarning("Sanitized archive name is missing for: %s", archiveItem.getArchiveName());
         }
 
+        loggingService.logDebug("Sanitized name: %s", archiveItem.getSanitizedArchiveName());
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
         ServiceResult<?> validationResult = validator.validateTest(archiveItem);
         loggingService.logDebug("Validation result in extraction %s", validationResult.isSuccess());
@@ -56,11 +57,13 @@ public class DataExtractionService {
 
         // -- 3. Pattern match
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
+        loggingService.logDebug("Pattern match: %s", patternMatch);
         if (patternMatch.isEmpty()) {
             loggingService.logDebug("No pattern matched for file: %s", archiveItem);
             return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
         }
 
+        loggingService.logDebug("Checking for test pattern");
         if (RegexPatterns.TEST_PATTERNS.containsKey(patternMatch.get().getKey())) {
             loggingService.logError(
                 "Test pattern match found for file: %s | Pattern: %s",
