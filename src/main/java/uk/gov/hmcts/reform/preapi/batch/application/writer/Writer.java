@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @Transactional(propagation = Propagation.REQUIRED)
 public class Writer implements ItemWriter<MigratedItemGroup> {
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
     private final CaseService caseService;
     private final BookingService bookingService;
     private final RecordingService recordingService;
@@ -46,7 +46,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
 
     private final AtomicInteger successCount = new AtomicInteger(0);
     private final AtomicInteger failureCount = new AtomicInteger(0);
-
 
     @Autowired
     public Writer(
@@ -114,7 +113,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
 
         for (MigratedItemGroup item : migratedItems) {
             try {
-                loggingService.logDebug("Processing case: %s", item.getCase().getReference());
+                loggingService.logDebug("Processing case: %s", item.getCreateCase().getReference());
 
                 processItem(item);
                 migrationTrackerService.addMigratedItem(item.getPassItem());
@@ -123,7 +122,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 failureCount.incrementAndGet();
                 loggingService.logError(
                     "Failed to process migrated item: %s | %s",
-                    item.getCase().getReference(), e.getMessage()
+                    item.getCreateCase().getReference(), e.getMessage()
                 );
             }
 
@@ -131,14 +130,13 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     }
 
     private void processItem(MigratedItemGroup item) {
-        processCaseData(item.getCase());
+        processCaseData(item.getCreateCase());
         processBookingData(item.getBooking());
         processCaptureSessionData(item.getCaptureSession());
         processRecordingData(item.getRecording());
         processInvitesData(item.getInvites());
         processShareBookingsData(item.getShareBookings());
     }
-
 
     private void processCaseData(CreateCaseDTO caseData) {
         if (caseData != null) {
@@ -177,7 +175,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 recordingService.upsert(recordingData);
             } catch (Exception e) {
-                loggingService.logError("Failed to upsert recording. Recording id: %s | %s", 
+                loggingService.logError("Failed to upsert recording. Recording id: %s | %s",
                     recordingData.getId(), e);
             }
         }
@@ -214,5 +212,4 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         );
 
     }
-
 }

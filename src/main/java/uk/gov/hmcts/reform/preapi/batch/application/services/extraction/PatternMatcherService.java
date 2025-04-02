@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.util.RegexPatterns;
@@ -13,7 +14,8 @@ import java.util.regex.Pattern;
 public class PatternMatcherService {
     private final LoggingService loggingService;
 
-    public PatternMatcherService(LoggingService loggingService) {
+    @Autowired
+    public PatternMatcherService(final LoggingService loggingService) {
         this.loggingService = loggingService;
     }
 
@@ -37,7 +39,6 @@ public class PatternMatcherService {
             Map<String, Pattern> patternMap,
             String patternType
     ) {
-
         for (Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
             Matcher matcher = entry.getValue().matcher(archiveName);
             if (matcher.matches()) {

@@ -30,7 +30,7 @@ public class DataTransformationService {
     private final InMemoryCacheService cacheService;
     private final CourtRepository courtRepository;
     private final ReferenceDataProcessor referenceDataProcessor;
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
 
     @Autowired
     public DataTransformationService(
@@ -63,11 +63,8 @@ public class DataTransformationService {
             );
 
             Map<String, Object> sitesDataMap = getSitesData();
-
             ProcessedRecording cleansedData = buildProcessedRecording(extracted, sitesDataMap);
-
             return ServiceResultUtil.success(cleansedData);
-
         } catch (Exception e) {
             loggingService.logError("Data transformation failed for archive: %s - %s", extracted.getArchiveName(), e);
             return ServiceResultUtil.failure(e.getMessage(), Constants.Reports.FILE_ERROR);
@@ -95,24 +92,24 @@ public class DataTransformationService {
             loggingService.logWarning("Court not found for reference: %s", extracted.getCourtReference());
         }
 
-        return new ProcessedRecording.Builder()
-            .setUrn(extracted.getUrn())
-            .setExhibitReference(extracted.getExhibitReference())
-            .setCaseReference(extracted.createCaseReference())
-            .setDefendantLastName(extracted.getDefendantLastName())
-            .setWitnessFirstName(extracted.getWitnessFirstName())
-            .setCourtReference(extracted.getCourtReference())
-            .setCourt(court)
-            .setRecordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
-            .setDuration(Duration.ofSeconds(extracted.getDuration()))
-            .setState(determineState(shareBookingContacts))
-            .setShareBookingContacts(shareBookingContacts)
-            .setFileExtension(extracted.getFileExtension())
-            .setFileName(extracted.getFileName())
-            .setRecordingVersion(versionDetails.getVersionType())
-            .setRecordingVersionNumberStr(versionDetails.getVersionNumberStr())
-            .setRecordingVersionNumber(versionDetails.getVersionNumber())
-            .setIsMostRecentVersion(versionDetails.isMostRecent())
+        return ProcessedRecording.builder()
+            .urn(extracted.getUrn())
+            .exhibitReference(extracted.getExhibitReference())
+            .caseReference(extracted.createCaseReference())
+            .defendantLastName(extracted.getDefendantLastName())
+            .witnessFirstName(extracted.getWitnessFirstName())
+            .courtReference(extracted.getCourtReference())
+            .court(court)
+            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
+            .duration(Duration.ofSeconds(extracted.getDuration()))
+            .state(determineState(shareBookingContacts))
+            .shareBookingContacts(shareBookingContacts)
+            .fileExtension(extracted.getFileExtension())
+            .fileName(extracted.getFileName())
+            .recordingVersion(versionDetails.versionType())
+            .recordingVersionNumberStr(versionDetails.versionNumberStr())
+            .recordingVersionNumber(versionDetails.versionNumber())
+            .isMostRecentVersion(versionDetails.isMostRecent())
             .build();
     }
 

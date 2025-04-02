@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
@@ -33,12 +34,13 @@ public class PreProcessor {
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
 
+    @Autowired
     public PreProcessor(
-        LoggingService loggingService,
-        InMemoryCacheService cacheService,
-        CourtRepository courtRepository,
-        CaseRepository caseRepository,
-        UserRepository userRepository
+        final LoggingService loggingService,
+        final InMemoryCacheService cacheService,
+        final CourtRepository courtRepository,
+        final CaseRepository caseRepository,
+        final UserRepository userRepository
     ) {
         this.loggingService = loggingService;
         this.cacheService = cacheService;
@@ -67,7 +69,6 @@ public class PreProcessor {
             throw new IllegalStateException("Failed to prepare batch environment", e);
         }
     }
-
 
     // ==============================
     // Data Loading Logic & Helpers

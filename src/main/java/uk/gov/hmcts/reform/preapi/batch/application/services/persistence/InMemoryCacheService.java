@@ -3,7 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.persistence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,13 +15,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class InMemoryCacheService {
-    private final ReportingService reportingService;
     private final LoggingService loggingService;
+
     private final Map<String, Map<String, Object>> hashStore = new ConcurrentHashMap<>();
 
     @Autowired
-    public InMemoryCacheService(ReportingService reportingService, LoggingService loggingService) {
-        this.reportingService = reportingService;
+    public InMemoryCacheService(LoggingService loggingService) {
         this.loggingService = loggingService;
     }
 
@@ -75,12 +74,13 @@ public class InMemoryCacheService {
         }
 
         try {
-            reportingService.writeToCsv(headers, rows, "in-memory-cache", "Migration Reports", false);
+            ReportCsvWriter.writeToCsv(headers, rows, "in-memory-cache", "Migration Reports", false);
         } catch (IOException e) {
             loggingService.logError("Failed to write in-memory cache to file: " + e.getMessage());
         }
     }
 
+    // TODO remove unused ?
     public String getAsString(String key, String hashKey) {
         Object value = getHashValue(key, hashKey, Object.class);
         return (value instanceof String stringVal) ? stringVal : null;

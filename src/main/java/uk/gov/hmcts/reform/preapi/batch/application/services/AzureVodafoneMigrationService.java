@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 @Service
 @Slf4j
 public class AzureVodafoneMigrationService {
-
+    // TODO remove this class- replaced with task
     private final BlobServiceClient vodafoneStorageClient;
     private final BlobServiceClient ingestStorageClient;
 

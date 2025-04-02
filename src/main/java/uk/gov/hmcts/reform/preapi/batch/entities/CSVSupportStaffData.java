@@ -1,21 +1,15 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Setter
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class CSVSupportStaffData {
-
+    // TODO remove unused class ?
     private String userName;
-
-    public CSVSupportStaffData() {
-    }
-    
-    public CSVSupportStaffData(String userName) {
-        this.userName = userName;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
-    }
 }

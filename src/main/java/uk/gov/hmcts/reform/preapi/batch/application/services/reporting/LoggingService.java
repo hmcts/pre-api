@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
@@ -23,21 +25,25 @@ public class LoggingService {
     private static final String LOG_FILE_PATH = System.getProperty("user.dir") + "/Migration Reports/output.log";
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    @Getter
     private boolean debugEnabled = false;
+    @Setter
+    private int totalMigrated = 0;
+    @Setter
+    private int totalInvited = 0;
+
     private int totalRecords;
     private int processedRecords = 0;
-    private int totalMigrated = 0;
     private int totalFailed = 0;
-    private final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
-    private int unaccountedRecords = this.totalRecords - this.totalMigrated - this.totalFailed;
-    private int totalInvited = 0;
+    private final Map<String, Integer> failedCategoryCounts = new HashMap<>();
 
     private LocalDateTime startTime;
 
     public void initializeLogFile(MigrationType migrationType) {
         setTotalRecordsFromFile(migrationType);
         startTime = LocalDateTime.now();
+
         try (PrintWriter writer = new PrintWriter(new FileWriter(LOG_FILE_PATH, false))) {
             writer.println("=====================================================");
             writer.println(LocalDateTime.now().format(FORMATTER) + " |  Vodafone ETL Job Started");
@@ -49,7 +55,6 @@ public class LoggingService {
 
     public synchronized void log(String level, String message) {
         String timestamp = LocalDateTime.now().format(FORMATTER);
-
         String logMessage = String.format("%s [%s] %s", timestamp, level, message);
 
         try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
@@ -84,7 +89,6 @@ public class LoggingService {
         log("DEBUG", String.format("%s - %s", callerInfo, message));
     }
 
-
     private String getCallerInfo() {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (int i = 2; i < stackTrace.length; i++) {
@@ -106,15 +110,13 @@ public class LoggingService {
         }
     }
 
-    public boolean isDebugEnabled() {
-        return debugEnabled;
-    }
-
     // ==============================
     // PROGRESS TRACKING
     // ==============================
+
+    // todo remove unused ?
     public void setTotalRecords(int count) {
-        this.totalRecords = Math.max(count, 1);
+        totalRecords = Math.max(count, 1);
     }
 
     public void incrementProgress() {
@@ -137,23 +139,12 @@ public class LoggingService {
     // ==============================
     // METRICS TRACKING
     // ==============================
-    public void setTotalMigrated(int count) {
-        this.totalMigrated = count;
-    }
 
     public void setTotalFailed(Map<String, List<FailedItem>> categorizedFailures, List<TestItem> testFailures) {
         int totalTests = testFailures.size();
         this.totalFailed = categorizedFailures.values().stream().mapToInt(List::size).sum() + totalTests;
         failedCategoryCounts.clear();
         categorizedFailures.forEach((category, items) -> failedCategoryCounts.put(category, items.size()));
-    }
-
-    public void checkAllAccounted() {
-        this.unaccountedRecords = this.totalRecords - this.totalMigrated - this.totalFailed;
-    }
-
-    public void setTotalInvited(int count) {
-        this.totalInvited = count;
     }
 
     public void logSummary() {
@@ -182,11 +173,10 @@ public class LoggingService {
             "Total Records Processed", totalRecords,
             "Total Migrated Items", totalMigrated,
             "Total Failed Items", totalFailed,
-            "Total Unaccounted Items", unaccountedRecords,
+            "Total Unaccounted Items", totalRecords - totalMigrated - totalFailed,
             "Total Invited Users", totalInvited,
             "Total Execution Time", String.format("%10d", seconds)
         );
-
 
         try (FileWriter fileWriter = new FileWriter(LOG_FILE_PATH, true);
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
@@ -197,32 +187,25 @@ public class LoggingService {
 
     }
 
-
     // ==============================
     // SETTING RECORDS FROM FILE
     // ==============================
     public void setTotalRecordsFromFile(MigrationType migrationType) {
-        String filePath;
-
-        if (migrationType.equals(MigrationType.DELTA)) {
-            filePath = "src/main/resources/batch/Archive_List_delta.csv";
-        } else {
-            filePath = "src/main/resources/batch/Archive_List_initial.csv";
-        }
+        String filePath = migrationType.equals(MigrationType.DELTA)
+            ? "src/main/resources/batch/Archive_List_delta.csv"
+            : "src/main/resources/batch/Archive_List_initial.csv";
 
         try (BufferedReader reader = new BufferedReader(new FileReader(new File(filePath)))) {
-            long lineCount = reader.lines()
-                                   .skip(1)
-                                   .filter(line -> !line.trim().isEmpty())
-                                   .count();
+            int lineCount = (int) reader.lines()
+                .skip(1)
+                .filter(line -> !line.trim().isEmpty())
+                .count();
 
-            this.totalRecords = Math.max((int) lineCount, 1);
-            logInfo("Total records set from file '%s': %d", filePath, this.totalRecords);
-
+            totalRecords = Math.max(lineCount, 1);
+            logInfo("Total records set from file '%s': %d", filePath, totalRecords);
         } catch (IOException e) {
             logError("Failed to count lines in file: %s | %s", filePath, e.getMessage());
-            this.totalRecords = 1;
+            totalRecords = 1;
         }
     }
-
 }

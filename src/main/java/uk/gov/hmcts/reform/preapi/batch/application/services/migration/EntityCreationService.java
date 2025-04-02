@@ -35,15 +35,16 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
-    private LoggingService loggingService;
-    static final String BOOKING_FIELD = "bookingField";
-    static final String CAPTURE_SESSION_FIELD = "captureSessionField";
-    static final String RECORDING_FIELD = "recordingField";
-    static final String SHARE_BOOKING_FIELD = "vf:shareBooking:";
+    private static final String BOOKING_FIELD = "bookingField";
+    private static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    // TODO remove unused constant ?
+    private static final String RECORDING_FIELD = "recordingField";
+    private static final String SHARE_BOOKING_FIELD = "vf:shareBooking:";
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
 
+    private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
     private final UserService userService;
 
@@ -70,12 +71,12 @@ public class EntityCreationService {
         return caseDTO;
     }
 
-    public CreateBookingDTO createBooking(ProcessedRecording cleansedData, CreateCaseDTO acase, String key) {
+    public CreateBookingDTO createBooking(ProcessedRecording cleansedData, CreateCaseDTO aCase, String key) {
         var bookingDTO = new CreateBookingDTO();
         bookingDTO.setId(UUID.randomUUID());
-        bookingDTO.setCaseId(acase.getId());
+        bookingDTO.setCaseId(aCase.getId());
         bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
-        bookingDTO.setParticipants(acase.getParticipants());
+        bookingDTO.setParticipants(aCase.getParticipants());
 
         cacheService.saveHashValue(key, BOOKING_FIELD, bookingDTO);
         return bookingDTO;
@@ -288,5 +289,4 @@ public class EntityCreationService {
 
         return createInviteDTO;
     }
-
 }

@@ -1,5 +1,9 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -7,7 +11,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-public class CSVArchiveListData {    
+@Getter
+@NoArgsConstructor
+public class CSVArchiveListData {
     private static final List<String> DATE_PATTERNS = List.of(
         "dd/MM/yyyy HH:mm", "dd/MM/yyyy H:mm",
         "d/MM/yyyy HH:mm", "d/MM/yyyy H:mm",
@@ -17,21 +23,22 @@ public class CSVArchiveListData {
         "d-MM-yyyy HH:mm", "d-MM-yyyy H:mm",
         "dd-M-yyyy HH:mm", "dd-M-yyyy H:mm",
         "d-M-yyyy HH:mm", "d-M-yyyy H:mm",
-        "yyyy-MM-dd HH:mm:ss"  
+        "yyyy-MM-dd HH:mm:ss"
 
     );
 
     private String archiveName = "";
     private String sanitizedArchiveName = "";
+    @Setter
     private String createTime = "";
     private Integer duration = 0;
+    @Setter
     private String fileName = "";
+    @Setter
     private String fileSize = "";
 
-    public CSVArchiveListData() {
-    }
-
-    public CSVArchiveListData(String archiveName, String createTime, Integer duration, 
+    // TODO remove unused ?
+    public CSVArchiveListData(String archiveName, String createTime, Integer duration,
         String fileName, String fileSize) {
         this.archiveName = archiveName;
         this.createTime = createTime;
@@ -40,25 +47,17 @@ public class CSVArchiveListData {
         this.fileSize = fileSize;
     }
 
-    public String getArchiveName() {
-        return archiveName;
-    }
-
+    // TODO remove unused ?
     public void setArchiveName(String archiveName) {
         this.archiveName = archiveName;
         this.sanitizedArchiveName = computeSanitizedName(archiveName);
     }
 
-    public String getSanitizedArchiveName() {
-        return sanitizedArchiveName;
-    }
-
-
     private String computeSanitizedName(String archiveName) {
         if (archiveName == null || archiveName.isEmpty()) {
             return "";
         }
-        
+
         return archiveName
             .replaceAll("^QC[_\\d]?", "")
             .replaceAll("^QC(?![A-Za-z])", "")
@@ -71,44 +70,16 @@ public class CSVArchiveListData {
 
     }
 
-
-    public String getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(String createTime) {
-        this.createTime = createTime;
-    }
-
-    public Integer getDuration() {
-        return duration;
-    }
-
     public void setDuration(Integer duration) {
         this.duration = (duration != null) ? duration : 0;
     }
 
-    public String getFileName() {
-        return fileName;
-    }
-
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
-    }
-
-    public String getFileSize() {
-        return fileSize;
-    }
-
-    public void setFileSize(String fileSize) {
-        this.fileSize = fileSize;
-    }
-
+    // TODO remove unused ?
     public String getArchiveNameNoExt() {
         if (archiveName == null || archiveName.isEmpty()) {
             return archiveName;
         }
-        
+
         int lastDotIndex = archiveName.lastIndexOf('.');
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
@@ -143,13 +114,13 @@ public class CSVArchiveListData {
 
     @Override
     public String toString() {
-        return "CSVArchiveListData{" 
-               + "archiveName='" + archiveName + '\'' 
-               + ", sanitizedName='" + sanitizedArchiveName + '\''  
-               + ", createTime='" + createTime + '\'' 
-               + ", duration=" + duration 
-               + ", fileName='" + fileName + '\'' 
-               + ", fileSize='" + fileSize + '\'' 
+        return "CSVArchiveListData{"
+               + "archiveName='" + archiveName + '\''
+               + ", sanitizedName='" + sanitizedArchiveName + '\''
+               + ", createTime='" + createTime + '\''
+               + ", duration=" + duration
+               + ", fileName='" + fileName + '\''
+               + ", fileSize='" + fileSize + '\''
                + '}';
     }
 }

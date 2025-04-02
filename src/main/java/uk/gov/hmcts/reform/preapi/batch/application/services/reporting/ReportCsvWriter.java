@@ -1,8 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.reporting;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -14,9 +13,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Service
-public class ReportingService {
-    private static final Logger logger = LoggerFactory.getLogger(ReportingService.class);
+@Slf4j
+@UtilityClass
+public class ReportCsvWriter {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH:mm");
 
     /**
@@ -28,9 +27,9 @@ public class ReportingService {
      * @param showTimestamp  Whether to include a timestamp in the file name.
      * @return The {@link Path} to the created CSV file.
      */
-    public <T> Path writeToCsv(
-        List<String> headers, 
-        List<T> dataRows, 
+    public static <T> Path writeToCsv(
+        List<String> headers,
+        List<T> dataRows,
         String fileNamePrefix,
         String outputDir,
         boolean showTimestamp
@@ -52,15 +51,15 @@ public class ReportingService {
         try {
             if (!Files.exists(outputPath)) {
                 Files.createDirectories(outputPath);
-                logger.info("Created report output directory: {}", outputDir);
+                log.info("Created report output directory: {}", outputDir);
             }
         } catch (Exception e) {
-            logger.error("Failed to create output directory: {}", outputDir, e);
+            log.error("Failed to create output directory: {}", outputDir, e);
             throw e;
         }
-        
+
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
-        String fileName = showTimestamp 
+        String fileName = showTimestamp
             ? String.format("%s-%s.csv", fileNamePrefix, timestamp)
             : fileNamePrefix + ".csv";
         Path filePath = outputPath.resolve(fileName);
@@ -73,16 +72,16 @@ public class ReportingService {
                 writer.write(formatDataRow(dataRow));
                 writer.newLine();
             }
-        } 
-        return filePath;      
+        }
+        return filePath;
     }
 
     private <T> String formatDataRow(T dataRow) {
         if (dataRow instanceof List<?> list) {
             return list.stream()
-                .map(String::valueOf)  
-                .collect(Collectors.joining(",")); 
-        } 
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+        }
         return dataRow.toString();
     }
 }

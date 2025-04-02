@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.config;
 
+import lombok.Cleanup;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecutionListener;
@@ -67,7 +68,6 @@ public class BatchConfiguration implements StepExecutionListener {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final CSVReader csvReader;
     private final PreProcessor preProcessor;
     private final RecordingMetadataProcessor recordingPreProcessor;
     private final Processor itemProcessor;
@@ -76,36 +76,34 @@ public class BatchConfiguration implements StepExecutionListener {
     private final BatchRobotUserTask robotUserTask;
     private final ArchiveMetadataXmlExtractor xmlProcessingService;
     private final DeltaProcessor deltaProcessor;
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
 
     @Autowired
     public BatchConfiguration(
-        JobRepository jobRepository,
-        PlatformTransactionManager transactionManager,
-        CSVReader csvReader,
-        PreProcessor preProcessor,
-        RecordingMetadataProcessor recordingPreProcessor,
-        ReferenceDataProcessor referenceDataProcessor,
-        Processor itemProcessor,
-        EntityCreationService entityCreationService,
-        CaseService caseService,
-        BookingService bookingService,
-        CaptureSessionService captureSessionService,
-        CaseRepository caseRepository,
-        BookingRepository bookingRepository,
-        CaptureSessionRepository captureSessionRepository,
-        RecordingRepository recordingRepository,
-        RecordingService recordingService,
-        Writer itemWriter,
-        MigrationTrackerService migrationTrackerService,
-        BatchRobotUserTask robotUserTask,
-        ArchiveMetadataXmlExtractor xmlProcessingService,
-        LoggingService loggingService,
-        DeltaProcessor deltaProcessor
+        final JobRepository jobRepository,
+        final PlatformTransactionManager transactionManager,
+        final PreProcessor preProcessor,
+        final RecordingMetadataProcessor recordingPreProcessor,
+        final ReferenceDataProcessor referenceDataProcessor,
+        final Processor itemProcessor,
+        final EntityCreationService entityCreationService,
+        final CaseService caseService,
+        final BookingService bookingService,
+        final CaptureSessionService captureSessionService,
+        final CaseRepository caseRepository,
+        final BookingRepository bookingRepository,
+        final CaptureSessionRepository captureSessionRepository,
+        final RecordingRepository recordingRepository,
+        final RecordingService recordingService,
+        final Writer itemWriter,
+        final MigrationTrackerService migrationTrackerService,
+        final BatchRobotUserTask robotUserTask,
+        final ArchiveMetadataXmlExtractor xmlProcessingService,
+        final LoggingService loggingService,
+        final DeltaProcessor deltaProcessor
     ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
-        this.csvReader = csvReader;
         this.preProcessor = preProcessor;
         this.recordingPreProcessor = recordingPreProcessor;
         this.itemProcessor = itemProcessor;
@@ -120,7 +118,6 @@ public class BatchConfiguration implements StepExecutionListener {
     // =========================
     // Job Definitions
     // =========================
-
     @Bean
     public Job fetchXmlJob() {
         return new JobBuilder("fetchXmlJob", jobRepository)
@@ -189,7 +186,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return createReadStep(
             "sitesDataStep",
             new ClassPathResource(SITES_CSV),
-            new String[]{"site_reference", "site_name", "location", "court_name"},
+            new String[] {"site_reference", "site_name", "location", "court_name"},
             CSVSitesData.class,
             false
         );
@@ -199,7 +196,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return createReadStep(
             "channelUserStep",
             new ClassPathResource(CHANNEL_USER_CSV),
-            new String[]{"channel_name", "channel_user", "channel_user_email"},
+            new String[] {"channel_name", "channel_user", "channel_user_email"},
             CSVChannelData.class,
             false
         );
@@ -209,7 +206,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return createReadStep(
             "archiveListDataStep",
             new ClassPathResource(ARCHIVE_LIST_INITAL),
-            new String[]{"archive_name", "create_time", "duration", "file_name", "file_size"},
+            new String[] {"archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true
         );
@@ -219,7 +216,7 @@ public class BatchConfiguration implements StepExecutionListener {
         return createReadStep(
             "deltaDataStep",
             new ClassPathResource(DELTA_RECORDS_CSV),
-            new String[]{"archive_name", "create_time", "duration", "file_name", "file_size"},
+            new String[] {"archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true
         );
@@ -234,7 +231,6 @@ public class BatchConfiguration implements StepExecutionListener {
                     "src/main/resources/batch/Archive_List_updated.csv",
                     deltaFilePath
                 );
-
                 return RepeatStatus.FINISHED;
             }, transactionManager)
             .build();
@@ -267,14 +263,11 @@ public class BatchConfiguration implements StepExecutionListener {
                                                                                       .get("migrationType"));
 
                     boolean debug = Boolean.parseBoolean(debugParam);
-
                     loggingService.setDebugEnabled(debug);
                     loggingService.initializeLogFile(migrationType);
                     loggingService.logInfo("Job started with debug mode: " + debug);
-
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
@@ -295,8 +288,7 @@ public class BatchConfiguration implements StepExecutionListener {
 
                     xmlProcessingService.extractAndReportArchiveMetadata(CONTAINER_NAME, FULL_PATH, outputFileName);
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
@@ -306,8 +298,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 (contribution, chunkContext) -> {
                     preProcessor.initialize();
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
@@ -325,22 +316,17 @@ public class BatchConfiguration implements StepExecutionListener {
                     Resource resource = new ClassPathResource(filePath);
                     String[] fieldNames = {"archive_name", "create_time", "duration", "file_name", "file_size"};
 
-                    FlatFileItemReader<CSVArchiveListData> reader = csvReader.createReader(
+                    @Cleanup FlatFileItemReader<CSVArchiveListData> reader = CSVReader.createReader(
                         resource, fieldNames, CSVArchiveListData.class
                     );
-
                     reader.open(new ExecutionContext());
 
                     CSVArchiveListData item;
                     while ((item = reader.read()) != null) {
                         recordingPreProcessor.processRecording(item);
                     }
-
-                    reader.close();
-
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
@@ -350,8 +336,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 (contribution, chunkContext) -> {
                     migrationTrackerService.writeAllToCsv();
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
@@ -361,8 +346,7 @@ public class BatchConfiguration implements StepExecutionListener {
                 (contribution, chunkContext) -> {
                     robotUserTask.signIn();
                     return RepeatStatus.FINISHED;
-                }, transactionManager
-            )
+                }, transactionManager)
             .build();
     }
 
@@ -372,17 +356,8 @@ public class BatchConfiguration implements StepExecutionListener {
     // =========================
     @Bean
     public JobExecutionDecider deltaProcessingDecider() {
-        return (jobExecution, stepExecution) -> {
-            var migrationType = MigrationType.fromString(
-                (String) Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))
-            );
-
-            if (migrationType.equals(MigrationType.DELTA)) {
-                return new FlowExecutionStatus("DELTA");
-            } else {
-                return new FlowExecutionStatus("FULL");
-            }
-        };
+        return (jobExecution, stepExecution) -> new FlowExecutionStatus(MigrationType.fromString(
+            Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))).toString());
     }
 
     protected JobExecutionDecider fileAvailabilityDecider() {
@@ -391,11 +366,9 @@ public class BatchConfiguration implements StepExecutionListener {
             Resource channelReport = new ClassPathResource(CHANNEL_USER_CSV);
             Resource archiveList = new ClassPathResource(ARCHIVE_LIST_INITAL);
 
-            if (sites.exists() && channelReport.exists() && archiveList.exists()) {
-                return new FlowExecutionStatus("COMPLETED");
-            } else {
-                return new FlowExecutionStatus("FAILED");
-            }
+            return sites.exists() && channelReport.exists() && archiveList.exists()
+                ? new FlowExecutionStatus("COMPLETED")
+                : new FlowExecutionStatus("FAILED");
         };
     }
 
@@ -417,8 +390,6 @@ public class BatchConfiguration implements StepExecutionListener {
             .skip(Exception.class)
             .build();
     }
-
-
 
     protected <T> Step createReadStep(
         String stepName,
@@ -445,7 +416,7 @@ public class BatchConfiguration implements StepExecutionListener {
         Class<T> targetClass
     ) {
         try {
-            return csvReader.createReader(inputFile, fieldNames, targetClass);
+            return CSVReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {
             loggingService.logError("Failed to create reader for file: {}" + inputFile.getFilename() + e);
             // logger.error("Failed to create reader for file: {}", inputFile.getFilename(), e);
