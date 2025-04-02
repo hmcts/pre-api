@@ -45,7 +45,8 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
     public BatchImportMissingMkAssets(UserService userService,
                                       UserAuthenticationService userAuthenticationService,
                                       @Value("${cron-user-email}") String cronUserEmail,
-                                      MediaServiceBroker mediaServiceBroker, RecordingService recordingService,
+                                      MediaServiceBroker mediaServiceBroker,
+                                      RecordingService recordingService,
                                       AzureVodafoneStorageService azureVodafoneStorageService,
                                       AzureIngestStorageService azureIngestStorageService,
                                       AzureFinalStorageService azureFinalStorageService) {
@@ -134,12 +135,9 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
                 Thread.currentThread().interrupt();
             }
             jobs = jobs.stream()
-                .map(jobName ->
-                         mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName)
-                             .equals(RecordingStatus.PROCESSING)
-                             ? jobName
-                             : null)
-                .filter(Objects::nonNull)
+                .filter(jobName ->
+                    mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, jobName)
+                        .equals(RecordingStatus.PROCESSING))
                 .toList();
         } while (!jobs.isEmpty());
         log.info("Transform jobs completed for batch");
@@ -158,7 +156,8 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
     }
 
     private void updateRecording(RecordingDTO originalRecording, String mp4FileName, Duration duration) {
-        if (originalRecording.getFilename().equals(mp4FileName) && originalRecording.getDuration().equals(duration)) {
+        if (originalRecording.getFilename().equals(mp4FileName)
+            && Objects.equals(originalRecording.getDuration(), duration)) {
             return;
         }
 
