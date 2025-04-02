@@ -1,11 +1,11 @@
 package uk.gov.hmcts.reform.preapi.batch.util;
 
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
 public final class RegexPatterns {
 
