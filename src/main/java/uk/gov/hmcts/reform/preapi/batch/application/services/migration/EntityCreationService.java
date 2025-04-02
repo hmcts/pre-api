@@ -66,6 +66,7 @@ public class EntityCreationService {
         caseDTO.setTest(false);
         caseDTO.setState(CaseState.OPEN);
         caseDTO.setClosedAt(null);
+        caseDTO.setOrigin(RecordingOrigin.VODAFONE);
         return caseDTO;
     }
 

@@ -29,5 +29,6 @@ public class BatchRobotUserTask extends RobotUserTask {
 
     @Override
     public void run() {
+        // this method is left empty because BatchRobotUserTask does not require a scheduled run.
     }
 }

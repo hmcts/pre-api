@@ -29,10 +29,10 @@ public class FailedItem {
     }
 
     public String getFileName() {
-        if (item instanceof CSVArchiveListData) {
-            return ((CSVArchiveListData) item).getFileName();
-        } else if (item instanceof ExtractedMetadata) {
-            return ((ExtractedMetadata) item).getFileName();
+        if (item instanceof CSVArchiveListData csvArchiveListData) {
+            return (csvArchiveListData).getFileName();
+        } else if (item instanceof ExtractedMetadata extractedMetadata) {
+            return (extractedMetadata).getFileName();
         }
         return "Unknown File";
     }

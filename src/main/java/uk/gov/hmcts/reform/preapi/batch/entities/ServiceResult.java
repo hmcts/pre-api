@@ -4,8 +4,8 @@ public class ServiceResult<T> {
     private T data;
     private String errorMessage;
     private String category;
-    public boolean success;
-    public boolean isTest;
+    private boolean success;
+    private boolean isTest;
     private TestItem testItem;
 
     // success result

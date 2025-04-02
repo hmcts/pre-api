@@ -21,6 +21,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.DATE_TIME_FORMAT;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.CREATE_TIME;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.DISPLAY_NAME;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.FILE_SIZE;
+
 /**
  * Service responsible for tracking and reporting the migration of items.
  * It maintains lists of successfully migrated items and failed items,
@@ -126,7 +131,7 @@ public class MigrationTrackerService {
      * and generates all reports at once.
      */
     public void writeAllToCsv() {
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss"));
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
         String outputDir = "Migration Reports/" + timestamp;
         new File(outputDir).mkdirs();
 
@@ -151,8 +156,8 @@ public class MigrationTrackerService {
 
     private List<String> getMigratedItemsHeaders() {
         return List.of(
-            "Display Name", "Case Reference","Witness", "Defendant", "Scheduled For",
-            "Case State", "Version", "File Name", "Duration", "File Size",
+            DISPLAY_NAME, "Case Reference", "Witness", "Defendant", "Scheduled For",
+            "Case State", "Version", "File Name", "Duration", FILE_SIZE,
             "Date / Time migrated"
         );
     }
@@ -160,7 +165,7 @@ public class MigrationTrackerService {
     private List<List<String>> buildMigratedItemsRows() {
         List<List<String>> rows = new ArrayList<>();
         for (PassItem item : migratedItems) {
-            String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
 
             rows.add(List.of(
                     getValueOrEmpty(item.getArchiveName()),
@@ -182,7 +187,7 @@ public class MigrationTrackerService {
 
     private List<String> getTestFailureHeaders() {
         return List.of(
-            "Display Name","Create Time","Filename", "File Size", "Migration Date / Time",
+            DISPLAY_NAME, CREATE_TIME,"Filename", FILE_SIZE, "Migration Date / Time",
             "Duration Check Fail", "Duration (in seconds)", "Keyword Check Fail",
             "Keyword Found", "Test Pattern"
         );
@@ -192,7 +197,7 @@ public class MigrationTrackerService {
         List<List<String>> rows = new ArrayList<>();
         for (TestItem item : testFailures) {
             CSVArchiveListData archiveItem = item.getArchiveItem();
-            String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
 
             rows.add(List.of(
                 getValueOrEmpty(archiveItem.getArchiveName()),
@@ -211,7 +216,7 @@ public class MigrationTrackerService {
     }
 
     private List<String> getFailedItemsHeaders() {
-        return List.of("Reason for Failure", "Display Name","Create Time","Filename", "File Size", "Date / Time");
+        return List.of("Reason for Failure", DISPLAY_NAME,CREATE_TIME,"Filename", FILE_SIZE, "Date / Time");
     }
 
     public List<List<String>> buildFailedItemsRows(List<FailedItem> items) {
@@ -219,7 +224,7 @@ public class MigrationTrackerService {
         
         for (FailedItem item : items) {
             Object itemData = item.getItem();
-            String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
             
             if (itemData instanceof CSVArchiveListData archiveItem) {
                 rows.add(List.of(

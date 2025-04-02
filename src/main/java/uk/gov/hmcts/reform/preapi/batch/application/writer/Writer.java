@@ -24,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -96,7 +97,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
 
     private List<MigratedItemGroup> filterValidItems(Chunk<? extends MigratedItemGroup> items) {
         return items.getItems().stream()
-                    .filter(item -> item != null)
+                    .filter(Objects::nonNull)
                     .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
     }
 

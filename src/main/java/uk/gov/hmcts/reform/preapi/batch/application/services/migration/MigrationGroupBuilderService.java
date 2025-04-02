@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 
@@ -130,55 +131,66 @@ public class MigrationGroupBuilderService {
     private CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
 
-        if (caseReference == null || caseReference.isBlank()) {
+        // 1 - return if case reference is invalid
+        if (isInvalidCaseReference(caseReference)) {
             return null;
         }
 
+        // update existing case if present
         if (caseCache.containsKey(caseReference)) {
-            CreateCaseDTO existingCase = caseCache.get(caseReference);
-
-            if (existingCase == null) {
-                return null;
-            }
-
-            Set<CreateParticipantDTO> currentParticipants = existingCase.getParticipants();
-            if (currentParticipants == null) {
-                currentParticipants = new HashSet<>();
-            }
-
-            Set<CreateParticipantDTO> newParticipants = entityCreationService.createParticipants(cleansedData);
-            Set<CreateParticipantDTO> updatedParticipants = new HashSet<>(currentParticipants);
-            boolean changed = false;
-
-            for (CreateParticipantDTO newParticipant : newParticipants) {
-                boolean exists = false;
-
-                for (CreateParticipantDTO existingParticipant : currentParticipants) {
-                    if (isSameParticipant(existingParticipant, newParticipant)) {
-                        exists = true;
-                        break;
-                    }
-                }
-
-                if (!exists) {
-                    updatedParticipants.add(newParticipant);
-                    changed = true;
-                }
-            }
-
-            if (changed) {
-                existingCase.setParticipants(updatedParticipants);
-            }
-            return existingCase;
+            return updateExistingCase(caseReference, cleansedData);
         }
 
-        CreateCaseDTO newCase = entityCreationService.createCase(cleansedData);
-        if (newCase == null) {
+        // otherwise return a new case
+        return createNewCase(caseReference, cleansedData);
+    }
+
+    private boolean isInvalidCaseReference(String caseReference) {
+        return caseReference == null || caseReference.isBlank();
+    }
+
+    private CreateCaseDTO updateExistingCase(String caseReference, ProcessedRecording cleansedData) {
+        CreateCaseDTO existingCase = caseCache.get(caseReference);
+        if (existingCase == null) {
             return null;
         }
 
-        caseCache.put(caseReference, newCase);
-        return newCase;
+        Set<CreateParticipantDTO> currentParticipants =
+            Optional.ofNullable(existingCase.getParticipants()).orElse(new HashSet<>());
+
+        Set<CreateParticipantDTO> newParticipants = entityCreationService.createParticipants(cleansedData);
+        Set<CreateParticipantDTO> updatedParticipants = new HashSet<>(currentParticipants);
+
+        boolean changed = addNewParticipants(currentParticipants, newParticipants, updatedParticipants);
+
+        if (changed) {
+            existingCase.setParticipants(updatedParticipants);
+        }
+        return existingCase;
+    }
+
+    private boolean addNewParticipants(
+        Set<CreateParticipantDTO> currentParticipants,
+        Set<CreateParticipantDTO> newParticipants,
+        Set<CreateParticipantDTO> updatedParticipants
+    ) {
+        boolean changed = false;
+        for (CreateParticipantDTO newParticipant : newParticipants) {
+            if (!participantExists(currentParticipants, newParticipant)) {
+                updatedParticipants.add(newParticipant);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private boolean participantExists(Set<CreateParticipantDTO> participants, CreateParticipantDTO candidate) {
+        for (CreateParticipantDTO existingParticipant : participants) {
+            if (isSameParticipant(existingParticipant, candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isSameParticipant(CreateParticipantDTO p1, CreateParticipantDTO p2) {
@@ -187,14 +199,22 @@ public class MigrationGroupBuilderService {
             && Objects.equals(normalizeName(p1.getLastName()), normalizeName(p2.getLastName()));
     }
 
+    private CreateCaseDTO createNewCase(String caseReference, ProcessedRecording cleansedData) {
+        CreateCaseDTO newCase = entityCreationService.createCase(cleansedData);
+        if (newCase == null) {
+            return null;
+        }
+        caseCache.put(caseReference, newCase);
+        return newCase;
+    }
+
     private String normalizeName(String name) {
         return name == null ? "" : name.trim().toLowerCase();
     }
 
     private CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO acase) {
         if (cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)) {
-            CreateBookingDTO bookingDTO = cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
-            return bookingDTO;
+            return cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
         }
         return entityCreationService.createBooking(cleansedData, acase, baseKey);
     }

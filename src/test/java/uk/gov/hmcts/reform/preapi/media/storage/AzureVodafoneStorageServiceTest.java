@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = AzureVodafoneStorageService.class)
 public class AzureVodafoneStorageServiceTest {
     @MockitoBean
-    private BlobServiceClient vodaStorageClient;
+    private BlobServiceClient vodafoneStorageClient;
 
     @Mock
     private BlobContainerClient blobContainerClient;
@@ -41,7 +41,7 @@ public class AzureVodafoneStorageServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(vodaStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
+        when(vodafoneStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
     }
 
@@ -51,9 +51,9 @@ public class AzureVodafoneStorageServiceTest {
         when(xmlItem.getName()).thenReturn("testfile.xml");
         var vidItem = mock(BlobItem.class);
         when(vidItem.getName()).thenReturn("testfile.mp4");
-        when(pagedIterable.stream()).thenAnswer(inv -> Stream.of(xmlItem, vidItem));
+        when(pagedIterable.stream()).thenReturn(Stream.of(xmlItem, vidItem));
 
-        assertEquals(azureVodafoneStorageService.fetchBlobNames("test-container"), List.of("testfile.xml"));
+        assertEquals(List.of("testfile.xml"), azureVodafoneStorageService.fetchBlobNames("test-container"));
     }
 
     @Test

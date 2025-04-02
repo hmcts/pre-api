@@ -32,12 +32,13 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     @Override
     public Object process(Object item) {
         try {
-            if (item instanceof CSVSitesData csvSitesData) {
-                processSitesData(csvSitesData);
-            } else if (item instanceof CSVChannelData csvChannelData) {
-                processChannelUserData(csvChannelData);
-            } else {
-                loggingService.logError("Unsupported reference data type: %s", item.getClass().getName());
+            switch (item) {
+                case CSVSitesData csvSitesData -> processSitesData(csvSitesData);
+                case CSVChannelData csvChannelData -> processChannelUserData(csvChannelData);
+                default -> loggingService.logError(
+                    "Unsupported reference data type: %s", 
+                    item.getClass().getName()
+                );
             }
         } catch (Exception e) {
             loggingService.logError("Error processing reference data: %s - %s", e.getMessage(), e);
