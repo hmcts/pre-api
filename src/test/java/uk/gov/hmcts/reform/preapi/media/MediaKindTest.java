@@ -983,6 +983,39 @@ public class MediaKindTest {
         verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
+    @Test
+    @DisplayName("Should throw error when failing to get streaming locator (not 404)")
+    void playLiveEventStreamingLocatorFailed() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(ConflictException.class));
+
+        when(mockClient.listStreamingLocatorPaths(liveEventName))
+            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
+
+        assertThrows(
+            ConflictException.class,
+            () -> mediaKind.playLiveEvent(captureSession.getId())
+        );
+        verify(mockClient, never()).createStreamingLocator(any(), any());
+    }
+
     @SuppressWarnings("checkstyle:Indentation")
     private MkStreamingLocatorUrlPaths getGoodStreamingLocatorPaths(String liveEventName)
         throws JsonProcessingException {
