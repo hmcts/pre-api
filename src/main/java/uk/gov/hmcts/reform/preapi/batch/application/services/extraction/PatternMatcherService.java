@@ -28,7 +28,7 @@ public class PatternMatcherService {
         Optional<Map.Entry<String, Matcher>> validMatch =
             findMatch(archiveName, RegexPatterns.LEGITAMITE_PATTERNS, "VALID");
         if (validMatch.isEmpty()) {
-            loggingService.logDebug("No pattern matched for file: %s", archiveName);
+            return Optional.empty();
         }
 
         return validMatch;

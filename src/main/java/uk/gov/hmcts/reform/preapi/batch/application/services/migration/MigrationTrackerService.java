@@ -6,6 +6,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsv
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
@@ -49,6 +50,7 @@ public class MigrationTrackerService {
     private final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
     private final List<PassItem> migratedItems = new ArrayList<>();
     private final List<TestItem> testFailures = new ArrayList<>();
+    private final List<NotifyItem> notifyItems = new ArrayList<>();
     private final List<CreateInviteDTO> invitedUsers = new ArrayList<>();
 
     private final LoggingService loggingService;
@@ -59,6 +61,10 @@ public class MigrationTrackerService {
 
     public void addMigratedItem(PassItem item) {
         migratedItems.add(item);
+    }
+
+    public void addNotifyItem(NotifyItem item) {
+        notifyItems.add(item);
     }
 
     public void addTestItem(TestItem item) {
@@ -90,6 +96,16 @@ public class MigrationTrackerService {
             ReportCsvWriter.writeToCsv(MIGRATED_ITEM_HEADERS, rows, fileName, outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
+        }
+    }
+
+    public void writeNotifyItemsToCsv(String fileName, String outputDir) {
+        List<String> headers = getNotifyItemsHeaders();
+        List<List<String>> rows = buildNotifyItemsRows();
+        try {
+            ReportCsvWriter.writeToCsv(headers, rows, fileName, outputDir, false);
+        } catch (IOException e) {
+            loggingService.logError("Failed to write notify items to CSV: %s", e.getMessage());
         }
     }
 
@@ -149,6 +165,7 @@ public class MigrationTrackerService {
         writeCategorizedFailureReports(failureDir);
         writeTestFailureReport("Test", failureDir);
         writeInvitedUsersToCsv("Invited_users", outputDir);
+        writeNotifyItemsToCsv("Notify", outputDir);
 
         loggingService.setTotalMigrated(migratedItems.size());
         loggingService.setTotalFailed(categorizedFailures, testFailures);
@@ -159,6 +176,13 @@ public class MigrationTrackerService {
     // ==================================
     // Helpers
     // ==================================
+
+    private List<String> getNotifyItemsHeaders() {
+        return List.of(
+            "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant",
+            "Extracted_witness", "Date / Time migrated"
+        );
+    }
 
     private List<List<String>> buildMigratedItemsRows() {
         List<List<String>> rows = new ArrayList<>();
@@ -179,6 +203,24 @@ public class MigrationTrackerService {
                 formatDuration(cleansedData.getDuration()),
                 getValueOrEmpty(extractedMetadata.getFileSize()),
                 migratedTime));
+        }
+        return rows;
+    }
+
+    private List<List<String>> buildNotifyItemsRows() {
+        List<List<String>> rows = new ArrayList<>();
+        for (NotifyItem item : notifyItems) {
+            String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+
+            rows.add(List.of(
+                    getValueOrEmpty(item.getNotification()),
+                    getValueOrEmpty(item.getExtractedMetadata().getArchiveName()),
+                    getValueOrEmpty(item.getExtractedMetadata().getCourtReference()),
+                    getValueOrEmpty(item.getExtractedMetadata().getDefendantLastName()),
+                    getValueOrEmpty(item.getExtractedMetadata().getWitnessFirstName()),
+                    migratedTime
+                )
+            );
         }
         return rows;
     }

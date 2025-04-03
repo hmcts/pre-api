@@ -12,7 +12,8 @@ public final class RegexPatterns {
     private RegexPatterns() {
     }
 
-    public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(?:_\\d+)*$");
+    public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
+    
     public static final Pattern S28_PATTERN = Pattern.compile(
         "^(?:S28[_\\s])[A-Za-z0-9_]+_\\d{15,18}(?:\\.(mp4|raw|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
@@ -51,7 +52,7 @@ public final class RegexPatterns {
     // =========================
     // Common Pattern Components
     // =========================
-    private static final String IGNORED_WORDS = "(?:QC|CP-Case|AS URN)";
+    private static final String IGNORED_WORDS = "(?:QC|CP-Case|CP CASE|-CP-|AS URN)";
     private static final String SEPARATOR_ONE = "[-_\\s]+";
     private static final String SEPARATOR_ZERO = "[-_\\s]?";
     private static final String OPTIONAL_PREFIX = "(?:\\d{1,5}[-_]?)?";
@@ -65,9 +66,9 @@ public final class RegexPatterns {
         "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
 
-    private static final String NAMES_PATTERN = "(?<defendantLastName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*)"
+    private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z0-9]+)(?>[-\s][A-Za-z0-9]+)*)"
                                                 + SEPARATOR_ONE 
-                                                + "(?<witnessFirstName>[A-Za-z0-9&']+(?:[-'\\s][A-Za-z]+)*)";
+                                                + "(?<witnessFirstName>[?>A-Za-z0-9&']+(?>[-'\\s][A-Za-z]+)*)";
     /**
      * Standard pattern for most common recording names.
      * Format: Court Date URN [Exhibit] Defendant Witness Version [.ext]
@@ -181,7 +182,8 @@ public final class RegexPatterns {
         "^" + COURT_PATTERN + SEPARATOR_ONE
         + DATE_PATTERN + SEPARATOR_ZERO
         + URN_PATTERN
-        + "(?:[-_\\s](?<urn2>[A-Za-z0-9]+))?" + SEPARATOR_ZERO
+        + "(?<urn2>[A-Za-z0-9]{11})" + SEPARATOR_ZERO
+        // + "(?:[-_\\s](?<urn2>[A-Za-z0-9]+))?" + SEPARATOR_ZERO
         + "(?:(?!" + IGNORED_WORDS + ")" + EXHIBIT_PATTERN + SEPARATOR_ZERO + ")?"
         + NAMES_PATTERN + SEPARATOR_ZERO
         + VERSION_PATTERN
@@ -196,7 +198,7 @@ public final class RegexPatterns {
         "^(?<date>\\d{2}-\\d{2}-\\d{4}-\\d{4})" + SEPARATOR_ONE
         + "(?<exhibitRef>Post[A-Za-z]+)" + SEPARATOR_ONE
         + "(?<witnessFirstName>[A-Za-z0-9]+)" + SEPARATOR_ONE
-        + "(?<defendantLastName>[A-Za-z0-9]+(?:[-\\s][A-Za-z0-9]+)*)"
+        + "(?<defendantLastName>[A-Za-z0-9]+(?>[-\\s][A-Za-z0-9]+)*)"
         + EXTENSION_PATTERN + "$"
     );
 
