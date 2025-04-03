@@ -46,6 +46,9 @@ public class MigrationTrackerService {
     );
     private static final List<String> FAILED_ITEM_HEADERS = List.of(
         "Reason for Failure", DISPLAY_NAME,CREATE_TIME,"Filename", FILE_SIZE, "Date / Time");
+    private static final List<String> NOTIFY_ITEM_HEADERS = List.of(
+        "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant",
+        "Extracted_witness", "Date / Time migrated");
 
     private final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
     private final List<PassItem> migratedItems = new ArrayList<>();
@@ -92,6 +95,7 @@ public class MigrationTrackerService {
 
     public void writeMigratedItemsToCsv(String fileName, String outputDir) {
         List<List<String>> rows = buildMigratedItemsRows();
+
         try {
             ReportCsvWriter.writeToCsv(MIGRATED_ITEM_HEADERS, rows, fileName, outputDir, false);
         } catch (IOException e) {
@@ -100,10 +104,10 @@ public class MigrationTrackerService {
     }
 
     public void writeNotifyItemsToCsv(String fileName, String outputDir) {
-        List<String> headers = getNotifyItemsHeaders();
         List<List<String>> rows = buildNotifyItemsRows();
+
         try {
-            ReportCsvWriter.writeToCsv(headers, rows, fileName, outputDir, false);
+            ReportCsvWriter.writeToCsv(NOTIFY_ITEM_HEADERS, rows, fileName, outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write notify items to CSV: %s", e.getMessage());
         }
@@ -176,13 +180,6 @@ public class MigrationTrackerService {
     // ==================================
     // Helpers
     // ==================================
-
-    private List<String> getNotifyItemsHeaders() {
-        return List.of(
-            "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant",
-            "Extracted_witness", "Date / Time migrated"
-        );
-    }
 
     private List<List<String>> buildMigratedItemsRows() {
         List<List<String>> rows = new ArrayList<>();
