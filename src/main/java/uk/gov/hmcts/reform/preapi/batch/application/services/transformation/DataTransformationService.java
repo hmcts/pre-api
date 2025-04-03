@@ -71,7 +71,7 @@ public class DataTransformationService {
         }
     }
 
-    private ProcessedRecording buildProcessedRecording(
+    protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
@@ -120,7 +120,7 @@ public class DataTransformationService {
      * @param sitesDataMap The sites data map from Cache
      * @return The Court entity or null if not found
      */
-    private Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
+    protected Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
             loggingService.logError("Court reference is null or empty");
@@ -151,7 +151,8 @@ public class DataTransformationService {
         return null;
     }
 
-    private List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
+    // TODO use object instead of Map<String, String>
+    protected List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
         String archiveName = extracted.getArchiveNameNoExt();
         List<String[]> usersAndEmails = getUsersAndEmails(archiveName);
         List<Map<String, String>> contactsList = new ArrayList<>();
@@ -179,7 +180,7 @@ public class DataTransformationService {
      * @param key The key to look up in the channel user data map
      * @return A list of user email arrays
      */
-    private List<String[]> getUsersAndEmails(String key) {
+    protected List<String[]> getUsersAndEmails(String key) {
         Map<String, List<String[]>> channelUserDataMap = referenceDataProcessor.fetchChannelUserDataMap();
         if (channelUserDataMap == null) {
             loggingService.logWarning("Channel user data map is null");
@@ -194,7 +195,7 @@ public class DataTransformationService {
      * @return A map of site data
      * @throws IllegalStateException if sites data is not found in Cache
      */
-    private Map<String, Object> getSitesData() {
+    protected Map<String, Object> getSitesData() {
         Map<String, Object> sitesDataMap = cacheService.getHashAll(
             Constants.CacheKeys.SITES_DATA
         );
@@ -212,10 +213,7 @@ public class DataTransformationService {
      * @param contacts The list of share booking contacts
      * @return The determined case state (OPEN if contacts exist, CLOSED otherwise)
      */
-    private CaseState determineState(List<Map<String, String>> contacts) {
+    protected CaseState determineState(List<Map<String, String>> contacts) {
         return contacts.isEmpty() ? CaseState.CLOSED : CaseState.OPEN;
     }
 }
-
-
-
