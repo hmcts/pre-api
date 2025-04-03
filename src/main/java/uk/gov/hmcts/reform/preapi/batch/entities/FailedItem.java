@@ -1,39 +1,17 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
 public class FailedItem {
 
-    private Object item;
+    private IArchiveData item;
     private String reason;
     private String failureCategory;
 
-    public FailedItem(
-        Object item, 
-        String reason,
-        String failureCategory
-    ) {
-        this.item = item;
-        this.reason = reason;
-        this.failureCategory = failureCategory;
-    }
-
-    public Object getItem() {
-        return item;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public String getFailureCategory() {
-        return failureCategory;
-    }
-
     public String getFileName() {
-        if (item instanceof CSVArchiveListData csvArchiveListData) {
-            return (csvArchiveListData).getFileName();
-        } else if (item instanceof ExtractedMetadata extractedMetadata) {
-            return (extractedMetadata).getFileName();
-        }
-        return "Unknown File";
+        return item.getFileName();
     }
 }

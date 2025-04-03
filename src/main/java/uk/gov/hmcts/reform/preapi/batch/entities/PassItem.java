@@ -1,21 +1,15 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.AllArgsConstructor;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
 import java.sql.Timestamp;
 import java.time.Duration;
 
+@AllArgsConstructor
 public class PassItem {
     private final ExtractedMetadata item;
     private final ProcessedRecording cleansedData;
-
-    public PassItem(
-        ExtractedMetadata item,
-        ProcessedRecording cleansedData
-    ) {
-        this.item = item;
-        this.cleansedData = cleansedData;
-    }
 
     public String getArchiveName() {
         return item.getArchiveName();

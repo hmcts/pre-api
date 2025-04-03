@@ -1,12 +1,18 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-public class ExtractedMetadata {
+@Getter
+@Setter
+@NoArgsConstructor
+public class ExtractedMetadata implements IArchiveData {
     private String courtReference;
     private String urn;
     private String exhibitReference;
@@ -15,26 +21,26 @@ public class ExtractedMetadata {
     private String recordingVersion;
     private String recordingVersionNumber;
     private String fileExtension;
-    private LocalDateTime createTime;  
-    private int duration;  
-    private String fileName;  
-    private String fileSize;  
+    private LocalDateTime createTime;
+    private int duration;
+    private String fileName;
+    private String fileSize;
     private String archiveName;
     private String sanitizedArchiveName = "";
 
     public ExtractedMetadata(
-        String courtReference, 
-        String urn, 
+        String courtReference,
+        String urn,
         String exhibitReference,
-        String defendantLastName, 
-        String witnessFirstName, 
+        String defendantLastName,
+        String witnessFirstName,
         String recordingVersion,
-        String recordingVersionNumber, 
-        String fileExtension, 
+        String recordingVersionNumber,
+        String fileExtension,
         LocalDateTime createTime,
-        int duration, 
-        String fileName, 
-        String fileSize, 
+        int duration,
+        String fileName,
+        String fileSize,
         String archiveName
     ) {
         this.courtReference = courtReference;
@@ -53,53 +59,7 @@ public class ExtractedMetadata {
         this.archiveName = archiveName;
     }
 
-    public String getCourtReference() { 
-        return courtReference; 
-    }
 
-    public String getUrn() { 
-        return urn; 
-    }
-
-    public String getExhibitReference() { 
-        return exhibitReference; 
-    }
-
-    public String getDefendantLastName() { 
-        return defendantLastName; 
-    }
-
-    public String getWitnessFirstName() { 
-        return witnessFirstName; 
-    }
-
-    public String getRecordingVersion() { 
-        return recordingVersion; 
-    }
-
-    public String getRecordingVersionNumber() { 
-        return recordingVersionNumber; 
-    }
-
-    public String getFileExtension() { 
-        return fileExtension; 
-    }
-
-    public LocalDateTime getCreateTime() { 
-        return createTime; 
-    }  
-
-    public int getDuration() { 
-        return duration; 
-    }  
-
-    public String getFileName() { 
-        return fileName; 
-    }  
-    
-    public String getFileSize() { 
-        return fileSize; 
-    } 
 
     private String formatName(String name) {
         if (name == null) {
@@ -111,15 +71,11 @@ public class ExtractedMetadata {
             .collect(Collectors.joining("-"));
     }
 
-    public String getArchiveName() {
-        return archiveName;
-    }
-
     public String getArchiveNameNoExt() {
         if (archiveName == null || archiveName.isEmpty()) {
             return archiveName;
         }
-        
+
         int lastDotIndex = archiveName.lastIndexOf('.');
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
@@ -133,7 +89,7 @@ public class ExtractedMetadata {
     //     if (archiveName == null || archiveName.isEmpty()) {
     //         return "";
     //     }
-        
+
     //     String sanitized = archiveName
     //         .replaceAll("^QC[_\\d]?", "")
     //         .replaceAll("^QC(?![A-Za-z])", "")
@@ -148,15 +104,15 @@ public class ExtractedMetadata {
 
     public String createCaseReference() {
         if ((urn == null || urn.isEmpty()) && (exhibitReference == null || exhibitReference.isEmpty())) {
-            return ""; 
+            return "";
         }
 
         if (urn == null || urn.isEmpty()) {
-            return exhibitReference; 
+            return exhibitReference;
         }
 
         if (exhibitReference == null || exhibitReference.isEmpty()) {
-            return urn; 
+            return urn;
         }
 
         return urn + "-" + exhibitReference;
