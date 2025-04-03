@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.LocalDateTime;
@@ -8,21 +10,23 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 @Getter
+@Setter
+@NoArgsConstructor
 public class ExtractedMetadata {
-    private final String courtReference;
-    private final String urn;
-    private final String exhibitReference;
-    private final String defendantLastName;
-    private final String witnessFirstName;
-    private final String recordingVersion;
-    private final String recordingVersionNumber;
-    private final String fileExtension;
-    private final LocalDateTime createTime;
-    private final int duration;
-    private final String fileName;
-    private final String fileSize;
-    private final String archiveName;
-    private final String sanitizedArchiveName = "";
+    private String courtReference;
+    private String urn;
+    private String exhibitReference;
+    private String defendantLastName;
+    private String witnessFirstName;
+    private String recordingVersion;
+    private String recordingVersionNumber;
+    private String fileExtension;
+    private LocalDateTime createTime;
+    private int duration;
+    private String fileName;
+    private String fileSize;
+    private String archiveName;
+    private String sanitizedArchiveName = "";
 
     public ExtractedMetadata(
         String courtReference,
