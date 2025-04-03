@@ -30,7 +30,14 @@ class CSVArchiveListDataTest {
     @Test
     void testToString() {
         CSVArchiveListData data = new CSVArchiveListData("testfile.csv", "1627849200000", 30, "file.csv", "100KB");
-        String expectedString = "CSVArchiveListData{archiveName='testfile.csv', sanitizedName='', createTime='1627849200000', duration=30, fileName='file.csv', fileSize='100KB'}";
+        String expectedString =
+            """
+                CSVArchiveListData{archiveName='testfile.csv', \
+                sanitizedName='', \
+                createTime='1627849200000', \
+                duration=30, \
+                fileName='file.csv', \
+                fileSize='100KB'}""";
         assertEquals(expectedString, data.toString());
     }
 
