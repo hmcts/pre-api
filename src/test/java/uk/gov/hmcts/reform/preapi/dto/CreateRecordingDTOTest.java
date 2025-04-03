@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -50,5 +51,32 @@ class CreateRecordingDTOTest {
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
         assertThat(model.getCaptureSessionId()).isEqualTo(recordingEntity.getCaptureSession().getId());
         assertThat(model.getParentRecordingId()).isEqualTo(null);
+    }
+
+    @Test
+    @DisplayName("Should create dto from RecordingDTO")
+    void createDtoFromRecordingDto() {
+        RecordingDTO recording = new RecordingDTO();
+        CaptureSessionDTO captureSession = new CaptureSessionDTO();
+        captureSession.setId(UUID.randomUUID());
+
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+        recording.setParentRecordingId(UUID.randomUUID());
+        recording.setVersion(1);
+        recording.setFilename("example-filename.txt");
+        recording.setCreatedAt(Timestamp.from(Instant.now()));
+        recording.setDuration(Duration.ofMinutes(3));
+        recording.setEditInstructions("{}");
+
+        CreateRecordingDTO createRecordingDTO = new CreateRecordingDTO(recording);
+
+        assertThat(createRecordingDTO.getId()).isEqualTo(recording.getId());
+        assertThat(createRecordingDTO.getCaptureSessionId()).isEqualTo(recording.getCaptureSession().getId());
+        assertThat(createRecordingDTO.getParentRecordingId()).isEqualTo(recording.getParentRecordingId());
+        assertThat(createRecordingDTO.getVersion()).isEqualTo(recording.getVersion());
+        assertThat(createRecordingDTO.getFilename()).isEqualTo(recording.getFilename());
+        assertThat(createRecordingDTO.getDuration()).isEqualTo(recording.getDuration());
+        assertThat(createRecordingDTO.getEditInstructions()).isEqualTo(recording.getEditInstructions());
     }
 }

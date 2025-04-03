@@ -47,7 +47,6 @@ public class AzureVodafoneStorageServiceTest {
 
     @Test
     void fetchBlobNames() {
-        when(blobContainerClient.exists()).thenReturn(true);
         var xmlItem = mock(BlobItem.class);
         when(xmlItem.getName()).thenReturn("testfile.xml");
         var vidItem = mock(BlobItem.class);

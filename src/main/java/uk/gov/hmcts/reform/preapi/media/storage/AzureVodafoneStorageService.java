@@ -20,12 +20,12 @@ public class AzureVodafoneStorageService extends AzureStorageService {
     }
 
     public List<String> fetchBlobNames(String containerName) {
-        var containerClient = client.getBlobContainerClient(containerName);
-
-        return containerClient.listBlobs().stream()
-                              .map(BlobItem::getName)
-                              .filter(name -> name.endsWith(".xml"))
-                              .toList();
+        return client.getBlobContainerClient(containerName)
+            .listBlobs()
+            .stream()
+            .map(BlobItem::getName)
+            .filter(name -> name.endsWith(".xml"))
+            .toList();
     }
 
     public InputStreamResource fetchSingleXmlBlob(String containerName, String blobName) {
