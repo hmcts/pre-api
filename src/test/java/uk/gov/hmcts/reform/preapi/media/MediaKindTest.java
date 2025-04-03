@@ -326,6 +326,8 @@ public class MediaKindTest {
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(NotFoundException.class));
 
         mediaKind.startLiveEvent(captureSession);
 
@@ -334,6 +336,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).getStreamingLocator(any());
         verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
@@ -345,6 +348,8 @@ public class MediaKindTest {
 
         when(mockClient.putLiveEvent(any(), any()))
             .thenThrow(mock(ConflictException.class));
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(NotFoundException.class));
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
 
         mediaKind.startLiveEvent(captureSession);
@@ -354,6 +359,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).getStreamingLocator(any());
         verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
@@ -923,6 +929,9 @@ public class MediaKindTest {
                                      .build()
             );
 
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(NotFoundException.class));
+
         when(mockClient.listStreamingLocatorPaths(liveEventName))
             .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
 
@@ -934,6 +943,44 @@ public class MediaKindTest {
             + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
             + liveEventName
             + "/index.qfm/manifest(format=m3u8-cmaf)");
+    }
+
+    @Test
+    @DisplayName("Should play a live event successfully when streaming locator already exists")
+    void playLiveEventStreamingLocatorAlreadyExistsSuccess() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenReturn(MkStreamingLocator.builder().build());
+
+        when(mockClient.listStreamingLocatorPaths(liveEventName))
+            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
+
+        var result = mediaKind.playLiveEvent(captureSession.getId());
+
+        assertThat(result).isEqualTo(
+            "https://ep-"
+                + DEFAULT_LIVE_STREAMING_ENDPOINT
+                + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
+                + liveEventName
+                + "/index.qfm/manifest(format=m3u8-cmaf)");
+
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @SuppressWarnings("checkstyle:Indentation")
