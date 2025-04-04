@@ -1,5 +1,6 @@
 java:
-  devmemoryLimits: '2048Mi'
+  devmemoryLimits: '3Gi'
+  devmemoryRequests: '3Gi'
   postgresql:
     enabled: true
     primary:
