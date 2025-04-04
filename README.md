@@ -239,7 +239,7 @@ Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/maste
 
 You can manually run a cron task from the cli:
 
-```
+```bash
 TASK_NAME=[task] java -jar pre-api.jar run
 
 # E.g.
@@ -247,6 +247,14 @@ TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
 
 # or
 TASK_NAME=CleanupLiveEvents ./gradlew bootRun
+```
+
+## Migration Tasks
+
+This can be run in the same way as cron jobs.For example:
+
+```bash
+MIGRATION_DEBUG=true MIGRATION_TYPE=SECOND TASK_NAME=FetchXML ./gradlew bootRun
 ```
 
 ## License
