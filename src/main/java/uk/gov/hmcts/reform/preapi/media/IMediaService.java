@@ -6,6 +6,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.PlaybackDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.StreamingLocatorDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.util.List;
@@ -25,6 +26,8 @@ public interface IMediaService {
     LiveEventDTO getLiveEvent(String liveEventId);
 
     List<LiveEventDTO> getLiveEvents();
+
+    List<StreamingLocatorDTO> getStreamingLocators();
 
     void startLiveEvent(CaptureSessionDTO captureSession);
 
