@@ -1,5 +1,8 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.Getter;
+
+@Getter
 public class ServiceResult<T> {
     private T data;
     private String errorMessage;
@@ -12,7 +15,7 @@ public class ServiceResult<T> {
     public ServiceResult(T data) {
         this.data = data;
         this.success = true;
-        this.isTest = false; 
+        this.isTest = false;
     }
 
     // failure result
@@ -28,26 +31,6 @@ public class ServiceResult<T> {
         this.isTest = isTest;
         this.testItem = test;
         this.success = false;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public boolean isTest() {
-        return isTest;
     }
 
     public void setData(T data) {
@@ -66,8 +49,4 @@ public class ServiceResult<T> {
         this.category = category;
     }
 
-    public TestItem getTestItem() { 
-        return testItem;
-    }
-    
 }

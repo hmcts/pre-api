@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
@@ -12,7 +13,8 @@ import java.util.Objects;
 
 @Getter
 @Setter
-public class CSVArchiveListData {
+@NoArgsConstructor
+public class CSVArchiveListData implements IArchiveData  {
     private static final List<String> DATE_PATTERNS = List.of(
         "dd/MM/yyyy HH:mm", "dd/MM/yyyy H:mm",
         "d/MM/yyyy HH:mm", "d/MM/yyyy H:mm",
