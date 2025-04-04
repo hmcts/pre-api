@@ -735,6 +735,10 @@ definitions:
         description: RecordingDuration
         example: PT3M
         type: string
+      duration_formatted:
+        description: RecordingDurationFormattedHHMMSS
+        example: '01:32:24'
+        type: string
       edit_instructions:
         description: RecordingEditInstructions
         type: string
@@ -1097,6 +1101,10 @@ definitions:
       duration:
         description: RecordingDuration
         example: PT3M
+        type: string
+      duration_formatted:
+        description: RecordingDurationFormattedHHMMSS
+        example: '01:32:24'
         type: string
       edit_instructions:
         description: RecordingEditInstructions
@@ -1596,6 +1604,10 @@ definitions:
       duration:
         description: RecordingDuration
         example: PT3M
+        type: string
+      duration_formatted:
+        description: RecordingDurationFormattedHHMMSS
+        example: '01:32:24'
         type: string
       edit_instructions:
         description: RecordingEditInstructions
