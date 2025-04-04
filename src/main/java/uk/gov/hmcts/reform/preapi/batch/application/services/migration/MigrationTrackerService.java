@@ -35,26 +35,26 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.FILE_S
  */
 @Service
 public class MigrationTrackerService {
-    private static final List<String> MIGRATED_ITEM_HEADERS = List.of(
+    protected static final List<String> MIGRATED_ITEM_HEADERS = List.of(
         DISPLAY_NAME, "Case Reference", "Witness", "Defendant", "Scheduled For",
         "Case State", "Version", "File Name", "Duration", FILE_SIZE, "Date / Time migrated"
     );
-    private static final List<String> TEST_FAILURE_HEADERS = List.of(
+    protected static final List<String> TEST_FAILURE_HEADERS = List.of(
         DISPLAY_NAME, CREATE_TIME,"Filename", FILE_SIZE, "Migration Date / Time",
         "Duration Check Fail", "Duration (in seconds)", "Keyword Check Fail",
         "Keyword Found", "Test Pattern"
     );
-    private static final List<String> FAILED_ITEM_HEADERS = List.of(
+    protected static final List<String> FAILED_ITEM_HEADERS = List.of(
         "Reason for Failure", DISPLAY_NAME,CREATE_TIME,"Filename", FILE_SIZE, "Date / Time");
-    private static final List<String> NOTIFY_ITEM_HEADERS = List.of(
+    protected static final List<String> NOTIFY_ITEM_HEADERS = List.of(
         "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant",
         "Extracted_witness", "Date / Time migrated");
 
-    private final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
-    private final List<PassItem> migratedItems = new ArrayList<>();
-    private final List<TestItem> testFailures = new ArrayList<>();
-    private final List<NotifyItem> notifyItems = new ArrayList<>();
-    private final List<CreateInviteDTO> invitedUsers = new ArrayList<>();
+    protected final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
+    protected final List<PassItem> migratedItems = new ArrayList<>();
+    protected final List<TestItem> testFailures = new ArrayList<>();
+    protected final List<NotifyItem> notifyItems = new ArrayList<>();
+    protected final List<CreateInviteDTO> invitedUsers = new ArrayList<>();
 
     private final LoggingService loggingService;
 
@@ -304,7 +304,6 @@ public class MigrationTrackerService {
         List<List<String>> rows = new ArrayList<>();
 
         for (CreateInviteDTO item : invitedUsers) {
-
             rows.add(List.of(
                          getValueOrEmpty(item.getUserId()),
                          getValueOrEmpty(item.getFirstName()),
