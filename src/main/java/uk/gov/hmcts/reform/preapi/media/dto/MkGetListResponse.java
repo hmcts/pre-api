@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.media.dto;
 
-import com.google.gson.annotations.SerializedName;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
 
@@ -8,12 +9,13 @@ import java.util.List;
 
 @Data
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MkGetListResponse<E> {
     private List<E> value;
 
     private Supplemental supplemental;
 
-    @SerializedName("@odata.nextLink")
+    @JsonProperty("@odata.nextLink")
     private String nextLink;
 
     @Data

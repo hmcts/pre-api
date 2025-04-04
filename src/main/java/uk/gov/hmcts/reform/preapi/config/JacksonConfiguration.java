@@ -34,6 +34,7 @@ public class JacksonConfiguration {
                                         .configure(ACCEPT_CASE_INSENSITIVE_ENUMS, true)
                                         .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
                                         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                                        .configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true)
                                         .enable(INFER_BUILDER_TYPE_BINDINGS)
                                         .serializationInclusion(JsonInclude.Include.NON_NULL)
                                         .build();
