@@ -190,6 +190,15 @@ by executing the following command:
 This will start the API container exposing the application's port
 (set to `4550` in this template app).
 
+You also need to run the main application:
+
+```bash
+  ## Export all the envs
+  export $(grep -v '^#' .env | xargs -0)
+
+  ./gradlew bootRun
+```
+
 In order to test if the application is up, you can call its health endpoint:
 
 ```bash

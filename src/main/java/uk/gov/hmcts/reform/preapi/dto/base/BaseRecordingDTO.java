@@ -42,6 +42,14 @@ public abstract class BaseRecordingDTO {
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     protected Duration duration;
 
+    @Schema(
+        description = "RecordingDurationFormattedHHMMSS",
+        implementation = String.class,
+        example = "01:32:24"
+    )
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    protected String durationFormatted;
+
     @Schema(description = "RecordingEditInstructions")
     @JsonConstraint
     protected String editInstructions;
