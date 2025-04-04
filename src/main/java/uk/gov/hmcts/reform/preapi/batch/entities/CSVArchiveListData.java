@@ -12,6 +12,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 @Getter
+@Setter
 @NoArgsConstructor
 public class CSVArchiveListData {
     private static final List<String> DATE_PATTERNS = List.of(
@@ -24,20 +25,15 @@ public class CSVArchiveListData {
         "dd-M-yyyy HH:mm", "dd-M-yyyy H:mm",
         "d-M-yyyy HH:mm", "d-M-yyyy H:mm",
         "yyyy-MM-dd HH:mm:ss"
-
     );
 
     private String archiveName = "";
     private String sanitizedArchiveName = "";
-    @Setter
     private String createTime = "";
     private Integer duration = 0;
-    @Setter
     private String fileName = "";
-    @Setter
     private String fileSize = "";
 
-    // TODO remove unused ?
     public CSVArchiveListData(String archiveName, String createTime, Integer duration,
         String fileName, String fileSize) {
         this.archiveName = archiveName;
@@ -59,15 +55,14 @@ public class CSVArchiveListData {
         }
 
         return archiveName
-            .replaceAll("(?i)^QC[_\\d]?", "")
-            .replaceAll("(?i)^QC(?![A-Za-z])", "")
-            .replaceAll("(?i)[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
-            .replaceAll("(?i)(?:CP[\\s-_]*Case|AS URN)", "")
-            .replaceAll("(?i)CP[-_\\s]", "")
+            .replaceAll("^QC[_\\d]?", "")
+            .replaceAll("^QC(?![A-Za-z])", "")
+            .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
+            .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
+            .replaceAll("CP_", "")
             .trim();
-
     }
 
     public void setDuration(Integer duration) {
