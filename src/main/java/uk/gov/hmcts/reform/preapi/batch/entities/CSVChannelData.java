@@ -6,17 +6,15 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
-@NoArgsConstructor
+@Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class CSVChannelData {
-    @Setter
+
     private String channelName;
-    @Setter
     private String channelUser;
-    @Setter
     private String channelUserEmail;
     private String caseReference;
-
     @Override
     public String toString() {
         return "CSVChannelData{"

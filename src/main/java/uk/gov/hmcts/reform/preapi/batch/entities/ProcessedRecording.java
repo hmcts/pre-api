@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
@@ -15,6 +17,8 @@ import java.util.StringJoiner;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ProcessedRecording {
     private String courtReference;
     private String courtName;
@@ -34,6 +38,10 @@ public class ProcessedRecording {
     private String fileExtension;
     private String fileName;
     private List<Map<String, String>> shareBookingContacts;
+
+    public String getFullCourtName() {
+        return courtName;
+    }
 
     // TODO remove unused ?
     public boolean isOrig() {

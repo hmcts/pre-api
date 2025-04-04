@@ -14,7 +14,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @NoArgsConstructor
-public class CSVArchiveListData {
+public class CSVArchiveListData implements IArchiveData  {
     private static final List<String> DATE_PATTERNS = List.of(
         "dd/MM/yyyy HH:mm", "dd/MM/yyyy H:mm",
         "d/MM/yyyy HH:mm", "d/MM/yyyy H:mm",

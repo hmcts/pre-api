@@ -18,7 +18,7 @@ import java.util.Set;
 @Setter
 @AllArgsConstructor
 public class MigratedItemGroup {
-    private CreateCaseDTO createCase;
+    private CreateCaseDTO acase;
     private CreateBookingDTO booking;
     private CreateCaptureSessionDTO captureSession;
     private CreateRecordingDTO recording;
@@ -30,7 +30,7 @@ public class MigratedItemGroup {
     @Override
     public String toString() {
         return "MigratedItemGroup{"
-            + "case=" + (createCase != null ? createCase.toString() : "null")
+            + "case=" + (acase != null ? acase.toString() : "null")
             + ", booking=" + (booking != null ? booking.toString() : "null")
             + ", captureSession=" + (captureSession != null ? captureSession.toString() : "null")
             + ", recording=" + (recording != null ? recording.toString() : "null")
@@ -38,5 +38,9 @@ public class MigratedItemGroup {
             + ", shareBookings=" + (shareBookings != null ? shareBookings.toString() : "null")
             + ", passItem=" + (passItem != null ? passItem.toString() : "null")
             + '}';
+    }
+
+    public CreateCaseDTO getCase() {
+        return acase;
     }
 }

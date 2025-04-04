@@ -7,10 +7,10 @@ import lombok.Setter;
 
 import java.util.List;
 
-@Setter
 @Getter
-@NoArgsConstructor
+@Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class CSVSitesData {
     private String siteReference;
     private String siteName;

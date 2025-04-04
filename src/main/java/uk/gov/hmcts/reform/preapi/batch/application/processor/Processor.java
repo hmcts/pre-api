@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.IArchiveData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
@@ -210,7 +211,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     //======================
     // Helper Methods
     //======================
-    private <T> boolean checkForError(ServiceResult<T> result, Object item) {
+    private <T> boolean checkForError(ServiceResult<T> result, IArchiveData item) {
         String errorMessage = result.getErrorMessage();
         String category = result.getCategory();
 
@@ -221,12 +222,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return false;
     }
 
-    private void handleError(Object item, String message, String category) {
+    private MigratedItemGroup handleError(IArchiveData item, String message, String category) {
         migrationTrackerService.addFailedItem(new FailedItem(item, message, category));
+        return null;
     }
 
-    private void handleTest(TestItem testItem) {
+    private MigratedItemGroup handleTest(TestItem testItem) {
         migrationTrackerService.addTestItem(testItem);
+        return null;
     }
 
     private ExtractedMetadata convertToExtractedMetadata(CSVExemptionListData exemptionItem) {

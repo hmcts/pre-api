@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ExtractedMetadata {
+public class ExtractedMetadata implements IArchiveData {
     private String courtReference;
     private String urn;
     private String exhibitReference;

@@ -106,9 +106,9 @@ public class DataTransformationService {
             .shareBookingContacts(shareBookingContacts)
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())
-            .recordingVersion(versionDetails.versionType())
-            .recordingVersionNumberStr(versionDetails.versionNumberStr())
-            .recordingVersionNumber(versionDetails.versionNumber())
+            .recordingVersion(versionDetails.getVersionType())
+            .recordingVersionNumberStr(versionDetails.getVersionNumberStr())
+            .recordingVersionNumber(versionDetails.getVersionNumber())
             .isMostRecentVersion(versionDetails.isMostRecent())
             .build();
     }

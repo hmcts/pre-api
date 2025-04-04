@@ -6,16 +6,11 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class FailedItem {
-    private Object item;
+    private IArchiveData item;
     private String reason;
     private String failureCategory;
 
     public String getFileName() {
-        if (item instanceof CSVArchiveListData csvArchiveListData) {
-            return (csvArchiveListData).getFileName();
-        } else if (item instanceof ExtractedMetadata extractedMetadata) {
-            return (extractedMetadata).getFileName();
-        }
-        return "Unknown File";
+        return item.getFileName();
     }
 }
