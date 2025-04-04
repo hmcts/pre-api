@@ -10,11 +10,11 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CSVChannelData {
-
     private String channelName;
     private String channelUser;
     private String channelUserEmail;
     private String caseReference;
+
     @Override
     public String toString() {
         return "CSVChannelData{"
