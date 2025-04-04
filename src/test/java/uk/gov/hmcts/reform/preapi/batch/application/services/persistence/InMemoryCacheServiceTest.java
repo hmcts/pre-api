@@ -142,6 +142,7 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void getAllAsTypeWithIncorrectType() {
         Map<String, Object> data = Map.of("field1", "value1");
 

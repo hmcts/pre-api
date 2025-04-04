@@ -113,7 +113,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
 
         for (MigratedItemGroup item : migratedItems) {
             try {
-                loggingService.logDebug("Processing case: %s", item.getCreateCase().getReference());
+                loggingService.logDebug("Processing case: %s", item.getCase().getReference());
 
                 processItem(item);
                 migrationTrackerService.addMigratedItem(item.getPassItem());
@@ -122,7 +122,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                 failureCount.incrementAndGet();
                 loggingService.logError(
                     "Failed to process migrated item: %s | %s",
-                    item.getCreateCase().getReference(), e.getMessage()
+                    item.getCase().getReference(), e.getMessage()
                 );
             }
 
@@ -130,7 +130,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     }
 
     private void processItem(MigratedItemGroup item) {
-        processCaseData(item.getCreateCase());
+        processCaseData(item.getCase());
         processBookingData(item.getBooking());
         processCaptureSessionData(item.getCaptureSession());
         processRecordingData(item.getRecording());
