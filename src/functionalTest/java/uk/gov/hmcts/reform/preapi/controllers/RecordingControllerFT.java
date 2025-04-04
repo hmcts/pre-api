@@ -287,6 +287,9 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(getRecording.getBody().as(RecordingDTO.class).getDuration())
             .isEqualTo(Duration.of(10, ChronoUnit.MINUTES));
 
+        assertThat(getRecording.getBody().as(RecordingDTO.class).getDurationFormatted())
+            .isEqualTo("00:10:00");
+
         var getRecordingsList = doGetRequest(
             RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId,
             TestingSupportRoles.SUPER_USER

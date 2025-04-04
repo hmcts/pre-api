@@ -12,11 +12,14 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.lang.String.format;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -62,6 +65,7 @@ public class RecordingDTO extends BaseRecordingDTO {
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
+        durationFormatted = formatDuration(duration);
         editInstructions = recording.getEditInstruction();
         deletedAt = recording.getDeletedAt();
         createdAt = recording.getCreatedAt();
@@ -77,5 +81,12 @@ public class RecordingDTO extends BaseRecordingDTO {
                              .sorted(Comparator.comparing(Participant::getFirstName))
                              .map(ParticipantDTO::new))
             .collect(Collectors.toList());
+    }
+
+    private String formatDuration(Duration duration) {
+        if (duration == null) {
+            return "00:00:00";
+        }
+        return format("%02d:%02d:%02d", duration.toHoursPart(), duration.toMinutesPart(), duration.toSecondsPart());
     }
 }

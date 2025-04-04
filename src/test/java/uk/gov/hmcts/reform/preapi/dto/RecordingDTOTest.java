@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Set;
@@ -54,6 +55,7 @@ public class RecordingDTOTest {
         recordingEntity.setFilename("test.mp4");
         recordingEntity.setCaptureSession(captureSession);
         recordingEntity.setRecordings(Set.of());
+        recordingEntity.setDuration(Duration.ofSeconds(12195));
     }
 
     @DisplayName("Should create a recording from entity")
@@ -73,6 +75,8 @@ public class RecordingDTOTest {
             .toList();
         assertThat(sortedList.get(0).getFirstName()).isEqualTo("Jane");
         assertThat(sortedList.get(1).getFirstName()).isEqualTo("John");
+        assertThat(model.getDuration()).isEqualTo(Duration.ofSeconds(12195));
+        assertThat(model.getDurationFormatted()).isEqualTo("03:23:15");
     }
 
     @Test
