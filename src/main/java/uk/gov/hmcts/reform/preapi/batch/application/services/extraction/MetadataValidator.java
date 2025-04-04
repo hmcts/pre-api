@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -12,7 +13,7 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Locale;
 
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PREDATES_GO_LIVE;
@@ -26,7 +27,8 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_PRE
 public class MetadataValidator {
     private final LoggingService loggingService;
 
-    public MetadataValidator(LoggingService loggingService) {
+    @Autowired
+    public MetadataValidator(final LoggingService loggingService) {
         this.loggingService = loggingService;
     }
 
@@ -48,11 +50,9 @@ public class MetadataValidator {
     }
 
     public ServiceResult<?> validateExtension(String extension) {
-        if (!isValidExtension(extension)) {
-            return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
-        }
-
-        return ServiceResultUtil.success(extension);
+        return !isValidExtension(extension)
+            ? ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT)
+            : ServiceResultUtil.success(extension);
     }
 
     public ServiceResult<?> validateExtractedMetadata(ExtractedMetadata extractedData) {
@@ -82,26 +82,25 @@ public class MetadataValidator {
             failureReasons.append(TEST_DURATION).append("; ");
         }
 
-        if (!failureReasons.isEmpty()) {
-            String keywordFound = keywordCheck ? extractTestKeywords(archiveItem.getArchiveName()) : "N/A";
-
-            TestItem testItem = new TestItem(
-                archiveItem,
-                failureReasons.toString().trim(),
-                durationCheck,
-                archiveItem.getDuration(),
-                keywordCheck,
-                keywordFound,
-                false
-            );
-
-            loggingService.logError("Test keyword validation failed: %s | Keywords: %s",
-                failureReasons.toString().trim(), keywordFound);
-
-            return testItem;
+        if (failureReasons.isEmpty()) {
+            return null;
         }
 
-        return null;
+        String keywordFound = keywordCheck ? extractTestKeywords(archiveItem.getArchiveName()) : "N/A";
+
+        TestItem testItem = new TestItem(
+            archiveItem,
+            failureReasons.toString().trim(),
+            durationCheck,
+            archiveItem.getDuration(),
+            keywordCheck,
+            keywordFound,
+            false
+        );
+
+        loggingService.logError("Test keyword validation failed: %s | Keywords: %s",
+            failureReasons.toString().trim(), keywordFound);
+        return testItem;
     }
 
     private boolean hasTestKeywords(CSVArchiveListData archiveItem) {
@@ -120,7 +119,6 @@ public class MetadataValidator {
         }
 
         List<String> foundKeywords = new ArrayList<>();
-
         for (String keyword : Constants.TEST_KEYWORDS) {
             if (archiveName.toLowerCase().contains(keyword.toLowerCase())) {
                 foundKeywords.add(keyword);
@@ -141,21 +139,19 @@ public class MetadataValidator {
         return true;
     }
 
-    // Check if the create time pre-dates the go-live date
+    // Check if the creation time pre-dates the go-live date
     public boolean isDateAfterGoLive(CSVArchiveListData archiveItem) {
-        Optional<LocalDateTime> recordingTimestamp = Optional.ofNullable(archiveItem.getCreateTimeAsLocalDateTime());
-
-        if (recordingTimestamp.isEmpty()) {
+        LocalDateTime recordingTimestamp = archiveItem.getCreateTimeAsLocalDateTime();
+        if (recordingTimestamp == null) {
             loggingService.logError("Failed to extract date for file: %s | Raw createTime: %s",
                 archiveItem.getArchiveName(), archiveItem.getCreateTime());
             return false;
         }
 
-        boolean isAfterGoLive = !recordingTimestamp.get().toLocalDate().isBefore(Constants.GO_LIVE_DATE);
-
+        boolean isAfterGoLive = !recordingTimestamp.toLocalDate().isBefore(Constants.GO_LIVE_DATE);
         if (!isAfterGoLive) {
             loggingService.logError("File predates go-live date: %s | Extracted Date: %s",
-                archiveItem.getArchiveName(), recordingTimestamp.get());
+                archiveItem.getArchiveName(), recordingTimestamp);
         }
 
         return isAfterGoLive;
@@ -213,15 +209,8 @@ public class MetadataValidator {
     }
 
     public String parseExtension(String filename) {
-        if (filename == null) {
-            return "";
-        }
-        String lower = filename.toLowerCase();
-        if (lower.endsWith(".mp4")) {
-            return "mp4";
-        }
-        return "";
+        return filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".mp4")
+            ? "mp4"
+            : "";
     }
-
-
 }

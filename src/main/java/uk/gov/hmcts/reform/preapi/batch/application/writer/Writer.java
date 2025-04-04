@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 @Transactional(propagation = Propagation.REQUIRED)
 public class Writer implements ItemWriter<MigratedItemGroup> {
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
     private final CaseService caseService;
     private final BookingService bookingService;
     private final RecordingService recordingService;
@@ -46,7 +46,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
 
     private final AtomicInteger successCount = new AtomicInteger(0);
     private final AtomicInteger failureCount = new AtomicInteger(0);
-
 
     @Autowired
     public Writer(
@@ -139,7 +138,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         processShareBookingsData(item.getShareBookings());
     }
 
-
     private void processCaseData(CreateCaseDTO caseData) {
         if (caseData != null) {
             try {
@@ -177,7 +175,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             try {
                 recordingService.upsert(recordingData);
             } catch (Exception e) {
-                loggingService.logError("Failed to upsert recording. Recording id: %s | %s", 
+                loggingService.logError("Failed to upsert recording. Recording id: %s | %s",
                     recordingData.getId(), e);
             }
         }
@@ -214,5 +212,4 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
         );
 
     }
-
 }

@@ -42,14 +42,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     @Autowired
     public Processor(
-        InMemoryCacheService cacheService,
-        DataExtractionService extractionService,
-        DataTransformationService transformationService,
-        DataValidationService validationService,
-        ReferenceDataProcessor referenceDataProcessor,
-        MigrationGroupBuilderService migrationService,
-        MigrationTrackerService migrationTrackerService,
-        LoggingService loggingService
+        final InMemoryCacheService cacheService,
+        final DataExtractionService extractionService,
+        final DataTransformationService transformationService,
+        final DataValidationService validationService,
+        final ReferenceDataProcessor referenceDataProcessor,
+        final MigrationGroupBuilderService migrationService,
+        final MigrationTrackerService migrationTrackerService,
+        final LoggingService loggingService
     ) {
         this.cacheService = cacheService;
         this.extractionService = extractionService;
@@ -66,22 +66,22 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     @Override
     public MigratedItemGroup process(Object item) throws Exception {
-
         if (item == null) {
             loggingService.logWarning("Received null item to process");
             return null;
         }
-
         if (item instanceof CSVArchiveListData csvArchiveListData) {
             return processArchiveItem(csvArchiveListData);
-        } else if (item instanceof CSVExemptionListData csvExemptionListData) {
+        }
+        if (item instanceof CSVExemptionListData csvExemptionListData) {
             return processExemptionItem(csvExemptionListData);
-        } else if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
+        }
+        if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
             referenceDataProcessor.process(item);
             return null;
-        } else {
-            loggingService.logError("Unsuported item type: %s", item.getClass().getName());
         }
+
+        loggingService.logError("Unsupported item type: %s", item.getClass().getName());
         return null;
     }
 
@@ -108,9 +108,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 e.getMessage(),
                 e
             );
-            return handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            return null;
         }
-
     }
 
     private MigratedItemGroup processArchiveItem(CSVArchiveListData archiveItem) {
@@ -143,14 +143,13 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             loggingService.incrementProgress();
             cacheService.dumpToFile();
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
-
         } catch (Exception e) {
             loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
-            return handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            return null;
         }
 
     }
-
 
     // =========================
     // Extraction, Transformation and Validation
@@ -175,7 +174,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         checkAndCreateNotifyItem(extractedData);
         return extractedData;
     }
-
 
     private ProcessedRecording transformData(ExtractedMetadata extractedData) {
         ServiceResult<ProcessedRecording> result = transformationService.transformData(extractedData);
@@ -241,9 +239,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
         loggingService.logInfo("Converting Exemption Item to ExtractedMetadata: " + exemptionItem);
-
-        LocalDateTime parsedCreateTime = parseDateTime(exemptionItem.getCreateTime());
-
         return new ExtractedMetadata(
             exemptionItem.getCourtReference(),
             exemptionItem.getUrn(),
@@ -253,7 +248,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             exemptionItem.getRecordingVersion(),
             String.valueOf(exemptionItem.getRecordingVersionNumber()),
             exemptionItem.getFileExtension(),
-            parsedCreateTime,
+            parseDateTime(exemptionItem.getCreateTime()),
             exemptionItem.getDuration(),
             exemptionItem.getFileName(),
             exemptionItem.getFileSize(),

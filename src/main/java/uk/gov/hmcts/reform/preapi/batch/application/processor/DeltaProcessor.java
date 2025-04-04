@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 
@@ -17,7 +18,8 @@ import java.util.Map;
 public class DeltaProcessor {
     private final LoggingService loggingService;
 
-    public DeltaProcessor(LoggingService loggingService) {
+    @Autowired
+    public DeltaProcessor(final LoggingService loggingService) {
         this.loggingService = loggingService;
     }
 

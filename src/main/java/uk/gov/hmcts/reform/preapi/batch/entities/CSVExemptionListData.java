@@ -10,7 +10,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CSVExemptionListData {
-
     private String archiveName;
     private String createTime;
     private int duration;

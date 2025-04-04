@@ -43,14 +43,17 @@ public class ProcessedRecording {
         return courtName;
     }
 
+    // TODO remove unused ?
     public boolean isOrig() {
         return Constants.VALID_ORIG_TYPES.contains(this.getRecordingVersion().toUpperCase());
     }
 
+    // TODO remove unused ?
     public boolean isCopy() {
         return Constants.VALID_COPY_TYPES.contains(this.getRecordingVersion().toUpperCase());
     }
 
+    // TODO remove unused ?
     public boolean isRecordingType(String type) {
         return type.equalsIgnoreCase(this.recordingVersion);
     }

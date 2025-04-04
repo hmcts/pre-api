@@ -43,18 +43,18 @@ public class CSVArchiveListData implements IArchiveData  {
         this.fileSize = fileSize;
     }
 
+    // TODO remove unused ?
     public void setArchiveName(String archiveName) {
         this.archiveName = archiveName;
         this.sanitizedArchiveName = computeSanitizedName(archiveName);
     }
-
 
     private String computeSanitizedName(String archiveName) {
         if (archiveName == null || archiveName.isEmpty()) {
             return "";
         }
 
-        String sanitized = archiveName
+        return archiveName
             .replaceAll("^QC[_\\d]?", "")
             .replaceAll("^QC(?![A-Za-z])", "")
             .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
@@ -63,14 +63,13 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("[-_\\s]{2,}", "-")
             .replaceAll("CP_", "")
             .trim();
-
-        return sanitized;
     }
 
     public void setDuration(Integer duration) {
         this.duration = (duration != null) ? duration : 0;
     }
 
+    // TODO remove unused ?
     public String getArchiveNameNoExt() {
         if (archiveName == null || archiveName.isEmpty()) {
             return archiveName;

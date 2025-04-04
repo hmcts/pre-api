@@ -1,17 +1,17 @@
 package uk.gov.hmcts.reform.preapi.batch.application.reader;
 
+import lombok.experimental.UtilityClass;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.logging.Logger;
 
-@Component
+@UtilityClass
+@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public class CSVReader {
-
     /**
      * Creates a FlatFileItemReader for reading CSV files.
      * @param resource    The CSV file resource.
@@ -20,7 +20,7 @@ public class CSVReader {
      * @return A configured FlatFileItemReader.
      * @throws IOException If an error occurs while creating the reader.
      */
-    public <T> FlatFileItemReader<T> createReader(
+    public static <T> FlatFileItemReader<T> createReader(
         Resource resource,
         String[] fieldNames,
         Class<T> targetClass

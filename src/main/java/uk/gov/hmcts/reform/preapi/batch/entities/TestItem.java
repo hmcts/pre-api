@@ -13,5 +13,4 @@ public class TestItem {
     private boolean keywordCheck;
     private String keywordFound;
     private boolean regexFailure;
-
 }

@@ -55,11 +55,8 @@ public class ExtractedMetadata implements IArchiveData {
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
-
         this.archiveName = archiveName;
     }
-
-
 
     private String formatName(String name) {
         if (name == null) {
@@ -80,11 +77,7 @@ public class ExtractedMetadata implements IArchiveData {
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
 
-    public String getSanitizedArchiveName() {
-        return sanitizedArchiveName;
-    }
-
-
+    // TODO remove unused ?
     // private String computeSanitizedName(String archiveName) {
     //     if (archiveName == null || archiveName.isEmpty()) {
     //         return "";
@@ -120,22 +113,19 @@ public class ExtractedMetadata implements IArchiveData {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ExtractedMetadata {");
-        sb.append("courtReference='").append(courtReference).append('\'');
-        sb.append(", urn='").append(urn).append('\'');
-        sb.append(", exhibitReference='").append(exhibitReference).append('\'');
-        sb.append(", defendantLastName='").append(defendantLastName).append('\'');
-        sb.append(", witnessFirstName='").append(witnessFirstName).append('\'');
-        sb.append(", recordingVersion='").append(recordingVersion).append('\'');
-        sb.append(", recordingVersionNumber='").append(recordingVersionNumber).append('\'');
-        sb.append(", fileExtension='").append(fileExtension).append('\'');
-        sb.append(", createTime=").append(createTime);
-        sb.append(", duration=").append(duration);
-        sb.append(", fileName='").append(fileName).append('\'');
-        sb.append(", fileSize='").append(fileSize).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "ExtractedMetadata {"
+            + "courtReference='" + courtReference + '\''
+            + ", urn='" + urn + '\''
+            + ", exhibitReference='" + exhibitReference + '\''
+            + ", defendantLastName='" + defendantLastName + '\''
+            + ", witnessFirstName='" + witnessFirstName + '\''
+            + ", recordingVersion='" + recordingVersion + '\''
+            + ", recordingVersionNumber='" + recordingVersionNumber + '\''
+            + ", fileExtension='" + fileExtension + '\''
+            + ", createTime=" + createTime
+            + ", duration=" + duration
+            + ", fileName='" + fileName + '\''
+            + ", fileSize='" + fileSize + '\''
+            + '}';
     }
-
 }

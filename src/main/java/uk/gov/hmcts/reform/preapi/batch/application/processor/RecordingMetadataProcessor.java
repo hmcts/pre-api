@@ -26,9 +26,9 @@ public class RecordingMetadataProcessor {
 
     @Autowired
     public RecordingMetadataProcessor(
-        DataExtractionService extractionService,
-        DataTransformationService transformationService,
-        InMemoryCacheService cacheService
+        final DataExtractionService extractionService,
+        final DataTransformationService transformationService,
+        final InMemoryCacheService cacheService
     ) {
         this.extractionService = extractionService;
         this.transformationService = transformationService;
@@ -43,11 +43,7 @@ public class RecordingMetadataProcessor {
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
             ServiceResult<?> extracted = extractionService.process(archiveItem);
-            if (extracted.getErrorMessage() != null) {
-                return;
-            }
-
-            if (extracted.isTest()) {
+            if (extracted.getErrorMessage() != null || extracted.isTest()) {
                 return;
             }
 
