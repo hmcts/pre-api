@@ -199,6 +199,14 @@ You also need to run the main application:
   ./gradlew bootRun
 ```
 
+To attach a debugger, you can run natively in an IDE, or attach:
+```bash
+./gradlew clean build bootRun --debug-jvm
+```
+
+Let it run until it hangs with a listening message. Then in IntelliJ, select the Java process from Run > Attach to Process.
+
+
 In order to test if the application is up, you can call its health endpoint:
 
 ```bash
