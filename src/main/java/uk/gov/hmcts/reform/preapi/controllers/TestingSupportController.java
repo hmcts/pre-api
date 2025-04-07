@@ -54,6 +54,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
+import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -63,6 +64,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import static java.lang.Character.toLowerCase;
 
 @RestController
 @RequestMapping("/testing-support")
@@ -83,6 +86,7 @@ class TestingSupportController {
     private final TermsAndConditionsRepository termsAndConditionsRepository;
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final AuditRepository auditRepository;
+    private final ScheduledTaskRunner scheduledTaskRunner;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -94,10 +98,12 @@ class TestingSupportController {
                              final RegionRepository regionRepository,
                              final RoomRepository roomRepository,
                              final UserRepository userRepository,
-                             RoleRepository roleRepository,
-                             AppAccessRepository appAccessRepository,
-                             TermsAndConditionsRepository termsAndConditionsRepository,
-                             UserTermsAcceptedRepository userTermsAcceptedRepository, AuditRepository auditRepository) {
+                             final RoleRepository roleRepository,
+                             final AppAccessRepository appAccessRepository,
+                             final TermsAndConditionsRepository termsAndConditionsRepository,
+                             final UserTermsAcceptedRepository userTermsAcceptedRepository,
+                             final ScheduledTaskRunner scheduledTaskRunner,
+                             final AuditRepository auditRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -111,6 +117,7 @@ class TestingSupportController {
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
+        this.scheduledTaskRunner = scheduledTaskRunner;
         this.auditRepository = auditRepository;
     }
 
@@ -168,6 +175,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -221,6 +229,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -418,7 +427,7 @@ class TestingSupportController {
 
         return ResponseEntity.ok(assembler.toModel(resultPage));
     }
-  
+
     @PostMapping(value = "/booking-scheduled-for-past/{bookingId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<BookingDTO> bookingScheduledForPast(@PathVariable UUID bookingId) {
         var booking = bookingRepository.findByIdAndDeletedAtIsNull(bookingId)
@@ -430,6 +439,17 @@ class TestingSupportController {
         return ResponseEntity.ok(new BookingDTO(booking));
     }
 
+    @PostMapping(value = "/trigger-task/{taskName}")
+    public ResponseEntity<Void> triggerTask(@PathVariable String taskName) {
+        final var beanName = toLowerCase(taskName.charAt(0)) + taskName.substring(1);
+        var task = scheduledTaskRunner.getTask(beanName);
+        if (task == null) {
+            throw new NotFoundException("Task: " + taskName);
+        }
+        task.run();
+
+        return ResponseEntity.noContent().build();
+    }
 
     private Court createTestCourt() {
         var court = new Court();

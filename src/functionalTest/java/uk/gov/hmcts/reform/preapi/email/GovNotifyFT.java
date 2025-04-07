@@ -144,7 +144,9 @@ public class GovNotifyFT {
 
             [PRE Editing Recording Process Quick Guide.pdf](http://localhost:8080/assets/files/process-guide.pdf)
 
-            [PRE FAQs - External.pdf](http://localhost:8080/assets/files/faqs.pdf)""", response);
+            [PRE FAQs - External.pdf](http://localhost:8080/assets/files/faqs.pdf)
+
+            [PRE Editing Request Form.xlsx](http://localhost:8080/assets/files/pre-editing-request-form.xlsx)""", response);
     }
 
     @DisplayName("Should send case pending closure email")
