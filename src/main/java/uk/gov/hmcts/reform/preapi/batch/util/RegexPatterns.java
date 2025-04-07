@@ -28,6 +28,8 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern QC_FILENAME_PATTERN = Pattern.compile(".*QC.*", Pattern.CASE_INSENSITIVE);
+
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
 
 
@@ -36,7 +38,8 @@ public final class RegexPatterns {
         "Test Keyword", TEST_KEYWORDS_PATTERN,
         "S28 Pattern", S28_PATTERN,
         "UUID Pattern", UUID_FILENAME_PATTERN,
-        "Filename Pattern", FILENAME_PATTERN
+        "Filename Pattern", FILENAME_PATTERN,
+        "QC Filename Pattern", QC_FILENAME_PATTERN
     );
 
     private static Pattern buildTestKeywordsPattern() {
