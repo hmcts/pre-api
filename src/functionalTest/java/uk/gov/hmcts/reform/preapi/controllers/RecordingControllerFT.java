@@ -16,6 +16,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -288,7 +289,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
             .isEqualTo(Duration.of(10, ChronoUnit.MINUTES));
 
         assertThat(getRecording.getBody().as(RecordingDTO.class).getDurationFormatted())
-            .isEqualTo("00:10:00");
+            .isEqualTo(Optional.of("00:10:00"));
 
         var getRecordingsList = doGetRequest(
             RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId,

@@ -2,6 +2,9 @@ package uk.gov.hmcts.reform.preapi.dto.base;
 
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -40,6 +43,7 @@ public abstract class BaseRecordingDTO {
         implementation = String.class,
         example = "PT3M"
     )
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     protected Duration duration;
 
@@ -48,6 +52,7 @@ public abstract class BaseRecordingDTO {
         implementation = String.class,
         example = "01:32:24"
     )
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonFormat(shape = JsonFormat.Shape.STRING)
     protected Optional<String> durationFormatted;
 

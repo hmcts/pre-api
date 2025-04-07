@@ -74,6 +74,7 @@ public class FunctionalTestBase {
     @BeforeAll
     static void beforeAll() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+        OBJECT_MAPPER.registerModule(new JavaTimeModule());
     }
 
     private static Map<String, String> getRequestHeaders(

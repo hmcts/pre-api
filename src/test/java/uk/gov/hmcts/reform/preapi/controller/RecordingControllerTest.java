@@ -1,6 +1,8 @@
 package uk.gov.hmcts.reform.preapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,7 +28,9 @@ import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,6 +74,8 @@ class RecordingControllerTest {
     @BeforeAll
     static void setUp() {
         OBJECT_MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SS'Z'"));
+        OBJECT_MAPPER.registerModule(new JavaTimeModule()); // To deserialize Duration
+        OBJECT_MAPPER.registerModule(new Jdk8Module()); // To deserialize Optional
     }
 
 
@@ -223,6 +229,35 @@ class RecordingControllerTest {
 
         assertThat(response.getResponse().getContentAsString())
             .isEqualTo("{\"message\":\"Path recordingId does not match payload property createRecordingDTO.id\"}");
+    }
+
+
+    @DisplayName("Should update a recording with 204 response code with duration_formatted")
+    @Test
+    void updateRecordingUpdateWithDurationFormatted() throws Exception {
+        var recordingId = UUID.randomUUID();
+        var recording = new CreateRecordingDTO();
+        recording.setId(recordingId);
+        recording.setFilename("example filename");
+        recording.setDuration(Duration.ofMinutes(3));
+        recording.setDurationFormatted(Optional.of("00:03:00"));
+        recording.setCaptureSessionId(UUID.randomUUID());
+        recording.setVersion(1);
+
+        when(recordingService.upsert(recording)).thenReturn(UpsertResult.UPDATED);
+
+        MvcResult response = mockMvc.perform(put(getPath(recordingId))
+                                                 .with(csrf())
+                                                 .content(OBJECT_MAPPER.writeValueAsString(recording))
+                                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
+                                                 .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNoContent())
+            .andReturn();
+
+        assertThat(response.getResponse().getContentAsString()).isEqualTo("");
+        assertThat(
+            response.getResponse().getHeaderValue("Location")).isEqualTo(TEST_URL + getPath(recordingId)
+        );
     }
 
     @DisplayName("Should fail to update a recording with 400 response code when it has been marked as deleted")

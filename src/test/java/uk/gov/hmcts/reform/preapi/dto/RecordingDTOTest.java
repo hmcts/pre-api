@@ -16,6 +16,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -76,7 +77,7 @@ public class RecordingDTOTest {
         assertThat(sortedList.get(0).getFirstName()).isEqualTo("Jane");
         assertThat(sortedList.get(1).getFirstName()).isEqualTo("John");
         assertThat(model.getDuration()).isEqualTo(Duration.ofSeconds(12195));
-        assertThat(model.getDurationFormatted()).isEqualTo("03:23:15");
+        assertThat(model.getDurationFormatted()).isEqualTo(Optional.of("03:23:15"));
     }
 
     @Test
