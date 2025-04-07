@@ -55,9 +55,6 @@ public class CSVArchiveListData implements IArchiveData  {
         }
 
         String sanitized = archiveName
-            .replaceAll("^QC[_\\d]?", "")
-            .replaceAll("^QC(?![A-Za-z])", "")
-            .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")

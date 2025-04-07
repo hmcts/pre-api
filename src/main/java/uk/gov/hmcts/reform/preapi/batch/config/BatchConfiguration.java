@@ -37,6 +37,8 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -48,6 +50,7 @@ import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -76,6 +79,7 @@ public class BatchConfiguration implements StepExecutionListener {
     private final BatchRobotUserTask robotUserTask;
     private final ArchiveMetadataXmlExtractor xmlProcessingService;
     private final DeltaProcessor deltaProcessor;
+    private final CaseService caseService;
     private LoggingService loggingService;
 
     @Autowired
@@ -108,6 +112,7 @@ public class BatchConfiguration implements StepExecutionListener {
         this.csvReader = csvReader;
         this.preProcessor = preProcessor;
         this.recordingPreProcessor = recordingPreProcessor;
+        this.caseService = caseService;
         this.itemProcessor = itemProcessor;
         this.itemWriter = itemWriter;
         this.migrationTrackerService = migrationTrackerService;
@@ -163,6 +168,7 @@ public class BatchConfiguration implements StepExecutionListener {
             .incrementer(new RunIdIncrementer())
             .start(startLogging())
             .next(createRobotUserSignInStep())
+            .next(createMarkCasesClosedStep())
             // .next(createNonTransactionalMarkCasesClosedStep())
             // .next(markCasesStep)
             .build();
@@ -457,5 +463,318 @@ public class BatchConfiguration implements StepExecutionListener {
     public <T> ItemWriter<T> noOpWriter() {
         return items -> { /*  no-op writer  does nothing */ };
     }
+
+
+    protected Step createMarkCasesClosedStep() {
+        return new StepBuilder("markCasesClosedStep", jobRepository)
+            .tasklet((contribution, chunkContext) -> {
+                List<CaseDTO> cases = caseService.getCasesByOrigin(RecordingOrigin.VODAFONE);
+                
+                if (cases.isEmpty()) {
+                    loggingService.logInfo("No cases found for origin: %s", RecordingOrigin.VODAFONE);
+                } else {
+                    loggingService.logInfo("Closing %d case(s) with origin: %s", cases.size(), 
+                        RecordingOrigin.VODAFONE);
+                    for (CaseDTO c : cases) {
+                        loggingService.logInfo("Closing case reference: %s", c.getReference());
+                    }
+                }
+
+                return RepeatStatus.FINISHED;
+            }, transactionManager)
+            .build();
+    }
+
+
+    // protected Step createMarkCasesClosedStep() {
+    //     return new StepBuilder("markCasesClosedStep", jobRepository)
+    //         .tasklet((contribution, chunkContext) -> {
+    //             loggingService.logInfo("Closing case");
+    // //             Set<String> channelNames = referenceDataProcessor.fetchChannelUserDataKeys();
+
+    //             int processedCases = 0;
+    //             int closedCases = 0;
+    //             int skippedCases = 0;
+
+    //             Page<CaptureSessionDTO> vodafoneOriginSessions = captureSessionService.searchBy(
+    //                 null,  null, RecordingOrigin.VODAFONE, null,
+    //                 Optional.empty(), null, Pageable.unpaged()
+    //             );
+
+    //             Page<CaseDTO> allCases = caseService.searchBy(null, null, false, Pageable.unpaged());
+
+    //             for (CaseDTO caseDto : allCases.getContent()) {
+    //                 loggingService.logInfo("Evaluating case: {}"+ caseDto.getReference());
+    //                 // logger.info("Evaluating case: {}", caseDto.getReference());
+    //                 try {
+    //                     boolean hasVodafoneOrigin = checkForVodafoneOrigin(vodafoneOriginSessions, caseDto);
+
+    //                     if (hasVodafoneOrigin) {
+    //                         boolean hasChannelUser = channelNames
+    //                             .stream()
+    //                             .anyMatch(channelName -> channelName.contains(caseDto.getReference()));
+
+    //                         if (!hasChannelUser) {
+    //                             loggingService.logInfo("Attempting to close case:"+ caseDto.getReference());
+    //                             // logger.info("Attempting to close case:", caseDto.getReference());
+    //                             try {
+    //                                 if (tryCloseCase(caseDto)) {
+    //                                     closedCases++;
+    //                                 }
+    //                             } catch (Exception e) {
+    //                                 loggingService.logError(
+    //                                     "Error closing case {}: {}" + caseDto.getReference() + e.getMessage());
+    //                                 // logger.error(
+    //                                     "Error closing case {}: {}", caseDto.getReference(), e.getMessage());
+    //                                 skippedCases++;
+    //                             }
+
+    //                         }
+
+    //                         processedCases++;
+    //                     }
+    //                 } catch (Exception e) {
+    //                     loggingService.logError(
+    //                         "Error processing case {}: {}" + caseDto.getReference() + e.getMessage() + e);
+    //                     // logger.error("Error processing case {}: {}", caseDto.getReference(), e.getMessage(), e);
+    //                 }
+    //             }
+    //             loggingService.logInfo("Vodafone Case Closure Summary: {} cases processed, {} cases closed"+
+    //                 processedCases + closedCases);
+    //             // logger.info("Vodafone Case Closure Summary: {} cases processed, {} cases closed",
+    //             //     processedCases, closedCases);
+
+    //             return RepeatStatus.FINISHED;
+    //         }, transactionManager)
+
+    //         .build();
+    // }
+
+    // private boolean tryCloseCase(CaseDTO caseDto) {
+    //     try {
+    //         Case existingCase = caseRepository.findById(caseDto.getId())
+    //             .orElseThrow(() -> new uk.gov.hmcts.reform.preapi.exception.NotFoundException(
+    //                 "Case not found: " + caseDto.getId()));
+
+    //         loggingService.logInfo("Attempting to close case without channel user: {}" + caseDto.getReference());
+    //         // logger.info("Attempting to close case without channel user: {}", caseDto.getReference());
+
+
+    //         CreateCaseDTO updateCaseDto = createCaseUpdateDTO(existingCase, caseDto);
+
+    //         try {
+    //             caseService.upsert(updateCaseDto);
+    //             loggingService.logInfo("Successfully closed case {} with reference {}" +
+    //                 caseDto.getId() + caseDto.getReference());
+    //             // logger.info("Successfully closed case {} with reference {}",
+    //             //     caseDto.getId(), caseDto.getReference());
+
+    //             return true;
+
+    //         } catch (Exception e) {
+    //             if (e.getMessage() != null
+    //                 && (e.getMessage().contains("getCaptureSessions()")
+    //                 || e.getCause() != null && e.getCause().getMessage() != null
+    //                 && e.getCause().getMessage().contains("getCaptureSessions()"))) {
+
+    //                 loggingService.logWarning("Case {} has bookings with null captureSessions - cannot process" +
+    //                     caseDto.getReference());
+    //                 // logger.warn("Case {} has bookings with null captureSessions - cannot process",
+    //                 //     caseDto.getReference());
+    //                 return false;
+    //             } else {
+    //                 throw e;
+    //             }
+    //         }
+
+    //     } catch (Exception e) {
+    //         loggingService.logError("Failed to close case {} (Reference: {}): {}" +
+    //             caseDto.getId() + caseDto.getReference() + e.getMessage() + e);
+    //         // logger.error("Failed to close case {} (Reference: {}): {}",
+    //         //     caseDto.getId(), caseDto.getReference(), e.getMessage(), e);
+    //         return false;
+    //     }
+    // }
+
+    // private CreateCaseDTO createCaseUpdateDTO(Case existingCase, CaseDTO caseDto) {
+    //     CreateCaseDTO updateCaseDto = new CreateCaseDTO(existingCase);
+    //     updateCaseDto.setState(CaseState.CLOSED);
+    //     updateCaseDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+
+    //     if (caseDto.getParticipants() != null && !caseDto.getParticipants().isEmpty()) {
+    //         updateCaseDto.setParticipants(
+    //             caseDto.getParticipants()
+    //                 .stream()
+    //                 .map(this::convertDtoToCreateDto)
+    //                 .collect(Collectors.toSet())
+    //         );
+    //     }
+
+    //     return updateCaseDto;
+    // }
+
+    // private boolean checkForVodafoneOrigin(Page<CaptureSessionDTO> vodafoneOriginSessions, CaseDTO caseDto) {
+    //     return vodafoneOriginSessions.getContent().stream()
+    //         .anyMatch(session -> session.getOrigin() == RecordingOrigin.VODAFONE);
+    // }
+
+    // private CreateParticipantDTO convertDtoToCreateDto(ParticipantDTO participantDTO) {
+    //     CreateParticipantDTO createParticipantDTO = new CreateParticipantDTO();
+    //     createParticipantDTO.setId(participantDTO.getId());
+    //     createParticipantDTO.setFirstName(participantDTO.getFirstName());
+    //     createParticipantDTO.setLastName(participantDTO.getLastName());
+    //     createParticipantDTO.setParticipantType(participantDTO.getParticipantType());
+    //     return createParticipantDTO;
+    // }
+
+
+    // protected Step createNonTransactionalMarkCasesClosedStep() {
+    //     return new StepBuilder("nonTransactionalMarkCasesClosedStep", jobRepository)
+    //         .tasklet((contribution, chunkContext) -> {
+    //             logger.info("Starting nonTransactionalMarkCasesClosedStep");
+    //             try {
+    //                 robotUserTask.signIn();
+    //                 logger.info("Robot user signed in successfully");
+
+    //                 Set<String> channelNames = referenceDataProcessor.fetchChannelUserDataKeys();
+    //                 logger.info("Fetched {} channel user keys", channelNames.size());
+
+    //                 Page<CaptureSessionDTO> vodafoneOriginSessions = captureSessionService.searchBy(
+    //                     null, null, RecordingOrigin.VODAFONE, null,
+    //                     Optional.empty(), null, Pageable.unpaged()
+    //                 );
+    //                 logger.info("Fetched {} Vodafone origin sessions", vodafoneOriginSessions.getTotalElements());
+
+    //                 Page<CaseDTO> allCases = caseService.searchBy(null, null, false, Pageable.unpaged());
+    //                 logger.info("Fetched {} cases in total", allCases.getTotalElements());
+
+    //                 int processedCases = 0;
+    //                 int closedCases = 0;
+    //                 int skippedCases = 0;
+
+    //                 for (CaseDTO caseDto : allCases.getContent()) {
+    //                     try {
+    //                         boolean hasVodafoneOrigin = checkForVodafoneOrigin(vodafoneOriginSessions, caseDto);
+    //                         logger.debug(
+    //                             "Case {} has Vodafone origin: {}", caseDto.getReference(), hasVodafoneOrigin);
+
+    //                         if (hasVodafoneOrigin) {
+    //                             boolean hasChannelUser = channelNames
+    //                                 .stream()
+    //                                 .anyMatch(channelName -> channelName.contains(caseDto.getReference()));
+    //                             logger.debug("Case {} has channel user: {}", caseDto.getReference(), hasChannelUser);
+
+    //                             if (!hasChannelUser) {
+    //                                 logger.info(
+    //                                     "Non-transactional: Attempting to close case {}", caseDto.getReference());
+
+    //                                 try {
+    //                                     logger.debug("Before processCaseNonTransactional call for case {}",
+    //                                                  caseDto.getReference());
+    //                                     boolean success = processCaseNonTransactional(caseDto);
+    //                                     logger.debug("After processCaseNonTransactional call for case {},
+    //                                                  success={}",
+    //                                                  caseDto.getReference(),
+    //                                                  success);
+
+    //                                     if (success) {
+    //                                         closedCases++;
+    //                                         logger.info("Successfully closed case {}", caseDto.getReference());
+    //                                     } else {
+    //                                         skippedCases++;
+    //                                         logger.info("Skipped closing case {}", caseDto.getReference());
+    //                                     }
+    //                                 } catch (Exception e) {
+    //                                     logger.error(
+    //                                         "Error closing case {}: {}", caseDto.getReference(), e.getMessage(), e);
+    //                                     skippedCases++;
+    //                                 }
+    //                             }
+
+    //                             processedCases++;
+    //                         }
+    //                     } catch (Exception e) {
+    //                         logger.error("Error evaluating case {}: {}", caseDto.getReference(), e.getMessage(), e);
+    //                     }
+    //                 }
+
+    //                 logger.info("Non-transactional Summary: {} processed, {} closed, {} skipped",
+    //                     processedCases, closedCases, skippedCases);
+
+
+    //                 logger.info("Completed nonTransactionalMarkCasesClosedStep successfully");
+    //                 return RepeatStatus.FINISHED;
+    //             } catch (Exception e) {
+    //                 logger.error("Fatal error in non-transactional case closure: {}", e.getMessage(), e);
+    //                 throw new NonFatalStepException("Step completed with handled errors", e);
+    //             }
+    //         }, transactionManager)
+    //         .allowStartIfComplete(true)
+    //         .transactionAttribute(getNoTransactionAttribute())
+    //         .build();
+    // }
+
+    // private DefaultTransactionAttribute getNoTransactionAttribute() {
+    //     DefaultTransactionAttribute attribute = new DefaultTransactionAttribute();
+    //     attribute.setPropagationBehavior(TransactionDefinition.PROPAGATION_NOT_SUPPORTED);
+    //     return attribute;
+    // }
+
+    // public static class NonFatalStepException extends RuntimeException {
+    //     public NonFatalStepException(String message, Throwable cause) {
+    //         super(message, cause);
+    //     }
+    // }
+
+    // private boolean processCaseNonTransactional(CaseDTO caseDto) {
+    //     logger.debug("Starting processCaseNonTransactional for case {}", caseDto.getReference());
+    //     try {
+    //         logger.debug("Fetching case {} from repository", caseDto.getId());
+    //         Case existingCase = caseRepository.findById(caseDto.getId())
+    //             .orElseThrow(() -> new RuntimeException("Case not found"));
+    //         logger.debug("Successfully fetched case {}", caseDto.getId());
+
+    //         logger.debug("Creating update DTO for case {}", caseDto.getId());
+    //         CreateCaseDTO updateDto = new CreateCaseDTO(existingCase);
+    //         updateDto.setState(CaseState.CLOSED);
+    //         updateDto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
+
+    //         if (caseDto.getParticipants() != null && !caseDto.getParticipants().isEmpty()) {
+    //             logger.debug("Setting {} participants for case {}",
+    //                 caseDto.getParticipants().size(), caseDto.getId());
+    //             updateDto.setParticipants(
+    //                 caseDto.getParticipants()
+    //                     .stream()
+    //                     .map(this::convertDtoToCreateDto)
+    //                     .collect(Collectors.toSet())
+    //             );
+    //         }
+
+    //         try {
+    //             logger.debug("About to call caseService.upsert for case {}", caseDto.getId());
+    //             caseService.upsert(updateDto);
+    //             logger.info("Non-transactional: Successfully closed case {}", caseDto.getReference());
+    //             return true;
+    //         } catch (Exception e) {
+    //             if (e.getMessage() != null
+    //                 && (e.getMessage().contains("getCaptureSessions()")
+    //                 || (e.getCause() != null && e.getCause().getMessage() != null
+    //                 && e.getCause().getMessage().contains("getCaptureSessions()")))) {
+
+    //                 logger.warn("Non-transactional: Case {} has null captureSessions - skipping",
+    //                     caseDto.getReference());
+    //                 return false;
+    //             }
+
+    //             logger.error("Error from caseService.upsert for case {}: {}",
+    //                 caseDto.getReference(), e.getMessage(), e);
+    //             throw e;
+    //         }
+    //     } catch (Exception e) {
+    //         logger.error("Non-transactional: Error closing case {}: {}",
+    //             caseDto.getReference(), e.getMessage(), e);
+    //         return false;
+    //     }
+    // }
 
 }

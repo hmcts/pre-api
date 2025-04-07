@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -40,4 +41,7 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
     List<Case> findAllByReference(String reference);
 
     List<Case> findAllByStateAndClosedAtBefore(CaseState state, Timestamp date);
+
+    List<Case> findAllByOrigin(RecordingOrigin origin);
+
 }

@@ -79,6 +79,9 @@ public class PreProcessor {
             Constants.CacheKeys.COURTS_PREFIX,
             courts, Court::getName, court -> court.getId().toString(), "courts"
         );
+        // List<Court> courts2 = StreamSupport.stream(courtRepository.findAll().spliterator(), false)
+        //                            .collect(Collectors.toList());
+        // courts.forEach(cacheService::saveCourt);
 
         List<Case> cases = caseRepository.findAll();
         cacheEntity(

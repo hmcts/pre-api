@@ -55,7 +55,6 @@ public class ExtractedMetadata implements IArchiveData {
         this.duration = duration;
         this.fileName = fileName;
         this.fileSize = fileSize;
-
         this.archiveName = archiveName;
     }
 
@@ -66,9 +65,15 @@ public class ExtractedMetadata implements IArchiveData {
             return null;
         }
 
-        return Arrays.stream(name.split("-"))
-            .map(n -> StringUtils.capitalize(n.toLowerCase()))
-            .collect(Collectors.joining("-"));
+        return Arrays.stream(name.split("(?=[-'\\s])|(?<=[-'\\s])"))
+            .map(part -> {
+                if (part.matches("[-'\\s]")) {
+                    return part;
+                } else {
+                    return StringUtils.capitalize(part.toLowerCase()); 
+                }
+            })
+            .collect(Collectors.joining(""));
     }
 
     public String getArchiveNameNoExt() {
@@ -83,24 +88,6 @@ public class ExtractedMetadata implements IArchiveData {
     public String getSanitizedArchiveName() {
         return sanitizedArchiveName;
     }
-
-
-    // private String computeSanitizedName(String archiveName) {
-    //     if (archiveName == null || archiveName.isEmpty()) {
-    //         return "";
-    //     }
-
-    //     String sanitized = archiveName
-    //         .replaceAll("^QC[_\\d]?", "")
-    //         .replaceAll("^QC(?![A-Za-z])", "")
-    //         .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
-    //         .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
-    //         .replaceAll("_(?=\\.[^.]+$)", "")
-    //         .replaceAll("[-_\\s]{2,}", "-")
-    //         .trim();
-
-    //     return sanitized;
-    // }
 
     public String createCaseReference() {
         if ((urn == null || urn.isEmpty()) && (exhibitReference == null || exhibitReference.isEmpty())) {

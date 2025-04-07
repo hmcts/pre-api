@@ -4,12 +4,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,11 +22,63 @@ public class InMemoryCacheService {
     private final LoggingService loggingService;
     private final Map<String, Map<String, Object>> hashStore = new ConcurrentHashMap<>();
 
+    // private final Map<String, CaseDTO> caseCache = new ConcurrentHashMap<>();
+    private final Map<String, CourtDTO> courtCache = new ConcurrentHashMap<>();
+    // private final Map<String, BookingDTO> bookingCache = new ConcurrentHashMap<>();
+    // private final Map<String, ParticipantDTO> participantCache = new ConcurrentHashMap<>();
+
+
     @Autowired
     public InMemoryCacheService(ReportingService reportingService, LoggingService loggingService) {
         this.reportingService = reportingService;
         this.loggingService = loggingService;
     }
+
+    public void saveCourt(Court court) {
+        String key = "vf:courts:";
+        saveHashValue(key, court.getName(), court.getId().toString());
+    }
+
+    public Optional<CourtDTO> getCourt(String courtName) {
+        return Optional.ofNullable(courtCache.get(courtName));
+    }
+
+
+    // public void saveCase(String caseRef, CaseDTO caseDTO) {
+    //     caseCache.put(caseRef, caseDTO);
+    // }
+
+    // public Optional<CaseDTO> getCase(String caseRef) {
+    //     return Optional.ofNullable(caseCache.get(caseRef));
+    // }
+
+    // public boolean hasCase(String caseRef) {
+    //     return caseCache.containsKey(caseRef);
+    // }
+
+    // public void saveBooking(String bookingId, BookingDTO bookingDTO) {
+    //     bookingCache.put(bookingId, bookingDTO);
+    // }
+
+    // public Optional<BookingDTO> getBooking(String bookingId) {
+    //     return Optional.ofNullable(bookingCache.get(bookingId));
+    // }
+
+    // public void saveParticipant(String caseRef, String participantKey, ParticipantDTO dto) {
+    //     participantCache.put(caseRef + ":" + participantKey, dto);
+    // }
+
+    // public Optional<ParticipantDTO> getParticipant(String caseRef, String participantKey) {
+    //     return Optional.ofNullable(participantCache.get(caseRef + ":" + participantKey));
+    // }
+
+    // public void clearAll() {
+    //     courtCache.clear();
+    //     caseCache.clear();
+    //     bookingCache.clear();
+    //     participantCache.clear();
+    // }
+
 
     public void saveHashAll(String key, Map<String, Object> data) {
         hashStore.put(key, new ConcurrentHashMap<>(data));
@@ -63,7 +118,9 @@ public class InMemoryCacheService {
         return "vf:case:" + caseReference + ":participants:" + participantPair;
     }
 
+    
     public void dumpToFile() {
+        
         List<String> headers = List.of("Key", "Field", "Value");
         List<List<String>> rows = new ArrayList<>();
 
