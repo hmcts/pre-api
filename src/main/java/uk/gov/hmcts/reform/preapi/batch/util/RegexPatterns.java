@@ -69,7 +69,7 @@ public final class RegexPatterns {
         "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
 
-    private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z0-9]+)(?>[-\s][A-Za-z0-9]+)*)"
+    private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z]+)(?>[-\\s][A-Za-z0-9]+)*)"
                                                 + SEPARATOR_ONE 
                                                 + "(?<witnessFirstName>[?>A-Za-z0-9&']+(?>[-'\\s][A-Za-z]+)*)";
     /**
@@ -205,6 +205,16 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$"
     );
 
+    public static final Pattern URN_EXTRA_ID_PATTERN = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?<extraId>\\d{6,})" + SEPARATOR_ONE
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
+        + EXTENSION_PATTERN + "$"
+    );
+
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.of(
         "Standard", RegexPatterns.STANDARD_PATTERN,
@@ -214,6 +224,7 @@ public final class RegexPatterns {
         "DoubleURN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN,
         "DoubleExhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN,
         "Prefix", RegexPatterns.PREFIX_PATTERN,
-        "Flexible", RegexPatterns.FLEXIBLE_PATTERN
+        "Flexible", RegexPatterns.FLEXIBLE_PATTERN,
+        "ExtraId", RegexPatterns.URN_EXTRA_ID_PATTERN
     );
 }
