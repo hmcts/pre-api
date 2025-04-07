@@ -258,6 +258,9 @@ TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
 TASK_NAME=CleanupLiveEvents ./gradlew bootRun
 ```
 
+## How to update Swagger OpenAPI docs
+This is done automatically through Github Actions when you open a PR
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
