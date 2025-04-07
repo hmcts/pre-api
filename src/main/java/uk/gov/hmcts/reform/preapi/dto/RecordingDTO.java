@@ -15,6 +15,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,7 +66,7 @@ public class RecordingDTO extends BaseRecordingDTO {
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
-        durationFormatted = formatDuration(duration);
+        durationFormatted = Optional.of(formatDuration(duration));
         editInstructions = recording.getEditInstruction();
         deletedAt = recording.getDeletedAt();
         createdAt = recording.getCreatedAt();

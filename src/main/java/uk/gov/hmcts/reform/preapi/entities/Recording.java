@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.entities;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.hypersistence.utils.hibernate.type.interval.PostgreSQLIntervalType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.entities.listeners.RecordingListener;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.Set;
 
 @Getter
@@ -58,6 +60,10 @@ public class Recording extends BaseEntity implements ISoftDeletable {
         columnDefinition = "interval"
     )
     private Duration duration;
+
+    @Transient
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Optional<String> durationFormatted;
 
     @Column(name = "edit_instruction")
     @JdbcTypeCode(SqlTypes.JSON)

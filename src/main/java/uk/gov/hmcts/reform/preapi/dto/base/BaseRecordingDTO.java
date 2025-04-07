@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.dto.validators.JsonConstraint;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 
 @Data
@@ -48,7 +49,7 @@ public abstract class BaseRecordingDTO {
         example = "01:32:24"
     )
     @JsonFormat(shape = JsonFormat.Shape.STRING)
-    protected String durationFormatted;
+    protected Optional<String> durationFormatted;
 
     @Schema(description = "RecordingEditInstructions")
     @JsonConstraint

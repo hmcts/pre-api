@@ -33,6 +33,7 @@ public class CreateRecordingDTO extends BaseRecordingDTO {
         version = recording.getVersion();
         filename = recording.getFilename();
         duration = recording.getDuration();
+        durationFormatted = recording.getDurationFormatted();
         editInstructions = recording.getEditInstruction();
     }
 }
