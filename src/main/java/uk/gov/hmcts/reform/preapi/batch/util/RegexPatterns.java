@@ -12,6 +12,9 @@ public final class RegexPatterns {
     private RegexPatterns() {
     }
 
+    public static final Pattern NO_DIGIT_PATTERN = Pattern.compile("^[^\\d]+\\.(mp4)$", 
+        Pattern.CASE_INSENSITIVE);
+
     public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
     
     public static final Pattern S28_PATTERN = Pattern.compile(
@@ -39,7 +42,8 @@ public final class RegexPatterns {
         "S28 Pattern", S28_PATTERN,
         "UUID Pattern", UUID_FILENAME_PATTERN,
         "Filename Pattern", FILENAME_PATTERN,
-        "QC Filename Pattern", QC_FILENAME_PATTERN
+        "QC Filename Pattern", QC_FILENAME_PATTERN,
+        "No Digit Pattern", NO_DIGIT_PATTERN
     );
 
     private static Pattern buildTestKeywordsPattern() {
