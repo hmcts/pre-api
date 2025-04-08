@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -98,9 +99,13 @@ public class StartLiveEvents extends RobotUserTask {
 
         try {
             mediaService.startLiveEvent(dto);
+        } catch (ConflictException e) {
+            log.error("Live event already started for capture session: {}", captureSessionId, e);
+            handleCaptureSessionFailure(captureSessionId, true);
+            return false;
         } catch (Exception e) {
             log.error("Failed to start live event for capture session {}", captureSessionId, e);
-            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
+            handleCaptureSessionFailure(captureSessionId, false);
             return false;
         }
 
@@ -127,7 +132,7 @@ public class StartLiveEvents extends RobotUserTask {
                 Thread.currentThread().interrupt();
             }
             log.error("Failed to await ingest address for capture session {}", captureSessionId, e);
-            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
+            handleCaptureSessionFailure(captureSessionId, false);
         }
     }
 
@@ -135,5 +140,12 @@ public class StartLiveEvents extends RobotUserTask {
         return liveEvent != null && liveEvent.getResourceState().equals("Running") && liveEvent.getInputRtmp() != null
             ? liveEvent.getInputRtmp()
             : null;
+    }
+
+    private void handleCaptureSessionFailure(UUID captureSessionId, boolean deleteOnFailure) {
+        captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
+        if (deleteOnFailure) {
+            captureSessionService.deleteById(captureSessionId);
+        }
     }
 }

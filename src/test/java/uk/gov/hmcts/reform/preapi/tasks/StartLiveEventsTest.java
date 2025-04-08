@@ -13,6 +13,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
@@ -261,6 +262,52 @@ public class StartLiveEventsTest {
         verify(mockMediaService, times(1)).startLiveEvent(captureSession);
         verify(captureSessionService, times(1))
             .startCaptureSession(any(UUID.class), eq(RecordingStatus.FAILURE), isNull());
+        verify(captureSessionService, never())
+            .startCaptureSession(any(UUID.class), eq(RecordingStatus.INITIALISING), isNull());
+        verify(captureSessionService, never())
+            .startCaptureSession(any(UUID.class), eq(RecordingStatus.STANDBY), isNull());
+    }
+
+    @Test
+    @DisplayName("Should delete capture session on conflict exception from MK")
+    void runSuccessOnStartLiveEventConflictException() {
+        var captureSession = createCaptureSession();
+        var mockMediaService = mock(IMediaService.class);
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mockMediaService);
+        doThrow(new ConflictException("")).when(mockMediaService).startLiveEvent(captureSession);
+        when(bookingService.searchBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            any(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            any()
+        )).thenReturn(new PageImpl<>(List.of(
+            createBooking(List.of())
+        )));
+        when(captureSessionService.findById(any(UUID.class))).thenReturn(captureSession);
+
+        startLiveEvents.run();
+
+        verify(bookingService, times(1)).searchBy(
+            isNull(),
+            isNull(),
+            isNull(),
+            any(),
+            isNull(),
+            isNull(),
+            isNull(),
+            isNull(),
+            any()
+        );
+        verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
+        verify(mockMediaService, times(1)).startLiveEvent(captureSession);
+        verify(captureSessionService, times(1))
+            .startCaptureSession(any(UUID.class), eq(RecordingStatus.FAILURE), isNull());
+        verify(captureSessionService, times(1)).deleteById(any(UUID.class));
         verify(captureSessionService, never())
             .startCaptureSession(any(UUID.class), eq(RecordingStatus.INITIALISING), isNull());
         verify(captureSessionService, never())
