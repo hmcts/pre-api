@@ -735,22 +735,32 @@ public class MediaKind implements IMediaService {
     }
 
     private void assertStreamingLocatorExists(UUID liveEventId) {
+        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
         try {
-            log.info("Creating Streaming locator");
-            var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+            mediaKindClient.getStreamingLocator(sanitisedLiveEventId);
+        } catch (NotFoundException e) {
+            createStreamingLocator(sanitisedLiveEventId);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
 
+    private void createStreamingLocator(String sanitisedLiveEventId) {
+        log.info("Creating Streaming locator");
+        try {
             // Streaming Locator for a live event
             mediaKindClient.createStreamingLocator(
                 sanitisedLiveEventId,
                 MkStreamingLocator.builder()
-                                  .properties(MkStreamingLocatorProperties
-                                                  .builder()
-                                                  .assetName(sanitisedLiveEventId)
-                                                  .streamingLocatorId(sanitisedLiveEventId)
-                                                  .streamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
-                                                  .build()
-                                  ).build()
+                    .properties(MkStreamingLocatorProperties
+                                    .builder()
+                                    .assetName(sanitisedLiveEventId)
+                                    .streamingLocatorId(sanitisedLiveEventId)
+                                    .streamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
+                                    .build())
+                    .build()
             );
         } catch (ConflictException e) {
             log.info("Streaming locator already exists");
