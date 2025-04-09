@@ -137,7 +137,6 @@ public class MigrationGroupBuilderService {
 
     private CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
-
         // 1 - return if case reference is invalid
         if (isInvalidCaseReference(caseReference)) {
             return null;

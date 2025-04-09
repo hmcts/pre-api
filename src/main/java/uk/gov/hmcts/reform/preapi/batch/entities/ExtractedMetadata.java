@@ -44,8 +44,8 @@ public class ExtractedMetadata implements IArchiveData {
         String archiveName
     ) {
         this.courtReference = courtReference;
-        this.urn = urn;
-        this.exhibitReference = exhibitReference;
+        this.urn = urn != null ? urn.toUpperCase() : null;
+        this.exhibitReference = exhibitReference != null ? exhibitReference.toUpperCase() : null;
         this.defendantLastName = formatName(defendantLastName.toLowerCase());
         this.witnessFirstName = formatName(witnessFirstName.toLowerCase());
         this.recordingVersion = recordingVersion;

@@ -202,7 +202,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
-        boolean alreadyMigrated = cacheService.checkHashKeyExists("vf:case:", cleansedData.getCaseReference());
+        boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
         if (alreadyMigrated) {
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;
@@ -282,9 +282,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private void checkAndCreateNotifyItem(ExtractedMetadata extractedData) {
         String defendantLastName = extractedData.getDefendantLastName();
         String witnessFirstName = extractedData.getWitnessFirstName();
-        String urn = extractedData.getUrn();
-        String exhibitRef = extractedData.getExhibitReference();
-
         // Double-barrelled name checks
         if (defendantLastName != null && defendantLastName.contains("-")) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled defendant",extractedData));
@@ -294,8 +291,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled witness",extractedData));
         }
 
+        String urn = extractedData.getUrn();
+        String exhibitRef = extractedData.getExhibitReference();
         // case ref checks
-        if (urn == null || urn.isEmpty()){
+        if (urn == null || urn.isEmpty()) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",extractedData));
         } else if (urn.length() < 11) {
             migrationTrackerService.addNotifyItem(new NotifyItem("URN - invalid length", extractedData));
