@@ -96,7 +96,14 @@ public class MigrationGroupBuilderService {
         }
 
         String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
-        String baseKey = cacheService.generateBaseKey(acase.getReference(), participantPair);
+
+        String baseKey = cacheService.generateCacheKey(
+                "booking", 
+                "metadata", 
+                acase.getReference(), 
+                participantPair
+            );
+
         CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, cleansedData, captureSession);

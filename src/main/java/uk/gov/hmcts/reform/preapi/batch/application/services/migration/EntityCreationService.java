@@ -209,23 +209,26 @@ public class EntityCreationService {
                 sharedWith = createUser(firstName, lastName, email, UUID.randomUUID());
                 inviteDTO = createInvite(sharedWith);
                 userInvites.add(inviteDTO);
-                cacheService.saveHashValue(Constants.CacheKeys.USERS_PREFIX, email, sharedWith.getId().toString());
+                cacheService.saveUser(email, sharedWith.getId());
             }
 
-            String cacheBookingKey = SHARE_BOOKING_FIELD + booking.getId().toString();
-            String existingSharedWith = cacheService.getHashValue(
-                cacheBookingKey,
-                sharedWith.getId().toString(),
-                String.class
+            String existingSharedWith = cacheService.generateCacheKey(
+                "migration",
+                "share-booking",
+                booking.getId().toString(),
+                sharedWith.getId().toString()
             );
 
-            if (existingSharedWith != null && existingSharedWith.equals(sharedWith.getId().toString())) {
-                return;
+
+            if (cacheService.getShareBooking(existingSharedWith).isPresent()) {
+                return; 
             }
+           
 
             CreateUserDTO sharedBy = getUserById(vodafoneUser);
-            cacheService.saveHashValue(cacheBookingKey, sharedWith.getId().toString(), sharedWith.getId().toString());
-            shareBookings.add(createShareBooking(booking, sharedWith, sharedBy));
+            var shareBookingDTO = createShareBooking(booking, sharedWith, sharedBy);
+            shareBookings.add(shareBookingDTO);
+            cacheService.saveShareBooking(existingSharedWith, shareBookingDTO);
         } catch (Exception e) {
             loggingService.logError("Failed to create share booking: %s - %s", e.getMessage(), e);
         }

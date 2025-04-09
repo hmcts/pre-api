@@ -48,11 +48,8 @@ public final class Constants {
         }
 
         public static final String NAMESPACE = "vf:";
-        public static final String COURTS_PREFIX = NAMESPACE + "court:";
-        public static final String CASES_PREFIX = NAMESPACE + "case:";
         public static final String USERS_PREFIX = NAMESPACE + "user:";
-        public static final String RECORDING_METADATA_FORMAT = NAMESPACE + "pre-process:%s-%s-%s";
-        public static final String SITES_DATA = "sites_data";
+        public static final String RECORDING_METADATA_FORMAT = NAMESPACE + "pre-process:%s-%s-%s-%s";
         public static final String CHANNEL_DATA = "channel_data";
 
         public static String formatRecordingMetadataKey(String param1, String param2, String param3) {

@@ -43,33 +43,34 @@ public class RecordingMetadataProcessor {
     public void processRecording(CSVArchiveListData archiveItem) {
         try {
             ServiceResult<?> extracted = extractionService.process(archiveItem);
-            if (extracted.getErrorMessage() != null) {
-                return;
-            }
-
-            if (extracted.isTest()) {
+            if (extracted.getErrorMessage() != null || extracted.isTest()) {
                 return;
             }
 
             ExtractedMetadata extractedData = (ExtractedMetadata) extracted.getData();
             ServiceResult<ProcessedRecording> result = transformationService.transformData(extractedData);
-            ProcessedRecording cleansedData = result.getData();
-            if (cleansedData == null) {
+            if (result.getData() == null) {
                 ServiceResultUtil.failure("Data not transformed successfully", "Missing data");
                 return;
             }
 
-            String key = RecordingUtils.buildMetadataPreprocessKey(
-                cleansedData.getUrn(),
+            ProcessedRecording cleansedData = result.getData();
+
+            String key = cacheService.generateCacheKey(
+                "recording", "version", 
+                cleansedData.getUrn(), 
+                cleansedData.getExhibitReference(),
                 cleansedData.getDefendantLastName(),
                 cleansedData.getWitnessFirstName()
             );
 
+            // Get current tracking data (version history, etc)
             Map<String, Object> existingMetadata = cacheService.getHashAll(key);
             if (existingMetadata == null) {
                 existingMetadata = new HashMap<>();
             }
-
+           
+            // Update versioning info for this recording
             Map<String, Object> updatedMetadata = RecordingUtils.updateVersionMetadata(
                 cleansedData.getRecordingVersion(),
                 cleansedData.getRecordingVersionNumberStr(),
@@ -77,6 +78,7 @@ public class RecordingMetadataProcessor {
                 existingMetadata
             );
 
+            // Save back to hashStore
             cacheService.saveHashAll(key, updatedMetadata);
         } catch (Exception e) {
             ServiceResultUtil.failure(e.getMessage(), "Error");

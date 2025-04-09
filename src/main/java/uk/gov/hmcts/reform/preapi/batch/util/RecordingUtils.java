@@ -12,8 +12,6 @@ import java.util.Optional;
 
 @UtilityClass
 public final class RecordingUtils {
-    private static final String RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
-
     private static final String KEY_ORIG_VERSION_NUMBER = "origVersionNumber";
     private static final String KEY_COPY_VERSION_NUMBER = "copyVersionNumber";
     private static final String KEY_ORIG_ARCHIVE_NAME = "origVersionArchiveName";
@@ -80,10 +78,6 @@ public final class RecordingUtils {
         return storedVersion == null || compareVersionStrings(currentVersion, storedVersion) >= 0;
     }
     
-
-    public String buildMetadataPreprocessKey(String urn, String defendant, String witness) {
-        return String.format(RECORDING_METADATA_KEY, urn, defendant, witness);
-    }
 
     private static int compareVersionStrings(String v1, String v2) {
         if (v1 == null) {

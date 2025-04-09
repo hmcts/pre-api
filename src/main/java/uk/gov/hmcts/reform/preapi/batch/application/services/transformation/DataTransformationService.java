@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -11,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 public class DataTransformationService {
@@ -29,19 +28,16 @@ public class DataTransformationService {
 
     private final InMemoryCacheService cacheService;
     private final CourtRepository courtRepository;
-    private final ReferenceDataProcessor referenceDataProcessor;
     private LoggingService loggingService;
 
     @Autowired
     public DataTransformationService(
         InMemoryCacheService cacheService,
         CourtRepository courtRepository,
-        ReferenceDataProcessor referenceDataProcessor,
         LoggingService loggingService
     ) {
         this.cacheService = cacheService;
         this.courtRepository = courtRepository;
-        this.referenceDataProcessor = referenceDataProcessor;
         this.loggingService = loggingService;
     }
 
@@ -62,7 +58,7 @@ public class DataTransformationService {
                 extracted.getSanitizedArchiveName()
             );
 
-            Map<String, Object> sitesDataMap = getSitesData();
+            Map<String, String> sitesDataMap = getSitesData();
 
             ProcessedRecording cleansedData = buildProcessedRecording(extracted, sitesDataMap);
 
@@ -75,19 +71,28 @@ public class DataTransformationService {
     }
 
     private ProcessedRecording buildProcessedRecording(
-        ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
+        ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
 
-        String key = RecordingUtils.buildMetadataPreprocessKey(
-            extracted.getUrn(), extracted.getDefendantLastName(), extracted.getWitnessFirstName()
-        );
+        String key = cacheService.generateCacheKey(
+                "recording", 
+                "version", 
+                extracted.getUrn(), 
+                extracted.getExhibitReference(),
+                extracted.getDefendantLastName(),
+                extracted.getWitnessFirstName()
+            );
 
         Map<String, Object> existingData = cacheService.getHashAll(key);
         RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
-            extracted.getRecordingVersion(), extracted.getRecordingVersionNumber(),
-            extracted.getUrn(), extracted.getDefendantLastName(), extracted.getWitnessFirstName(), existingData
+            extracted.getRecordingVersion(), 
+            extracted.getRecordingVersionNumber(),
+            extracted.getUrn(), 
+            extracted.getDefendantLastName(), 
+            extracted.getWitnessFirstName(), 
+            existingData
         );
 
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
@@ -123,36 +128,25 @@ public class DataTransformationService {
      * @param sitesDataMap The sites data map from Cache
      * @return The Court entity or null if not found
      */
-    private Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, Object> sitesDataMap) {
+    private Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
             loggingService.logError("Court reference is null or empty");
             throw new IllegalArgumentException("Court reference cannot be null or empty");
         }
 
-        Object fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
-        Map<String, Object> courtsData = cacheService.getHashAll(
-            Constants.CacheKeys.COURTS_PREFIX);
+        String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
 
-        if (courtsData == null || courtsData.isEmpty()) {
-            loggingService.logError("Courts data not found in Cache");
-            throw new IllegalStateException("Courts data not found in Cache");
-        }
+        return cacheService.getCourt((String) fullCourtName)
+            .map(CourtDTO::getId) 
+            .flatMap(courtRepository::findById) 
+            .orElseGet(() -> {
+                loggingService.logWarning("Court not found in cache or DB for name: %s", fullCourtName);
+                return null;
+            });
 
-        String courtIdString = (String) courtsData.get(fullCourtName);
-        if (courtIdString != null) {
-            try {
-                UUID courtId = UUID.fromString(courtIdString);
-                return courtRepository.findById(courtId).orElse(null);
-            } catch (IllegalArgumentException e) {
-                loggingService.logError("Invalid court ID format: $s - $s", courtIdString, e);
-                throw new IllegalArgumentException("Court ID parsing failed for: " + courtIdString, e);
-            }
-        }
-
-        loggingService.logWarning("Court ID not found for court name: %s", fullCourtName);
-        return null;
     }
+
 
     private List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
         String archiveName = extracted.getArchiveNameNoExt();
@@ -183,12 +177,7 @@ public class DataTransformationService {
      * @return A list of user email arrays
      */
     private List<String[]> getUsersAndEmails(String key) {
-        Map<String, List<String[]>> channelUserDataMap = referenceDataProcessor.fetchChannelUserDataMap();
-        if (channelUserDataMap == null) {
-            loggingService.logWarning("Channel user data map is null");
-            return new ArrayList<>();
-        }
-        return channelUserDataMap.getOrDefault(key, new ArrayList<>());
+        return cacheService.getChannelReference(key).orElse(new ArrayList<>());
     }
 
     /**
@@ -197,16 +186,14 @@ public class DataTransformationService {
      * @return A map of site data
      * @throws IllegalStateException if sites data is not found in Cache
      */
-    private Map<String, Object> getSitesData() {
-        Map<String, Object> sitesDataMap = cacheService.getHashAll(
-            Constants.CacheKeys.SITES_DATA
-        );
-
-        if (sitesDataMap == null || sitesDataMap.isEmpty()) {
+    private Map<String, String> getSitesData() {
+    
+        Map<String, String> sites = cacheService.getAllSiteReferences();
+        if (sites.isEmpty()) {
             loggingService.logError("Sites data not found in Cache");
             throw new IllegalStateException("Sites data not found in Cache");
         }
-        return sitesDataMap;
+        return sites;
     }
 
     /**
