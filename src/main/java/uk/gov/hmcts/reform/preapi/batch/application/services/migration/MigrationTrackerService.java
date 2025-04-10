@@ -184,7 +184,7 @@ public class MigrationTrackerService {
     private List<String> getNotifyItemsHeaders() {
         return List.of(
             "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant", 
-            "Extracted_witness", "Date / Time migrated"
+            "Extracted_witness", "Date / Time migrated", "Duration", "File Size"
         );
     }
 

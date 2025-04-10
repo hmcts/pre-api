@@ -217,7 +217,6 @@ public class BatchConfiguration implements StepExecutionListener {
     // Utility and Helper Functions
     // =========================
 
-
     @Bean
     public JobExecutionDecider deltaProcessingDecider() {
         return (jobExecution, stepExecution) -> {
