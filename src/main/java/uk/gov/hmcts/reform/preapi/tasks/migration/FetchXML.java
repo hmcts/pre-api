@@ -22,9 +22,10 @@ public class FetchXML extends BaseTask {
                     JobLauncher jobLauncher,
                     LoggingService loggingService,
                     @Value("${migration.debug}") boolean debug,
+                    @Value("${migration.dry-run:false}") boolean dryRun,
                     @Value("${migration.type}") String migrationType,
                     @Qualifier("fetchXmlJob") Job fetchXmlJob) {
-        super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug);
+        super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug, dryRun);
         this.migrationType = MigrationType.fromString(migrationType);
         this.fetchXmlJob = fetchXmlJob;
     }

@@ -21,8 +21,9 @@ public class PostProcessMigration extends BaseTask {
                                 JobLauncher jobLauncher,
                                 LoggingService loggingService,
                                 @Value("${migration.debug}") boolean debug,
+                                @Value("${migration.dry-run:false}") boolean dryRun,
                                 @Qualifier("postMigrationJob") Job postMigrationJob) {
-        super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug);
+        super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug, dryRun);
         this.postMigrationJob = postMigrationJob;
     }
 
