@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.util;
 
+import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
 import java.util.Map;
@@ -7,13 +8,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@UtilityClass
+@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public final class RegexPatterns {
-
-    private RegexPatterns() {
-    }
-
     public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
-    
+
     public static final Pattern S28_PATTERN = Pattern.compile(
         "^(?:S28[_\\s])[A-Za-z0-9_]+_\\d{15,18}(?:\\.(mp4|raw|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
@@ -67,7 +66,7 @@ public final class RegexPatterns {
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
 
     private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z0-9]+)(?>[-\s][A-Za-z0-9]+)*)"
-                                                + SEPARATOR_ONE 
+                                                + SEPARATOR_ONE
                                                 + "(?<witnessFirstName>[?>A-Za-z0-9&']+(?>[-'\\s][A-Za-z]+)*)";
     /**
      * Standard pattern for most common recording names.

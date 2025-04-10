@@ -25,13 +25,7 @@ public class PatternMatcherService {
             return testMatch;
         }
 
-        Optional<Map.Entry<String, Matcher>> validMatch =
-            findMatch(archiveName, RegexPatterns.LEGITAMITE_PATTERNS, "VALID");
-        if (validMatch.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return validMatch;
+        return findMatch(archiveName, RegexPatterns.LEGITAMITE_PATTERNS, "VALID");
     }
 
     private Optional<Map.Entry<String, Matcher>> findMatch(
