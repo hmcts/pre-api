@@ -1,4 +1,3 @@
-
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
 import lombok.RequiredArgsConstructor;
@@ -8,7 +7,6 @@ import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemor
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
-import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -31,12 +29,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
-    private static final String BOOKING_FIELD = "bookingField";
-    private static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    protected static final String BOOKING_FIELD = "bookingField";
+    protected static final String CAPTURE_SESSION_FIELD = "captureSessionField";
     // TODO remove unused constant ?
     private static final String RECORDING_FIELD = "recordingField";
     private static final String SHARE_BOOKING_FIELD = "vf:shareBooking:";
@@ -89,7 +86,7 @@ public class EntityCreationService {
     ) {
         var vodafoneUser = getUserByEmail(vodafoneUserEmail);
 
-        var captureSessionDTO = new CaptureSessionDTO();
+        var captureSessionDTO = new CreateCaptureSessionDTO();
         captureSessionDTO.setId(UUID.randomUUID());
         captureSessionDTO.setBookingId(booking.getId());
         captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
@@ -97,7 +94,6 @@ public class EntityCreationService {
         captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
         captureSessionDTO.setFinishedByUserId(vodafoneUser);
         captureSessionDTO.setStatus(RecordingStatus.RECORDING_AVAILABLE);
-        captureSessionDTO.setCaseState(CaseState.OPEN);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
         cacheService.saveHashValue(key, CAPTURE_SESSION_FIELD, captureSessionDTO);
@@ -166,14 +162,13 @@ public class EntityCreationService {
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> userInvites = new ArrayList<>();
 
-        cleansedData.getShareBookingContacts().forEach(contactInfo ->
-                                                           processShareBookingContact(
-                                                               contactInfo,
-                                                               booking,
-                                                               shareBookings,
-                                                               userInvites
-                                                           )
-        );
+        cleansedData.getShareBookingContacts()
+            .forEach(contactInfo ->
+                         processShareBookingContact(
+                             contactInfo,
+                             booking,
+                             shareBookings,
+                             userInvites));
 
         if (shareBookings.isEmpty()) {
             return Collections.emptyList();
@@ -181,7 +176,7 @@ public class EntityCreationService {
 
         results.add(shareBookings);
         results.add(userInvites);
-        return results.isEmpty() ? null : results;
+        return results;
     }
 
     private void processShareBookingContact(
