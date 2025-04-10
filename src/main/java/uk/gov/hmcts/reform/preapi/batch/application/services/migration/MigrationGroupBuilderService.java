@@ -33,9 +33,9 @@ import java.util.Set;
 
 @Service
 public class MigrationGroupBuilderService {
-    private static final String BOOKING_FIELD = "bookingField";
-    private static final String CAPTURE_SESSION_FIELD = "captureSessionField";
-    private static final String RECORDING_FIELD = "recordingField";
+    protected static final String BOOKING_FIELD = "bookingField";
+    protected static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    protected static final String RECORDING_FIELD = "recordingField";
 
     private final LoggingService loggingService;
     private final EntityCreationService entityCreationService;
@@ -44,7 +44,7 @@ public class MigrationGroupBuilderService {
     private final CaseRepository caseRepository;
     private final MediaTransformationService mediaTransformationService;
 
-    private final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
+    protected final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
 
     @Autowired
     public MigrationGroupBuilderService(
@@ -123,7 +123,7 @@ public class MigrationGroupBuilderService {
         return migrationGroup;
     }
 
-    private CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
+    protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
 
         // 1 - return if case reference is invalid
@@ -140,7 +140,7 @@ public class MigrationGroupBuilderService {
         return createNewCase(caseReference, cleansedData);
     }
 
-    private boolean isInvalidCaseReference(String caseReference) {
+    protected boolean isInvalidCaseReference(String caseReference) {
         return caseReference == null || caseReference.isBlank();
     }
 
@@ -165,7 +165,7 @@ public class MigrationGroupBuilderService {
         return existingCase;
     }
 
-    private boolean addNewParticipants(
+    protected boolean addNewParticipants(
         Set<CreateParticipantDTO> currentParticipants,
         Set<CreateParticipantDTO> newParticipants,
         Set<CreateParticipantDTO> updatedParticipants
@@ -195,7 +195,7 @@ public class MigrationGroupBuilderService {
             && Objects.equals(normalizeName(p1.getLastName()), normalizeName(p2.getLastName()));
     }
 
-    private CreateCaseDTO createNewCase(String caseReference, ProcessedRecording cleansedData) {
+    protected CreateCaseDTO createNewCase(String caseReference, ProcessedRecording cleansedData) {
         CreateCaseDTO newCase = entityCreationService.createCase(cleansedData);
         if (newCase == null) {
             return null;
@@ -208,13 +208,13 @@ public class MigrationGroupBuilderService {
         return name == null ? "" : name.trim().toLowerCase();
     }
 
-    private CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO aCase) {
+    protected CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO aCase) {
         return cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)
             ? cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class)
             : entityCreationService.createBooking(cleansedData, aCase, baseKey);
     }
 
-    private CreateCaptureSessionDTO processCaptureSession(
+    protected CreateCaptureSessionDTO processCaptureSession(
         String baseKey,
         ProcessedRecording cleansedData,
         CreateBookingDTO booking
@@ -224,7 +224,7 @@ public class MigrationGroupBuilderService {
             : entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
     }
 
-    private CreateRecordingDTO processRecording(
+    protected CreateRecordingDTO processRecording(
         String baseKey,
         ProcessedRecording cleansedItem,
         CreateCaptureSessionDTO captureSession
