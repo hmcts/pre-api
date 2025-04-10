@@ -75,6 +75,7 @@ public class MigrateExclusionsTest {
                                                       jobLauncher,
                                                       loggingService,
                                                       false,
+                                                      false,
                                                       processExclusionsJob);
         migrateExclusions.run();
 
@@ -106,6 +107,7 @@ public class MigrateExclusionsTest {
                                                       CRON_USER_EMAIL,
                                                       jobLauncher,
                                                       loggingService,
+                                                      false,
                                                       false,
                                                       processExclusionsJob);
         migrateExclusions.run();
