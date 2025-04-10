@@ -43,15 +43,6 @@ public class InMemoryCacheService {
         this.loggingService = loggingService;
     }
 
-    // -----------------------------
-    // Clean-up
-    // -----------------------------
-    public void clearAll() {
-        courtCache.clear();
-        caseCache.clear();
-        bookingCache.clear();
-        hashStore.clear();
-    }
 
     // -----------------------------
     // Courts
@@ -186,6 +177,7 @@ public class InMemoryCacheService {
     // Dump to CSV for Debug
     // -----------------------------
     public void dumpToFile() {
+        
         List<String> headers = List.of("Key", "Field", "Value");
         List<List<String>> rows = new ArrayList<>();
 
@@ -217,7 +209,7 @@ public class InMemoryCacheService {
             rows.add(List.of(entry.getKey(), entry.getValue().toString()));
         }
 
-        //  siteReferenceCache
+        // //  siteReferenceCache
         for (Map.Entry<String, String> entry : siteReferenceCache.entrySet()) {
             rows.add(List.of("ref:sites", entry.getKey(), entry.getValue()));
         }
@@ -237,5 +229,4 @@ public class InMemoryCacheService {
             loggingService.logError("Failed to write in-memory cache to file: " + e.getMessage());
         }
     }
-
 }

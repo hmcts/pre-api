@@ -139,9 +139,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (!isValidated(cleansedData, archiveItem)) {
                 return null;
             }
-
-            loggingService.incrementProgress();
+            
+            loggingService.incrementProgress();           
             cacheService.dumpToFile();
+         
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
         } catch (Exception e) {
