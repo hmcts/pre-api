@@ -1,7 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.config;
 
 import lombok.Cleanup;
-import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;

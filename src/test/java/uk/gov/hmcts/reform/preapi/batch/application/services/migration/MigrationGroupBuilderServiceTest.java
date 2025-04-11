@@ -33,6 +33,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -279,7 +280,7 @@ public class MigrationGroupBuilderServiceTest {
         applicationContext.publishEvent(new ContextRefreshedEvent(applicationContext));
 
         when(entityCreationService.createCase(cleansedData)).thenReturn(caseDTO);
-        when(inMemoryCacheService.generateBaseKey(any(), any())).thenReturn(BASE_KEY);
+        when(inMemoryCacheService.generateCacheKey(eq("booking"), eq("metadata"), any(), any())).thenReturn(BASE_KEY);
 
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();

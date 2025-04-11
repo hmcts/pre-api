@@ -103,7 +103,7 @@ public class MigrationGroupBuilderService {
                 participantPair
             );
 
-        CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
+        CreateBookingDTO booking = processBooking(baseKey, cleansedData, aCase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, cleansedData, captureSession);
 

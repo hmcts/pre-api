@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.contains;
@@ -91,27 +90,9 @@ public class InMemoryCacheServiceTest {
     }
 
     @Test
-    void generateBaseKeySuccess() {
-        String baseKey = inMemoryCacheService.generateBaseKey("12345", "A-B");
-        assertThat(baseKey).isEqualTo("vf:case:12345:participants:A-B");
-    }
-
-    @Test
-    void generateBaseKeyCaseRefNullFailure() {
-        String message = assertThrows(
-            IllegalArgumentException.class,
-            () -> inMemoryCacheService.generateBaseKey(null, "A-B")
-        ).getMessage();
-        assertThat(message).isEqualTo("Case reference cannot be null or blank");
-    }
-
-    @Test
-    void generateBaseKeyCaseRefEmptyFailure() {
-        String message = assertThrows(
-            IllegalArgumentException.class,
-            () -> inMemoryCacheService.generateBaseKey("", "A-B")
-        ).getMessage();
-        assertThat(message).isEqualTo("Case reference cannot be null or blank");
+    void generateCacheKeySuccess() {
+        String baseKey = inMemoryCacheService.generateCacheKey("case", "participants", "A", "B");
+        assertThat(baseKey).isEqualTo("vf:case:participants:a-b");
     }
 
     @Test

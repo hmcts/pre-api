@@ -37,7 +37,7 @@ public class PostMigrationJobConfig {
 
     public final PlatformTransactionManager transactionManager;
     private final JobRepository jobRepository;
-    private final CoreStepsConfig coreSteps;    
+    private final CoreStepsConfig coreSteps;
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
     private final CaseService caseService;
@@ -97,7 +97,7 @@ public class PostMigrationJobConfig {
                 AtomicInteger closed = new AtomicInteger();
                 AtomicInteger skipped = new AtomicInteger();
 
-                vodafoneCases.forEach(caseDTO -> 
+                vodafoneCases.forEach(caseDTO ->
                     processCase(caseDTO, channelUsersMap, closed, skipped, dryRun)
                 );
 
@@ -115,13 +115,14 @@ public class PostMigrationJobConfig {
         return cases;
     }
 
-    private void processCase(CaseDTO caseDTO, Map<String, List<String[]>> channelUsersMap, 
+    private void processCase(CaseDTO caseDTO, Map<String, List<String[]>> channelUsersMap,
         AtomicInteger closed, AtomicInteger skipped, boolean dryRun) {
         String reference = caseDTO.getReference();
         loggingService.logInfo("===== Evaluating case: %s", reference);
 
         if (!hasMatchingChannelUser(reference, channelUsersMap)) {
-            loggingService.logDebug("Case %s does not have matching channel user entry — attempting to close.", reference);
+            loggingService.logDebug("Case %s does not have matching channel user entry — attempting to close.",
+                                    reference);
             try {
                 if (!dryRun) {
                     caseService.upsert(buildClosedCaseDTO(caseDTO));
@@ -157,7 +158,7 @@ public class PostMigrationJobConfig {
         dto.setClosedAt(Timestamp.from(Instant.now()));
 
         if (caseDTO.getParticipants() != null) {
-            loggingService.logInfo("Mapping %d participant(s) for case: %s", caseDTO.getParticipants().size(), 
+            loggingService.logInfo("Mapping %d participant(s) for case: %s", caseDTO.getParticipants().size(),
                 caseDTO.getReference());
             Set<CreateParticipantDTO> createParticipants = caseDTO.getParticipants().stream()
                 .map(this::mapParticipant)
