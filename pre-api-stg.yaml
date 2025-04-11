@@ -1484,17 +1484,6 @@ definitions:
           - DEFENDANT
         type: string
     type: object
-  # PermissionDTO:
-  #   description: PermissionDTO
-  #   properties:
-  #     id:
-  #       description: PermissionId
-  #       format: uuid
-  #       type: string
-  #     name:
-  #       description: PermissionName
-  #       type: string
-  #   type: object
   PlaybackDTO:
     description: PlaybackDTO
     properties:
