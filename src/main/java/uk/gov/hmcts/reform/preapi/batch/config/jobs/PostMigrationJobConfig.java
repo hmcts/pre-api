@@ -120,8 +120,8 @@ public class PostMigrationJobConfig {
         String reference = caseDTO.getReference();
         loggingService.logInfo("===== Evaluating case: %s", reference);
 
-        if (hasMatchingChannelUser(reference, channelUsersMap)) {
-            loggingService.logDebug("Case %s has matching channel user entry — attempting to close.", reference);
+        if (!hasMatchingChannelUser(reference, channelUsersMap)) {
+            loggingService.logDebug("Case %s does not have matching channel user entry — attempting to close.", reference);
             try {
                 if (!dryRun) {
                     caseService.upsert(buildClosedCaseDTO(caseDTO));
@@ -136,7 +136,7 @@ public class PostMigrationJobConfig {
                 skipped.incrementAndGet();
             }
         } else {
-            loggingService.logInfo("Skipping case %s — no matching channel user data found.", reference);
+            loggingService.logInfo("Skipping case %s — matching channel user data found.", reference);
             skipped.incrementAndGet();
         }
     }
