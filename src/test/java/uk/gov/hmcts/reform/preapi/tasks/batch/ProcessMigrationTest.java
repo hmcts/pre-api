@@ -76,6 +76,7 @@ public class ProcessMigrationTest {
             jobLauncher,
             loggingService,
             false,
+            false,
             MigrationType.FULL.name(),
             importCsvJob
         );
@@ -111,6 +112,7 @@ public class ProcessMigrationTest {
             CRON_USER_EMAIL,
             jobLauncher,
             loggingService,
+            false,
             false,
             MigrationType.DELTA.name(),
             importCsvJob
@@ -150,6 +152,7 @@ public class ProcessMigrationTest {
             CRON_USER_EMAIL,
             jobLauncher,
             loggingService,
+            false,
             false,
             MigrationType.FULL.name(),
             importCsvJob

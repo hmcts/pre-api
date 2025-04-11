@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -76,18 +78,15 @@ public class PreProcessor {
 
     protected void cacheRequiredEntities() {
         List<Court> courts = courtRepository.findAll();
-        cacheEntity(
-            Constants.CacheKeys.COURTS_PREFIX,
-            courts, Court::getName, court -> court.getId().toString(), "courts"
-        );
+        courts.forEach(court -> cacheService.saveCourt(court.getName(), new CourtDTO(court)));
+        loggingService.logInfo("Cached %d court records.", courts.size());        
 
         List<Case> cases = caseRepository.findAll();
-        cacheEntity(
-            Constants.CacheKeys.CASES_PREFIX,
-            cases, Case::getReference, acase -> acase.getId().toString(), "cases"
-        );
+        cases.forEach(acase -> cacheService.saveCase(acase.getReference(), new CaseDTO(acase)));
+        loggingService.logInfo("Cached %d cases records.", cases.size());
 
         List<User> users = userRepository.findAll();
+        users.forEach(user -> cacheService.saveUser(user.getEmail(), user.getId()));
         cacheEntity(
             Constants.CacheKeys.USERS_PREFIX,
             users, User::getEmail, user -> user.getId().toString(), "users"

@@ -42,7 +42,6 @@ public final class RecordingUtils {
                                     .orElseThrow(() -> new IllegalArgumentException(
                                         "Invalid recording version: " + recordingVersion
                                     ));
-
         String validVersionNumber = getValidVersionNumber(versionNumberStr);
         int versionNumber = getRecordingVersionNumber(versionType);
         boolean isMostRecent = isMostRecentVersion(versionType, validVersionNumber, dataMap);
@@ -71,10 +70,6 @@ public final class RecordingUtils {
         return storedVersion == null || compareVersionStrings(currentVersion, storedVersion) >= 0;
     }
 
-
-    public String buildMetadataPreprocessKey(String urn, String defendant, String witness) {
-        return String.format(RECORDING_METADATA_KEY, urn, defendant, witness);
-    }
 
     private static int compareVersionStrings(String v1, String v2) {
         if (v1 == null) {

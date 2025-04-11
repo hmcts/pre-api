@@ -11,6 +11,10 @@ import java.util.stream.Collectors;
 @UtilityClass
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public final class RegexPatterns {
+
+    public static final Pattern NO_DIGIT_PATTERN = Pattern.compile("^[^\\d]+\\.(mp4)$",
+        Pattern.CASE_INSENSITIVE);
+
     public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
 
     public static final Pattern S28_PATTERN = Pattern.compile(
@@ -27,6 +31,8 @@ public final class RegexPatterns {
         Pattern.CASE_INSENSITIVE
     );
 
+    public static final Pattern QC_FILENAME_PATTERN = Pattern.compile(".*QC.*", Pattern.CASE_INSENSITIVE);
+
     public static final Pattern TEST_KEYWORDS_PATTERN = buildTestKeywordsPattern();
 
 
@@ -35,7 +41,9 @@ public final class RegexPatterns {
         "Test Keyword", TEST_KEYWORDS_PATTERN,
         "S28 Pattern", S28_PATTERN,
         "UUID Pattern", UUID_FILENAME_PATTERN,
-        "Filename Pattern", FILENAME_PATTERN
+        "Filename Pattern", FILENAME_PATTERN,
+        "QC Filename Pattern", QC_FILENAME_PATTERN,
+        "No Digit Pattern", NO_DIGIT_PATTERN
     );
 
     private static Pattern buildTestKeywordsPattern() {
@@ -59,13 +67,13 @@ public final class RegexPatterns {
     private static final String DATE_PATTERN =
         "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})";
     private static final String COURT_PATTERN = "(?<court>[A-Za-z]+(?:d|fd)?)";
-    private static final String URN_PATTERN = "(?<urn>[A-Za-z0-9]{11})";
+    private static final String URN_PATTERN = "(?<urn>\\d{2}[A-Za-z0-9]{2}\\d+)";
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{8})";
     private static final String VERSION_PATTERN =
         "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
     private static final String EXTENSION_PATTERN = "(?:\\.(?<ext>mp4|raw|RAW))?";
 
-    private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z0-9]+)(?>[-\s][A-Za-z0-9]+)*)"
+    private static final String NAMES_PATTERN = "(?<defendantLastName>(?>[A-Za-z']+)(?>[-\\s][A-Za-z0-9&]+)*)"
                                                 + SEPARATOR_ONE
                                                 + "(?<witnessFirstName>[?>A-Za-z0-9&']+(?>[-'\\s][A-Za-z]+)*)";
     /**
@@ -201,6 +209,16 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$"
     );
 
+    public static final Pattern URN_EXTRA_ID_PATTERN = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?<extraId>\\d{6,})" + SEPARATOR_ONE
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
+        + EXTENSION_PATTERN + "$"
+    );
+
 
     public static final Map<String, Pattern> LEGITAMITE_PATTERNS = Map.of(
         "Standard", RegexPatterns.STANDARD_PATTERN,
@@ -210,6 +228,7 @@ public final class RegexPatterns {
         "DoubleURN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN,
         "DoubleExhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN,
         "Prefix", RegexPatterns.PREFIX_PATTERN,
-        "Flexible", RegexPatterns.FLEXIBLE_PATTERN
+        "Flexible", RegexPatterns.FLEXIBLE_PATTERN,
+        "ExtraId", RegexPatterns.URN_EXTRA_ID_PATTERN
     );
 }

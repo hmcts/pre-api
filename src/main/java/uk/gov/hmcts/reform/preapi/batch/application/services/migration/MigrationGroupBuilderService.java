@@ -95,10 +95,21 @@ public class MigrationGroupBuilderService {
         }
 
         String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
-        String baseKey = cacheService.generateBaseKey(aCase.getReference(), participantPair);
-        CreateBookingDTO booking = processBooking(baseKey, cleansedData, aCase);
+
+        String baseKey = cacheService.generateCacheKey(
+                "booking",
+                "metadata",
+                aCase.getReference(),
+                participantPair
+            );
+
+        CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, cleansedData, captureSession);
+
+        // if (recording != null) {
+        //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
+        // }
 
         List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
         List<CreateInviteDTO> invites = new ArrayList<>();
@@ -125,7 +136,6 @@ public class MigrationGroupBuilderService {
 
     protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
-
         // 1 - return if case reference is invalid
         if (isInvalidCaseReference(caseReference)) {
             return null;

@@ -51,7 +51,12 @@ public class DataValidationService {
         }
 
         String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
-        String baseKey = cacheService.generateBaseKey(cleansedData.getCaseReference(), participantPair);
+        String baseKey = cacheService.generateCacheKey(
+                "booking", 
+                "metadata", 
+                cleansedData.getCaseReference(), 
+                participantPair
+            );
 
         if (cleansedData.getRecordingVersionNumber() > 1) {
             String existingMetadata = cacheService.getHashValue(baseKey, "recordingMetadata", String.class);

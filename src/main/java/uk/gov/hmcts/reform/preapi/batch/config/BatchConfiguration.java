@@ -6,14 +6,11 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobScope;
-import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ExecutionContext;
-import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,85 +24,75 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.DeltaProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.PreProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.RecordingMetadataProcessor;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
-import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.Writer;
+import uk.gov.hmcts.reform.preapi.batch.config.steps.CommonStepUtils;
+import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
-import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
-import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
-import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
-import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
-import uk.gov.hmcts.reform.preapi.services.BookingService;
-import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
-import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.tasks.BatchRobotUserTask;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
 
 @Configuration
 @EnableBatchProcessing
 public class BatchConfiguration implements StepExecutionListener {
-    private static final int CHUNK_SIZE = 100;
-    private static final int SKIP_LIMIT = 10;
-    private static final String CONTAINER_NAME = "pre-vodafone-spike";
-    private static final String FULL_PATH = "src/main/resources/batch";
-    private static final String BASE_PATH = "/batch/";
-    private static final String SITES_CSV = BASE_PATH + "reference_data/Sites.csv";
-    private static final String CHANNEL_USER_CSV = BASE_PATH + "reference_data/Channel_User_Report.csv";
-    private static final String ARCHIVE_LIST_INITAL = BASE_PATH + "Archive_List_initial.csv";
-    private static final String DELTA_RECORDS_CSV = BASE_PATH + "Archive_List_delta.csv";
-    private static final String EXCEMPTIONS_LIST_CSV = BASE_PATH + "Excemption_List.csv";
+    public static final int CHUNK_SIZE = 100;
+    public static final int SKIP_LIMIT = 10;
+    public static final String CONTAINER_NAME = "pre-vodafone-spike";
+    public static final String FULL_PATH = "src/main/resources/batch";
+    public static final String BASE_PATH = "/batch/";
+    public static final String SITES_CSV = BASE_PATH + "reference_data/Sites.csv";
+    public static final String CHANNEL_USER_CSV = BASE_PATH + "reference_data/Channel_User_Report.csv";
+    public static final String ARCHIVE_LIST_INITAL = BASE_PATH + "Archive_List_initial.csv";
+    public static final String DELTA_RECORDS_CSV = BASE_PATH + "Archive_List_delta.csv";
+    public static final String EXCEMPTIONS_LIST_CSV = BASE_PATH + "Excemption_List.csv";
 
-    private final JobRepository jobRepository;
-    private final PlatformTransactionManager transactionManager;
-    private final PreProcessor preProcessor;
-    private final RecordingMetadataProcessor recordingPreProcessor;
-    private final Processor itemProcessor;
-    private final Writer itemWriter;
-    private final MigrationTrackerService migrationTrackerService;
-    private final BatchRobotUserTask robotUserTask;
-    private final ArchiveMetadataXmlExtractor xmlProcessingService;
-    private final DeltaProcessor deltaProcessor;
-    private final LoggingService loggingService;
+    public final JobRepository jobRepository;
+    public final PlatformTransactionManager transactionManager;
+    public final InMemoryCacheService cacheService;
+    public final PreProcessor preProcessor;
+    public final RecordingMetadataProcessor recordingPreProcessor;
+    public final Processor itemProcessor;
+    public final Writer itemWriter;
+    public final MigrationTrackerService migrationTrackerService;
+    public final BatchRobotUserTask robotUserTask;
+    public final ArchiveMetadataXmlExtractor xmlProcessingService;
+    public final DeltaProcessor deltaProcessor;
+    public final CaseService caseService;
+    public LoggingService loggingService;
+    private final CoreStepsConfig coreSteps;
+    private final CommonStepUtils stepUtils;
 
     @Autowired
     public BatchConfiguration(
-        final JobRepository jobRepository,
-        final PlatformTransactionManager transactionManager,
-        final PreProcessor preProcessor,
-        final RecordingMetadataProcessor recordingPreProcessor,
-        final ReferenceDataProcessor referenceDataProcessor,
-        final Processor itemProcessor,
-        final EntityCreationService entityCreationService,
-        final CaseService caseService,
-        final BookingService bookingService,
-        final CaptureSessionService captureSessionService,
-        final CaseRepository caseRepository,
-        final BookingRepository bookingRepository,
-        final CaptureSessionRepository captureSessionRepository,
-        final RecordingRepository recordingRepository,
-        final RecordingService recordingService,
-        final Writer itemWriter,
-        final MigrationTrackerService migrationTrackerService,
-        final BatchRobotUserTask robotUserTask,
-        final ArchiveMetadataXmlExtractor xmlProcessingService,
-        final LoggingService loggingService,
-        final DeltaProcessor deltaProcessor
+        JobRepository jobRepository,
+        PlatformTransactionManager transactionManager,
+        PreProcessor preProcessor,
+        RecordingMetadataProcessor recordingPreProcessor,
+        Processor itemProcessor,
+        CaseService caseService,
+        InMemoryCacheService cacheService,
+        Writer itemWriter,
+        MigrationTrackerService migrationTrackerService,
+        BatchRobotUserTask robotUserTask,
+        ArchiveMetadataXmlExtractor xmlProcessingService,
+        LoggingService loggingService,
+        DeltaProcessor deltaProcessor,
+        CoreStepsConfig coreSteps,
+        CommonStepUtils stepUtils
     ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
         this.preProcessor = preProcessor;
         this.recordingPreProcessor = recordingPreProcessor;
+        this.caseService = caseService;
+        this.cacheService = cacheService;
         this.itemProcessor = itemProcessor;
         this.itemWriter = itemWriter;
         this.migrationTrackerService = migrationTrackerService;
@@ -113,116 +100,13 @@ public class BatchConfiguration implements StepExecutionListener {
         this.xmlProcessingService = xmlProcessingService;
         this.loggingService = loggingService;
         this.deltaProcessor = deltaProcessor;
+        this.coreSteps = coreSteps;
+        this.stepUtils = stepUtils;
     }
 
-    // =========================
-    // Job Definitions
-    // =========================
-    @Bean
-    public Job fetchXmlJob() {
-        return new JobBuilder("fetchXmlJob", jobRepository)
-            .incrementer(new RunIdIncrementer())
-            .start(startLogging())
-            .next(createXmlFetchStep())
-            .build();
-    }
 
     @Bean
-    public Job processCSVJob() {
-        return new JobBuilder("processCSVJob", jobRepository)
-            .incrementer(new RunIdIncrementer())
-            .start(fileAvailabilityDecider())
-            .on("FAILED").end()
-            .on("COMPLETED")
-            .to(startLogging())
-            .next(createSitesDataStep())
-            .next(createChannelUserStep())
-            .next(createRobotUserSignInStep())
-            .next(createPreProcessStep())
-
-            .next(deltaProcessingDecider())
-            .on("FULL").to(createPreProcessMetadataStep())
-                                .next(createArchiveListStep())
-                                .next(createWriteToCSVStep())
-
-            .from(deltaProcessingDecider())
-            .on("DELTA").to(createDeltaProcessingStep())
-                                .next(createPreProcessMetadataStep())
-                                .next(createDeltaListStep())
-                                .next(createWriteToCSVStep())
-            .end()
-            .build();
-    }
-
-    @Bean
-    public Job postMigrationJob() {
-        return new JobBuilder("postMigrationJob", jobRepository)
-            .incrementer(new RunIdIncrementer())
-            .start(startLogging())
-            .next(createRobotUserSignInStep())
-            // .next(createNonTransactionalMarkCasesClosedStep())
-            // .next(markCasesStep)
-            .build();
-    }
-
-    @Bean
-    public Job processExclusionsJob() {
-        return new JobBuilder("processExclusionsJob", jobRepository)
-            .incrementer(new RunIdIncrementer())
-            .start(startLogging())
-            .next(createSitesDataStep())
-            .next(createChannelUserStep())
-            .next(createRobotUserSignInStep())
-            .next(createPreProcessStep())
-            .next(createExcemptionListStep())
-            .next(createWriteToCSVStep())
-            .build();
-    }
-
-    // =========================
-    // Step Definitions
-    // =========================
-    private Step createSitesDataStep() {
-        return createReadStep(
-            "sitesDataStep",
-            new ClassPathResource(SITES_CSV),
-            new String[] {"site_reference", "site_name", "location", "court_name"},
-            CSVSitesData.class,
-            false
-        );
-    }
-
-    private Step createChannelUserStep() {
-        return createReadStep(
-            "channelUserStep",
-            new ClassPathResource(CHANNEL_USER_CSV),
-            new String[] {"channel_name", "channel_user", "channel_user_email"},
-            CSVChannelData.class,
-            false
-        );
-    }
-
-    private Step createArchiveListStep() {
-        return createReadStep(
-            "archiveListDataStep",
-            new ClassPathResource(ARCHIVE_LIST_INITAL),
-            new String[] {"archive_name", "create_time", "duration", "file_name", "file_size"},
-            CSVArchiveListData.class,
-            true
-        );
-    }
-
-    private Step createDeltaListStep() {
-        return createReadStep(
-            "deltaDataStep",
-            new ClassPathResource(DELTA_RECORDS_CSV),
-            new String[] {"archive_name", "create_time", "duration", "file_name", "file_size"},
-            CSVArchiveListData.class,
-            true
-        );
-    }
-
-    protected Step createDeltaProcessingStep() {
+    public Step createDeltaProcessingStep() {
         return new StepBuilder("deltaProcessingStep", jobRepository)
             .tasklet((contribution, chunkContext) -> {
                 String deltaFilePath = "src/main/resources/batch/Archive_List_delta.csv";
@@ -236,8 +120,10 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-    private Step createExcemptionListStep() {
-        return createExcemptionReadStep(
+    @Bean
+    @JobScope
+    public Step createExemptionListStep() {
+        return stepUtils.buildChunkStep(
             "excemptionListDataStep",
             new ClassPathResource(EXCEMPTIONS_LIST_CSV),
             new String[] {
@@ -246,53 +132,16 @@ public class BatchConfiguration implements StepExecutionListener {
                 "recording_version_number","file_extension","file_name","file_size","reason","added_by"
             },
             CSVExemptionListData.class,
-            true
+            coreSteps.getDryRunFlag() ? coreSteps.noOpWriter() : itemWriter,
+            jobRepository,
+            transactionManager
         );
     }
 
-    protected Step startLogging() {
-        return new StepBuilder("loggingStep", jobRepository)
-            .tasklet(
-                (contribution, chunkContext) -> {
-                    String debugParam = (String) chunkContext.getStepContext()
-                                                             .getJobParameters()
-                                                             .get("debug");
 
-                    var migrationType = MigrationType.fromString((String) chunkContext.getStepContext()
-                                                                                      .getJobParameters()
-                                                                                      .get("migrationType"));
-
-                    boolean debug = Boolean.parseBoolean(debugParam);
-                    loggingService.setDebugEnabled(debug);
-                    loggingService.initializeLogFile(migrationType);
-                    loggingService.logInfo("Job started with debug mode: " + debug);
-                    return RepeatStatus.FINISHED;
-                }, transactionManager)
-            .build();
-    }
 
     @Bean
-    @JobScope
-    protected Step createXmlFetchStep() {
-        return new StepBuilder("fetchAndConvertXmlFileStep", jobRepository)
-            .tasklet(
-                (contribution, chunkContext) -> {
-                    var migrationType = MigrationType.fromString((String) chunkContext.getStepContext()
-                                                                                      .getJobParameters()
-                                                                                      .get("migrationType"));
-
-                    String outputFileName = "Archive_List_initial";
-                    if (migrationType.equals(MigrationType.DELTA)) {
-                        outputFileName = "Archive_List_updated";
-                    }
-
-                    xmlProcessingService.extractAndReportArchiveMetadata(CONTAINER_NAME, FULL_PATH, outputFileName);
-                    return RepeatStatus.FINISHED;
-                }, transactionManager)
-            .build();
-    }
-
-    protected Step createPreProcessStep() {
+    public Step createPreProcessStep() {
         return new StepBuilder("preProcessStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
@@ -302,7 +151,8 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-    protected Step createPreProcessMetadataStep() {
+    @Bean
+    public Step createPreProcessMetadataStep() {
         return new StepBuilder("preProcessMetadataStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
@@ -330,7 +180,8 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-    protected Step createWriteToCSVStep() {
+    @Bean
+    public Step createWriteToCSVStep() {
         return new StepBuilder("writeToCSVStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
@@ -340,7 +191,8 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-    protected Step createRobotUserSignInStep() {
+    @Bean
+    public Step createRobotUserSignInStep() {
         return new StepBuilder("signInRobotUserStep", jobRepository)
             .tasklet(
                 (contribution, chunkContext) -> {
@@ -354,13 +206,23 @@ public class BatchConfiguration implements StepExecutionListener {
     // =========================
     // Utility and Helper Functions
     // =========================
+
     @Bean
     public JobExecutionDecider deltaProcessingDecider() {
-        return (jobExecution, stepExecution) -> new FlowExecutionStatus(MigrationType.fromString(
-            Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))).toString());
+        return (jobExecution, stepExecution) -> {
+            var migrationType = MigrationType.fromString(
+                (String) Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))
+            );
+
+            if (migrationType.equals(MigrationType.DELTA)) {
+                return new FlowExecutionStatus("DELTA");
+            } else {
+                return new FlowExecutionStatus("FULL");
+            }
+        };
     }
 
-    protected JobExecutionDecider fileAvailabilityDecider() {
+    public JobExecutionDecider fileAvailabilityDecider() {
         return (jobExecution, stepExecution) -> {
             Resource sites = new ClassPathResource(SITES_CSV);
             Resource channelReport = new ClassPathResource(CHANNEL_USER_CSV);
@@ -370,63 +232,6 @@ public class BatchConfiguration implements StepExecutionListener {
                 ? new FlowExecutionStatus("COMPLETED")
                 : new FlowExecutionStatus("FAILED");
         };
-    }
-
-    protected <T> Step createExcemptionReadStep(
-        String stepName,
-        Resource filePath,
-        String[] fieldNames,
-        Class<T> targetClass,
-        boolean writeToCsv
-    ) {
-        FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
-        return new StepBuilder(stepName, jobRepository)
-            .<T, MigratedItemGroup>chunk(CHUNK_SIZE, transactionManager)
-            .reader(reader)
-            .processor(itemProcessor)
-            .writer(writeToCsv ? itemWriter : noOpWriter())
-            .faultTolerant()
-            .skipLimit(SKIP_LIMIT)
-            .skip(Exception.class)
-            .build();
-    }
-
-    protected <T> Step createReadStep(
-        String stepName,
-        Resource filePath,
-        String[] fieldNames,
-        Class<T> targetClass,
-        boolean writeToCsv
-    ) {
-        FlatFileItemReader<T> reader = createCsvReader(filePath, fieldNames, targetClass);
-        return new StepBuilder(stepName, jobRepository)
-            .<T, MigratedItemGroup>chunk(CHUNK_SIZE, transactionManager)
-            .reader(reader)
-            .processor(itemProcessor)
-            .writer(writeToCsv ? itemWriter : noOpWriter())
-            .faultTolerant()
-            .skipLimit(SKIP_LIMIT)
-            .skip(Exception.class)
-            .build();
-    }
-
-    private <T> FlatFileItemReader<T> createCsvReader(
-        Resource inputFile,
-        String[] fieldNames,
-        Class<T> targetClass
-    ) {
-        try {
-            return CSVReader.createReader(inputFile, fieldNames, targetClass);
-        } catch (IOException e) {
-            loggingService.logError("Failed to create reader for file: {}" + inputFile.getFilename() + e);
-            // logger.error("Failed to create reader for file: {}", inputFile.getFilename(), e);
-            throw new IllegalStateException("Failed to create reader for file: ", e);
-        }
-    }
-
-    @Bean
-    public <T> ItemWriter<T> noOpWriter() {
-        return items -> { /*  no-op writer  does nothing */ };
     }
 
 }

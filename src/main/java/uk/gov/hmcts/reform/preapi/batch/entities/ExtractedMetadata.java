@@ -44,8 +44,8 @@ public class ExtractedMetadata implements IArchiveData {
         String archiveName
     ) {
         this.courtReference = courtReference;
-        this.urn = urn;
-        this.exhibitReference = exhibitReference;
+        this.urn = urn != null ? urn.toUpperCase() : null;
+        this.exhibitReference = exhibitReference != null ? exhibitReference.toUpperCase() : null;
         this.defendantLastName = formatName(defendantLastName.toLowerCase());
         this.witnessFirstName = formatName(witnessFirstName.toLowerCase());
         this.recordingVersion = recordingVersion;
@@ -63,9 +63,15 @@ public class ExtractedMetadata implements IArchiveData {
             return null;
         }
 
-        return Arrays.stream(name.split("-"))
-            .map(n -> StringUtils.capitalize(n.toLowerCase()))
-            .collect(Collectors.joining("-"));
+        return Arrays.stream(name.split("(?=[-'\\s])|(?<=[-'\\s])"))
+            .map(part -> {
+                if (part.matches("[-'\\s]")) {
+                    return part;
+                } else {
+                    return StringUtils.capitalize(part.toLowerCase());
+                }
+            })
+            .collect(Collectors.joining(""));
     }
 
     public String getArchiveNameNoExt() {
@@ -77,23 +83,9 @@ public class ExtractedMetadata implements IArchiveData {
         return (lastDotIndex == -1) ? archiveName : archiveName.substring(0, lastDotIndex);
     }
 
-    // TODO remove unused ?
-    // private String computeSanitizedName(String archiveName) {
-    //     if (archiveName == null || archiveName.isEmpty()) {
-    //         return "";
-    //     }
-
-    //     String sanitized = archiveName
-    //         .replaceAll("^QC[_\\d]?", "")
-    //         .replaceAll("^QC(?![A-Za-z])", "")
-    //         .replaceAll("[-_\\s]QC\\d*(?=\\.[a-zA-Z0-9]+$|$)", "")
-    //         .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
-    //         .replaceAll("_(?=\\.[^.]+$)", "")
-    //         .replaceAll("[-_\\s]{2,}", "-")
-    //         .trim();
-
-    //     return sanitized;
-    // }
+    public String getSanitizedArchiveName() {
+        return sanitizedArchiveName;
+    }
 
     public String createCaseReference() {
         if ((urn == null || urn.isEmpty()) && (exhibitReference == null || exhibitReference.isEmpty())) {

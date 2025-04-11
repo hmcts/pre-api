@@ -5,14 +5,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVChannelData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Processor for handling reference data like sites and channel user data.
@@ -49,48 +46,21 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // Site reference data
     // =========================================
     private void processSitesData(CSVSitesData sitesItem) {
-        cacheService.saveHashValue(
-            Constants.CacheKeys.SITES_DATA,
-            sitesItem.getSiteReference(),
-            sitesItem.getCourtName()
-        );
-    }
+        cacheService.saveSiteReference(sitesItem.getSiteReference(), sitesItem.getCourtName());
 
-    // TODO remove as unused?
-    public Map<String, Object> fetchSitesData() {
-        return cacheService.getHashAll(Constants.CacheKeys.SITES_DATA);
     }
 
     // ==================================================
     // Channel user reference data
     // ==================================================
     private void processChannelUserData(CSVChannelData channelDataItem) {
-        List<String[]> channelList = cacheService.getAsStringArrayList(
-            Constants.CacheKeys.CHANNEL_DATA,
-            channelDataItem.getChannelName()
-        );
+        String channelName = channelDataItem.getChannelName();
+        List<String[]> existing = cacheService.getChannelReference(channelName)
+            .orElse(new ArrayList<>());
 
-        channelList.add(createChannelUserEntry(channelDataItem));
+        existing.add(createChannelUserEntry(channelDataItem));
 
-        cacheService.saveHashValue(
-            Constants.CacheKeys.CHANNEL_DATA,
-            channelDataItem.getChannelName(),
-            channelList
-        );
-    }
-
-    @SuppressWarnings("unchecked")
-    public Map<String, List<String[]>> fetchChannelUserDataMap() {
-        return cacheService.getAllAsType(
-            Constants.CacheKeys.CHANNEL_DATA,
-            Map.class
-        );
-    }
-
-    // TODO remove as unused?
-    public Set<String> fetchChannelUserDataKeys() {
-        Map<String, List<String[]>> channelDataMap = fetchChannelUserDataMap();
-        return channelDataMap != null ? channelDataMap.keySet() : Collections.emptySet();
+        cacheService.saveChannelReference(channelName, existing);
     }
 
     private String[] createChannelUserEntry(CSVChannelData channelData) {

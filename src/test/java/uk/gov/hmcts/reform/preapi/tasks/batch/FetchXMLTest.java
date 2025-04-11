@@ -75,6 +75,7 @@ public class FetchXMLTest {
                                     jobLauncher,
                                     loggingService,
                                     false,
+                                    false,
                                     MigrationType.FULL.name(),
                                     fetchXmlJob);
         fetchXML.run();
@@ -104,6 +105,7 @@ public class FetchXMLTest {
                                     CRON_USER_EMAIL,
                                     jobLauncher,
                                     loggingService,
+                                    false,
                                     false,
                                     MigrationType.DELTA.name(),
                                     fetchXmlJob);
@@ -137,6 +139,7 @@ public class FetchXMLTest {
                                     CRON_USER_EMAIL,
                                     jobLauncher,
                                     loggingService,
+                                    false,
                                     false,
                                     MigrationType.FULL.name(),
                                     fetchXmlJob);

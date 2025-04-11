@@ -29,7 +29,7 @@ public final class Constants {
         "sample", "mock", "dummy", "example", "playback", "predefined",
         "fig_room", "failover", "viw", "support", "wrong", "rmx006",
         "rmx005", "recording", "rpms", "rmx-load", "snoc",
-        "s28 rpcs room", "rpp1 user"
+        "s28 rpcs room", "rpp1 user", "qc"
     );
 
     public static final class Environment {
@@ -44,11 +44,8 @@ public final class Constants {
     // Cache keys
     public static final class CacheKeys {
         public static final String NAMESPACE = "vf:";
-        public static final String COURTS_PREFIX = NAMESPACE + "court:";
-        public static final String CASES_PREFIX = NAMESPACE + "case:";
         public static final String USERS_PREFIX = NAMESPACE + "user:";
-        public static final String RECORDING_METADATA_FORMAT = NAMESPACE + "pre-process:%s-%s-%s";
-        public static final String SITES_DATA = "sites_data";
+        public static final String RECORDING_METADATA_FORMAT = NAMESPACE + "pre-process:%s-%s-%s-%s";
         public static final String CHANNEL_DATA = "channel_data";
 
         // TODO remove unused ?

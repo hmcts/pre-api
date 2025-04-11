@@ -6,6 +6,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -14,6 +16,10 @@ import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import java.util.Collections;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyMap;
 import static org.mockito.Mockito.anyString;
@@ -63,7 +69,9 @@ class PreProcessorTest {
 
         verify(loggingService).logInfo("Initiating batch environment preparation.");
         verify(cacheService).clearNamespaceKeys(anyString());
-        verify(cacheService, times(3)).saveHashAll(anyString(), anyMap());
+        verify(cacheService, times(1)).saveCourt(anyString(), any(CourtDTO.class));
+        verify(cacheService, times(1)).saveCase(anyString(), any(CaseDTO.class));
+        verify(cacheService, times(1)).saveHashAll(anyString(), anyMap());
         verify(loggingService).logInfo("Batch environment preparation completed successfully.");
     }
 

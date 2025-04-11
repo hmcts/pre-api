@@ -45,7 +45,7 @@ class CSVArchiveListDataTest {
     void setSanitizedArchiveName() {
         CSVArchiveListData data = new CSVArchiveListData("QC_testfile.csv", "", 0, "", "");
         data.setArchiveName("QC_testfile.csv");
-        assertEquals("testfile.csv", data.getSanitizedArchiveName());
+        assertEquals("QC_testfile.csv", data.getSanitizedArchiveName());
 
         data.setArchiveName("CP_Case_testfile.csv");
         assertEquals("Case_testfile.csv", data.getSanitizedArchiveName());
