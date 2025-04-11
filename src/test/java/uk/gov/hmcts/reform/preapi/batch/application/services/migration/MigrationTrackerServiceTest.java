@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -66,6 +67,11 @@ public class MigrationTrackerServiceTest {
         migrationTrackerService.testFailures.clear();
         migrationTrackerService.notifyItems.clear();
         migrationTrackerService.invitedUsers.clear();
+    }
+
+    @AfterAll
+    public static void tearDown() {
+        reportCsvWriter.close();
     }
 
     @Test

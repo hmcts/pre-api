@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.transformation;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -81,7 +82,11 @@ public class DataTransformationServiceTest {
 
         when(referenceDataProcessor.fetchChannelUserDataMap())
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, usersAndEmails));
+    }
 
+    @AfterAll
+    public static void tearDown() {
+        mockedRecordingUtils.close();
     }
 
     @Test

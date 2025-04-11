@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.persistence;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -38,8 +39,13 @@ public class InMemoryCacheServiceTest {
     private static MockedStatic<ReportCsvWriter> reportCsvWriter;
 
     @BeforeAll
-    static void setUp() {
+    public static void setUp() {
         reportCsvWriter = Mockito.mockStatic(ReportCsvWriter.class);
+    }
+
+    @AfterAll
+    public static void tearDown() {
+        reportCsvWriter.close();
     }
 
     @Test
