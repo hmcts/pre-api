@@ -1,0 +1,202 @@
+package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
+import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
+import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.INVALID_FILE_EXTENSION;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PATTERN_MATCH;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
+import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
+
+@SpringBootTest(classes = { DataExtractionService.class })
+public class DataExtractionServiceTest {
+    @MockitoBean
+    private LoggingService loggingService;
+
+    @MockitoBean
+    private MetadataValidator metadataValidator;
+
+    @MockitoBean
+    private PatternMatcherService patternMatcherService;
+
+    @Autowired
+    private DataExtractionService dataExtractionService;
+
+    @Test
+    void processTestValidationFailure() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        when(metadataValidator.validateTest(data)).thenReturn(ServiceResultUtil.failure("", ""));
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isFalse();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void processTestValidationIsNotMp4() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setSanitizedArchiveName("sanitizedArchiveName.exe");
+        var testResult = mock(ServiceResult.class);
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("");
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getErrorMessage()).isEqualTo(INVALID_FILE_EXTENSION);
+        assertThat(result.getCategory()).isEqualTo(FILE_INVALID_FORMAT);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void processTestValidationFailsPatternMatch() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        var testResult = mock(ServiceResult.class);
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName())).thenReturn(Optional.empty());
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result.getErrorMessage()).isEqualTo(PATTERN_MATCH);
+        assertThat(result.getCategory()).isEqualTo(FILE_REGEX);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void processTestValidationMatchesTestPattern() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        data.setDuration(10);
+        var testResult = mock(ServiceResult.class);
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
+            .thenReturn(Optional.of(Map.entry("UUID Pattern", mock(Matcher.class))));
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isTest()).isTrue();
+        assertThat(result.getTestItem()).isNotNull();
+        assertThat(result.getTestItem().getArchiveItem()).isEqualTo(data);
+        assertThat(result.getTestItem().getReason()).isEqualTo("Matched TEST regex pattern");
+        assertThat(result.getTestItem().isDurationCheck()).isEqualTo(false);
+        assertThat(result.getTestItem().getDurationInSeconds()).isEqualTo(10);
+        assertThat(result.getTestItem().isKeywordCheck()).isEqualTo(false);
+        assertThat(result.getTestItem().getKeywordFound()).isEqualTo("[]");
+        assertThat(result.getTestItem().isRegexFailure()).isEqualTo(true);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void processTestValidationFailExtensionCheck() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        data.setDuration(10);
+        var testResult = mock(ServiceResult.class);
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+
+        var extensionResult = mock(ServiceResult.class);
+        when(extensionResult.isSuccess()).thenReturn(false);
+        when(metadataValidator.validateExtension("exe")).thenReturn(extensionResult);
+
+        Matcher matcher = mock(Matcher.class);
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
+            .thenReturn(Optional.of(Map.entry("Standard", matcher)));
+        when(matcher.group("ext")).thenReturn("exe");
+        when(matcher.group("defendantLastName")).thenReturn("Defendant");
+        when(matcher.group("witnessFirstName")).thenReturn("Witness");
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result).isEqualTo(extensionResult);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void processTestValidationMetadataFailure() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        data.setDuration(10);
+        var testResult = mock(ServiceResult.class);
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+
+        var extensionResult = mock(ServiceResult.class);
+        when(extensionResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtension("mp4")).thenReturn(extensionResult);
+
+        Matcher matcher = mock(Matcher.class);
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
+            .thenReturn(Optional.of(Map.entry("Standard", matcher)));
+        when(matcher.group("ext")).thenReturn("mp4");
+        when(matcher.group("defendantLastName")).thenReturn("Defendant");
+        when(matcher.group("witnessFirstName")).thenReturn("Witness");
+
+        var metadataResult = mock(ServiceResult.class);
+        when(metadataResult.isSuccess()).thenReturn(false);
+        when(metadataValidator.validateExtractedMetadata(any(ExtractedMetadata.class))).thenReturn(metadataResult);
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isFalse();
+        assertThat(result).isEqualTo(metadataResult);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void processTestValidationSuccess() {
+        CSVArchiveListData data = new CSVArchiveListData();
+        data.setSanitizedArchiveName("sanitizedArchiveName.mp4");
+        data.setDuration(10);
+        var testResult = mock(ServiceResult.class);
+        when(testResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateTest(any(CSVArchiveListData.class))).thenReturn(testResult);
+        when(metadataValidator.parseExtension(data.getSanitizedArchiveName())).thenReturn("mp4");
+
+        var extensionResult = mock(ServiceResult.class);
+        when(extensionResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtension("mp4")).thenReturn(extensionResult);
+
+        Matcher matcher = mock(Matcher.class);
+        when(patternMatcherService.findMatchingPattern(data.getSanitizedArchiveName()))
+            .thenReturn(Optional.of(Map.entry("Standard", matcher)));
+        when(matcher.group("ext")).thenReturn("mp4");
+        when(matcher.group("defendantLastName")).thenReturn("Defendant");
+        when(matcher.group("witnessFirstName")).thenReturn("Witness");
+
+        var metadataResult = mock(ServiceResult.class);
+        when(metadataResult.isSuccess()).thenReturn(true);
+        when(metadataValidator.validateExtractedMetadata(any(ExtractedMetadata.class))).thenReturn(metadataResult);
+
+        ServiceResult<?> result = dataExtractionService.process(data);
+
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getData()).isNotNull();
+    }
+}
