@@ -184,7 +184,7 @@ public class MigrationTrackerService {
     private List<String> getNotifyItemsHeaders() {
         return List.of(
             "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant", 
-            "Extracted_witness", "Date / Time migrated", "Duration", "File Size"
+            "Extracted_witness", "Duration", "File Size", "Date / Time migrated"
         );
     }
 
@@ -222,6 +222,8 @@ public class MigrationTrackerService {
                     getValueOrEmpty(item.getExtractedMetadata().getCourtReference()),
                     getValueOrEmpty(item.getExtractedMetadata().getDefendantLastName()),
                     getValueOrEmpty(item.getExtractedMetadata().getWitnessFirstName()),
+                    getValueOrEmpty(item.getExtractedMetadata().getDuration()),
+                    getValueOrEmpty(item.getExtractedMetadata().getFileSize()),
                     migratedTime
                 )
             );
