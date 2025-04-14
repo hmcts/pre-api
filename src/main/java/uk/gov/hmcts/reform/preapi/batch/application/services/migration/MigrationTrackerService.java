@@ -48,7 +48,7 @@ public class MigrationTrackerService {
         "Reason for Failure", DISPLAY_NAME,CREATE_TIME,"Filename", FILE_SIZE, "Date / Time");
     protected static final List<String> NOTIFY_ITEM_HEADERS = List.of(
         "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant",
-        "Extracted_witness", "Date / Time migrated");
+        "Extracted_witness", "Duration", "File Size", "Date / Time migrated");
 
     protected final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
     protected final List<PassItem> migratedItems = new ArrayList<>();
@@ -215,6 +215,8 @@ public class MigrationTrackerService {
                     getValueOrEmpty(item.getExtractedMetadata().getCourtReference()),
                     getValueOrEmpty(item.getExtractedMetadata().getDefendantLastName()),
                     getValueOrEmpty(item.getExtractedMetadata().getWitnessFirstName()),
+                    getValueOrEmpty(item.getExtractedMetadata().getDuration()),
+                    getValueOrEmpty(item.getExtractedMetadata().getFileSize()),
                     migratedTime
                 )
             );
