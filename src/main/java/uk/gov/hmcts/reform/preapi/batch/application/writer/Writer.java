@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.writer;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +23,10 @@ import uk.gov.hmcts.reform.preapi.services.InviteService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
 import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.stream.Collectors;
 
 /**
  * Spring batch component responsible for writing migrated data to the database.
@@ -74,10 +74,9 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
      * repository, and tracks successful migrations.
      *
      * @param items The chunk of  MigratedItemGroup items to be written.
-     * @throws Exception If an error occurs during the write operation.
      */
     @Override
-    public void write(Chunk<? extends MigratedItemGroup> items) {
+    public void write(@NotNull Chunk<? extends MigratedItemGroup> items) {
         List<MigratedItemGroup> migratedItems = filterValidItems(items);
         loggingService.logInfo("Processing chunk with %d migrated items", items.size());
 
@@ -97,7 +96,7 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
     private List<MigratedItemGroup> filterValidItems(Chunk<? extends MigratedItemGroup> items) {
         return items.getItems().stream()
                     .filter(Objects::nonNull)
-                    .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                    .collect(Collectors.toList());
     }
 
     /**
@@ -125,7 +124,6 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
                     item.getCase().getReference(), e.getMessage()
                 );
             }
-
         }
     }
 
@@ -210,6 +208,5 @@ public class Writer implements ItemWriter<MigratedItemGroup> {
             "Batch processing - Successful: %d, Failed: %d",
             successCount.get(), failureCount.get()
         );
-
     }
 }
