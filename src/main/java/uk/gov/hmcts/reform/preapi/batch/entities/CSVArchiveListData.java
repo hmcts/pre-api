@@ -59,6 +59,9 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
             .replaceAll("CP_", "")
+            .replaceAll("CP-", "")
+            .replaceAll("CP ", "")
+            .replaceAll("CP Case", "")
             .trim();
 
         return sanitized;
