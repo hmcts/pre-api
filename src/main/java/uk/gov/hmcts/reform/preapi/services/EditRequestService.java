@@ -212,7 +212,9 @@ public class EditRequestService {
             }
             currentTime = Math.max(currentTime, instruction.getEnd());
         }
-        invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
+        if (currentTime != recordingDuration) {
+            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
+        }
 
         return invertedInstructions;
     }
