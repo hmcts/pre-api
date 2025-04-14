@@ -134,7 +134,7 @@ public class DataTransformationService {
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
 
-        return cacheService.getCourt((String) fullCourtName)
+        return cacheService.getCourt(fullCourtName)
             .map(CourtDTO::getId)
             .flatMap(courtRepository::findById)
             .orElseGet(() -> {

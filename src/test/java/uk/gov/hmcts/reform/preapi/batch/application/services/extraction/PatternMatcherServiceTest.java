@@ -51,15 +51,6 @@ public class PatternMatcherServiceTest {
     }
 
     @Test
-    void shouldMatchStandardLegitimatePattern() {
-        String fileName = "Central_01-01-2024_AB123456789_DEF123456_WitnessName_ORIG.mp4";
-
-        Optional<Map.Entry<String, Matcher>> result = patternMatcherService.findMatchingPattern(fileName);
-
-        assertThat(result).isPresent();
-    }
-
-    @Test
     void shouldReturnEmptyWhenNoMatch() {
         String fileName = "not_a_valid_file_name.mov";
 

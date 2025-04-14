@@ -9,14 +9,13 @@ import org.mockito.MockedStatic;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.ReferenceDataProcessor;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
+import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
@@ -51,15 +50,12 @@ public class DataTransformationServiceTest {
     private CourtRepository courtRepository;
 
     @MockitoBean
-    private ReferenceDataProcessor referenceDataProcessor;
-
-    @MockitoBean
     private LoggingService loggingService;
 
     @Autowired
     private DataTransformationService dataTransformationService;
 
-    private static final Map<String, Object> SITES_DATA_MAP = Map.of(
+    private static final Map<String, String> SITES_DATA_MAP = Map.of(
         "court_one", "Court One"
     );
 
@@ -74,13 +70,13 @@ public class DataTransformationServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(cacheService.getHashAll(Constants.CacheKeys.SITES_DATA)).thenReturn(SITES_DATA_MAP);
+        when(cacheService.getAllSiteReferences()).thenReturn(SITES_DATA_MAP);
         List<String[]> usersAndEmails = Arrays.asList(
             new String[]{"example.one", "example.one@example.com"},
             new String[]{"example.two", "example.two@example.com"}
         );
 
-        when(referenceDataProcessor.fetchChannelUserDataMap())
+        when(cacheService.getAllChannelReferences())
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, usersAndEmails));
     }
 
@@ -103,8 +99,8 @@ public class DataTransformationServiceTest {
     @Test
     @DisplayName("Should return failure when cannot find sites data")
     void transformDataSitesDataNotFound() {
-        when(cacheService.getHashAll(Constants.CacheKeys.SITES_DATA))
-            .thenReturn(null);
+        when(cacheService.getAllSiteReferences())
+            .thenReturn(Map.of());
         var data = new ExtractedMetadata();
         data.setArchiveName(ARCHIVE_NAME);
 
@@ -113,7 +109,7 @@ public class DataTransformationServiceTest {
         assertThat(result.isSuccess()).isFalse();
         assertThat(result.getErrorMessage()).isEqualTo("Sites data not found in Cache");
 
-        verify(cacheService).getHashAll(Constants.CacheKeys.SITES_DATA);
+        verify(cacheService).getAllSiteReferences();
         verify(loggingService).logError(eq("Data transformation failed for archive: %s - %s"),
                                         eq(ARCHIVE_NAME),
                                         any(IllegalStateException.class));
@@ -128,35 +124,21 @@ public class DataTransformationServiceTest {
     @Test
     @DisplayName("Should throw error when attempting to get site data but not found")
     void getSitesDataFailure() {
-        when(cacheService.getHashAll(Constants.CacheKeys.SITES_DATA))
-            .thenReturn(null);
+        when(cacheService.getAllSiteReferences()).thenReturn(Map.of());
         String message1 = assertThrows(
             IllegalStateException.class,
             () -> dataTransformationService.getSitesData()
         ).getMessage();
         assertThat(message1).isEqualTo("Sites data not found in Cache");
-
-        when(cacheService.getHashAll(Constants.CacheKeys.SITES_DATA))
-            .thenReturn(Map.of());
-        String message2 = assertThrows(
-            IllegalStateException.class,
-            () -> dataTransformationService.getSitesData()
-        ).getMessage();
-        assertThat(message2).isEqualTo("Sites data not found in Cache");
-
-        verify(loggingService, times(2)).logError("Sites data not found in Cache");
     }
 
     @Test
     @DisplayName("Should return list of emails when key found")
     void getUsersAndEmailsUserDataFoundInCacheForKey() {
         String key = "some-key";
-        Map<String, List<String[]>> userDataMap = new HashMap<>();
         List<String[]> userEmails = new ArrayList<>();
         userEmails.add(new String[]{"example@example.com"});
-        userDataMap.put(key, userEmails);
-        when(referenceDataProcessor.fetchChannelUserDataMap())
-            .thenReturn(userDataMap);
+        when(cacheService.getChannelReference(key)).thenReturn(Optional.of(userEmails));
 
         List<String[]> result = dataTransformationService.getUsersAndEmails(key);
         assertThat(result).isNotNull();
@@ -166,29 +148,13 @@ public class DataTransformationServiceTest {
 
     @Test
     @DisplayName("Should return empty list when key not found in map")
-    void getUsersAndEmailsUserDataFoundInCacheKeyNotFound() {
-        String key = "some-key";
-        Map<String, List<String[]>> userDataMap = new HashMap<>();
-        when(referenceDataProcessor.fetchChannelUserDataMap())
-            .thenReturn(userDataMap);
-
-        List<String[]> result = dataTransformationService.getUsersAndEmails(key);
-        assertThat(result).isNotNull();
-        assertThat(result.size()).isEqualTo(0);
-    }
-
-    @Test
-    @DisplayName("Should return empty list when key not found in map")
     void getUsersAndEmailsUserDataInCacheNull() {
         String key = "some-key";
-        when(referenceDataProcessor.fetchChannelUserDataMap())
-            .thenReturn(null);
+        when(cacheService.getChannelReference(key)).thenReturn(Optional.empty());
 
         List<String[]> result = dataTransformationService.getUsersAndEmails(key);
         assertThat(result).isNotNull();
         assertThat(result.size()).isEqualTo(0);
-
-        verify(loggingService).logWarning(eq("Channel user data map is null"));
     }
 
     @Test
@@ -202,8 +168,7 @@ public class DataTransformationServiceTest {
             new String[]{"example.two", "example.two@example.com"}
         );
 
-        when(referenceDataProcessor.fetchChannelUserDataMap())
-            .thenReturn(Collections.singletonMap(ARCHIVE_NAME, usersAndEmails));
+        when(cacheService.getChannelReference(ARCHIVE_NAME)).thenReturn(Optional.of(usersAndEmails));
 
         List<Map<String, String>> contacts = dataTransformationService.buildShareBookingContacts(data);
 
@@ -224,7 +189,7 @@ public class DataTransformationServiceTest {
     void shouldHandleEmptyUserList() {
         ExtractedMetadata data = new ExtractedMetadata();
         data.setArchiveName(ARCHIVE_NAME);
-        when(referenceDataProcessor.fetchChannelUserDataMap()).thenReturn(Collections.emptyMap());
+        when(cacheService.getChannelReference(ARCHIVE_NAME)).thenReturn(Optional.empty());
 
         List<Map<String, String>> contacts = dataTransformationService.buildShareBookingContacts(data);
         assertThat(contacts).isEmpty();
@@ -240,8 +205,7 @@ public class DataTransformationServiceTest {
             new String[]{"exampleTwo", "example.two@example.com"}
         );
 
-        when(referenceDataProcessor.fetchChannelUserDataMap())
-            .thenReturn(Collections.singletonMap(ARCHIVE_NAME, usersAndEmails));
+        when(cacheService.getChannelReference(ARCHIVE_NAME)).thenReturn(Optional.of(usersAndEmails));
 
         List<Map<String, String>> contacts = dataTransformationService.buildShareBookingContacts(data);
 
@@ -291,7 +255,7 @@ public class DataTransformationServiceTest {
     void fetchCourtFromDBCourtDataNullError() {
         ExtractedMetadata data = new ExtractedMetadata();
         data.setCourtReference("court_one");
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
+        when(cacheService.getAllSiteReferences())
             .thenReturn(null);
 
         String message = assertThrows(
@@ -300,7 +264,7 @@ public class DataTransformationServiceTest {
         ).getMessage();
         assertThat(message).isEqualTo("Courts data not found in Cache");
 
-        verify(cacheService).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
+        verify(cacheService).getAllSiteReferences();
         verify(loggingService).logError(eq("Courts data not found in Cache"));
     }
 
@@ -309,7 +273,7 @@ public class DataTransformationServiceTest {
     void fetchCourtFromDBCourtDataEmptyError() {
         ExtractedMetadata data = new ExtractedMetadata();
         data.setCourtReference("court_one");
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
+        when(cacheService.getAllSiteReferences())
             .thenReturn(Map.of());
 
         String message = assertThrows(
@@ -318,7 +282,7 @@ public class DataTransformationServiceTest {
         ).getMessage();
         assertThat(message).isEqualTo("Courts data not found in Cache");
 
-        verify(cacheService).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
+        verify(cacheService).getAllSiteReferences();
         verify(loggingService).logError(eq("Courts data not found in Cache"));
     }
 
@@ -328,38 +292,16 @@ public class DataTransformationServiceTest {
         ExtractedMetadata data = new ExtractedMetadata();
         data.setCourtReference("court_one");
 
-        Map<String, Object> courtData = new HashMap<>();
+        Map<String, String> courtData = new HashMap<>();
         courtData.put("court_one", null);
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
+        when(cacheService.getAllSiteReferences())
             .thenReturn(courtData);
 
         Court result = dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP);
         assertThat(result).isNull();
 
-        verify(cacheService).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
-        verify(loggingService).logWarning(eq("Court ID not found for court name: %s"), eq("Court One"));
-    }
-
-    @Test
-    @DisplayName("Should throw error when court id is not a uuid")
-    void fetchCourtFromDBCourtIdNotUuidError() {
-        ExtractedMetadata data = new ExtractedMetadata();
-        data.setCourtReference("court_one");
-
-        Map<String, Object> courtData = new HashMap<>();
-        courtData.put("Court One", "invalid-uuid");
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
-            .thenReturn(courtData);
-
-        String message = assertThrows(
-            IllegalArgumentException.class,
-            () -> dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP)
-        ).getMessage();
-        assertThat(message).isEqualTo("Court ID parsing failed for: invalid-uuid");
-
-        verify(cacheService).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
-        verify(loggingService)
-            .logError(eq("Invalid court ID format: $s - $s"), eq("invalid-uuid"), any(IllegalArgumentException.class));
+        verify(cacheService).getCourt("Court One");
+        verify(loggingService).logWarning(eq("Court not found in cache or DB for name: %s"), eq("Court One"));
     }
 
     @Test
@@ -368,17 +310,16 @@ public class DataTransformationServiceTest {
         ExtractedMetadata data = new ExtractedMetadata();
         data.setCourtReference("court_one");
         UUID courtId = UUID.randomUUID();
-        Map<String, Object> courtData = new HashMap<>();
+        Map<String, String> courtData = new HashMap<>();
         courtData.put("Court One", courtId.toString());
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
+        when(cacheService.getAllSiteReferences())
             .thenReturn(courtData);
-        when(courtRepository.findById(courtId)).thenReturn(Optional.empty());
+        when(cacheService.getCourt("Court One")).thenReturn(Optional.empty());
 
         Court result = dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP);
         assertThat(result).isNull();
 
-        verify(cacheService).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
-        verify(courtRepository).findById(courtId);
+        verify(cacheService).getCourt("Court One");
     }
 
     @Test
@@ -387,16 +328,19 @@ public class DataTransformationServiceTest {
         ExtractedMetadata data = new ExtractedMetadata();
         data.setCourtReference("court_one");
         UUID courtId = UUID.randomUUID();
-        Map<String, Object> courtData = new HashMap<>();
+        Map<String, String> courtData = new HashMap<>();
         courtData.put("Court One", courtId.toString());
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
+        when(cacheService.getAllSiteReferences())
             .thenReturn(courtData);
+        CourtDTO court = new CourtDTO();
+        court.setId(courtId);
+        when(cacheService.getCourt("Court One")).thenReturn(Optional.of(court));
         when(courtRepository.findById(courtId)).thenReturn(Optional.of(new Court()));
 
         Court result = dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP);
         assertThat(result).isNotNull();
 
-        verify(cacheService).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
+        verify(cacheService).getAllSiteReferences();
         verify(courtRepository).findById(courtId);
     }
 
@@ -420,8 +364,6 @@ public class DataTransformationServiceTest {
         );
 
         String key = "vf:pre-process:urn123-defendantLastName-witnessFirstName";
-        mockedRecordingUtils.when(() -> RecordingUtils.buildMetadataPreprocessKey(any(), any(), any()))
-            .thenReturn(key);
         when(cacheService.getHashAll(key))
             .thenReturn(Map.of());
         mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
@@ -429,9 +371,9 @@ public class DataTransformationServiceTest {
         when(cacheService.getHashAll(key))
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
 
-        Map<String, Object> courtData = new HashMap<>();
+        Map<String, String> courtData = new HashMap<>();
         courtData.put("Court One", null);
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
+        when(cacheService.getAllSiteReferences())
             .thenReturn(courtData);
 
         ProcessedRecording result = dataTransformationService.buildProcessedRecording(data, SITES_DATA_MAP);
@@ -452,9 +394,8 @@ public class DataTransformationServiceTest {
         assertThat(result.getRecordingVersionNumber()).isEqualTo(1);
         assertThat(result.isMostRecentVersion()).isTrue();
 
-        verify(referenceDataProcessor, times(1)).fetchChannelUserDataMap();
         verify(cacheService, times(1)).getHashAll(key);
-        verify(cacheService, times(1)).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
+        verify(cacheService, times(1)).getAllSiteReferences();
         verify(loggingService, times(1))
             .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
     }
@@ -478,11 +419,9 @@ public class DataTransformationServiceTest {
             ARCHIVE_NAME
         );
 
-        when(cacheService.getHashAll(Constants.CacheKeys.SITES_DATA))
+        when(cacheService.getAllSiteReferences())
             .thenReturn(SITES_DATA_MAP);
         String key = "vf:pre-process:urn123-defendantLastName-witnessFirstName";
-        mockedRecordingUtils.when(() -> RecordingUtils.buildMetadataPreprocessKey(any(), any(), any()))
-            .thenReturn(key);
         when(cacheService.getHashAll(key))
             .thenReturn(Map.of());
         mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
@@ -491,11 +430,15 @@ public class DataTransformationServiceTest {
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
 
         UUID courtId = UUID.randomUUID();
-        Map<String, Object> courtData = new HashMap<>();
-        courtData.put("Court One", courtId.toString());
-        when(cacheService.getHashAll(Constants.CacheKeys.COURTS_PREFIX))
+        Map<String, String> courtData = new HashMap<>();
+        courtData.put("court_one", "Court One");
+        when(cacheService.getAllSiteReferences())
             .thenReturn(courtData);
+        CourtDTO court = new CourtDTO();
+        court.setId(courtId);
+        when(cacheService.getCourt("Court One")).thenReturn(Optional.of(court));
         when(courtRepository.findById(courtId)).thenReturn(Optional.of(new Court()));
+
 
         ServiceResult<ProcessedRecording> result = dataTransformationService.transformData(data);
         assertThat(result).isNotNull();
@@ -503,9 +446,7 @@ public class DataTransformationServiceTest {
         assertThat(result.getData()).isNotNull();
         assertThat(result.getData().getCourt()).isNotNull();
 
-        verify(referenceDataProcessor, times(1)).fetchChannelUserDataMap();
-        verify(cacheService, times(1)).getHashAll(key);
-        verify(cacheService, times(1)).getHashAll(Constants.CacheKeys.COURTS_PREFIX);
+        verify(cacheService, times(1)).getAllSiteReferences();
         verify(loggingService, never())
             .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
     }
