@@ -167,6 +167,18 @@ public class EditRequestService {
         instructions.sort(Comparator.comparing(EditCutInstructionDTO::getStart)
                               .thenComparing(EditCutInstructionDTO::getEnd));
 
+        for (int i = 1; i < instructions.size(); i++) {
+            var prev = instructions.get(i - 1);
+            var curr = instructions.get(i);
+            if (curr.getStart() < prev.getEnd()) {
+                throw new BadRequestException("Overlapping instructions: Previous End("
+                                                  + prev.getEnd()
+                                                  + "), Current Start("
+                                                  + curr.getStart()
+                                                  + ")");
+            }
+        }
+
         var currentTime = 0L;
         var invertedInstructions = new ArrayList<FfmpegEditInstructionDTO>();
 
@@ -194,7 +206,6 @@ public class EditRequestService {
                                                   + "), Recording Duration("
                                                   + recordingDuration
                                                   + ")");
-
             }
             if (currentTime < instruction.getStart()) {
                 invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, instruction.getStart()));
