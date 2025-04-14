@@ -121,7 +121,8 @@ public class PostMigrationJobConfig {
         loggingService.logInfo("===== Evaluating case: %s", reference);
 
         if (!hasMatchingChannelUser(reference, channelUsersMap)) {
-            loggingService.logDebug("Case %s does not have matching channel user entry — attempting to close.", reference);
+            loggingService.logDebug(
+                "Case %s does not have matching channel user entry — attempting to close.", reference);
             try {
                 if (!dryRun) {
                     caseService.upsert(buildClosedCaseDTO(caseDTO));

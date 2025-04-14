@@ -67,6 +67,17 @@ public class ArchiveMetadataXmlExtractor {
 
             if (!allArchiveMetadata.isEmpty()) {
                 loggingService.logDebug("Generating archive metadata report in %s", outputDir);
+                
+                allArchiveMetadata.sort((a, b) -> {
+                    try {
+                        long t1 = Long.parseLong(a.get(1)); 
+                        long t2 = Long.parseLong(b.get(1));
+                        return Long.compare(t1, t2);
+                    } catch (NumberFormatException e) {
+                        return 0; 
+                    }
+                });
+
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
                     "Successfully generated " + filename + " with " + allArchiveMetadata.size() + " entries"

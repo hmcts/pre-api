@@ -67,7 +67,8 @@ public final class RegexPatterns {
     private static final String DATE_PATTERN =
         "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})";
     private static final String COURT_PATTERN = "(?<court>[A-Za-z]+(?:d|fd)?)";
-    private static final String URN_PATTERN = "(?<urn>\\d{2}[A-Za-z0-9]{2}\\d+)";
+    // private static final String URN_PATTERN = "(?<urn>\\d{2}[A-Za-z0-9]{2}\\d+)";
+    private static final String URN_PATTERN = "(?<urn>[A-Za-z0-9]{6,14})";
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{8})";
     private static final String VERSION_PATTERN =
         "(?:(?<versionType>ORIG|COPY|CPY|ORG|ORI)(?:[-_\\s]*(?<versionNumber>\\d+(?:\\.\\d+)?))?)?";
