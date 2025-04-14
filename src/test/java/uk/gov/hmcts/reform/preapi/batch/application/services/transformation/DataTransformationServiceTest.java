@@ -251,39 +251,15 @@ public class DataTransformationServiceTest {
     }
 
     @Test
-    @DisplayName("Should throw error when court data is null")
-    void fetchCourtFromDBCourtDataNullError() {
-        ExtractedMetadata data = new ExtractedMetadata();
-        data.setCourtReference("court_one");
-        when(cacheService.getAllSiteReferences())
-            .thenReturn(null);
-
-        String message = assertThrows(
-            IllegalStateException.class,
-            () -> dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP)
-        ).getMessage();
-        assertThat(message).isEqualTo("Courts data not found in Cache");
-
-        verify(cacheService).getAllSiteReferences();
-        verify(loggingService).logError(eq("Courts data not found in Cache"));
-    }
-
-    @Test
     @DisplayName("Should throw error when court data is empty")
     void fetchCourtFromDBCourtDataEmptyError() {
         ExtractedMetadata data = new ExtractedMetadata();
         data.setCourtReference("court_one");
-        when(cacheService.getAllSiteReferences())
-            .thenReturn(Map.of());
+        when(cacheService.getCourt("court_one")).thenReturn(null);
 
-        String message = assertThrows(
-            IllegalStateException.class,
-            () -> dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP)
-        ).getMessage();
-        assertThat(message).isEqualTo("Courts data not found in Cache");
+        assertThat(dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP)).isNull();
 
-        verify(cacheService).getAllSiteReferences();
-        verify(loggingService).logError(eq("Courts data not found in Cache"));
+        verify(loggingService).logWarning(eq("Court not found in cache or DB for name: %s"), eq("Court One"));
     }
 
     @Test
@@ -330,8 +306,6 @@ public class DataTransformationServiceTest {
         UUID courtId = UUID.randomUUID();
         Map<String, String> courtData = new HashMap<>();
         courtData.put("Court One", courtId.toString());
-        when(cacheService.getAllSiteReferences())
-            .thenReturn(courtData);
         CourtDTO court = new CourtDTO();
         court.setId(courtId);
         when(cacheService.getCourt("Court One")).thenReturn(Optional.of(court));
@@ -340,7 +314,6 @@ public class DataTransformationServiceTest {
         Court result = dataTransformationService.fetchCourtFromDB(data, SITES_DATA_MAP);
         assertThat(result).isNotNull();
 
-        verify(cacheService).getAllSiteReferences();
         verify(courtRepository).findById(courtId);
     }
 
@@ -385,8 +358,8 @@ public class DataTransformationServiceTest {
         assertThat(result.getCourt()).isNull();
         assertThat(result.getRecordingTimestamp()).isNotNull();
         assertThat(result.getDuration()).isEqualTo(Duration.ofSeconds(data.getDuration()));
-        assertThat(result.getState()).isEqualTo(CaseState.OPEN);
-        assertThat(result.getShareBookingContacts()).isNotEmpty();
+        assertThat(result.getState()).isEqualTo(CaseState.CLOSED);
+        assertThat(result.getShareBookingContacts()).isEmpty();
         assertThat(result.getFileExtension()).isEqualTo(data.getFileExtension());
         assertThat(result.getFileName()).isEqualTo(data.getFileName());
         assertThat(result.getRecordingVersion()).isEqualTo("versionType");
@@ -394,8 +367,6 @@ public class DataTransformationServiceTest {
         assertThat(result.getRecordingVersionNumber()).isEqualTo(1);
         assertThat(result.isMostRecentVersion()).isTrue();
 
-        verify(cacheService, times(1)).getHashAll(key);
-        verify(cacheService, times(1)).getAllSiteReferences();
         verify(loggingService, times(1))
             .logWarning(eq("Court not found for reference: %s"), eq(data.getCourtReference()));
     }

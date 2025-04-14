@@ -21,23 +21,21 @@ import static uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration.SKIP_LI
 @Component
 public class CommonStepUtils {
 
-    private final CSVReader csvReader;
     private final LoggingService loggingService;
     private final Processor processor;
 
-    public CommonStepUtils(CSVReader csvReader, LoggingService loggingService, Processor processor) {
-        this.csvReader = csvReader;
+    public CommonStepUtils(LoggingService loggingService, Processor processor) {
         this.loggingService = loggingService;
         this.processor = processor;
     }
 
     public <T> FlatFileItemReader<T> createCsvReader(
-        Resource inputFile, 
-        String[] fieldNames, 
+        Resource inputFile,
+        String[] fieldNames,
         Class<T> targetClass
     ) {
         try {
-            return csvReader.createReader(inputFile, fieldNames, targetClass);
+            return CSVReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {
             loggingService.logError("Failed to create reader for file: {}" + inputFile.getFilename() + e);
             throw new IllegalStateException("Failed to create reader for file: ", e);
@@ -66,5 +64,5 @@ public class CommonStepUtils {
             .build();
     }
 
-    
+
 }

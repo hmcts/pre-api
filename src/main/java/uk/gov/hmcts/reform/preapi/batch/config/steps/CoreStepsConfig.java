@@ -33,7 +33,6 @@ public class CoreStepsConfig {
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
-    private final CSVReader csvReader;
     private final Processor itemProcessor;
     private final Writer itemWriter;
     private final LoggingService loggingService;
@@ -41,14 +40,12 @@ public class CoreStepsConfig {
     public CoreStepsConfig(
         JobRepository jobRepository,
         PlatformTransactionManager transactionManager,
-        CSVReader csvReader,
         Processor itemProcessor,
         Writer itemWriter,
         LoggingService loggingService
     ) {
         this.jobRepository = jobRepository;
         this.transactionManager = transactionManager;
-        this.csvReader = csvReader;
         this.itemProcessor = itemProcessor;
         this.itemWriter = itemWriter;
         this.loggingService = loggingService;
@@ -132,7 +129,7 @@ public class CoreStepsConfig {
         Class<T> targetClass
     ) {
         try {
-            return csvReader.createReader(inputFile, fieldNames, targetClass);
+            return CSVReader.createReader(inputFile, fieldNames, targetClass);
         } catch (IOException e) {
             loggingService.logError("Failed to create reader for file: {}" + inputFile.getFilename() + e);
             throw new IllegalStateException("Failed to create reader for file: ", e);
