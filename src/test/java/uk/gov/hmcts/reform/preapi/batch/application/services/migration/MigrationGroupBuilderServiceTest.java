@@ -72,8 +72,6 @@ public class MigrationGroupBuilderServiceTest {
         migrationGroupBuilderService.caseCache.clear();
     }
 
-    // todo createMigratedItemGroup
-
     @Test
     @DisplayName("Should return null when case reference is invalid")
     void createCaseIfOrigCaseReferenceIsInvalid() {
