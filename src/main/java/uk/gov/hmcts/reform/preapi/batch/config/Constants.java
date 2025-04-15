@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.batch.config;
 
+import lombok.experimental.UtilityClass;
+
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.util.Set;
@@ -7,10 +9,9 @@ import java.util.Set;
 /**
  * Constants used throughout the batch processing.
  */
+@UtilityClass
+@SuppressWarnings("checkstyle:HideUtilityClassConstructor")
 public final class Constants {
-    private Constants() {
-    }
-
     // Global  constants
     public static final LocalDate GO_LIVE_DATE = LocalDate.of(2019, 5, 23);
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
@@ -32,26 +33,22 @@ public final class Constants {
     );
 
     public static final class Environment {
-        private Environment() {
-        }
-
-        public static final String SOURCE_ENVIRONMENT = "dev";
         public static final String SOURCE_CONTAINER = "pre-vodafone-spike";
+
+        // TODO remove?- all bellow are unused
+        public static final String SOURCE_ENVIRONMENT = "dev";
         public static final String INGEST_CONTAINER_STG = "stagingIngest";
         public static final String RECORDING_INPUT_CONTAINER_SUFFIX = "-input";
-
     }
 
     // Cache keys
     public static final class CacheKeys {
-        private CacheKeys() {
-        }
-
         public static final String NAMESPACE = "vf:";
         public static final String USERS_PREFIX = NAMESPACE + "user:";
         public static final String RECORDING_METADATA_FORMAT = NAMESPACE + "pre-process:%s-%s-%s-%s";
         public static final String CHANNEL_DATA = "channel_data";
 
+        // TODO remove unused ?
         public static String formatRecordingMetadataKey(String param1, String param2, String param3) {
             return String.format(RECORDING_METADATA_FORMAT, param1, param2, param3);
         }
@@ -59,77 +56,55 @@ public final class Constants {
 
     // Validation error messages
     public static final class ErrorMessages {
-        private ErrorMessages() {
-        }
-
         // Test related errors
-        public static final String TEST_ITEM_NAME =
-            "Test keywords in archive name";
-        public static final String TEST_DURATION =
-            "Duration is less than 10 seconds.";
+        public static final String TEST_ITEM_NAME = "Test keywords in archive name";
+        public static final String TEST_DURATION = "Duration is less than 10 seconds.";
 
         // File validation errors
-        public static final String INVALID_FILE_EXTENSION =
-            "Only .mp4 files are allowed.";
+        public static final String INVALID_FILE_EXTENSION = "Only .mp4 files are allowed.";
 
         // Court validation errors
-        public static final String MISSING_COURT =
-            "No valid court is associated with this recording.";        
+        public static final String MISSING_COURT = "No valid court is associated with this recording.";
 
         // Version validation errors
-        public static final String NOT_MOST_RECENT_VERSION =
-            "The recording is not the most recent version.";
-        public static final String NO_PARENT_FOUND =
-            "No parent recording found in cache, but version > 1";
+        public static final String NOT_MOST_RECENT_VERSION = "The recording is not the most recent version.";
+        public static final String NO_PARENT_FOUND = "No parent recording found in cache, but version > 1";
 
         // Case reference validation errors
-        public static final String MISSING_CASE_REFERENCE =
-            "Missing or invalid case reference.";
-        public static final String CASE_REFERENCE_TOO_LONG =
-            "Case reference exceeds the 24-character limit.";
-        public static final String CASE_REFERENCE_TOO_SHORT =
-            "Case reference is less than 9-characters.";
+        // TODO remove unused ?
+        public static final String MISSING_CASE_REFERENCE = "Missing or invalid case reference.";
+        public static final String CASE_REFERENCE_TOO_LONG = "Case reference exceeds the 24-character limit.";
+        public static final String CASE_REFERENCE_TOO_SHORT = "Case reference is less than 9-characters.";
 
         // Archive validation errors
-        public static final String INVALID_ARCHIVE_NAME =
-            "Archive item or archive name cannot be null.";
+        // TODO remove unused ?
+        public static final String INVALID_ARCHIVE_NAME = "Archive item or archive name cannot be null.";
 
         // Date validation errors
-        public static final String PREDATES_GO_LIVE =
-            "Recording date is before the go-live date ("
-                + GO_LIVE_DATE.getDayOfMonth() + "/"
-                + GO_LIVE_DATE.getMonthValue() + "/"
-                + GO_LIVE_DATE.getYear() + ").";
+        public static final String PREDATES_GO_LIVE = "Recording date is before the go-live date ("
+            + GO_LIVE_DATE.getDayOfMonth() + "/"
+            + GO_LIVE_DATE.getMonthValue() + "/"
+            + GO_LIVE_DATE.getYear() + ").";
 
         // Pattern match errors
-        public static final String PATTERN_MATCH =
-            "Failed to match any recording pattern.";
-
+        public static final String PATTERN_MATCH = "Failed to match any recording pattern.";
     }
 
     // Validation error messages
     public static final class Reports {
-        private Reports() {
-        }
-
         public static final String FILE_MISSING_DATA = "Missing_Data";
         public static final String FILE_ERROR = "Error";
         public static final String FILE_INVALID_FORMAT = "Invalid_File_Format";
         public static final String FILE_NOT_RECENT = "Not_Most_Recent";
         public static final String FILE_PRE_GO_LIVE = "Pre_Go_Live";
+        // TODO remove unused ?
         public static final String FILE_TEST = "Test";
         public static final String FILE_REGEX = "Regex_Matching_Errors";
-        
-
     }
 
     public static final class XmlFields {
-        private XmlFields() {
-        }
-        
         public static final String DISPLAY_NAME = "Display Name";
         public static final String FILE_SIZE = "File Size";
         public static final String CREATE_TIME = "Create Time";
     }
-
 }

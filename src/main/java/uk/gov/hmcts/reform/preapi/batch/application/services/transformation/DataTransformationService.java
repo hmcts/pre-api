@@ -28,7 +28,7 @@ public class DataTransformationService {
 
     private final InMemoryCacheService cacheService;
     private final CourtRepository courtRepository;
-    private LoggingService loggingService;
+    private final LoggingService loggingService;
 
     @Autowired
     public DataTransformationService(
@@ -59,27 +59,24 @@ public class DataTransformationService {
             );
 
             Map<String, String> sitesDataMap = getSitesData();
-
             ProcessedRecording cleansedData = buildProcessedRecording(extracted, sitesDataMap);
-
             return ServiceResultUtil.success(cleansedData);
-
         } catch (Exception e) {
             loggingService.logError("Data transformation failed for archive: %s - %s", extracted.getArchiveName(), e);
             return ServiceResultUtil.failure(e.getMessage(), Constants.Reports.FILE_ERROR);
         }
     }
 
-    private ProcessedRecording buildProcessedRecording(
+    protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
 
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
 
         String key = cacheService.generateCacheKey(
-                "recording", 
-                "version", 
-                extracted.getUrn(), 
+                "recording",
+                "version",
+                extracted.getUrn(),
                 extracted.getExhibitReference(),
                 extracted.getDefendantLastName(),
                 extracted.getWitnessFirstName()
@@ -87,11 +84,11 @@ public class DataTransformationService {
 
         Map<String, Object> existingData = cacheService.getHashAll(key);
         RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
-            extracted.getRecordingVersion(), 
+            extracted.getRecordingVersion(),
             extracted.getRecordingVersionNumber(),
-            extracted.getUrn(), 
-            extracted.getDefendantLastName(), 
-            extracted.getWitnessFirstName(), 
+            extracted.getUrn(),
+            extracted.getDefendantLastName(),
+            extracted.getWitnessFirstName(),
             existingData
         );
 
@@ -114,9 +111,9 @@ public class DataTransformationService {
             .shareBookingContacts(shareBookingContacts)
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())
-            .recordingVersion(versionDetails.getVersionType())
-            .recordingVersionNumberStr(versionDetails.getVersionNumberStr())
-            .recordingVersionNumber(versionDetails.getVersionNumber())
+            .recordingVersion(versionDetails.versionType())
+            .recordingVersionNumberStr(versionDetails.versionNumberStr())
+            .recordingVersionNumber(versionDetails.versionNumber())
             .isMostRecentVersion(versionDetails.isMostRecent())
             .build();
     }
@@ -128,7 +125,7 @@ public class DataTransformationService {
      * @param sitesDataMap The sites data map from Cache
      * @return The Court entity or null if not found
      */
-    private Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
+    protected Court fetchCourtFromDB(ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         String courtReference = extracted.getCourtReference();
         if (courtReference == null || courtReference.isEmpty()) {
             loggingService.logError("Court reference is null or empty");
@@ -137,9 +134,9 @@ public class DataTransformationService {
 
         String fullCourtName = sitesDataMap.getOrDefault(courtReference, UNKNOWN_COURT);
 
-        return cacheService.getCourt((String) fullCourtName)
-            .map(CourtDTO::getId) 
-            .flatMap(courtRepository::findById) 
+        return cacheService.getCourt(fullCourtName)
+            .map(CourtDTO::getId)
+            .flatMap(courtRepository::findById)
             .orElseGet(() -> {
                 loggingService.logWarning("Court not found in cache or DB for name: %s", fullCourtName);
                 return null;
@@ -147,8 +144,7 @@ public class DataTransformationService {
 
     }
 
-
-    private List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
+    protected List<Map<String, String>> buildShareBookingContacts(ExtractedMetadata extracted) {
         String archiveName = extracted.getArchiveNameNoExt();
         List<String[]> usersAndEmails = getUsersAndEmails(archiveName);
         List<Map<String, String>> contactsList = new ArrayList<>();
@@ -176,7 +172,7 @@ public class DataTransformationService {
      * @param key The key to look up in the channel user data map
      * @return A list of user email arrays
      */
-    private List<String[]> getUsersAndEmails(String key) {
+    protected List<String[]> getUsersAndEmails(String key) {
         return cacheService.getChannelReference(key).orElse(new ArrayList<>());
     }
 
@@ -186,8 +182,7 @@ public class DataTransformationService {
      * @return A map of site data
      * @throws IllegalStateException if sites data is not found in Cache
      */
-    private Map<String, String> getSitesData() {
-    
+    protected Map<String, String> getSitesData() {
         Map<String, String> sites = cacheService.getAllSiteReferences();
         if (sites.isEmpty()) {
             loggingService.logError("Sites data not found in Cache");
@@ -202,10 +197,7 @@ public class DataTransformationService {
      * @param contacts The list of share booking contacts
      * @return The determined case state (OPEN if contacts exist, CLOSED otherwise)
      */
-    private CaseState determineState(List<Map<String, String>> contacts) {
+    protected CaseState determineState(List<Map<String, String>> contacts) {
         return contacts.isEmpty() ? CaseState.CLOSED : CaseState.OPEN;
     }
 }
-
-
-

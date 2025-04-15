@@ -10,7 +10,5 @@ import lombok.Setter;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CSVSupportStaffData {
-
     private String userName;
-
 }

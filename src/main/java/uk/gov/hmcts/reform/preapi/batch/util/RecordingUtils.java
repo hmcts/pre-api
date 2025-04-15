@@ -1,7 +1,5 @@
 package uk.gov.hmcts.reform.preapi.batch.util;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
@@ -12,32 +10,27 @@ import java.util.Optional;
 
 @UtilityClass
 public final class RecordingUtils {
+    private static final String RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
     private static final String KEY_ORIG_VERSION_NUMBER = "origVersionNumber";
     private static final String KEY_COPY_VERSION_NUMBER = "copyVersionNumber";
     private static final String KEY_ORIG_ARCHIVE_NAME = "origVersionArchiveName";
     private static final String KEY_COPY_ARCHIVE_NAME = "copyVersionArchiveName";
 
-    @Getter
-    @AllArgsConstructor
-    public static class VersionDetails {
-        private final String versionType;
-        private final String versionNumberStr;
-        private final int versionNumber;
-        private final boolean isMostRecent;
-
+    public record VersionDetails(String versionType, String versionNumberStr, int versionNumber, boolean isMostRecent) {
         @Override
         public String toString() {
             return String.format(
-        "VersionDetails[type=%s, number=%s, versionNum=%d, isMostRecent=%b]", 
-                versionType, versionNumberStr, versionNumber, isMostRecent);
+                "VersionDetails[type=%s, number=%s, versionNum=%d, isMostRecent=%b]",
+                versionType, versionNumberStr, versionNumber, isMostRecent
+            );
         }
     }
 
     public VersionDetails processVersioning(
-        String recordingVersion, 
-        String versionNumberStr, 
-        String urn, 
-        String defendant, 
+        String recordingVersion,
+        String versionNumberStr,
+        String urn,
+        String defendant,
         String witness,
         Map<String, Object> existingCacheData
     ) {
@@ -49,7 +42,6 @@ public final class RecordingUtils {
                                     .orElseThrow(() -> new IllegalArgumentException(
                                         "Invalid recording version: " + recordingVersion
                                     ));
-                                     
         String validVersionNumber = getValidVersionNumber(versionNumberStr);
         int versionNumber = getRecordingVersionNumber(versionType);
         boolean isMostRecent = isMostRecentVersion(versionType, validVersionNumber, dataMap);
@@ -66,18 +58,18 @@ public final class RecordingUtils {
     }
 
     public static boolean isMostRecentVersion(
-        String versionType, 
-        String currentVersion, 
+        String versionType,
+        String currentVersion,
         Map<String, Object> existingData
     ) {
-        String key = Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase()) 
-            ? KEY_ORIG_VERSION_NUMBER 
+        String key = Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())
+            ? KEY_ORIG_VERSION_NUMBER
             : KEY_COPY_VERSION_NUMBER;
 
         String storedVersion = (String) existingData.get(key);
         return storedVersion == null || compareVersionStrings(currentVersion, storedVersion) >= 0;
     }
-    
+
 
     private static int compareVersionStrings(String v1, String v2) {
         if (v1 == null) {
@@ -94,7 +86,7 @@ public final class RecordingUtils {
         for (int i = 0; i < length; i++) {
             int v1Part = (i < v1Parts.length) ? Integer.parseInt(v1Parts[i]) : 0;
             int v2Part = (i < v2Parts.length) ? Integer.parseInt(v2Parts[i]) : 0;
-            
+
             if (v1Part < v2Part) {
                 return -1;
             }
@@ -102,7 +94,7 @@ public final class RecordingUtils {
                 return 1;
             }
         }
-        return 0; 
+        return 0;
     }
 
     public Map<String, Object> updateVersionMetadata(
@@ -127,7 +119,6 @@ public final class RecordingUtils {
                 updatedMetadata.put(KEY_COPY_VERSION_NUMBER, validVersionNumber);
             }
         }
-
         return updatedMetadata;
     }
 

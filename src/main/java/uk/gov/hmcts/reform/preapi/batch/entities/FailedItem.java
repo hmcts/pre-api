@@ -6,7 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class FailedItem {
-
     private IArchiveData item;
     private String reason;
     private String failureCategory;

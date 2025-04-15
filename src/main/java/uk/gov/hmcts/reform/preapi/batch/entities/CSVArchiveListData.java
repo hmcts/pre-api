@@ -48,13 +48,12 @@ public class CSVArchiveListData implements IArchiveData  {
         this.sanitizedArchiveName = computeSanitizedName(archiveName);
     }
 
-
     private String computeSanitizedName(String archiveName) {
         if (archiveName == null || archiveName.isEmpty()) {
             return "";
         }
 
-        String sanitized = archiveName
+        return archiveName
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
@@ -63,8 +62,6 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("CP ", "")
             .replaceAll("CP Case", "")
             .trim();
-
-        return sanitized;
     }
 
     public void setDuration(Integer duration) {

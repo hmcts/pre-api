@@ -3,7 +3,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.persistence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
@@ -24,8 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class InMemoryCacheService {
-    private final ReportingService reportingService;
     private final LoggingService loggingService;
+
     private final Map<String, Map<String, Object>> hashStore = new ConcurrentHashMap<>();
 
     private final Map<String, CourtDTO> courtCache = new ConcurrentHashMap<>();
@@ -38,8 +38,7 @@ public class InMemoryCacheService {
     private final Map<String, List<String[]>> channelReferenceCache = new ConcurrentHashMap<>();
 
     @Autowired
-    public InMemoryCacheService(ReportingService reportingService, LoggingService loggingService) {
-        this.reportingService = reportingService;
+    public InMemoryCacheService(LoggingService loggingService) {
         this.loggingService = loggingService;
     }
 
@@ -92,13 +91,13 @@ public class InMemoryCacheService {
     // Users
     // -----------------------------
     public void saveUser(String email, UUID userID) {
-        userCache.put(email.toLowerCase(), userID); 
+        userCache.put(email.toLowerCase(), userID);
     }
 
     public Optional<UUID> getUser(String email) {
         return Optional.ofNullable(userCache.get(email.toLowerCase()));
     }
-   
+
     // -----------------------------
     // Reference Data
     // -----------------------------
@@ -136,7 +135,7 @@ public class InMemoryCacheService {
 
     public void saveHashValue(String key, String hashKey, Object value) {
         hashStore.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(hashKey, value);
-    }    
+    }
 
     public boolean checkHashKeyExists(String key, String hashKey) {
         return hashStore.containsKey(key) && hashStore.get(key).containsKey(hashKey);
@@ -177,7 +176,6 @@ public class InMemoryCacheService {
     // Dump to CSV for Debug
     // -----------------------------
     public void dumpToFile() {
-        
         List<String> headers = List.of("Key", "Field", "Value");
         List<List<String>> rows = new ArrayList<>();
 
@@ -189,22 +187,22 @@ public class InMemoryCacheService {
             }
         }
 
-        //  courtCache 
+        //  courtCache
         for (Map.Entry<String, CourtDTO> entry : courtCache.entrySet()) {
             rows.add(List.of("db:courts", entry.getKey(), entry.getValue().toString()));
         }
 
-        //  caseCache 
+        //  caseCache
         for (Map.Entry<String, CaseDTO> entry : caseCache.entrySet()) {
             rows.add(List.of("db:cases", entry.getKey(), entry.getValue().toString()));
         }
 
-        // caseCache 
+        // caseCache
         for (Map.Entry<String, UUID> entry : userCache.entrySet()) {
             rows.add(List.of("db:users", entry.getKey(), entry.getValue().toString()));
         }
 
-        // shareBookingCache 
+        // shareBookingCache
         for (Map.Entry<String, CreateShareBookingDTO> entry : shareBookingCache.entrySet()) {
             rows.add(List.of(entry.getKey(), entry.getValue().toString()));
         }
@@ -224,9 +222,33 @@ public class InMemoryCacheService {
         }
 
         try {
-            reportingService.writeToCsv(headers, rows, "in-memory-cache", "Migration Reports", false);
+            ReportCsvWriter.writeToCsv(headers, rows, "in-memory-cache", "Migration Reports", false);
         } catch (IOException e) {
             loggingService.logError("Failed to write in-memory cache to file: " + e.getMessage());
         }
+    }
+
+    public String getAsString(String key, String hashKey) {
+        Object value = getHashValue(key, hashKey, Object.class);
+        return (value instanceof String stringVal) ? stringVal : null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String[]> getAsStringArrayList(String key, String hashKey) {
+        Object value = getHashValue(key, hashKey, Object.class);
+        if (value instanceof List<?>) {
+            try {
+                return (List<String[]>) value;
+            } catch (ClassCastException e) {
+                return new ArrayList<>();
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getAllAsType(String key, Class<T> clazz) {
+        Object value = getHashAll(key);
+        return clazz.isInstance(value) ? (T) value : null;
     }
 }

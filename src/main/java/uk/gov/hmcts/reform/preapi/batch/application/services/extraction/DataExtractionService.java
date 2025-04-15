@@ -16,7 +16,6 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PA
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
-
 @Service
 public class DataExtractionService {
     private final LoggingService loggingService;
@@ -53,7 +52,7 @@ public class DataExtractionService {
             return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
         }
 
-        // -- 3. Pattern matching for legitamite and test scenarios
+        // -- 3. Pattern matching for legitimate and test scenarios
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
         loggingService.logDebug("Pattern match: %s", patternMatch);
         if (patternMatch.isEmpty()) {
@@ -94,12 +93,9 @@ public class DataExtractionService {
 
         // Validate metadata failure
         ServiceResult<?> metadataCheckResult = validator.validateExtractedMetadata(extractedData);
-        if (!metadataCheckResult.isSuccess()) {
-            return metadataCheckResult;
-        }
-
-    
-        return ServiceResultUtil.success(extractedData);
+        return !metadataCheckResult.isSuccess()
+            ? metadataCheckResult
+            : ServiceResultUtil.success(extractedData);
     }
 
     // =========================
@@ -131,6 +127,4 @@ public class DataExtractionService {
             archiveItem.getArchiveName()
         );
     }
-    
-    
 }

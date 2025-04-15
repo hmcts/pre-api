@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.services.validation;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
@@ -10,11 +11,10 @@ import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 @Service
 public class DataValidationService {
-    private InMemoryCacheService cacheService;
+    private final InMemoryCacheService cacheService;
 
-    public DataValidationService(
-        InMemoryCacheService cacheService
-    ) {
+    @Autowired
+    public DataValidationService(InMemoryCacheService cacheService) {
         this.cacheService = cacheService;
     }
 

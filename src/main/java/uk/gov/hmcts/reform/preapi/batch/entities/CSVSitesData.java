@@ -12,12 +12,12 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CSVSitesData {
-
     private String siteReference;
     private String siteName;
     private String location;
     private String courtName;
 
+    // TODO remove used ?
     public static String extractFullCourtName(String courtReference, List<CSVSitesData> sitesDataList) {
         for (CSVSitesData site : sitesDataList) {
             if (site.getSiteReference().equalsIgnoreCase(courtReference)) {
@@ -26,5 +26,4 @@ public class CSVSitesData {
         }
         return null;
     }
-
 }

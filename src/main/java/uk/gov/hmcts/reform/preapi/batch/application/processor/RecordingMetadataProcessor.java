@@ -26,9 +26,9 @@ public class RecordingMetadataProcessor {
 
     @Autowired
     public RecordingMetadataProcessor(
-        DataExtractionService extractionService,
-        DataTransformationService transformationService,
-        InMemoryCacheService cacheService
+        final DataExtractionService extractionService,
+        final DataTransformationService transformationService,
+        final InMemoryCacheService cacheService
     ) {
         this.extractionService = extractionService;
         this.transformationService = transformationService;
