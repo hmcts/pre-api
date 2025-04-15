@@ -142,11 +142,11 @@ public class CoreStepsConfig {
     }
 
     public boolean getDryRunFlag() {
-        return Boolean.parseBoolean(
-            Optional.ofNullable(JobSynchronizationManager.getContext().getJobParameters().get("dryRun"))
-                .map(Object::toString)
-                .orElse("false")
-        );
+        return Optional.ofNullable(JobSynchronizationManager.getContext())
+            .map(ctx -> ctx.getJobParameters().get("dryRun"))
+            .map(Object::toString)
+            .map(Boolean::parseBoolean)
+            .orElse(false);
     }
 
     @Bean
