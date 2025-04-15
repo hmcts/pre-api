@@ -5,7 +5,6 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -42,7 +41,6 @@ public class MigrationGroupBuilderService {
     private final InMemoryCacheService cacheService;
     private final MigrationTrackerService migrationTrackerService;
     private final CaseRepository caseRepository;
-    private final MediaTransformationService mediaTransformationService;
 
     protected final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
 
@@ -52,15 +50,13 @@ public class MigrationGroupBuilderService {
         final EntityCreationService entityCreationService,
         final InMemoryCacheService cacheService,
         final MigrationTrackerService migrationTrackerService,
-        final CaseRepository caseRepository,
-        final MediaTransformationService mediaTransformationService
+        final CaseRepository caseRepository
     ) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.cacheService = cacheService;
         this.migrationTrackerService = migrationTrackerService;
         this.caseRepository = caseRepository;
-        this.mediaTransformationService = mediaTransformationService;
     }
 
     // =========================
