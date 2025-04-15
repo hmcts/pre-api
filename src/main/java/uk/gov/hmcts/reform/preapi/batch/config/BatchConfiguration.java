@@ -103,7 +103,6 @@ public class BatchConfiguration implements StepExecutionListener {
         this.stepUtils = stepUtils;
     }
 
-
     @Bean
     public Step createDeltaProcessingStep() {
         return new StepBuilder("deltaProcessingStep", jobRepository)
@@ -136,8 +135,6 @@ public class BatchConfiguration implements StepExecutionListener {
             transactionManager
         );
     }
-
-
 
     @Bean
     public Step createPreProcessStep() {
@@ -201,7 +198,6 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-
     // =========================
     // Utility and Helper Functions
     // =========================
@@ -232,5 +228,4 @@ public class BatchConfiguration implements StepExecutionListener {
                 : new FlowExecutionStatus("FAILED");
         };
     }
-
 }
