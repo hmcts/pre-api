@@ -69,6 +69,7 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     EMAIL_SERVICE: GovNotify
     ENABLE_NEW_EMAIL_SERVICE: false
     ENABLE_STREAMING_LOCATOR_ON_START: false
+    ENABLE_AUTOMATED_EDITING: false
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues
