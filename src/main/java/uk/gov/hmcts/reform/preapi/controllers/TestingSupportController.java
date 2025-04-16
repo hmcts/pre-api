@@ -288,7 +288,7 @@ class TestingSupportController {
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
         recording.setFilename("recording.mp4");
-        recording.setDuration(Duration.ofMinutes(30));
+        recording.setDuration(Duration.ofMinutes(3));
         recording.setEditInstruction("{\"foo\": \"bar\"}");
 
         recordingRepository.save(recording);

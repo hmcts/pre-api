@@ -5,6 +5,7 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.specialized.BlobInputStream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 
 import java.io.InputStream;
 import java.time.Duration;
@@ -290,5 +292,77 @@ public class AzureFinalStorageServiceTest {
         when(element.getAttribute("mediaPresentationDuration")).thenReturn(duration);
 
         return element;
+    }
+
+    @Test
+    void getBlobBlobExists() {
+        var containerName = "test-container";
+        var blobName = "video.mp4";
+
+        var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(blobItem.getName()).thenReturn(blobName);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        var blobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient(blobName)).thenReturn(blobClient);
+
+        assertThat(azureFinalStorageService.getBlob(containerName, blobName)).isEqualTo(blobClient);
+    }
+
+    @Test
+    void getBlobBlobNotExists() {
+        var containerName = "test-container";
+        var blobName = "video.mp4";
+
+        when(blobContainerClient.exists()).thenReturn(false);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> azureFinalStorageService.getBlob(containerName, blobName)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Container: " + containerName + ", with blob: " + blobName);
+    }
+
+    @Test
+    void downloadBlobSuccess() {
+        var blobName = "video.mp4";
+
+        var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(blobItem.getName()).thenReturn(blobName);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        var blobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient(blobName)).thenReturn(blobClient);
+        when(blobClient.downloadToFile("input.mp4", true)).thenReturn(mock(BlobProperties.class));
+
+        var containerName = "test-container";
+        var downloadPath = "input.mp4";
+
+        azureFinalStorageService.downloadBlob(containerName, blobName, downloadPath);
+
+        verify(blobClient, times(1)).downloadToFile(downloadPath, true);
+    }
+
+    @Test
+    void downloadBlobError() {
+        var blobName = "video.mp4";
+
+        var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
+        when(blobItem.getName()).thenReturn(blobName);
+        when(pagedIterable.stream()).thenReturn(Stream.of(blobItem));
+        var blobClient = mock(BlobClient.class);
+        when(blobContainerClient.getBlobClient(blobName)).thenReturn(blobClient);
+        when(blobClient.downloadToFile("input.mp4", true)).thenThrow(new RuntimeException());
+
+        var containerName = "test-container";
+        var downloadPath = "input.mp4";
+
+        var message = assertThrows(
+            UnknownServerException.class,
+            () -> azureFinalStorageService.downloadBlob(containerName, blobName, downloadPath)
+        ).getMessage();
+        assertThat(message)
+            .isEqualTo("Unknown Server Exception: Error downloading blob video.mp4 from container: test-container");
     }
 }
