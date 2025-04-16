@@ -76,6 +76,7 @@ public class PostProcessMigrationTest {
             jobLauncher,
             loggingService,
             false,
+            false,
             postMigrationJob
         );
         postProcessMigration.run();
@@ -113,6 +114,7 @@ public class PostProcessMigrationTest {
             CRON_USER_EMAIL,
             jobLauncher,
             loggingService,
+            false,
             false,
             postMigrationJob
         );

@@ -1,5 +1,10 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
 public class TestItem {
     private CSVArchiveListData archiveItem;
     private String reason;
@@ -8,51 +13,4 @@ public class TestItem {
     private boolean keywordCheck;
     private String keywordFound;
     private boolean regexFailure;
-
-    public TestItem(
-        CSVArchiveListData archiveItem,
-        String reason,
-        boolean durationCheck,
-        int durationInSeconds,
-        boolean keywordCheck,
-        String keywordFound,
-        boolean regexFailure
-    ) {
-        this.archiveItem = archiveItem;
-        this.reason = reason;
-        this.durationCheck = durationCheck;
-        this.durationInSeconds = durationInSeconds;
-        this.keywordCheck = keywordCheck;
-        this.keywordFound = keywordFound;
-        this.regexFailure = regexFailure;
-    }
-
-    public CSVArchiveListData getArchiveItem() {
-        return this.archiveItem;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public boolean isDurationCheck() {
-        return durationCheck;
-    }
-
-    public int getDurationInSeconds() {
-        return durationInSeconds;
-    }
-
-    public boolean isKeywordCheck() {
-        return keywordCheck;
-    }
-
-    public String getKeywordFound() {
-        return keywordFound;
-    }
-
-    public boolean isRegexFailure() {
-        return regexFailure;
-    }
-   
 }

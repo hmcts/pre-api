@@ -5,7 +5,6 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.batch.application.processor.MediaTransformationService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
@@ -28,40 +27,36 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 
 @Service
 public class MigrationGroupBuilderService {
-    private LoggingService loggingService;
-    private static final String BOOKING_FIELD = "bookingField";
-    private static final String CAPTURE_SESSION_FIELD = "captureSessionField";
-    private static final String RECORDING_FIELD = "recordingField";
-    private final CaseRepository caseRepository;
+    protected static final String BOOKING_FIELD = "bookingField";
+    protected static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    protected static final String RECORDING_FIELD = "recordingField";
 
+    private final LoggingService loggingService;
     private final EntityCreationService entityCreationService;
     private final InMemoryCacheService cacheService;
     private final MigrationTrackerService migrationTrackerService;
-    private final MediaTransformationService recordingMediaKindTransform;
-    private final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
+    private final CaseRepository caseRepository;
 
+    protected final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
 
     @Autowired
     public MigrationGroupBuilderService(
-        LoggingService loggingService,
-        EntityCreationService entityCreationService,
-        InMemoryCacheService cacheService,
-        MigrationTrackerService migrationTrackerService,
-        CaseRepository caseRepository,
-        MediaTransformationService recordingMediaKindTransform
+        final LoggingService loggingService,
+        final EntityCreationService entityCreationService,
+        final InMemoryCacheService cacheService,
+        final MigrationTrackerService migrationTrackerService,
+        final CaseRepository caseRepository
     ) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.cacheService = cacheService;
         this.migrationTrackerService = migrationTrackerService;
         this.caseRepository = caseRepository;
-        this.recordingMediaKindTransform = recordingMediaKindTransform;
     }
 
     // =========================
@@ -90,14 +85,21 @@ public class MigrationGroupBuilderService {
         ProcessedRecording cleansedData
     ) {
 
-        CreateCaseDTO acase = createCaseIfOrig(cleansedData);
-        if (acase == null) {
+        CreateCaseDTO aCase = createCaseIfOrig(cleansedData);
+        if (aCase == null) {
             return null;
         }
 
         String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
-        String baseKey = cacheService.generateBaseKey(acase.getReference(), participantPair);
-        CreateBookingDTO booking = processBooking(baseKey, cleansedData, acase);
+
+        String baseKey = cacheService.generateCacheKey(
+                "booking",
+                "metadata",
+                aCase.getReference(),
+                participantPair
+            );
+
+        CreateBookingDTO booking = processBooking(baseKey, cleansedData, aCase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, cleansedData, captureSession);
 
@@ -121,16 +123,15 @@ public class MigrationGroupBuilderService {
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
         PassItem passItem = new PassItem(item, cleansedData);
         MigratedItemGroup migrationGroup = new MigratedItemGroup(
-            acase, booking, captureSession, recording, participants,
+            aCase, booking, captureSession, recording, participants,
             shareBookings, invites, passItem
         );
         loggingService.logInfo("Migrating group: %s", migrationGroup);
         return migrationGroup;
     }
 
-    private CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
+    protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
-
         // 1 - return if case reference is invalid
         if (isInvalidCaseReference(caseReference)) {
             return null;
@@ -145,7 +146,7 @@ public class MigrationGroupBuilderService {
         return createNewCase(caseReference, cleansedData);
     }
 
-    private boolean isInvalidCaseReference(String caseReference) {
+    protected boolean isInvalidCaseReference(String caseReference) {
         return caseReference == null || caseReference.isBlank();
     }
 
@@ -155,8 +156,9 @@ public class MigrationGroupBuilderService {
             return null;
         }
 
-        Set<CreateParticipantDTO> currentParticipants =
-            Optional.ofNullable(existingCase.getParticipants()).orElse(new HashSet<>());
+        Set<CreateParticipantDTO> currentParticipants = existingCase.getParticipants() != null
+            ? existingCase.getParticipants()
+            : new HashSet<>();
 
         Set<CreateParticipantDTO> newParticipants = entityCreationService.createParticipants(cleansedData);
         Set<CreateParticipantDTO> updatedParticipants = new HashSet<>(currentParticipants);
@@ -169,7 +171,7 @@ public class MigrationGroupBuilderService {
         return existingCase;
     }
 
-    private boolean addNewParticipants(
+    protected boolean addNewParticipants(
         Set<CreateParticipantDTO> currentParticipants,
         Set<CreateParticipantDTO> newParticipants,
         Set<CreateParticipantDTO> updatedParticipants
@@ -199,7 +201,7 @@ public class MigrationGroupBuilderService {
             && Objects.equals(normalizeName(p1.getLastName()), normalizeName(p2.getLastName()));
     }
 
-    private CreateCaseDTO createNewCase(String caseReference, ProcessedRecording cleansedData) {
+    protected CreateCaseDTO createNewCase(String caseReference, ProcessedRecording cleansedData) {
         CreateCaseDTO newCase = entityCreationService.createCase(cleansedData);
         if (newCase == null) {
             return null;
@@ -212,41 +214,29 @@ public class MigrationGroupBuilderService {
         return name == null ? "" : name.trim().toLowerCase();
     }
 
-    private CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO acase) {
-        if (cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)) {
-            return cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class);
-        }
-        return entityCreationService.createBooking(cleansedData, acase, baseKey);
+    protected CreateBookingDTO processBooking(String baseKey, ProcessedRecording cleansedData, CreateCaseDTO aCase) {
+        return cacheService.checkHashKeyExists(baseKey, BOOKING_FIELD)
+            ? cacheService.getHashValue(baseKey, BOOKING_FIELD, CreateBookingDTO.class)
+            : entityCreationService.createBooking(cleansedData, aCase, baseKey);
     }
 
-    private CreateCaptureSessionDTO processCaptureSession(
+    protected CreateCaptureSessionDTO processCaptureSession(
         String baseKey,
         ProcessedRecording cleansedData,
         CreateBookingDTO booking
     ) {
-        if (cacheService.checkHashKeyExists(baseKey, CAPTURE_SESSION_FIELD)) {
-            return cacheService.getHashValue(
-                baseKey,
-                CAPTURE_SESSION_FIELD,
-                CreateCaptureSessionDTO.class
-            );
-        }
-        return entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
+        return cacheService.checkHashKeyExists(baseKey, CAPTURE_SESSION_FIELD)
+            ? cacheService.getHashValue(baseKey, CAPTURE_SESSION_FIELD, CreateCaptureSessionDTO.class)
+            : entityCreationService.createCaptureSession(cleansedData, booking, baseKey);
     }
 
-    private CreateRecordingDTO processRecording(
+    protected CreateRecordingDTO processRecording(
         String baseKey,
         ProcessedRecording cleansedItem,
         CreateCaptureSessionDTO captureSession
     ) {
-        if (cacheService.checkHashKeyExists(baseKey, RECORDING_FIELD)) {
-            return cacheService.getHashValue(
-                baseKey,
-                RECORDING_FIELD,
-                CreateRecordingDTO.class
-            );
-        }
-
-        return entityCreationService.createRecording(baseKey, cleansedItem, captureSession);
+        return cacheService.checkHashKeyExists(baseKey, RECORDING_FIELD)
+            ? cacheService.getHashValue(baseKey, RECORDING_FIELD, CreateRecordingDTO.class)
+            : entityCreationService.createRecording(baseKey, cleansedItem, captureSession);
     }
 }

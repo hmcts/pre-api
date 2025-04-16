@@ -8,7 +8,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureVodafoneStorageService;
 
@@ -30,17 +30,12 @@ import javax.xml.parsers.ParserConfigurationException;
 public class ArchiveMetadataXmlExtractor {
 
     private final AzureVodafoneStorageService azureVodafoneStorageService;
-    private final ReportingService reportingService;
     private final LoggingService loggingService;
 
     @Autowired
-    public ArchiveMetadataXmlExtractor(
-        AzureVodafoneStorageService azureVodafoneStorageService,
-        ReportingService reportingService,
-        LoggingService loggingService
-    ) {
+    public ArchiveMetadataXmlExtractor(AzureVodafoneStorageService azureVodafoneStorageService,
+                                       LoggingService loggingService) {
         this.azureVodafoneStorageService = azureVodafoneStorageService;
-        this.reportingService = reportingService;
         this.loggingService = loggingService;
     }
 
@@ -67,6 +62,17 @@ public class ArchiveMetadataXmlExtractor {
 
             if (!allArchiveMetadata.isEmpty()) {
                 loggingService.logDebug("Generating archive metadata report in %s", outputDir);
+                
+                allArchiveMetadata.sort((a, b) -> {
+                    try {
+                        long t1 = Long.parseLong(a.get(1)); 
+                        long t2 = Long.parseLong(b.get(1));
+                        return Long.compare(t1, t2);
+                    } catch (NumberFormatException e) {
+                        return 0; 
+                    }
+                });
+
                 generateArchiveMetadataReport(allArchiveMetadata, outputDir, filename);
                 loggingService.logInfo(
                     "Successfully generated " + filename + " with " + allArchiveMetadata.size() + " entries"
@@ -120,7 +126,7 @@ public class ArchiveMetadataXmlExtractor {
             "file_size"
         );
 
-        reportingService.writeToCsv(
+        ReportCsvWriter.writeToCsv(
             headers,
             extractedArchiveMetadata,
             filename,

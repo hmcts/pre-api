@@ -16,7 +16,6 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.ErrorMessages.PA
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_INVALID_FORMAT;
 import static uk.gov.hmcts.reform.preapi.batch.config.Constants.Reports.FILE_REGEX;
 
-
 @Service
 public class DataExtractionService {
     private final LoggingService loggingService;
@@ -39,26 +38,29 @@ public class DataExtractionService {
         if (archiveItem.getSanitizedArchiveName().isEmpty()) {
             loggingService.logWarning("Sanitized archive name is missing for: %s", archiveItem.getArchiveName());
         }
-
         // -- 1. TEST validation (validate for pre-go-live, duration check and test keywords)
         ServiceResult<?> validationResult = validator.validateTest(archiveItem);
+        loggingService.logDebug("Validation result in extraction %s", validationResult.isSuccess());
         if (!validationResult.isSuccess()) {
             return validationResult;
         }
 
-        // --2
+        // --2 Check file extension for .mp4
         String sanitisedName = archiveItem.getSanitizedArchiveName();
         String ext = validator.parseExtension(sanitisedName);
         if (ext.isBlank()) {
             return ServiceResultUtil.failure(INVALID_FILE_EXTENSION, FILE_INVALID_FORMAT);
         }
 
-        // -- 3. Pattern match
+        // -- 3. Pattern matching for legitimate and test scenarios
         var patternMatch = patternMatcher.findMatchingPattern(sanitisedName);
+        loggingService.logDebug("Pattern match: %s", patternMatch);
         if (patternMatch.isEmpty()) {
+            loggingService.logDebug("No pattern matched for file: %s", archiveItem);
             return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
         }
 
+        loggingService.logDebug("Checking for test pattern");
         if (RegexPatterns.TEST_PATTERNS.containsKey(patternMatch.get().getKey())) {
             loggingService.logError(
                 "Test pattern match found for file: %s | Pattern: %s",
@@ -81,10 +83,6 @@ public class DataExtractionService {
         Matcher matcher = patternMatch.get().getValue();
         var extractedData = extractMetaData(matcher, archiveItem);
 
-        if (patternMatch.isEmpty()) {
-            return ServiceResultUtil.failure(PATTERN_MATCH, FILE_REGEX);
-        }
-
         loggingService.logDebug("Extracted metadata in extraction service: " + extractedData);
 
         // Validate file extension
@@ -95,11 +93,9 @@ public class DataExtractionService {
 
         // Validate metadata failure
         ServiceResult<?> metadataCheckResult = validator.validateExtractedMetadata(extractedData);
-        if (!metadataCheckResult.isSuccess()) {
-            return metadataCheckResult;
-        }
-
-        return ServiceResultUtil.success(extractedData);
+        return !metadataCheckResult.isSuccess()
+            ? metadataCheckResult
+            : ServiceResultUtil.success(extractedData);
     }
 
     // =========================
@@ -131,5 +127,4 @@ public class DataExtractionService {
             archiveItem.getArchiveName()
         );
     }
-
 }

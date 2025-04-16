@@ -21,8 +21,9 @@ public class MigrateExclusions extends BaseTask {
                              JobLauncher jobLauncher,
                              LoggingService loggingService,
                              @Value("${migration.debug}") boolean debug,
+                             @Value("${migration.dry-run:false}") boolean dryRun,
                              @Qualifier("processExclusionsJob") Job processExclusionsJob) {
-        super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug);
+        super(userService, userAuthenticationService, cronUserEmail, jobLauncher, loggingService, debug, dryRun);
         this.processExclusionsJob = processExclusionsJob;
     }
 

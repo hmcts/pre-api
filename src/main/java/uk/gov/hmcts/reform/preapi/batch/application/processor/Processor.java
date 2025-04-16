@@ -16,7 +16,9 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVSitesData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.IArchiveData;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigratedItemGroup;
+import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
@@ -40,14 +42,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
     @Autowired
     public Processor(
-        InMemoryCacheService cacheService,
-        DataExtractionService extractionService,
-        DataTransformationService transformationService,
-        DataValidationService validationService,
-        ReferenceDataProcessor referenceDataProcessor,
-        MigrationGroupBuilderService migrationService,
-        MigrationTrackerService migrationTrackerService,
-        LoggingService loggingService
+        final InMemoryCacheService cacheService,
+        final DataExtractionService extractionService,
+        final DataTransformationService transformationService,
+        final DataValidationService validationService,
+        final ReferenceDataProcessor referenceDataProcessor,
+        final MigrationGroupBuilderService migrationService,
+        final MigrationTrackerService migrationTrackerService,
+        final LoggingService loggingService
     ) {
         this.cacheService = cacheService;
         this.extractionService = extractionService;
@@ -64,22 +66,22 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     // =========================
     @Override
     public MigratedItemGroup process(Object item) throws Exception {
-
         if (item == null) {
             loggingService.logWarning("Received null item to process");
             return null;
         }
-
         if (item instanceof CSVArchiveListData csvArchiveListData) {
             return processArchiveItem(csvArchiveListData);
-        } else if (item instanceof CSVExemptionListData csvExemptionListData) {
+        }
+        if (item instanceof CSVExemptionListData csvExemptionListData) {
             return processExemptionItem(csvExemptionListData);
-        } else if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
+        }
+        if (item instanceof CSVSitesData || item instanceof CSVChannelData) {
             referenceDataProcessor.process(item);
             return null;
-        } else {
-            loggingService.logError("Unsuported item type: %s", item.getClass().getName());
         }
+
+        loggingService.logError("Unsupported item type: %s", item.getClass().getName());
         return null;
     }
 
@@ -106,9 +108,9 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 e.getMessage(),
                 e
             );
-            return handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            return null;
         }
-
     }
 
     private MigratedItemGroup processArchiveItem(CSVArchiveListData archiveItem) {
@@ -137,18 +139,18 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (!isValidated(cleansedData, archiveItem)) {
                 return null;
             }
-
-            loggingService.incrementProgress();
+            
+            loggingService.incrementProgress();           
             cacheService.dumpToFile();
+         
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
-
         } catch (Exception e) {
             loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
-            return handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
+            return null;
         }
 
     }
-
 
     // =========================
     // Extraction, Transformation and Validation
@@ -169,9 +171,10 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return null;
         }
 
-        return (ExtractedMetadata) extractionResult.getData();
+        ExtractedMetadata extractedData = (ExtractedMetadata) extractionResult.getData();
+        checkAndCreateNotifyItem(extractedData);
+        return extractedData;
     }
-
 
     private ProcessedRecording transformData(ExtractedMetadata extractedData) {
         ServiceResult<ProcessedRecording> result = transformationService.transformData(extractedData);
@@ -198,7 +201,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
-        boolean alreadyMigrated = cacheService.checkHashKeyExists("vf:case:", cleansedData.getCaseReference());
+        boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
         if (alreadyMigrated) {
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;
@@ -209,7 +212,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     //======================
     // Helper Methods
     //======================
-    private <T> boolean checkForError(ServiceResult<T> result, Object item) {
+    private <T> boolean checkForError(ServiceResult<T> result, IArchiveData item) {
         String errorMessage = result.getErrorMessage();
         String category = result.getCategory();
 
@@ -220,7 +223,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return false;
     }
 
-    private MigratedItemGroup handleError(Object item, String message, String category) {
+    private MigratedItemGroup handleError(IArchiveData item, String message, String category) {
         migrationTrackerService.addFailedItem(new FailedItem(item, message, category));
         return null;
     }
@@ -237,9 +240,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         }
 
         loggingService.logInfo("Converting Exemption Item to ExtractedMetadata: " + exemptionItem);
-
-        LocalDateTime parsedCreateTime = parseDateTime(exemptionItem.getCreateTime());
-
         return new ExtractedMetadata(
             exemptionItem.getCourtReference(),
             exemptionItem.getUrn(),
@@ -249,7 +249,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             exemptionItem.getRecordingVersion(),
             String.valueOf(exemptionItem.getRecordingVersionNumber()),
             exemptionItem.getFileExtension(),
-            parsedCreateTime,
+            parseDateTime(exemptionItem.getCreateTime()),
             exemptionItem.getDuration(),
             exemptionItem.getFileName(),
             exemptionItem.getFileSize(),
@@ -269,6 +269,37 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         } catch (Exception e) {
             loggingService.logError("Failed to parse date: " + dateTimeStr, e);
             return null;
+        }
+    }
+
+    // =========================
+    // Notifications
+    // =========================
+    private void checkAndCreateNotifyItem(ExtractedMetadata extractedData) {
+        String defendantLastName = extractedData.getDefendantLastName();
+        String witnessFirstName = extractedData.getWitnessFirstName();
+        // Double-barrelled name checks
+        if (defendantLastName != null && defendantLastName.contains("-")) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled defendant",extractedData));
+        }
+
+        if (witnessFirstName != null && witnessFirstName.contains("-")) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled witness",extractedData));
+        }
+
+        String urn = extractedData.getUrn();
+        String exhibitRef = extractedData.getExhibitReference();
+        // case ref checks
+        if (urn == null || urn.isEmpty()) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",extractedData));
+        } else if (urn.length() < 11) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("URN - invalid length", extractedData));
+        }
+
+        if (exhibitRef == null || exhibitRef.isEmpty()) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("Missing Exhibit Ref", extractedData));
+        } else if (exhibitRef.length() < 9) {
+            migrationTrackerService.addNotifyItem(new NotifyItem("T-ref - invalid length", extractedData));
         }
     }
 

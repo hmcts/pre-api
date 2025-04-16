@@ -129,6 +129,7 @@ slack:
 migration:
   debug: ${MIGRATION_DEBUG:false}
   type: ${MIGRATION_TYPE:FULL}
+  dryRun: ${DRY_RUN:false}
 
 tasks:
   batch-import-missing-mk-assets:

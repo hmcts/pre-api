@@ -2,11 +2,13 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.migration;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportingService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
+import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 
@@ -33,23 +35,39 @@ import static uk.gov.hmcts.reform.preapi.batch.config.Constants.XmlFields.FILE_S
  */
 @Service
 public class MigrationTrackerService {
-    private final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
-    private List<PassItem> migratedItems = new ArrayList<>();
-    private List<TestItem> testFailures = new ArrayList<>();
-    private List<CreateInviteDTO> invitedUsers = new ArrayList<>();
-    private final ReportingService reportingService;
-    private LoggingService loggingService;
+    protected static final List<String> MIGRATED_ITEM_HEADERS = List.of(
+        DISPLAY_NAME, "Case Reference", "Witness", "Defendant", "Scheduled For",
+        "Case State", "Version", "File Name", "Duration", FILE_SIZE, "Date / Time migrated"
+    );
+    protected static final List<String> TEST_FAILURE_HEADERS = List.of(
+        DISPLAY_NAME, CREATE_TIME,"Filename", FILE_SIZE, "Migration Date / Time",
+        "Duration Check Fail", "Duration (in seconds)", "Keyword Check Fail",
+        "Keyword Found", "Test Pattern"
+    );
+    protected static final List<String> FAILED_ITEM_HEADERS = List.of(
+        "Reason for Failure", DISPLAY_NAME,CREATE_TIME,"Filename", FILE_SIZE, "Date / Time");
+    protected static final List<String> NOTIFY_ITEM_HEADERS = List.of(
+        "Notification", DISPLAY_NAME, "Extracted_court", "Extracted_defendant",
+        "Extracted_witness", "Duration", "File Size", "Date / Time migrated");
 
-    public MigrationTrackerService(
-        ReportingService reportingService,
-        LoggingService loggingService
-    ) {
-        this.reportingService = reportingService;
+    protected final Map<String, List<FailedItem>> categorizedFailures = new HashMap<>();
+    protected final List<PassItem> migratedItems = new ArrayList<>();
+    protected final List<TestItem> testFailures = new ArrayList<>();
+    protected final List<NotifyItem> notifyItems = new ArrayList<>();
+    protected final List<CreateInviteDTO> invitedUsers = new ArrayList<>();
+
+    private final LoggingService loggingService;
+
+    public MigrationTrackerService(final LoggingService loggingService) {
         this.loggingService = loggingService;
     }
 
     public void addMigratedItem(PassItem item) {
         migratedItems.add(item);
+    }
+
+    public void addNotifyItem(NotifyItem item) {
+        notifyItems.add(item);
     }
 
     public void addTestItem(TestItem item) {
@@ -76,21 +94,30 @@ public class MigrationTrackerService {
     }
 
     public void writeMigratedItemsToCsv(String fileName, String outputDir) {
-        List<String> headers = getMigratedItemsHeaders();
         List<List<String>> rows = buildMigratedItemsRows();
+
         try {
-            reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
+            ReportCsvWriter.writeToCsv(MIGRATED_ITEM_HEADERS, rows, fileName, outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
     }
 
+    public void writeNotifyItemsToCsv(String fileName, String outputDir) {
+        List<List<String>> rows = buildNotifyItemsRows();
+
+        try {
+            ReportCsvWriter.writeToCsv(NOTIFY_ITEM_HEADERS, rows, fileName, outputDir, false);
+        } catch (IOException e) {
+            loggingService.logError("Failed to write notify items to CSV: %s", e.getMessage());
+        }
+    }
+
     public void writeTestFailureReport(String fileName,String outputDir) {
-        List<String> headers = getTestFailureHeaders();
         List<List<String>> rows = buildTestFailureRows();
 
         try {
-            reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
+            ReportCsvWriter.writeToCsv(TEST_FAILURE_HEADERS, rows, fileName, outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write test failure report: %s", e.getMessage());
         }
@@ -105,11 +132,10 @@ public class MigrationTrackerService {
             );
 
             String fileName = sanitizeFileName(category);
-            List<String> headers = getFailedItemsHeaders();
             List<List<String>> rows = buildFailedItemsRows(failedItemsList);
 
             try {
-                reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
+                ReportCsvWriter.writeToCsv(FAILED_ITEM_HEADERS, rows, fileName, outputDir, false);
             } catch (IOException e) {
                 loggingService.logError("Failed to write failure report for %s: %s", category, e.getMessage());
             }
@@ -120,7 +146,7 @@ public class MigrationTrackerService {
         List<String> headers = getInvitedUsersHeaders();
         List<List<String>> rows = buildInvitedUserRows();
         try {
-            reportingService.writeToCsv(headers, rows, fileName, outputDir, false);
+            ReportCsvWriter.writeToCsv(headers, rows, fileName, outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write migrated items to CSV: %s", e.getMessage());
         }
@@ -143,6 +169,7 @@ public class MigrationTrackerService {
         writeCategorizedFailureReports(failureDir);
         writeTestFailureReport("Test", failureDir);
         writeInvitedUsersToCsv("Invited_users", outputDir);
+        writeNotifyItemsToCsv("Notify", outputDir);
 
         loggingService.setTotalMigrated(migratedItems.size());
         loggingService.setTotalFailed(categorizedFailures, testFailures);
@@ -154,43 +181,47 @@ public class MigrationTrackerService {
     // Helpers
     // ==================================
 
-    private List<String> getMigratedItemsHeaders() {
-        return List.of(
-            DISPLAY_NAME, "Case Reference", "Witness", "Defendant", "Scheduled For",
-            "Case State", "Version", "File Name", "Duration", FILE_SIZE,
-            "Date / Time migrated"
-        );
-    }
-
     private List<List<String>> buildMigratedItemsRows() {
         List<List<String>> rows = new ArrayList<>();
         for (PassItem item : migratedItems) {
             String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
 
+            ExtractedMetadata extractedMetadata = item.item();
+            ProcessedRecording cleansedData = item.cleansedData();
             rows.add(List.of(
-                    getValueOrEmpty(item.getArchiveName()),
-                    getValueOrEmpty(item.getCaseReference()),
-                    getValueOrEmpty(item.getWitnessName()),
-                    getValueOrEmpty(item.getDefendantName()),
-                    getValueOrEmpty(item.getScheduledFor()),
-                    getValueOrEmpty(item.getState()),
-                    getValueOrEmpty(item.getVersion()),
-                    getValueOrEmpty(item.getFileName()),
-                    formatDuration(item.getDuration()),
-                    getValueOrEmpty(item.getFileSize()),
+                getValueOrEmpty(extractedMetadata.getArchiveName()),
+                getValueOrEmpty(cleansedData.getCaseReference()),
+                getValueOrEmpty(cleansedData.getWitnessFirstName()),
+                getValueOrEmpty(cleansedData.getDefendantLastName()),
+                getValueOrEmpty(cleansedData.getRecordingTimestamp()),
+                getValueOrEmpty(cleansedData.getState()),
+                getValueOrEmpty(cleansedData.getRecordingVersionNumber()),
+                getValueOrEmpty(extractedMetadata.getFileName()),
+                formatDuration(cleansedData.getDuration()),
+                getValueOrEmpty(extractedMetadata.getFileSize()),
+                migratedTime));
+        }
+        return rows;
+    }
+
+    private List<List<String>> buildNotifyItemsRows() {
+        List<List<String>> rows = new ArrayList<>();
+        for (NotifyItem item : notifyItems) {
+            String migratedTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+
+            rows.add(List.of(
+                    getValueOrEmpty(item.getNotification()),
+                    getValueOrEmpty(item.getExtractedMetadata().getArchiveName()),
+                    getValueOrEmpty(item.getExtractedMetadata().getCourtReference()),
+                    getValueOrEmpty(item.getExtractedMetadata().getDefendantLastName()),
+                    getValueOrEmpty(item.getExtractedMetadata().getWitnessFirstName()),
+                    getValueOrEmpty(item.getExtractedMetadata().getDuration()),
+                    getValueOrEmpty(item.getExtractedMetadata().getFileSize()),
                     migratedTime
                 )
             );
         }
         return rows;
-    }
-
-    private List<String> getTestFailureHeaders() {
-        return List.of(
-            DISPLAY_NAME, CREATE_TIME,"Filename", FILE_SIZE, "Migration Date / Time",
-            "Duration Check Fail", "Duration (in seconds)", "Keyword Check Fail",
-            "Keyword Found", "Test Pattern"
-        );
     }
 
     private List<List<String>> buildTestFailureRows() {
@@ -215,17 +246,13 @@ public class MigrationTrackerService {
         return rows;
     }
 
-    private List<String> getFailedItemsHeaders() {
-        return List.of("Reason for Failure", DISPLAY_NAME,CREATE_TIME,"Filename", FILE_SIZE, "Date / Time");
-    }
-
     public List<List<String>> buildFailedItemsRows(List<FailedItem> items) {
         List<List<String>> rows = new ArrayList<>();
-        
+
         for (FailedItem item : items) {
             Object itemData = item.getItem();
             String failureTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
-            
+
             if (itemData instanceof CSVArchiveListData archiveItem) {
                 rows.add(List.of(
                     getValueOrEmpty(item.getReason()),
@@ -265,7 +292,7 @@ public class MigrationTrackerService {
         }
 
         try {
-            reportingService.writeToCsv(headers, rows, "Failures", outputDir, false);
+            ReportCsvWriter.writeToCsv(headers, rows, "Failures", outputDir, false);
         } catch (IOException e) {
             loggingService.logError("Failed to write failure summary: %s", e.getMessage());
         }
@@ -279,7 +306,6 @@ public class MigrationTrackerService {
         List<List<String>> rows = new ArrayList<>();
 
         for (CreateInviteDTO item : invitedUsers) {
-
             rows.add(List.of(
                          getValueOrEmpty(item.getUserId()),
                          getValueOrEmpty(item.getFirstName()),
