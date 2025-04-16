@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.tasks.batch;
+package uk.gov.hmcts.reform.preapi.tasks.migration;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
-import uk.gov.hmcts.reform.preapi.tasks.migration.PostProcessMigration;
 
 import java.util.Optional;
 import java.util.Set;
