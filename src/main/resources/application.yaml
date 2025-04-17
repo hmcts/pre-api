@@ -17,6 +17,8 @@ springdoc:
   paths-to-exclude:
     - /info
     - /health/*
+  api-docs:
+    version: openapi_3_0
 
 spring:
   config:
@@ -120,6 +122,9 @@ portal:
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
+editing:
+  enable: ${ENABLE_AUTOMATED_EDITING:false}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
@@ -146,3 +151,4 @@ slack:
 #        jdbc: DEBUG
 #        transaction:
 #          interceptor: trace
+

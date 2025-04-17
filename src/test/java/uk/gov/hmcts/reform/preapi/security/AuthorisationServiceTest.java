@@ -5,11 +5,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -40,19 +41,19 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = AuthorisationService.class)
 public class AuthorisationServiceTest {
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private CaseRepository caseRepository;
 
-    @MockBean
+    @MockitoBean
     private ParticipantRepository participantRepository;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
 
-    @MockBean
+    @MockitoBean
     private RecordingRepository recordingRepository;
 
     @Autowired
@@ -750,4 +751,14 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @Test
+    @DisplayName("Should grant upsert access when the user has access to recording for edit requests")
+    void hasUpsertAccessEditRequest() {
+        var dto = new CreateEditRequestDTO();
+        dto.setSourceRecordingId(UUID.randomUUID());
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
 }

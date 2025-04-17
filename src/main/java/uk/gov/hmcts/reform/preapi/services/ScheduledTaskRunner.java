@@ -8,8 +8,8 @@ import org.springframework.stereotype.Service;
 
 import static java.lang.Character.toLowerCase;
 
-@Service
 @Slf4j
+@Service
 public class ScheduledTaskRunner {
 
     @Autowired
@@ -28,7 +28,7 @@ public class ScheduledTaskRunner {
     }
 
     @Nullable
-    private Runnable getTask(String beanName) {
+    public Runnable getTask(String beanName) {
         try {
             return (Runnable) context.getBean(beanName);
         } catch (Exception e) {
