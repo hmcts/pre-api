@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
@@ -631,6 +633,47 @@ class CaseServiceTest {
         verify(courtRepository, times(1)).findById(caseDTOModel.getCourtId());
         verify(caseRepository, times(1)).findById(any());
         verify(caseRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should create case PRE origin when origin is not set")
+    void createCaseOriginNotSet() {
+        var aCase = createTestingCase();
+        var createCaseDto = new CreateCaseDTO(aCase);
+
+        when(courtRepository.findById(aCase.getCourt().getId())).thenReturn(Optional.of(aCase.getCourt()));
+        when(caseRepository.findById(aCase.getId())).thenReturn(Optional.empty());
+
+        var response = caseService.upsert(createCaseDto);
+        assertThat(response).isEqualTo(UpsertResult.CREATED);
+
+        verify(courtRepository, times(1)).findById(aCase.getCourt().getId());
+        verify(caseRepository, times(1)).findById(aCase.getId());
+
+        var captor = ArgumentCaptor.forClass(Case.class);
+        verify(caseRepository, times(1)).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getOrigin()).isEqualTo(RecordingOrigin.PRE);
+    }
+
+    @Test
+    @DisplayName("Should create case PRE origin when origin is set")
+    void createCaseOriginSet() {
+        var aCase = createTestingCase();
+        aCase.setOrigin(RecordingOrigin.VODAFONE);
+        var createCaseDto = new CreateCaseDTO(aCase);
+
+        when(courtRepository.findById(aCase.getCourt().getId())).thenReturn(Optional.of(aCase.getCourt()));
+        when(caseRepository.findById(aCase.getId())).thenReturn(Optional.empty());
+
+        var response = caseService.upsert(createCaseDto);
+        assertThat(response).isEqualTo(UpsertResult.CREATED);
+
+        verify(courtRepository, times(1)).findById(aCase.getCourt().getId());
+        verify(caseRepository, times(1)).findById(aCase.getId());
+
+        var captor = ArgumentCaptor.forClass(Case.class);
+        verify(caseRepository, times(1)).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
     }
 
     @Test
