@@ -57,8 +57,9 @@ public class RecordingMetadataProcessor {
             ProcessedRecording cleansedData = result.getData();
 
             String key = cacheService.generateCacheKey(
-                "recording", "version", 
-                cleansedData.getUrn(), 
+                "recording",
+                "version",
+                cleansedData.getUrn(),
                 cleansedData.getExhibitReference(),
                 cleansedData.getDefendantLastName(),
                 cleansedData.getWitnessFirstName()
@@ -69,7 +70,7 @@ public class RecordingMetadataProcessor {
             if (existingMetadata == null) {
                 existingMetadata = new HashMap<>();
             }
-           
+
             // Update versioning info for this recording
             Map<String, Object> updatedMetadata = RecordingUtils.updateVersionMetadata(
                 cleansedData.getRecordingVersion(),
