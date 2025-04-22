@@ -22,19 +22,19 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @Test
     void undeleteRecording() {
         var recordingDetails = createRecording();
-        assertRecordingExists(recordingDetails.recordingId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
 
         var deleteResponse =
-            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
-        assertRecordingExists(recordingDetails.recordingId, false);
+        assertRecordingExists(recordingDetails.recordingId(), false);
 
         var undeleteResponse = doPostRequest(
-            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId + "/undelete",
+            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId() + "/undelete",
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(undeleteResponse, 200);
-        assertRecordingExists(recordingDetails.recordingId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
     }
 
     @DisplayName("Scenario: Create and update a recording")
@@ -150,12 +150,12 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @Test
     void shouldDeleteRecording() {
         var recording = createRecording();
-        assertRecordingExists(recording.recordingId, true);
+        assertRecordingExists(recording.recordingId(), true);
 
         var deleteResponse =
-            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recording.recordingId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recording.recordingId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
-        assertRecordingExists(recording.recordingId, false);
+        assertRecordingExists(recording.recordingId(), false);
     }
 
     @DisplayName("Delete a recording that does not exist")
@@ -173,55 +173,55 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void shouldUndeleteRecording() {
         // create recording
         var recordingDetails = createRecording();
-        assertRecordingExists(recordingDetails.recordingId, true);
-        assertCaptureSessionExists(recordingDetails.captureSessionId, true);
-        assertBookingExists(recordingDetails.bookingId, true);
-        assertCaseExists(recordingDetails.caseId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
+        assertCaptureSessionExists(recordingDetails.captureSessionId(), true);
+        assertBookingExists(recordingDetails.bookingId(), true);
+        assertCaseExists(recordingDetails.caseId(), true);
 
         // must delete all recordings associated to case before deleting case
         var deleteRecording =
-            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteRecording, 200);
 
         // delete case (deleting associated bookings + capture sessions)
         var deleteCase =
-            doDeleteRequest(CASES_ENDPOINT + "/" + recordingDetails.caseId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(CASES_ENDPOINT + "/" + recordingDetails.caseId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCase, 200);
-        assertRecordingExists(recordingDetails.recordingId, false);
-        assertCaptureSessionExists(recordingDetails.captureSessionId, false);
-        assertBookingExists(recordingDetails.bookingId, false);
-        assertCaseExists(recordingDetails.caseId, false);
+        assertRecordingExists(recordingDetails.recordingId(), false);
+        assertCaptureSessionExists(recordingDetails.captureSessionId(), false);
+        assertBookingExists(recordingDetails.bookingId(), false);
+        assertCaseExists(recordingDetails.caseId(), false);
 
         // undelete recording (and associated capture session, booking, case)
         var undeleteRecording = doPostRequest(
-            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId + "/undelete",
+            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId() + "/undelete",
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(undeleteRecording, 200);
-        assertRecordingExists(recordingDetails.recordingId, true);
-        assertCaptureSessionExists(recordingDetails.captureSessionId, true);
-        assertBookingExists(recordingDetails.bookingId, true);
-        assertCaseExists(recordingDetails.caseId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
+        assertCaptureSessionExists(recordingDetails.captureSessionId(), true);
+        assertBookingExists(recordingDetails.bookingId(), true);
+        assertCaseExists(recordingDetails.caseId(), true);
     }
 
     @DisplayName("Should sort by created at desc when sort param not set and by sort param otherwise")
     @Test
     void getRecordingsSortBy() throws JsonProcessingException {
         var details = createRecording();
-        assertRecordingExists(details.recordingId, true);
-        assertCaptureSessionExists(details.captureSessionId, true);
-        assertBookingExists(details.bookingId, true);
-        assertCaseExists(details.caseId, true);
+        assertRecordingExists(details.recordingId(), true);
+        assertCaptureSessionExists(details.captureSessionId(), true);
+        assertBookingExists(details.bookingId(), true);
+        assertCaseExists(details.caseId(), true);
 
-        var recording2 = createRecording(details.captureSessionId);
-        recording2.setParentRecordingId(details.recordingId);
+        var recording2 = createRecording(details.captureSessionId());
+        recording2.setParentRecordingId(details.recordingId());
         recording2.setVersion(2);
         var putRecording2 = putRecording(recording2);
         assertResponseCode(putRecording2, 201);
         assertRecordingExists(recording2.getId(), true);
 
         var getRecordings1 = doGetRequest(
-            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(getRecordings1, 200);
@@ -230,11 +230,11 @@ public class RecordingControllerFT extends FunctionalTestBase {
         // default sort by createdAt desc
         assertThat(recordings1.size()).isEqualTo(2);
         assertThat(recordings1.getFirst().getId()).isEqualTo(recording2.getId());
-        assertThat(recordings1.getLast().getId()).isEqualTo(details.recordingId);
+        assertThat(recordings1.getLast().getId()).isEqualTo(details.recordingId());
         assertThat(recordings1.getFirst().getCreatedAt()).isAfter(recordings1.getLast().getCreatedAt());
 
         var getRecordings2 = doGetRequest(
-            RECORDINGS_ENDPOINT + "?sort=createdAt,asc&captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?sort=createdAt,asc&captureSessionId=" + details.captureSessionId(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(getRecordings2, 200);
@@ -242,7 +242,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
         // sort in opposite direction (createdAt asc)
         assertThat(recordings2.size()).isEqualTo(2);
-        assertThat(recordings2.getFirst().getId()).isEqualTo(details.recordingId);
+        assertThat(recordings2.getFirst().getId()).isEqualTo(details.recordingId());
         assertThat(recordings2.getLast().getId()).isEqualTo(recording2.getId());
         assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
     }
@@ -252,13 +252,13 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void getRecordingTotalVersionCount() throws JsonProcessingException {
         // create parent recording
         var details = createRecording();
-        var getRecording1 = assertRecordingExists(details.recordingId, true);
+        var getRecording1 = assertRecordingExists(details.recordingId(), true);
         getRecording1.prettyPrint();
         assertThat(getRecording1.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(1);
 
         // create child recording
-        var recording2 = createRecording(details.captureSessionId);
-        recording2.setParentRecordingId(details.recordingId);
+        var recording2 = createRecording(details.captureSessionId());
+        recording2.setParentRecordingId(details.recordingId());
         recording2.setVersion(2);
         var putRecording2 = putRecording(recording2);
         assertResponseCode(putRecording2, 201);
@@ -266,7 +266,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(getRecording2.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
 
         // check parent recording
-        var getRecording3 = assertRecordingExists(details.recordingId, true);
+        var getRecording3 = assertRecordingExists(details.recordingId(), true);
         assertThat(getRecording3.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
     }
 
@@ -281,12 +281,6 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
         assertThat(getRecordings.body().jsonPath().getString("message"))
             .isEqualTo("Invalid sort parameter 'invalidParam' for 'uk.gov.hmcts.reform.preapi.entities.Recording'");
-    }
-
-    private CreateRecordingResponse createRecording() {
-        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
-        assertResponseCode(response, 200);
-        return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
     }
 
     @Override

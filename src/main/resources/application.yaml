@@ -122,6 +122,9 @@ portal:
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
+editing:
+  enable: ${ENABLE_AUTOMATED_EDITING:false}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
