@@ -322,6 +322,9 @@ dependencies {
     exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
   }
 
+  testImplementation group:'org.springframework.batch', name: 'spring-batch-test', version: '5.2.2'
+  testImplementation group: 'com.h2database', name: 'h2', version: '2.3.232'
+
   integrationTestImplementation sourceSets.main.runtimeClasspath
   integrationTestImplementation sourceSets.test.runtimeClasspath
   integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.20.4'
