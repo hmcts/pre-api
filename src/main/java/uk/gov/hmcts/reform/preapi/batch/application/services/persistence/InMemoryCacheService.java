@@ -164,13 +164,13 @@ public class InMemoryCacheService {
     }
 
     public  String generateCacheKey(String namespace, String type, String... identifiers) {
+        loggingService.logWarning("NORMALISED: %s", normalizeAll(identifiers));
         return "vf:" + namespace + ":" + type + ":" + String.join("-", normalizeAll(identifiers));
     }
 
     private static List<String> normalizeAll(String[] parts) {
         return Arrays.stream(parts)
             .filter(Objects::nonNull)
-            .map(String::trim)
             .map(String::toLowerCase)
             .toList();
     }
