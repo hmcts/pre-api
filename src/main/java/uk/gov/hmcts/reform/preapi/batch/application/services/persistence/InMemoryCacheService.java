@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
@@ -91,7 +92,9 @@ public class InMemoryCacheService {
     // Users
     // -----------------------------
     public void saveUser(String email, UUID userID) {
-        userCache.put(email.toLowerCase(), userID);
+        String lowerEmail = email.toLowerCase();
+        userCache.put(lowerEmail, userID);
+        saveHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, userID.toString());
     }
 
     public Optional<UUID> getUser(String email) {

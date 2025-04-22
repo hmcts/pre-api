@@ -27,7 +27,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.application.writer.Writer;
+import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CommonStepUtils;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
@@ -58,7 +58,7 @@ public class BatchConfiguration implements StepExecutionListener {
     public final PreProcessor preProcessor;
     public final RecordingMetadataProcessor recordingPreProcessor;
     public final Processor itemProcessor;
-    public final Writer itemWriter;
+    public final MigrationWriter itemWriter;
     public final MigrationTrackerService migrationTrackerService;
     public final BatchRobotUserTask robotUserTask;
     public final ArchiveMetadataXmlExtractor xmlProcessingService;
@@ -77,7 +77,7 @@ public class BatchConfiguration implements StepExecutionListener {
         Processor itemProcessor,
         CaseService caseService,
         InMemoryCacheService cacheService,
-        Writer itemWriter,
+        MigrationWriter itemWriter,
         MigrationTrackerService migrationTrackerService,
         BatchRobotUserTask robotUserTask,
         ArchiveMetadataXmlExtractor xmlProcessingService,

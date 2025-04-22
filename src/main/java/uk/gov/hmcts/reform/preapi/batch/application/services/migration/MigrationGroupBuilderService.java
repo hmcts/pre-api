@@ -14,14 +14,11 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -39,7 +36,6 @@ public class MigrationGroupBuilderService {
     private final LoggingService loggingService;
     private final EntityCreationService entityCreationService;
     private final InMemoryCacheService cacheService;
-    private final MigrationTrackerService migrationTrackerService;
     private final CaseRepository caseRepository;
 
     protected final Map<String, CreateCaseDTO> caseCache = new HashMap<>();
@@ -49,13 +45,11 @@ public class MigrationGroupBuilderService {
         final LoggingService loggingService,
         final EntityCreationService entityCreationService,
         final InMemoryCacheService cacheService,
-        final MigrationTrackerService migrationTrackerService,
         final CaseRepository caseRepository
     ) {
         this.loggingService = loggingService;
         this.entityCreationService = entityCreationService;
         this.cacheService = cacheService;
-        this.migrationTrackerService = migrationTrackerService;
         this.caseRepository = caseRepository;
     }
 
@@ -103,28 +97,10 @@ public class MigrationGroupBuilderService {
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, cleansedData, captureSession);
 
-        // if (recording != null) {
-        //     recordingMediaKindTransform.processMedia(recording.getFilename(), recording.getId());
-        // }
-
-        List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
-        List<CreateInviteDTO> invites = new ArrayList<>();
-        List<Object> shareBookingResult = entityCreationService.createShareBookings(cleansedData, booking);
-
-        if (shareBookingResult != null && shareBookingResult.size() == 2) {
-            shareBookings = (List<CreateShareBookingDTO>) shareBookingResult.get(0);
-            invites = (List<CreateInviteDTO>) shareBookingResult.get(1);
-        }
-        if (invites != null && !invites.isEmpty()) {
-            for (CreateInviteDTO invite : invites) {
-                migrationTrackerService.addInvitedUser(invite);
-            }
-        }
         Set<CreateParticipantDTO> participants = entityCreationService.createParticipants(cleansedData);
         PassItem passItem = new PassItem(item, cleansedData);
         MigratedItemGroup migrationGroup = new MigratedItemGroup(
-            aCase, booking, captureSession, recording, participants,
-            shareBookings, invites, passItem
+            aCase, booking, captureSession, recording, participants, passItem
         );
         loggingService.logInfo("Migrating group: %s", migrationGroup);
         return migrationGroup;

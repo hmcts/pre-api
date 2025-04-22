@@ -17,7 +17,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.processor.Processor;
 import uk.gov.hmcts.reform.preapi.batch.application.reader.CSVReader;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.application.writer.Writer;
+import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.BatchConfiguration;
 import uk.gov.hmcts.reform.preapi.batch.config.MigrationType;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
@@ -34,14 +34,14 @@ public class CoreStepsConfig {
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;
     private final Processor itemProcessor;
-    private final Writer itemWriter;
+    private final MigrationWriter itemWriter;
     private final LoggingService loggingService;
 
     public CoreStepsConfig(
         JobRepository jobRepository,
         PlatformTransactionManager transactionManager,
         Processor itemProcessor,
-        Writer itemWriter,
+        MigrationWriter itemWriter,
         LoggingService loggingService
     ) {
         this.jobRepository = jobRepository;

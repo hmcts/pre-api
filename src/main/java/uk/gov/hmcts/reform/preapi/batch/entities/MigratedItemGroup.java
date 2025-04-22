@@ -8,12 +8,9 @@ import lombok.Setter;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
-import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -27,8 +24,6 @@ public class MigratedItemGroup {
     private CreateCaptureSessionDTO captureSession;
     private CreateRecordingDTO recording;
     private Set<CreateParticipantDTO> participants;
-    private List<CreateShareBookingDTO> shareBookings;
-    private List<CreateInviteDTO> invites;
     private PassItem passItem;
 
     @Override
@@ -39,7 +34,6 @@ public class MigratedItemGroup {
             + ", captureSession=" + (captureSession != null ? captureSession.toString() : "null")
             + ", recording=" + (recording != null ? recording.toString() : "null")
             + ", participants=" + (participants != null ? participants.toString() : "null")
-            + ", shareBookings=" + (shareBookings != null ? shareBookings.toString() : "null")
             + ", passItem=" + (passItem != null ? passItem.toString() : "null")
             + '}';
     }

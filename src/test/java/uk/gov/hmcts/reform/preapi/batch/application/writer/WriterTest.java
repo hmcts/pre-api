@@ -12,19 +12,14 @@ import uk.gov.hmcts.reform.preapi.batch.entities.PassItem;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.CaseService;
-import uk.gov.hmcts.reform.preapi.services.InviteService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
-import uk.gov.hmcts.reform.preapi.services.ShareBookingService;
 
-import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -36,7 +31,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(classes = { Writer.class })
+@SpringBootTest(classes = { MigrationWriter.class })
 public class WriterTest {
     @MockitoBean
     private LoggingService loggingService;
@@ -54,16 +49,10 @@ public class WriterTest {
     private CaptureSessionService captureSessionService;
 
     @MockitoBean
-    private InviteService inviteService;
-
-    @MockitoBean
-    private ShareBookingService shareBookingService;
-
-    @MockitoBean
     private MigrationTrackerService migrationTrackerService;
 
     @Autowired
-    private Writer writer;
+    private MigrationWriter writer;
 
     @Test
     void writeMigratedItemsEmpty() {
@@ -285,22 +274,17 @@ public class WriterTest {
         createCaptureSessionDTO.setId(UUID.randomUUID());
         CreateRecordingDTO createRecordingDTO = new CreateRecordingDTO();
         createRecordingDTO.setId(UUID.randomUUID());
-        CreateInviteDTO createInviteDTO = new CreateInviteDTO();
-        createInviteDTO.setUserId(UUID.randomUUID());
-        createInviteDTO.setEmail("example@example.com");
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
         when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
         when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.CREATED);
         when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
-        doThrow(NotFoundException.class).when(inviteService).upsert(any(CreateInviteDTO.class));
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
-            .invites(List.of(createInviteDTO))
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -309,13 +293,7 @@ public class WriterTest {
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
-        verify(inviteService, times(1)).upsert(any(CreateInviteDTO.class));
-        verify(loggingService, times(1))
-            .logError(
-                eq("Failed to upsert invite. Invite email: %s | %s"),
-                eq(createInviteDTO.getEmail()),
-                any()
-            );
+ 
     }
 
     @Test
@@ -329,22 +307,17 @@ public class WriterTest {
         createCaptureSessionDTO.setId(UUID.randomUUID());
         CreateRecordingDTO createRecordingDTO = new CreateRecordingDTO();
         createRecordingDTO.setId(UUID.randomUUID());
-        CreateInviteDTO createInviteDTO = new CreateInviteDTO();
-        createInviteDTO.setUserId(UUID.randomUUID());
-        createInviteDTO.setEmail("example@example.com");
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
         when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
         when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.CREATED);
         when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
-        when(inviteService.upsert(any(CreateInviteDTO.class))).thenReturn(UpsertResult.CREATED);
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
-            .invites(List.of(createInviteDTO))
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -353,13 +326,7 @@ public class WriterTest {
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
-        verify(inviteService, times(1)).upsert(any(CreateInviteDTO.class));
-        verify(loggingService, never())
-            .logError(
-                eq("Failed to upsert invite. Invite id: %s | %s"),
-                eq(createInviteDTO.getEmail()),
-                any()
-            );
+    
     }
 
     @Test
@@ -373,26 +340,17 @@ public class WriterTest {
         createCaptureSessionDTO.setId(UUID.randomUUID());
         CreateRecordingDTO createRecordingDTO = new CreateRecordingDTO();
         createRecordingDTO.setId(UUID.randomUUID());
-        CreateInviteDTO createInviteDTO = new CreateInviteDTO();
-        createInviteDTO.setUserId(UUID.randomUUID());
-        createInviteDTO.setEmail("example@example.com");
-        CreateShareBookingDTO createShareBookingDTO = new CreateShareBookingDTO();
-        createShareBookingDTO.setId(UUID.randomUUID());
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
         when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
         when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.CREATED);
         when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
-        when(inviteService.upsert(any(CreateInviteDTO.class))).thenReturn(UpsertResult.CREATED);
-        doThrow(NotFoundException.class).when(shareBookingService).shareBookingById(any(CreateShareBookingDTO.class));
-
+    
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
-            .invites(List.of(createInviteDTO))
-            .shareBookings(List.of(createShareBookingDTO))
             .build();
 
         writer.write(Chunk.of(itemGroup));
@@ -401,14 +359,6 @@ public class WriterTest {
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
-        verify(inviteService, times(1)).upsert(any(CreateInviteDTO.class));
-        verify(shareBookingService, times(1)).shareBookingById(any(CreateShareBookingDTO.class));
-        verify(loggingService, times(1))
-            .logError(
-                eq("Failed to upsert share booking: %s | %s"),
-                eq(createShareBookingDTO.getId()),
-                any()
-            );
     }
 
     @Test
@@ -422,26 +372,19 @@ public class WriterTest {
         createCaptureSessionDTO.setId(UUID.randomUUID());
         CreateRecordingDTO createRecordingDTO = new CreateRecordingDTO();
         createRecordingDTO.setId(UUID.randomUUID());
-        CreateInviteDTO createInviteDTO = new CreateInviteDTO();
-        createInviteDTO.setUserId(UUID.randomUUID());
-        createInviteDTO.setEmail("example@example.com");
-        CreateShareBookingDTO createShareBookingDTO = new CreateShareBookingDTO();
-        createShareBookingDTO.setId(UUID.randomUUID());
+
 
         when(caseService.upsert(any(CreateCaseDTO.class))).thenReturn(UpsertResult.CREATED);
         when(bookingService.upsert(any(CreateBookingDTO.class))).thenReturn(UpsertResult.CREATED);
         when(captureSessionService.upsert(any(CreateCaptureSessionDTO.class))).thenReturn(UpsertResult.CREATED);
         when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
-        when(inviteService.upsert(any(CreateInviteDTO.class))).thenReturn(UpsertResult.CREATED);
-        when(shareBookingService.shareBookingById(any(CreateShareBookingDTO.class))).thenReturn(UpsertResult.CREATED);
+
 
         MigratedItemGroup itemGroup = MigratedItemGroup.builder()
             .acase(createCaseDTO)
             .booking(createBookingDTO)
             .captureSession(createCaptureSessionDTO)
             .recording(createRecordingDTO)
-            .invites(List.of(createInviteDTO))
-            .shareBookings(List.of(createShareBookingDTO))
             .passItem(mock(PassItem.class))
             .build();
 
@@ -451,14 +394,6 @@ public class WriterTest {
         verify(bookingService, times(1)).upsert(any(CreateBookingDTO.class));
         verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
-        verify(inviteService, times(1)).upsert(any(CreateInviteDTO.class));
-        verify(shareBookingService, times(1)).shareBookingById(any(CreateShareBookingDTO.class));
-        verify(loggingService, never())
-            .logError(
-                eq("Failed to upsert share booking: %s | %s"),
-                eq(createShareBookingDTO.getId()),
-                any()
-            );
         verify(migrationTrackerService, times(1)).addMigratedItem(any(PassItem.class));
     }
 }

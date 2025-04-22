@@ -39,15 +39,4 @@ public class ServiceResult<T> {
         this.test = false;
     }
 
-    // TODO remove unused method ?
-    public void setErrorMessage(String errorMessage, boolean isTest) {
-        this.errorMessage = errorMessage;
-        this.success = false;
-        this.test = true;
-    }
-
-    // TODO remove unused method ?
-    public void setFailureCategory(String category) {
-        this.category = category;
-    }
 }

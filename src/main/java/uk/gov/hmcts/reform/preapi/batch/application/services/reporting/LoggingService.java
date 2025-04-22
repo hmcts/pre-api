@@ -114,11 +114,6 @@ public class LoggingService {
     // PROGRESS TRACKING
     // ==============================
 
-    // todo remove unused ?
-    public void setTotalRecords(int count) {
-        totalRecords = Math.max(count, 1);
-    }
-
     public void incrementProgress() {
         processedRecords++;
         refreshProgressBar();
