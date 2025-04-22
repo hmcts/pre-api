@@ -4,6 +4,7 @@ description: A Helm chart for pre-api App
 name: pre-api
 home: https://github.com/hmcts/pre-api
 version: 0.0.64
+
 maintainers:
   - name: HMCTS pre team
 dependencies:
