@@ -1,0 +1,3 @@
+Edit Number,Start time of cut,End time of cut,Total time removed,Reason
+1,00:00:00,00:01:00,00:01:00,I don’t want this
+2,00:01:01,00:02:00,00:00:59,

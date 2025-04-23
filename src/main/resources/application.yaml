@@ -126,6 +126,7 @@ portal:
 slack:
   webhook: ${SLACK_WEBHOOK_URL:}
 
+
 migration:
   debug: ${MIGRATION_DEBUG:false}
   type: ${MIGRATION_TYPE:FULL}
@@ -136,6 +137,9 @@ tasks:
     batch-size: ${TASK_BATCH_IMPORT_MISSING_ASSETS_BATCH_SIZE:20}
     poll-interval: ${TASK_BATCH_IMPORT_MISSING_ASSETS_POLL_INTERVAL:10000}
     mp4-source-container: video
+
+editing:
+  enable: ${ENABLE_AUTOMATED_EDITING:false}
 
 #logging:
 #  level:

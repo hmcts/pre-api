@@ -235,11 +235,19 @@ There is no need to remove postgres and java or similar core images.
 ## How to generate a Power Platform Custom Connector
 Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 
+## Environment variables
+
+You need to export variables from your .env file when altered
+
+```
+export $(grep -v '^#' .env | xargs -0)
+```
+
+
 ## Crons
 
 You can manually run a cron task from the cli:
 
-```bash
 TASK_NAME=[task] java -jar pre-api.jar run
 
 # E.g.

@@ -10,7 +10,6 @@ import java.util.Optional;
 
 @UtilityClass
 public final class RecordingUtils {
-    private static final String RECORDING_METADATA_KEY = "vf:pre-process:%s-%s-%s";
     private static final String KEY_ORIG_VERSION_NUMBER = "origVersionNumber";
     private static final String KEY_COPY_VERSION_NUMBER = "copyVersionNumber";
     private static final String KEY_ORIG_ARCHIVE_NAME = "origVersionArchiveName";

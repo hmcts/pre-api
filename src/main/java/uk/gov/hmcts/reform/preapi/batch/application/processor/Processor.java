@@ -25,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 /**
  * Processes various CSV data types and transforms them into MigratedItemGroup for further processing.
@@ -201,7 +202,26 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
+
+        String key = cacheService.generateCacheKey(
+            "recording", "version", 
+            cleansedData.getUrn(), 
+            cleansedData.getExhibitReference(),
+            cleansedData.getDefendantLastName(),
+            cleansedData.getWitnessFirstName()
+        );
+
+        Map<String, Object> metadata = cacheService.getHashAll(key);
+        if (metadata != null && Boolean.TRUE.equals(metadata.get("seen"))) {
+            handleError(archiveItem, "Duplicate recording already seen: " + cleansedData.getFileName(), "Duplicate");
+            return true;
+        } else if (metadata != null) {
+            metadata.put("seen", true);
+            cacheService.saveHashAll(key, metadata);
+        }
+
         boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
+
         if (alreadyMigrated) {
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;

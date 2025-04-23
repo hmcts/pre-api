@@ -5,8 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
 @AllArgsConstructor
@@ -17,13 +15,4 @@ public class CSVSitesData {
     private String location;
     private String courtName;
 
-    // TODO remove used ?
-    public static String extractFullCourtName(String courtReference, List<CSVSitesData> sitesDataList) {
-        for (CSVSitesData site : sitesDataList) {
-            if (site.getSiteReference().equalsIgnoreCase(courtReference)) {
-                return site.getCourtName();
-            }
-        }
-        return null;
-    }
 }

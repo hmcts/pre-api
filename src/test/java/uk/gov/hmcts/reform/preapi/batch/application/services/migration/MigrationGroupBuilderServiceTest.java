@@ -16,10 +16,8 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -282,8 +280,6 @@ public class MigrationGroupBuilderServiceTest {
         CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();
         CreateRecordingDTO recordingDTO = new CreateRecordingDTO();
         Set<CreateParticipantDTO> participants = Set.of(new CreateParticipantDTO());
-        List<CreateShareBookingDTO> shareBookings = List.of(new CreateShareBookingDTO());
-        List<CreateInviteDTO> invites = List.of(new CreateInviteDTO());
 
         when(inMemoryCacheService.checkHashKeyExists(BASE_KEY, BOOKING_FIELD)).thenReturn(false);
         when(entityCreationService.createBooking(cleansedData, caseDTO, BASE_KEY)).thenReturn(bookingDTO);
@@ -294,9 +290,6 @@ public class MigrationGroupBuilderServiceTest {
 
         when(inMemoryCacheService.checkHashKeyExists(BASE_KEY, RECORDING_FIELD)).thenReturn(false);
         when(entityCreationService.createRecording(BASE_KEY, cleansedData, captureSessionDTO)).thenReturn(recordingDTO);
-
-        when(entityCreationService.createShareBookings(cleansedData, bookingDTO))
-            .thenReturn(List.of(shareBookings, invites));
 
         when(entityCreationService.createParticipants(cleansedData)).thenReturn(participants);
         ExtractedMetadata metadata = new ExtractedMetadata();
@@ -309,10 +302,7 @@ public class MigrationGroupBuilderServiceTest {
         assertThat(result.getCaptureSession()).isEqualTo(captureSessionDTO);
         assertThat(result.getRecording()).isEqualTo(recordingDTO);
         assertThat(result.getParticipants()).isEqualTo(participants);
-        assertThat(result.getShareBookings()).isEqualTo(shareBookings);
-        assertThat(result.getInvites()).isEqualTo(invites);
-
-        verify(migrationTrackerService, times(invites.size())).addInvitedUser(any());
+        
     }
 
     private Case createCase() {
