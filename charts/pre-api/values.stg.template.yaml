@@ -7,6 +7,7 @@ java:
     PLATFORM_ENV_TAG: Staging
     AZURE_INGEST_SA: preingestsastg
     AZURE_FINAL_SA: prefinalsastg
+    AZURE_VF_SA: prevodasastg
     MEDIA_SERVICE: MediaKind
     ENABLE_NEW_EMAIL_SERVICE: true
     ENABLE_STREAMING_LOCATOR_ON_START: true
