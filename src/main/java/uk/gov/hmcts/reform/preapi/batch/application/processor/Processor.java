@@ -269,7 +269,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             exemptionItem.getRecordingVersion(),
             String.valueOf(exemptionItem.getRecordingVersionNumber()),
             exemptionItem.getFileExtension(),
-            parseDateTime(exemptionItem.getCreateTime()),
+            exemptionItem.getCreateTimeAsLocalDateTime(),
             exemptionItem.getDuration(),
             exemptionItem.getFileName(),
             exemptionItem.getFileSize(),
