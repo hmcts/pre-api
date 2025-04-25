@@ -1,16 +1,16 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
 @Setter
@@ -28,7 +28,7 @@ public class CSVExemptionListData {
         "d-M-yyyy HH:mm", "d-M-yyyy H:mm",
         "yyyy-MM-dd HH:mm:ss"
     );
-    
+
     private String archiveName;
     private String createTime;
     private int duration;
@@ -45,7 +45,7 @@ public class CSVExemptionListData {
     private String reason;
     private String addedBy;
 
-     public LocalDateTime getCreateTimeAsLocalDateTime() {
+    public LocalDateTime getCreateTimeAsLocalDateTime() {
         if (createTime == null || createTime.isEmpty()) {
             return null;
         }
@@ -76,21 +76,21 @@ public class CSVExemptionListData {
     @Override
     public String toString() {
         return "CSVExemptionListData{"
-                + "archiveName='" + archiveName + '\''
-                + ", createTime='" + createTime + '\''
-                + ", duration=" + duration
-                + ", courtReference='" + courtReference + '\''
-                + ", urn='" + urn + '\''
-                + ", exhibitReference='" + exhibitReference + '\''
-                + ", defendantName='" + defendantName + '\''
-                + ", witnessName='" + witnessName + '\''
-                + ", recordingVersion='" + recordingVersion + '\''
-                + ", recordingVersionNumber=" + recordingVersionNumber
-                + ", reason='" + reason + '\''
-                + ", addedBy='" + addedBy + '\''
-                + ", fileExtension='" + fileExtension + '\''
-                + ", fileName='" + fileName + '\''
-                + ", fileSize='" + fileSize + '\''
-                + '}';
+            + "archiveName='" + archiveName + '\''
+            + ", createTime='" + createTime + '\''
+            + ", duration=" + duration
+            + ", courtReference='" + courtReference + '\''
+            + ", urn='" + urn + '\''
+            + ", exhibitReference='" + exhibitReference + '\''
+            + ", defendantName='" + defendantName + '\''
+            + ", witnessName='" + witnessName + '\''
+            + ", recordingVersion='" + recordingVersion + '\''
+            + ", recordingVersionNumber=" + recordingVersionNumber
+            + ", reason='" + reason + '\''
+            + ", addedBy='" + addedBy + '\''
+            + ", fileExtension='" + fileExtension + '\''
+            + ", fileName='" + fileName + '\''
+            + ", fileSize='" + fileSize + '\''
+            + '}';
     }
 }
