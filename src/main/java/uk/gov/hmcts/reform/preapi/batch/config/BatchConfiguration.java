@@ -43,7 +43,6 @@ import java.util.Optional;
 public class BatchConfiguration implements StepExecutionListener {
     public static final int CHUNK_SIZE = 100;
     public static final int SKIP_LIMIT = 10;
-    public static final String CONTAINER_NAME = "pre-vodafone-spike";
     public static final String FULL_PATH = "src/main/resources/batch";
     public static final String BASE_PATH = "/batch/";
     public static final String SITES_CSV = BASE_PATH + "reference_data/Sites.csv";

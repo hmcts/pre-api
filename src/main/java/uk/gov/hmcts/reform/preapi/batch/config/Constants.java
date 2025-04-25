@@ -32,10 +32,6 @@ public final class Constants {
         "s28 rpcs room", "rpp1 user", "qc"
     );
 
-    public static final class Environment {
-        public static final String SOURCE_CONTAINER = "pre-vodafone-spike";
-    }
-
     // Cache keys
     public static final class CacheKeys {
         public static final String NAMESPACE = "vf:";

@@ -17,7 +17,8 @@ import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 @Configuration
 public class FetchXmlJobConfig {
 
-    public static final String CONTAINER_NAME = "pre-vodafone-spike";
+    // public static final String CONTAINER_NAME = "pre-vodafone-spike";
+    public static final String CONTAINER_NAME = "pre-vodafone-test";
     public static final String FULL_PATH = "src/main/resources/batch";
 
     private final JobRepository jobRepository;
