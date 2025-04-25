@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
@@ -34,7 +33,6 @@ import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -90,8 +88,6 @@ class TestingSupportController {
     private final AuditRepository auditRepository;
     private final ScheduledTaskRunner scheduledTaskRunner;
 
-    private final String cronUserEmail;
-
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
                              final CaptureSessionRepository captureSessionRepository,
@@ -107,8 +103,7 @@ class TestingSupportController {
                              final TermsAndConditionsRepository termsAndConditionsRepository,
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final ScheduledTaskRunner scheduledTaskRunner,
-                             final AuditRepository auditRepository,
-                             @Value("${cron-user-email}")  String cronUserEmail) {
+                             final AuditRepository auditRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -124,7 +119,6 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.scheduledTaskRunner = scheduledTaskRunner;
         this.auditRepository = auditRepository;
-        this.cronUserEmail = cronUserEmail;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -455,41 +449,6 @@ class TestingSupportController {
         task.run();
 
         return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping(value = "/generate-bot-user")
-    public ResponseEntity<Map<String, String>> generateBotUser() {
-        var user = userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(cronUserEmail)
-            .orElseGet(() -> {
-                User createUser = new User();
-                createUser.setId(UUID.randomUUID());
-                createUser.setEmail(createUser.getId() + "@example.com");
-                createUser.setFirstName("Example");
-                createUser.setLastName("Example");
-                createUser.setPhone("0987654321");
-                createUser.setOrganisation("ExampleOrg");
-                userRepository.saveAndFlush(createUser);
-
-                AppAccess appAccess = new AppAccess();
-                appAccess.setId(UUID.randomUUID());
-                appAccess.setUser(createUser);
-                appAccess.setCourt(createTestCourt());
-                appAccess.setRole(createRole("Super User"));
-                appAccess.setActive(true);
-                appAccess.setDefaultCourt(true);
-                appAccessRepository.saveAndFlush(appAccess);
-
-                return userRepository.findByEmailIgnoreCaseAndDeletedAtIsNull(cronUserEmail).get();
-            });
-
-        return ResponseEntity.ok(Map.of(
-            "userId", user.getId().toString(),
-            "appAccessId", user.getAppAccess().stream()
-                .findFirst()
-                .map(BaseEntity::getId)
-                .map(UUID::toString)
-                .orElse("")
-        ));
     }
 
     private Court createTestCourt() {
