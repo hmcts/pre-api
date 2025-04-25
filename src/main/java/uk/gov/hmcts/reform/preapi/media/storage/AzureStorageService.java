@@ -7,17 +7,19 @@ import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.time.OffsetDateTime;
 
 @Slf4j
 public abstract class AzureStorageService {
-
     protected final BlobServiceClient client;
+    protected final AzureConfiguration azureConfiguration;
 
-    public AzureStorageService(BlobServiceClient client) {
+    public AzureStorageService(BlobServiceClient client, AzureConfiguration azureConfiguration) {
         this.client = client;
+        this.azureConfiguration = azureConfiguration;
     }
 
     public String getStorageAccountName() {
@@ -74,17 +76,19 @@ public abstract class AzureStorageService {
             throw new NotFoundException("Blob not found in container " + containerName);
         }
 
-        return client.getBlobContainerClient(containerName)
+        if (azureConfiguration.isUsingManagedIdentity()) {
+            return "";
+        }
+        return "?" + client.getBlobContainerClient(containerName)
             .getBlobClient(blobName)
             .generateSas(new BlobServiceSasSignatureValues(expiryTime, permission));
     }
 
-    public String getBlobUrlWithSasForCopy(String containerName, String blobName) {
+    public String getBlobUrlForCopy(String containerName, String blobName) {
         if (!doesBlobExist(containerName, blobName)) {
             throw new NotFoundException("Blob in container " + containerName);
         }
         return client.getBlobContainerClient(containerName).getBlobClient(blobName).getBlobUrl()
-            + "?"
             + getBlobSasToken(
                 containerName,
                 blobName,

@@ -17,7 +17,6 @@ import javax.annotation.Nullable;
 @Configuration
 @Slf4j
 public class AzureConfiguration {
-
     @Value("${azure.tenantId}")
     String tenantId;
 
@@ -55,6 +54,10 @@ public class AzureConfiguration {
     @Bean
     public BlobServiceClient vodafoneStorageClient() {
         return storageClient(vodafoneStorageAccountName, vodafoneConnectionString);
+    }
+
+    public boolean isUsingManagedIdentity() {
+        return managedIdentityClientId != null && !managedIdentityClientId.isEmpty();
     }
 
     private BlobServiceClient storageClient(String storageAccountName, String connectionString) {

@@ -110,7 +110,7 @@ public class BatchImportMissingMkAssetsTest {
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, times(1)).getAsset(any());
-        verify(azureVodafoneStorageService, never()).getBlobUrlWithSasForCopy(any(), any());
+        verify(azureVodafoneStorageService, never()).getBlobUrlForCopy(any(), any());
     }
 
     @Test
@@ -119,7 +119,7 @@ public class BatchImportMissingMkAssetsTest {
         recording.setId(UUID.randomUUID());
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
-        doThrow(NotFoundException.class).when(azureVodafoneStorageService).getBlobUrlWithSasForCopy(any(), any());
+        doThrow(NotFoundException.class).when(azureVodafoneStorageService).getBlobUrlForCopy(any(), any());
         when(azureVodafoneStorageService.getStorageAccountName()).thenReturn("voda-sa");
         when(azureIngestStorageService.getStorageAccountName()).thenReturn("ingest-sa");
 
@@ -127,7 +127,7 @@ public class BatchImportMissingMkAssetsTest {
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, times(1)).getAsset(any());
-        verify(azureVodafoneStorageService, times(1)).getBlobUrlWithSasForCopy(any(), any());
+        verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureVodafoneStorageService, never()).copyBlob(any(), any(), any());
         verify(azureVodafoneStorageService, times(1)).getStorageAccountName();
         verify(azureIngestStorageService, times(1)).getStorageAccountName();
@@ -140,14 +140,14 @@ public class BatchImportMissingMkAssetsTest {
         recording.setFilename("filename.mp4");
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
-        when(azureVodafoneStorageService.getBlobUrlWithSasForCopy(any(), any())).thenReturn("example-url.com");
+        when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(false);
 
         batchImportMissingMkAssets.run();
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, times(1)).getAsset(any());
-        verify(azureVodafoneStorageService, times(1)).getBlobUrlWithSasForCopy(any(), any());
+        verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();
@@ -162,7 +162,7 @@ public class BatchImportMissingMkAssetsTest {
         recording.setFilename("filename.mp4");
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
-        when(azureVodafoneStorageService.getBlobUrlWithSasForCopy(any(), any())).thenReturn("example-url.com");
+        when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(false);
 
@@ -170,7 +170,7 @@ public class BatchImportMissingMkAssetsTest {
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, times(1)).getAsset(any());
-        verify(azureVodafoneStorageService, times(1)).getBlobUrlWithSasForCopy(any(), any());
+        verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();
@@ -186,7 +186,7 @@ public class BatchImportMissingMkAssetsTest {
         recording.setFilename("filename.mp4");
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
-        when(azureVodafoneStorageService.getBlobUrlWithSasForCopy(any(), any())).thenReturn("example-url.com");
+        when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(true);
         String jobName = "job-name";
@@ -199,7 +199,7 @@ public class BatchImportMissingMkAssetsTest {
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, times(1)).getAsset(any());
-        verify(azureVodafoneStorageService, times(1)).getBlobUrlWithSasForCopy(any(), any());
+        verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();
@@ -224,7 +224,7 @@ public class BatchImportMissingMkAssetsTest {
         recording.setVersion(1);
         when(recordingService.findAllVodafoneRecordings()).thenReturn(List.of(recording));
         when(mediaService.getAsset(any())).thenReturn(null);
-        when(azureVodafoneStorageService.getBlobUrlWithSasForCopy(any(), any())).thenReturn("example-url.com");
+        when(azureVodafoneStorageService.getBlobUrlForCopy(any(), any())).thenReturn("example-url.com");
         when(mediaService.importAsset(recording, false)).thenReturn(true);
         when(mediaService.importAsset(recording, true)).thenReturn(true);
         String jobName = "job-name";
@@ -239,7 +239,7 @@ public class BatchImportMissingMkAssetsTest {
 
         verify(recordingService, times(1)).findAllVodafoneRecordings();
         verify(mediaService, times(1)).getAsset(any());
-        verify(azureVodafoneStorageService, times(1)).getBlobUrlWithSasForCopy(any(), any());
+        verify(azureVodafoneStorageService, times(1)).getBlobUrlForCopy(any(), any());
         verify(azureIngestStorageService, times(1)).copyBlob(any(), any(), any());
         verify(azureVodafoneStorageService, never()).getStorageAccountName();
         verify(azureIngestStorageService, never()).getStorageAccountName();

@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.InputStream;
@@ -46,6 +47,9 @@ public class AzureFinalStorageServiceTest {
     @MockitoBean
     private BlobServiceClient finalStorageClient;
 
+    @MockitoBean
+    private AzureConfiguration azureConfiguration;
+
     @Mock
     private BlobContainerClient blobContainerClient;
 
@@ -60,6 +64,7 @@ public class AzureFinalStorageServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(azureConfiguration.isUsingManagedIdentity()).thenReturn(false);
         when(finalStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
     }

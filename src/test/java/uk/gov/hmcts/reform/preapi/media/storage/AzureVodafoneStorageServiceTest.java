@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -26,6 +27,9 @@ import static org.mockito.Mockito.when;
 public class AzureVodafoneStorageServiceTest {
     @MockitoBean
     private BlobServiceClient vodafoneStorageClient;
+
+    @MockitoBean
+    private AzureConfiguration azureConfiguration;
 
     @Mock
     private BlobContainerClient blobContainerClient;
@@ -41,6 +45,7 @@ public class AzureVodafoneStorageServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(azureConfiguration.isUsingManagedIdentity()).thenReturn(false);
         when(vodafoneStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
     }
@@ -74,14 +79,12 @@ public class AzureVodafoneStorageServiceTest {
         when(blobContainerClient.getBlobClient("testfile.xml")).thenReturn(blobClient);
         when(blobClient.exists()).thenReturn(false);
 
-
         assertNull(azureVodafoneStorageService.fetchSingleXmlBlob("test-container", "testfile.xml"));
     }
 
     @Test
     void fetchSingleXmlBlobFailException() {
         when(blobContainerClient.getBlobClient("testfile.xml")).thenThrow(new RuntimeException());
-
 
         assertNull(azureVodafoneStorageService.fetchSingleXmlBlob("test-container", "testfile.xml"));
     }

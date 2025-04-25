@@ -6,6 +6,7 @@ import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 
 import java.time.Duration;
 import java.util.UUID;
@@ -15,8 +16,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 @Service
 public class AzureFinalStorageService extends AzureStorageService {
     @Autowired
-    public AzureFinalStorageService(BlobServiceClient finalStorageClient) {
-        super(finalStorageClient);
+    public AzureFinalStorageService(BlobServiceClient finalStorageClient, AzureConfiguration azureConfiguration) {
+        super(finalStorageClient, azureConfiguration);
     }
 
     public Duration getRecordingDuration(UUID recordingId) {

@@ -107,7 +107,7 @@ public class BatchImportMissingMkAssets extends RobotUserTask {
             azureIngestStorageService.copyBlob(
                 destinationContainer,
                 blobName,
-                azureVodafoneStorageService.getBlobUrlWithSasForCopy(vfSourceContainer, blobName)
+                azureVodafoneStorageService.getBlobUrlForCopy(vfSourceContainer, blobName)
             );
             return true;
         } catch (Exception e) {

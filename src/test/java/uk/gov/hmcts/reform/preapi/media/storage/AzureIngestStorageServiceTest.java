@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.config.AzureConfiguration;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.util.stream.Stream;
@@ -33,6 +34,9 @@ public class AzureIngestStorageServiceTest {
     @MockitoBean
     private BlobServiceClient ingestStorageClient;
 
+    @MockitoBean
+    private AzureConfiguration azureConfiguration;
+
     @Mock
     private BlobContainerClient blobContainerClient;
 
@@ -47,6 +51,7 @@ public class AzureIngestStorageServiceTest {
 
     @BeforeEach
     void setUp() {
+        when(azureConfiguration.isUsingManagedIdentity()).thenReturn(false);
         when(ingestStorageClient.getBlobContainerClient("test-container")).thenReturn(blobContainerClient);
         when(blobContainerClient.listBlobs()).thenReturn(pagedIterable);
     }
@@ -91,7 +96,7 @@ public class AzureIngestStorageServiceTest {
     }
 
     @Test
-    void getBlobUrlWithSasForCopySuccess() {
+    void getBlobUrlForCopySuccess() {
         var blobItem = mock(BlobItem.class);
         when(blobContainerClient.exists()).thenReturn(true);
         var blobClient = mock(BlobClient.class);
@@ -101,19 +106,37 @@ public class AzureIngestStorageServiceTest {
         when(blobItem.getName()).thenReturn("index.mp4");
         when(pagedIterable.stream()).thenAnswer(inv -> Stream.of(blobItem));
 
-        String blobUrlWithSas = azureIngestStorageService.getBlobUrlWithSasForCopy("test-container", "index.mp4");
+        String blobUrlWithSas = azureIngestStorageService.getBlobUrlForCopy("test-container", "index.mp4");
 
         assertThat(blobUrlWithSas).isEqualTo("example.com/index.mp4?exampleSasToken");
     }
 
     @Test
-    void getBlobUrlWithSasForCopyBlobNotFound() {
+    void getBlobUrlForCopySuccessForManagedIdentity() {
+        when(azureConfiguration.isUsingManagedIdentity()).thenReturn(true);
+        var blobItem = mock(BlobItem.class);
+        when(blobContainerClient.exists()).thenReturn(true);
+        var blobClient = mock(BlobClient.class);
+        when(blobClient.getBlobUrl()).thenReturn("example.com/index.mp4");
+        when(blobContainerClient.getBlobClient("index.mp4")).thenReturn(blobClient);
+        when(blobItem.getName()).thenReturn("index.mp4");
+        when(pagedIterable.stream()).thenAnswer(inv -> Stream.of(blobItem));
+
+        String blobUrl = azureIngestStorageService.getBlobUrlForCopy("test-container", "index.mp4");
+
+        assertThat(blobUrl).isEqualTo("example.com/index.mp4");
+
+        verify(blobContainerClient, never()).generateSas(any());
+    }
+
+    @Test
+    void getBlobUrlForCopyBlobNotFound() {
         when(blobContainerClient.exists()).thenReturn(true);
         when(pagedIterable.stream()).thenAnswer(inv -> Stream.of());
 
         String message = assertThrows(
             NotFoundException.class,
-            () -> azureIngestStorageService.getBlobUrlWithSasForCopy("test-container", "index.mp4")
+            () -> azureIngestStorageService.getBlobUrlForCopy("test-container", "index.mp4")
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Blob in container test-container");
     }
