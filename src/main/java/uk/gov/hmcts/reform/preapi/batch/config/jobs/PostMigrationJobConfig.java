@@ -80,7 +80,8 @@ public class PostMigrationJobConfig {
         @Qualifier("createChannelUserStep") Step createChannelUserStep,
         @Qualifier("createMarkCasesClosedStep") Step createMarkCasesClosedStep,
         @Qualifier("createPreProcessStep") Step createPreProcessStep,
-         @Qualifier("createShareBookingsStep") Step createShareBookingsStep
+        @Qualifier("createShareBookingsStep") Step createShareBookingsStep,
+        @Qualifier("createWriteToCSVStep") Step createWriteToCSVStep
     ) {
         return new JobBuilder("postMigrationJob", jobRepository)
             .incrementer(new RunIdIncrementer())
@@ -90,6 +91,7 @@ public class PostMigrationJobConfig {
             .next(createPreProcessStep)
             .next(createMarkCasesClosedStep)
             .next(createShareBookingsStep)
+            .next(createWriteToCSVStep)
             .build();
     }
 

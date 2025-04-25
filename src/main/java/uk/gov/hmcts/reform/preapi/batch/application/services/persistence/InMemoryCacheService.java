@@ -164,7 +164,6 @@ public class InMemoryCacheService {
     }
 
     public  String generateCacheKey(String namespace, String type, String... identifiers) {
-        loggingService.logWarning("NORMALISED: %s", normalizeAll(identifiers));
         return "vf:" + namespace + ":" + type + ":" + String.join("-", normalizeAll(identifiers));
     }
 
