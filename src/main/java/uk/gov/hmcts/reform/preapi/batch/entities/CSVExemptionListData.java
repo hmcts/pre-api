@@ -1,16 +1,16 @@
 package uk.gov.hmcts.reform.preapi.batch.entities;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
 @Setter
@@ -45,7 +45,7 @@ public class CSVExemptionListData {
     private String reason;
     private String addedBy;
 
-     public LocalDateTime getCreateTimeAsLocalDateTime() {
+    public LocalDateTime getCreateTimeAsLocalDateTime() {
         if (createTime == null || createTime.isEmpty()) {
             return null;
         }
