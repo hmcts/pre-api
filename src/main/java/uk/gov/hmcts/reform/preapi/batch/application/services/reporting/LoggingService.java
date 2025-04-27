@@ -161,7 +161,6 @@ public class LoggingService {
                 | %-25s | %10d\s
                 | %-25s | %10d\s
                 | %-25s | %10d\s
-                | %-25s | %10d\s
                 | %-25s | %10s sec\s
                 =====================================================
                 """,
@@ -169,7 +168,6 @@ public class LoggingService {
             "Total Migrated Items", totalMigrated,
             "Total Failed Items", totalFailed,
             "Total Unaccounted Items", totalRecords - totalMigrated - totalFailed,
-            "Total Invited Users", totalInvited,
             "Total Execution Time", String.format("%10d", seconds)
         );
 

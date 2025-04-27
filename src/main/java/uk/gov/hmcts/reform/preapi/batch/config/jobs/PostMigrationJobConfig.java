@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.PlatformTransactionManager;
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService;
+import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.writer.PostMigrationWriter;
@@ -50,6 +51,7 @@ public class PostMigrationJobConfig {
     private final LoggingService loggingService;
     private final InMemoryCacheService cacheService;
     private final EntityCreationService entityCreationService;
+    private final MigrationTrackerService migrationTrackerService;
     private final CaseService caseService;
     private final BookingService bookingService;
 
@@ -61,6 +63,7 @@ public class PostMigrationJobConfig {
         LoggingService loggingService,
         InMemoryCacheService cacheService,
         EntityCreationService entityCreationService,
+        MigrationTrackerService migrationTrackerService,
         CaseService caseService,
         BookingService bookingService
     ) {
@@ -70,6 +73,7 @@ public class PostMigrationJobConfig {
         this.loggingService = loggingService;
         this.cacheService = cacheService;
         this.entityCreationService = entityCreationService;
+        this.migrationTrackerService = migrationTrackerService;
         this.caseService = caseService;
         this.bookingService = bookingService;
     }
@@ -91,7 +95,6 @@ public class PostMigrationJobConfig {
             .next(createPreProcessStep)
             .next(createMarkCasesClosedStep)
             .next(createShareBookingsStep)
-            .next(createWriteToCSVStep)
             .build();
     }
 
@@ -196,6 +199,11 @@ public class PostMigrationJobConfig {
                                 booking, email, firstName, lastName);
                             if (result != null) {
                                 migratedItems.add(result);
+                                if (result.getInvites() != null) {
+                                    for (var invite : result.getInvites()) {
+                                        migrationTrackerService.addInvitedUser(invite);
+                                    }
+                                }
                                 loggingService.logDebug("✅ MigratedItemGroup added for user: %s", email);
 
                             }
@@ -206,6 +214,7 @@ public class PostMigrationJobConfig {
 
                 loggingService.logInfo("MigratedItems size before writing: %d", migratedItems.size());
                 postMigrationWriter.write(new Chunk<>(migratedItems));
+                migrationTrackerService.writeNewUserReport();
                 loggingService.logInfo("Share booking creation complete. Total created: %d", migratedItems.size());
 
                 return RepeatStatus.FINISHED;
@@ -284,6 +293,5 @@ public class PostMigrationJobConfig {
         dto.setParticipantType(p.getParticipantType());
         return dto;
     }
-
 
 }
