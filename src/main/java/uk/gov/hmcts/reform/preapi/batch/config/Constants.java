@@ -32,26 +32,12 @@ public final class Constants {
         "s28 rpcs room", "rpp1 user", "qc"
     );
 
-    public static final class Environment {
-        public static final String SOURCE_CONTAINER = "pre-vodafone-spike";
-
-        // TODO remove?- all bellow are unused
-        public static final String SOURCE_ENVIRONMENT = "dev";
-        public static final String INGEST_CONTAINER_STG = "stagingIngest";
-        public static final String RECORDING_INPUT_CONTAINER_SUFFIX = "-input";
-    }
-
     // Cache keys
     public static final class CacheKeys {
         public static final String NAMESPACE = "vf:";
         public static final String USERS_PREFIX = NAMESPACE + "user:";
         public static final String RECORDING_METADATA_FORMAT = NAMESPACE + "pre-process:%s-%s-%s-%s";
         public static final String CHANNEL_DATA = "channel_data";
-
-        // TODO remove unused ?
-        public static String formatRecordingMetadataKey(String param1, String param2, String param3) {
-            return String.format(RECORDING_METADATA_FORMAT, param1, param2, param3);
-        }
     }
 
     // Validation error messages
@@ -71,14 +57,8 @@ public final class Constants {
         public static final String NO_PARENT_FOUND = "No parent recording found in cache, but version > 1";
 
         // Case reference validation errors
-        // TODO remove unused ?
-        public static final String MISSING_CASE_REFERENCE = "Missing or invalid case reference.";
         public static final String CASE_REFERENCE_TOO_LONG = "Case reference exceeds the 24-character limit.";
         public static final String CASE_REFERENCE_TOO_SHORT = "Case reference is less than 9-characters.";
-
-        // Archive validation errors
-        // TODO remove unused ?
-        public static final String INVALID_ARCHIVE_NAME = "Archive item or archive name cannot be null.";
 
         // Date validation errors
         public static final String PREDATES_GO_LIVE = "Recording date is before the go-live date ("
@@ -97,8 +77,6 @@ public final class Constants {
         public static final String FILE_INVALID_FORMAT = "Invalid_File_Format";
         public static final String FILE_NOT_RECENT = "Not_Most_Recent";
         public static final String FILE_PRE_GO_LIVE = "Pre_Go_Live";
-        // TODO remove unused ?
-        public static final String FILE_TEST = "Test";
         public static final String FILE_REGEX = "Regex_Matching_Errors";
     }
 

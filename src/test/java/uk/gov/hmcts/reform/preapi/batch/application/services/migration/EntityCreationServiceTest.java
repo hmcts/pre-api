@@ -31,7 +31,6 @@ import uk.gov.hmcts.reform.preapi.services.UserService;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -309,39 +308,6 @@ public class EntityCreationServiceTest {
         assertThat(participants).isEmpty();
     }
 
-    @Test
-    @DisplayName("Should return empty list when cleansedData is null")
-    public void testCreateShareBookings_NullCleansedData() {
-        CreateBookingDTO booking = new CreateBookingDTO();
-
-        List<Object> result = entityCreationService.createShareBookings(null, booking);
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should return empty list when booking is null")
-    public void testCreateShareBookings_NullBooking() {
-        ProcessedRecording cleansedData = new ProcessedRecording();
-
-        List<Object> result = entityCreationService.createShareBookings(cleansedData, null);
-
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should return empty list when shareBookingContacts is empty")
-    public void createShareBookingsEmptyContacts() {
-        ProcessedRecording cleansedData = ProcessedRecording.builder()
-            .shareBookingContacts(List.of())
-            .build();
-
-        CreateBookingDTO booking = new CreateBookingDTO();
-
-        List<Object> result = entityCreationService.createShareBookings(cleansedData, booking);
-
-        assertThat(result).isEmpty();
-    }
 
     @Test
     @DisplayName("Should return CreateShareBookingDTO")

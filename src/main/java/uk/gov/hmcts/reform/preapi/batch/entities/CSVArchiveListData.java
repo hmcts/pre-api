@@ -61,6 +61,9 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("CP-", "")
             .replaceAll("CP ", "")
             .replaceAll("CP Case", "")
+            .replaceAll("(?i)As Urn[-_\\s]*", "") 
+            .replaceAll("(?i)See Urn[-_\\s]*", "") 
+            .replaceAll("(?i)As-Urn[-_\\s]*", "") 
             .trim();
     }
 

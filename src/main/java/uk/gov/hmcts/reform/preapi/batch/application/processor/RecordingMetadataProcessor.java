@@ -72,15 +72,17 @@ public class RecordingMetadataProcessor {
             }
 
             // Update versioning info for this recording
-            Map<String, Object> updatedMetadata = RecordingUtils.updateVersionMetadata(
+            RecordingUtils.MetadataUpdateResult metadataResult = RecordingUtils.updateVersionMetadata(
                 cleansedData.getRecordingVersion(),
                 cleansedData.getRecordingVersionNumberStr(),
                 archiveItem.getArchiveName(),
                 existingMetadata
             );
 
-            // Save back to hashStore
-            cacheService.saveHashAll(key, updatedMetadata);
+            if (metadataResult.updated()) {
+                cacheService.saveHashAll(key, metadataResult.metadata());
+            } 
+
         } catch (Exception e) {
             ServiceResultUtil.failure(e.getMessage(), "Error");
         }

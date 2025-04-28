@@ -4,7 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 
@@ -41,21 +40,6 @@ public class ProcessedRecording {
 
     public String getFullCourtName() {
         return courtName;
-    }
-
-    // TODO remove unused ?
-    public boolean isOrig() {
-        return Constants.VALID_ORIG_TYPES.contains(this.getRecordingVersion().toUpperCase());
-    }
-
-    // TODO remove unused ?
-    public boolean isCopy() {
-        return Constants.VALID_COPY_TYPES.contains(this.getRecordingVersion().toUpperCase());
-    }
-
-    // TODO remove unused ?
-    public boolean isRecordingType(String type) {
-        return type.equalsIgnoreCase(this.recordingVersion);
     }
 
     public Timestamp getFinishedAt() {

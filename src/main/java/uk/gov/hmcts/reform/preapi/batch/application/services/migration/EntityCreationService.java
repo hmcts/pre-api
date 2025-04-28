@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.entities.PostMigratedItemGroup;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
@@ -22,21 +24,17 @@ import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
     protected static final String BOOKING_FIELD = "bookingField";
     protected static final String CAPTURE_SESSION_FIELD = "captureSessionField";
-    // TODO remove unused constant ?
-    private static final String RECORDING_FIELD = "recordingField";
-    private static final String SHARE_BOOKING_FIELD = "vf:shareBooking:";
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
@@ -153,83 +151,6 @@ public class EntityCreationService {
         return participantDTO;
     }
 
-    public List<Object> createShareBookings(ProcessedRecording cleansedData, CreateBookingDTO booking) {
-        if (cleansedData == null || booking == null) {
-            return Collections.emptyList();
-        }
-
-        List<Object> results = new ArrayList<>();
-        List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
-        List<CreateInviteDTO> userInvites = new ArrayList<>();
-
-        cleansedData.getShareBookingContacts()
-            .forEach(contactInfo ->
-                         processShareBookingContact(
-                             contactInfo,
-                             booking,
-                             shareBookings,
-                             userInvites));
-
-        if (shareBookings.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        results.add(shareBookings);
-        results.add(userInvites);
-        return results;
-    }
-
-    private void processShareBookingContact(
-        Map<String, String> contactInfo,
-        CreateBookingDTO booking,
-        List<CreateShareBookingDTO> shareBookings,
-        List<CreateInviteDTO> userInvites
-    ) {
-
-        String email = contactInfo.get("email").toLowerCase();
-        String firstName = contactInfo.getOrDefault("firstName", "Unknown");
-        String lastName = contactInfo.getOrDefault("lastName", "Unknown");
-
-        try {
-            String existingUserId = getUserIdFromCache(email);
-            String vodafoneUser = getUserIdFromCache(vodafoneUserEmail);
-
-            CreateUserDTO sharedWith;
-            CreateInviteDTO inviteDTO;
-
-            if (existingUserId != null) {
-                sharedWith = new CreateUserDTO();
-                sharedWith.setId(UUID.fromString(existingUserId));
-                sharedWith.setEmail(email);
-            } else {
-                sharedWith = createUser(firstName, lastName, email, UUID.randomUUID());
-                inviteDTO = createInvite(sharedWith);
-                userInvites.add(inviteDTO);
-                cacheService.saveUser(email, sharedWith.getId());
-            }
-
-            String existingSharedWith = cacheService.generateCacheKey(
-                "migration",
-                "share-booking",
-                booking.getId().toString(),
-                sharedWith.getId().toString()
-            );
-
-
-            if (cacheService.getShareBooking(existingSharedWith).isPresent()) {
-                return; 
-            }
-           
-
-            CreateUserDTO sharedBy = getUserById(vodafoneUser);
-            var shareBookingDTO = createShareBooking(booking, sharedWith, sharedBy);
-            shareBookings.add(shareBookingDTO);
-            cacheService.saveShareBooking(existingSharedWith, shareBookingDTO);
-        } catch (Exception e) {
-            loggingService.logError("Failed to create share booking: %s - %s", e.getMessage(), e);
-        }
-    }
-
     public CreateShareBookingDTO createShareBooking(
         CreateBookingDTO bookingDTO,
         CreateUserDTO sharedWith,
@@ -287,4 +208,78 @@ public class EntityCreationService {
 
         return createInviteDTO;
     }
+
+    public PostMigratedItemGroup createShareBookingAndInviteIfNotExists(
+        BookingDTO booking, String email, String firstName, String lastName
+    ) {
+        loggingService.logInfo("Creating share booking and user for %s %s %s", email, firstName, lastName);
+        String lowerEmail = email.toLowerCase();
+
+        List<CreateInviteDTO> invites = new ArrayList<>();
+        
+
+        String existingUserId = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, lowerEmail, String.class);
+        CreateUserDTO sharedWith;
+        if (existingUserId != null) {
+            sharedWith = new CreateUserDTO();
+            sharedWith.setId(UUID.fromString(existingUserId));
+            sharedWith.setEmail(lowerEmail);
+        } else {
+            sharedWith = createUser(firstName, lastName, lowerEmail, UUID.randomUUID());
+            CreateInviteDTO invite = createInvite(sharedWith);
+            invites.add(invite);
+            cacheService.saveUser(lowerEmail, sharedWith.getId());
+            loggingService.logDebug("✅ Created new user and invite: %s (%s)", lowerEmail, sharedWith.getId());
+        }
+
+        String shareKey = cacheService.generateCacheKey(
+            "migration", "share-booking", booking.getId().toString(), sharedWith.getId().toString()
+        );
+
+        loggingService.logDebug("shareKey %s", shareKey);
+        if (cacheService.getShareBooking(shareKey).isPresent()) {
+            return null;
+        }
+
+        String vodafoneID = cacheService.getHashValue(Constants.CacheKeys.USERS_PREFIX, 
+            vodafoneUserEmail.toLowerCase(), String.class);
+        CreateUserDTO sharedBy;
+
+        if (vodafoneID != null) {
+            sharedBy = new CreateUserDTO();
+            sharedBy.setId(UUID.fromString(vodafoneID));
+            sharedBy.setEmail(vodafoneUserEmail);
+            cacheService.saveUser(lowerEmail, sharedWith.getId());
+        } else {
+            loggingService.logWarning("Vodafone user ID not found in cache for email: %s", vodafoneUserEmail);
+            return null;
+        }
+
+        Set<CreateParticipantDTO> participants = booking.getCaseDTO().getParticipants().stream()
+            .map(p -> {
+                CreateParticipantDTO dto = new CreateParticipantDTO();
+                dto.setId(p.getId());
+                dto.setFirstName(p.getFirstName());
+                dto.setLastName(p.getLastName());
+                dto.setParticipantType(p.getParticipantType());
+                return dto;
+            }).collect(Collectors.toSet());
+
+        CreateBookingDTO bookingDTO = new CreateBookingDTO();
+        bookingDTO.setId(booking.getId());
+        bookingDTO.setCaseId(booking.getCaseDTO().getId());
+        bookingDTO.setScheduledFor(booking.getScheduledFor());
+        bookingDTO.setParticipants(participants);
+
+        List<CreateShareBookingDTO> shareBookings = new ArrayList<>();
+        CreateShareBookingDTO shareBooking = createShareBooking(bookingDTO, sharedWith, sharedBy);
+        shareBookings.add(shareBooking);
+        cacheService.saveShareBooking(shareKey, shareBooking);
+
+        PostMigratedItemGroup result = new PostMigratedItemGroup();
+        result.setInvites(invites);
+        result.setShareBookings(shareBookings);
+        return result;
+    }
+
 }
