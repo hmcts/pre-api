@@ -59,10 +59,11 @@ public class RecordingUtilsTest {
     void updateVersionMetadataForNewerOriginalRecording() {
         Map<String, Object> existing = Map.of("origVersionNumber", "1");
 
-        Map<String, Object> result = RecordingUtils.updateVersionMetadata("ORIG", "2", "archive-2", existing);
+        RecordingUtils.MetadataUpdateResult
+            result = RecordingUtils.updateVersionMetadata("ORIG", "2", "archive-2", existing);
 
-        assertThat(result.get("origVersionNumber")).isEqualTo("2");
-        assertThat(result.get("origVersionArchiveName")).isEqualTo("archive-2");
+        assertThat(result.metadata().get("origVersionNumber")).isEqualTo("2");
+        assertThat(result.metadata().get("origVersionArchiveName")).isEqualTo("archive-2");
     }
 
     @Test
@@ -73,10 +74,11 @@ public class RecordingUtilsTest {
             "copyVersionArchiveName", "archive-3"
         );
 
-        Map<String, Object> result = RecordingUtils.updateVersionMetadata("COPY", "2", "archive-2", existing);
+        RecordingUtils.MetadataUpdateResult result =
+            RecordingUtils.updateVersionMetadata("COPY", "2", "archive-2", existing);
 
-        assertThat(result.get("copyVersionNumber")).isEqualTo("3");
-        assertThat(result.get("copyVersionArchiveName")).isEqualTo("archive-3");
+        assertThat(result.metadata().get("copyVersionNumber")).isEqualTo("3");
+        assertThat(result.metadata().get("copyVersionArchiveName")).isEqualTo("archive-3");
     }
 
     @Test

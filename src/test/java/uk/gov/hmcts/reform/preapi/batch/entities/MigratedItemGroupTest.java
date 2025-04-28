@@ -4,12 +4,9 @@ import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateInviteDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 
-import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,7 +25,6 @@ public class MigratedItemGroupTest {
             .contains("captureSession=null")
             .contains("recording=null")
             .contains("participants=null")
-            .contains("shareBookings=null")
             .contains("passItem=null");
     }
 
@@ -53,7 +49,6 @@ public class MigratedItemGroupTest {
             .contains("booking=null")
             .contains("captureSession=null")
             .contains("recording=null")
-            .contains("shareBookings=null")
             .contains("passItem=null");
     }
 
@@ -64,8 +59,6 @@ public class MigratedItemGroupTest {
         CreateCaptureSessionDTO captureDTO = mock(CreateCaptureSessionDTO.class);
         CreateRecordingDTO recordingDTO = mock(CreateRecordingDTO.class);
         CreateParticipantDTO participantDTO = mock(CreateParticipantDTO.class);
-        CreateShareBookingDTO shareBookingDTO = mock(CreateShareBookingDTO.class);
-        CreateInviteDTO inviteDTO = mock(CreateInviteDTO.class);
         PassItem passItem = mock(PassItem.class);
 
         when(caseDTO.toString()).thenReturn("CaseDTO");
@@ -73,8 +66,6 @@ public class MigratedItemGroupTest {
         when(captureDTO.toString()).thenReturn("CaptureSessionDTO");
         when(recordingDTO.toString()).thenReturn("RecordingDTO");
         when(participantDTO.toString()).thenReturn("ParticipantDTO");
-        when(shareBookingDTO.toString()).thenReturn("ShareBookingDTO");
-        when(inviteDTO.toString()).thenReturn("InviteDTO");
         when(passItem.toString()).thenReturn("PassItem");
 
         MigratedItemGroup group = MigratedItemGroup.builder()
@@ -83,8 +74,6 @@ public class MigratedItemGroupTest {
             .captureSession(captureDTO)
             .recording(recordingDTO)
             .participants(Set.of(participantDTO))
-            .shareBookings(List.of(shareBookingDTO))
-            .invites(List.of(inviteDTO))
             .passItem(passItem)
             .build();
 
@@ -96,7 +85,6 @@ public class MigratedItemGroupTest {
             .contains("captureSession=CaptureSessionDTO")
             .contains("recording=RecordingDTO")
             .contains("participants=[ParticipantDTO]")
-            .contains("shareBookings=[ShareBookingDTO]")
             .contains("passItem=PassItem");
     }
 

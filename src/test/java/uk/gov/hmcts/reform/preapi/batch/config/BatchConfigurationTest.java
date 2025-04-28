@@ -30,7 +30,7 @@ import uk.gov.hmcts.reform.preapi.batch.application.processor.RecordingMetadataP
 import uk.gov.hmcts.reform.preapi.batch.application.services.migration.MigrationTrackerService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.persistence.InMemoryCacheService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
-import uk.gov.hmcts.reform.preapi.batch.application.writer.Writer;
+import uk.gov.hmcts.reform.preapi.batch.application.writer.MigrationWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CommonStepUtils;
 import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 import uk.gov.hmcts.reform.preapi.config.BatchConfig;
@@ -71,7 +71,7 @@ public class BatchConfigurationTest {
     private Processor itemProcessor;
 
     @MockitoBean
-    private Writer writer;
+    private MigrationWriter writer;
 
     @MockitoBean
     private MigrationTrackerService migrationTrackerService;

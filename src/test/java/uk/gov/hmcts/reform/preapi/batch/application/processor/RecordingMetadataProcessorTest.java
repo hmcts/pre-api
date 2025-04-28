@@ -157,6 +157,5 @@ public class RecordingMetadataProcessorTest {
             eq("archiveName"),
             any()
         ));
-        verify(cacheService, times(1)).saveHashAll(eq("key"), any());
     }
 }

@@ -117,7 +117,6 @@ public class LoggingServiceTest {
 
         loggingService.setTotalFailed(failures, testItems);
 
-        loggingService.setTotalRecords(10);
         loggingService.setTotalMigrated(5);
         loggingService.setTotalInvited(2);
         loggingService.logSummary();
