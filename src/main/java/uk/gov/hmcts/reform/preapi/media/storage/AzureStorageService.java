@@ -4,6 +4,7 @@ import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobCopyInfo;
+import com.azure.storage.blob.models.UserDelegationKey;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +78,13 @@ public abstract class AzureStorageService {
         }
 
         if (azureConfiguration.isUsingManagedIdentity()) {
-            return "";
+            UserDelegationKey delegationKey = client.getUserDelegationKey(
+                OffsetDateTime.now(),
+                OffsetDateTime.now().plusHours(2)
+            );
+            return "?" + client.getBlobContainerClient(containerName)
+                .getBlobClient(blobName)
+                .generateUserDelegationSas(new BlobServiceSasSignatureValues(expiryTime, permission), delegationKey);
         }
         return "?" + client.getBlobContainerClient(containerName)
             .getBlobClient(blobName)
