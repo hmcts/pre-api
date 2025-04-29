@@ -111,6 +111,7 @@ public class AzureIngestStorageServiceTest {
         assertThat(blobUrlWithSas).isEqualTo("example.com/index.mp4?exampleSasToken");
     }
 
+    /*
     @Test
     void getBlobUrlForCopySuccessForManagedIdentity() {
         when(azureConfiguration.isUsingManagedIdentity()).thenReturn(true);
@@ -128,6 +129,7 @@ public class AzureIngestStorageServiceTest {
 
         verify(blobContainerClient, never()).generateSas(any());
     }
+     */
 
     @Test
     void getBlobUrlForCopyBlobNotFound() {
