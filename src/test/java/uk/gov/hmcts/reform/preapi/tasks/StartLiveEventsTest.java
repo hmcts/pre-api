@@ -61,7 +61,8 @@ public class StartLiveEventsTest {
             userService,
             userAuthenticationService,
             captureSessionService, mediaServiceBroker, bookingService, CRON_USER_EMAIL,
-            20
+            20,
+            100
         );
 
         var accessDto = mock(AccessDTO.class);
