@@ -34,9 +34,6 @@ public class CourtDTO {
     @Schema(description = "CourtRegions")
     private List<RegionDTO> regions; // this was removed??
 
-    @Schema(description = "CourtRooms")
-    private List<RoomDTO> rooms;
-
     public CourtDTO(Court courtEntity) {
         this.id = courtEntity.getId();
         this.name = courtEntity.getName();
@@ -45,10 +42,6 @@ public class CourtDTO {
         this.regions = Stream.ofNullable(courtEntity.getRegions())
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .sorted(Comparator.comparing(RegionDTO::getName))
-            .collect(Collectors.toList());
-        this.rooms = Stream.ofNullable(courtEntity.getRooms())
-            .flatMap(rooms -> rooms.stream().map(RoomDTO::new))
-            .sorted(Comparator.comparing(RoomDTO::getName))
             .collect(Collectors.toList());
     }
 }

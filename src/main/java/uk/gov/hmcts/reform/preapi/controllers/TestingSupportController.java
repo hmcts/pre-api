@@ -30,7 +30,6 @@ import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
-import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
@@ -50,7 +49,6 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
-import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
@@ -79,7 +77,6 @@ class TestingSupportController {
     private final ParticipantRepository participantRepository;
     private final RecordingRepository recordingRepository;
     private final RegionRepository regionRepository;
-    private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final AppAccessRepository appAccessRepository;
@@ -96,7 +93,6 @@ class TestingSupportController {
                              final ParticipantRepository participantRepository,
                              final RecordingRepository recordingRepository,
                              final RegionRepository regionRepository,
-                             final RoomRepository roomRepository,
                              final UserRepository userRepository,
                              final RoleRepository roleRepository,
                              final AppAccessRepository appAccessRepository,
@@ -111,7 +107,6 @@ class TestingSupportController {
         this.participantRepository = participantRepository;
         this.recordingRepository = recordingRepository;
         this.regionRepository = regionRepository;
-        this.roomRepository = roomRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.appAccessRepository = appAccessRepository;
@@ -119,15 +114,6 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.scheduledTaskRunner = scheduledTaskRunner;
         this.auditRepository = auditRepository;
-    }
-
-    @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, String>> createRoom(@RequestParam(required = false) String roomName) {
-        var room = new Room();
-        room.setName(roomName == null || roomName.isEmpty()  ? "Example Room" : roomName);
-        roomRepository.save(room);
-
-        return ResponseEntity.ok(Map.of("roomId", room.getId().toString(), "roomName", room.getName()));
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -162,13 +148,7 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
-        room.setName("Foo Room");
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
         court.setRegions(Set.of(region));
-        court.setRooms(Set.of(room));
         courtRepository.save(court);
 
         var caseEntity = new Case();
@@ -219,11 +199,6 @@ class TestingSupportController {
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
-
-        var room = new Room();
-        room.setName("Room " + RandomStringUtils.randomAlphabetic(5));
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());

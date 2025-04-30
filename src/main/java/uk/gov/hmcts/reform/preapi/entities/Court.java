@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -19,7 +20,6 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 
 @Getter
 @Setter
@@ -45,14 +45,6 @@ public class Court extends BaseEntity {
     )
     private Set<Region> regions;
 
-    @ManyToMany
-    @JoinTable(
-        name = "courtrooms",
-        joinColumns = @JoinColumn(name = "court_id", referencedColumnName = "id"),
-        inverseJoinColumns = @JoinColumn(name = "room_id", referencedColumnName = "id")
-    )
-    private Set<Room> rooms;
-
     @Override
     public HashMap<String, Object> getDetailsForAudit() {
         var details = new HashMap<String, Object>();
@@ -61,9 +53,6 @@ public class Court extends BaseEntity {
         details.put("courtLocationCode", locationCode);
         details.put("courtRegions", Stream.ofNullable(getRegions())
                     .flatMap(regions -> regions.stream().map(Region::getName))
-                    .collect(Collectors.toSet()));
-        details.put("courtRooms", Stream.ofNullable(getRooms())
-                    .flatMap(regions -> regions.stream().map(Room::getName))
                     .collect(Collectors.toSet()));
         return details;
     }
