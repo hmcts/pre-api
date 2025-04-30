@@ -91,6 +91,7 @@ public class MediaKind implements IMediaService {
     private final String subscription;
     private final String issuer;
     private final String symmetricKey;
+    protected boolean enableStreamingLocatorOnStart;
 
     private final MediaKindClient mediaKindClient;
     private final AzureIngestStorageService azureIngestStorageService;
@@ -112,6 +113,7 @@ public class MediaKind implements IMediaService {
         @Value("${mediakind.subscription}") String subscription,
         @Value("${mediakind.issuer:}") String issuer,
         @Value("${mediakind.symmetricKey:}") String symmetricKey,
+        @Value("${mediakind.streaming-locator-on-start:false}") Boolean enableStreamingLocatorOnStart,
         MediaKindClient mediaKindClient,
         AzureIngestStorageService azureIngestStorageService,
         AzureFinalStorageService azureFinalStorageService
@@ -125,6 +127,7 @@ public class MediaKind implements IMediaService {
         this.mediaKindClient = mediaKindClient;
         this.azureIngestStorageService = azureIngestStorageService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.enableStreamingLocatorOnStart = enableStreamingLocatorOnStart;
     }
 
     @Override
@@ -317,7 +320,7 @@ public class MediaKind implements IMediaService {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         }
     }
 
@@ -414,16 +417,26 @@ public class MediaKind implements IMediaService {
         var liveEventName = getSanitisedLiveEventId(captureSession.getId());
         createLiveEvent(captureSession);
         getLiveEventMk(liveEventName);
-        createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
+
+        try {
+            createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
+        } catch (ConflictException e) {
+            mediaKindClient.deleteLiveEvent(liveEventName);
+            throw e;
+        }
+
         createLiveOutput(liveEventName, liveEventName);
         startLiveEvent(liveEventName);
+        if (enableStreamingLocatorOnStart) {
+            assertStreamingLocatorExists(captureSession.getId());
+        }
     }
 
     private void startLiveEvent(String liveEventName) {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         }
     }
 
@@ -431,22 +444,12 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.stopLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         } catch (FeignException.BadRequest e) {
             // live output still exists (only occurs on manually created live events)
             log.info("Skipped stopping live event. The live event will be cleaned up by deletion.");
         }
         mediaKindClient.deleteLiveEvent(liveEventName);
-    }
-
-    private void stopAndDeleteStreamingEndpoint(String endpointName) {
-        try {
-            mediaKindClient.stopStreamingEndpoint(endpointName);
-        } catch (NotFoundException e) {
-            // ignore
-            return;
-        }
-        mediaKindClient.deleteStreamingEndpoint(endpointName);
     }
 
     private void assertTransformExists(String transformName) {
@@ -545,15 +548,6 @@ public class MediaKind implements IMediaService {
         return job.getProperties().getState();
     }
 
-    private MkLiveEvent checkStreamReady(String liveEventName) throws InterruptedException {
-        MkLiveEvent liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventMk(liveEventName);
-        } while (!liveEvent.getProperties().getResourceState().equals("Running"));
-        return liveEvent;
-    }
-
     private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {
         var endpointName = endpoint.getName();
         while (endpoint.getProperties().getResourceState() != MkStreamingEndpointProperties.ResourceState.Running) {
@@ -583,7 +577,7 @@ public class MediaKind implements IMediaService {
         } catch (ConflictException e) {
             throw new ConflictException("Live Output: " + liveOutputName);
         } catch (NotFoundException e) {
-            throw new NotFoundException("Live Event: " + liveEventName);
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
         }
     }
 
@@ -741,22 +735,32 @@ public class MediaKind implements IMediaService {
     }
 
     private void assertStreamingLocatorExists(UUID liveEventId) {
+        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
         try {
-            log.info("Creating Streaming locator");
-            var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+            mediaKindClient.getStreamingLocator(sanitisedLiveEventId);
+        } catch (NotFoundException e) {
+            createStreamingLocator(sanitisedLiveEventId);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
 
+    private void createStreamingLocator(String sanitisedLiveEventId) {
+        log.info("Creating Streaming locator");
+        try {
             // Streaming Locator for a live event
             mediaKindClient.createStreamingLocator(
                 sanitisedLiveEventId,
                 MkStreamingLocator.builder()
-                                  .properties(MkStreamingLocatorProperties
-                                                  .builder()
-                                                  .assetName(sanitisedLiveEventId)
-                                                  .streamingLocatorId(sanitisedLiveEventId)
-                                                  .streamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
-                                                  .build()
-                                  ).build()
+                    .properties(MkStreamingLocatorProperties
+                                    .builder()
+                                    .assetName(sanitisedLiveEventId)
+                                    .streamingLocatorId(sanitisedLiveEventId)
+                                    .streamingPolicyName(STREAMING_POLICY_CLEAR_STREAMING_ONLY)
+                                    .build())
+                    .build()
             );
         } catch (ConflictException e) {
             log.info("Streaming locator already exists");
@@ -790,5 +794,9 @@ public class MediaKind implements IMediaService {
                + "."
                + LOCATION
                + ".streaming.mediakind.com";
+    }
+
+    private String getLiveEventNotFoundExceptionMessage(String liveEventName) {
+        return "Live Event: " + liveEventName;
     }
 }

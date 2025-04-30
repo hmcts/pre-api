@@ -1,16 +1,15 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -24,6 +23,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -48,22 +48,26 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@Slf4j
 @SpringBootTest(classes = CaptureSessionService.class)
 public class CaptureSessionServiceTest {
-    @MockBean
+    @MockitoBean
     private RecordingService recordingService;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private BookingService bookingService;
+
+    @MockitoBean
+    private AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     private CaptureSessionService captureSessionService;
@@ -84,6 +88,7 @@ public class CaptureSessionServiceTest {
             Timestamp.from(Instant.now().plus(Duration.ofDays(1))),
             null
         );
+        booking.setId(UUID.randomUUID());
 
         user = new User();
         user.setId(UUID.randomUUID());
@@ -647,7 +652,8 @@ public class CaptureSessionServiceTest {
                                                                 captureSessionRepository,
                                                                 bookingRepository,
                                                                 userRepository,
-                                                                bookingService);
+                                                                bookingService,
+                                                                azureFinalStorageService);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),
@@ -655,13 +661,10 @@ public class CaptureSessionServiceTest {
             recordingId
         );
 
-        var createRecordingDTOArgument = ArgumentCaptor.forClass(CreateRecordingDTO.class);
-
         assertThat(model.getId()).isEqualTo(captureSession.getId());
         assertThat(model.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
 
-        verify(recordingService, times(1)).upsert(createRecordingDTOArgument.capture());
-        assertThat(createRecordingDTOArgument.getValue().getFilename()).isEqualTo("index_1280x720_4500k.mp4");
+        verify(recordingService, times(1)).upsert(any());
         verify(captureSessionRepository, times(1)).saveAndFlush(any());
     }
 

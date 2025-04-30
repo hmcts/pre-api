@@ -6,8 +6,8 @@ import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.util.CollectionUtils;
 import uk.gov.hmcts.reform.preapi.Application;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
@@ -27,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
+import java.io.File;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -45,7 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static uk.gov.hmcts.reform.preapi.config.OpenAPIConfiguration.X_USER_ID_HEADER;
 
-@SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(classes = { Application.class }, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @SuppressWarnings("PMD.JUnit5TestShouldBePackagePrivate")
 public class FunctionalTestBase {
     protected static final String CONTENT_TYPE_VALUE = "application/json";
@@ -64,8 +65,10 @@ public class FunctionalTestBase {
 
     protected static Map<TestingSupportRoles, AuthUserDetails> authenticatedUserIds;
 
-    @Value("${TEST_URL:http://localhost:4550}")
-    protected String testUrl;
+    @LocalServerPort
+    private int port;
+
+    public String testUrl = "";
 
     @BeforeAll
     static void beforeAll() {
@@ -96,6 +99,7 @@ public class FunctionalTestBase {
 
     @BeforeEach
     void setUp() {
+        testUrl = String.format("http://localhost:%s", port);
         RestAssured.baseURI = testUrl;
 
         if (authenticatedUserIds == null) {
@@ -166,6 +170,19 @@ public class FunctionalTestBase {
             .relaxedHTTPSValidation()
             .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
             .body(body)
+            .when()
+            .post(path)
+            .thenReturn();
+    }
+
+    protected Response doPostRequestWithMultipart(final String path,
+                                             final Map<String, String> additionalHeaders,
+                                             final String filePath,
+                                             final TestingSupportRoles authenticatedAs) {
+        return given()
+            .relaxedHTTPSValidation()
+            .headers(getRequestHeaders(additionalHeaders, authenticatedAs))
+            .multiPart("file", new File(filePath), "text/csv")
             .when()
             .post(path)
             .thenReturn();
@@ -403,15 +420,10 @@ public class FunctionalTestBase {
         return dto;
     }
 
-    protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
-        return doPutRequest(
-            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
-            OBJECT_MAPPER.writeValueAsString(dto),
-            TestingSupportRoles.SUPER_USER
-        );
-    }
-
-    protected record AuthUserDetails(UUID accessId, UUID courtId) {
+    protected CreateRecordingResponse createRecording() {
+        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
+        assertResponseCode(response, 200);
+        return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
     }
 
     protected CreateRecordingDTO createRecording(UUID captureSessionId) {
@@ -425,11 +437,25 @@ public class FunctionalTestBase {
         return dto;
     }
 
+    protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
+        return doPutRequest(
+            BOOKINGS_ENDPOINT + "/" + dto.getBookingId() + "/share",
+            OBJECT_MAPPER.writeValueAsString(dto),
+            TestingSupportRoles.SUPER_USER
+        );
+    }
+
     protected Response putRecording(CreateRecordingDTO dto) throws JsonProcessingException {
         return doPutRequest(
             RECORDINGS_ENDPOINT + "/" + dto.getId(),
             OBJECT_MAPPER.writeValueAsString(dto),
             TestingSupportRoles.SUPER_USER
         );
+    }
+
+    protected record AuthUserDetails(UUID accessId, UUID courtId) {
+    }
+
+    protected record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
     }
 }

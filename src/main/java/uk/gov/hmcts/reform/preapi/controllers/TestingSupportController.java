@@ -175,6 +175,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -228,6 +229,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -286,7 +288,7 @@ class TestingSupportController {
         recording.setCaptureSession(captureSession);
         recording.setVersion(1);
         recording.setFilename("recording.mp4");
-        recording.setDuration(Duration.ofMinutes(30));
+        recording.setDuration(Duration.ofMinutes(3));
         recording.setEditInstruction("{\"foo\": \"bar\"}");
 
         recordingRepository.save(recording);
