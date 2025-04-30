@@ -25,7 +25,7 @@ import java.util.Set;
 @Entity
 @Table(name = "participants")
 public class Participant extends CreatedModifiedAtEntity {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;
 
