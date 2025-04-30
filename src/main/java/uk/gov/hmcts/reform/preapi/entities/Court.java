@@ -37,7 +37,7 @@ public class Court extends BaseEntity {
     @Column(name = "location_code", length = 25)
     private String locationCode;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "court_region",
         joinColumns = @JoinColumn(name = "court_id", referencedColumnName = "id"),
