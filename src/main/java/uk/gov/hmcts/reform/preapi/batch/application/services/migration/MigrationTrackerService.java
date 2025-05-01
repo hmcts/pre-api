@@ -168,14 +168,22 @@ public class MigrationTrackerService {
         writeFailureSummary(outputDir);
         writeCategorizedFailureReports(failureDir);
         writeTestFailureReport("Test", failureDir);
-        writeInvitedUsersToCsv("Invited_users", outputDir);
         writeNotifyItemsToCsv("Notify", outputDir);
 
         loggingService.setTotalMigrated(migratedItems.size());
         loggingService.setTotalFailed(categorizedFailures, testFailures);
-        loggingService.setTotalInvited(invitedUsers.size());
         loggingService.logSummary();
     }
+
+    public void writeNewUserReport() {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern(DATE_TIME_FORMAT));
+        String outputDir = "Migration Reports/" + timestamp;
+        new File(outputDir).mkdirs();
+
+        writeInvitedUsersToCsv("Invited_users", outputDir);
+    }
+
+   
 
     // ==================================
     // Helpers
@@ -307,11 +315,11 @@ public class MigrationTrackerService {
 
         for (CreateInviteDTO item : invitedUsers) {
             rows.add(List.of(
-                         getValueOrEmpty(item.getUserId()),
-                         getValueOrEmpty(item.getFirstName()),
-                         getValueOrEmpty(item.getLastName()),
-                         getValueOrEmpty(item.getEmail())
-                     )
+                    getValueOrEmpty(item.getUserId()),
+                    getValueOrEmpty(item.getFirstName()),
+                    getValueOrEmpty(item.getLastName()),
+                    getValueOrEmpty(item.getEmail())
+                )
             );
         }
         return rows;

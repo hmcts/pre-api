@@ -300,8 +300,7 @@ public class MigrationTrackerServiceTest {
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
             .thenReturn(null);
 
-        String outputDir = tempDir.toString();
-        migrationTrackerService.writeInvitedUsersToCsv("invitedUsers.csv", outputDir);
+        migrationTrackerService.writeNewUserReport();
 
         verify(loggingService, never()).logError(any(), any());
     }
@@ -317,8 +316,7 @@ public class MigrationTrackerServiceTest {
         reportCsvWriter.when(() -> ReportCsvWriter.writeToCsv(any(), any(), any(), any(), anyBoolean()))
             .thenThrow(IOException.class);
 
-        String outputDir = tempDir.toString();
-        migrationTrackerService.writeInvitedUsersToCsv("Invited_users", outputDir);
+        migrationTrackerService.writeNewUserReport();
 
         verify(loggingService, times(1)).logError(any(), any());
     }
@@ -329,7 +327,6 @@ public class MigrationTrackerServiceTest {
 
         verify(loggingService, times(1)).setTotalMigrated(0);
         verify(loggingService, times(1)).setTotalFailed(any(), any());
-        verify(loggingService, times(1)).setTotalInvited(0);
         verify(loggingService, times(1)).logSummary();
     }
 

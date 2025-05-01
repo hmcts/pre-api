@@ -14,6 +14,8 @@ public final class RecordingUtils {
     private static final String KEY_COPY_VERSION_NUMBER = "copyVersionNumber";
     private static final String KEY_ORIG_ARCHIVE_NAME = "origVersionArchiveName";
     private static final String KEY_COPY_ARCHIVE_NAME = "copyVersionArchiveName";
+    
+    public record MetadataUpdateResult(Map<String, Object> metadata, boolean updated) {}
 
     public record VersionDetails(String versionType, String versionNumberStr, int versionNumber, boolean isMostRecent) {
         @Override
@@ -96,13 +98,14 @@ public final class RecordingUtils {
         return 0;
     }
 
-    public Map<String, Object> updateVersionMetadata(
+    public MetadataUpdateResult updateVersionMetadata(
         String versionType,
         String versionNumber,
         String archiveName,
         Map<String, Object> existingMetadata
     ) {
         Map<String, Object> updatedMetadata = new HashMap<>(existingMetadata);
+        boolean updated = false;
         String validVersionNumber = getValidVersionNumber(versionNumber);
 
         if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())) {
@@ -110,15 +113,17 @@ public final class RecordingUtils {
             if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
                 updatedMetadata.put(KEY_ORIG_ARCHIVE_NAME, archiveName);
                 updatedMetadata.put(KEY_ORIG_VERSION_NUMBER, validVersionNumber);
+                updated = true;
             }
         } else if (Constants.VALID_COPY_TYPES.contains(versionType.toUpperCase())) {
             String existingVersion = (String) existingMetadata.get(KEY_COPY_VERSION_NUMBER);
             if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
                 updatedMetadata.put(KEY_COPY_ARCHIVE_NAME, archiveName);
                 updatedMetadata.put(KEY_COPY_VERSION_NUMBER, validVersionNumber);
+                updated = true;
             }
         }
-        return updatedMetadata;
+        return new MetadataUpdateResult(updatedMetadata, updated);
     }
 
 }

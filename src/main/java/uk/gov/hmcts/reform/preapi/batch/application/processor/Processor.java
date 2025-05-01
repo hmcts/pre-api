@@ -23,8 +23,7 @@ import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
 import uk.gov.hmcts.reform.preapi.batch.entities.TestItem;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -202,36 +201,62 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     }
 
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
-
         String key = cacheService.generateCacheKey(
-            "recording", "version", 
-            cleansedData.getUrn(), 
+            "recording", "version",
+            cleansedData.getUrn(),
             cleansedData.getExhibitReference(),
             cleansedData.getDefendantLastName(),
             cleansedData.getWitnessFirstName()
         );
 
         Map<String, Object> metadata = cacheService.getHashAll(key);
-        if (metadata != null && Boolean.TRUE.equals(metadata.get("seen"))) {
-            handleError(archiveItem, "Duplicate recording already seen: " + cleansedData.getFileName(), "Duplicate");
-            return true;
-        } else if (metadata != null) {
-            metadata.put("seen", true);
-            cacheService.saveHashAll(key, metadata);
+        String archiveName = archiveItem.getArchiveName();
+        String recordingVersion = cleansedData.getRecordingVersion();
+
+        boolean isOrig = "ORIG".equalsIgnoreCase(recordingVersion);
+        boolean isCopy = recordingVersion != null && recordingVersion.toUpperCase().startsWith("COPY");
+
+        if (metadata != null) {
+            boolean seenOrig = Boolean.TRUE.equals(metadata.get("seenOrig"));
+            boolean seenCopy = Boolean.TRUE.equals(metadata.get("seenCopy"));
+
+            String seenOriginal = (String) metadata.get("origVersionArchiveName");
+            String seenCopyName = (String) metadata.get("copyVersionArchiveName");
+
+            if ((isOrig && seenOrig && archiveName.equalsIgnoreCase(seenOriginal)) 
+                || (isCopy && seenCopy && archiveName.equalsIgnoreCase(seenCopyName))) {
+
+                handleError(archiveItem, "Duplicate recording already seen", "Duplicate");
+                return true;
+            }
+        } else {
+            metadata = new HashMap<>();
         }
 
-        boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
+        if (isOrig) {
+            metadata.put("seenOrig", true);
+            metadata.put("origVersionArchiveName", cleansedData.getFileName());
+            metadata.put("origVersionNumber", String.valueOf(cleansedData.getRecordingVersionNumber()));
+        } else if (isCopy) {
+            metadata.put("seenCopy", true);
+            metadata.put("copyVersionArchiveName", cleansedData.getFileName());
+            metadata.put("copyVersionNumber", String.valueOf(cleansedData.getRecordingVersionNumber()));
+        }
 
+        cacheService.saveHashAll(key, metadata);
+
+        boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
         if (alreadyMigrated) {
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;
         }
+
         return false;
     }
-
     //======================
     // Helper Methods
     //======================
+    
     private <T> boolean checkForError(ServiceResult<T> result, IArchiveData item) {
         String errorMessage = result.getErrorMessage();
         String category = result.getCategory();
@@ -275,21 +300,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             exemptionItem.getFileSize(),
             exemptionItem.getArchiveName()
         );
-    }
-
-    private LocalDateTime parseDateTime(String dateTimeStr) {
-        if (dateTimeStr == null || dateTimeStr.trim().isEmpty()) {
-            loggingService.logWarning("Empty or NULL date received for parsing.");
-            return null;
-        }
-
-        try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            return LocalDateTime.parse(dateTimeStr, formatter);
-        } catch (Exception e) {
-            loggingService.logError("Failed to parse date: " + dateTimeStr, e);
-            return null;
-        }
     }
 
     // =========================
