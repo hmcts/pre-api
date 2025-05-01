@@ -34,7 +34,7 @@ spring:
       charSet: UTF-8
     hikari:
       minimumIdle: 2
-      maximumPoolSize: 10
+      maximumPoolSize: 50
       idleTimeout: 10000
       poolName: PreHikariCP
       maxLifetime: 7200000
