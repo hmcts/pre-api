@@ -7,6 +7,7 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.UserDelegationKey;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -111,25 +112,26 @@ public class AzureIngestStorageServiceTest {
         assertThat(blobUrlWithSas).isEqualTo("example.com/index.mp4?exampleSasToken");
     }
 
-    /*
     @Test
     void getBlobUrlForCopySuccessForManagedIdentity() {
         when(azureConfiguration.isUsingManagedIdentity()).thenReturn(true);
+        when(ingestStorageClient.getUserDelegationKey(any(), any())).thenReturn(mock(UserDelegationKey.class));
         var blobItem = mock(BlobItem.class);
         when(blobContainerClient.exists()).thenReturn(true);
         var blobClient = mock(BlobClient.class);
         when(blobClient.getBlobUrl()).thenReturn("example.com/index.mp4");
+        when(blobClient.getBlobUrl()).thenReturn("example.com/index.mp4");
         when(blobContainerClient.getBlobClient("index.mp4")).thenReturn(blobClient);
         when(blobItem.getName()).thenReturn("index.mp4");
         when(pagedIterable.stream()).thenAnswer(inv -> Stream.of(blobItem));
+        when(blobClient.generateUserDelegationSas(any(), any())).thenReturn("exampleSasToken");
 
         String blobUrl = azureIngestStorageService.getBlobUrlForCopy("test-container", "index.mp4");
 
-        assertThat(blobUrl).isEqualTo("example.com/index.mp4");
+        assertThat(blobUrl).isEqualTo("example.com/index.mp4?exampleSasToken");
 
-        verify(blobContainerClient, never()).generateSas(any());
+        verify(blobContainerClient, never()).generateUserDelegationSas(any(), any());
     }
-     */
 
     @Test
     void getBlobUrlForCopyBlobNotFound() {
