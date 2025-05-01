@@ -26,7 +26,7 @@ import java.util.Set;
 @Entity
 @Table(name = "bookings")
 public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;
 
@@ -36,7 +36,7 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     @Column(name = "deleted_at")
     private Timestamp deletedAt;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "booking_participant",
         joinColumns = @JoinColumn(name = "booking_id", referencedColumnName = "id"),

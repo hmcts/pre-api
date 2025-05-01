@@ -72,7 +72,7 @@ public class CaptureSession extends BaseEntity implements ISoftDeletable {
     @Transient
     private boolean isSoftDeleteOperation;
 
-    @OneToMany(mappedBy = "captureSession")
+    @OneToMany(mappedBy = "captureSession", fetch = FetchType.EAGER)
     private Set<Recording> recordings;
 
     public boolean isDeleted() {

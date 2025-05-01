@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -37,7 +38,7 @@ public class Court extends BaseEntity {
     @Column(name = "location_code", length = 25)
     private String locationCode;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "court_region",
         joinColumns = @JoinColumn(name = "court_id", referencedColumnName = "id"),
@@ -45,7 +46,7 @@ public class Court extends BaseEntity {
     )
     private Set<Region> regions;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "courtrooms",
         joinColumns = @JoinColumn(name = "court_id", referencedColumnName = "id"),
