@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,7 +22,7 @@ public interface EditRequestRepository extends JpaRepository<EditRequest, UUID> 
     @QueryHints({@QueryHint(name = "jakarta.persistence.lock.timeout", value = "0")})
     Optional<EditRequest> findById(@NotNull UUID id);
 
-    List<EditRequest> findAllByStatusIsOrderByCreatedAt(EditRequestStatus status);
+    Optional<EditRequest> findFirstByStatusIsOrderByCreatedAt(EditRequestStatus status);
 
     @Query("select e from EditRequest e where e.id = ?1")
     Optional<EditRequest> findByIdNotLocked(@NotNull UUID id);
