@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.Map;
@@ -41,10 +41,10 @@ public class EditControllerFT extends FunctionalTestBase {
 
         assertThat(postResponse.getEditInstruction()).isNotNull();
         var instructions = OBJECT_MAPPER.readValue(postResponse.getEditInstruction(),
-                                                   new TypeReference<EditRequestService.EditInstructions>() {});
+                                                   new TypeReference<EditInstructions>() {});
         assertThat(instructions).isNotNull();
 
-        var requestedInstructions = instructions.requestedInstructions();
+        var requestedInstructions = instructions.getRequestedInstructions();
         assertThat(requestedInstructions).isNotEmpty();
         assertThat(requestedInstructions.size()).isEqualTo(2);
 
@@ -60,7 +60,7 @@ public class EditControllerFT extends FunctionalTestBase {
         assertThat(requestedInstructions.getLast().getStart()).isEqualTo(61);
         assertThat(requestedInstructions.getLast().getEnd()).isEqualTo(120);
 
-        var ffmpegInstructions = instructions.ffmpegInstructions();
+        var ffmpegInstructions = instructions.getFfmpegInstructions();
         assertThat(ffmpegInstructions).isNotEmpty();
         assertThat(ffmpegInstructions.size()).isEqualTo(2);
 
