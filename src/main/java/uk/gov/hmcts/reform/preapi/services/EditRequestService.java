@@ -75,7 +75,7 @@ public class EditRequestService {
         return editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = Exception.class)
     public RecordingDTO performEdit(UUID editId) {
         // retrieves locked edit request
         var request = editRequestRepository.findById(editId)
@@ -92,7 +92,7 @@ public class EditRequestService {
 
         request.setStartedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.PROCESSING);
-        editRequestRepository.save(request);
+        editRequestRepository.saveAndFlush(request);
 
         // ffmpeg
         var newRecordingId = UUID.randomUUID();
@@ -101,13 +101,13 @@ public class EditRequestService {
         } catch (Exception e) {
             request.setFinishedAt(Timestamp.from(Instant.now()));
             request.setStatus(EditRequestStatus.ERROR);
-            editRequestRepository.save(request);
+            editRequestRepository.saveAndFlush(request);
             throw e;
         }
 
         request.setFinishedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.COMPLETE);
-        editRequestRepository.save(request);
+        editRequestRepository.saveAndFlush(request);
 
         // todo generate asset
 
