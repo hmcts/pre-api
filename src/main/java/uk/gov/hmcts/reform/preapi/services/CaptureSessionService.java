@@ -295,18 +295,10 @@ public class CaptureSessionService {
                     log.error("Failed to get recording filename for capture session {}", captureSessionId);
                 }
                 recordingService.upsert(recording);
-
-                var audit = new CreateAuditDTO();
-                audit.setId(UUID.randomUUID());
-                audit.setTableName("recordings");
-                audit.setTableRecordId(recordingId);
-                audit.setSource(AuditLogSource.AUTO);
-                audit.setCategory("Recording");
-                audit.setActivity("Stop");
-                audit.setFunctionalArea("API");
-                audit.setAuditDetails(null);
-                auditService.upsert(audit, userId);
+                auditService.upsert(createStopAudit(captureSessionId), userId);
             }
+            case NO_RECORDING, FAILURE ->
+                auditService.upsert(createStopAudit(captureSessionId), userId);
             default -> {
             }
         }
@@ -324,4 +316,16 @@ public class CaptureSessionService {
         return new CaptureSessionDTO(captureSession);
     }
 
+    private CreateAuditDTO createStopAudit(UUID captureSessionId) {
+        CreateAuditDTO audit = new CreateAuditDTO();
+        audit.setId(UUID.randomUUID());
+        audit.setTableName("capture_sessions");
+        audit.setTableRecordId(captureSessionId);
+        audit.setSource(AuditLogSource.AUTO);
+        audit.setCategory("CaptureSession");
+        audit.setActivity("Stop");
+        audit.setFunctionalArea("API");
+        audit.setAuditDetails(null);
+        return audit;
+    }
 }

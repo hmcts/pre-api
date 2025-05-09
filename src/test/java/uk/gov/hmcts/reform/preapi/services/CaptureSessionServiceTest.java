@@ -679,10 +679,10 @@ public class CaptureSessionServiceTest {
 
         var capturedAudit =  captor.getValue();
         assertThat(capturedAudit.getId()).isNotNull();
-        assertThat(capturedAudit.getTableName()).isEqualTo("recordings");
-        assertThat(capturedAudit.getTableRecordId()).isEqualTo(recordingId);
+        assertThat(capturedAudit.getTableName()).isEqualTo("capture_sessions");
+        assertThat(capturedAudit.getTableRecordId()).isEqualTo(captureSession.getId());
         assertThat(capturedAudit.getSource()).isEqualTo(AuditLogSource.AUTO);
-        assertThat(capturedAudit.getCategory()).isEqualTo("Recording");
+        assertThat(capturedAudit.getCategory()).isEqualTo("CaptureSession");
         assertThat(capturedAudit.getActivity()).isEqualTo("Stop");
         assertThat(capturedAudit.getFunctionalArea()).isEqualTo("API");
     }
@@ -711,6 +711,56 @@ public class CaptureSessionServiceTest {
 
         verify(recordingService, never()).upsert(any());
         verify(captureSessionRepository, times(1)).saveAndFlush(any());
+
+        var captor = ArgumentCaptor.forClass(CreateAuditDTO.class);
+        verify(auditService, times(1)).upsert(captor.capture(), eq(user.getId()));
+
+        var capturedAudit =  captor.getValue();
+        assertThat(capturedAudit.getId()).isNotNull();
+        assertThat(capturedAudit.getTableName()).isEqualTo("capture_sessions");
+        assertThat(capturedAudit.getTableRecordId()).isEqualTo(captureSession.getId());
+        assertThat(capturedAudit.getSource()).isEqualTo(AuditLogSource.AUTO);
+        assertThat(capturedAudit.getCategory()).isEqualTo("CaptureSession");
+        assertThat(capturedAudit.getActivity()).isEqualTo("Stop");
+        assertThat(capturedAudit.getFunctionalArea()).isEqualTo("API");
+    }
+
+    @DisplayName("Should update capture session when status is FAILURE")
+    @Test
+    void stopCaptureSessionFailure() {
+        captureSession.setStatus(RecordingStatus.STANDBY);
+        var mockAuth = mock(UserAuthentication.class);
+        when(mockAuth.getUserId()).thenReturn(user.getId());
+        SecurityContextHolder.getContext().setAuthentication(mockAuth);
+
+        when(captureSessionRepository.findByIdAndDeletedAtIsNull(captureSession.getId()))
+            .thenReturn(Optional.of(captureSession));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        var recordingId = UUID.randomUUID();
+        var model = captureSessionService.stopCaptureSession(
+            captureSession.getId(),
+            RecordingStatus.FAILURE,
+            recordingId
+        );
+
+        assertThat(model.getId()).isEqualTo(captureSession.getId());
+        assertThat(model.getStatus()).isEqualTo(RecordingStatus.FAILURE);
+
+        verify(recordingService, never()).upsert(any());
+        verify(captureSessionRepository, times(1)).saveAndFlush(any());
+
+        var captor = ArgumentCaptor.forClass(CreateAuditDTO.class);
+        verify(auditService, times(1)).upsert(captor.capture(), eq(user.getId()));
+
+        var capturedAudit =  captor.getValue();
+        assertThat(capturedAudit.getId()).isNotNull();
+        assertThat(capturedAudit.getTableName()).isEqualTo("capture_sessions");
+        assertThat(capturedAudit.getTableRecordId()).isEqualTo(captureSession.getId());
+        assertThat(capturedAudit.getSource()).isEqualTo(AuditLogSource.AUTO);
+        assertThat(capturedAudit.getCategory()).isEqualTo("CaptureSession");
+        assertThat(capturedAudit.getActivity()).isEqualTo("Stop");
+        assertThat(capturedAudit.getFunctionalArea()).isEqualTo("API");
     }
 
     @DisplayName("Should throw not found error when capture session does not exist")
