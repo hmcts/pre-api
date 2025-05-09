@@ -11,10 +11,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -46,6 +48,7 @@ public class CaptureSessionService {
     private final UserRepository userRepository;
     private final BookingService bookingService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final AuditService auditService;
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
@@ -53,13 +56,15 @@ public class CaptureSessionService {
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
                                  @Lazy BookingService bookingService,
-                                 AzureFinalStorageService azureFinalStorageService) {
+                                 AzureFinalStorageService azureFinalStorageService,
+                                 AuditService auditService) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -270,9 +275,10 @@ public class CaptureSessionService {
         log.info("Stopping capture session {} with status {}", captureSessionId, status);
         captureSession.setStatus(status);
 
+        UUID userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+
         switch (status) {
             case PROCESSING -> {
-                var userId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
                 var user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User: " + userId));
 
                 captureSession.setFinishedByUser(user);
@@ -289,6 +295,17 @@ public class CaptureSessionService {
                     log.error("Failed to get recording filename for capture session {}", captureSessionId);
                 }
                 recordingService.upsert(recording);
+
+                var audit = new CreateAuditDTO();
+                audit.setId(UUID.randomUUID());
+                audit.setTableName("recordings");
+                audit.setTableRecordId(recordingId);
+                audit.setSource(AuditLogSource.AUTO);
+                audit.setCategory("Recording");
+                audit.setActivity("Stop");
+                audit.setFunctionalArea("API");
+                audit.setAuditDetails(null);
+                auditService.upsert(audit, userId);
             }
             default -> {
             }

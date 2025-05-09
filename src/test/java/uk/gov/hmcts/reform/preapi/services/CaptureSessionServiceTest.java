@@ -4,17 +4,20 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.dto.CreateAuditDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -68,6 +71,9 @@ public class CaptureSessionServiceTest {
 
     @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
+
+    @MockitoBean
+    private AuditService auditService;
 
     @Autowired
     private CaptureSessionService captureSessionService;
@@ -653,7 +659,8 @@ public class CaptureSessionServiceTest {
                                                                 bookingRepository,
                                                                 userRepository,
                                                                 bookingService,
-                                                                azureFinalStorageService);
+                                                                azureFinalStorageService,
+                                                                auditService);
 
         var model = captureSessionServiceMk.stopCaptureSession(
             captureSession.getId(),
@@ -666,6 +673,18 @@ public class CaptureSessionServiceTest {
 
         verify(recordingService, times(1)).upsert(any());
         verify(captureSessionRepository, times(1)).saveAndFlush(any());
+
+        var captor = ArgumentCaptor.forClass(CreateAuditDTO.class);
+        verify(auditService, times(1)).upsert(captor.capture(), eq(user.getId()));
+
+        var capturedAudit =  captor.getValue();
+        assertThat(capturedAudit.getId()).isNotNull();
+        assertThat(capturedAudit.getTableName()).isEqualTo("recordings");
+        assertThat(capturedAudit.getTableRecordId()).isEqualTo(recordingId);
+        assertThat(capturedAudit.getSource()).isEqualTo(AuditLogSource.AUTO);
+        assertThat(capturedAudit.getCategory()).isEqualTo("Recording");
+        assertThat(capturedAudit.getActivity()).isEqualTo("Stop");
+        assertThat(capturedAudit.getFunctionalArea()).isEqualTo("API");
     }
 
     @DisplayName("Should update capture session when status is NO_RECORDING")
