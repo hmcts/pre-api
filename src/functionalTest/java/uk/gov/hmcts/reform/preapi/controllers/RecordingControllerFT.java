@@ -279,8 +279,8 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void getRecordingLengths() throws JsonProcessingException {
         CreateRecordingResponse details = createRecording();
 
-        CreateRecordingDTO recording = createRecording(details.captureSessionId);
-        recording.setParentRecordingId(details.recordingId);
+        CreateRecordingDTO recording = createRecording(details.captureSessionId());
+        recording.setParentRecordingId(details.recordingId());
         var putRecording = putRecording(recording);
         assertResponseCode(putRecording, 201);
 
@@ -292,7 +292,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
             .isEqualTo(Optional.of("00:10:00"));
 
         var getRecordingsList = doGetRequest(
-            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId(),
             TestingSupportRoles.SUPER_USER
         );
 
@@ -325,6 +325,4 @@ public class RecordingControllerFT extends FunctionalTestBase {
         return dto;
     }
 
-    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
-    }
 }
