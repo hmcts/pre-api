@@ -329,7 +329,7 @@ public class MediaKind implements IMediaService {
         try {
             return mediaKindClient.getLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName), e);
         }
     }
 
@@ -446,7 +446,7 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.startLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName), e);
         }
     }
 
@@ -454,7 +454,7 @@ public class MediaKind implements IMediaService {
         try {
             mediaKindClient.stopLiveEvent(liveEventName);
         } catch (NotFoundException e) {
-            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName), e);
         } catch (FeignException.BadRequest e) {
             // live output still exists (only occurs on manually created live events)
             log.info("Skipped stopping live event. The live event will be cleaned up by deletion.");
@@ -588,9 +588,9 @@ public class MediaKind implements IMediaService {
                             .build()
             );
         } catch (ConflictException e) {
-            throw new ConflictException("Live Output: " + liveOutputName);
+            throw new ConflictException("Live Output: " + liveOutputName, e);
         } catch (NotFoundException e) {
-            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName));
+            throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName), e);
         }
     }
 
@@ -622,7 +622,7 @@ public class MediaKind implements IMediaService {
                     .build()
             );
         } catch (ConflictException e) {
-            throw new ConflictException("Asset: " + assetName);
+            throw new ConflictException("Asset: " + assetName, e);
         }
     }
 
@@ -751,7 +751,7 @@ public class MediaKind implements IMediaService {
     }
 
     private void assertStreamingLocatorExists(UUID liveEventId) {
-        var sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
+        String sanitisedLiveEventId = getSanitisedLiveEventId(liveEventId);
 
         try {
             mediaKindClient.getStreamingLocator(sanitisedLiveEventId);

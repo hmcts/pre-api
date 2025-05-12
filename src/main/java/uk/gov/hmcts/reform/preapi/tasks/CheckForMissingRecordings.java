@@ -3,12 +3,14 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessage;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessageSection;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
@@ -55,7 +57,8 @@ public class CheckForMissingRecordings extends RobotUserTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    @SuppressWarnings("PMD.CognitiveComplexity")
+    public void run() {
         log.info("Signing in robot user with email {} on env {}", cronUserEmail, platformEnv);
         signInRobotUser();
 
@@ -67,11 +70,11 @@ public class CheckForMissingRecordings extends RobotUserTask {
         if (!captureSessionsFromDate.isEmpty()) {
             log.info("Expecting to find {} recordings", captureSessionsFromDate.size());
 
-            var search = new SearchRecordings();
+            SearchRecordings search = new SearchRecordings();
             search.setStartedAtFrom(Timestamp.valueOf(yesterday.atStartOfDay()));
             search.setStartedAtUntil(Timestamp.valueOf(yesterday.atStartOfDay().plusDays(1)));
             search.setIncludeDeleted(false);
-            var recordings = recordingService.findAll(search, false, Pageable.unpaged());
+            Page<RecordingDTO> recordings = recordingService.findAll(search, false, Pageable.unpaged());
 
             Map<UUID, Duration> recordingDuration = new HashMap<>();
 

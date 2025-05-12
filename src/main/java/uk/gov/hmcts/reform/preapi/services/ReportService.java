@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class ReportService {
 
     private final CaptureSessionRepository captureSessionRepository;

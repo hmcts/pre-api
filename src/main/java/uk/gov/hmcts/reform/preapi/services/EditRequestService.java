@@ -17,6 +17,7 @@ import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
@@ -34,6 +35,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -57,7 +59,7 @@ public class EditRequestService {
     @Transactional
     public EditRequestStatus performEdit(UUID editId) {
         // retrieves locked edit request
-        var request = editRequestRepository.findById(editId)
+        EditRequest request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
 
         if (request.getStatus() != EditRequestStatus.PENDING) {
@@ -86,7 +88,7 @@ public class EditRequestService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
-        var sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
+        Recording sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
             .orElseThrow(() -> new NotFoundException("Source Recording: " + dto.getSourceRecordingId()));
 
         if (sourceRecording.getDuration() == null) {
@@ -96,19 +98,22 @@ public class EditRequestService {
                                                         + ") does not have a valid duration");
         }
 
-        var req = editRequestRepository.findById(dto.getId());
-        var request = req.orElse(new EditRequest());
+        Optional<EditRequest> req = editRequestRepository.findById(dto.getId());
+        EditRequest request = req.orElse(new EditRequest());
 
         request.setId(dto.getId());
         request.setSourceRecording(sourceRecording);
         request.setStatus(dto.getStatus());
 
-        var editInstructions = invertInstructions(dto.getEditInstructions(), sourceRecording);
+        List<FfmpegEditInstructionDTO> editInstructions = invertInstructions(
+            dto.getEditInstructions(),
+            sourceRecording
+        );
         request.setEditInstruction(toJson(new EditInstructions(dto.getEditInstructions(), editInstructions)));
 
-        var isUpdate = req.isPresent();
+        boolean isUpdate = req.isPresent();
         if (!isUpdate) {
-            var user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
+            User user = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication())
                 .getAppAccess().getUser();
 
             request.setCreatedBy(user);
@@ -122,7 +127,7 @@ public class EditRequestService {
     @PreAuthorize("@authorisationService.hasRecordingAccess(authentication, #sourceRecordingId)")
     public EditRequestDTO upsert(UUID sourceRecordingId, MultipartFile file) {
         // temporary code for create edit request with csv endpoint
-        var id = UUID.randomUUID();
+        UUID id = UUID.randomUUID();
         upsert(CreateEditRequestDTO.builder()
                    .id(id)
                    .sourceRecordingId(sourceRecordingId)
@@ -137,27 +142,28 @@ public class EditRequestService {
 
     private List<EditCutInstructionDTO> parseCsv(MultipartFile file) {
         try {
-            @Cleanup var reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
+            @Cleanup BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
             return new CsvToBeanBuilder<EditCutInstructionDTO>(reader)
                 .withType(EditCutInstructionDTO.class)
                 .build()
                 .parse();
         } catch (Exception e) {
             log.error("Error when reading CSV file: {} ", e.getMessage());
-            throw new UnknownServerException("Uploaded CSV file incorrectly formatted");
+            throw new UnknownServerException("Uploaded CSV file incorrectly formatted", e);
         }
     }
 
+    @SuppressWarnings({"PMD.CognitiveComplexity", "PMD.AvoidLiteralsInIfCondition"})
     public List<FfmpegEditInstructionDTO> invertInstructions(List<EditCutInstructionDTO> instructions,
                                                           Recording recording) {
-        var recordingDuration = recording.getDuration().toSeconds();
+        long recordingDuration = recording.getDuration().toSeconds();
         if (instructions.size() == 1) {
-            var i = instructions.getFirst();
-            if (i.getStart() == 0 && i.getEnd() == recordingDuration) {
+            EditCutInstructionDTO firstInstruction = instructions.getFirst();
+            if (firstInstruction.getStart() == 0 && firstInstruction.getEnd() == recordingDuration) {
                 throw new BadRequestException("Invalid Instruction: Cannot cut an entire recording: Start("
-                                                  + i.getStart()
+                                                  + firstInstruction.getStart()
                                                   + "), End("
-                                                  + i.getEnd()
+                                                  + firstInstruction.getEnd()
                                                   + "), Recording Duration("
                                                   + recordingDuration
                                                   + ")");
@@ -168,8 +174,8 @@ public class EditRequestService {
                               .thenComparing(EditCutInstructionDTO::getEnd));
 
         for (int i = 1; i < instructions.size(); i++) {
-            var prev = instructions.get(i - 1);
-            var curr = instructions.get(i);
+            EditCutInstructionDTO prev = instructions.get(i - 1);
+            EditCutInstructionDTO curr = instructions.get(i);
             if (curr.getStart() < prev.getEnd()) {
                 throw new BadRequestException("Overlapping instructions: Previous End("
                                                   + prev.getEnd()
@@ -179,11 +185,11 @@ public class EditRequestService {
             }
         }
 
-        var currentTime = 0L;
-        var invertedInstructions = new ArrayList<FfmpegEditInstructionDTO>();
+        long currentTime = 0L;
+        List<FfmpegEditInstructionDTO> invertedInstructions = new ArrayList<>();
 
         // invert
-        for (var instruction : instructions) {
+        for (EditCutInstructionDTO instruction : instructions) {
             if (instruction.getStart() == instruction.getEnd()) {
                 throw new BadRequestException("Invalid instruction: Instruction with 0 second duration invalid: Start("
                                                   + instruction.getStart()
@@ -223,7 +229,7 @@ public class EditRequestService {
         try {
             return new ObjectMapper().writeValueAsString(instructions);
         } catch (JsonProcessingException e) {
-            throw new UnknownServerException("Something went wrong: " + e.getMessage());
+            throw new UnknownServerException("Something went wrong: " + e.getMessage(), e);
         }
     }
 
