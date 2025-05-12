@@ -13,6 +13,7 @@ import java.util.List;
     url = "${flow.workflow.stopLiveEventNotifier.api}",
     configuration = StopLiveEventFlowHttpClientConfiguration.class
 )
+@SuppressWarnings("PMD.ImplicitFunctionalInterface")
 public interface StopLiveEventNotifierFlowClient {
 
     @PostMapping("/workflows/${flow.workflow.stopLiveEventNotifier.id}/triggers/manual/paths/invoke")

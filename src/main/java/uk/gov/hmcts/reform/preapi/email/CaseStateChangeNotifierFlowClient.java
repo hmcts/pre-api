@@ -13,6 +13,7 @@ import java.util.List;
     url = "${flow.workflow.caseStateChangeNotifier.api}",
     configuration = CaseStateChangeFlowHttpClientConfiguration.class
 )
+@SuppressWarnings("PMD.ImplicitFunctionalInterface")
 public interface CaseStateChangeNotifierFlowClient {
     @PostMapping("/workflows/${flow.workflow.caseStateChangeNotifier.id}/triggers/manual/paths/invoke")
     void emailAfterCaseStateChange(@RequestBody List<CaseStateChangeNotificationDTO> caseStateChangeNotification);

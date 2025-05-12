@@ -306,15 +306,13 @@ class TestingSupportController {
             required = true
         ) TestingSupportRoles roleName
     ) {
-        String roleStr;
-        switch (roleName) {
-            case SUPER_USER -> roleStr = "Super User";
-            case LEVEL_1 -> roleStr = "Level 1";
-            case LEVEL_2 -> roleStr = "Level 2";
-            case LEVEL_3 -> roleStr = "Level 3";
-            case LEVEL_4 -> roleStr = "Level 4";
-            default -> roleStr = "Other Role";
-        }
+        String roleStr = switch (roleName) {
+            case SUPER_USER -> "Super User";
+            case LEVEL_1 -> "Level 1";
+            case LEVEL_2 -> "Level 2";
+            case LEVEL_3 -> "Level 3";
+            case LEVEL_4 -> "Level 4";
+        };
 
         Role role = createRole(roleStr);
         Map<String, String> response = Map.of("roleId", role.getId().toString());
@@ -323,15 +321,13 @@ class TestingSupportController {
 
     @PostMapping("/create-authenticated-user/{role}")
     public ResponseEntity<Map<String, String>> createAuthenticatedUser(@PathVariable TestingSupportRoles role) {
-        String roleName;
-        switch (role) {
-            case SUPER_USER -> roleName = "Super User";
-            case LEVEL_1 -> roleName = "Level 1";
-            case LEVEL_2 -> roleName = "Level 2";
-            case LEVEL_3 -> roleName = "Level 3";
-            case LEVEL_4 -> roleName = "Level 4";
-            default -> throw new IllegalArgumentException("Invalid role");
-        }
+        String roleName = switch (role) {
+            case SUPER_USER -> "Super User";
+            case LEVEL_1 -> "Level 1";
+            case LEVEL_2 -> "Level 2";
+            case LEVEL_3 -> "Level 3";
+            case LEVEL_4 -> "Level 4";
+        };
         Role roleEntity = roleRepository.findFirstByName(roleName)
             .orElse(createRole(roleName));
         AppAccess appAccess = createAppAccess(roleEntity);
