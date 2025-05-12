@@ -204,6 +204,18 @@ public class GlobalControllerExceptionHandler {
                                  HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(BadRequestException.class)
+    ResponseEntity<String> badRequestExceptionHandler(final BadRequestException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UnsupportedMediaTypeException.class)
+    ResponseEntity<String> unsupportedMediaTypeException(final UnsupportedMediaTypeException e)
+        throws JsonProcessingException {
+        return getResponseEntity(e.getMessage(), HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+    }
+
     private static ResponseEntity<String> getResponseEntity(String message, HttpStatus status)
         throws JsonProcessingException {
 

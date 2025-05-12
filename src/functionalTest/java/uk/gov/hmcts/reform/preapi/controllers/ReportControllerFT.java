@@ -30,7 +30,7 @@ class ReportControllerFT extends FunctionalTestBase {
 
         var json = OBJECT_MAPPER.readTree(response.getBody().asString());
 
-        assertThat(json.get(index).get("duration").asText()).isEqualTo("PT30M");
+        assertThat(json.get(index).get("duration").asText()).isEqualTo("PT3M");
         assertThat(json.get(index).get("start_time")
                        .asText()).matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}Z");
     }

@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -136,6 +137,10 @@ public class AuthorisationService {
             && hasCourtAccess(authentication, dto.getCourtId())
             && hasUpsertAccess(authentication, dto.getParticipants())
             && canUpdateCaseState(authentication, dto);
+    }
+
+    public boolean hasUpsertAccess(UserAuthentication authentication, CreateEditRequestDTO dto) {
+        return hasRecordingAccess(authentication, dto.getSourceRecordingId());
     }
 
     public boolean canViewDeleted(UserAuthentication authentication) {

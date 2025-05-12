@@ -24,6 +24,7 @@ java:
     AZURE_FINAL_SA: prefinalsastg
     ENABLE_NEW_EMAIL_SERVICE: true
     ENABLE_STREAMING_LOCATOR_ON_START: true
+    ENABLE_AUTOMATED_EDITING: true
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}

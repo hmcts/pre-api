@@ -119,20 +119,34 @@ public class ReportServiceIT extends IntegrationTestBase {
         var user = HelperFactory.createUser("Example", "One", "example1@example.com", null, null, null);
         entityManager.persist(user);
 
-        var audit = new Audit();
-        audit.setId(UUID.randomUUID());
-        audit.setActivity("Play");
-        audit.setCreatedBy(user.getId());
-        audit.setSource(AuditLogSource.APPLICATION);
-        ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> details = new HashMap<>();
-        details.put("description", "Playback on recording has started");
-        audit.setAuditDetails(mapper.valueToTree(details));
-        entityManager.persist(audit);
+        var audit1 = new Audit();
+        audit1.setId(UUID.randomUUID());
+        audit1.setActivity("Recording Playback started");
+        audit1.setCreatedBy(user.getId());
+        audit1.setSource(AuditLogSource.APPLICATION);
+        var mapper = new ObjectMapper();
+        audit1.setAuditDetails(mapper.valueToTree(new HashMap<String, String>() {{
+                put("description", "Playback on recording has started");
+                put("recordingId", null);
+            }}
+        ));
+        entityManager.persist(audit1);
+
+        var audit2 = new Audit();
+        audit2.setId(UUID.randomUUID());
+        audit2.setActivity("Play");
+        audit2.setCreatedBy(user.getId());
+        audit2.setSource(AuditLogSource.APPLICATION);
+        audit2.setAuditDetails(mapper.valueToTree(new HashMap<String, String>() {{
+                put("details", "Confirmed viewing");
+                put("recordingId", null);
+            }}
+        ));
+        entityManager.persist(audit2);
 
         var response = reportService.reportPlayback(null);
         assertThat(response).isNotNull();
-        assertThat(response.size()).isEqualTo(1);
+        assertThat(response.size()).isEqualTo(2);
         assertThat(response.getFirst().getRecordingId()).isNull();
     }
 

@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
@@ -24,6 +25,7 @@ import uk.gov.hmcts.reform.preapi.entities.UserTermsAccepted;
 import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
+import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -228,6 +230,23 @@ public class HelperFactory {
         termsAccepted.setTermsAndConditions(termsAndConditions);
         termsAccepted.setAcceptedAt(acceptedAt);
         return termsAccepted;
+    }
+
+    public static EditRequest createEditRequest(Recording sourceRecording,
+                                                String editInstructions,
+                                                EditRequestStatus status,
+                                                User createdBy,
+                                                @Nullable Timestamp startedAt,
+                                                @Nullable Timestamp finishedAt) {
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(sourceRecording);
+        editRequest.setEditInstruction(editInstructions);
+        editRequest.setStatus(status);
+        editRequest.setCreatedBy(createdBy);
+        editRequest.setStartedAt(startedAt);
+        editRequest.setFinishedAt(finishedAt);
+        return editRequest;
     }
 
     public static CreateParticipantDTO createParticipantDTO(String firstName,
