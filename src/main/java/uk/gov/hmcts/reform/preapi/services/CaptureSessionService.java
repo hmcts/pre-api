@@ -22,6 +22,7 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -29,7 +30,9 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,18 +45,21 @@ public class CaptureSessionService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final BookingService bookingService;
+    private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
                                  BookingRepository bookingRepository,
                                  UserRepository userRepository,
-                                 @Lazy BookingService bookingService) {
+                                 @Lazy BookingService bookingService,
+                                 AzureFinalStorageService azureFinalStorageService) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.bookingService = bookingService;
+        this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @Transactional
@@ -110,6 +116,16 @@ public class CaptureSessionService {
                 pageable
             )
             .map(CaptureSessionDTO::new);
+    }
+
+    @Transactional
+    public List<CaptureSession> findAvailableSessionsByDate(LocalDate date) {
+        Timestamp fromTime = Timestamp.valueOf(date.atStartOfDay());
+        Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
+
+        return captureSessionRepository
+            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE,
+                                                                     fromTime, toTime);
     }
 
     @Transactional
@@ -267,7 +283,11 @@ public class CaptureSessionService {
                 recording.setId(recordingId);
                 recording.setCaptureSessionId(captureSessionId);
                 recording.setVersion(1);
-                recording.setFilename("index_1280x720_4500k.mp4");
+                try {
+                    recording.setFilename(azureFinalStorageService.getMp4FileName(recordingId.toString()));
+                } catch (Exception e) {
+                    log.error("Failed to get recording filename for capture session {}", captureSessionId);
+                }
                 recordingService.upsert(recording);
             }
             default -> {
@@ -286,4 +306,5 @@ public class CaptureSessionService {
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
     }
+
 }
