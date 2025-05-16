@@ -125,6 +125,11 @@ slack:
 editing:
   enable: ${ENABLE_AUTOMATED_EDITING:false}
 
+tasks:
+  start-live-event:
+    batch-size: ${TASK_START_LIVE_EVENTS_BATCH_SIZE:20}
+    poll-interval: ${TASK_START_LIVE_EVENTS_POLL_INTERVAL:2000}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
@@ -151,4 +156,3 @@ editing:
 #        jdbc: DEBUG
 #        transaction:
 #          interceptor: trace
-

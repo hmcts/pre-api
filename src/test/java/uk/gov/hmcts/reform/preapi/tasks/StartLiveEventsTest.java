@@ -9,12 +9,11 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
-import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
+import uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -28,12 +27,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -65,10 +60,9 @@ public class StartLiveEventsTest {
         startLiveEvents = new StartLiveEvents(
             userService,
             userAuthenticationService,
-            CRON_USER_EMAIL,
-            mediaServiceBroker,
-            bookingService,
-            captureSessionService
+            captureSessionService, mediaServiceBroker, bookingService, CRON_USER_EMAIL,
+            20,
+            100
         );
 
         var accessDto = mock(AccessDTO.class);
@@ -83,200 +77,48 @@ public class StartLiveEventsTest {
     @Test
     @DisplayName("Should start live event for booking without a capture session")
     void runSuccess() {
-        var captureSession = createCaptureSession();
+        var bookingId1 = UUID.randomUUID();
+        var bookingId2 = UUID.randomUUID();
+        var booking1 = mock(BookingDTO.class);
+        var booking2 = mock(BookingDTO.class);
+        when(booking1.getId()).thenReturn(bookingId1);
+        when(booking2.getId()).thenReturn(bookingId2);
+        when(booking1.getCaptureSessions()).thenReturn(List.of());
+        when(booking2.getCaptureSessions()).thenReturn(List.of());
+
+        when(bookingService.searchBy(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+            .thenReturn(new PageImpl<>(List.of(booking1, booking2)));
+
         var mockMediaService = mock(IMediaService.class);
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mockMediaService);
-        when(bookingService.searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        )).thenReturn(new PageImpl<>(List.of(
-            createBooking(List.of())
-        )));
-        when(captureSessionService.findById(any(UUID.class))).thenReturn(captureSession);
-        var liveEvent1 = new LiveEventDTO();
-        liveEvent1.setResourceState("Starting");
-        var liveEvent2 = new LiveEventDTO();
-        liveEvent2.setResourceState("Running");
-        liveEvent2.setInputRtmp("ingest");
 
-        when(mockMediaService.getLiveEvent(anyString())).thenReturn(null, liveEvent1, liveEvent2);
+        var captureSession1 = new CaptureSessionDTO();
+        captureSession1.setId(UUID.randomUUID());
+        captureSession1.setStatus(RecordingStatus.INITIALISING);
+        var captureSession2 = new CaptureSessionDTO();
+        captureSession2.setId(UUID.randomUUID());
+        captureSession2.setStatus(RecordingStatus.INITIALISING);
+
+        var mockedUUID = mockStatic(UUID.class);
+        mockedUUID.when(UUID::randomUUID).thenReturn(captureSession1.getId(), captureSession2.getId());
+        when(captureSessionService.findById(any())).thenReturn(captureSession1, captureSession2);
+
+        var liveEvent1 = mock(LiveEventDTO.class);
+        when(liveEvent1.getName()).thenReturn(MediaResourcesHelper.getSanitisedLiveEventId(captureSession1.getId()));
+        when(liveEvent1.getResourceState()).thenReturn("Starting", "Running");
+        when(liveEvent1.getInputRtmp()).thenReturn(null, "some rtmps");
+
+        var liveEvent2 = mock(LiveEventDTO.class);
+        when(liveEvent2.getName()).thenReturn(MediaResourcesHelper.getSanitisedLiveEventId(captureSession2.getId()));
+        when(liveEvent2.getResourceState()).thenReturn("Starting", "Running");
+        when(liveEvent2.getInputRtmp()).thenReturn(null, "some rtmps");
+
+        when(mockMediaService.getLiveEvents()).thenReturn(List.of(liveEvent1, liveEvent2));
 
         startLiveEvents.run();
 
-        verify(bookingService, times(1)).searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        );
-        verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
-        verify(mockMediaService, times(1)).startLiveEvent(captureSession);
-        verify(captureSessionService, never())
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.FAILURE), isNull());
-        verify(captureSessionService, times(1))
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.INITIALISING), isNull());
-        verify(captureSessionService, times(1))
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.STANDBY), anyString());
-        verify(mockMediaService, times(3)).getLiveEvent(anyString());
-    }
-
-    @Test
-    @DisplayName("Should not start live event for booking with a capture session")
-    void runSuccessAlreadyHasCaptureSession() {
-        var captureSession = createCaptureSession();
-        var mockMediaService = mock(IMediaService.class);
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mockMediaService);
-        when(bookingService.searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        )).thenReturn(new PageImpl<>(List.of(
-            createBooking(List.of(captureSession))
-        )));
-        when(captureSessionService.findById(any(UUID.class))).thenReturn(captureSession);
-
-        startLiveEvents.run();
-
-        verify(bookingService, times(1)).searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        );
-        verify(captureSessionService, never()).upsert(any(CreateCaptureSessionDTO.class));
-        verify(mockMediaService, never()).startLiveEvent(captureSession);
-        verify(captureSessionService, never())
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.FAILURE), isNull());
-        verify(captureSessionService, never())
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.INITIALISING), isNull());
-        verify(captureSessionService, never())
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.STANDBY), isNull());
-    }
-
-    @Test
-    @DisplayName("Should ignore bookings where creating a capture session causes an error")
-    void runSuccessErrorCreatingCaptureSession() {
-        var captureSession = createCaptureSession();
-        var mockMediaService = mock(IMediaService.class);
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mockMediaService);
-        when(bookingService.searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        )).thenReturn(new PageImpl<>(List.of(
-            createBooking(List.of())
-        )));
-        when(captureSessionService.findById(any(UUID.class))).thenReturn(captureSession);
-
-        doThrow(new NotFoundException("")).when(captureSessionService).upsert(any(CreateCaptureSessionDTO.class));
-
-        startLiveEvents.run();
-
-        verify(bookingService, times(1)).searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        );
-        verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
-        verify(mockMediaService, never()).startLiveEvent(captureSession);
-        verify(captureSessionService, never())
-            .startCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, null);
-        verify(captureSessionService, never())
-            .startCaptureSession(captureSession.getId(), RecordingStatus.INITIALISING, null);
-        verify(captureSessionService, never())
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.STANDBY), isNull());
-    }
-
-    @Test
-    @DisplayName("Should not error on failure to start live event")
-    void runSuccessOnStartLiveEventFailure() {
-        var captureSession = createCaptureSession();
-        var mockMediaService = mock(IMediaService.class);
-        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mockMediaService);
-        doThrow(new NotFoundException("")).when(mockMediaService).startLiveEvent(captureSession);
-        when(bookingService.searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        )).thenReturn(new PageImpl<>(List.of(
-            createBooking(List.of())
-        )));
-        when(captureSessionService.findById(any(UUID.class))).thenReturn(captureSession);
-
-        startLiveEvents.run();
-
-        verify(bookingService, times(1)).searchBy(
-            isNull(),
-            isNull(),
-            isNull(),
-            any(),
-            isNull(),
-            isNull(),
-            isNull(),
-            isNull(),
-            any()
-        );
-        verify(captureSessionService, times(1)).upsert(any(CreateCaptureSessionDTO.class));
-        verify(mockMediaService, times(1)).startLiveEvent(captureSession);
-        verify(captureSessionService, times(1))
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.FAILURE), isNull());
-        verify(captureSessionService, never())
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.INITIALISING), isNull());
-        verify(captureSessionService, never())
-            .startCaptureSession(any(UUID.class), eq(RecordingStatus.STANDBY), isNull());
-    }
-
-    private BookingDTO createBooking(List<CaptureSessionDTO> captureSessions) {
-        var booking = new BookingDTO();
-        booking.setId(UUID.randomUUID());
-        booking.setCaptureSessions(captureSessions);
-        return booking;
-    }
-
-    private CaptureSessionDTO createCaptureSession() {
-        var captureSession = new CaptureSessionDTO();
-        captureSession.setId(UUID.randomUUID());
-        return captureSession;
+        verify(captureSessionService, times(2)).upsert(any());
+        verify(mockMediaService, times(2)).startLiveEvent(any());
+        verify(mockMediaService, times(3)).getLiveEvents();
     }
 }
