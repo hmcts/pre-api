@@ -1,14 +1,46 @@
-# pre-api.
-
-# Pre-Recorded Evidence API
+# Pre-Recorded Evidence API (pre-api)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api) [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=uk.gov.hmcts.reform%3Apre-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=uk.gov.hmcts.reform%3Apre-api)
 
-## Purpose
+## Table of Contents
 
-This code repository contains the source code for the Pre-Recorded Evidence API.
+* [Introduction](#introduction)
+  * [Intro to Pre-Recorded Evidence](#bulk-print)
+  * [Purpose of pre-api](#send-letter-service)
+  * [Documentation](#documentation)
+  * [PRE System Diagram](#pre-system-diagram)
+  * [Other PRE Repositories](#other-pre-repositories)
+  * [What's inside](#whats-inside)
+  * [Plugins](#plugins)
+* [Building, Deploying and Running the Application Locally](#building-and-deploying-the-application-locally)
+  * [Prerequisites](#prerequisites)
+  * [Quick Start](#quick-start)
+  * [Locally](#locally)
+  * [Docker environment](#docker-environment)
+* [Onboarding new services](#onboarding-new-services)
+* [Manual Testing](#manual-testing)
+* [License](#license)
 
-The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
+## Introduction
+
+### Intro to Pre-Recorded Evidence System
+
+The Pre-Recorded Evidence (PRE) system is a new service that allows the capturing of a video recorded hearing or testimony,
+and allows this recording to be securely shared to advocates, or played back in court. You can learn more about the service
+[here](https://tools.hmcts.net/confluence/display/S28/Pre-Recorded+Evidence).
+
+### Purpose of pre-api in the System
+
+This code repository contains the source code for the Pre-Recorded Evidence API (pre-api).
+
+pre-api is a Java Spring Boot application that serves as a backend API for both the PRE PowerApps Apps and the PRE Portal.
+
+### Documentation
+
+The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/).
+If running PRE API locally you can access the Swagger UI at [http://localhost:4550/swagger-ui/index.html](http://localhost:4550/swagger-ui/index.html).
+
+### PRE System Diagram
 
 This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
 ```mermaid
@@ -66,13 +98,13 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
       UpdateLayoutConfig($c4ShapeInRow="3", $c4BoundaryInRow="1")
 ```
 
-## Related Repositories
+### Other PRE Repositories
  * [PRE Power Platform Frontend](https://github.com/hmcts/pre-power-platform)
  * [PRE Shared Infrastructure](https://github.com/hmcts/pre-shared-infrastructure)
  * [PRE Function Apps](https://github.com/hmcts/pre-functions)
  * [PRE Portal](https://github.com/hmcts/pre-portal)
 
-## What's inside
+### What's inside
 
 The template is a working application with a minimal setup. It contains:
  * application code
@@ -89,7 +121,7 @@ The application exposes health endpoint (http://localhost:4550/health) and metri
 
 ## Plugins
 
-The template contains the following plugins:
+The app code contains the following plugins:
 
   * checkstyle
 
@@ -140,16 +172,114 @@ The template contains the following plugins:
       ./gradlew dependencyUpdates -Drevision=release
     ```
 
-## Setup
+## Building, Deploying and Running the Application Locally
 
-Located in `./bin/init.sh`. Simply run and follow the explanation how to execute it.
+### Prerequisites
 
-## Building and deploying the application
+#### Environment variables
+
+> **Note** ℹ️
+> pre-api requires many environment variables to be set in order to run. You can get an idea of what they are by looking at the
+> `.env.local` file in the root of the project.
+---
+
+#### Setting Environment Variables
+
+To run the application locally, you need to set several environment variables. Follow these steps:
+
+1. **Create a `.env` file**
+   In the root of the project, create a file named `.env`.
+
+2. **Get the variable values**
+   Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for the required environment variable values and add them to your `.env` file.
+
+3. **Load the variables**
+   Run the following command in your terminal to load the variables from your `.env` file into your current shell session:
+
+   ```bash
+   export $(grep -v '^#' .env | xargs -0)
+   ```
+
+#### Why is this command needed?
+
+This command loads all the environment variables defined in your `.env` file (ignoring any lines that start with `#`, which are comments)
+and exports them into your current session. This makes the variables available to the application when you run it
+Without the command, the application won't have the values it needs to function correctly.
 
 ### Building the application
 
-The project uses [Gradle](https://gradle.org) as a build tool. It already contains
+> **Note** ℹ️
+> The project uses [Gradle](https://gradle.org) as a build tool. It already contains
 `./gradlew` wrapper script, so there's no need to install gradle.
+
+To build the project execute the following command:
+
+```bash
+  ./gradlew build
+```
+
+### Running the Application with Docker
+
+1. **Build the Docker image for database:**
+
+   ```bash
+   docker-compose build
+   ```
+
+    This command will build the Docker image for the database using the `docker-compose.yml` in the root of the project.
+
+2. **Start the database the application needs:**
+
+   ```bash
+   docker-compose up --detach
+   ```
+
+   This will start the database container (in the background, hence the --detach). As well as the adminer container
+which is a web interface for managing the database and can be used or ignored.
+
+3. **Start the application itself:**
+
+   ```bash
+   ./gradlew bootRun
+   ```
+
+   This will start the application directly from the source cod (no need for JAR or image).
+4. **Check if the application is running:**
+
+   Call the health endpoint:
+
+   ```bash
+   curl http://localhost:4550/health
+   ```
+
+   You should see a response similar to:
+
+   ```
+   {"status":"UP","diskSpace":{"status":"UP","total":249644974080,"free":137188298752,"threshold":10485760}}
+   ```
+    This indicates that the application is running healthily.
+
+## Running the Tests Locally
+
+### Running the Unit Tests
+
+#### With the Command Line
+
+To run the unit tests with the command line, execute the following command:
+
+```bash
+  ./gradlew test
+```
+
+This will run all the unit tests in the project and generate a report in `build/reports/tests/test/index.html`.
+You can open this file in your browser to see the test results.
+
+#### With IntelliJ
+
+Right-click on the `src/test` directory in IntelliJ and select "Run 'All Tests'". This will run all the unit tests in the project.
+You can also run individual test classes or methods by right-clicking on them and selecting "Run".
+
+### Running the Integration Tests
 
 In order for integration tests to run, a docker image is needed for the
 postgres testcontainers.
@@ -160,87 +290,11 @@ az login # if not logged in already
 az acr login --name hmctspublic
 ```
 
-To build the project execute the following command:
-
-```bash
-  ./gradlew build
-```
-
-### Running the application
-
-Create the image of the application by executing the following command:
-
-```bash
-  ./gradlew assemble
-```
-
-Create docker image:
-
-```bash
-  docker-compose build
-```
-
-Run the distribution (created in `build/install/pre-api` directory)
-by executing the following command:
-
-```bash
-  docker-compose up
-```
-
-This will start the API container exposing the application's port
-(set to `4550` in this template app).
-
-In order to test if the application is up, you can call its health endpoint:
-
-```bash
-  curl http://localhost:4550/health
-```
-
-You should get a response similar to this:
-
-```
-  {"status":"UP","diskSpace":{"status":"UP","total":249644974080,"free":137188298752,"threshold":10485760}}
-```
-
-### Alternative script to run application
-
-To skip all the setting up and building, just execute the following command:
-
-```bash
-./bin/run-in-docker.sh
-```
-
-For more information:
-
-```bash
-./bin/run-in-docker.sh -h
-```
-
-Script includes bare minimum environment variables necessary to start api instance. Whenever any variable is changed or any other script regarding docker image/container build, the suggested way to ensure all is cleaned up properly is by this command:
-
-```bash
-docker-compose rm
-```
-
-It clears stopped containers correctly. Might consider removing clutter of images too, especially the ones fiddled with:
-
-```bash
-docker images
-
-docker image rm <image-id>
-```
-
-There is no need to remove postgres and java or similar core images.
+### Running the Functional Tests
 
 ## How to generate a Power Platform Custom Connector
 Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
 
-## Environment variables
-
-You need to export variables from your .env file when altered
-
-```
-export $(grep -v '^#' .env | xargs -0)
 ```
 
 
