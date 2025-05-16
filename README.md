@@ -168,27 +168,29 @@ To build the project execute the following command:
 
 ### Running the application
 
+First, you need to export variables from your .env file whenever altered
+
+```
+export $(grep -v '^#' .env | xargs -0)
+```
+
 Create the image of the application by executing the following command:
 
 ```bash
   ./gradlew assemble
 ```
 
-Create docker image:
-
+Run the application:
 ```bash
-  docker-compose build
+./gradlew bootRun
 ```
 
-Run the distribution (created in `build/install/pre-api` directory)
-by executing the following command:
-
+To run with a debugger attached, you can run natively in an IDE, or attach:
 ```bash
-  docker-compose up
+./gradlew clean build bootRun --debug-jvm
 ```
 
-This will start the API container exposing the application's port
-(set to `4550` in this template app).
+Let it run until it hangs with a listening message. Then in IntelliJ, select the Java process from Run > Attach to Process.
 
 In order to test if the application is up, you can call its health endpoint:
 
@@ -202,46 +204,43 @@ You should get a response similar to this:
   {"status":"UP","diskSpace":{"status":"UP","total":249644974080,"free":137188298752,"threshold":10485760}}
 ```
 
-### Alternative script to run application
+To hit local endpoints, you may need to turn off Global Protect.
 
-To skip all the setting up and building, just execute the following command:
+### Running the database locally
 
-```bash
-./bin/run-in-docker.sh
-```
-
-For more information:
+Create docker image:
 
 ```bash
-./bin/run-in-docker.sh -h
+  docker-compose build
 ```
 
-Script includes bare minimum environment variables necessary to start api instance. Whenever any variable is changed or any other script regarding docker image/container build, the suggested way to ensure all is cleaned up properly is by this command:
+Run the Docker containers:
+
+```bash
+  docker-compose up
+```
+
+This will start the database container exposing the database's port (`5432`).
+
+After starting your Docker container, you can create the tables and load mock data in with:
+
+```bash
+./docker/database/local/load_data_into_local_db.sh
+```
+
+You may need to make the script executable first with `chmod +x ./docker/database/local/load_data_into_local_db.sh`
+
+
+If it all goes wrong, simply clean up Docker and start again:
 
 ```bash
 docker-compose rm
 ```
 
-It clears stopped containers correctly. Might consider removing clutter of images too, especially the ones fiddled with:
-
-```bash
-docker images
-
-docker image rm <image-id>
-```
-
-There is no need to remove postgres and java or similar core images.
+This clears stopped containers correctly.
 
 ## How to generate a Power Platform Custom Connector
 Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
-
-## Environment variables
-
-You need to export variables from your .env file when altered
-
-```
-export $(grep -v '^#' .env | xargs -0)
-```
 
 
 ## Crons
