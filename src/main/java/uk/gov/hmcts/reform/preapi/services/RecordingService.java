@@ -28,7 +28,9 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -173,5 +175,12 @@ public class RecordingService {
         }
         entity.setDeletedAt(null);
         recordingRepository.save(entity);
+    }
+
+    @Transactional
+    public List<RecordingDTO> findAllVodafoneRecordings() {
+        return recordingRepository.findAllOriginVodafone().stream()
+            .map(RecordingDTO::new)
+            .collect(Collectors.toList());
     }
 }
