@@ -37,6 +37,7 @@ import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -82,6 +83,13 @@ public class CaseService {
             .findByIdAndDeletedAtIsNull(id)
             .map(CaseDTO::new)
             .orElseThrow(() -> new NotFoundException("Case: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    @PreAuthorize("@authorisationService.hasCaseAccess(authentication, #id)")
+    public List<CaseDTO> getCasesByOrigin(RecordingOrigin origin) {
+        var cases = caseRepository.findAllByOrigin(origin);
+        return cases.stream().map(CaseDTO::new).toList();
     }
 
     @Transactional
