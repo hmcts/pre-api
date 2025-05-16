@@ -90,17 +90,17 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         loggingService.logDebug("Processing Exemption Item: %s", exemptionItem);
 
         ExtractedMetadata extractedData = convertToExtractedMetadata(exemptionItem);
-        try {
-            if (extractedData == null) {
-                return null;
-            }
+        // todo- shouldn't be possible- remove this?
+        if (extractedData == null) {
+            return null;
+        }
 
+        try {
             ProcessedRecording cleansedData = transformData(extractedData);
             if (cleansedData == null) {
                 return null;
             }
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
-
         } catch (Exception e) {
             loggingService.logError(
                 "Error processing archive %s: %s",
@@ -109,8 +109,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 e
             );
             handleError(extractedData, "Failed to create migrated item group: " + e.getMessage(), "Error");
-            return null;
         }
+        return null;
     }
 
     private MigratedItemGroup processArchiveItem(CSVArchiveListData archiveItem) {
@@ -139,17 +139,16 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (!isValidated(cleansedData, archiveItem)) {
                 return null;
             }
-            
-            loggingService.incrementProgress();           
+
+            loggingService.incrementProgress();
             cacheService.dumpToFile();
-         
+
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
         } catch (Exception e) {
             loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
             handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
-            return null;
         }
-
+        return null;
     }
 
     // =========================
@@ -223,7 +222,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             String seenOriginal = (String) metadata.get("origVersionArchiveName");
             String seenCopyName = (String) metadata.get("copyVersionArchiveName");
 
-            if ((isOrig && seenOrig && archiveName.equalsIgnoreCase(seenOriginal)) 
+            if ((isOrig && seenOrig && archiveName.equalsIgnoreCase(seenOriginal))
                 || (isCopy && seenCopy && archiveName.equalsIgnoreCase(seenCopyName))) {
 
                 handleError(archiveItem, "Duplicate recording already seen", "Duplicate");
@@ -256,7 +255,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     //======================
     // Helper Methods
     //======================
-    
+
     private <T> boolean checkForError(ServiceResult<T> result, IArchiveData item) {
         String errorMessage = result.getErrorMessage();
         String category = result.getCategory();
@@ -268,17 +267,16 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return false;
     }
 
-    private MigratedItemGroup handleError(IArchiveData item, String message, String category) {
+    private void handleError(IArchiveData item, String message, String category) {
         migrationTrackerService.addFailedItem(new FailedItem(item, message, category));
-        return null;
     }
 
-    private MigratedItemGroup handleTest(TestItem testItem) {
+    private void handleTest(TestItem testItem) {
         migrationTrackerService.addTestItem(testItem);
-        return null;
     }
 
     private ExtractedMetadata convertToExtractedMetadata(CSVExemptionListData exemptionItem) {
+        // todo - this shouldn't be possible, remove ?
         if (exemptionItem == null) {
             loggingService.logWarning("Received NULL exemption item for conversion!");
             return null;
@@ -308,20 +306,20 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private void checkAndCreateNotifyItem(ExtractedMetadata extractedData) {
         String defendantLastName = extractedData.getDefendantLastName();
         String witnessFirstName = extractedData.getWitnessFirstName();
-        // Double-barrelled name checks
+        // Double-barreled name checks
         if (defendantLastName != null && defendantLastName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled defendant",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barreled defendant", extractedData));
         }
 
         if (witnessFirstName != null && witnessFirstName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled witness",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barreled witness", extractedData));
         }
 
         String urn = extractedData.getUrn();
         String exhibitRef = extractedData.getExhibitReference();
         // case ref checks
         if (urn == null || urn.isEmpty()) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN", extractedData));
         } else if (urn.length() < 11) {
             migrationTrackerService.addNotifyItem(new NotifyItem("URN - invalid length", extractedData));
         }
@@ -332,6 +330,5 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             migrationTrackerService.addNotifyItem(new NotifyItem("T-ref - invalid length", extractedData));
         }
     }
-
 }
 

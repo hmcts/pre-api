@@ -40,9 +40,9 @@ public final class RecordingUtils {
         String versionType = Optional.ofNullable(recordingVersion)
                                      .map(String::toUpperCase)
                                      .filter(Constants.VALID_VERSION_TYPES::contains)
-                                    .orElseThrow(() -> new IllegalArgumentException(
-                                        "Invalid recording version: " + recordingVersion
-                                    ));
+                                     .orElseThrow(() -> new IllegalArgumentException(
+                                         "Invalid recording version: " + recordingVersion
+                                     ));
         String validVersionNumber = getValidVersionNumber(versionNumberStr);
         int versionNumber = getRecordingVersionNumber(versionType);
         boolean isMostRecent = isMostRecentVersion(versionType, validVersionNumber, dataMap);
@@ -125,5 +125,4 @@ public final class RecordingUtils {
         }
         return new MetadataUpdateResult(updatedMetadata, updated);
     }
-
 }
