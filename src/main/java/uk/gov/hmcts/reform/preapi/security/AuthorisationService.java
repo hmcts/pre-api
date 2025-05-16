@@ -8,6 +8,11 @@ import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -15,6 +20,7 @@ import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -25,6 +31,8 @@ public class AuthorisationService {
     private final ParticipantRepository participantRepository;
     private final CaptureSessionRepository captureSessionRepository;
     private final RecordingRepository recordingRepository;
+
+    private static final String ROLE_LEVEL_2 = "ROLE_LEVEL_2";
 
     public AuthorisationService(BookingRepository bookingRepository,
                                 CaseRepository caseRepository,
@@ -39,7 +47,7 @@ public class AuthorisationService {
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
-        var booking = bookingRepository.findById(bookingId);
+        Optional<Booking> booking = bookingRepository.findById(bookingId);
 
         return booking.isPresent() && (authentication.isAppUser()
             && booking.get().getCaseId().getCourt().getId().equals(authentication.getCourtId()
@@ -64,7 +72,7 @@ public class AuthorisationService {
         if (captureSessionId == null || authentication.isAdmin()) {
             return true;
         }
-        var entity = captureSessionRepository.findById(captureSessionId).orElse(null);
+        CaptureSession entity = captureSessionRepository.findById(captureSessionId).orElse(null);
         return entity == null || hasBookingAccess(authentication, entity.getBooking().getId());
     }
 
@@ -72,7 +80,7 @@ public class AuthorisationService {
         if (recordingId == null || authentication.isAdmin()) {
             return true;
         }
-        var entity = recordingRepository.findById(recordingId).orElse(null);
+        Recording entity = recordingRepository.findById(recordingId).orElse(null);
         return entity == null || hasCaptureSessionAccess(authentication, entity.getCaptureSession().getId());
     }
 
@@ -81,7 +89,7 @@ public class AuthorisationService {
             return true;
         }
 
-        var participant = participantRepository.findById(participantId).orElse(null);
+        Participant participant = participantRepository.findById(participantId).orElse(null);
         return participant == null || hasCaseAccess(authentication, participant.getCaseId().getId());
     }
 
@@ -89,7 +97,7 @@ public class AuthorisationService {
         if (caseId == null || authentication.isAdmin() || authentication.isPortalUser()) {
             return true;
         }
-        var caseEntity = caseRepository.findById(caseId).orElse(null);
+        Case caseEntity = caseRepository.findById(caseId).orElse(null);
         return caseEntity == null
             || authentication.getCourtId().equals(caseEntity.getCourt().getId());
     }
@@ -144,6 +152,6 @@ public class AuthorisationService {
             .map(c -> c.getState() == dto.getState())
             .orElse(false)
             || authentication.isAdmin()
-            || authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_LEVEL_2"));
+            || authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals(ROLE_LEVEL_2));
     }
 }

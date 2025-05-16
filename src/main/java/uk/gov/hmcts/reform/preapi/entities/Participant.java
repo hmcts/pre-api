@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -47,8 +48,8 @@ public class Participant extends CreatedModifiedAtEntity {
     private Set<Booking> bookings;
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("caseId", caseId.getId());
         details.put("firstName", firstName);
         details.put("lastName", lastName);

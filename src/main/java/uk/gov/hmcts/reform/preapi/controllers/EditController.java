@@ -37,7 +37,7 @@ public class EditController {
     @PostMapping(value = "/from-csv/{sourceRecordingId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<EditRequestDTO> createEditFromCsv(@PathVariable UUID sourceRecordingId,
                                                      @RequestParam("file") MultipartFile file) {
-        var fileType = file.getContentType();
+        String fileType = file.getContentType();
         if (fileType == null || !fileType.equals(CSV_FILE_TYPE)) {
             throw new UnsupportedMediaTypeException("Unsupported media type: Only CSV files are supported");
         }

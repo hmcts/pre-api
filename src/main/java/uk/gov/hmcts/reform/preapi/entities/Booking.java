@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Getter
@@ -63,8 +64,8 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
     }
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("caseId", caseId.getId());
         details.put("bookingScheduledFor", scheduledFor);
         details.put("deleted", isDeleted());

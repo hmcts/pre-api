@@ -21,7 +21,7 @@ import java.util.UUID;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class RecordingServiceIT extends IntegrationTestBase {
+class RecordingServiceIT extends IntegrationTestBase {
     @Autowired
     private RecordingService recordingService;
 

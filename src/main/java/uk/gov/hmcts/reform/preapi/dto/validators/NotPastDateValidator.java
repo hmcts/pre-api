@@ -19,8 +19,9 @@ public class NotPastDateValidator implements ConstraintValidator<NotPastDateCons
             return false;
         }
 
-        var localDateField = LocalDateTime.ofInstant(dateField.toInstant(), ZoneId.of("Europe/London")).toLocalDate();
-        var today = LocalDate.now();
+        LocalDate localDateField = LocalDateTime.ofInstant(dateField.toInstant(), ZoneId.of("Europe/London"))
+            .toLocalDate();
+        LocalDate today = LocalDate.now();
 
         return !localDateField.isBefore(today);
     }

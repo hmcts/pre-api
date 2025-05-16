@@ -21,7 +21,7 @@ public class SecurityConfig {
 
     private final UserAuthenticationService userAuthenticationService;
 
-    public static final AntPathRequestMatcher[] NOT_AUTHORIZED_URIS = new AntPathRequestMatcher[] {
+    public static final AntPathRequestMatcher[] NOT_AUTHORIZED_URIS = {
         new AntPathRequestMatcher("/testing-support/**"),
         new AntPathRequestMatcher("/swagger-ui/**"),
         new AntPathRequestMatcher("/v3/api-docs/**"),
@@ -46,6 +46,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("PMD.SignatureDeclareThrowsException")
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)

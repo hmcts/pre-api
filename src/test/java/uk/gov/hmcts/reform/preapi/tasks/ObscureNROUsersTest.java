@@ -81,6 +81,7 @@ class ObscureNROUsersTest {
     private List<ImportedNROUser> testImportedNROUsers;
 
     @BeforeEach
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     void beforeEach() {
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);

@@ -11,9 +11,11 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,8 +24,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@Component
 @Slf4j
+@Component
+@SuppressWarnings("PMD.InsufficientStringBufferDeclaration")
 public class ObscureNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
@@ -39,7 +42,7 @@ public class ObscureNROUsers extends RobotUserTask {
                            CourtRepository courtRepository,
                            RoleRepository roleRepository,
                            @Value("${nroUsersFilePath:src/integrationTest/resources/Test_NRO_User_Import.csv}")
-                               String usersFile) throws IllegalArgumentException {
+                               String usersFile) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.courtRepository = courtRepository;
         this.roleRepository = roleRepository;
@@ -47,8 +50,7 @@ public class ObscureNROUsers extends RobotUserTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
-
+    public void run() {
         UUID obscuringCourtID;
         if (this.courtRepository.findFirstByName("Foo Court").isEmpty()) {
             String noObscuringCourtErrorMessage = "Cannot obscure users: obscuring court does not exist in the DB "
@@ -70,18 +72,20 @@ public class ObscureNROUsers extends RobotUserTask {
         }
 
         // Collate user emails
-        try (BufferedReader br = new BufferedReader(new FileReader(this.usersFile))) {
-            String line;
+        try (BufferedReader br = Files.newBufferedReader(Path.of(this.usersFile), StandardCharsets.UTF_8)) {
+            String line = br.readLine();
             // Read each line
-            while ((line = br.readLine()) != null) {
+            while (line != null) {
                 // Skip header if there is one
                 if (line.contains("FirstName")) {
+                    line = br.readLine();
                     continue;
                 }
                 String[] values = ImportedNROUser.parseCsvLine(line);
                 String email = values[2];
 
                 this.populateUserEmailsAndIDs(email);
+                line = br.readLine();
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -97,14 +101,15 @@ public class ObscureNROUsers extends RobotUserTask {
         StringBuilder pgAdmin4Query = new StringBuilder("""
                 UPDATE public.app_access
                 SET
-                court_id =\s""");
+                court_id ='\s""");
 
-        pgAdmin4Query.append("'").append(obscuringCourtID).append("',\n");
-        pgAdmin4Query.append("role_id = '").append(obscuringRoleID).append("',\n");
-        pgAdmin4Query.append("active = false\nWHERE user_id IN (");
+        pgAdmin4Query.append(obscuringCourtID)
+            .append("',\nrole_id = '")
+            .append(obscuringRoleID)
+            .append("',\nactive = false\nWHERE user_id IN (");
 
         for (UUID userID : userIDs) {
-            pgAdmin4Query.append("'").append(userID).append("', ");
+            pgAdmin4Query.append('\'').append(userID).append("', ");
         }
 
         pgAdmin4Query.delete(pgAdmin4Query.length() - 2, pgAdmin4Query.length());
@@ -146,7 +151,7 @@ public class ObscureNROUsers extends RobotUserTask {
                 WHERE id IN (""");
 
         for (UUID userID : userIDs) {
-            pgAdmin4Query.append("'").append(userID).append("', ");
+            pgAdmin4Query.append('\'').append(userID).append("', ");
         }
 
         pgAdmin4Query.delete(pgAdmin4Query.length() - 2, pgAdmin4Query.length());

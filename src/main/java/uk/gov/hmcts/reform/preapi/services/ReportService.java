@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class ReportService {
 
     private final CaptureSessionRepository captureSessionRepository;
@@ -123,9 +124,9 @@ public class ReportService {
                 .map(this::toPlaybackReport)
                 .toList();
         } else if (source == AuditLogSource.PORTAL || source == AuditLogSource.APPLICATION) {
-            final var activityPlay = "Play";
-            final var functionalAreaVideoPlayer = "Video Player";
-            final var functionalAreaViewRecordings = "View Recordings";
+            final String activityPlay = "Play";
+            final String functionalAreaVideoPlayer = "Video Player";
+            final String functionalAreaViewRecordings = "View Recordings";
 
             return auditRepository
                 .findBySourceAndFunctionalAreaAndActivity(
@@ -173,6 +174,7 @@ public class ReportService {
             .toList();
     }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod") // this is used
     private List<RecordingParticipantsReportDTO> getParticipantsForRecording(Recording recording) {
         return recording
             .getCaptureSession()
@@ -183,9 +185,10 @@ public class ReportService {
             .toList();
     }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod") // this is used
     private PlaybackReportDTO toPlaybackReport(Audit audit) {
         // S28-3604 discovered audit details records Recording Id as recordingId _and_ recordinguid
-        var auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
+        boolean auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
         UUID recordingId = null;
         if (auditDetails) {
             if (audit.getAuditDetails().hasNonNull("recordingId")) {

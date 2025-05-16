@@ -24,6 +24,7 @@ public class SlackMessage {
      *
      * @return A string which is the message content.
      */
+    @SuppressWarnings("PMD.InsufficientStringBufferDeclaration")
     public String toJson() {
         StringBuilder message = new StringBuilder();
 

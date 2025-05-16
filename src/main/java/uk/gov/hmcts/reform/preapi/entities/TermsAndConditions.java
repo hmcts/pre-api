@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -36,8 +37,8 @@ public class TermsAndConditions extends BaseEntity {
     private Timestamp createdAt;
 
     @Override
-    public HashMap<String, Object> getDetailsForAudit() {
-        var details = new HashMap<String, Object>();
+    public Map<String, Object> getDetailsForAudit() {
+        Map<String, Object> details = new HashMap<>();
         details.put("content", content);
         details.put("type", type);
         return details;

@@ -6,10 +6,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -31,6 +33,8 @@ public class StartLiveEvents extends RobotUserTask {
     private final MediaServiceBroker mediaServiceBroker;
     private final BookingService bookingService;
     private final CaptureSessionService captureSessionService;
+
+    private static final String LIVE_EVENT_RUNNING_STATE = "Running";
 
     @Autowired
     public StartLiveEvents(UserService userService,
@@ -70,11 +74,11 @@ public class StartLiveEvents extends RobotUserTask {
             .forEach(this::awaitIngestAddress);
     }
 
-
+    @SuppressWarnings("PMD.UnusedPrivateMethod") // this is used
     private UUID initCaptureSessionForBooking(UUID bookingId) {
         log.info("Creating capture session for booking {}", bookingId);
 
-        var dto = new CreateCaptureSessionDTO();
+        CreateCaptureSessionDTO dto = new CreateCaptureSessionDTO();
         dto.setId(UUID.randomUUID());
         dto.setBookingId(bookingId);
         dto.setOrigin(RecordingOrigin.PRE);
@@ -90,11 +94,12 @@ public class StartLiveEvents extends RobotUserTask {
         return dto.getId();
     }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod") // this is used
     private boolean startLiveEvent(UUID captureSessionId) {
         log.info("Starting live event for capture session {}", captureSessionId);
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        var dto = captureSessionService.findById(captureSessionId);
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
+        CaptureSessionDTO dto = captureSessionService.findById(captureSessionId);
 
         try {
             mediaService.startLiveEvent(dto);
@@ -108,10 +113,11 @@ public class StartLiveEvents extends RobotUserTask {
         return true;
     }
 
+    @SuppressWarnings("PMD.UnusedPrivateMethod") // this is used
     private void awaitIngestAddress(UUID captureSessionId) {
         log.info("Awaiting ingest address for capture session {}", captureSessionId);
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        var liveEventName = MediaResourcesHelper.getSanitisedLiveEventId(captureSessionId);
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
+        String liveEventName = MediaResourcesHelper.getSanitisedLiveEventId(captureSessionId);
 
         try {
             String inputRtmp;
@@ -122,18 +128,21 @@ public class StartLiveEvents extends RobotUserTask {
 
             log.info("Ingest address found for capture session {}", captureSessionId);
             captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.STANDBY, inputRtmp);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Failed to await ingest address for capture session {}", captureSessionId, e);
+            captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
         } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
             log.error("Failed to await ingest address for capture session {}", captureSessionId, e);
             captureSessionService.startCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
         }
     }
 
     private @Nullable String getIngestAddress(LiveEventDTO liveEvent) {
-        return liveEvent != null && liveEvent.getResourceState().equals("Running") && liveEvent.getInputRtmp() != null
-            ? liveEvent.getInputRtmp()
-            : null;
+        return liveEvent != null
+            && liveEvent.getResourceState().equals(LIVE_EVENT_RUNNING_STATE)
+            && liveEvent.getInputRtmp() != null
+                ? liveEvent.getInputRtmp()
+                : null;
     }
 }

@@ -8,6 +8,10 @@ public class UnknownServerException extends RuntimeException {
         super("Unknown Server Exception: " + message);
     }
 
+    public UnknownServerException(String message, Throwable cause) {
+        super("Unknown Server Exception: " + message, cause);
+    }
+
     public UnknownServerException(Exception exception) {
         super(exception);
     }

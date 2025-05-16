@@ -46,7 +46,8 @@ public class SearchRecordingsTest {
         searchRecordings.setDefendantName(null);
         assertNull(searchRecordings.getDefendantName());
     }
-  
+
+    @Test
     public void getId() {
         var searchRecordings = new SearchRecordings();
         searchRecordings.setId("abc");

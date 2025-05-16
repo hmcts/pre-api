@@ -92,6 +92,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             )
         """
     )
+    @SuppressWarnings("PMD.ExcessiveParameterList")
     Page<Booking> searchBookingsBy(
         @Param("caseId") UUID caseId,
         @Param("reference") String reference,

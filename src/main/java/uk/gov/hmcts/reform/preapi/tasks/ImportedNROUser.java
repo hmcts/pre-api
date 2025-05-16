@@ -19,11 +19,14 @@ public class ImportedNROUser {
     private UUID roleID;
     private String userAccess;
 
+    private static final char CSV_DELIMITER = ',';
+
+    @SuppressWarnings("PMD.AvoidLiteralsInIfCondition")
     public static String[] parseCsvLine(String line) {
         List<String> result = new ArrayList<>();
         StringBuilder currentValue = new StringBuilder();
         for (char ch : line.toCharArray()) {
-            if (ch == ',') {
+            if (ch == CSV_DELIMITER) {
                 result.add(currentValue.toString().trim());
                 currentValue.setLength(0); // Reset the StringBuilder
             } else {

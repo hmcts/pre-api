@@ -6,6 +6,7 @@ import uk.gov.hmcts.reform.preapi.exception.EmailFailedToSendException;
 
 import java.sql.Timestamp;
 
+@SuppressWarnings("PMD.AvoidUncheckedExceptionsInSignatures")
 public interface IEmailService {
     EmailResponse recordingReady(User to, Case forCase) throws EmailFailedToSendException;
 

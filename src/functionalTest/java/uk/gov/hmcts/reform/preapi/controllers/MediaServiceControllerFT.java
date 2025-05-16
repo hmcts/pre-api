@@ -12,7 +12,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MediaServiceControllerFT extends FunctionalTestBase {
+class MediaServiceControllerFT extends FunctionalTestBase {
 
     @DisplayName("Should return links to play back a vod on demand")
     @Test

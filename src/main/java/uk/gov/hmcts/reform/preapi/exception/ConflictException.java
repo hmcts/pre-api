@@ -8,6 +8,10 @@ public class ConflictException extends RuntimeException {
         super("Conflict: " + message);
     }
 
+    public ConflictException(String message, Throwable cause) {
+        super("Conflict: " + message, cause);
+    }
+
     public ConflictException(Exception exception) {
         super(exception);
     }

@@ -14,21 +14,25 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@Component
 @Slf4j
+@Component
+@SuppressWarnings({"PMD.CouplingBetweenObjects", "PMD.GodClass", "PMD.InsufficientStringBufferDeclaration"})
 public class AddNROUsers extends RobotUserTask {
 
     private final CourtRepository courtRepository;
@@ -38,6 +42,9 @@ public class AddNROUsers extends RobotUserTask {
     private final Map<String, String> otherUsersNotImported = new HashMap<>();
     private final RoleRepository roleRepository;
     private final String usersFile;
+
+    private static final int MAX_SECONDARY_COURTS = 4;
+    private static final int MAX_PRIMARY_COURTS = 1;
 
     @Autowired
     public AddNROUsers(UserService userService,
@@ -54,7 +61,7 @@ public class AddNROUsers extends RobotUserTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         log.info("Running AddNROUsers task");
         signInRobotUser(); // needed to populate created_by column in audits table
 
@@ -121,13 +128,14 @@ public class AddNROUsers extends RobotUserTask {
     private void createImportedNROUserObjects(String usersFilePath) throws IOException {
         int rowNumber = 1;
         // Read from CSV file
-        try (BufferedReader br = new BufferedReader(new FileReader(usersFilePath))) {
-            String line;
+        try (BufferedReader br = Files.newBufferedReader(Path.of(usersFilePath), StandardCharsets.UTF_8)) {
+            String line = br.readLine();
             // Read each line
-            while ((line = br.readLine()) != null) {
+            while (line != null) {
                 // Skip header if there is one
                 if (line.contains("FirstName")) {
                     rowNumber++;
+                    line = br.readLine();
                     continue;
                 }
 
@@ -139,6 +147,7 @@ public class AddNROUsers extends RobotUserTask {
                 }
 
                 rowNumber++;
+                line = br.readLine();
             }
         } catch (IOException e) {
             log.error("Error: {}", e.getMessage());
@@ -147,6 +156,7 @@ public class AddNROUsers extends RobotUserTask {
 
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private void createUsers() {
         // sort list of imported NRO users in alphabetical order by email (& then by court)
         this.importedNROUsers.sort(Comparator.comparing(ImportedNROUser::getEmail)
@@ -181,8 +191,8 @@ public class AddNROUsers extends RobotUserTask {
             createAppAccessDTOs.add(userAppAccess);
 
             // if this is the last element, or if the next element is a new email,
-            if ((index == (this.importedNROUsers.size() - 1)
-                || !((this.importedNROUsers.get(index + 1).getEmail()).equals(createUserDTO.getEmail())))) {
+            if (index == this.importedNROUsers.size() - 1
+                || !this.importedNROUsers.get(index + 1).getEmail().equals(createUserDTO.getEmail())) {
                 // assign all the app access objects for this user to the current user,
                 createUserDTO.setAppAccess(createAppAccessDTOs);
                 // then add the user to the list of users to upload
@@ -207,6 +217,7 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private Map<UUID, String> getErrorsAndUsersIDsForUsersToDelete(
         List<CreateAppAccessDTO> createAppAccessDTOs) {
         int index = 0;
@@ -233,7 +244,7 @@ public class AddNROUsers extends RobotUserTask {
             // the current court is:
             UUID currentCourt = createAppAccessDTO.getCourtId();
             // if the user has the same court name in two different app access objects,
-            if ((currentCourt.equals(previousCourt)) && (currentUser.equals(previousUser))) {
+            if (currentCourt.equals(previousCourt) && currentUser.equals(previousUser)) {
                 // delete them
                 appAccessErrors.append("User has duplicate court names\n");
                 usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
@@ -248,22 +259,21 @@ public class AddNROUsers extends RobotUserTask {
             secondaryCourtCount = courtCountResults.getLast();
 
             // if a user has more than 4 secondary courts,
-            if (secondaryCourtCount > 4) {
+            if (secondaryCourtCount > MAX_SECONDARY_COURTS) {
                 // delete them
                 appAccessErrors.append("User has more than 4 secondary courts\n");
                 usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
             }
 
             // if a user has more than 1 primary court,
-            if (primaryCourtCount > 1) {
+            if (primaryCourtCount > MAX_PRIMARY_COURTS) {
                 // delete them
                 appAccessErrors.append("User has more than 1 primary court\n");
                 usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
             }
 
             // if the last iteration has a new user who has no primary court,
-            if ((index == (createAppAccessDTOs.size() - 1)
-                && (primaryCourtCount == 0))) {
+            if (index == createAppAccessDTOs.size() - 1 && primaryCourtCount == 0) {
                 // delete them
                 appAccessErrors.append("User has no primary court\n");
                 usersIDsForUsersToDeleteAndErrors.put(currentUser, appAccessErrors.toString());
@@ -303,12 +313,10 @@ public class AddNROUsers extends RobotUserTask {
         }
     }
 
-    private List<Integer> incrementCourtCount(int primaryCourtCount, int secondaryCourtCount, boolean isDefaultCourt,
+    private List<Integer> incrementCourtCount(int primaryCount, int secondaryCount, boolean isDefaultCourt,
                                               UUID currentUserID, UUID previousUserID) {
-        if (!(currentUserID.equals(previousUserID))) {
-            primaryCourtCount = 0;
-            secondaryCourtCount = 0;
-        }
+        int primaryCourtCount = currentUserID.equals(previousUserID) ? primaryCount : 0;
+        int secondaryCourtCount = currentUserID.equals(previousUserID) ? secondaryCount : 0;
 
         // increment primary and secondary court counters if either detected respectively
         if (isDefaultCourt) {
@@ -387,7 +395,7 @@ public class AddNROUsers extends RobotUserTask {
             csvErrors.append("\nUser is missing First Name from the .csv input")
                 .append(fromRowString)
                 .append(rowNumber)
-                .append(")");
+                .append(')');
         }
 
         // validate lastName
@@ -396,7 +404,7 @@ public class AddNROUsers extends RobotUserTask {
             csvErrors.append("\nUser is missing Last Name from the .csv input")
                 .append(fromRowString)
                 .append(rowNumber)
-                .append(")");
+                .append(')');
         }
 
         // validate email
@@ -405,18 +413,19 @@ public class AddNROUsers extends RobotUserTask {
             csvErrors.append("\nUser is missing Email from the .csv input")
                 .append(fromRowString)
                 .append(rowNumber)
-                .append(")");
+                .append(')');
         }
 
         // validate isDefault
         boolean isDefault = false;
 
-        if (!values[3].toLowerCase().contains("primary") && !values[3].toLowerCase().contains("secondary")) {
+        if (!values[3].toLowerCase(Locale.UK).contains("primary")
+            && !values[3].toLowerCase(Locale.UK).contains("secondary")) {
             csvErrors.append("\nUser is missing Primary/Secondary Court Level from the .csv input")
                 .append(fromRowString)
                 .append(rowNumber)
-                .append(")");
-        } else if (values[3].toLowerCase().contains("primary")) {
+                .append(')');
+        } else if (values[3].toLowerCase(Locale.UK).contains("primary")) {
             isDefault = true;
         }
 
@@ -427,7 +436,7 @@ public class AddNROUsers extends RobotUserTask {
             csvErrors.append("\nUser Court from the .csv input does not exist in the DB established in the .env file")
                 .append(fromRowString)
                 .append(rowNumber)
-                .append(")");
+                .append(')');
         } else {
             courtID = this.courtRepository.findFirstByName(court).get().getId();
         }
@@ -439,7 +448,7 @@ public class AddNROUsers extends RobotUserTask {
             csvErrors.append("\nUser Role from the .csv input does not exist in the DB established in the .env file")
                 .append(fromRowString)
                 .append(rowNumber)
-                .append(")");
+                .append(')');
         } else {
             roleID = this.roleRepository.findFirstByName("Level " + userLevel).get().getId();
         }

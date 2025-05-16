@@ -13,6 +13,8 @@ public class PortalAppAccessValidator
 
     private final RoleRepository roleRepository;
 
+    private static final String PORTAL_ROLE_NAME = "Level 3";
+
     @Autowired
     public PortalAppAccessValidator(final RoleRepository roleRepository) {
         this.roleRepository = roleRepository;
@@ -46,9 +48,7 @@ public class PortalAppAccessValidator
     }
 
     private boolean isRolePortal(CreateAppAccessDTO dto) {
-        if (dto.getRoleId() == null) {
-            return false;
-        }
-        return roleRepository.findById(dto.getRoleId()).map(r -> r.getName().equals("Level 3")).orElse(false);
+        return dto.getRoleId() != null
+            && roleRepository.findById(dto.getRoleId()).map(r -> r.getName().equals(PORTAL_ROLE_NAME)).orElse(false);
     }
 }
