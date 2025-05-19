@@ -179,6 +179,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -232,6 +233,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();

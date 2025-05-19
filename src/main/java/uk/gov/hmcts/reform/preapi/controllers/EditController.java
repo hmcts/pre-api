@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,6 +23,7 @@ import java.util.UUID;
 @Slf4j
 @RestController
 @RequestMapping("/edits")
+@ConditionalOnExpression("${editing.enable:false}")
 public class EditController {
     private final EditRequestService editRequestService;
 
