@@ -27,8 +27,6 @@
   * [Running the Crons](#running-the-crons)
 * [Troubleshooting](#troubleshooting)
   * [Common Issues](#common-issues)
-    * [Application Fails to Start after Gradle BootRun](#application-fails-to-start-after-gradle-bootrun)
-    * [Cloning or Pushing Issues (Git)](#cloning-or-pushing-issues-git)
 * [License](#license)
 
 ## Introduction
@@ -116,9 +114,8 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
 
 ### What's inside
 
-The template is a working application with a minimal setup. It contains:
+The repository is a working application. It contains:
  * application code
- * setup script to prepare project
  * common plugins and libraries
  * docker setup
  * automatically publishes API documentation to [hmcts/cnp-api-docs](https://github.com/hmcts/cnp-api-docs)
@@ -131,7 +128,7 @@ The application exposes health endpoint (http://localhost:4550/health) and metri
 
 ## Plugins
 
-The app code contains the following plugins:
+The repository contains the following plugins:
 
   * checkstyle
 
@@ -261,7 +258,7 @@ Once the database is up and running you can start the application.
 > Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for
 > a `.env` file to put at the route of your project
 
-Intellij will not have the environment variables in its context so you will need to set them up in the run configuration.
+  Intellij will not have the environment variables in its context so you will need to set them up in the run configuration.
 
     - Right click on the `Application` class (the one with the `@SpringBootApplication` annotation) and hover over "More Run/Debug"
     - Select "Modify Run Configuration"
