@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
@@ -411,6 +412,29 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw bad request when instructions overlap")
+    void invertInstructionsOverlap() {
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(10L)
+                             .end(30L)
+                             .build());
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(20L)
+                             .end(40L)
+                             .build());
+
+        var recording = new Recording();
+        recording.setDuration(Duration.ofMinutes(3));
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> editRequestService.invertInstructions(instructions, recording)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Overlapping instructions: Previous End(30), Current Start(20)");
+    }
+
+    @Test
     @DisplayName("Should return inverted instructions (ordered correctly)")
     void invertInstructionsSuccess() {
         List<EditCutInstructionDTO> instructions1 = new ArrayList<>();
@@ -419,30 +443,8 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
         instructions1.add(EditCutInstructionDTO.builder()
-                              .start(61L)
-                              .end(121L)
-                              .build());
-
-
-
-        List<EditCutInstructionDTO> instructions2 = new ArrayList<>();
-        instructions2.add(EditCutInstructionDTO.builder()
-                              .start(60L)
-                              .end(120L)
-                              .build());
-        instructions2.add(EditCutInstructionDTO.builder()
-                              .start(60L)
-                              .end(121L)
-                              .build());
-
-        List<EditCutInstructionDTO> instructions3 = new ArrayList<>();
-        instructions3.add(EditCutInstructionDTO.builder()
-                              .start(61L)
-                              .end(70L)
-                              .build());
-        instructions3.add(EditCutInstructionDTO.builder()
-                              .start(60L)
-                              .end(121L)
+                              .start(150L)
+                              .end(180L)
                               .build());
 
         var expectedInvertedInstructions = List.of(
@@ -451,7 +453,42 @@ public class EditRequestServiceTest {
                 .end(60)
                 .build(),
             FfmpegEditInstructionDTO.builder()
-                .start(121)
+                .start(120)
+                .end(150)
+                .build()
+        );
+
+        var recording = new Recording();
+        recording.setDuration(Duration.ofMinutes(3));
+
+        assertEditInstructionsEq(expectedInvertedInstructions,
+                                 editRequestService.invertInstructions(instructions1, recording));
+    }
+
+    @Test
+    @DisplayName("Should return inverted instructions (ordered correctly) when not cutting the end")
+    void invertInstructionsNotCuttingEndSuccess() {
+        List<EditCutInstructionDTO> instructions1 = new ArrayList<>();
+        instructions1.add(EditCutInstructionDTO.builder()
+                              .start(60L)
+                              .end(120L)
+                              .build());
+        instructions1.add(EditCutInstructionDTO.builder()
+                              .start(150L)
+                              .end(160L)
+                              .build());
+
+        var expectedInvertedInstructions = List.of(
+            FfmpegEditInstructionDTO.builder()
+                .start(0)
+                .end(60)
+                .build(),
+            FfmpegEditInstructionDTO.builder()
+                .start(120)
+                .end(150)
+                .build(),
+            FfmpegEditInstructionDTO.builder()
+                .start(160)
                 .end(180)
                 .build()
         );
