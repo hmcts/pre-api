@@ -12,13 +12,19 @@
   * [Other PRE Repositories](#other-pre-repositories)
   * [What's inside](#whats-inside)
   * [Plugins](#plugins)
-* [Building, Deploying and Running the Application Locally](#building-and-deploying-the-application-locally)
+* [Building, Deploying and Running the Application Locally](#building-deploying-and-running-the-application-locally)
   * [Prerequisites](#prerequisites)
-  * [Quick Start](#quick-start)
-  * [Locally](#locally)
-  * [Docker environment](#docker-environment)
-* [Onboarding new services](#onboarding-new-services)
-* [Manual Testing](#manual-testing)
+  * [Building the application](#building-the-application)
+  * [Running the database locally with Docker](#running-the-database-locally-with-docker)
+* [Running the Tests Locally](#running-the-tests-locally)
+  * [Running the Unit Tests](#running-the-unit-tests)
+  * [Running the Integration Tests](#running-the-integration-tests)
+  * [Running the Functional Tests](#running-the-functional-tests)
+  * [Running the Smoke Tests](#running-the-smoke-tests)
+* [Developing for the Pre-Recorded Evidence API](#developing-for-the-pre-recorded-evidence-api)
+  * [Loading the Local Database with Test Data](#loading-the-local-database-with-test-data)
+  * [How to generate a Power Platform Custom Connector](#how-to-generate-a-power-platform-custom-connector)
+  * [Running the Crons](#running-the-crons)
 * [License](#license)
 
 ## Introduction
@@ -176,15 +182,12 @@ The app code contains the following plugins:
 
 ### Prerequisites
 
-#### Environment variables
+#### Setting Environment Variables
 
 > **Note** ℹ️
 > pre-api requires many environment variables to be set in order to run. You can get an idea of what they are by looking at the
 > `.env.local` file in the root of the project.
 ---
-
-#### Setting Environment Variables
-
 To run the application locally, you need to set several environment variables. Follow these steps:
 
 1. **Create a `.env` file**
@@ -200,9 +203,8 @@ To run the application locally, you need to set several environment variables. F
    export $(grep -v '^#' .env | xargs -0)
    ```
 
-#### Why is this command needed?
-
-This command loads all the environment variables defined in your `.env` file (ignoring any lines that start with `#`, which are comments)
+> **Note** ℹ️
+> This command loads all the environment variables defined in your `.env` file (ignoring any lines that start with `#`, which are comments)
 and exports them into your current session. This makes the variables available to the application when you run it
 Without the command, the application won't have the values it needs to function correctly.
 
@@ -218,7 +220,7 @@ To build the project execute the following command:
   ./gradlew build
 ```
 
-### Running the Application with Docker
+### Running the database locally with Docker
 
 1. **Build the Docker image for database:**
 
@@ -237,14 +239,57 @@ To build the project execute the following command:
    This will start the database container (in the background, hence the --detach). As well as the adminer container
 which is a web interface for managing the database and can be used or ignored.
 
-3. **Start the application itself:**
+### Start the application
+
+Once the database is up and running you can start the application.
+
+3. **Start the application with Gradle:**
 
    ```bash
    ./gradlew bootRun
    ```
 
-   This will start the application directly from the source cod (no need for JAR or image).
-4. **Check if the application is running:**
+   This will start the application directly from the source cod (no need for JAR or image). Gradle may show the task as
+83% EXECUTING—this is normal and just means the application is running and waiting for you to stop it.
+
+   **Or Start the application with IntelliJ:**
+> **Note** ℹ️
+> Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for
+> a `.env` file to put at the route of your project
+
+Intellij will not have the environment variables in its context so you will need to set them up in the run configuration.
+
+    - Right click on the `Application` class (the one with the `@SpringBootApplication` annotation) and hover over "More Run/Debug"
+    - Select "Modify Run Configuration"
+    - In the "Run/Debug Configurations" window, select more options and make sure the "Environment Variables" field is ticked.
+    - Click on the little folder next to the "Environment Variables" field
+    - Navigate to your `.env` file and select it.
+
+   Now you can run the application from IntelliJ:
+Right click the Application class (the one with the `@SpringBootApplication` annotation) and select "Run 'Application'".
+This will start the application in IntelliJ.
+
+   **Or Start the application with JAR:**
+   ```bash
+   ./gradlew bootJar
+   ```
+
+   This will create a JAR file in the `build/libs` directory. You can run it with:
+
+   ```bash
+   java -jar build/libs/pre-api.jar
+   ```
+
+  **Or Start the application with a debugger:**
+    To run with a debugger attached, you can run natively in an IDE, or attach:
+
+    ```bash
+    ./gradlew clean build bootRun --debug-jvm
+    ```
+
+  Let it run until it hangs with a listening message. Then in IntelliJ, select the Java process from Run > Attach to Process.
+
+4. **No matter which method chosen, check if the application is running:**
 
    Call the health endpoint:
 
@@ -276,44 +321,139 @@ You can open this file in your browser to see the test results.
 
 #### With IntelliJ
 
-Right-click on the `src/test` directory in IntelliJ and select "Run 'All Tests'". This will run all the unit tests in the project.
+Right-click on the `src/test` directory in IntelliJ and select "Run 'Tests in 'pre-api.test'". This will run all the unit tests in the project.
 You can also run individual test classes or methods by right-clicking on them and selecting "Run".
 
 ### Running the Integration Tests
 
-In order for integration tests to run, a docker image is needed for the
-postgres testcontainers.
+To run integration tests, a docker image is needed for the
+postgres testcontainers database (temp database for testing). This will be done during the
+running of the tests.
 
-For this to pull from hmcts ACR you must login to the ACR first:
+#### Pre-requisites
+Testcontainers (test helper library) needs the HMCTS postgres image for the test database it sets up. For this to pull
+from HMCTS Azure Container Registry (ACR) you must login to the ACR first:
+
 ```bash
 az login # if not logged in already
 az acr login --name hmctspublic
 ```
 
-### Running the Functional Tests
+#### With the Command Line
+To run the integration tests with the command line, execute the following command:
 
-## How to generate a Power Platform Custom Connector
-Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
-
+```bash
+  ./gradlew integration
 ```
 
+This will run all the integration tests in the project and generate a report in `build/reports/tests/integration/index.html`.
 
-## Crons
+#### With IntelliJ
+
+Right-click on the `src/integrationTest` directory in IntelliJ and select "Run 'Tests in pre-api.IntegrationTest'". This will run all the integration tests in the project.
+
+### Running the Functional Tests
+
+#### Prerequisites
+
+To run the functional tests, you need to have the application running locally. Follow the steps in the
+[Running the Application with Docker](#running-the-application-with-docker) section to start the application.
+
+#### With the Command Line
+The functional tests need access to these four environment variables:
+
+MEDIA_KIND_SUBSCRIPTION
+MEDIA_KIND_TOKEN
+GOV_NOTIFY_API_KEY=
+GOV_NOTIFY_API_KEY_TEST
+
+Export the variables above or alternatively set up all environment variables (including the four above) by following the
+[Setting Environment Variables](#setting-environment-variables) section.
+
+To run the functional tests, execute the following command:
+
+```bash
+  ./gradlew functional
+```
+#### With IntelliJ
+
+Right-click on the `src/functionalTest` directory in IntelliJ and select "Run 'Tests in pre-api.functionalTest'". This will run all the
+functional tests in the project.
+
+The test results will be displayed in the IntelliJ console. You can also view the test reports in the `build/reports/tests/functional/index.html` file.
+
+### Running the Smoke Tests
+
+#### With the Command Line
+
+The smoke tests run the command:
+```bash
+  ./gradlew smoke
+```
+
+#### With IntelliJ
+
+Right-click on the `src/smokeTest` directory in IntelliJ and select "Run 'Tests in pre-api.smokeTest'".
+This will run all the smoke tests in the project.
+
+## Developing for the Pre-Recorded Evidence API
+
+### Loading the Local Database with Test Data
+
+To load schemas and test data into your local postgresql database:
+
+1. **Start the database container**
+   ```bash
+   docker-compose up --detach
+   ```
+
+2. **Run the data load script**
+   ```bash
+   bash docker/database/local/load_data_into_local_db.sh
+   ```
+   > **Note** ℹ️
+   > You may need to make the script executable first with `chmod +x ./docker/database/local/load_data_into_local_db.sh`
+
+This will:
+- Apply all SQL migration scripts to the `pre-api-db` database container.
+- Clean up temporary files.
+
+Your local database will now be ready for you to play around with.
+
+If it all goes wrong, simply clean up Docker and start again:
+
+```bash
+docker-compose rm
+```
+
+This clears stopped containers correctly.
+
+### How to generate a Power Platform Custom Connector
+Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into
+the [Power Platform Custom Connector](https://make.powerautomate.com/environments/3df85815-859a-e884-8b20-6a6dac1054a1/connections/custom) edit page. There will need to be a connector for prod and staging. The swagger spec is automatically updated in each PR.
+
+
+### Running the Crons
 
 You can manually run a cron task from the cli:
 
+1. You will need to make sure your environment variables are set up. You can do this by following the instruction in the
+[Setting Environment Variables](#setting-environment-variables) section.
+2. The database must be running (as it needs the cron user info stored there). You can do this by following the instruction in the
+[Running the Application database with Docker](#running-the-application-database-with-docker) section.
+3. Run the task you are interested in by JAR:
+```bash
+  ./gradlew bootJar
 ```
-
 TASK_NAME=[task] java -jar pre-api.jar run
-
-# E.g.
+E.g.
 TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
 
-# or
-TASK_NAME=CleanupLiveEvents ./gradlew bootRun
+or by source code:
+```
+TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 ```
 
 ## License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
