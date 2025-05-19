@@ -25,6 +25,10 @@
   * [Loading the Local Database with Test Data](#loading-the-local-database-with-test-data)
   * [How to generate a Power Platform Custom Connector](#how-to-generate-a-power-platform-custom-connector)
   * [Running the Crons](#running-the-crons)
+* [Troubleshooting](#troubleshooting)
+  * [Common Issues](#common-issues)
+    * [Application Fails to Start after Gradle BootRun](#application-fails-to-start-after-gradle-bootrun)
+    * [Cloning or Pushing Issues (Git)](#cloning-or-pushing-issues-git)
 * [License](#license)
 
 ## Introduction
@@ -39,12 +43,12 @@ and allows this recording to be securely shared to advocates, or played back in 
 
 This code repository contains the source code for the Pre-Recorded Evidence API (pre-api).
 
-pre-api is a Java Spring Boot application that serves as a backend API for both the PRE PowerApps Apps and the PRE Portal.
+pre-api is a Java Spring Boot application that serves as a backend API for both the PRE PowerApps app and the PRE Portal.
 
 ### Documentation
 
 The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/).
-If running PRE API locally you can access the Swagger UI at [http://localhost:4550/swagger-ui/index.html](http://localhost:4550/swagger-ui/index.html).
+If running PRE API locally, you can access the Swagger UI at [http://localhost:4550/swagger-ui/index.html](http://localhost:4550/swagger-ui/index.html).
 
 ### PRE System Diagram
 
@@ -391,12 +395,22 @@ The smoke tests run the command:
   ./gradlew smoke
 ```
 
+This will run all the smoke tests in the project and generate a report in `build/reports/tests/smoke/index.html`.
+
 #### With IntelliJ
 
 Right-click on the `src/smokeTest` directory in IntelliJ and select "Run 'Tests in pre-api.smokeTest'".
 This will run all the smoke tests in the project.
 
 ## Developing for the Pre-Recorded Evidence API
+
+You will need to have your laptop ready for DTS development. This includes:
+- Setting up your laptop with DTS basics, see the Confluence page here
+  [Mac Developers](https://tools.hmcts.net/confluence/display/DATS/EUC+Advice+for+%28NonAdmin%29Macbook+Developers)
+- You will need SSH key in GitHub that is authorised for SSO access to HMCTS repos. See the
+  [GitHub Docs: Authorizing an SSH key for use with SAML single sign-on](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/authorizing-an-ssh-key-for-use-with-saml-single-sign-on)
+  for more information.
+- You will need to be a contributor to PRE or get help from one of the PRE developers(https://github.com/orgs/hmcts/teams/pre-rec-evidence)
 
 ### Loading the Local Database with Test Data
 
@@ -453,6 +467,41 @@ or by source code:
 ```
 TASK_NAME=CheckForMissingRecordings ./gradlew bootRun
 ```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Application Fails to Start after Gradle BootRun
+If the application fails to start after running `./gradlew bootRun`, check the following:
+
+- **Check your environment variables:**
+  Ensure all required variables are set and have the correct values.
+
+- **How to set them:**
+  Refer to the [Setting Environment Variables](#setting-environment-variables) section for detailed instructions on how to configure your environment.
+
+- **Tip:**
+  If you are using IntelliJ, make sure your run configuration includes the necessary environment variables in the run
+configurations. If running from the terminal, confirm you have loaded your `.env` file as described.
+
+#### Cloning or Pushing Issues (Git)
+
+If you encounter authentication errors when cloning or pushing to the repository,
+it may be due to your SSH key not being configured for GitHub SSO.
+
+- **Check your SSH key:**
+  Ensure your SSH key is added to your GitHub account.
+
+- **Enable SSO for your SSH key:**
+  HMCTS uses SSO SAML, you must authorize your SSH key for SSO access.
+  Go to [GitHub SSH keys settings](https://github.com/settings/keys), find your key, and click **"Configure SSO"**
+dropdown and authorise for HMCTS
+
+- **More info:**
+  See [GitHub Docs: Authorizing an SSH key for use with SAML single sign-on](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/authorizing-an-ssh-key-for-use-with-saml-single-sign-on).
+
+Once SSO is enabled for your SSH key, retry your Git operations.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
