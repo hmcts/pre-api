@@ -419,7 +419,7 @@ public class MediaKind implements IMediaService {
         getLiveEventMk(liveEventName);
 
         try {
-            createAsset(liveEventName, captureSession, captureSession.getBookingId().toString(), false);
+            createAsset(liveEventName, captureSession, captureSession.getId().toString(), false);
         } catch (ConflictException e) {
             mediaKindClient.deleteLiveEvent(liveEventName);
             throw e;
