@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ArchiveFiles>
+    <ArchiveID>Ed033cd9b7a08449f9cd157f7eaff7577</ArchiveID>
+    <DisplayName>Sample Archive</DisplayName>
+    <KeyWord>Editor</KeyWord>
+    <Time>1710156402901</Time>
+    <Duration>120</Duration>
+    <updatetime>1710156403978</updatetime>
+    <mediaPath>/var/media/</mediaPath>
+    <quickCode>0054292</quickCode>
+    <owner>s28\blehal</owner>
+    <mediaSrcServerType>CAPTURE_SERVER</mediaSrcServerType>
+    <archiveSize>672906</archiveSize>
+    <deviceId>26182d661a944838bcf2802a32b788bb</deviceId>
+    <deviceAddress>playback5.video.service.justice.gov.uk</deviceAddress>
+    <MP4FileGrp>
+        <MP4File>
+            <Name>0x1e7e23_Editor_beab086f689446d6aa00ceab60c9257f_512_5a5e1fa00cf2fdb285d93bf4.mp4</Name>
+            <Displayname>MP4_540_MoJ 512</Displayname>
+            <Path>/var/media/Ed033cd9b7a08449f9cd157f7eaff7577/mp4/</Path>
+            <Size>672906</Size>
+            <AudioCodec>AAC</AudioCodec>
+            <ContentCodec></ContentCodec>
+            <Resolution>704x576</Resolution>
+            <ContentResolution>0x0</ContentResolution>
+            <ContentFrameRate>0</ContentFrameRate>
+            <FrameRate>23</FrameRate>
+            <BitRate>540</BitRate>
+            <Layout>LARGE_SIZE_CONTENT</Layout>
+            <VideoCodec>H264-HP</VideoCodec>
+            <CreatTime>1710157030597</CreatTime>
+            <Duration>10051</Duration>
+            <FileID>6190a6747c174964a0f27e7ec28f4992</FileID>
+            <Eposide>1</Eposide>
+            <watermark>false</watermark>
+        </MP4File>
+    </MP4FileGrp>
+    <AttachmentFileGrp/>
+    <CloseCaptionFileGrp/>
+    <archiveCoverURL>/var/media/Ed033cd9b7a08449f9cd157f7eaff7577/cover.jpg</archiveCoverURL>
+    <lastAccessTime>0</lastAccessTime>
+    <expirationTime>0</expirationTime>
+    <expirationInterval>-1</expirationInterval>
+    <expirationOption>0</expirationOption>
+    <expirationLevel>0</expirationLevel>
+    <expirationStatus>0</expirationStatus>
+    <call>
+        <vrrNumber>0</vrrNumber>
+    </call>
+</ArchiveFiles>
