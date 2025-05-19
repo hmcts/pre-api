@@ -190,13 +190,13 @@ The repository contains the following plugins:
 ---
 To run the application locally, you need to set several environment variables. Follow these steps:
 
-1. **Create a `.env` file**
+1. **Create a `.env` file.**
    In the root of the project, create a file named `.env`.
 
-2. **Get the variable values**
+2. **Get the variable values.**
    Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for the required environment variable values and add them to your `.env` file.
 
-3. **Load the variables**
+3. **Load the variables.**
    Run the following command in your terminal to load the variables from your `.env` file into your current shell session:
 
    ```bash
@@ -249,15 +249,15 @@ Once the database is up and running you can start the application.
    ./gradlew bootRun
    ```
 
-   This will start the application directly from the source cod (no need for JAR or image). Gradle may show the task as
+   This will start the application directly from the source code (no need for JAR or image). Gradle may show the task as
 83% EXECUTING—this is normal and just means the application is running and waiting for you to stop it.
 
    **Or Start the application with IntelliJ:**
-> **Note** ℹ️
-> Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for
-> a `.env` file to put at the route of your project
+    > **Note** ℹ️
+    > Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for
+    > a `.env` file to put at the route of your project
 
-  Intellij will not have the environment variables in its context so you will need to set them up in the run configuration.
+    Intellij will not have the environment variables in its context so you will need to set them up in the run configuration.
 
     - Right click on the `Application` class (the one with the `@SpringBootApplication` annotation) and hover over "More Run/Debug"
     - Select "Modify Run Configuration"
@@ -265,9 +265,9 @@ Once the database is up and running you can start the application.
     - Click on the little folder next to the "Environment Variables" field
     - Navigate to your `.env` file and select it.
 
-   Now you can run the application from IntelliJ:
-Right click the Application class (the one with the `@SpringBootApplication` annotation) and select "Run 'Application'".
-This will start the application in IntelliJ.
+    Now you can run the application from IntelliJ:
+    Right click the Application class (the one with the `@SpringBootApplication` annotation) and select "Run 'Application'".
+    This will start the application in IntelliJ.
 
    **Or Start the application with JAR:**
    ```bash
@@ -280,7 +280,7 @@ This will start the application in IntelliJ.
    java -jar build/libs/pre-api.jar
    ```
 
-  **Or Start the application with a debugger:**
+   **Or Start the application with a debugger:**
     To run with a debugger attached, you can run natively in an IDE, or attach:
 
     ```bash
