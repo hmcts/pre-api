@@ -123,8 +123,7 @@ The repository is a working application. It contains:
  * MIT license and contribution information
  * Helm chart using chart-java.
 
-The application exposes health endpoint (http://localhost:4550/health) and metrics endpoint
-(http://localhost:4550/metrics).
+The application exposes health endpoint (http://localhost:4550/health).
 
 ## Plugins
 
