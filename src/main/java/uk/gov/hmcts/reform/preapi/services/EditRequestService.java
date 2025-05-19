@@ -106,7 +106,7 @@ public class EditRequestService {
         }
         request.setStartedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.PROCESSING);
-        editRequestRepository.save(request);
+        editRequestRepository.saveAndFlush(request);
 
         var newRecordingId = UUID.randomUUID();
         String filename;
@@ -118,13 +118,13 @@ public class EditRequestService {
         } catch (Exception e) {
             request.setFinishedAt(Timestamp.from(Instant.now()));
             request.setStatus(EditRequestStatus.ERROR);
-            editRequestRepository.save(request);
+            editRequestRepository.saveAndFlush(request);
             throw e;
         }
 
         request.setFinishedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.COMPLETE);
-        editRequestRepository.save(request);
+        editRequestRepository.saveAndFlush(request);
 
         // create db entry for recording
         var createDto = createRecordingDto(newRecordingId, filename, request);

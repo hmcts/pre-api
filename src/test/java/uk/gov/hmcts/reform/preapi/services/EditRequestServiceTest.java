@@ -134,7 +134,7 @@ public class EditRequestServiceTest {
         );
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(2)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(2)).saveAndFlush(any(EditRequest.class));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any());
     }
@@ -169,7 +169,7 @@ public class EditRequestServiceTest {
         assertThat(res.getParentRecordingId()).isEqualTo(recording.getId());
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(2)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(2)).saveAndFlush(any(EditRequest.class));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
