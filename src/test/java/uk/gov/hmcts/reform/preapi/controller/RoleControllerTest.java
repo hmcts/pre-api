@@ -15,7 +15,6 @@ import uk.gov.hmcts.reform.preapi.services.RoleService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
@@ -46,7 +45,6 @@ public class RoleControllerTest {
         var mockRole = new RoleDTO();
         mockRole.setId(UUID.randomUUID());
         mockRole.setName("Example role");
-        mockRole.setPermissions(Set.of());
 
         when(roleService.getAllRoles()).thenReturn(List.of(mockRole));
 
