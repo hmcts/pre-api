@@ -4,7 +4,7 @@ import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 public class PortalAppAccessValidatorTest {
 
-    @MockBean
+    @MockitoBean
     private RoleRepository roleRepository;
 
     private PortalAppAccessValidator validator;

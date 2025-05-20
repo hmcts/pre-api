@@ -12,7 +12,9 @@ import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -46,6 +48,7 @@ public class CleanupLiveEventsTest {
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
     private static StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
+    private static EmailServiceFactory emailServiceFactory;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
     private static final String CRON_PLATFORM_ENV = "Staging";
@@ -62,6 +65,7 @@ public class CleanupLiveEventsTest {
         userAuthenticationService = mock(UserAuthenticationService.class);
         bookingService = mock(BookingService.class);
         stopLiveEventNotifierFlowClient = mock(StopLiveEventNotifierFlowClient.class);
+        emailServiceFactory = mock(EmailServiceFactory.class);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
 
@@ -123,6 +127,7 @@ public class CleanupLiveEventsTest {
             userService,
             userAuthenticationService,
             stopLiveEventNotifierFlowClient,
+            emailServiceFactory,
             CRON_USER_EMAIL,
             "Production",
             BATCH_SIZE,
@@ -228,6 +233,7 @@ public class CleanupLiveEventsTest {
             userService,
             userAuthenticationService,
             stopLiveEventNotifierFlowClient,
+            emailServiceFactory,
             CRON_USER_EMAIL,
             CRON_PLATFORM_ENV,
             BATCH_SIZE,

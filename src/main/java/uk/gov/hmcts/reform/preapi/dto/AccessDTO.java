@@ -14,6 +14,7 @@ import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.TermsAndConditionsType;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -61,8 +62,8 @@ public class AccessDTO {
                       termsAccepted.put(type, latestTermsAndConditions
                           .stream()
                           .filter(t -> t != null && t.getType() == type)
-                          .anyMatch(t -> entity.getUserTermsAccepted()
-                                             .stream()
+                          .anyMatch(t -> Stream.ofNullable(entity.getUserTermsAccepted())
+                                             .flatMap(Collection::stream)
                                              .anyMatch(userAcceptedTsCs -> userAcceptedTsCs.isValid()
                                                  && userAcceptedTsCs.getTermsAndConditions().getId() == t.getId())));
                   });
