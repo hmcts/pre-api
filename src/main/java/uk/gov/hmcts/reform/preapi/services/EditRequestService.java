@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
@@ -76,7 +77,7 @@ public class EditRequestService {
     }
 
     @Transactional(noRollbackFor = Exception.class)
-    public RecordingDTO performEdit(UUID editId) {
+    public EditRequest markAsProcessing(UUID editId) {
         // retrieves locked edit request
         var request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
@@ -93,7 +94,11 @@ public class EditRequestService {
         request.setStartedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.PROCESSING);
         editRequestRepository.saveAndFlush(request);
+        return request;
+    }
 
+    @Transactional(noRollbackFor = Exception.class, propagation = Propagation.REQUIRES_NEW)
+    public RecordingDTO performEdit(EditRequest request) {
         // ffmpeg
         var newRecordingId = UUID.randomUUID();
         try {

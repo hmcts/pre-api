@@ -455,17 +455,6 @@ class TestingSupportController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
-        var recording = editRequestService.performEdit(editId);
-        var request = editRequestService.findById(recording.getId());
-
-        return ResponseEntity.ok(Map.of(
-            "request", request,
-            "recording", recording
-        ));
-    }
-
     private Court createTestCourt() {
         var court = new Court();
         court.setId(UUID.randomUUID());
