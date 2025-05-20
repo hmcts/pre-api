@@ -595,38 +595,6 @@ public class MediaKind implements IMediaService {
         return jobName;
     }
 
-    private MkLiveEvent checkStreamReady(String liveEventName) throws InterruptedException {
-        MkLiveEvent liveEvent;
-        do {
-            TimeUnit.MILLISECONDS.sleep(2000); // wait 2 seconds
-            liveEvent = getLiveEventMk(liveEventName);
-        } while (!liveEvent.getProperties().getResourceState().equals("Running"));
-        return liveEvent;
-    }
-
-    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
-        log.info("Waiting for job [{}] to complete", jobName);
-        MkJob job = null;
-        do {
-            if (job != null) {
-                TimeUnit.MILLISECONDS.sleep(10000);
-            }
-            job = mediaKindClient.getJob(transformName, jobName);
-        } while (!job.getProperties().getState().equals(JobState.FINISHED)
-            && !job.getProperties().getState().equals(JobState.ERROR)
-            && !job.getProperties().getState().equals(JobState.CANCELED));
-        var state = job.getProperties().getState();
-        if (state.equals(JobState.ERROR)) {
-            log.error("Job [{}] failed with error [{}]",
-                      jobName,
-                      job.getProperties().getOutputs().getLast().error().message());
-        } else if (state.equals(JobState.CANCELED)) {
-            log.error("Job [{}] was cancelled", jobName);
-        }
-
-        return job.getProperties().getState();
-    }
-
     private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {
         var endpointName = endpoint.getName();
         while (endpoint.getProperties().getResourceState() != MkStreamingEndpointProperties.ResourceState.Running) {
