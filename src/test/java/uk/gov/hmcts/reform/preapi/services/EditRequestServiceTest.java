@@ -41,9 +41,7 @@ import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
-import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -132,22 +130,18 @@ public class EditRequestServiceTest {
         recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PROCESSING);
+        editRequest.setStatus(EditRequestStatus.PENDING);
         editRequest.setSourceRecording(recording);
 
-        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
-        when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
         doThrow(UnknownServerException.class)
             .when(ffmpegService).performEdit(any(UUID.class), eq(editRequest));
 
         assertThrows(
             Exception.class,
-            () -> editRequestService.performEdit(editRequest.getId())
+            () -> editRequestService.performEdit(editRequest)
         );
 
-        verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
-        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, never()).upsert(any());
     }
@@ -174,12 +168,9 @@ public class EditRequestServiceTest {
         recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PROCESSING);
-        editRequest.setStartedAt(Timestamp.from(Instant.now()));
+        editRequest.setStatus(EditRequestStatus.PENDING);
         editRequest.setSourceRecording(recording);
 
-        when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
-        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
         when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
         when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
         var newRecordingDto = new RecordingDTO();
@@ -191,13 +182,11 @@ public class EditRequestServiceTest {
         when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(importResponse);
         when(azureFinalStorageService.getMp4FileName(anyString())).thenReturn("index.mp4");
 
-        var res = editRequestService.performEdit(editRequest.getId());
+        var res = editRequestService.performEdit(editRequest);
         assertThat(res).isNotNull();
         assertThat(res.getParentRecordingId()).isEqualTo(recording.getId());
 
-        verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
-        verify(editRequestRepository, times(1)).save(any(EditRequest.class));
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
         verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
         verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
         verify(recordingService, times(1)).findById(any(UUID.class));
@@ -214,47 +203,58 @@ public class EditRequestServiceTest {
     void performEditNotFound() {
         var id = UUID.randomUUID();
 
-        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.empty());
+        when(editRequestRepository.findById(id)).thenReturn(Optional.empty());
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> editRequestService.performEdit(id)
+            () -> editRequestService.markAsProcessing(id)
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: Edit Request: " + id);
 
-        verify(editRequestRepository, times(1)).findByIdNotLocked(id);
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
-        verify(ffmpegService, never()).performEdit(any(UUID.class), any(EditRequest.class));
-        verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
-        verify(recordingService, never()).findById(any(UUID.class));
+        verify(editRequestRepository, times(1)).findById(id);
+        verify(editRequestRepository, never()).saveAndFlush(any(EditRequest.class));
     }
 
     @Test
-    @DisplayName("Should not perform edit and return null when status of edit request is not PROCESSING")
-    void performEditStatusNotProcessing() {
+    @DisplayName("Should not perform edit and return null when status of edit request is not PENDING")
+    void performEditStatusNotPending() {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setStatus(EditRequestStatus.PROCESSING);
 
-        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
         when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
 
         var message = assertThrows(
             ResourceInWrongStateException.class,
-            () -> editRequestService.performEdit(editRequest.getId())
+            () -> editRequestService.markAsProcessing(editRequest.getId())
         ).getMessage();
 
         assertThat(message)
             .isEqualTo("Resource EditRequest("
                            + editRequest.getId()
-                           + ") is in a PENDING state. Expected state is PROCESSING.");
+                           + ") is in a PROCESSING state. Expected state is PENDING.");
 
-        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
-        verify(ffmpegService, never()).performEdit(any(UUID.class), any(EditRequest.class));
-        verify(recordingService, never()).upsert(any(CreateRecordingDTO.class));
-        verify(recordingService, never()).findById(any(UUID.class));
+        verify(editRequestRepository, times(1)).findById(editRequest.getId());
+        verify(editRequestRepository, never()).saveAndFlush(any(EditRequest.class));
+    }
+
+    @Test
+    @DisplayName("Should throw lock error when encounters locked edit request")
+    void performEditLocked() {
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
+
+        doThrow(PessimisticLockingFailureException.class).when(editRequestRepository).findById(editRequest.getId());
+
+        assertThrows(
+            PessimisticLockingFailureException.class,
+            () -> editRequestService.markAsProcessing(editRequest.getId())
+        );
+
+        verify(editRequestRepository, times(1)).findById(editRequest.getId());
+        verify(editRequestRepository, never()).saveAndFlush(any(EditRequest.class));
     }
 
     @Test
@@ -521,6 +521,29 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should throw bad request when instructions overlap")
+    void invertInstructionsOverlap() {
+        List<EditCutInstructionDTO> instructions = new ArrayList<>();
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(10L)
+                             .end(30L)
+                             .build());
+        instructions.add(EditCutInstructionDTO.builder()
+                             .start(20L)
+                             .end(40L)
+                             .build());
+
+        var recording = new Recording();
+        recording.setDuration(Duration.ofMinutes(3));
+        var message = assertThrows(
+            BadRequestException.class,
+            () -> editRequestService.invertInstructions(instructions, recording)
+        ).getMessage();
+
+        assertThat(message).isEqualTo("Overlapping instructions: Previous End(30), Current Start(20)");
+    }
+
+    @Test
     @DisplayName("Should return inverted instructions (ordered correctly)")
     void invertInstructionsSuccess() {
         List<EditCutInstructionDTO> instructions1 = new ArrayList<>();
@@ -529,30 +552,8 @@ public class EditRequestServiceTest {
                              .end(120L)
                              .build());
         instructions1.add(EditCutInstructionDTO.builder()
-                              .start(61L)
-                              .end(121L)
-                              .build());
-
-
-
-        List<EditCutInstructionDTO> instructions2 = new ArrayList<>();
-        instructions2.add(EditCutInstructionDTO.builder()
-                              .start(60L)
-                              .end(120L)
-                              .build());
-        instructions2.add(EditCutInstructionDTO.builder()
-                              .start(60L)
-                              .end(121L)
-                              .build());
-
-        List<EditCutInstructionDTO> instructions3 = new ArrayList<>();
-        instructions3.add(EditCutInstructionDTO.builder()
-                              .start(61L)
-                              .end(70L)
-                              .build());
-        instructions3.add(EditCutInstructionDTO.builder()
-                              .start(60L)
-                              .end(121L)
+                              .start(150L)
+                              .end(180L)
                               .build());
 
         var expectedInvertedInstructions = List.of(
@@ -561,7 +562,42 @@ public class EditRequestServiceTest {
                 .end(60)
                 .build(),
             FfmpegEditInstructionDTO.builder()
-                .start(121)
+                .start(120)
+                .end(150)
+                .build()
+        );
+
+        var recording = new Recording();
+        recording.setDuration(Duration.ofMinutes(3));
+
+        assertEditInstructionsEq(expectedInvertedInstructions,
+                                 editRequestService.invertInstructions(instructions1, recording));
+    }
+
+    @Test
+    @DisplayName("Should return inverted instructions (ordered correctly) when not cutting the end")
+    void invertInstructionsNotCuttingEndSuccess() {
+        List<EditCutInstructionDTO> instructions1 = new ArrayList<>();
+        instructions1.add(EditCutInstructionDTO.builder()
+                              .start(60L)
+                              .end(120L)
+                              .build());
+        instructions1.add(EditCutInstructionDTO.builder()
+                              .start(150L)
+                              .end(160L)
+                              .build());
+
+        var expectedInvertedInstructions = List.of(
+            FfmpegEditInstructionDTO.builder()
+                .start(0)
+                .end(60)
+                .build(),
+            FfmpegEditInstructionDTO.builder()
+                .start(120)
+                .end(150)
+                .build(),
+            FfmpegEditInstructionDTO.builder()
+                .start(160)
                 .end(180)
                 .build()
         );
@@ -571,10 +607,6 @@ public class EditRequestServiceTest {
 
         assertEditInstructionsEq(expectedInvertedInstructions,
                                  editRequestService.invertInstructions(instructions1, recording));
-        assertEditInstructionsEq(expectedInvertedInstructions,
-                                 editRequestService.invertInstructions(instructions2, recording));
-        assertEditInstructionsEq(expectedInvertedInstructions,
-                                 editRequestService.invertInstructions(instructions3, recording));
     }
 
     @Test

@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
@@ -96,38 +97,30 @@ public class EditRequestService {
         return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
 
-    @Transactional
-    public void updateEditRequestStatus(UUID id, EditRequestStatus status) {
-        var request = editRequestRepository.findById(id)
-            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
-
-        request.setStatus(status);
-        switch (status) {
-            case PROCESSING -> request.setStartedAt(Timestamp.from(Instant.now()));
-            case ERROR, COMPLETE -> request.setFinishedAt(Timestamp.from(Instant.now()));
-            default -> {
-            }
-        }
-        editRequestRepository.save(request);
-    }
-
-
-    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class})
-    public RecordingDTO performEdit(UUID editId) throws InterruptedException {
+    @Transactional(noRollbackFor = Exception.class)
+    public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
-        var request = editRequestRepository.findByIdNotLocked(editId)
+        var request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
 
-        if (request.getStatus() != EditRequestStatus.PROCESSING) {
+        if (request.getStatus() != EditRequestStatus.PENDING) {
             throw new ResourceInWrongStateException(
                 EditRequest.class.getSimpleName(),
                 request.getId().toString(),
                 request.getStatus().toString(),
-                EditRequestStatus.PROCESSING.toString()
+                EditRequestStatus.PENDING.toString()
             );
         }
+        request.setStartedAt(Timestamp.from(Instant.now()));
+        request.setStatus(EditRequestStatus.PROCESSING);
+        editRequestRepository.saveAndFlush(request);
+        return request;
+    }
 
+    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
+    public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
+        // ffmpeg
         var newRecordingId = UUID.randomUUID();
         String filename;
         try {
@@ -136,11 +129,15 @@ public class EditRequestService {
             // generate mk asset
             filename = generateAsset(newRecordingId, request);
         } catch (Exception e) {
-            updateEditRequestStatus(editId, EditRequestStatus.ERROR);
+            request.setFinishedAt(Timestamp.from(Instant.now()));
+            request.setStatus(EditRequestStatus.ERROR);
+            editRequestRepository.saveAndFlush(request);
             throw e;
         }
 
-        updateEditRequestStatus(editId, EditRequestStatus.COMPLETE);
+        request.setFinishedAt(Timestamp.from(Instant.now()));
+        request.setStatus(EditRequestStatus.COMPLETE);
+        editRequestRepository.saveAndFlush(request);
 
         // create db entry for recording
         var createDto = createRecordingDto(newRecordingId, filename, request);
@@ -288,6 +285,18 @@ public class EditRequestService {
         instructions.sort(Comparator.comparing(EditCutInstructionDTO::getStart)
                               .thenComparing(EditCutInstructionDTO::getEnd));
 
+        for (int i = 1; i < instructions.size(); i++) {
+            var prev = instructions.get(i - 1);
+            var curr = instructions.get(i);
+            if (curr.getStart() < prev.getEnd()) {
+                throw new BadRequestException("Overlapping instructions: Previous End("
+                                                  + prev.getEnd()
+                                                  + "), Current Start("
+                                                  + curr.getStart()
+                                                  + ")");
+            }
+        }
+
         var currentTime = 0L;
         var invertedInstructions = new ArrayList<FfmpegEditInstructionDTO>();
 
@@ -315,14 +324,15 @@ public class EditRequestService {
                                                   + "), Recording Duration("
                                                   + recordingDuration
                                                   + ")");
-
             }
             if (currentTime < instruction.getStart()) {
                 invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime, instruction.getStart()));
             }
             currentTime = Math.max(currentTime, instruction.getEnd());
         }
-        invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
+        if (currentTime != recordingDuration) {
+            invertedInstructions.add(new FfmpegEditInstructionDTO(currentTime,  recordingDuration));
+        }
 
         return invertedInstructions;
     }
