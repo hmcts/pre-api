@@ -112,7 +112,7 @@ public class EditRequestService {
     }
 
     @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
-    public RecordingDTO performEdit(EditRequest request) {
+    public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
         // ffmpeg
         var newRecordingId = UUID.randomUUID();
         String filename;
