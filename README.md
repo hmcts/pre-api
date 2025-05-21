@@ -5,10 +5,10 @@
 ## Table of Contents
 
 * [Introduction](#introduction)
-  * [Intro to Pre-Recorded Evidence](#bulk-print)
-  * [Purpose of pre-api](#send-letter-service)
+  * [Intro to Pre-Recorded Evidence](#intro-to-pre-recorded-evidence-system)
+  * [Purpose of pre-api](#purpose-of-pre-api-in-the-system)
   * [Documentation](#documentation)
-  * [PRE System Diagram](#pre-system-diagram)
+  * [PRE System Diagram](#pre-system-diagram-needs-to-be-updated)
   * [Other PRE Repositories](#other-pre-repositories)
   * [What's inside](#whats-inside)
   * [Plugins](#plugins)
@@ -48,7 +48,7 @@ pre-api is a Java Spring Boot application that serves as a backend API for both 
 The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/).
 If running PRE API locally, you can access the Swagger UI at [http://localhost:4550/swagger-ui/index.html](http://localhost:4550/swagger-ui/index.html).
 
-### PRE System Diagram
+### PRE System Diagram (Needs to be updated)
 
 This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
 ```mermaid
@@ -109,7 +109,6 @@ This diagram gives an overview of the PRE system which the pre-api connects to i
 ### Other PRE Repositories
  * [PRE Power Platform Frontend](https://github.com/hmcts/pre-power-platform)
  * [PRE Shared Infrastructure](https://github.com/hmcts/pre-shared-infrastructure)
- * [PRE Function Apps](https://github.com/hmcts/pre-functions)
  * [PRE Portal](https://github.com/hmcts/pre-portal)
 
 ### What's inside
@@ -121,7 +120,7 @@ The repository is a working application. It contains:
  * automatically publishes API documentation to [hmcts/cnp-api-docs](https://github.com/hmcts/cnp-api-docs)
  * code quality tools already set up
  * MIT license and contribution information
- * Helm chart using chart-java.
+ * Helm chart using [chart-java](https://github.com/hmcts/chart-java).
 
 The application exposes health endpoint (http://localhost:4550/health).
 
@@ -205,7 +204,7 @@ To run the application locally, you need to set several environment variables. F
 
 > **Note** ℹ️
 > This command loads all the environment variables defined in your `.env` file (ignoring any lines that start with `#`, which are comments)
-and exports them into your current session. This makes the variables available to the application when you run it
+and exports them into your current session. This makes the variables available to the application when you run it.
 Without the command, the application won't have the values it needs to function correctly.
 
 ### Building the application
@@ -287,9 +286,9 @@ Once the database is up and running you can start the application.
     ./gradlew clean build bootRun --debug-jvm
     ```
 
-  Let it run until it hangs with a listening message. Then in IntelliJ, select the Java process from Run > Attach to Process.
+    Let it run until it hangs with a listening message. Then in IntelliJ, select the Java process from Run > Attach to Process.
 
-4. **No matter which method chosen, check if the application is running:**
+4. **No matter which method chosen to start up the application, check if the application is running:**
 
    Call the health endpoint:
 
@@ -357,15 +356,18 @@ Right-click on the `src/integrationTest` directory in IntelliJ and select "Run '
 #### Prerequisites
 
 To run the functional tests, you need to have the application running locally. Follow the steps in the
-[Running the Application with Docker](#running-the-application-with-docker) section to start the application.
+[Building, Deploying and Running the Application Locally](#building-deploying-and-running-the-application-locally) section to start the application.
 
-#### With the Command Line
 The functional tests need access to these four environment variables:
 
 MEDIA_KIND_SUBSCRIPTION
 MEDIA_KIND_TOKEN
 GOV_NOTIFY_API_KEY=
 GOV_NOTIFY_API_KEY_TEST
+
+How to provide them to the tests will depend on which method you are using to run the tests. Detailed below:
+
+#### With the Command Line
 
 Export the variables above or alternatively set up all environment variables (including the four above) by following the
 [Setting Environment Variables](#setting-environment-variables) section.
@@ -376,6 +378,10 @@ To run the functional tests, execute the following command:
   ./gradlew functional
 ```
 #### With IntelliJ
+
+Make sure your run configuration includes the necessary environment variables in the run configurations.
+You can do this by right clicking the functionalTest folder, selecting `More Run/Debug` and then selecting "Edit Configurations".
+In the run configuration window, select the "Environment Variables" field and add the required variables.
 
 Right-click on the `src/functionalTest` directory in IntelliJ and select "Run 'Tests in pre-api.functionalTest'". This will run all the
 functional tests in the project.
@@ -450,7 +456,7 @@ You can manually run a cron task from the cli:
 1. You will need to make sure your environment variables are set up. You can do this by following the instruction in the
 [Setting Environment Variables](#setting-environment-variables) section.
 2. The database must be running (as it needs the cron user info stored there). You can do this by following the instruction in the
-[Running the Application database with Docker](#running-the-application-database-with-docker) section.
+   [Running the database locally with Docker](#running-the-database-locally-with-docker) section.
 3. Run the task you are interested in by JAR:
 ```bash
   ./gradlew bootJar
