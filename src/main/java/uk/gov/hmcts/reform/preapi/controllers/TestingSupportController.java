@@ -102,8 +102,8 @@ class TestingSupportController {
                              final AppAccessRepository appAccessRepository,
                              final TermsAndConditionsRepository termsAndConditionsRepository,
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
-                             final ScheduledTaskRunner scheduledTaskRunner,
-                             final AuditRepository auditRepository) {
+                             final AuditRepository auditRepository,
+                             final ScheduledTaskRunner scheduledTaskRunner) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -117,8 +117,8 @@ class TestingSupportController {
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
-        this.scheduledTaskRunner = scheduledTaskRunner;
         this.auditRepository = auditRepository;
+        this.scheduledTaskRunner = scheduledTaskRunner;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
