@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.controllers;
 
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.SneakyThrows;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -13,8 +12,6 @@ import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,7 +35,6 @@ import uk.gov.hmcts.reform.preapi.entities.Room;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
-import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -60,7 +56,6 @@ import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
-import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
@@ -69,7 +64,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -190,6 +184,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -243,6 +238,7 @@ class TestingSupportController {
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
         caseEntity.setCourt(court);
+        caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
 
         var participant1 = new Participant();
@@ -462,27 +458,6 @@ class TestingSupportController {
         task.run();
 
         return ResponseEntity.noContent().build();
-    }
-
-    @SneakyThrows
-    @PostMapping(value = "/trigger-edit-request-processing/{editId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Object>> triggerEditRequestProcessing(@PathVariable UUID editId) {
-        var r = roleRepository.findFirstByName("Super User")
-            .orElse(createRole("Super User"));
-        var appAccess = createAppAccess(r);
-        SecurityContextHolder.getContext()
-            .setAuthentication(new UserAuthentication(
-                appAccess,
-                List.of(new SimpleGrantedAuthority("ROLE_SUPER_USER"))));
-
-        editRequestService.updateEditRequestStatus(editId, EditRequestStatus.PROCESSING);
-        var recording = editRequestService.performEdit(editId);
-        var request = editRequestService.findById(editId);
-
-        return ResponseEntity.ok(Map.of(
-            "request", request,
-            "recording", recording
-        ));
     }
 
     @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
