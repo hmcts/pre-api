@@ -91,7 +91,7 @@ public class EditRequestService {
     }
 
     @Transactional(noRollbackFor = Exception.class)
-    public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
+    public EditRequest markAsProcessing(UUID editId) {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
         var request = editRequestRepository.findById(editId)
