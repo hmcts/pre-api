@@ -38,7 +38,8 @@ public class PerformEditRequest extends RobotUserTask {
     private void attemptPerformEditRequest(EditRequest editRequest) {
         log.info("Attempting to perform EditRequest {}", editRequest.getId());
         try {
-            editRequestService.performEdit(editRequest.getId());
+            EditRequest lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
+            editRequestService.performEdit(lockedRequest);
             // todo generate asset (including create recording entity)
             // todo copy edit instructions to recording (?)
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
