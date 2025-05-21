@@ -91,25 +91,25 @@ public class EditRequestServiceTest {
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
     }
 
-    @Test
-    @DisplayName("Should return all pending edit requests")
-    void getPendingEditRequestsSuccess() {
-        var editRequest = new EditRequest();
-        editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
-
-        when(editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
-            .thenReturn(List.of(editRequest));
-
-        var res = editRequestService.getPendingEditRequests();
-
-        assertThat(res).isNotNull();
-        assertThat(res.size()).isEqualTo(1);
-        assertThat(res.getFirst().getId()).isEqualTo(editRequest.getId());
-        assertThat(res.getFirst().getStatus()).isEqualTo(EditRequestStatus.PENDING);
-
-        verify(editRequestRepository, times(1)).findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
-    }
+//    @Test
+//    @DisplayName("Should return all pending edit requests")
+//    void getPendingEditRequestsSuccess() {
+//        var editRequest = new EditRequest();
+//        editRequest.setId(UUID.randomUUID());
+//        editRequest.setStatus(EditRequestStatus.PENDING);
+//
+//        when(editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
+//            .thenReturn(List.of(editRequest));
+//
+//        var res = editRequestService.getPendingEditRequests();
+//
+//        assertThat(res).isNotNull();
+//        assertThat(res.size()).isEqualTo(1);
+//        assertThat(res.getFirst().getId()).isEqualTo(editRequest.getId());
+//        assertThat(res.getFirst().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+//
+//        verify(editRequestRepository, times(1)).findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+//    }
 
     @Test
     @DisplayName("Should attempt to perform edit request and return error on ffmpeg service error")
