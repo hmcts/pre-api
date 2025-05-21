@@ -214,7 +214,7 @@ public class BookingService {
 
     @Transactional
     public List<BookingDTO> findAllPastBookings() {
-        return bookingRepository.findAllByScheduledForBeforeAndCaptureSessions_Empty(Timestamp.from(Instant.now()))
+        return bookingRepository.findAllPastUnusedBookings(Timestamp.from(Instant.now()))
             .stream()
             .map(BookingDTO::new)
             .toList();

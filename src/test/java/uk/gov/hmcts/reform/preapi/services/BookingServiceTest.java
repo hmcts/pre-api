@@ -552,7 +552,7 @@ class BookingServiceTest {
         booking.setShares(Set.of());
         booking.setCreatedAt(Timestamp.from(Instant.now()));
         booking.setModifiedAt(Timestamp.from(Instant.now()));
-        when(bookingRepository.findAllByScheduledForBeforeAndCaptureSessions_Empty(any()))
+        when(bookingRepository.findAllPastUnusedBookings(any()))
             .thenReturn(List.of(booking));
 
         List<BookingDTO> bookings = bookingService.findAllPastBookings();
@@ -561,7 +561,7 @@ class BookingServiceTest {
         assertThat(bookings.getFirst().getId()).isEqualTo(booking.getId());
 
         verify(bookingRepository, times(1))
-            .findAllByScheduledForBeforeAndCaptureSessions_Empty(any());
+            .findAllPastUnusedBookings(any());
     }
 }
 
