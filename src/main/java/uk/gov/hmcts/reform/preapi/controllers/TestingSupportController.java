@@ -54,6 +54,7 @@ import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
+import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
@@ -87,6 +88,7 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final AuditRepository auditRepository;
     private final ScheduledTaskRunner scheduledTaskRunner;
+    private final EditRequestService editRequestService;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -103,7 +105,8 @@ class TestingSupportController {
                              final TermsAndConditionsRepository termsAndConditionsRepository,
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final ScheduledTaskRunner scheduledTaskRunner,
-                             final AuditRepository auditRepository) {
+                             final AuditRepository auditRepository,
+                             final EditRequestService editRequestService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -117,8 +120,9 @@ class TestingSupportController {
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
-        this.scheduledTaskRunner = scheduledTaskRunner;
         this.auditRepository = auditRepository;
+        this.scheduledTaskRunner = scheduledTaskRunner;
+        this.editRequestService = editRequestService;
     }
 
     @PostMapping(path = "/create-room", produces = MediaType.APPLICATION_JSON_VALUE)
