@@ -530,11 +530,11 @@ class BookingServiceIT extends IntegrationTestBase {
 
         var booking1 = HelperFactory.createBooking(caseEntity,
                                                    Timestamp.valueOf("2024-06-28 12:00:00"),
-                                                   Timestamp.from(Instant.now()),
+                                                   null,
                                                    Set.of(participant1, participant2));
         var booking2 = HelperFactory.createBooking(caseEntity,
                                                    Timestamp.valueOf("2024-06-28 12:00:00"),
-                                                   Timestamp.from(Instant.now()),
+                                                   null,
                                                    Set.of(participant1, participant2));
 
         var captureSession = HelperFactory.createCaptureSession(
