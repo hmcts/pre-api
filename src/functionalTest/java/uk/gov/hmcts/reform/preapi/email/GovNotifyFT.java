@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 public class GovNotifyFT {
     private final String toEmailAddress = "test@test.com";
-    private final String fromEmailAddress = "prerecorded.evidence@notifications.service.gov.uk";
+    private final String fromEmailAddress = "hmcts.prerecorded.evidence@notifications.service.gov.uk";
     private final String caseReference = "123456";
     private final String courtName = "Court Name";
     private final String userFirstName = "John";
@@ -144,7 +144,9 @@ public class GovNotifyFT {
 
             [PRE Editing Recording Process Quick Guide.pdf](http://localhost:8080/assets/files/process-guide.pdf)
 
-            [PRE FAQs - External.pdf](http://localhost:8080/assets/files/faqs.pdf)""", response);
+            [PRE FAQs - External.pdf](http://localhost:8080/assets/files/faqs.pdf)
+
+            [PRE Editing Request Form.xlsx](http://localhost:8080/assets/files/pre-editing-request-form.xlsx)""", response);
     }
 
     @DisplayName("Should send case pending closure email")

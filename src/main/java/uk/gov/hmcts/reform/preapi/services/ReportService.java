@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
@@ -23,6 +24,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -41,6 +43,7 @@ public class ReportService {
     private final AuditRepository auditRepository;
     private final UserRepository userRepository;
     private final AppAccessRepository appAccessRepository;
+    private final PortalAccessRepository portalAccessRepository;
 
     @Autowired
     public ReportService(CaptureSessionRepository captureSessionRepository,
@@ -48,13 +51,15 @@ public class ReportService {
                          ShareBookingRepository shareBookingRepository,
                          AuditRepository auditRepository,
                          UserRepository userRepository,
-                         AppAccessRepository appAccessRepository) {
+                         AppAccessRepository appAccessRepository,
+                         PortalAccessRepository portalAccessRepository) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.shareBookingRepository = shareBookingRepository;
         this.auditRepository = auditRepository;
         this.userRepository = userRepository;
         this.appAccessRepository = appAccessRepository;
+        this.portalAccessRepository = portalAccessRepository;
     }
 
     @Transactional
@@ -199,7 +204,9 @@ public class ReportService {
                 .findById(audit.getCreatedBy())
                 .orElse(appAccessRepository.findById(audit.getCreatedBy())
                             .map(AppAccess::getUser)
-                            .orElse(null))
+                            .orElse(portalAccessRepository.findById(audit.getCreatedBy())
+                                        .map(PortalAccess::getUser)
+                                        .orElse(null)))
                 : null,
             recordingId != null
                 ? recordingRepository.findById(recordingId).orElse(null)

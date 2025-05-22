@@ -7,10 +7,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
@@ -57,16 +57,16 @@ class RecordingServiceTest {
     private static Recording recordingEntity;
     private static CaptureSession captureSession;
 
-    @MockBean
+    @MockitoBean
     private RecordingRepository recordingRepository;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
-    @MockBean
+    @MockitoBean
     private GovNotify govNotify;
 
     @Autowired
@@ -590,5 +590,15 @@ class RecordingServiceTest {
         verify(recordingRepository, times(1)).findById(recording.getId());
         verify(captureSessionService, times(1)).undelete(captureSession.getId());
         verify(recordingRepository, never()).save(recording);
+    }
+
+    @Test
+    @DisplayName("Should return the next version number for recordings")
+    void getNextVersionNumberSuccess() {
+        var id = UUID.randomUUID();
+        when(recordingRepository.countByParentRecording_Id(id))
+            .thenReturn(0);
+
+        assertThat(recordingService.getNextVersionNumber(id)).isEqualTo(2);
     }
 }

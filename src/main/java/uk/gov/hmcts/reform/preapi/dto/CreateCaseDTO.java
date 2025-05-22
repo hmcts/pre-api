@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.validators.CaseStateConstraint;
 import uk.gov.hmcts.reform.preapi.dto.validators.ParticipantTypeConstraint;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 
 import java.sql.Timestamp;
 import java.util.Set;
@@ -40,6 +41,9 @@ public class CreateCaseDTO {
     @ParticipantTypeConstraint
     private Set<CreateParticipantDTO> participants;
 
+    @Schema(description = "CreateCaseOrigin")
+    private RecordingOrigin origin;
+
     @Schema(description = "CreateCaseIsTest")
     private boolean test;
 
@@ -58,6 +62,7 @@ public class CreateCaseDTO {
         participants = Stream.ofNullable(caseEntity.getParticipants())
             .flatMap(participants -> participants.stream().map(CreateParticipantDTO::new))
             .collect(Collectors.toSet());
+        origin = caseEntity.getOrigin();
         test = caseEntity.isTest();
         state = caseEntity.getState();
         closedAt = caseEntity.getClosedAt();

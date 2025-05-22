@@ -7,13 +7,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
@@ -25,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -56,23 +59,26 @@ public class ReportServiceTest {
     private static Booking bookingEntity;
     private static Audit auditEntity;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionRepository captureSessionRepository;
 
-    @MockBean
+    @MockitoBean
     private RecordingRepository recordingRepository;
 
-    @MockBean
+    @MockitoBean
     private ShareBookingRepository shareBookingRepository;
 
-    @MockBean
+    @MockitoBean
     private AuditRepository auditRepository;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    @MockBean
+    @MockitoBean
     private AppAccessRepository appAccessRepository;
+
+    @MockitoBean
+    private PortalAccessRepository portalAccessRepository;
 
     @Autowired
     private ReportService reportService;
@@ -582,6 +588,70 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getRegions()).isNullOrEmpty();
 
 
+        verify(auditRepository, times(1)).findAllAccessAttempts();
+        verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Returns audits for all playback attempts a report when createdBy is appAccess id not of user id")
+    void reportPlaybackAllSuccessAuditDetailsWhenAppAccessId() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        var appAccess = new AppAccess();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUser(user);
+        auditEntity.setCreatedBy(appAccess.getId());
+        auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+        when(appAccessRepository.findById(appAccess.getId())).thenReturn(Optional.of(appAccess));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(null);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+
+        verify(appAccessRepository, times(1)).findById(appAccess.getId());
+        verify(auditRepository, times(1)).findAllAccessAttempts();
+        verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Returns audits for all playback attempts a report when createdBy is portalAccess id not of user id")
+    void reportPlaybackAllSuccessAuditDetailsWhenPortalAccessId() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        var portalAccess = new PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setUser(user);
+        auditEntity.setCreatedBy(portalAccess.getId());
+        auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+        when(appAccessRepository.findById(portalAccess.getId())).thenReturn(Optional.empty());
+        when(portalAccessRepository.findById(portalAccess.getId())).thenReturn(Optional.of(portalAccess));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(null);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+
+        verify(appAccessRepository, times(1)).findById(portalAccess.getId());
+        verify(portalAccessRepository, times(1)).findById(portalAccess.getId());
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
     }

@@ -40,6 +40,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: FLOW_CASE_STATE_NOTIFIER_HTTP_API
         - name: flow-case-state-notifier-workflow-id
           alias: CASE_STATE_CHANGE_NOTIFIER_WORKFLOW_ID
+        - name: flow-case-state-notifier-sig
+          alias: FLOW_CASE_STATE_CHANGE_NOTIFIER_SIG
         - name: flow-close-live-event-email-workflow-id
           alias: FLOW_CLOSE_LIVE_EVENT_EMAIL_WORKFLOW_ID
         - name: flow-close-live-event-email-sig
@@ -52,6 +54,8 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: GOV_NOTIFY_API_KEY
         - name: govnotify-key-test
           alias: GOV_NOTIFY_API_KEY_TEST
+        - name: slack-webhook-url
+          alias: SLACK_WEBHOOK_URL
   environment:
     RUN_DB_MIGRATION_ON_STARTUP: false
     APIM_ENABLED: true
@@ -65,6 +69,9 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     EMAIL_SERVICE: GovNotify
     ENABLE_NEW_EMAIL_SERVICE: false
     ENABLE_STREAMING_LOCATOR_ON_START: false
+    ENABLE_AUTOMATED_EDITING: false
+    TASK_START_LIVE_EVENTS_BATCH_SIZE: 20
+    TASK_START_LIVE_EVENTS_POLL_INTERVAL: 2000
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues
