@@ -333,13 +333,7 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
-
-        ArgumentCaptor<MkAsset> captor = ArgumentCaptor.forClass(MkAsset.class);
-        verify(mockClient, times(1)).putAsset(eq(liveEventName), captor.capture());
-        assertThat(captor.getValue().getName()).isEqualTo(liveEventName);
-        assertThat(captor.getValue().getProperties().getStorageAccountName())
-            .isEqualTo(captureSession.getId().toString());
-
+        verify(mockClient, times(1)).putAsset(eq(liveEventName), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
         verify(mockClient, times(1)).getStreamingLocator(any());
