@@ -143,6 +143,9 @@ tasks:
 #            preapi:
 #              actuator:
 #                PreApiHealthIndicator: DEBUG
+#              component:
+#                util:
+#                  CommandRunner: DEBUG
 #              email:
 #                StopLiveEventNotifierFlowClient: DEBUG
 #                CaseStateChangeNotifierFlowClient: DEBUG

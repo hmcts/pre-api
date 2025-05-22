@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.testcontainers.shaded.com.fasterxml.jackson.databind.ObjectMapper;
 import uk.gov.hmcts.reform.preapi.controllers.EditController;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
+import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
@@ -26,10 +27,12 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -143,5 +146,32 @@ public class EditControllerTest {
             .andExpect(jsonPath("$.message").value("File must not be empty"));
 
         verify(editRequestService, never()).upsert(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should return 200 and edit request dto when edit request exists")
+    void getByIdSuccess() throws Exception {
+        var dto = new EditRequestDTO();
+        dto.setId(UUID.randomUUID());
+
+        when(editRequestService.findById(dto.getId())).thenReturn(dto);
+
+        mockMvc.perform(get(TEST_URL + "/edits/" + dto.getId())
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(dto.getId().toString()));
+    }
+
+    @Test
+    @DisplayName("Should return 404 when edit request does not exist")
+    void getByIdNotFound() throws Exception {
+        var id = UUID.randomUUID();
+
+        doThrow(new NotFoundException("Edit Request: " + id)).when(editRequestService).findById(id);
+
+        mockMvc.perform(get(TEST_URL + "/edits/" + id)
+                            .accept(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Not found: Edit Request: " + id));
     }
 }
