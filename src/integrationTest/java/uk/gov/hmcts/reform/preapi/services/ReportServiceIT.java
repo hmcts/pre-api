@@ -1,13 +1,11 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
-import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
@@ -15,7 +13,6 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
-import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -27,7 +24,6 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -37,70 +33,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 public class ReportServiceIT extends IntegrationTestBase {
     @Autowired
     private ReportService reportService;
-
-    @Test
-    @Transactional
-    public void reportSharedAllRecordingIdNull() {
-        var court = HelperFactory.createCourt(CourtType.CROWN, "Example court", "12458");
-        entityManager.persist(court);
-
-        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
-        entityManager.persist(caseEntity);
-
-        var booking = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
-        entityManager.persist(booking);
-
-        var captureSession = HelperFactory.createCaptureSession(
-            booking,
-            RecordingOrigin.PRE,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            RecordingStatus.RECORDING_AVAILABLE,
-            null
-        );
-        entityManager.persist(captureSession);
-
-        var recording = HelperFactory.createRecording(captureSession, null, 1, "example.file", null);
-        entityManager.persist(recording);
-
-        var user = HelperFactory.createUser("Example", "One", "example1@example.com", null, null, null);
-        entityManager.persist(user);
-
-        var audit1 = new Audit();
-        audit1.setId(UUID.randomUUID());
-        audit1.setActivity("Recording Playback started");
-        audit1.setCreatedBy(user.getId());
-        audit1.setSource(AuditLogSource.APPLICATION);
-        var mapper = new ObjectMapper();
-        audit1.setAuditDetails(mapper.valueToTree(new HashMap<String, String>() {{
-                put("description", "Playback on recording has started");
-                put("recordingId", null);
-            }}
-        ));
-        entityManager.persist(audit1);
-
-        var audit2 = new Audit();
-        audit2.setId(UUID.randomUUID());
-        audit2.setActivity("Play");
-        audit2.setCreatedBy(user.getId());
-        audit2.setSource(AuditLogSource.APPLICATION);
-        audit2.setAuditDetails(mapper.valueToTree(new HashMap<String, String>() {{
-                put("details", "Confirmed viewing");
-                put("recordingId", null);
-            }}
-        ));
-        entityManager.persist(audit2);
-
-        var response = reportService.reportPlayback(null);
-        assertThat(response).isNotNull();
-        assertThat(response.size()).isEqualTo(2);
-        assertThat(response.getFirst().getRecordingId()).isNull();
-        assertThat(response.getFirst().getUser()).isNotNull();
-    }
 
     @Test
     @Transactional

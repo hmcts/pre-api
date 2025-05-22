@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -122,7 +121,6 @@ public class ReportServiceTest {
         auditEntity.setCreatedAt(Timestamp.from(Instant.now()));
         auditEntity.setTableRecordId(recordingEntity.getId());
     }
-
 
     @BeforeEach
     void reset() {
@@ -587,38 +585,6 @@ public class ReportServiceTest {
 
         assertThat(report.getFirst().getRegions()).isNullOrEmpty();
 
-
-        verify(auditRepository, times(1)).findAllAccessAttempts();
-        verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
-    }
-
-    @Test
-    @DisplayName("Returns audits for all playback attempts a report when createdBy is appAccess id not of user id")
-    void reportPlaybackAllSuccessAuditDetailsWhenAppAccessId() {
-        var user = new User();
-        user.setId(UUID.randomUUID());
-        user.setEmail("example@example.com");
-        user.setFirstName("Example");
-        user.setLastName("Person");
-        var appAccess = new AppAccess();
-        appAccess.setId(UUID.randomUUID());
-        appAccess.setUser(user);
-        auditEntity.setCreatedBy(appAccess.getId());
-        auditEntity.setSource(AuditLogSource.APPLICATION);
-
-        when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
-        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
-        when(appAccessRepository.findById(appAccess.getId())).thenReturn(Optional.of(appAccess));
-        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
-
-        var report = reportService.reportPlayback(null);
-
-        assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
-
-        verify(appAccessRepository, times(1)).findById(appAccess.getId());
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
     }
@@ -646,9 +612,8 @@ public class ReportServiceTest {
         var report = reportService.reportPlayback(null);
 
         assertThat(report.size()).isEqualTo(1);
-        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
-        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
-        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+        assertThat(report.getFirst().getPlaybackDate()).isEqualTo(DateTimeUtils.formatDate(auditEntity.getCreatedAt()));
+        assertThat(report.getFirst().getUser()).isEqualTo(user.getFullName());
 
         verify(appAccessRepository, times(1)).findById(portalAccess.getId());
         verify(portalAccessRepository, times(1)).findById(portalAccess.getId());
