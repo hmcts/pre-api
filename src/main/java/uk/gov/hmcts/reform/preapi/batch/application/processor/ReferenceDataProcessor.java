@@ -47,7 +47,6 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
     // =========================================
     private void processSitesData(CSVSitesData sitesItem) {
         cacheService.saveSiteReference(sitesItem.getSiteReference(), sitesItem.getCourtName());
-
     }
 
     // ==================================================
@@ -69,5 +68,4 @@ public class ReferenceDataProcessor implements ItemProcessor<Object, Object> {
             channelData.getChannelUserEmail()
         };
     }
-
 }

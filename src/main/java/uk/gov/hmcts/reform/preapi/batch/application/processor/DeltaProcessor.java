@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.batch.application.processor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
@@ -14,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class DeltaProcessor {
     private final LoggingService loggingService;
@@ -34,7 +36,8 @@ public class DeltaProcessor {
             writeNewRecords(deltaFile, headers, newRecords);
             loggingService.logInfo("New delta records written to: %s", deltaFile);
         } catch (IOException e) {
-            e.printStackTrace();
+            // todo more informative message
+            log.error(e.getMessage(), e);
         }
     }
 

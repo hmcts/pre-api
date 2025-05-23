@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.tasks.batch;
+package uk.gov.hmcts.reform.preapi.tasks.migration;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +19,6 @@ import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
-import uk.gov.hmcts.reform.preapi.tasks.migration.ProcessMigration;
 
 import java.util.Optional;
 import java.util.Set;
@@ -32,13 +31,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ProcessMigrationTest {
+public class FetchXMLTest {
 
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
     private static JobLauncher jobLauncher;
     private static LoggingService loggingService;
-    private static Job importCsvJob;
+    private static Job fetchXmlJob;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
 
@@ -59,110 +58,94 @@ public class ProcessMigrationTest {
 
         jobLauncher = mock(JobLauncher.class);
         loggingService = mock(LoggingService.class);
-        importCsvJob = mock(Job.class);
+        fetchXmlJob = mock(Job.class);
     }
 
-    @DisplayName("Test Transform")
+    @DisplayName("Test Fetch XML")
     @Test
     public void testRun() throws JobInstanceAlreadyCompleteException,
         JobExecutionAlreadyRunningException,
         JobParametersInvalidException,
         JobRestartException {
 
-        var processMigration = new ProcessMigration(
-            userService,
-            userAuthenticationService,
-            CRON_USER_EMAIL,
-            jobLauncher,
-            loggingService,
-            false,
-            false,
-            MigrationType.FULL.name(),
-            importCsvJob
-        );
-        processMigration.run();
+        var fetchXML = new FetchXML(userService,
+                                    userAuthenticationService,
+                                    CRON_USER_EMAIL,
+                                    jobLauncher,
+                                    loggingService,
+                                    false,
+                                    false,
+                                    MigrationType.FULL.name(),
+                                    fetchXmlJob);
+        fetchXML.run();
 
         ArgumentCaptor<JobParameters> jobParameters = ArgumentCaptor.forClass(JobParameters.class);
 
-        verify(jobLauncher, times(1)).run(eq(importCsvJob), jobParameters.capture());
+        verify(jobLauncher, times(1)).run(eq(fetchXmlJob), jobParameters.capture());
 
-        Assertions.assertEquals(
-            String.valueOf(false),
-            jobParameters.getValue().getString("debug")
-        );
+        Assertions.assertEquals(String.valueOf(false),
+                                jobParameters.getValue().getString("debug"));
 
-        Assertions.assertEquals(
-            MigrationType.FULL.name(),
-            jobParameters.getValue().getString("migrationType")
-        );
+        Assertions.assertEquals(MigrationType.FULL.name(),
+                                jobParameters.getValue().getString("migrationType"));
 
-        verify(loggingService, times(1)).logInfo("Successfully completed Transform batch job");
+        verify(loggingService, times(1)).logInfo("Successfully completed Fetch XML batch job");
     }
 
-    @DisplayName("Test Transform Second Type")
+    @DisplayName("Test Fetch XML Second Type")
     @Test
     public void testRunSecondType() throws JobInstanceAlreadyCompleteException,
         JobExecutionAlreadyRunningException,
         JobParametersInvalidException,
         JobRestartException {
 
-        var processMigration = new ProcessMigration(
-            userService,
-            userAuthenticationService,
-            CRON_USER_EMAIL,
-            jobLauncher,
-            loggingService,
-            false,
-            false,
-            MigrationType.DELTA.name(),
-            importCsvJob
-        );
-        processMigration.run();
+        var fetchXML = new FetchXML(userService,
+                                    userAuthenticationService,
+                                    CRON_USER_EMAIL,
+                                    jobLauncher,
+                                    loggingService,
+                                    false,
+                                    false,
+                                    MigrationType.DELTA.name(),
+                                    fetchXmlJob);
+        fetchXML.run();
 
         ArgumentCaptor<JobParameters> jobParameters = ArgumentCaptor.forClass(JobParameters.class);
 
-        verify(jobLauncher, times(1)).run(eq(importCsvJob), jobParameters.capture());
+        verify(jobLauncher, times(1)).run(eq(fetchXmlJob), jobParameters.capture());
 
-        Assertions.assertEquals(
-            String.valueOf(false),
-            jobParameters.getValue().getString("debug")
-        );
+        Assertions.assertEquals(String.valueOf(false),
+                                jobParameters.getValue().getString("debug"));
 
-        Assertions.assertEquals(
-            MigrationType.DELTA.name(),
-            jobParameters.getValue().getString("migrationType")
-        );
+        Assertions.assertEquals(MigrationType.DELTA.name(),
+                                jobParameters.getValue().getString("migrationType"));
 
-        verify(loggingService, times(1)).logInfo("Successfully completed Transform batch job");
+        verify(loggingService, times(1)).logInfo("Successfully completed Fetch XML batch job");
     }
 
-    @DisplayName("Test ProcessMigration Exception")
+    @DisplayName("Test FetchXML Exception")
     @Test
     public void testRunException() throws JobInstanceAlreadyCompleteException,
         JobExecutionAlreadyRunningException,
         JobParametersInvalidException,
         JobRestartException {
 
-        when(jobLauncher.run(eq(importCsvJob), any()))
+        when(jobLauncher.run(eq(fetchXmlJob), any()))
             .thenThrow(new JobExecutionAlreadyRunningException("Test"));
 
-        var processMigration = new ProcessMigration(
-            userService,
-            userAuthenticationService,
-            CRON_USER_EMAIL,
-            jobLauncher,
-            loggingService,
-            false,
-            false,
-            MigrationType.FULL.name(),
-            importCsvJob
-        );
-        processMigration.run();
+        var fetchXML = new FetchXML(userService,
+                                    userAuthenticationService,
+                                    CRON_USER_EMAIL,
+                                    jobLauncher,
+                                    loggingService,
+                                    false,
+                                    false,
+                                    MigrationType.FULL.name(),
+                                    fetchXmlJob);
+        fetchXML.run();
 
         verify(loggingService, times(1))
-            .logError(
-                eq("Error starting Transform batch job"),
-                any(JobExecutionAlreadyRunningException.class)
-            );
+            .logError(eq("Error starting Fetch XML batch job"),
+                      any(JobExecutionAlreadyRunningException.class));
     }
 }

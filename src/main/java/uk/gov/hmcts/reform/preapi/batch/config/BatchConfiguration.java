@@ -102,7 +102,6 @@ public class BatchConfiguration implements StepExecutionListener {
         this.stepUtils = stepUtils;
     }
 
-
     @Bean
     public Step createDeltaProcessingStep() {
         return new StepBuilder("deltaProcessingStep", jobRepository)
@@ -122,7 +121,7 @@ public class BatchConfiguration implements StepExecutionListener {
     @JobScope
     public Step createExemptionListStep() {
         return stepUtils.buildChunkStep(
-            "excemptionListDataStep",
+            "exemptionListDataStep",
             new ClassPathResource(EXCEMPTIONS_LIST_CSV),
             new String[] {
                 "archive_name","create_time","duration","court_reference","urn",
@@ -135,8 +134,6 @@ public class BatchConfiguration implements StepExecutionListener {
             transactionManager
         );
     }
-
-
 
     @Bean
     public Step createPreProcessStep() {
@@ -200,7 +197,6 @@ public class BatchConfiguration implements StepExecutionListener {
             .build();
     }
 
-
     // =========================
     // Utility and Helper Functions
     // =========================
@@ -209,7 +205,7 @@ public class BatchConfiguration implements StepExecutionListener {
     public JobExecutionDecider deltaProcessingDecider() {
         return (jobExecution, stepExecution) -> {
             var migrationType = MigrationType.fromString(
-                (String) Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))
+                Objects.requireNonNull(jobExecution.getJobParameters().getString("migrationType"))
             );
 
             if (migrationType.equals(MigrationType.DELTA)) {
@@ -231,5 +227,4 @@ public class BatchConfiguration implements StepExecutionListener {
                 : new FlowExecutionStatus("FAILED");
         };
     }
-
 }
