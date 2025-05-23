@@ -40,11 +40,12 @@ public class PerformEditRequest extends RobotUserTask {
         try {
             EditRequest lockedRequest = editRequestService.markAsProcessing(editRequest.getId());
             editRequestService.performEdit(lockedRequest);
-            // todo generate asset (including create recording entity)
-            // todo copy edit instructions to recording (?)
         } catch (PessimisticLockingFailureException | ResourceInWrongStateException e) {
             // edit request is locked or has already been updated to a different state so it is skipped
             log.info("Skipping EditRequest {}, already reserved by another process", editRequest.getId());
+        } catch (InterruptedException e) {
+            log.error("Error while performing EditRequest {}", editRequest.getId(), e);
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             log.error("Error while performing EditRequest {}", editRequest.getId(), e);
         }

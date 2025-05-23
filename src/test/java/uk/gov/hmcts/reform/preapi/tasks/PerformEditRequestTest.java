@@ -69,7 +69,7 @@ public class PerformEditRequestTest {
 
     @Test
     @DisplayName("PerformEditRequest run")
-    public void testRun() {
+    public void testRun() throws InterruptedException {
         var editRequest1 = createPendingEditRequest();
         var editRequest2 = createPendingEditRequest();
         var editRequest3 = createPendingEditRequest();

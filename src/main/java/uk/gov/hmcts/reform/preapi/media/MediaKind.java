@@ -261,18 +261,20 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
-    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO, boolean sourceIsFinalStorage)
+        throws InterruptedException {
         createAsset(generateAssetDTO.getTempAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getSourceContainer(),
-                    true);
+                    sourceIsFinalStorage);
 
         createAsset(generateAssetDTO.getFinalAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getDestinationContainer().toString(),
                     true);
 
-        var fileName = azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
+        var fileName = (sourceIsFinalStorage ? azureFinalStorageService : azureIngestStorageService)
+            .getMp4FileName(generateAssetDTO.getSourceContainer());
         var jobName = encodeFromMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset(), fileName);
 
         var jobState = waitEncodeComplete(jobName, ENCODE_FROM_MP4_TRANSFORM);

@@ -358,4 +358,13 @@ public class AzureFinalStorageServiceTest {
 
         assertFalse(azureFinalStorageService.downloadBlob(containerName, blobName, downloadPath));
     }
+
+    @Test
+    void createContainerIfNotExistsSuccess() {
+        var containerName = "test-container";
+
+        azureFinalStorageService.createContainerIfNotExists(containerName);
+
+        verify(finalStorageClient, times(1)).createBlobContainerIfNotExists(containerName);
+    }
 }
