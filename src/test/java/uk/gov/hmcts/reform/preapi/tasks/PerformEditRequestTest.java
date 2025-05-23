@@ -7,11 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.EditRequestService;
@@ -25,6 +27,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -75,28 +78,36 @@ public class PerformEditRequestTest {
 
         when(editRequestService.getPendingEditRequests())
             .thenReturn(List.of(editRequest1, editRequest2, editRequest3, editRequest4, editRequest5));
+        when(editRequestService.markAsProcessing(editRequest1.getId())).thenReturn(editRequest1);
+        when(editRequestService.markAsProcessing(editRequest2.getId())).thenReturn(editRequest2);
+        when(editRequestService.markAsProcessing(editRequest5.getId())).thenReturn(editRequest5);
         // when request is successful
-        when(editRequestService.performEdit(editRequest1.getId())).thenReturn(EditRequestStatus.COMPLETE);
-        // todo (for the future) when request errors in ffmpeg stage
-        when(editRequestService.performEdit(editRequest2.getId())).thenReturn(EditRequestStatus.ERROR);
+        when(editRequestService.performEdit(editRequest1)).thenReturn(new RecordingDTO());
+        // when request errors in ffmpeg stage
+        doThrow(UnknownServerException.class).when(editRequestService).performEdit(editRequest2);
         // when edit request is locked it should skip
         doThrow(PessimisticEntityLockException.class).when(editRequestService)
-            .performEdit(editRequest3.getId());
+            .markAsProcessing(editRequest3.getId());
         // when edit request has already been updated to another state
         doThrow(ResourceInDeletedStateException.class).when(editRequestService)
-            .performEdit(editRequest4.getId());
+            .markAsProcessing(editRequest4.getId());
         // something else went wrong
         doThrow(NotFoundException.class).when(editRequestService)
-            .performEdit(editRequest5.getId());
+            .markAsProcessing(editRequest5.getId());
 
         performEditRequest.run();
 
         verify(editRequestService, times(1)).getPendingEditRequests();
-        verify(editRequestService, times(1)).performEdit(editRequest1.getId());
-        verify(editRequestService, times(1)).performEdit(editRequest2.getId());
-        verify(editRequestService, times(1)).performEdit(editRequest3.getId());
-        verify(editRequestService, times(1)).performEdit(editRequest4.getId());
-        verify(editRequestService, times(1)).performEdit(editRequest5.getId());
+        verify(editRequestService, times(1)).markAsProcessing(editRequest1.getId());
+        verify(editRequestService, times(1)).performEdit(editRequest1);
+        verify(editRequestService, times(1)).markAsProcessing(editRequest1.getId());
+        verify(editRequestService, times(1)).performEdit(editRequest2);
+        verify(editRequestService, times(1)).markAsProcessing(editRequest1.getId());
+        verify(editRequestService, never()).performEdit(editRequest3);
+        verify(editRequestService, times(1)).markAsProcessing(editRequest1.getId());
+        verify(editRequestService, never()).performEdit(editRequest4);
+        verify(editRequestService, times(1)).markAsProcessing(editRequest1.getId());
+        verify(editRequestService, never()).performEdit(editRequest5);
     }
 
     private EditRequest createPendingEditRequest() {

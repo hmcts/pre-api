@@ -1,5 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.azure.resourcemanager.mediaservices.models.JobState;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,9 +10,17 @@ import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -19,6 +29,12 @@ import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
 import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.media.IMediaService;
+import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -32,6 +48,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -41,51 +59,100 @@ import static org.mockito.Mockito.when;
 
 @SpringBootTest(classes = EditRequestService.class)
 public class EditRequestServiceTest {
-
     @MockitoBean
     private EditRequestRepository editRequestRepository;
 
     @MockitoBean
     private RecordingRepository recordingRepository;
 
+    @MockitoBean
+    private FfmpegService ffmpegService;
+
+    @MockitoBean
+    private RecordingService recordingService;
+
+    @MockitoBean
+    private AzureIngestStorageService azureIngestStorageService;
+
+    @MockitoBean
+    private AzureFinalStorageService azureFinalStorageService;
+
+    @MockitoBean
+    private MediaServiceBroker mediaServiceBroker;
+
+    @MockitoBean
+    private IMediaService mediaService;
+
     @Autowired
     private EditRequestService editRequestService;
 
-    @Test
-    @DisplayName("Should return all pending edit requests")
-    void getPendingEditRequestsSuccess() {
-        var editRequest = new EditRequest();
-        editRequest.setId(UUID.randomUUID());
-        editRequest.setStatus(EditRequestStatus.PENDING);
-
-        when(editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
-            .thenReturn(List.of(editRequest));
-
-        var res = editRequestService.getPendingEditRequests();
-
-        assertThat(res).isNotNull();
-        assertThat(res.size()).isEqualTo(1);
-        assertThat(res.getFirst().getId()).isEqualTo(editRequest.getId());
-        assertThat(res.getFirst().getStatus()).isEqualTo(EditRequestStatus.PENDING);
-
-        verify(editRequestRepository, times(1)).findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    @BeforeEach
+    void setup() {
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
     }
 
     @Test
-    @DisplayName("Should perform edit request and return COMPLETE status")
-    void performEditSuccess() throws InterruptedException {
+    @DisplayName("Should attempt to perform edit request and return error on ffmpeg service error")
+    void performEditFfmpegError() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setSourceRecording(recording);
 
-        when(editRequestRepository.findById(editRequest.getId())).thenReturn(Optional.of(editRequest));
+        doThrow(UnknownServerException.class)
+            .when(ffmpegService).performEdit(any(UUID.class), eq(editRequest));
 
-        var res = editRequestService.performEdit(editRequest.getId());
+        assertThrows(
+            Exception.class,
+            () -> editRequestService.performEdit(editRequest)
+        );
 
-        assertThat(res).isEqualTo(EditRequestStatus.COMPLETE);
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(recordingService, never()).upsert(any());
+    }
 
-        verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, times(2)).save(any(EditRequest.class));
+    @Test
+    @DisplayName("Should perform edit request and return created recording")
+    void performEditSuccess() throws InterruptedException {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setCaptureSession(captureSession);
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setSourceRecording(recording);
+
+        when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
+        when(recordingService.upsert(any(CreateRecordingDTO.class))).thenReturn(UpsertResult.CREATED);
+        var newRecordingDto = new RecordingDTO();
+        newRecordingDto.setParentRecordingId(recording.getId());
+        when(recordingService.findById(any(UUID.class))).thenReturn(newRecordingDto);
+        when(azureIngestStorageService.doesContainerExist(anyString())).thenReturn(true);
+        var importResponse = new GenerateAssetResponseDTO();
+        importResponse.setJobStatus(JobState.FINISHED.toString());
+        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(importResponse);
+        when(azureFinalStorageService.getMp4FileName(anyString())).thenReturn("index.mp4");
+
+        var res = editRequestService.performEdit(editRequest);
+        assertThat(res).isNotNull();
+        assertThat(res.getParentRecordingId()).isEqualTo(recording.getId());
+
+        verify(editRequestRepository, times(1)).saveAndFlush(any(EditRequest.class));
+        verify(ffmpegService, times(1)).performEdit(any(UUID.class), any(EditRequest.class));
+        verify(recordingService, times(1)).upsert(any(CreateRecordingDTO.class));
+        verify(recordingService, times(1)).findById(any(UUID.class));
+        verify(azureIngestStorageService, times(1)).doesContainerExist(anyString());
+        verify(azureIngestStorageService, times(1)).getMp4FileName(anyString());
+        verify(mediaService, times(1)).importAsset(any(GenerateAssetDTO.class), eq(false));
+        verify(azureFinalStorageService, times(1)).getMp4FileName(anyString());
     }
 
     @Test
@@ -97,13 +164,13 @@ public class EditRequestServiceTest {
 
         var message = assertThrows(
             NotFoundException.class,
-            () -> editRequestService.performEdit(id)
+            () -> editRequestService.markAsProcessing(id)
         ).getMessage();
 
         assertThat(message).isEqualTo("Not found: Edit Request: " + id);
 
         verify(editRequestRepository, times(1)).findById(id);
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
+        verify(editRequestRepository, never()).saveAndFlush(any(EditRequest.class));
     }
 
     @Test
@@ -117,7 +184,7 @@ public class EditRequestServiceTest {
 
         var message = assertThrows(
             ResourceInWrongStateException.class,
-            () -> editRequestService.performEdit(editRequest.getId())
+            () -> editRequestService.markAsProcessing(editRequest.getId())
         ).getMessage();
 
         assertThat(message)
@@ -126,7 +193,7 @@ public class EditRequestServiceTest {
                            + ") is in a PROCESSING state. Expected state is PENDING.");
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
+        verify(editRequestRepository, never()).saveAndFlush(any(EditRequest.class));
     }
 
     @Test
@@ -140,11 +207,11 @@ public class EditRequestServiceTest {
 
         assertThrows(
             PessimisticLockingFailureException.class,
-            () -> editRequestService.performEdit(editRequest.getId())
+            () -> editRequestService.markAsProcessing(editRequest.getId())
         );
 
         verify(editRequestRepository, times(1)).findById(editRequest.getId());
-        verify(editRequestRepository, never()).save(any(EditRequest.class));
+        verify(editRequestRepository, never()).saveAndFlush(any(EditRequest.class));
     }
 
     @Test
@@ -497,6 +564,223 @@ public class EditRequestServiceTest {
 
         assertEditInstructionsEq(expectedInvertedInstructions,
                                  editRequestService.invertInstructions(instructions1, recording));
+    }
+
+    @Test
+    @DisplayName("Should return edit request when it exists")
+    void findByIdSuccess() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+        var aCase = new Case();
+        aCase.setId(UUID.randomUUID());
+        aCase.setCourt(court);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(aCase);
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+        captureSession.setBooking(booking);
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setVersion(1);
+        recording.setCaptureSession(captureSession);
+        recording.setDuration(Duration.ofMinutes(3));
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        editRequest.setCreatedBy(user);
+        editRequest.setStatus(EditRequestStatus.PENDING);
+        editRequest.setEditInstruction("{}");
+
+        when(editRequestRepository.findByIdNotLocked(editRequest.getId())).thenReturn(Optional.of(editRequest));
+
+        var res = editRequestService.findById(editRequest.getId());
+        assertThat(res).isNotNull();
+        assertThat(res.getId()).isEqualTo(editRequest.getId());
+        assertThat(res.getStatus()).isEqualTo(EditRequestStatus.PENDING);
+
+        verify(editRequestRepository, times(1)).findByIdNotLocked(editRequest.getId());
+    }
+
+    @Test
+    @DisplayName("Should throw error when requested request does not exist")
+    void findByIdNotFound() {
+        var id = UUID.randomUUID();
+        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.empty());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> editRequestService.findById(id)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Edit Request: " + id);
+
+        verify(editRequestRepository, times(1)).findByIdNotLocked(id);
+    }
+
+    @Test
+    @DisplayName("Should return new create recording dto for the edit request")
+    void createRecordingSuccess() {
+        var captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
+
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        recording.setVersion(1);
+        recording.setCaptureSession(captureSession);
+        recording.setFilename("index.mp4");
+
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.COMPLETE);
+        editRequest.setEditInstruction("{}");
+        editRequest.setSourceRecording(recording);
+
+        var newRecordingId = UUID.randomUUID();
+
+        when(recordingService.getNextVersionNumber(recording.getId())).thenReturn(2);
+
+        var dto = editRequestService.createRecordingDto(newRecordingId, "index.mp4", editRequest);
+        assertThat(dto).isNotNull();
+        assertThat(dto.getId()).isEqualTo(newRecordingId);
+        assertThat(dto.getParentRecordingId()).isEqualTo(recording.getId());
+        assertThat(dto.getVersion()).isEqualTo(2);
+        assertThat(dto.getEditInstructions()).isEqualTo("{}");
+        assertThat(dto.getCaptureSessionId()).isEqualTo(captureSession.getId());
+        assertThat(dto.getFilename()).isEqualTo("index.mp4");
+
+        verify(recordingService, times(1)).getNextVersionNumber(recording.getId());
+    }
+
+    @Test
+    @DisplayName("Should throw not found when generate asset cannot find source container")
+    void generateAssetSourceContainerNotFound() {
+        var editRequest = new EditRequest();
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        var newRecordingId = UUID.randomUUID();
+        var sourceContainer = newRecordingId + "-input";
+
+        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(false);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> editRequestService.generateAsset(newRecordingId, editRequest)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Source Container (" + sourceContainer + ") does not exist");
+
+        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
+    }
+
+    @Test
+    @DisplayName("Should throw not found when generate asset cannot find source container's mp4")
+    void generateAssetSourceContainerMp4NotFound() {
+        var editRequest = new EditRequest();
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        var newRecordingId = UUID.randomUUID();
+        var sourceContainer = newRecordingId + "-input";
+
+        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
+        doThrow(new NotFoundException("MP4 file not found in container " + sourceContainer))
+            .when(azureIngestStorageService).getMp4FileName(sourceContainer);
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> editRequestService.generateAsset(newRecordingId, editRequest)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: MP4 file not found in container " + sourceContainer);
+
+        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
+        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+    }
+
+    @Test
+    @DisplayName("Should throw error when import asset fails when generating asset")
+    void generateAssetImportAssetError() throws InterruptedException {
+        var editRequest = new EditRequest();
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        var newRecordingId = UUID.randomUUID();
+        var sourceContainer = newRecordingId + "-input";
+
+        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
+        doThrow(new NotFoundException("Something went wrong")).when(mediaService).importAsset(any(), eq(false));
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> editRequestService.generateAsset(newRecordingId, editRequest)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: Something went wrong");
+
+        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
+        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verify(mediaService, times(1)).importAsset(any(), eq(false));
+    }
+
+    @Test
+    @DisplayName("Should throw error when import asset fails (returning error) when generating asset")
+    void generateAssetImportAssetReturnsError() throws InterruptedException {
+        var editRequest = new EditRequest();
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        var newRecordingId = UUID.randomUUID();
+        var sourceContainer = newRecordingId + "-input";
+
+        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
+        var generateResponse = new GenerateAssetResponseDTO();
+        generateResponse.setJobStatus(JobState.ERROR.toString());
+        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(generateResponse);
+
+        var message = assertThrows(
+            UnknownServerException.class,
+            () -> editRequestService.generateAsset(newRecordingId, editRequest)
+        ).getMessage();
+        assertThat(message)
+            .isEqualTo("Unknown Server Exception: Failed to generate asset for edit request: "
+                           + editRequest.getSourceRecording().getId()
+                           + ", new recording: "
+                           + newRecordingId);
+
+        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
+        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verify(mediaService, times(1)).importAsset(any(), eq(false));
+        verify(azureFinalStorageService, never()).getMp4FileName(any());
+    }
+
+    @Test
+    @DisplayName("Should throw error when generating asset if get mp4 from final fails")
+    void generateAssetGetMp4FinalNotFound() throws InterruptedException {
+        var editRequest = new EditRequest();
+        var recording = new Recording();
+        recording.setId(UUID.randomUUID());
+        editRequest.setSourceRecording(recording);
+        var newRecordingId = UUID.randomUUID();
+        var sourceContainer = newRecordingId + "-input";
+
+        when(azureIngestStorageService.doesContainerExist(sourceContainer)).thenReturn(true);
+        var generateResponse = new GenerateAssetResponseDTO();
+        generateResponse.setJobStatus(JobState.FINISHED.toString());
+        when(mediaService.importAsset(any(GenerateAssetDTO.class), eq(false))).thenReturn(generateResponse);
+        doThrow(new NotFoundException("MP4 file not found in container " + newRecordingId))
+            .when(azureFinalStorageService)
+            .getMp4FileName(newRecordingId.toString());
+
+        var message = assertThrows(
+            NotFoundException.class,
+            () -> editRequestService.generateAsset(newRecordingId, editRequest)
+        ).getMessage();
+        assertThat(message).isEqualTo("Not found: MP4 file not found in container " + newRecordingId);
+
+        verify(azureIngestStorageService, times(1)).doesContainerExist(sourceContainer);
+        verify(azureIngestStorageService, times(1)).getMp4FileName(sourceContainer);
+        verify(mediaService, times(1)).importAsset(any(), eq(false));
+        verify(azureFinalStorageService, times(1)).getMp4FileName(any());
     }
 
     private void assertEditInstructionsEq(List<FfmpegEditInstructionDTO> expected,

@@ -764,7 +764,7 @@ public class MediaKindTest {
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
         when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
-        var result = mediaKind.importAsset(generateAssetDTO);
+        var result = mediaKind.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Finished");
 
@@ -827,7 +827,7 @@ public class MediaKindTest {
                                                      "unit test import asset",
                                                      UUID.randomUUID());
 
-        var result = mediaKind.importAsset(generateAssetDTO);
+        var result = mediaKind.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Error");
 
