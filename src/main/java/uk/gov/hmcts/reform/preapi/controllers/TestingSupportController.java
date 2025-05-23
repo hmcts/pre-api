@@ -124,8 +124,8 @@ class TestingSupportController {
         this.appAccessRepository = appAccessRepository;
         this.termsAndConditionsRepository = termsAndConditionsRepository;
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
-        this.scheduledTaskRunner = scheduledTaskRunner;
         this.auditRepository = auditRepository;
+        this.scheduledTaskRunner = scheduledTaskRunner;
         this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
     }
