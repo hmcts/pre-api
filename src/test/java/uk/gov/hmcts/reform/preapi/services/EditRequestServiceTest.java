@@ -103,7 +103,7 @@ public class EditRequestServiceTest {
 
         var res = editRequestService.getNextPendingEditRequest();
 
-        assertThat(res.isPresent()).isTrue();
+        assertThat(res).isPresent();
         assertThat(res.get().getId()).isEqualTo(editRequest.getId());
         assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
 
