@@ -124,6 +124,17 @@ public class PerformEditRequestTest {
         verify(editRequestService, never()).performEdit(editRequest6);
     }
 
+    @Test
+    @DisplayName("PerformEditRequest run without any pending requests")
+    void runNoPendingRequests() throws InterruptedException {
+
+        performEditRequest.run();
+
+        verify(editRequestService, times(1)).getNextPendingEditRequest();
+        verify(editRequestService, never()).markAsProcessing(any());
+        verify(editRequestService, never()).performEdit(any());
+    }
+
     private EditRequest createPendingEditRequest() {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
