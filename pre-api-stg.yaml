@@ -848,38 +848,6 @@ definitions:
         format: int32
         type: integer
     type: object
-  EditRequestDTO:
-    properties:
-      created_at:
-        format: date-time
-        type: string
-      created_by_id:
-        format: uuid
-        type: string
-      edit_instruction:
-        type: string
-      finished_at:
-        format: date-time
-        type: string
-      id:
-        format: uuid
-        type: string
-      modified_at:
-        format: date-time
-        type: string
-      source_recording:
-        $ref: '#/definitions/RecordingDTO'
-      started_at:
-        format: date-time
-        type: string
-      status:
-        enum:
-          - PENDING
-          - PROCESSING
-          - COMPLETE
-          - ERROR
-        type: string
-    type: object
   EntityModelBookingDTO:
     properties:
       _links:
@@ -2689,63 +2657,6 @@ paths:
       summary: Create or Update a Court
       tags:
         - court-controller
-  '/edits/from-csv/{sourceRecordingId}':
-    post:
-      consumes:
-        - multipart/form-data
-      operationId: createEditFromCsv
-      parameters:
-        - format: uuid
-          in: path
-          name: sourceRecordingId
-          required: true
-          type: string
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-        - format: binary
-          in: formData
-          name: file
-          required: true
-          type: string
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/EditRequestDTO'
-      tags:
-        - edit-controller
-  '/edits/{id}':
-    get:
-      operationId: getEditRequestById
-      parameters:
-        - format: uuid
-          in: path
-          name: id
-          required: true
-          type: string
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/EditRequestDTO'
-      tags:
-        - edit-controller
   /health:
     get:
       operationId: health
