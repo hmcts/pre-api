@@ -8,9 +8,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
@@ -26,16 +29,14 @@ import java.util.UUID;
 @Slf4j
 @Component
 public class CleanupLiveEvents extends RobotUserTask {
-
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
     private final BookingService bookingService;
     private final RecordingService recordingService;
     private final StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
+    private final EmailServiceFactory emailServiceFactory;
 
     private final String platformEnv;
-
-    private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
@@ -155,7 +156,30 @@ public class CleanupLiveEvents extends RobotUserTask {
                       }
                   });
 
+        // Delete live events that remain
+        mediaService.getLiveEvents().stream()
+                .map(LiveEventDTO::getName)
+                .peek(liveEvent -> log.info("Cleaning up stopped live event: {}", liveEvent))
+                .forEach(mediaService::stopLiveEvent);
+
+        // Handle past bookings that are unused
+        handlePastBookings();
+
         log.info("Completed CleanupLiveEvents task");
+    }
+
+    private void handlePastBookings() {
+        bookingService.findAllPastBookings()
+            .forEach(booking -> {
+                CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+                captureSession.setId(UUID.randomUUID());
+                captureSession.setBookingId(booking.getId());
+                captureSession.setOrigin(RecordingOrigin.PRE);
+                captureSession.setStatus(RecordingStatus.NO_RECORDING);
+                log.info("Found old booking: {}. Creating NO_RECORDING capture session: {}",
+                         booking.getId(), captureSession.getId());
+                captureSessionService.upsert(captureSession);
+            });
     }
 
     private boolean stopLiveEvent(IMediaService mediaService,

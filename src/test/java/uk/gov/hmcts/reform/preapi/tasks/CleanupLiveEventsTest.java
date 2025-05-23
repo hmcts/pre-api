@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Assertions;
@@ -15,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
@@ -26,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.email.govnotify.GovNotify;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -43,6 +46,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -53,7 +57,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class CleanupLiveEventsTest {
-
     private static MediaServiceBroker mediaServiceBroker;
     private static CaptureSessionService captureSessionService;
     private static BookingService bookingService;
@@ -202,7 +205,7 @@ public class CleanupLiveEventsTest {
         cleanupLiveEvents.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
 
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor = ArgumentCaptor.forClass(CaptureSessionDTO.class);
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor2 = ArgumentCaptor.forClass(CaptureSessionDTO.class);
@@ -374,7 +377,7 @@ public class CleanupLiveEventsTest {
         cleanupLiveEvents.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(1))
             .stopCaptureSession(captureSession.getId(), RecordingStatus.FAILURE, mockRecording.getId());
     }
@@ -432,7 +435,7 @@ public class CleanupLiveEventsTest {
         cleanupLiveEvents.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(1)).findByLiveEventId(liveEventDTO.getName());
         verify(recordingService, never()).findAll(any(), eq(false), any());
         verify(mediaService, times(1)).cleanupStoppedLiveEvent(liveEventDTO.getName());
@@ -482,7 +485,7 @@ public class CleanupLiveEventsTest {
         cleanupLiveEvents.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(1)).findByLiveEventId(liveEventDTO.getName());
         verify(recordingService, never()).findAll(any(), eq(false), any());
         verify(mediaService, never()).getAsset(any());
@@ -607,7 +610,7 @@ public class CleanupLiveEventsTest {
         cleanupLiveEvents.run();
 
         verify(mediaServiceBroker, times(1)).getEnabledMediaService();
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
 
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor = ArgumentCaptor.forClass(CaptureSessionDTO.class);
         ArgumentCaptor<CaptureSessionDTO> captureSessionCaptor2 = ArgumentCaptor.forClass(CaptureSessionDTO.class);
@@ -619,5 +622,69 @@ public class CleanupLiveEventsTest {
         Assertions.assertEquals(captureSessionId, captureSessionCaptor2.getValue().getId());
 
         verify(stopLiveEventNotifierFlowClient, times(0)).emailAfterStoppingLiveEvents(any());
+    }
+
+    @Test
+    @DisplayName("Should stop live events that are not in running state")
+    public void testCleanupAlreadyStoppedEvents() {
+        LiveEventDTO liveEvent = new LiveEventDTO();
+        liveEvent.setName("liveEventName");
+        liveEvent.setResourceState(LiveEventResourceState.STOPPED.toString());
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(List.of(liveEvent));
+        when(bookingService.findAllPastBookings()).thenReturn(List.of());
+
+        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
+                                                                    captureSessionService,
+                                                                    bookingService,
+                                                                    recordingService,
+                                                                    userService,
+                                                                    userAuthenticationService,
+                                                                    CRON_USER_EMAIL,
+                                                                    CRON_PLATFORM_ENV,
+                                                                    stopLiveEventNotifierFlowClient,
+                                                                    emailServiceFactory);
+
+        cleanupLiveEvents.run();
+
+        verify(mediaService, times(2)).getLiveEvents();
+        verify(mediaService, times(1)).stopLiveEvent("liveEventName");
+        verify(bookingService, times(1)).findAllPastBookings();
+    }
+
+    @Test
+    @DisplayName("Should mark past bookings as no recording when they are unused")
+    public void testCleanupPastBookings() {
+        BookingDTO booking = new BookingDTO();
+        booking.setId(UUID.randomUUID());
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(List.of());
+        when(bookingService.findAllPastBookings()).thenReturn(List.of(booking));
+
+        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(mediaServiceBroker,
+                                                                    captureSessionService,
+                                                                    bookingService,
+                                                                    recordingService,
+                                                                    userService,
+                                                                    userAuthenticationService,
+                                                                    CRON_USER_EMAIL,
+                                                                    CRON_PLATFORM_ENV,
+                                                                    stopLiveEventNotifierFlowClient,
+                                                                    emailServiceFactory);
+
+        cleanupLiveEvents.run();
+
+        verify(mediaService, times(2)).getLiveEvents();
+        verify(bookingService, times(1)).findAllPastBookings();
+
+        ArgumentCaptor<CreateCaptureSessionDTO> captor = ArgumentCaptor.forClass(CreateCaptureSessionDTO.class);
+        verify(captureSessionService, times(1)).upsert(captor.capture());
+
+        assertThat(captor.getValue().getId()).isNotNull();
+        assertThat(captor.getValue().getBookingId()).isEqualTo(booking.getId());
+        assertThat(captor.getValue().getOrigin()).isEqualTo(RecordingOrigin.PRE);
+        assertThat(captor.getValue().getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
     }
 }
