@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
-public class FfmpegService implements EditingService {
+public class FfmpegService implements IEditingService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
     private final CommandExecutor commandExecutor;

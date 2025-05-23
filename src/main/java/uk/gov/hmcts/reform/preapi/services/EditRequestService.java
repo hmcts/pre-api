@@ -45,6 +45,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -86,12 +87,12 @@ public class EditRequestService {
     }
 
     @Transactional
-    public List<EditRequest> getPendingEditRequests() {
-        return editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    public Optional<EditRequest> getNextPendingEditRequest() {
+        return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
 
     @Transactional(noRollbackFor = Exception.class)
-    public EditRequest markAsProcessing(UUID editId) {
+    public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
         log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
         var request = editRequestRepository.findById(editId)

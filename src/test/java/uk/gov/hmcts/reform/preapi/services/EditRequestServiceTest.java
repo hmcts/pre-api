@@ -92,6 +92,25 @@ public class EditRequestServiceTest {
     }
 
     @Test
+    @DisplayName("Should return all pending edit requests")
+    void getPendingEditRequestsSuccess() {
+        var editRequest = new EditRequest();
+        editRequest.setId(UUID.randomUUID());
+        editRequest.setStatus(EditRequestStatus.PENDING);
+
+        when(editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
+            .thenReturn(Optional.of(editRequest));
+
+        var res = editRequestService.getNextPendingEditRequest();
+
+        assertThat(res).isPresent();
+        assertThat(res.get().getId()).isEqualTo(editRequest.getId());
+        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
+
+        verify(editRequestRepository, times(1)).findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    }
+
+    @Test
     @DisplayName("Should attempt to perform edit request and return error on ffmpeg service error")
     void performEditFfmpegError() {
         var captureSession = new CaptureSession();

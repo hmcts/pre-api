@@ -31,8 +31,11 @@ public class PerformEditRequest extends RobotUserTask {
         signInRobotUser();
         log.info("Running PerformEditRequest task");
 
-        editRequestService.getPendingEditRequests()
-            .forEach(this::attemptPerformEditRequest);
+        // claims the oldest existing pending request and performs edit
+        editRequestService.getNextPendingEditRequest()
+            .ifPresentOrElse(
+                this::attemptPerformEditRequest,
+                () -> log.info("No pending edit requests found"));
     }
 
     private void attemptPerformEditRequest(EditRequest editRequest) {
