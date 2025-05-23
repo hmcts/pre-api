@@ -18,9 +18,10 @@ public final class RegexPatterns {
     public static final Pattern DIGIT_ONLY_PATTERN = Pattern.compile("^\\d+(?>_\\d+)*\\.mp4$");
 
     public static final Pattern S28_PATTERN = Pattern.compile(
-        "^(?:S28[_\\s])[A-Za-z0-9_]+_\\d{15,18}(?:\\.(mp4|raw|mov|avi|mkv))?$",
+        "^S?28.*?(VMR\\d+)?[_\\s-]*\\d{9,20}.*\\.(mp4|raw|mov|avi|mkv)$",
         Pattern.CASE_INSENSITIVE
     );
+
     public static final Pattern UUID_FILENAME_PATTERN = Pattern.compile(
         "^[a-zA-Z0-9]+_\\d{15}_\\d+_[0-9a-f]{8}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{4}[0-9a-f]{12}(?:\\.(mp4|mov|avi|mkv))?$",
         Pattern.CASE_INSENSITIVE
@@ -67,7 +68,6 @@ public final class RegexPatterns {
     private static final String DATE_PATTERN =
         "(?<date>\\d{6}|\\d{2}-\\d{2}-\\d{4}|\\d{2}/\\d{2}/\\d{4}|\\d{2}-\\d{2}-\\d{4}-\\d{4})";
     private static final String COURT_PATTERN = "(?<court>[A-Za-z]+(?:d|fd)?)";
-    // private static final String URN_PATTERN = "(?<urn>\\d{2}[A-Za-z0-9]{2}\\d+)";
     private static final String URN_PATTERN = "(?<urn>[A-Za-z0-9]{6,14})";
     private static final String EXHIBIT_PATTERN = "(?<exhibitRef>[A-Za-z][A-Za-z0-9]{8})";
     private static final String VERSION_PATTERN =
@@ -181,6 +181,16 @@ public final class RegexPatterns {
         + EXTENSION_PATTERN + "$"
     );
 
+    public static final Pattern POST_URN_PREFIX_PATTERN = Pattern.compile(
+        "^" + COURT_PATTERN + SEPARATOR_ONE
+        + DATE_PATTERN + SEPARATOR_ONE
+        + URN_PATTERN + SEPARATOR_ONE
+        + "(?:S28[-_\\s]+)?"
+        + NAMES_PATTERN + SEPARATOR_ONE
+        + VERSION_PATTERN
+        + EXTENSION_PATTERN + "$"
+    );
+
     /**
      * Combined flexible pattern that handles both standard and legacy formats.
      * This pattern combines the functionality of the previous FLEXIBLE_PATTERN and MATCH_ALL_PATTERN.
@@ -229,6 +239,7 @@ public final class RegexPatterns {
         "DoubleURN", RegexPatterns.DOUBLE_URN_NO_EXHIBIT_PATTERN,
         "DoubleExhibit", RegexPatterns.DOUBLE_EXHIBIT_NO_URN_PATTERN,
         "Prefix", RegexPatterns.PREFIX_PATTERN,
+        "Post", RegexPatterns.POST_URN_PREFIX_PATTERN,
         "Flexible", RegexPatterns.FLEXIBLE_PATTERN,
         "ExtraId", RegexPatterns.URN_EXTRA_ID_PATTERN
     );

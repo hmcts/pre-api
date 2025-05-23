@@ -57,14 +57,17 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("[-_\\s]?(?:CP-Case|AS URN)[-_\\s]?$", "")
             .replaceAll("_(?=\\.[^.]+$)", "")
             .replaceAll("[-_\\s]{2,}", "-")
-            .replaceAll("\\s+","")
+            .replaceAll("\\s*&\\s*", " & ")     
+            .replaceAll("(?<!&)\\s+(?!&)", "") 
             .replaceAll("CP_", "")
             .replaceAll("CP-", "")
+            // .replaceAll("-NA-", "")
             .replaceAll("CP ", "")
             .replaceAll("CP Case", "")
             .replaceAll("(?i)As Urn[-_\\s]*", "") 
             .replaceAll("(?i)See Urn[-_\\s]*", "") 
             .replaceAll("(?i)As-Urn[-_\\s]*", "") 
+            .replaceAll("[\\.]+[-_\\s]*[\\.]+", "-")
             .trim();
     }
 
