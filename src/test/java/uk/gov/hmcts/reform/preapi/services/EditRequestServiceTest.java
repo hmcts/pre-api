@@ -97,18 +97,7 @@ public class EditRequestServiceTest {
         var editRequest = new EditRequest();
         editRequest.setId(UUID.randomUUID());
         editRequest.setStatus(EditRequestStatus.PENDING);
-        editRequest.setSourceRecording(recording);
 
-        when(editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
-            .thenReturn(Optional.of(editRequest));
-
-        var res = editRequestService.getNextPendingEditRequest();
-
-        assertThat(res.isPresent()).isTrue();
-        assertThat(res.get().getId()).isEqualTo(editRequest.getId());
-        assertThat(res.get().getStatus()).isEqualTo(EditRequestStatus.PENDING);
-
-        verify(editRequestRepository, times(1)).findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
         when(editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING))
             .thenReturn(Optional.of(editRequest));
 
@@ -120,6 +109,7 @@ public class EditRequestServiceTest {
 
         verify(editRequestRepository, times(1)).findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
     }
+
     @Test
     @DisplayName("Should attempt to perform edit request and return error on ffmpeg service error")
     void performEditFfmpegError() {
