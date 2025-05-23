@@ -28,7 +28,7 @@ public class CSVExemptionListData {
         "d-M-yyyy HH:mm", "d-M-yyyy H:mm",
         "yyyy-MM-dd HH:mm:ss"
     );
-    
+
     private String archiveName;
     private String createTime;
     private int duration;
@@ -76,22 +76,22 @@ public class CSVExemptionListData {
     @Override
     public String toString() {
         return "CSVExemptionListData{"
-                + "archiveName='" + archiveName + '\''
-                + ", createTime='" + createTime + '\''
-                + ", duration=" + duration
-                + ", courtReference='" + courtReference + '\''
-                + ", urn='" + urn + '\''
-                + ", exhibitReference='" + exhibitReference + '\''
-                + ", defendantName='" + defendantName + '\''
-                + ", witnessName='" + witnessName + '\''
-                + ", recordingVersion='" + recordingVersion + '\''
-                + ", recordingVersionNumber=" + recordingVersionNumber
-                + ", reason='" + reason + '\''
-                + ", addedBy='" + addedBy + '\''
-                + ", fileExtension='" + fileExtension + '\''
-                + ", fileName='" + fileName + '\''
-                + ", fileSize='" + fileSize + '\''
-                + '}';
+            + "archiveName='" + archiveName + '\''
+            + ", createTime='" + createTime + '\''
+            + ", duration=" + duration
+            + ", courtReference='" + courtReference + '\''
+            + ", urn='" + urn + '\''
+            + ", exhibitReference='" + exhibitReference + '\''
+            + ", defendantName='" + defendantName + '\''
+            + ", witnessName='" + witnessName + '\''
+            + ", recordingVersion='" + recordingVersion + '\''
+            + ", recordingVersionNumber=" + recordingVersionNumber
+            + ", reason='" + reason + '\''
+            + ", addedBy='" + addedBy + '\''
+            + ", fileExtension='" + fileExtension + '\''
+            + ", fileName='" + fileName + '\''
+            + ", fileSize='" + fileSize + '\''
+            + '}';
     }
 }
 
