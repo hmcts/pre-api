@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.CSVExemptionListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.FailedItem;
 import uk.gov.hmcts.reform.preapi.batch.entities.NotifyItem;
@@ -277,6 +278,15 @@ public class MigrationTrackerService {
                     getValueOrEmpty(metadata.getCreateTime() != null ? metadata.getCreateTime().toString() : ""),
                     getValueOrEmpty(metadata.getFileName()),
                     getValueOrEmpty(metadata.getFileSize()),
+                    failureTime
+                ));
+            } else if (itemData instanceof CSVExemptionListData exemptionItem) {
+                rows.add(List.of(
+                    getValueOrEmpty(item.getReason()),
+                    getValueOrEmpty(exemptionItem.getArchiveName()),
+                    getValueOrEmpty(exemptionItem.getCreateTime()),
+                    getValueOrEmpty(exemptionItem.getFileName()),
+                    getValueOrEmpty(exemptionItem.getFileSize()),
                     failureTime
                 ));
             } else {

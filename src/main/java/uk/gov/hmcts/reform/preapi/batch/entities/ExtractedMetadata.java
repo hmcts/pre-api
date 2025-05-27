@@ -104,6 +104,11 @@ public class ExtractedMetadata implements IArchiveData {
     }
 
     @Override
+    public LocalDateTime getCreateTimeAsLocalDateTime() {
+        return this.createTime;
+    }
+
+    @Override
     public String toString() {
         return "ExtractedMetadata {"
             + "courtReference='" + courtReference + '\''
