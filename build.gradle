@@ -11,10 +11,10 @@ plugins {
   id 'jacoco'
   id 'io.spring.dependency-management' version '1.1.7'
   id 'org.springframework.boot' version '3.4.2'
-  id 'org.owasp.dependencycheck' version '12.1.0'
+  id 'org.owasp.dependencycheck' version '12.1.1'
   id 'com.github.ben-manes.versions' version '0.52.0'
   id 'org.sonarqube' version '6.1.0.5360'
-  id "io.freefair.lombok" version "8.13"
+  id "io.freefair.lombok" version "8.13.1"
   id 'org.flywaydb.flyway' version '11.6.0'
   id "info.solidsoft.pitest" version '1.15.0'
 }
@@ -114,7 +114,7 @@ task smoke(type: Test) {
 
 checkstyle {
   maxWarnings = 0
-  toolVersion = '10.21.4'
+  toolVersion = '10.23.1'
   getConfigDirectory().set(new File(rootDir, 'config/checkstyle'))
 }
 
@@ -277,15 +277,16 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-batch'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
 
-  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.8'
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.9'
 
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
+  implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.4.0'
 
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.6.0'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.6.0'
   implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.5'
-  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.5'
+  implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.10'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
 

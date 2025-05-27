@@ -289,7 +289,4 @@ public class RecordingControllerFT extends FunctionalTestBase {
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         return dto;
     }
-
-    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
-    }
 }

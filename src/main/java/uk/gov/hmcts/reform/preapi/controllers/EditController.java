@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,6 +32,13 @@ public class EditController {
     @Autowired
     public EditController(EditRequestService editRequestService) {
         this.editRequestService = editRequestService;
+    }
+
+    // todo add more roles when start working with UI
+    @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
+    public ResponseEntity<EditRequestDTO> getEditRequestById(@PathVariable("id") UUID id) {
+        return ResponseEntity.ok(editRequestService.findById(id));
     }
 
     @PreAuthorize("hasAnyRole('ROLE_SUPER_USER')")
