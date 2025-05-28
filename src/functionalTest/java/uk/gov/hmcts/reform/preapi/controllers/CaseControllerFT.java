@@ -3,7 +3,11 @@ package uk.gov.hmcts.reform.preapi.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
@@ -12,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
@@ -741,6 +746,98 @@ class CaseControllerFT extends FunctionalTestBase {
             dto.setClosedAt(null);
             var putResponse4 = putCase(dto, role);
             assertResponseCode(putResponse4, 403);
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=false")
+    class WithMigratedDataDisabled extends FunctionalTestBase {
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "SUPER_USER", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to VODAFONE cases to non super user requests")
+        void getById(TestingSupportRoles role) throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            // ensures that super users can access
+            assertCaseExists(dto.getId(), true);
+
+            var request = doGetRequest(CASES_ENDPOINT + "/" + dto.getId(), role);
+            assertResponseCode(request, 403);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not allow access to VODAFONE cases to non super user requests")
+        void findAllCasesHideVodafoneCasesForNonSuperUser(TestingSupportRoles role) throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(role).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+
+            var getCases = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), role);
+            assertResponseCode(getCases, 200);
+            assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("Should not hide VODAFONE cases for super users")
+        void findAllCasesNotHideVodafoneCasesForSuperUser() throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            assertCaseExists(dto.getId(), true);
+
+            var getCases = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(),
+                                        TestingSupportRoles.SUPER_USER);
+            assertResponseCode(getCases, 200);
+            assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=true")
+    class WithMigratedDataEnabled extends FunctionalTestBase {
+        @Test
+        @DisplayName("Should allow access to VODAFONE cases when feature flag enabled")
+        void getById() throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(TestingSupportRoles.SUPER_USER).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            assertCaseExists(dto.getId(), true);
+
+            // SUPER USER
+            var request = doGetRequest(CASES_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.SUPER_USER);
+            assertResponseCode(request, 200);
+
+            // LEVEL 1
+            var request2 = doGetRequest(CASES_ENDPOINT + "/" + dto.getId(), TestingSupportRoles.LEVEL_1);
+            assertResponseCode(request2, 200);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class, names = "LEVEL_3", mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should allow access to VODAFONE cases when toggled on")
+        void findAllCasesNotHideVodafoneCases(TestingSupportRoles role) throws JsonProcessingException {
+            var dto = createCase();
+            dto.setOrigin(RecordingOrigin.VODAFONE);
+            dto.setCourtId(authenticatedUserIds.get(role).courtId());
+            var putCase = putCase(dto);
+            assertResponseCode(putCase, 201);
+            assertCaseExists(dto.getId(), true);
+
+            var getCases = doGetRequest(CASES_ENDPOINT + "?reference=" + dto.getReference(), role);
+            assertResponseCode(getCases, 200);
+            assertThat(getCases.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
         }
     }
 
