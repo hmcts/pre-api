@@ -62,6 +62,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                 )
             )
             AND b.deletedAt IS NULL
+            AND (:includeVodafone = TRUE OR b.caseId.origin != 'VODAFONE')
             AND (
                 :authorisedBookings IS NULL OR
                 b.id IN :authorisedBookings
@@ -104,6 +105,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Param("hasRecordings") Boolean hasRecordings,
         @Param("statuses") List<RecordingStatus> statuses,
         @Param("notStatuses") List<RecordingStatus> notStatuses,
+        @Param("includeVodafone") boolean includeVodafone,
         Pageable pageable
     );
 

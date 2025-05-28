@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,19 +46,23 @@ public class BookingService {
     private final ShareBookingService shareBookingService;
     private final CaseService caseService;
 
+    private final boolean enableMigratedData;
+
     @Autowired
     public BookingService(final BookingRepository bookingRepository,
                           final CaseRepository caseRepository,
                           final ParticipantRepository participantRepository,
                           final CaptureSessionService captureSessionService,
                           final ShareBookingService shareBookingService,
-                          @Lazy CaseService caseService) {
+                          @Lazy CaseService caseService,
+                          @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.bookingRepository = bookingRepository;
         this.participantRepository = participantRepository;
         this.caseRepository = caseRepository;
         this.captureSessionService = captureSessionService;
         this.shareBookingService = shareBookingService;
         this.caseService = caseService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @PreAuthorize("@authorisationService.hasBookingAccess(authentication, #id)")
@@ -108,6 +113,7 @@ public class BookingService {
                 hasRecordings,
                 statuses,
                 notStatuses,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(BookingDTO::new);

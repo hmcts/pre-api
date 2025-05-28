@@ -145,6 +145,7 @@ class BookingServiceTest {
             null,
             null,
             null,
+            false,
             null
         ))
             .thenReturn(new PageImpl<>(new ArrayList<>() {
@@ -175,7 +176,7 @@ class BookingServiceTest {
         var bookingModel = new BookingDTO(bookingEntity);
 
         when(bookingRepository.findByIdAndDeletedAtIsNull(bookingId)).thenReturn(Optional.of(bookingEntity));
-        when(recordingRepository.searchAllBy(null, false, null))
+        when(recordingRepository.searchAllBy(null, false, false,null))
             .thenReturn(new PageImpl<>(Collections.emptyList()));
         assertThat(bookingService.findById(bookingId)).isEqualTo(bookingModel);
     }
