@@ -288,11 +288,11 @@ public class CheckForMissingRecordingsTest {
 
         checkForMissingRecordingsTask.run();
 
-        verify(azureFinalStorageService, times(0)).getRecordingDuration(rec1.getId());
-        verify(azureFinalStorageService, times(0)).getRecordingDuration(rec2.getId());
+        verify(azureFinalStorageService, times(0)).getRecordingDuration(rec2.getId()); // Version 1
+        verify(azureFinalStorageService, times(1)).getRecordingDuration(rec1.getId()); // Version 2
         verify(captureSessionService, times(1))
             .findSessionsByDate(any(LocalDate.class));
-        verify(slackClient, times(0)).postSlackMessage(anyString());
+        verify(slackClient, times(1)).postSlackMessage(anyString());
     }
 
     private CaptureSession createCaptureSessionForStatus(RecordingStatus recordingStatus) {
