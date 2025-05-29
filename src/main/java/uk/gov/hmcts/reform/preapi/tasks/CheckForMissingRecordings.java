@@ -76,8 +76,8 @@ public class CheckForMissingRecordings extends RobotUserTask {
                 yesterday)
             .stream()
             .filter(captureSession ->
-                        captureSession.getStatus() != RecordingStatus.STANDBY &&
-                            captureSession.getStatus() != RecordingStatus.INITIALISING)
+                        captureSession.getStatus() != RecordingStatus.STANDBY
+                            && captureSession.getStatus() != RecordingStatus.INITIALISING)
             .collect(groupingBy(
                 CaptureSession::getStatus,
                 mapping(captureSession -> captureSession.getId().toString(), toList())
@@ -85,7 +85,8 @@ public class CheckForMissingRecordings extends RobotUserTask {
 
         List<SlackMessageSection> sections = getSlackMessageSections(captureSessionIds);
 
-        List<String> captureSessionsWithAvailableRecordings = captureSessionIds.get(RecordingStatus.RECORDING_AVAILABLE);
+        List<String> captureSessionsWithAvailableRecordings =
+            captureSessionIds.get(RecordingStatus.RECORDING_AVAILABLE);
         if (captureSessionsWithAvailableRecordings != null && !captureSessionsWithAvailableRecordings.isEmpty()) {
             sections.addAll(checkRecordingsAreAvailable(captureSessionsWithAvailableRecordings, yesterday));
         }
@@ -126,20 +127,27 @@ public class CheckForMissingRecordings extends RobotUserTask {
         for (String captureSessionId : captureSessionIds) {
             var recording = recordingsFromDate.get(captureSessionId);
             if (recording == null) {
-                unhappyRecordings.add(format("Missing recording for capture session %s: not in database",
-                        captureSessionId));
+                unhappyRecordings.add(format(
+                    "Missing recording for capture session %s: not in database",
+                    captureSessionId
+                ));
             } else if (recording.getDuration() == Duration.ZERO) {
-                unhappyRecordings.add(format("Recording for capture session %s has zero duration in database",
-                        captureSessionId));
+                unhappyRecordings.add(format(
+                    "Recording for capture session %s has zero duration in database",
+                    captureSessionId
+                ));
             } else if (recording.getCaptureSession().getLiveOutputUrl() == null) {
-                unhappyRecordings.add(format("Capture session %s missing live output url",
-                        captureSessionId));
+                unhappyRecordings.add(format(
+                    "Capture session %s missing live output url",
+                    captureSessionId
+                ));
             } else {
                 var recordingFromFinalSA = azureFinalStorageService.getRecordingDuration(recording.getId());
                 if (recordingFromFinalSA == null) {
                     unhappyRecordings.add(format(
                         "Missing recording for capture session %s: not in final SA",
-                        captureSessionId));
+                        captureSessionId
+                    ));
                 }
             }
         }
@@ -151,13 +159,14 @@ public class CheckForMissingRecordings extends RobotUserTask {
         return List.of(slackMessageSection);
     }
 
-    private static List<SlackMessageSection> getSlackMessageSections(Map<RecordingStatus, List<String>> captureSessions) {
+    private static List<SlackMessageSection> getSlackMessageSections(Map<RecordingStatus,
+        List<String>> captureSessions) {
         List<SlackMessageSection> sections = new ArrayList<>();
 
         for (RecordingStatus status : captureSessions.keySet()) {
-            if (status == RecordingStatus.RECORDING_AVAILABLE ||
-                status == RecordingStatus.INITIALISING ||
-                status == RecordingStatus.STANDBY) {
+            if (status == RecordingStatus.RECORDING_AVAILABLE
+                || status == RecordingStatus.INITIALISING
+                || status == RecordingStatus.STANDBY) {
                 continue; // Don't alert for successful or unstarted captures
             }
             SlackMessageSection slackMessageSection = new SlackMessageSection(

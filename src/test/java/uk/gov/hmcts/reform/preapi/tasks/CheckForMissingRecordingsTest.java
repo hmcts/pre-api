@@ -1,7 +1,5 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -85,10 +84,14 @@ public class CheckForMissingRecordingsTest {
         String platformEnv = "Local-Testing";
 
         Court court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", null);
-        Case testCase = HelperFactory.createCase(court, "ref1234", true,
-                                                 new Timestamp(System.currentTimeMillis()));
-        booking = HelperFactory.createBooking(testCase, Timestamp.valueOf(LocalDateTime.now()),
-            new Timestamp(System.currentTimeMillis()));
+        Case testCase = HelperFactory.createCase(
+            court, "ref1234", true,
+            new Timestamp(System.currentTimeMillis())
+        );
+        booking = HelperFactory.createBooking(
+            testCase, Timestamp.valueOf(LocalDateTime.now()),
+            new Timestamp(System.currentTimeMillis())
+        );
         user = HelperFactory.createDefaultTestUser();
 
         checkForMissingRecordingsTask = new CheckForMissingRecordings(
@@ -105,22 +108,27 @@ public class CheckForMissingRecordingsTest {
 
     @Test
     public void testRecordingsWithAvailableStatus() {
-        CaptureSession captureSessionZeroRec = createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        final CaptureSession captureSessionZeroRec =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
         RecordingDTO zeroDurationRecording = createRecording(0, captureSessionZeroRec);
         zeroDurationRecording.setDuration(Duration.ZERO);
 
-        CaptureSession captureSessionWithoutRecording = createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        final CaptureSession captureSessionWithoutRecording =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
 
-        CaptureSession captureSessionRecNotInSA = createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        final CaptureSession captureSessionRecNotInSA =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
         RecordingDTO recordingNotInSA = createRecording(3, captureSessionRecNotInSA);
         recordingNotInSA.setDuration(Duration.ofMinutes(3));
 
-        CaptureSession captureSessionNoLiveOutputUrl = createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        final CaptureSession captureSessionNoLiveOutputUrl =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
         captureSessionNoLiveOutputUrl.setLiveOutputUrl(null);
         RecordingDTO noLiveUrl = createRecording(3, captureSessionNoLiveOutputUrl);
         noLiveUrl.setDuration(Duration.ofMinutes(3));
 
-        CaptureSession captureSessionAvailable = createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        final CaptureSession captureSessionAvailable =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
         RecordingDTO normalDurationRecording = createRecording(3, captureSessionAvailable);
         normalDurationRecording.setDuration(Duration.ofMinutes(3));
 
@@ -150,9 +158,12 @@ public class CheckForMissingRecordingsTest {
         ));
         checkForMissingRecordingsTask.run();
 
-        verify(azureFinalStorageService, times(1)).getRecordingDuration(recordingNotInSA.getId());
-        verify(azureFinalStorageService, times(1)).getRecordingDuration(normalDurationRecording.getId());
-        verify(captureSessionService, times(1)).findAvailableSessionsByDate(any(LocalDate.class));
+        verify(azureFinalStorageService, times(1))
+            .getRecordingDuration(recordingNotInSA.getId());
+        verify(azureFinalStorageService, times(1))
+            .getRecordingDuration(normalDurationRecording.getId());
+        verify(captureSessionService, times(1))
+            .findAvailableSessionsByDate(any(LocalDate.class));
         verify(slackClient, times(1)).postSlackMessage(anyString());
 
         ArgumentCaptor<String> slackCaptor = ArgumentCaptor.forClass(String.class);
@@ -162,16 +173,16 @@ public class CheckForMissingRecordingsTest {
             .contains("\\n\\n:warning: *Capture sessions: RECORDING_AVAILABLE but with problems:*\\n");
 
         assertThat(slackCaptor.getValue())
-            .contains("\\nRecording for capture session " +
-                          captureSessionZeroRec.getId() + " has zero duration in database\\n");
+            .contains("\\nRecording for capture session "
+                          + captureSessionZeroRec.getId() + " has zero duration in database\\n");
 
         assertThat(slackCaptor.getValue())
             .contains("\\nMissing recording for capture session " + captureSessionWithoutRecording.getId()
                           + ": not in database\\n");
 
         assertThat(slackCaptor.getValue())
-            .contains("\\nCapture session "+ captureSessionNoLiveOutputUrl.getId()
-                          +" missing live output url\\n");
+            .contains("\\nCapture session " + captureSessionNoLiveOutputUrl.getId()
+                          + " missing live output url\\n");
 
         assertThat(slackCaptor.getValue())
             .contains("Missing recording for capture session " + captureSessionRecNotInSA.getId()
@@ -193,9 +204,9 @@ public class CheckForMissingRecordingsTest {
 
     @Test
     public void testWithNonAvailableRecordings() {
-        CaptureSession processingStatus = createCaptureSessionForStatus(RecordingStatus.PROCESSING);
-        CaptureSession failedStatus = createCaptureSessionForStatus(RecordingStatus.FAILURE);
-        CaptureSession noRecording = createCaptureSessionForStatus(RecordingStatus.NO_RECORDING);
+        final CaptureSession processingStatus = createCaptureSessionForStatus(RecordingStatus.PROCESSING);
+        final CaptureSession failedStatus = createCaptureSessionForStatus(RecordingStatus.FAILURE);
+        final CaptureSession noRecording = createCaptureSessionForStatus(RecordingStatus.NO_RECORDING);
 
         when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class)))
             .thenReturn(List.of(processingStatus, failedStatus, noRecording));
