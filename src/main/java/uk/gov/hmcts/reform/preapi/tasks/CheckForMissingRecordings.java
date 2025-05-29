@@ -118,8 +118,8 @@ public class CheckForMissingRecordings extends RobotUserTask {
         recordings.forEach(recording -> {
             // If recording exists already in the map, choose the latest version
             String captureSessionId = recording.getCaptureSession().getId().toString();
-            if (!recordingsMap.containsKey(captureSessionId) ||
-                recordingsMap.get(captureSessionId).getVersion() < recording.getVersion()) {
+            if (!recordingsMap.containsKey(captureSessionId)
+                || recordingsMap.get(captureSessionId).getVersion() < recording.getVersion()) {
                 recordingsMap.put(captureSessionId, recording);
             }
         });
