@@ -22,9 +22,9 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static java.util.stream.Collectors.groupingBy;
@@ -109,21 +109,35 @@ public class CheckForMissingRecordings extends RobotUserTask {
         search.setStartedAtFrom(Timestamp.valueOf(yesterday.atStartOfDay()));
         search.setStartedAtUntil(Timestamp.valueOf(yesterday.atStartOfDay().plusDays(1)));
         search.setIncludeDeleted(false);
-        return recordingService.findAll(search, false, Pageable.unpaged()).stream()
+
+        List<RecordingDTO> recordings = recordingService.findAll(search, false, Pageable.unpaged())
+            .stream()
             .filter(recordingDTO -> recordingDTO.getCaptureSession() != null)
-            .collect(Collectors.toMap(
-                recordingDTO -> recordingDTO.getCaptureSession().getId().toString(),
-                recordingDTO -> recordingDTO
-            ));
+            .toList();
+
+        Map<String, RecordingDTO> recordingsMap = new HashMap<>();
+        recordings.forEach(recording -> {
+            // If recording exists already in the map, choose the latest version
+            String captureSessionId = recording.getCaptureSession().getId().toString();
+            if (!recordingsMap.containsKey(captureSessionId) ||
+                recordingsMap.get(captureSessionId).getVersion() < recording.getVersion()) {
+                recordingsMap.put(captureSessionId, recording);
+            }
+        });
+        return recordingsMap;
     }
 
 
     private List<SlackMessageSection> checkRecordingsAreAvailable(List<String> captureSessionIds,
                                                                   LocalDate yesterday) {
+
         // Map<Capture Session ID: RecordingDTO>
-        Map<String, RecordingDTO> recordingsFromDate = getRecordingsFromDate(yesterday);
+        Map<String, RecordingDTO> recordingsFromDate;
 
         List<String> unhappyRecordings = new ArrayList<>();
+
+        recordingsFromDate = new HashMap<>(getRecordingsFromDate(yesterday));
+
         for (String captureSessionId : captureSessionIds) {
             var recording = recordingsFromDate.get(captureSessionId);
             if (recording == null) {

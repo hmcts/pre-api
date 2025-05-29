@@ -231,6 +231,70 @@ public class CheckForMissingRecordingsTest {
             .contains("\\n\\n:warning: *Capture sessions with PROCESSING status:*\\n" + processingStatus.getId());
     }
 
+    @Test
+    public void testRecordingsWithMultipleMatchingStatus() {
+        final CaptureSession failure1 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        final CaptureSession failure2 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        final CaptureSession failure3 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        final CaptureSession failure4 =
+            createCaptureSessionForStatus(RecordingStatus.FAILURE);
+
+        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
+            failure1,
+            failure2,
+            failure3,
+            failure4
+        ));
+        checkForMissingRecordingsTask.run();
+
+        verify(slackClient, times(1)).postSlackMessage(anyString());
+
+        ArgumentCaptor<String> slackCaptor = ArgumentCaptor.forClass(String.class);
+        verify(slackClient).postSlackMessage(slackCaptor.capture());
+
+        assertThat(slackCaptor.getValue())
+            .contains("\\n\\n:warning: *Capture sessions with FAILURE status:*\\n");
+
+        assertThat(slackCaptor.getValue())
+            .contains(failure4.getId().toString());
+    }
+
+    @Test
+    public void testMultipleRecordingsForSameCaptureSession() {
+        final CaptureSession captureSession =
+            createCaptureSessionForStatus(RecordingStatus.RECORDING_AVAILABLE);
+        RecordingDTO rec1 = createRecording(3, captureSession);
+        rec1.setVersion(2);
+        RecordingDTO rec2 = createRecording(3, captureSession);
+        rec2.setVersion(1);
+
+        when(recordingService.findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged())))
+            .thenReturn(new PageImpl<>(List.of(rec1, rec2)));
+
+        when(azureFinalStorageService.getRecordingDuration(rec1.getId()))
+            .thenReturn(Duration.of(3, ChronoUnit.MINUTES));
+
+        when(azureFinalStorageService.getRecordingDuration(rec2.getId()))
+            .thenReturn(Duration.of(3, ChronoUnit.MINUTES));
+
+        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class)))
+            .thenReturn(List.of(captureSession));
+
+        checkForMissingRecordingsTask.run();
+
+        verify(azureFinalStorageService, times(0)).getRecordingDuration(rec1.getId());
+        verify(azureFinalStorageService, times(0)).getRecordingDuration(rec2.getId());
+        verify(captureSessionService, times(1))
+            .findAvailableSessionsByDate(any(LocalDate.class));
+        verify(slackClient, times(0)).postSlackMessage(anyString());
+    }
+
     private CaptureSession createCaptureSessionForStatus(RecordingStatus recordingStatus) {
         return HelperFactory.createCaptureSession(
             booking, RecordingOrigin.PRE, "TestIngestAddress", "TestLiveOutputAddress",
