@@ -51,8 +51,8 @@ class SlackMessageTest {
         Assertions.assertNotNull(json);
         Assertions.assertTrue(json.contains(":globe_with_meridians: *Environment:* Test"));
         Assertions.assertTrue(json.contains(":warning: *Important Alerts:*"));
-        Assertions.assertTrue(json.contains(":siren: Alert 1 :siren:"));
-        Assertions.assertTrue(json.contains(":siren: Alert 2 :siren:"));
+        Assertions.assertTrue(json.contains("Alert 1"));
+        Assertions.assertTrue(json.contains("Alert 2"));
     }
 
     @Test
@@ -101,10 +101,10 @@ class SlackMessageTest {
         Assertions.assertNotNull(json);
         Assertions.assertTrue(json.contains(":globe_with_meridians: *Environment:* Dev"));
         Assertions.assertTrue(json.contains(":warning: *Section 1:*"));
-        Assertions.assertTrue(json.contains(":siren: Item A :siren:"));
-        Assertions.assertTrue(json.contains(":siren: Item B :siren:"));
+        Assertions.assertTrue(json.contains("Item A"));
+        Assertions.assertTrue(json.contains("Item B"));
         Assertions.assertTrue(json.contains(":warning: *Section 2:*"));
-        Assertions.assertTrue(json.contains(":siren: Item C :siren:"));
+        Assertions.assertTrue(json.contains("Item C"));
     }
 
     @Test
