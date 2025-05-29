@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,16 +38,20 @@ public class RecordingService {
 
     private final RecordingRepository recordingRepository;
     private final CaptureSessionRepository captureSessionRepository;
-
     private final CaptureSessionService captureSessionService;
+
+    @Setter
+    private boolean enableMigratedData;
 
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
-                            @Lazy CaptureSessionService captureSessionService) {
+                            @Lazy CaptureSessionService captureSessionService,
+                            @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
@@ -88,7 +94,12 @@ public class RecordingService {
         );
 
         return recordingRepository
-            .searchAllBy(params, includeDeleted, pageable)
+            .searchAllBy(
+                params,
+                includeDeleted,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
+                pageable
+            )
             .map(RecordingDTO::new);
     }
 
