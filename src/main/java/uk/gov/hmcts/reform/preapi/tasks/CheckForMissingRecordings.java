@@ -72,8 +72,8 @@ public class CheckForMissingRecordings extends RobotUserTask {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         log.info("Running CheckForMissingRecordings task: looking for missing recordings from {}", yesterday);
 
-        Map<RecordingStatus, List<String>> captureSessionIds = captureSessionService.findAvailableSessionsByDate(
-                yesterday)
+        Map<RecordingStatus, List<String>> captureSessionIds = captureSessionService
+            .findSessionsByDate(yesterday)
             .stream()
             .filter(captureSession ->
                         captureSession.getStatus() != RecordingStatus.STANDBY
@@ -106,8 +106,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
 
     private Map<String, RecordingDTO> getRecordingsFromDate(LocalDate yesterday) {
         var search = new SearchRecordings();
-        search.setStartedAtFrom(Timestamp.valueOf(yesterday.atStartOfDay()));
-        search.setStartedAtUntil(Timestamp.valueOf(yesterday.atStartOfDay().plusDays(1)));
+        search.setStartedAt(Timestamp.valueOf(yesterday.atStartOfDay()));
         search.setIncludeDeleted(false);
 
         List<RecordingDTO> recordings = recordingService.findAll(search, false, Pageable.unpaged())

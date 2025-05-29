@@ -149,7 +149,7 @@ public class CheckForMissingRecordingsTest {
         when(azureFinalStorageService.getRecordingDuration(recordingNotInSA.getId()))
             .thenReturn(null);
 
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
             captureSessionZeroRec,
             captureSessionWithoutRecording,
             captureSessionRecNotInSA,
@@ -163,7 +163,7 @@ public class CheckForMissingRecordingsTest {
         verify(azureFinalStorageService, times(1))
             .getRecordingDuration(normalDurationRecording.getId());
         verify(captureSessionService, times(1))
-            .findAvailableSessionsByDate(any(LocalDate.class));
+            .findSessionsByDate(any(LocalDate.class));
         verify(slackClient, times(1)).postSlackMessage(anyString());
 
         ArgumentCaptor<String> slackCaptor = ArgumentCaptor.forClass(String.class);
@@ -191,12 +191,12 @@ public class CheckForMissingRecordingsTest {
 
     @Test
     public void testNoMissingRecordingsAreFound() {
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class)))
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class)))
             .thenReturn(Collections.emptyList());
         checkForMissingRecordingsTask.run();
 
         verify(captureSessionService, times(1))
-            .findAvailableSessionsByDate(any(LocalDate.class));
+            .findSessionsByDate(any(LocalDate.class));
         verify(recordingService, times(0))
             .findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged()));
         verify(slackClient, times(0)).postSlackMessage(anyString());
@@ -208,12 +208,12 @@ public class CheckForMissingRecordingsTest {
         final CaptureSession failedStatus = createCaptureSessionForStatus(RecordingStatus.FAILURE);
         final CaptureSession noRecording = createCaptureSessionForStatus(RecordingStatus.NO_RECORDING);
 
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class)))
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class)))
             .thenReturn(List.of(processingStatus, failedStatus, noRecording));
         checkForMissingRecordingsTask.run();
 
         verify(captureSessionService, times(1))
-            .findAvailableSessionsByDate(any(LocalDate.class));
+            .findSessionsByDate(any(LocalDate.class));
         verify(recordingService, times(0))
             .findAll(any(SearchRecordings.class), eq(false), eq(Pageable.unpaged()));
         verify(slackClient, times(1)).postSlackMessage(anyString());
@@ -245,7 +245,7 @@ public class CheckForMissingRecordingsTest {
         final CaptureSession failure4 =
             createCaptureSessionForStatus(RecordingStatus.FAILURE);
 
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class))).thenReturn(Arrays.asList(
             failure1,
             failure2,
             failure3,
@@ -283,7 +283,7 @@ public class CheckForMissingRecordingsTest {
         when(azureFinalStorageService.getRecordingDuration(rec2.getId()))
             .thenReturn(Duration.of(3, ChronoUnit.MINUTES));
 
-        when(captureSessionService.findAvailableSessionsByDate(any(LocalDate.class)))
+        when(captureSessionService.findSessionsByDate(any(LocalDate.class)))
             .thenReturn(List.of(captureSession));
 
         checkForMissingRecordingsTask.run();
@@ -291,7 +291,7 @@ public class CheckForMissingRecordingsTest {
         verify(azureFinalStorageService, times(0)).getRecordingDuration(rec1.getId());
         verify(azureFinalStorageService, times(0)).getRecordingDuration(rec2.getId());
         verify(captureSessionService, times(1))
-            .findAvailableSessionsByDate(any(LocalDate.class));
+            .findSessionsByDate(any(LocalDate.class));
         verify(slackClient, times(0)).postSlackMessage(anyString());
     }
 
