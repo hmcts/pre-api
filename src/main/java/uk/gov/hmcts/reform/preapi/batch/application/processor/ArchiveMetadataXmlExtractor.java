@@ -45,11 +45,11 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
-    public void extractAndReportArchiveMetadata(String containerName, String outputDir, String filename) {
+    public void extractAndReportArchiveMetadata(String containerName, String folderPrefix, String outputDir, String filename) {
         try {
             loggingService.logInfo("Starting extraction for container: %s", containerName);
 
-            List<String> blobNames = azureVodafoneStorageService.fetchBlobNames(containerName);
+            List<String> blobNames = azureVodafoneStorageService.fetchBlobNamesWithPrefix(containerName, folderPrefix);
             loggingService.logDebug("Found %d blobs in container: %s", blobNames.size(), containerName);
 
             if (blobNames.isEmpty()) {
