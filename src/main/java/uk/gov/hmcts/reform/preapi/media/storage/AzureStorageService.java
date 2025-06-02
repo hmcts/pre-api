@@ -92,4 +92,9 @@ public abstract class AzureStorageService {
         }
         return false;
     }
+
+    public void createContainerIfNotExists(String containerName) {
+        log.info("Creating container: {}", containerName);
+        client.createBlobContainerIfNotExists(containerName);
+    }
 }

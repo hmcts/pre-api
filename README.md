@@ -51,7 +51,7 @@ If running PRE API locally, you can access the Swagger UI at [http://localhost:4
 
 ### PRE System Diagram (Needs to be updated)
 
-This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
+This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live)
 ```mermaid
     C4Context
       title System Context diagram for Pre-Recorded Evidence
