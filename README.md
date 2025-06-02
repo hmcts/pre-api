@@ -23,6 +23,7 @@
   * [Running the Smoke Tests](#running-the-smoke-tests)
 * [Developing for the Pre-Recorded Evidence API](#developing-for-the-pre-recorded-evidence-api)
   * [Loading the Local Database with Test Data](#loading-the-local-database-with-test-data)
+  * [Run Code Checks and All Non-Functional Tests](#run-code-checks-and-all-non-functional-tests)
   * [How to generate a Power Platform Custom Connector](#how-to-generate-a-power-platform-custom-connector)
   * [Running the Crons](#running-the-crons)
 * [Troubleshooting](#troubleshooting)
@@ -443,6 +444,14 @@ docker-compose rm
 ```
 
 This clears stopped containers correctly.
+
+### Run Code Checks and All Non-Functional Tests
+
+To run code style/quality checks and all non-functional tests, execute the following command:
+
+```bash
+  ./gradlew check
+```
 
 ### How to generate a Power Platform Custom Connector
 Copy the [Swagger v2 spec](https://raw.githubusercontent.com/hmcts/pre-api/master/pre-api-stg.yaml) and paste it into
