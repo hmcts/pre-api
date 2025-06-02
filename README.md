@@ -192,6 +192,8 @@ To run the application locally, you need to set several environment variables. F
 
 1. **Create a `.env` file.**
    In the root of the project, create a file named `.env`.
+   > **Note** ℹ️
+   > You could copy the `.env.local` file to `.env` with the command: `cp [.env.local](https://github.com/hmcts/pre-api/blob/master/.env.local) .env`
 
 2. **Get the variable values.**
    Ask one of the [PRE developers](https://github.com/orgs/hmcts/teams/pre-rec-evidence) for the required environment variable values and add them to your `.env` file.
