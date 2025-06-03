@@ -472,9 +472,9 @@ You can manually run a cron task from the cli:
 ```bash
   ./gradlew bootJar
 ```
-TASK_NAME=[task] java -jar pre-api.jar run
+TASK_NAME=[task] java -jar build/libs/pre-api.jar run
 E.g.
-TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
+TASK_NAME=CleanupLiveEvents java -jar build/libs/pre-api.jar run
 
 or by source code:
 ```
