@@ -9,7 +9,10 @@ import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessage;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessageSection;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.RecordingService;
@@ -22,7 +25,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
+import static java.lang.String.format;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 
 /**
@@ -38,6 +45,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
     private final RecordingService recordingService;
     private final SlackClient slackClient;
     private final String platformEnv;
+    private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     CheckForMissingRecordings(CaptureSessionService captureSessionService,
@@ -46,12 +54,14 @@ public class CheckForMissingRecordings extends RobotUserTask {
                               UserAuthenticationService userAuthenticationService,
                               @Value("${cron-user-email}") String cronUserEmail,
                               RecordingService recordingService,
-                              @Value("${platform-env}") String platformEnv) {
+                              @Value("${platform-env}") String platformEnv,
+                              AzureFinalStorageService azureFinalStorageService) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.captureSessionService = captureSessionService;
         this.slackClient = slackClient;
         this.recordingService = recordingService;
         this.platformEnv = platformEnv;
+        this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @Override
@@ -62,76 +72,124 @@ public class CheckForMissingRecordings extends RobotUserTask {
         LocalDate yesterday = LocalDate.now().minusDays(1);
         log.info("Running CheckForMissingRecordings task: looking for missing recordings from {}", yesterday);
 
-        List<CaptureSession> captureSessionsFromDate = captureSessionService.findAvailableSessionsByDate(yesterday);
-
-        if (!captureSessionsFromDate.isEmpty()) {
-            log.info("Expecting to find {} recordings", captureSessionsFromDate.size());
-
-            var search = new SearchRecordings();
-            search.setStartedAtFrom(Timestamp.valueOf(yesterday.atStartOfDay()));
-            search.setStartedAtUntil(Timestamp.valueOf(yesterday.atStartOfDay().plusDays(1)));
-            search.setIncludeDeleted(false);
-            var recordings = recordingService.findAll(search, false, Pageable.unpaged());
-
-            Map<UUID, Duration> recordingDuration = new HashMap<>();
-
-            recordings.forEach(recordingDTO -> recordingDuration.put(
-                recordingDTO.getId(),
-                recordingDTO.getDuration()
+        Map<RecordingStatus, List<String>> captureSessionIds = captureSessionService
+            .findSessionsByDate(yesterday)
+            .stream()
+            .filter(captureSession ->
+                        captureSession.getStatus() != RecordingStatus.STANDBY
+                            && captureSession.getStatus() != RecordingStatus.INITIALISING)
+            .collect(groupingBy(
+                CaptureSession::getStatus,
+                mapping(captureSession -> captureSession.getId().toString(), toList())
             ));
 
-            log.info("Found {} recordings", recordingDuration.size());
+        List<SlackMessageSection> sections = getSlackMessageSections(captureSessionIds);
 
-            List<String> missingRecordings = new ArrayList<>();
-            List<String> zeroDurationRecordings = new ArrayList<>();
+        List<String> captureSessionsWithAvailableRecordings =
+            captureSessionIds.get(RecordingStatus.RECORDING_AVAILABLE);
+        if (captureSessionsWithAvailableRecordings != null && !captureSessionsWithAvailableRecordings.isEmpty()) {
+            sections.addAll(checkRecordingsAreAvailable(captureSessionsWithAvailableRecordings, yesterday));
+        }
 
-            for (CaptureSession captureSession : captureSessionsFromDate) {
-                if (captureSession.getBooking() == null) {
-                    log.error("Unexpected capture session {} without booking", captureSession.getId());
-                }
-                UUID bookingID = captureSession.getBooking().getId();
-                if (bookingID == null) {
-                    log.error("Unexpected capture session {} without booking ID", captureSession.getId());
-                } else if (recordingDuration.get(bookingID) == null) {
-                    missingRecordings.add(bookingID.toString());
-                } else if (recordingDuration.get(bookingID) == Duration.ZERO) {
-                    zeroDurationRecordings.add(bookingID.toString());
-                }
-            }
+        if (!sections.isEmpty()) {
+            SlackMessage slackMessage = SlackMessage.builder()
+                .environment(platformEnv)
+                .sections(sections)
+                .build();
 
-            List<SlackMessageSection> sections = new ArrayList<>();
-            if (!missingRecordings.isEmpty()) {
-                log.info("Found missing recordings: {}\nSending alert to Slack channel...", missingRecordings);
-                SlackMessageSection missing = new SlackMessageSection(
-                    "Missing Recordings", missingRecordings,
-                    "Expected to find recordings in final storage account"
-                );
-                sections.add(missing);
-            }
-            if (!zeroDurationRecordings.isEmpty()) {
-                log.info(
-                    "Found zero-duration recordings: {}\nSending alert to Slack channel...",
-                    zeroDurationRecordings
-                );
-                SlackMessageSection zeroed = new SlackMessageSection(
-                    "Zero-Duration Recordings", zeroDurationRecordings,
-                    "Recordings in final storage account had zero duration"
-                );
-                sections.add(zeroed);
-            }
-
-            if (!sections.isEmpty()) {
-                SlackMessage slackMessage = SlackMessage.builder()
-                    .environment(platformEnv)
-                    .sections(sections)
-                    .build();
-
-                slackClient.postSlackMessage(slackMessage.toJson());
-            }
-
+            log.info("About to send slack notification");
+            slackClient.postSlackMessage(slackMessage.toJson());
         }
 
         log.info("Completed CheckForMissingRecordings task");
+    }
+
+    private Map<String, RecordingDTO> getRecordingsFromDate(LocalDate yesterday) {
+        var search = new SearchRecordings();
+        search.setStartedAt(Timestamp.valueOf(yesterday.atStartOfDay()));
+        search.setIncludeDeleted(false);
+
+        List<RecordingDTO> recordings = recordingService.findAll(search, false, Pageable.unpaged())
+            .stream()
+            .filter(recordingDTO -> recordingDTO.getCaptureSession() != null)
+            .toList();
+
+        Map<String, RecordingDTO> recordingsMap = new HashMap<>();
+        recordings.forEach(recording -> {
+            // If recording exists already in the map, choose the latest version
+            String captureSessionId = recording.getCaptureSession().getId().toString();
+            if (!recordingsMap.containsKey(captureSessionId)
+                || recordingsMap.get(captureSessionId).getVersion() < recording.getVersion()) {
+                recordingsMap.put(captureSessionId, recording);
+            }
+        });
+        return recordingsMap;
+    }
+
+
+    private List<SlackMessageSection> checkRecordingsAreAvailable(List<String> captureSessionIds,
+                                                                  LocalDate yesterday) {
+
+        // Map<Capture Session ID: RecordingDTO>
+        Map<String, RecordingDTO> recordingsFromDate;
+
+        List<String> unhappyRecordings = new ArrayList<>();
+
+        recordingsFromDate = new HashMap<>(getRecordingsFromDate(yesterday));
+
+        for (String captureSessionId : captureSessionIds) {
+            var recording = recordingsFromDate.get(captureSessionId);
+            if (recording == null) {
+                unhappyRecordings.add(format(
+                    "Missing recording for capture session %s: not in database",
+                    captureSessionId
+                ));
+            } else if (recording.getDuration() == Duration.ZERO) {
+                unhappyRecordings.add(format(
+                    "Recording for capture session %s has zero duration in database",
+                    captureSessionId
+                ));
+            } else if (recording.getCaptureSession().getLiveOutputUrl() == null) {
+                unhappyRecordings.add(format(
+                    "Capture session %s missing live output url",
+                    captureSessionId
+                ));
+            } else {
+                var recordingFromFinalSA = azureFinalStorageService.getRecordingDuration(recording.getId());
+                if (recordingFromFinalSA == null) {
+                    unhappyRecordings.add(format(
+                        "Missing recording for capture session %s: not in final SA",
+                        captureSessionId
+                    ));
+                }
+            }
+        }
+
+        SlackMessageSection slackMessageSection = new SlackMessageSection(
+            "Capture sessions: RECORDING_AVAILABLE but with problems",
+            unhappyRecordings, ""
+        );
+        return List.of(slackMessageSection);
+    }
+
+    private static List<SlackMessageSection> getSlackMessageSections(Map<RecordingStatus,
+        List<String>> captureSessions) {
+        List<SlackMessageSection> sections = new ArrayList<>();
+
+        for (RecordingStatus status : captureSessions.keySet()) {
+            if (status == RecordingStatus.RECORDING_AVAILABLE
+                || status == RecordingStatus.INITIALISING
+                || status == RecordingStatus.STANDBY) {
+                continue; // Don't alert for successful or unstarted captures
+            }
+            SlackMessageSection slackMessageSection = new SlackMessageSection(
+                format("Capture sessions with %s status", status.toString()),
+                captureSessions.get(status), ""
+            );
+            sections.add(slackMessageSection);
+        }
+
+        return sections;
     }
 }
 
