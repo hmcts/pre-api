@@ -70,6 +70,8 @@ import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFO
     "mediakind.issuer=testIssuer",
     "mediakind.symmetricKey=testSymmetricKey",
     "mediakind.streaming-locator-on-start=true",
+    "mediakind.job-poll-interval=10",
+    "mediakind.streaming-endpoint-polling-interval=10"
 })
 public class MediaKindTest {
     @MockitoBean
