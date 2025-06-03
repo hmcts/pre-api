@@ -10,7 +10,7 @@ This code repository contains the source code for the Pre-Recorded Evidence API.
 
 The API hosts numerous endpoints, which are [documented in Swagger](https://hmcts.github.io/cnp-api-docs/swagger.html?url=https://hmcts.github.io/cnp-api-docs/specs/pre-api.json#/)
 
-This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live).
+This diagram gives an overview of the PRE system which the pre-api connects to in its current state (not yet live)
 ```mermaid
     C4Context
       title System Context diagram for Pre-Recorded Evidence
@@ -250,10 +250,10 @@ You can manually run a cron task from the cli:
 
 ```
 
-TASK_NAME=[task] java -jar pre-api.jar run
+TASK_NAME=[task] java -jar build/libs/pre-api.jar run
 
 # E.g.
-TASK_NAME=CleanupLiveEvents java -jar pre-api.jar
+TASK_NAME=CleanupLiveEvents java -jar build/libs/pre-api.jar run
 
 # or
 TASK_NAME=CleanupLiveEvents ./gradlew bootRun
