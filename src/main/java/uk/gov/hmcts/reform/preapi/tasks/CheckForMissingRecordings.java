@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
@@ -165,11 +166,13 @@ public class CheckForMissingRecordings extends RobotUserTask {
             }
         }
 
-        SlackMessageSection slackMessageSection = new SlackMessageSection(
-            "Capture sessions: RECORDING_AVAILABLE but with problems",
-            unhappyRecordings, ""
-        );
-        return List.of(slackMessageSection);
+        if (!unhappyRecordings.isEmpty()) {
+           return List.of(new SlackMessageSection(
+                "Capture sessions: RECORDING_AVAILABLE but with problems",
+                unhappyRecordings, ""
+            ));
+        }
+        return emptyList();
     }
 
     private static List<SlackMessageSection> getSlackMessageSections(Map<RecordingStatus,
@@ -179,6 +182,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         for (RecordingStatus status : captureSessions.keySet()) {
             if (status == RecordingStatus.RECORDING_AVAILABLE
                 || status == RecordingStatus.INITIALISING
+                || status == RecordingStatus.NO_RECORDING // This happens when CS is started by cron job but not used
                 || status == RecordingStatus.STANDBY) {
                 continue; // Don't alert for successful or unstarted captures
             }
