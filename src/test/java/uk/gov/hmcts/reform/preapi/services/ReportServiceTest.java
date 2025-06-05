@@ -15,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
@@ -27,6 +28,7 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.repositories.AppAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.AuditRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
@@ -74,6 +76,9 @@ public class ReportServiceTest {
 
     @MockitoBean
     private AppAccessRepository appAccessRepository;
+
+    @MockitoBean
+    private PortalAccessRepository portalAccessRepository;
 
     @Autowired
     private ReportService reportService;
@@ -575,6 +580,70 @@ public class ReportServiceTest {
         assertThat(report.getFirst().getCourt()).isEqualTo(null);
         assertThat(report.getFirst().getRecordingId()).isEqualTo(null);
 
+        verify(auditRepository, times(1)).findAllAccessAttempts();
+        verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Returns audits for all playback attempts a report when createdBy is appAccess id not of user id")
+    void reportPlaybackAllSuccessAuditDetailsWhenAppAccessId() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        var appAccess = new AppAccess();
+        appAccess.setId(UUID.randomUUID());
+        appAccess.setUser(user);
+        auditEntity.setCreatedBy(appAccess.getId());
+        auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+        when(appAccessRepository.findById(appAccess.getId())).thenReturn(Optional.of(appAccess));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(null);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+
+        verify(appAccessRepository, times(1)).findById(appAccess.getId());
+        verify(auditRepository, times(1)).findAllAccessAttempts();
+        verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("Returns audits for all playback attempts a report when createdBy is portalAccess id not of user id")
+    void reportPlaybackAllSuccessAuditDetailsWhenPortalAccessId() {
+        var user = new User();
+        user.setId(UUID.randomUUID());
+        user.setEmail("example@example.com");
+        user.setFirstName("Example");
+        user.setLastName("Person");
+        var portalAccess = new PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setUser(user);
+        auditEntity.setCreatedBy(portalAccess.getId());
+        auditEntity.setSource(AuditLogSource.APPLICATION);
+
+        when(auditRepository.findAllAccessAttempts()).thenReturn(List.of(auditEntity));
+        when(userRepository.findById(user.getId())).thenReturn(Optional.empty());
+        when(appAccessRepository.findById(portalAccess.getId())).thenReturn(Optional.empty());
+        when(portalAccessRepository.findById(portalAccess.getId())).thenReturn(Optional.of(portalAccess));
+        when(recordingRepository.findById(recordingEntity.getId())).thenReturn(Optional.of(recordingEntity));
+
+        var report = reportService.reportPlayback(null);
+
+        assertThat(report.size()).isEqualTo(1);
+        assertThat(report.getFirst().getPlaybackAt()).isEqualTo(auditEntity.getCreatedAt());
+        assertThat(report.getFirst().getUserEmail()).isEqualTo(user.getEmail());
+        assertThat(report.getFirst().getUserFullName()).isEqualTo(user.getFullName());
+
+        verify(appAccessRepository, times(1)).findById(portalAccess.getId());
+        verify(portalAccessRepository, times(1)).findById(portalAccess.getId());
         verify(auditRepository, times(1)).findAllAccessAttempts();
         verify(auditRepository, never()).findBySourceAndFunctionalAreaAndActivity(any(), any(), any());
     }

@@ -263,6 +263,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
       participants:
         description: CaseParticipants
         items:
@@ -562,6 +568,12 @@ definitions:
       id:
         description: CreateCaseId
         format: uuid
+        type: string
+      origin:
+        description: CreateCaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
         type: string
       participants:
         description: CaseParticipants
@@ -978,6 +990,12 @@ definitions:
       modified_at:
         description: CaseModifiedAt
         format: date-time
+        type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
         type: string
       participants:
         description: CaseParticipants
@@ -1466,17 +1484,6 @@ definitions:
           - DEFENDANT
         type: string
     type: object
-  PermissionDTO:
-    description: PermissionDTO
-    properties:
-      id:
-        description: PermissionId
-        format: uuid
-        type: string
-      name:
-        description: PermissionName
-        type: string
-    type: object
   PlaybackDTO:
     description: PlaybackDTO
     properties:
@@ -1685,12 +1692,6 @@ definitions:
       name:
         description: RoleName
         type: string
-      permissions:
-        description: RolePermissions
-        items:
-          $ref: '#/definitions/PermissionDTO'
-        type: array
-        uniqueItems: true
     type: object
   RoomDTO:
     description: RoomDTO

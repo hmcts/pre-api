@@ -261,9 +261,8 @@ public class MediaServiceController extends PreApiController {
         }
 
         if (captureSession.getFinishedAt() != null) {
-            throw new UnprocessableContentException("Resource: Capture Session("
-                                                        + captureSessionId
-                                                        + ") has already finished.");
+            log.info("Resource: Capture Session: {} has already finished.", captureSessionId);
+            return ResponseEntity.ok(captureSession);
         }
 
         if (captureSession.getStartedAt() == null) {
@@ -356,7 +355,7 @@ public class MediaServiceController extends PreApiController {
 
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
-        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
+        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO, true);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             // add new version to recording etc
             var parentRecording = recordingService.findById(generateAssetDTO.getParentRecordingId());

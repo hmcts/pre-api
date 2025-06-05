@@ -10,6 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
@@ -17,12 +18,14 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -55,8 +58,12 @@ public class AuthorisationServiceTest {
     @MockitoBean
     private RecordingRepository recordingRepository;
 
+    @MockitoBean
+    private EditRequestRepository editRequestRepository;
+
     @Autowired
     private AuthorisationService authorisationService;
+
     private UserAuthentication authenticationUser;
 
     @BeforeEach
@@ -750,4 +757,52 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @Test
+    @DisplayName("Should grant upsert access when the user has access to recording for edit requests")
+    void hasUpsertAccessEditRequest() {
+        var dto = new CreateEditRequestDTO();
+        dto.setSourceRecordingId(UUID.randomUUID());
+
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @Test
+    @DisplayName("Should grant edit request access when request id is null")
+    void hasEditRequestAccessIdIsNull() {
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, null));
+    }
+
+    @Test
+    @DisplayName("Should grant edit request access when user is admin")
+    void hasEditRequestAccessIsAdmin() {
+        when(authenticationUser.isAdmin()).thenReturn(true);
+
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, null));
+    }
+
+    @Test
+    @DisplayName("Should grant access edit request access when id does not exist")
+    void hasEditRequestAccessNotFound() {
+        var id = UUID.randomUUID();
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.empty());
+
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, id));
+    }
+
+    @Test
+    @DisplayName("Should grant access edit request access when has access to source recording")
+    void hasEditRequestAccessHasRecordingAccess() {
+        var id = UUID.randomUUID();
+        var recording = new Recording();
+        var editRequest = new EditRequest();
+        editRequest.setSourceRecording(recording);
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(editRequestRepository.findByIdNotLocked(id)).thenReturn(Optional.of(editRequest));
+
+        assertTrue(authorisationService.hasEditRequestAccess(authenticationUser, id));
+    }
 }
