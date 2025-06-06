@@ -690,6 +690,51 @@ public class AuthorisationServiceTest {
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
+    @DisplayName("Should grant upsert access when creating a new case as a non-admin")
+    @Test
+    void hasUpsertAccessNewCase() {
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        var court = UUID.randomUUID();
+        dto.setCourtId(court);
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(court);
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
+    @DisplayName("Should grant upsert access when not supplying a new case state for an open case")
+    @Test
+    void hasUpsertAccessNullState() {
+        var court = new Court();
+        court.setId(UUID.randomUUID());
+
+        var existingCase = new Case();
+        existingCase.setId(UUID.randomUUID());
+        existingCase.setCourt(court);
+        existingCase.setState(CaseState.OPEN);
+
+        var dto = new CreateCaseDTO();
+        dto.setId(UUID.randomUUID());
+        dto.setCourtId(court.getId());
+        var participant = new CreateParticipantDTO();
+        participant.setId(UUID.randomUUID());
+        dto.setParticipants(Set.of(participant));
+
+        when(authenticationUser.isAdmin()).thenReturn(false);
+        when(authenticationUser.getCourtId()).thenReturn(court.getId());
+        when(caseRepository.findById(dto.getId())).thenReturn(Optional.of(existingCase));
+
+        assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
+
+        existingCase.setState(CaseState.PENDING_CLOSURE);
+        assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
+    }
+
     @DisplayName("Should grant upsert access when the user is the one sharing the booking and has booking access")
     @Test
     void hasUpsertAccessUserIsSharingAndHasBookingAccess() {
