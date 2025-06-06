@@ -1,20 +1,26 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.azure.resourcemanager.mediaservices.models.JobState;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.bean.CsvToBeanBuilder;
 import lombok.Cleanup;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditCutInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
+import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.EditRequestStatus;
@@ -23,6 +29,11 @@ import uk.gov.hmcts.reform.preapi.exception.BadRequestException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
+import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.media.edit.EditInstructions;
+import uk.gov.hmcts.reform.preapi.media.edit.FfmpegService;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureIngestStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -34,6 +45,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -42,20 +54,46 @@ public class EditRequestService {
 
     private final EditRequestRepository editRequestRepository;
     private final RecordingRepository recordingRepository;
+    private final FfmpegService ffmpegService;
+    private final RecordingService recordingService;
+    private final AzureIngestStorageService azureIngestStorageService;
+    private final AzureFinalStorageService azureFinalStorageService;
+    private final MediaServiceBroker mediaServiceBroker;
 
     @Autowired
-    public EditRequestService(EditRequestRepository editRequestRepository, RecordingRepository recordingRepository) {
+    public EditRequestService(EditRequestRepository editRequestRepository,
+                              RecordingRepository recordingRepository,
+                              FfmpegService ffmpegService,
+                              RecordingService recordingService,
+                              AzureIngestStorageService azureIngestStorageService,
+                              AzureFinalStorageService azureFinalStorageService,
+                              MediaServiceBroker mediaServiceBroker) {
         this.editRequestRepository = editRequestRepository;
         this.recordingRepository = recordingRepository;
+        this.ffmpegService = ffmpegService;
+        this.recordingService = recordingService;
+        this.azureIngestStorageService = azureIngestStorageService;
+        this.azureFinalStorageService = azureFinalStorageService;
+        this.mediaServiceBroker = mediaServiceBroker;
     }
 
     @Transactional
-    public List<EditRequest> getPendingEditRequests() {
-        return editRequestRepository.findAllByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    @PreAuthorize("@authorisationService.hasEditRequestAccess(authentication, #id)")
+    public EditRequestDTO findById(UUID id) {
+        return editRequestRepository
+            .findByIdNotLocked(id)
+            .map(EditRequestDTO::new)
+            .orElseThrow(() -> new NotFoundException("Edit Request: " + id));
     }
 
     @Transactional
-    public EditRequestStatus performEdit(UUID editId) {
+    public Optional<EditRequest> getNextPendingEditRequest() {
+        return editRequestRepository.findFirstByStatusIsOrderByCreatedAt(EditRequestStatus.PENDING);
+    }
+
+    @Transactional(noRollbackFor = Exception.class)
+    public EditRequest markAsProcessing(UUID editId) throws InterruptedException {
+        log.info("Performing Edit Request: {}", editId);
         // retrieves locked edit request
         var request = editRequestRepository.findById(editId)
             .orElseThrow(() -> new NotFoundException("Edit Request: " + editId));
@@ -68,19 +106,82 @@ public class EditRequestService {
                 EditRequestStatus.PENDING.toString()
             );
         }
-
         request.setStartedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.PROCESSING);
-        editRequestRepository.save(request);
+        editRequestRepository.saveAndFlush(request);
+        return request;
+    }
 
-        // todo ffmpeg happens here
-        // Thread.sleep(10000);
+    @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
+    public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
+        // ffmpeg
+        var newRecordingId = UUID.randomUUID();
+        String filename;
+        try {
+            // apply ffmpeg
+            ffmpegService.performEdit(newRecordingId, request);
+            // generate mk asset
+            filename = generateAsset(newRecordingId, request);
+        } catch (Exception e) {
+            request.setFinishedAt(Timestamp.from(Instant.now()));
+            request.setStatus(EditRequestStatus.ERROR);
+            editRequestRepository.saveAndFlush(request);
+            throw e;
+        }
 
         request.setFinishedAt(Timestamp.from(Instant.now()));
         request.setStatus(EditRequestStatus.COMPLETE);
-        editRequestRepository.save(request);
+        editRequestRepository.saveAndFlush(request);
 
-        return request.getStatus();
+        // create db entry for recording
+        var createDto = createRecordingDto(newRecordingId, filename, request);
+        recordingService.upsert(createDto);
+        return recordingService.findById(newRecordingId);
+    }
+
+    @Transactional
+    public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
+        var createDto = new CreateRecordingDTO();
+        createDto.setId(newRecordingId);
+        createDto.setParentRecordingId(request.getSourceRecording().getId());
+        createDto.setEditInstructions(request.getEditInstruction());
+        createDto.setVersion(recordingService.getNextVersionNumber(request.getSourceRecording().getId()));
+        createDto.setCaptureSessionId(request.getSourceRecording().getCaptureSession().getId());
+        createDto.setFilename(filename);
+        // duration is auto-generated
+        return createDto;
+    }
+
+    @Transactional
+    public String generateAsset(UUID newRecordingId, EditRequest request) throws InterruptedException {
+        var sourceContainer = newRecordingId + "-input";
+        if (!azureIngestStorageService.doesContainerExist(sourceContainer)) {
+            throw new NotFoundException("Source Container (" + sourceContainer + ") does not exist");
+        }
+        // throws 404 when doesn't exist
+        azureIngestStorageService.getMp4FileName(sourceContainer);
+        var assetName = newRecordingId.toString().replace("-", "");
+
+        azureFinalStorageService.createContainerIfNotExists(newRecordingId.toString());
+
+        var generateAssetDto = GenerateAssetDTO.builder()
+            .sourceContainer(sourceContainer)
+            .destinationContainer(newRecordingId)
+            .tempAsset(assetName)
+            .finalAsset(assetName + "_output")
+            .parentRecordingId(request.getSourceRecording().getId())
+            .description("Edit of " + request.getSourceRecording().getId().toString().replace("-", ""))
+            .build();
+
+        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDto, false);
+
+        if (!result.getJobStatus().equals(JobState.FINISHED.toString())) {
+            throw new UnknownServerException("Failed to generate asset for edit request: "
+                                                 + request.getSourceRecording().getId()
+                                                 + ", new recording: "
+                                                 + newRecordingId);
+        }
+        return azureFinalStorageService.getMp4FileName(newRecordingId.toString());
     }
 
     @Transactional
@@ -225,9 +326,5 @@ public class EditRequestService {
         } catch (JsonProcessingException e) {
             throw new UnknownServerException("Something went wrong: " + e.getMessage());
         }
-    }
-
-    public record EditInstructions(List<EditCutInstructionDTO> requestedInstructions,
-                                      List<FfmpegEditInstructionDTO> ffmpegInstructions) {
     }
 }
