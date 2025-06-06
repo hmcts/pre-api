@@ -274,7 +274,7 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.4.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
-  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
+  implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.22.0'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.9'
 
@@ -302,8 +302,8 @@ dependencies {
 
   implementation group: 'com.opencsv', name: 'opencsv', version: '5.9'
 
-  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.29.0'
-  implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
+  implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.30.0'
+  implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0'
 
   implementation group: 'org.testcontainers', name: 'postgresql', version: '1.20.4'
 
