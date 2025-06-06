@@ -284,7 +284,7 @@ dependencies {
 
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.6.0'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.6.0'
-  implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.5'
+  implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.6'
   implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.10'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
@@ -311,7 +311,7 @@ dependencies {
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.10.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.17.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.8:all'
@@ -356,6 +356,12 @@ bootJar {
 
   manifest {
     attributes('Implementation-Version': project.version.toString())
+  }
+}
+
+bootRun {
+  debugOptions {
+    port = 2025
   }
 }
 
