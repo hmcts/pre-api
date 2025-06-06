@@ -102,7 +102,7 @@ public class ReportControllerTest {
         reportItem.setCounty("Example County");
         reportItem.setPostcode("AB1 2CD");
         reportItem.setRegion("Example Region");
-        reportItem.setCount(2);
+        reportItem.setNumberOfRecordings(2);
 
         when(reportService.reportRecordingsPerCase()).thenReturn(List.of(reportItem));
         mockMvc.perform(get("/reports/recordings-per-case"))
@@ -113,7 +113,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
             .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()))
-            .andExpect(jsonPath("$[0].count").value(reportItem.getCount()));
+            .andExpect(jsonPath("$[0].number_of_recordings").value(reportItem.getNumberOfRecordings()));
     }
 
     @DisplayName("Should get a report containing a list of edited recordings")

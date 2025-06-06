@@ -204,9 +204,9 @@ public class ReportServiceTest {
 
         assertThat(report.size()).isEqualTo(2);
         assertThat(report.get(0).getCaseReference()).isEqualTo(caseEntity.getReference());
-        assertThat(report.get(0).getCount()).isEqualTo(1);
+        assertThat(report.get(0).getNumberOfRecordings()).isEqualTo(1);
         assertThat(report.get(1).getCaseReference()).isEqualTo(anotherCase.getReference());
-        assertThat(report.get(1).getCount()).isEqualTo(0);
+        assertThat(report.get(1).getNumberOfRecordings()).isEqualTo(0);
 
         assertThat(report.getFirst().getCourt()).isEqualTo(courtEntity.getName());
         assertThat(report.getFirst().getRegion()).isEqualTo(regionEntity.getName());

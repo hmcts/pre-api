@@ -359,7 +359,7 @@ public class ReportServiceIT extends IntegrationTestBase {
         assertThat(report.getCaseReference()).isEqualTo(aCase.getReference());
         assertThat(report.getCourt()).isEqualTo(court.getName());
         assertThat(report.getRegion()).isEqualTo(region.getName());
-        assertThat(report.getCount()).isEqualTo(expectedCount);
+        assertThat(report.getNumberOfRecordings()).isEqualTo(expectedCount);
     }
 
     private void assertSharedReportSuccess(Court court, Case caseEntity, User user1, User user2,
