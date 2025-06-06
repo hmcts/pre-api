@@ -167,8 +167,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         }
 
         if (!unhappyRecordings.isEmpty()) {
-           return List.of(new SlackMessageSection(
-                "Capture sessions: RECORDING_AVAILABLE but with problems",
+            return List.of(new SlackMessageSection("Capture sessions: RECORDING_AVAILABLE but with problems",
                 unhappyRecordings, ""
             ));
         }
