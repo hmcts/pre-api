@@ -270,7 +270,7 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-json'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation'
-  implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.8.5'
+  implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.8.8'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.4.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
@@ -305,7 +305,7 @@ dependencies {
   implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.29.0'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
 
-  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.20.4'
+  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.1'
 
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.5.0'
 
@@ -325,12 +325,12 @@ dependencies {
 
   integrationTestImplementation sourceSets.main.runtimeClasspath
   integrationTestImplementation sourceSets.test.runtimeClasspath
-  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.20.4'
+  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.1'
 
   functionalTestImplementation sourceSets.main.runtimeClasspath
   functionalTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
   functionalTestImplementation group: 'io.rest-assured', name: 'rest-assured'
-  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.20.4'
+  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.1'
 
   smokeTestImplementation sourceSets.main.runtimeClasspath
   smokeTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
