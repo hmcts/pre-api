@@ -99,6 +99,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (cleansedData == null) {
                 return null;
             }
+
+            if (!isExemptionValidated(cleansedData, exemptionItem)) {
+                return null;
+            }
+
+            loggingService.incrementProgress();           
+            cacheService.dumpToFile();
+            
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
 
         } catch (Exception e) {
@@ -196,6 +204,20 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             return false;
         }
 
+        loggingService.logDebug("All validation rules passed");
+        return true;
+    }
+
+    private boolean isExemptionValidated(ProcessedRecording cleansedData, CSVExemptionListData exemptionItem) {
+        ServiceResult<ProcessedRecording> result = validationService.validateExemptionRecording(
+            cleansedData,
+            exemptionItem.getArchiveName()
+        );
+
+        if (checkForError(result, exemptionItem)) {
+            return false;
+        }
+    
         loggingService.logDebug("All validation rules passed");
         return true;
     }
