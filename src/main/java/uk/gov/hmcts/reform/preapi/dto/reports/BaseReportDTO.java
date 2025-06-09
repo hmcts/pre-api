@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 
 @Data
@@ -25,8 +26,12 @@ public abstract class BaseReportDTO {
     private String region;
 
     protected BaseReportDTO(Case c) {
+        if (c == null) {
+            return;
+        }
+
         caseReference = c.getReference();
-        var courtEntity = c.getCourt();
+        Court courtEntity = c.getCourt();
         court = courtEntity.getName();
         county = courtEntity.getCounty();
         postcode = courtEntity.getPostcode();

@@ -404,13 +404,14 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].playback_date").value("01/01/2025"))
             .andExpect(jsonPath("$[0].playback_time").value("00:00:00"))
             .andExpect(jsonPath("$[0].playback_time_zone").value("GMT"))
-            .andExpect(jsonPath("$[0].user").value(reportItem.getUser()))
+            .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
+            .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
             .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-            .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+            .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
-            .andExpect(jsonPath("$[0].regions").value(reportItem.getRegions()));
+            .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
 
         verify(reportService, times(1)).reportPlayback(AuditLogSource.PORTAL);
     }
@@ -429,13 +430,14 @@ public class ReportControllerTest {
                .andExpect(jsonPath("$[0].playback_date").value("01/07/2025"))
                .andExpect(jsonPath("$[0].playback_time").value("01:00:00"))
                .andExpect(jsonPath("$[0].playback_time_zone").value("BST"))
-               .andExpect(jsonPath("$[0].user").value(reportItem.getUser()))
+               .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
+               .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
                .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
                .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-               .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+               .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
                .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
                .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
-               .andExpect(jsonPath("$[0].regions").value(reportItem.getRegions()));
+               .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
 
         verify(reportService, times(1)).reportPlayback(AuditLogSource.APPLICATION);
     }
@@ -453,19 +455,22 @@ public class ReportControllerTest {
                .andExpect(jsonPath("$[0].playback_date").value("01/01/2025"))
                .andExpect(jsonPath("$[0].playback_time").value("00:00:00"))
                .andExpect(jsonPath("$[0].playback_time_zone").value("GMT"))
-               .andExpect(jsonPath("$[0].user").value(reportItem.getUser()))
+               .andExpect(jsonPath("$[0].recording_version").value(reportItem.getRecordingVersion()))
+               .andExpect(jsonPath("$[0].defendants").value(reportItem.getDefendants()))
+               .andExpect(jsonPath("$[0].witness").value(reportItem.getWitness()))
+               .andExpect(jsonPath("$[0].user_full_name").value(reportItem.getUserFullName()))
+               .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
                .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
                .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
-               .andExpect(jsonPath("$[0].court_name").value(reportItem.getCourtName()))
+               .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
                .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
                .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
-               .andExpect(jsonPath("$[0].regions").value(reportItem.getRegions()));
+               .andExpect(jsonPath("$[0].region").value(reportItem.getRegion()));
 
         verify(reportService, times(1)).reportPlayback(null);
     }
 
     private PlaybackReportDTO createPlaybackReport(Timestamp createdAt) {
-
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setOrganisation("FooOrg");
