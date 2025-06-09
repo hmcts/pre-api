@@ -52,9 +52,9 @@ public class DataValidationService {
 
         String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
         String baseKey = cacheService.generateCacheKey(
-                "booking", 
-                "metadata", 
-                cleansedData.getCaseReference(), 
+                "booking",
+                "metadata",
+                cleansedData.getCaseReference(),
                 participantPair
             );
 
@@ -72,28 +72,33 @@ public class DataValidationService {
     }
 
 
-    public ServiceResult<ProcessedRecording> validateExemptionRecording(ProcessedRecording cleansedData, String archiveName) {
-
+    public ServiceResult<ProcessedRecording> validateExemptionRecording(ProcessedRecording cleansedData,
+                                                                        String archiveName) {
         if (cleansedData.getCourt() == null) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT, Constants.Reports.FILE_MISSING_DATA);
+            return ServiceResultUtil.failure(Constants.ErrorMessages.MISSING_COURT,
+                                             Constants.Reports.FILE_MISSING_DATA);
         }
 
         String caseReference = cleansedData.getCaseReference();
         if (caseReference == null || caseReference.length() < 9) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT, Constants.Reports.FILE_MISSING_DATA);
+            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_SHORT,
+                                             Constants.Reports.FILE_MISSING_DATA);
         }
         if (caseReference.length() > 24) {
-            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG, Constants.Reports.FILE_MISSING_DATA);
+            return ServiceResultUtil.failure(Constants.ErrorMessages.CASE_REFERENCE_TOO_LONG,
+                                             Constants.Reports.FILE_MISSING_DATA);
         }
 
         String witness = cleansedData.getWitnessFirstName();
-       if (witness == null || witness.trim().isEmpty()) {
-            return ServiceResultUtil.failure("Missing or empty witness first name", Constants.Reports.FILE_MISSING_DATA);
+        if (witness == null || witness.trim().isEmpty()) {
+            return ServiceResultUtil.failure("Missing or empty witness first name",
+                                             Constants.Reports.FILE_MISSING_DATA);
         }
 
         String defendant = cleansedData.getDefendantLastName();
         if (defendant == null || defendant.trim().isEmpty()) {
-            return ServiceResultUtil.failure("Missing or empty defendant last name", Constants.Reports.FILE_MISSING_DATA);
+            return ServiceResultUtil.failure("Missing or empty defendant last name",
+                                             Constants.Reports.FILE_MISSING_DATA);
         }
 
         if (cleansedData.getRecordingVersionNumber() < 1) {
@@ -104,8 +109,9 @@ public class DataValidationService {
             return ServiceResultUtil.failure("Missing file name", Constants.Reports.FILE_MISSING_DATA);
         }
 
-        if(cleansedData.getFileExtension() == null || cleansedData.getFileExtension().trim().isEmpty()){
-            return ServiceResultUtil.failure(Constants.ErrorMessages.INVALID_FILE_EXTENSION, Constants.Reports.FILE_INVALID_FORMAT);
+        if (cleansedData.getFileExtension() == null || cleansedData.getFileExtension().trim().isEmpty()) {
+            return ServiceResultUtil.failure(Constants.ErrorMessages.INVALID_FILE_EXTENSION,
+                                             Constants.Reports.FILE_INVALID_FORMAT);
         }
 
         return ServiceResultUtil.success(cleansedData);
