@@ -273,7 +273,7 @@ public class MediaKind implements IMediaService {
         }
 
         var recordingStatus = verifyFinalAssetExists(recordingId);
-        if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE){
+        if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE) {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
         }
         return recordingStatus;
