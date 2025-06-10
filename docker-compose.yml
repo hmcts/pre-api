@@ -1,7 +1,7 @@
 services:
 
   db:
-    image: postgres:17.4-alpine
+    image: postgres:17.5-alpine
     restart: always
     environment:
       POSTGRES_DB: api
