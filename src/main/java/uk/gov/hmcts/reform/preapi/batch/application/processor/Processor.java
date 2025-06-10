@@ -131,7 +131,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (extractedData == null) {
                 return null;
             }
-
             // Transformation
             ProcessedRecording cleansedData = transformData(extractedData);
             if (cleansedData == null) {
@@ -222,32 +221,31 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return true;
     }
 
+  
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
         String key = cacheService.generateCacheKey(
-            "recording", "version",
-            cleansedData.getUrn(),
-            cleansedData.getExhibitReference(),
+            "recording",
+            cleansedData.getCaseReference(),
             cleansedData.getDefendantLastName(),
             cleansedData.getWitnessFirstName()
         );
 
         Map<String, Object> metadata = cacheService.getHashAll(key);
         String archiveName = archiveItem.getArchiveName();
-        String recordingVersion = cleansedData.getRecordingVersion();
+        String versionStr = cleansedData.getExtractedRecordingVersion(); // e.g. ORIG1, COPY2
+        int version = cleansedData.getRecordingVersionNumber();
 
-        boolean isOrig = "ORIG".equalsIgnoreCase(recordingVersion);
-        boolean isCopy = recordingVersion != null && recordingVersion.toUpperCase().startsWith("COPY");
+        boolean isOrig = versionStr != null && versionStr.toUpperCase().startsWith("ORIG");
+        boolean isCopy = versionStr != null && versionStr.toUpperCase().startsWith("COPY");
+
+        String seenKey = isOrig ? "seenOrig:" + version : "seenCopy:" + version;
+        String archiveKey = isOrig ? "origVersionArchiveName:" + version : "copyVersionArchiveName:" + version;
 
         if (metadata != null) {
-            boolean seenOrig = Boolean.TRUE.equals(metadata.get("seenOrig"));
-            boolean seenCopy = Boolean.TRUE.equals(metadata.get("seenCopy"));
+            boolean seen = Boolean.TRUE.equals(metadata.get(seenKey));
+            String seenArchive = (String) metadata.get(archiveKey);
 
-            String seenOriginal = (String) metadata.get("origVersionArchiveName");
-            String seenCopyName = (String) metadata.get("copyVersionArchiveName");
-
-            if ((isOrig && seenOrig && archiveName.equalsIgnoreCase(seenOriginal)) 
-                || (isCopy && seenCopy && archiveName.equalsIgnoreCase(seenCopyName))) {
-
+            if (seen && archiveName.equalsIgnoreCase(seenArchive)) {
                 handleError(archiveItem, "Duplicate recording already seen", "Duplicate");
                 return true;
             }
@@ -255,26 +253,21 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             metadata = new HashMap<>();
         }
 
-        if (isOrig) {
-            metadata.put("seenOrig", true);
-            metadata.put("origVersionArchiveName", cleansedData.getFileName());
-            metadata.put("origVersionNumber", String.valueOf(cleansedData.getRecordingVersionNumber()));
-        } else if (isCopy) {
-            metadata.put("seenCopy", true);
-            metadata.put("copyVersionArchiveName", cleansedData.getFileName());
-            metadata.put("copyVersionNumber", String.valueOf(cleansedData.getRecordingVersionNumber()));
-        }
-
+        metadata.put(seenKey, true);
+        metadata.put(archiveKey, archiveName);
+        metadata.put((isOrig ? "origVersionNumber:" : "copyVersionNumber:") + version, String.valueOf(version));
         cacheService.saveHashAll(key, metadata);
 
         boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
         if (alreadyMigrated) {
+            loggingService.logDebug("Case already migrated: %s", cleansedData.getCaseReference());
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;
         }
 
         return false;
     }
+    
     //======================
     // Helper Methods
     //======================

@@ -4,75 +4,75 @@ import lombok.experimental.UtilityClass;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 @UtilityClass
 public final class RecordingUtils {
-    private static final String KEY_ORIG_VERSION_NUMBER = "origVersionNumber";
-    private static final String KEY_COPY_VERSION_NUMBER = "copyVersionNumber";
-    private static final String KEY_ORIG_ARCHIVE_NAME = "origVersionArchiveName";
-    private static final String KEY_COPY_ARCHIVE_NAME = "copyVersionArchiveName";
-    
-    public record MetadataUpdateResult(Map<String, Object> metadata, boolean updated) {}
 
-    public record VersionDetails(String versionType, String versionNumberStr, int versionNumber, boolean isMostRecent) {
+    public record VersionDetails(
+        String extractedVersionType,               // "ORIG" or "COPY"
+        String extractedVersionNumberStr,         // e.g. "1", "2"
+        int standardisedVersionNumber,               // normalized: 1 for ORIG, 2 for COPY
+        boolean isMostRecent             // calculated from cache
+    ) {
         @Override
         public String toString() {
             return String.format(
                 "VersionDetails[type=%s, number=%s, versionNum=%d, isMostRecent=%b]",
-                versionType, versionNumberStr, versionNumber, isMostRecent
+                extractedVersionType, extractedVersionNumberStr, standardisedVersionNumber, isMostRecent
             );
         }
     }
 
     public VersionDetails processVersioning(
-        String recordingVersion,
-        String versionNumberStr,
+        String extractedRecordingVersion,             // e.g. "ORIG", "COPY"
+        String extractedVersionNumberStr,             // extracted from suffix: e.g. "1", "2"
         String urn,
         String defendant,
         String witness,
-        Map<String, Object> existingCacheData
+        Map<String, Object> existingCacheData // used to determine most recent
     ) {
         Map<String, Object> dataMap = existingCacheData != null ? existingCacheData : Collections.emptyMap();
 
-        String versionType = Optional.ofNullable(recordingVersion)
-                                     .map(String::toUpperCase)
-                                     .filter(Constants.VALID_VERSION_TYPES::contains)
-                                    .orElseThrow(() -> new IllegalArgumentException(
-                                        "Invalid recording version: " + recordingVersion
-                                    ));
-        String validVersionNumber = getValidVersionNumber(versionNumberStr);
-        int versionNumber = getRecordingVersionNumber(versionType);
-        boolean isMostRecent = isMostRecentVersion(versionType, validVersionNumber, dataMap);
+        String extractedVersionType = Optional.ofNullable(extractedRecordingVersion)
+            .map(String::toUpperCase)
+            .filter(Constants.VALID_VERSION_TYPES::contains)
+            .orElseThrow(() -> new IllegalArgumentException("Invalid recording version: " + extractedRecordingVersion));
 
-        return new VersionDetails(versionType, validVersionNumber, versionNumber, isMostRecent);
+        int standardizedVersionNumber = getStandardizedVersionNumberFromType(extractedVersionType);
+
+        boolean isMostRecent = isMostRecentVersion(extractedVersionType, extractedVersionNumberStr, dataMap);
+
+        return new VersionDetails(extractedVersionType, extractedVersionNumberStr, 
+            standardizedVersionNumber, isMostRecent);
     }
 
-    public int getRecordingVersionNumber(String recordingVersion) {
+    public int getStandardizedVersionNumberFromType(String recordingVersion) {
         return Constants.VALID_ORIG_TYPES.contains(recordingVersion.toUpperCase()) ? 1 : 2;
     }
 
     public String getValidVersionNumber(String versionNumStr) {
-        return (versionNumStr == null || versionNumStr.trim().isEmpty()) ? "1" : versionNumStr;
+        return (versionNumStr == null || versionNumStr.trim().isEmpty()) ? "1" : versionNumStr.trim();
     }
 
-    public static boolean isMostRecentVersion(
+    public boolean isMostRecentVersion(
         String versionType,
-        String currentVersion,
+        String currentVersionStr,
         Map<String, Object> existingData
     ) {
-        String key = Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())
-            ? KEY_ORIG_VERSION_NUMBER
-            : KEY_COPY_VERSION_NUMBER;
-
-        String storedVersion = (String) existingData.get(key);
-        return storedVersion == null || compareVersionStrings(currentVersion, storedVersion) >= 0;
+        String key = getCacheKeyForVersionType(versionType);
+        String cachedVersionStr = (String) existingData.get(key);
+        return cachedVersionStr == null || compareVersionStrings(currentVersionStr, cachedVersionStr) >= 0;
     }
 
+    private String getCacheKeyForVersionType(String versionType) {
+        return Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())
+            ? "origVersionNumber"
+            : "copyVersionNumber";
+    }
 
-    private static int compareVersionStrings(String v1, String v2) {
+    private int compareVersionStrings(String v1, String v2) {
         if (v1 == null) {
             v1 = "0";
         }
@@ -91,39 +91,11 @@ public final class RecordingUtils {
             if (v1Part < v2Part) {
                 return -1;
             }
+            
             if (v1Part > v2Part) {
                 return 1;
             }
         }
         return 0;
     }
-
-    public MetadataUpdateResult updateVersionMetadata(
-        String versionType,
-        String versionNumber,
-        String archiveName,
-        Map<String, Object> existingMetadata
-    ) {
-        Map<String, Object> updatedMetadata = new HashMap<>(existingMetadata);
-        boolean updated = false;
-        String validVersionNumber = getValidVersionNumber(versionNumber);
-
-        if (Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())) {
-            String existingVersion = (String) existingMetadata.get(KEY_ORIG_VERSION_NUMBER);
-            if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
-                updatedMetadata.put(KEY_ORIG_ARCHIVE_NAME, archiveName);
-                updatedMetadata.put(KEY_ORIG_VERSION_NUMBER, validVersionNumber);
-                updated = true;
-            }
-        } else if (Constants.VALID_COPY_TYPES.contains(versionType.toUpperCase())) {
-            String existingVersion = (String) existingMetadata.get(KEY_COPY_VERSION_NUMBER);
-            if (existingVersion == null || compareVersionStrings(validVersionNumber, existingVersion) > 0) {
-                updatedMetadata.put(KEY_COPY_ARCHIVE_NAME, archiveName);
-                updatedMetadata.put(KEY_COPY_VERSION_NUMBER, validVersionNumber);
-                updated = true;
-            }
-        }
-        return new MetadataUpdateResult(updatedMetadata, updated);
-    }
-
 }

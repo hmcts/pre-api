@@ -47,6 +47,8 @@ public class DataValidationServiceTest {
     void validateProcessedRecordingNotIsMostRecentVersion() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
+            .caseReference("123456789")
+            .extractedRecordingVersion("COPY")
             .isMostRecentVersion(false)
             .build();
         CSVArchiveListData archive = new CSVArchiveListData();

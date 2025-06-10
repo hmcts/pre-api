@@ -167,6 +167,15 @@ public class InMemoryCacheService {
         return "vf:" + namespace + ":" + type + ":" + String.join("-", normalizeAll(identifiers));
     }
 
+    public String generateBookingCacheKey(String baseKey, String versionStr) {
+        return baseKey + ":version:" + versionStr + ":bookingId";
+    }
+
+    public String generateCaptureSessionCacheKey(String baseKey, String versionStr) {
+        return baseKey + ":version:" + versionStr + ":captureSessionId";
+    }
+
+
     private static List<String> normalizeAll(String[] parts) {
         return Arrays.stream(parts)
             .filter(Objects::nonNull)

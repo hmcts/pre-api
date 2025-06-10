@@ -274,7 +274,7 @@ public class MigrationGroupBuilderServiceTest {
         applicationContext.publishEvent(new ContextRefreshedEvent(applicationContext));
 
         when(entityCreationService.createCase(cleansedData)).thenReturn(caseDTO);
-        when(inMemoryCacheService.generateCacheKey(eq("booking"), eq("metadata"), any(), any())).thenReturn(BASE_KEY);
+        when(inMemoryCacheService.generateCacheKey(eq("booking"), any(), any())).thenReturn(BASE_KEY);
 
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();
