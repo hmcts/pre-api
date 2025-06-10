@@ -98,23 +98,32 @@ public class DataTransformationService {
         }
 
         return ProcessedRecording.builder()
+            .courtReference(extracted.getCourtReference())
+            .court(court)
+
+            .state(determineState(shareBookingContacts))
+
+            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
+            .duration(Duration.ofSeconds(extracted.getDuration()))
+
             .urn(extracted.getUrn())
             .exhibitReference(extracted.getExhibitReference())
             .caseReference(extracted.createCaseReference())
             .defendantLastName(extracted.getDefendantLastName())
             .witnessFirstName(extracted.getWitnessFirstName())
-            .courtReference(extracted.getCourtReference())
-            .court(court)
-            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
-            .duration(Duration.ofSeconds(extracted.getDuration()))
-            .state(determineState(shareBookingContacts))
-            .shareBookingContacts(shareBookingContacts)
+            
+            .extractedRecordingVersion(extracted.getRecordingVersion())  // ORIG or COPY
+            .extractedRecordingVersionNumberStr(extracted.getRecordingVersionNumber()) // "2"
+            .standardizedRecordingVersionNumberStr(versionDetails.extractedVersionNumberStr())  // (ORIG2 = "1")
+            .recordingVersionNumber(versionDetails.standardisedVersionNumber())    
+    
+            .isMostRecentVersion(versionDetails.isMostRecent())
+
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())
-            .recordingVersion(versionDetails.versionType())
-            .recordingVersionNumberStr(versionDetails.versionNumberStr())
-            .recordingVersionNumber(versionDetails.versionNumber())
-            .isMostRecentVersion(versionDetails.isMostRecent())
+
+            .shareBookingContacts(shareBookingContacts)
+
             .build();
     }
 

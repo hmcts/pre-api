@@ -162,7 +162,8 @@ public class BatchConfiguration implements StepExecutionListener {
                         : DELTA_RECORDS_CSV;
 
                     Resource resource = new ClassPathResource(filePath);
-                    String[] fieldNames = {"archive_name", "create_time", "duration", "file_name", "file_size"};
+                    String[] fieldNames = {"archive_id","archive_name", "create_time", "duration", 
+                        "file_name", "file_size"};
 
                     @Cleanup FlatFileItemReader<CSVArchiveListData> reader = CSVReader.createReader(
                         resource, fieldNames, CSVArchiveListData.class

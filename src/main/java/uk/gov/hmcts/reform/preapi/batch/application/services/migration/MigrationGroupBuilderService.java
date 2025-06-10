@@ -29,8 +29,8 @@ import java.util.Set;
 
 @Service
 public class MigrationGroupBuilderService {
-    protected static final String BOOKING_FIELD = "bookingField";
-    protected static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    protected static final String BOOKING_FIELD = "booking";
+    protected static final String CAPTURE_SESSION_FIELD = "captureSession";
     protected static final String RECORDING_FIELD = "recordingField";
 
     private final LoggingService loggingService;
@@ -80,15 +80,23 @@ public class MigrationGroupBuilderService {
     ) {
 
         CreateCaseDTO aCase = createCaseIfOrig(cleansedData);
-        if (aCase == null) {
+        String version = cleansedData.getExtractedRecordingVersion();        
+        if (aCase == null && (version == null || !version.toUpperCase().contains("COPY"))) {
             return null;
         }
 
-        String participantPair = cleansedData.getWitnessFirstName() + '-' + cleansedData.getDefendantLastName();
+        if (aCase == null) {
+            aCase = caseCache.get(cleansedData.getCaseReference());
+            if (aCase == null) {
+                loggingService.logError("COPY file with missing case in cache: %s", cleansedData.getFileName());
+                return null;
+            }
+        }
+
+        String participantPair = cleansedData.getDefendantLastName() + '-' + cleansedData.getWitnessFirstName();
 
         String baseKey = cacheService.generateCacheKey(
                 "booking",
-                "metadata",
                 aCase.getReference(),
                 participantPair
             );
@@ -102,23 +110,20 @@ public class MigrationGroupBuilderService {
         MigratedItemGroup migrationGroup = new MigratedItemGroup(
             aCase, booking, captureSession, recording, participants, passItem
         );
-        loggingService.logInfo("Migrating group: %s", migrationGroup);
+        loggingService.logDebug("Migrating group: %s", migrationGroup);
         return migrationGroup;
     }
 
     protected CreateCaseDTO createCaseIfOrig(ProcessedRecording cleansedData) {
         String caseReference = cleansedData.getCaseReference();
-        // 1 - return if case reference is invalid
         if (isInvalidCaseReference(caseReference)) {
             return null;
         }
 
-        // update existing case if present
         if (caseCache.containsKey(caseReference)) {
             return updateExistingCase(caseReference, cleansedData);
         }
 
-        // otherwise return a new case
         return createNewCase(caseReference, cleansedData);
     }
 

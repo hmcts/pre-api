@@ -10,7 +10,7 @@ class CSVArchiveListDataTest {
 
     @Test
     void getArchiveNameNoExt() {
-        CSVArchiveListData data = new CSVArchiveListData("testfile.csv", "", 0, "", "");
+        CSVArchiveListData data = new CSVArchiveListData("","testfile.csv", "", 0, "", "");
         assertEquals("testfile", data.getArchiveNameNoExt());
 
         data.setArchiveName("anotherfile");
@@ -19,7 +19,7 @@ class CSVArchiveListDataTest {
 
     @Test
     void getCreateTimeAsLocalDateTime() {
-        CSVArchiveListData data = new CSVArchiveListData("", "2021-08-01 12:00:00", 0, "", "");
+        CSVArchiveListData data = new CSVArchiveListData("", "", "2021-08-01 12:00:00", 0, "", "");
         LocalDateTime expectedDateTime = LocalDateTime.of(2021, 8, 1, 12, 0);
         assertEquals(expectedDateTime, data.getCreateTimeAsLocalDateTime());
 
@@ -29,10 +29,12 @@ class CSVArchiveListDataTest {
 
     @Test
     void testToString() {
-        CSVArchiveListData data = new CSVArchiveListData("testfile.csv", "1627849200000", 30, "file.csv", "100KB");
+        CSVArchiveListData data = new CSVArchiveListData("Edbc1efa5cc1e4104afc5185a241c8f4f", 
+            "testfile.csv", "1627849200000", 30, "file.csv", "100KB");
         String expectedString =
             """
-                CSVArchiveListData{archiveName='testfile.csv', \
+                CSVArchiveListData{archiveId='Edbc1efa5cc1e4104afc5185a241c8f4f', \
+                archiveName='testfile.csv', \
                 sanitizedName='', \
                 createTime='1627849200000', \
                 duration=30, \
@@ -43,7 +45,7 @@ class CSVArchiveListDataTest {
 
     @Test
     void setSanitizedArchiveName() {
-        CSVArchiveListData data = new CSVArchiveListData("QC_testfile.csv", "", 0, "", "");
+        CSVArchiveListData data = new CSVArchiveListData("", "QC_testfile.csv", "", 0, "", "");
         data.setArchiveName("QC_testfile.csv");
         assertEquals("QC_testfile.csv", data.getSanitizedArchiveName());
 

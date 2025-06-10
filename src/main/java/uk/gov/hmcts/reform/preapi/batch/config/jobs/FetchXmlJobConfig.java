@@ -63,7 +63,8 @@ public class FetchXmlJobConfig {
                     ? "Archive_List_updated"
                     : "Archive_List_initial";
 
-                xmlProcessingService.extractAndReportArchiveMetadata(CONTAINER_NAME, XML_PREFIX, FULL_PATH, outputFileName);
+                xmlProcessingService.extractAndReportArchiveMetadata(
+                    CONTAINER_NAME, XML_PREFIX, FULL_PATH, outputFileName);
                 return RepeatStatus.FINISHED;
             }, transactionManager)
             .build();

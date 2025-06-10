@@ -45,7 +45,11 @@ public class ArchiveMetadataXmlExtractor {
      * @param containerName The Azure Blob container name.
      * @param outputDir     The directory where the CSV files will be written.
      */
-    public void extractAndReportArchiveMetadata(String containerName, String folderPrefix, String outputDir, String filename) {
+    public void extractAndReportArchiveMetadata(
+        String containerName, 
+        String folderPrefix, 
+        String outputDir, 
+        String filename) {
         try {
             loggingService.logInfo("Starting extraction for container: %s", containerName);
 
@@ -119,6 +123,7 @@ public class ArchiveMetadataXmlExtractor {
                                                String filename) throws IOException {
 
         List<String> headers = List.of(
+            "archive_id",
             "archive_name",
             "create_time",
             "duration",
@@ -170,6 +175,7 @@ public class ArchiveMetadataXmlExtractor {
             }
 
             Element archiveElement = (Element) archiveNode;
+            String archiveId = extractTextContent(archiveElement, "ArchiveID");
             String displayName = extractTextContent(archiveElement, "DisplayName");
             String createTime = extractTextContent(archiveElement, "CreatTime");
             String duration = extractTextContent(archiveElement, "Duration");
@@ -180,7 +186,7 @@ public class ArchiveMetadataXmlExtractor {
             if (createTime.isEmpty()) {
                 loggingService.logWarning("Missing CreatTime for archive: " + displayName);
             }
-            metadataRows.addAll(processMP4Files(archiveElement, displayName, createTime, duration));
+            metadataRows.addAll(processMP4Files(archiveElement, archiveId, displayName, createTime, duration));
         }
         return metadataRows;
     }
@@ -196,6 +202,7 @@ public class ArchiveMetadataXmlExtractor {
      */
     private List<List<String>> processMP4Files(
         Element archiveElement,
+        String archiveId,
         String displayName,
         String createTime,
         String duration
@@ -221,7 +228,7 @@ public class ArchiveMetadataXmlExtractor {
                 }
                 if (isValidMP4File(fileName)) {
                     String formattedFileSize = formatFileSize(fileSizeKb);
-                    fileRows.add(List.of(displayName, createTime, duration, fileName, formattedFileSize));
+                    fileRows.add(List.of(archiveId, displayName, createTime, duration, fileName, formattedFileSize));
                 }
             }
         }

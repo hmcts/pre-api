@@ -155,7 +155,7 @@ public class CoreStepsConfig {
         return createReadStep(
             "archiveListDataStep",
             new ClassPathResource(BatchConfiguration.ARCHIVE_LIST_INITAL),
-            new String[]{"archive_name", "create_time", "duration", "file_name", "file_size"},
+            new String[]{"archive_id", "archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true,
             getDryRunFlag()
@@ -168,7 +168,7 @@ public class CoreStepsConfig {
         return createReadStep(
             "deltaDataStep",
             new ClassPathResource(BatchConfiguration.DELTA_RECORDS_CSV),
-            new String[]{"archive_name", "create_time", "duration", "file_name", "file_size"},
+            new String[]{"archive_id", "archive_name", "create_time", "duration", "file_name", "file_size"},
             CSVArchiveListData.class,
             true,
             getDryRunFlag()

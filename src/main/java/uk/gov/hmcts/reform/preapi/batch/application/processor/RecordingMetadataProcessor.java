@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ProcessedRecording;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
-import uk.gov.hmcts.reform.preapi.batch.util.RecordingUtils;
 import uk.gov.hmcts.reform.preapi.batch.util.ServiceResultUtil;
 
 import java.util.HashMap;
@@ -55,35 +54,45 @@ public class RecordingMetadataProcessor {
             }
 
             ProcessedRecording cleansedData = result.getData();
-
-            String key = cacheService.generateCacheKey(
-                "recording", "version", 
-                cleansedData.getUrn(), 
-                cleansedData.getExhibitReference(),
+            String cacheKey = cacheService.generateCacheKey(
+                "recording",
+                cleansedData.getCaseReference(),
                 cleansedData.getDefendantLastName(),
                 cleansedData.getWitnessFirstName()
             );
 
-            // Get current tracking data (version history, etc)
-            Map<String, Object> existingMetadata = cacheService.getHashAll(key);
-            if (existingMetadata == null) {
-                existingMetadata = new HashMap<>();
-            }
-           
-            // Update versioning info for this recording
-            RecordingUtils.MetadataUpdateResult metadataResult = RecordingUtils.updateVersionMetadata(
-                cleansedData.getRecordingVersion(),
-                cleansedData.getRecordingVersionNumberStr(),
-                archiveItem.getArchiveName(),
-                existingMetadata
-            );
+            String versionType = cleansedData.getExtractedRecordingVersion().toUpperCase(); // ORIG or COPY
+            String versionNumber = cleansedData.getExtractedRecordingVersionNumberStr();
+            String fileName = archiveItem.getArchiveName();
 
-            if (metadataResult.updated()) {
-                cacheService.saveHashAll(key, metadataResult.metadata());
+            Map<String, Object> metadata = cacheService.getHashAll(cacheKey);
+            if (metadata == null) {
+                metadata = new HashMap<>();
             } 
 
+            switch (versionType) {
+                case "ORIG" -> {
+                    String key = "archiveName:orig:" + versionNumber;
+                    metadata.put(key, fileName);
+                }
+                case "COPY" -> {
+                    String copyKey = "archiveName:copy:" + versionNumber;
+                    metadata.put(copyKey, fileName);
+
+                    String origKey = "archiveName:orig:" + versionNumber;
+                    String origFile = (String) metadata.get(origKey);
+                    if (origFile != null) {
+                        String copyVersionKey = "copyVersionArchiveName:" + versionNumber;
+                        metadata.put(copyVersionKey, origFile);
+                    } 
+                }
+                default -> throw new IllegalArgumentException("Unexpected version type: " + versionType);
+            }
+
+            cacheService.saveHashAll(cacheKey, metadata);
+
         } catch (Exception e) {
-            ServiceResultUtil.failure(e.getMessage(), "Error");
+            ServiceResultUtil.failure(e.getMessage(), "Error processing recording metadata");
         }
     }
 }

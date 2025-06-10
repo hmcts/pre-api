@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -23,7 +24,6 @@ import uk.gov.hmcts.reform.preapi.tasks.migration.MigrateExclusions;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -43,23 +43,24 @@ public class MigrateExclusionsTest {
     private static final String CRON_USER_EMAIL = "test@test.com";
 
     @BeforeEach
-    void beforeEach() {
+    void beforeEach() throws Exception {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
+        jobLauncher = mock(JobLauncher.class);
+        loggingService = mock(LoggingService.class);
+        processExclusionsJob = mock(Job.class);
 
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
         when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
 
         var userAuth = mock(UserAuthentication.class);
-        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(userAuth));
 
-        jobLauncher = mock(JobLauncher.class);
-        loggingService = mock(LoggingService.class);
-        processExclusionsJob = mock(Job.class);
+        JobExecution jobExecution = mock(JobExecution.class);
+        when(jobLauncher.run(eq(processExclusionsJob), any())).thenReturn(jobExecution);
     }
 
     @DisplayName("Test Migrating Exclusions")
