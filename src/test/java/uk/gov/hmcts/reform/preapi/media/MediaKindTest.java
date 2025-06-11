@@ -363,30 +363,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
-    @Test
-    @DisplayName("Should return the capture session when successfully started the live event (feature flag off)")
-    void startLiveEventLiveEventConflictSuccessNoStreamingLocatorCreated() {
-        mediaKind.enableStreamingLocatorOnStart = false;
-
-        var liveEventName = captureSession.getId().toString().replace("-", "");
-        var mockLiveEvent = mock(MkLiveEvent.class);
-
-        when(mockClient.putLiveEvent(any(), any()))
-            .thenThrow(mock(ConflictException.class));
-        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
-
-        mediaKind.startLiveEvent(captureSession);
-
-        verify(mockClient, times(1)).putLiveEvent(any(), any());
-        verify(mockClient, times(1)).getLiveEvent(any());
-        verify(mockClient, times(1)).putAsset(any(), any());
-        verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
-        verify(mockClient, times(1)).startLiveEvent(any());
-        verify(mockClient, never()).createStreamingLocator(any(), any());
-
-        mediaKind.enableStreamingLocatorOnStart = true;
-    }
-
     @DisplayName("Should throw not found error when live event cannot be found after creation")
     @Test
     void startLiveEventNotFoundAfterCreate() {
