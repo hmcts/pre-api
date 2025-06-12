@@ -242,6 +242,7 @@ repositories {
 
 ext {
   log4JVersion = "2.24.3"
+  reformLoggingVersion = "6.1.9"
 }
 
 def versions = [
@@ -270,21 +271,24 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-aop'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-json'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation'
-  implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.8.5'
+  implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.8.8'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
   implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.4.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
 
-  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.9'
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: reformLoggingVersion
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging-appinsights', version: reformLoggingVersion
 
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
   implementation group: 'org.apache.commons', name: 'commons-exec', version: '1.4.0'
 
+  implementation group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '8.0'
+
   implementation group: 'org.flywaydb', name: 'flyway-core', version: '11.6.0'
   implementation group: 'org.flywaydb', name: 'flyway-database-postgresql', version: '11.6.0'
-  implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.5'
+  implementation group: 'org.postgresql', name: 'postgresql', version: '42.7.6'
   implementation group: 'io.hypersistence', name: 'hypersistence-utils-hibernate-63', version: '3.9.10'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
@@ -305,13 +309,13 @@ dependencies {
   implementation group: 'com.azure', name: 'azure-storage-blob', version: '12.29.0'
   implementation group: 'com.azure.resourcemanager', name: 'azure-resourcemanager-mediaservices', version: '2.4.0-beta.1'
 
-  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.20.4'
+  implementation group: 'org.testcontainers', name: 'postgresql', version: '1.21.1'
 
   implementation group: 'com.auth0', name: 'java-jwt', version: '4.5.0'
 
   implementation group: 'uk.gov.service.notify', name: 'notifications-java-client', version: '5.2.1-RELEASE'
 
-  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.10.Final')
+  annotationProcessor('org.hibernate.orm:hibernate-jpamodelgen:6.6.17.Final')
 
 
   testImplementation 'com.github.hmcts:fortify-client:1.4.8:all'
@@ -325,12 +329,12 @@ dependencies {
 
   integrationTestImplementation sourceSets.main.runtimeClasspath
   integrationTestImplementation sourceSets.test.runtimeClasspath
-  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.20.4'
+  integrationTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.1'
 
   functionalTestImplementation sourceSets.main.runtimeClasspath
   functionalTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
   functionalTestImplementation group: 'io.rest-assured', name: 'rest-assured'
-  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.20.4'
+  functionalTestImplementation group: 'org.testcontainers', name: 'junit-jupiter', version: '1.21.1'
 
   smokeTestImplementation sourceSets.main.runtimeClasspath
   smokeTestImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test'
