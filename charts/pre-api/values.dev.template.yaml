@@ -26,7 +26,7 @@ java:
     ENABLE_NEW_EMAIL_SERVICE: true
     ENABLE_STREAMING_LOCATOR_ON_START: true
     ENABLE_AUTOMATED_EDITING: true
-    ENABLE_MIGRATED_DATA: true
+    ENABLE_MIGRATED_DATA: false
   # Don't modify below here
   image: ${IMAGE_NAME}
   ingressHost: ${SERVICE_FQDN}
