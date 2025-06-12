@@ -24,6 +24,7 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
         AND (CAST(:courtId as uuid) IS NULL OR c.court.id = :courtId)
         AND (:includeDeleted = TRUE OR c.deletedAt IS NULL)
         AND (CAST(:authCourtId as uuid) IS NULL OR c.court.id = :authCourtId)
+        AND (:includeVodafone = TRUE OR c.origin != 'VODAFONE')
         """
     )
     Page<Case> searchCasesBy(
@@ -31,6 +32,7 @@ public interface CaseRepository extends JpaRepository<Case, UUID> {
         @Param("courtId") UUID courtId,
         @Param("includeDeleted") boolean includeDeleted,
         @Param("authCourtId") UUID authCourtId,
+        @Param("includeVodafone") boolean includeVodafone,
         Pageable pageable
     );
 

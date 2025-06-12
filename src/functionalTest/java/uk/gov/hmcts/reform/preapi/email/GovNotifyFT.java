@@ -140,13 +140,13 @@ public class GovNotifyFT {
 
             ---
 
-            [Counsel and Judiciary User Guide.pdf](http://localhost:8080/assets/files/user-guide.pdf)
+            [Training Guide - External Users.pdf](http://localhost:8080/assets/files/user-guide.pdf)
 
             [PRE Editing Recording Process Quick Guide.pdf](http://localhost:8080/assets/files/process-guide.pdf)
 
-            [PRE FAQs - External.pdf](http://localhost:8080/assets/files/faqs.pdf)
+            [PRE Portal FAQs (External Users).pdf](http://localhost:8080/assets/files/faqs.pdf)
 
-            [PRE Editing Request Form.xlsx](http://localhost:8080/assets/files/pre-editing-request-form.xlsx)""", response);
+            [PRE Editing Request Form v3.1.xlsx](http://localhost:8080/assets/files/pre-editing-request-form.xlsx)""", response);
     }
 
     @DisplayName("Should send case pending closure email")

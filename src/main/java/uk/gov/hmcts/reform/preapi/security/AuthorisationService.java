@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
@@ -8,6 +9,8 @@ import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
@@ -28,18 +31,22 @@ public class AuthorisationService {
     private final RecordingRepository recordingRepository;
     private final EditRequestRepository editRequestRepository;
 
+    private final boolean enableMigratedData;
+
     public AuthorisationService(BookingRepository bookingRepository,
                                 CaseRepository caseRepository,
                                 ParticipantRepository participantRepository,
                                 CaptureSessionRepository captureSessionRepository,
                                 RecordingRepository recordingRepository,
-                                EditRequestRepository editRequestRepository) {
+                                EditRequestRepository editRequestRepository,
+                                @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.bookingRepository = bookingRepository;
         this.caseRepository = caseRepository;
         this.participantRepository = participantRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.editRequestRepository = editRequestRepository;
+        this.enableMigratedData = enableMigratedData;
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
@@ -58,14 +65,24 @@ public class AuthorisationService {
     }
 
     public boolean hasBookingAccess(UserAuthentication authentication, UUID bookingId) {
-        return bookingId == null
-            || authentication.isAdmin()
-            || !bookingRepository.existsById(bookingId)
+        if (bookingId == null) {
+            return true;
+        }
+        var booking = bookingRepository.findById(bookingId).orElse(null);
+        if (booking == null) {
+            return true;
+        }
+
+        if (!enableMigratedData && isVodafoneData(booking.getCaseId())) {
+            return canViewVodafoneData(authentication);
+        }
+
+        return authentication.isAdmin()
             || isBookingSharedWithUser(authentication, bookingId);
     }
 
     public boolean hasCaptureSessionAccess(UserAuthentication authentication, UUID captureSessionId) {
-        if (captureSessionId == null || authentication.isAdmin()) {
+        if (captureSessionId == null || (enableMigratedData && authentication.isAdmin())) {
             return true;
         }
         var entity = captureSessionRepository.findById(captureSessionId).orElse(null);
@@ -73,7 +90,7 @@ public class AuthorisationService {
     }
 
     public boolean hasRecordingAccess(UserAuthentication authentication, UUID recordingId) {
-        if (recordingId == null || authentication.isAdmin()) {
+        if (recordingId == null || (enableMigratedData && authentication.isAdmin())) {
             return true;
         }
         var entity = recordingRepository.findById(recordingId).orElse(null);
@@ -90,12 +107,21 @@ public class AuthorisationService {
     }
 
     public boolean hasCaseAccess(UserAuthentication authentication, UUID caseId) {
-        if (caseId == null || authentication.isAdmin() || authentication.isPortalUser()) {
+        if (caseId == null) {
             return true;
         }
-        var caseEntity = caseRepository.findById(caseId).orElse(null);
-        return caseEntity == null
-            || authentication.getCourtId().equals(caseEntity.getCourt().getId());
+
+        Case caseEntity = caseRepository.findById(caseId).orElse(null);
+        if (caseEntity == null) {
+            return true;
+        }
+
+        boolean isSameCourt = authentication.getCourtId().equals(caseEntity.getCourt().getId());
+        return !enableMigratedData && caseEntity.getOrigin() == RecordingOrigin.VODAFONE
+            ? canViewVodafoneData(authentication) && isSameCourt
+            : authentication.isAdmin()
+                || authentication.isPortalUser()
+                || isSameCourt;
     }
 
     public boolean hasEditRequestAccess(UserAuthentication authentication, UUID id) {
@@ -123,7 +149,6 @@ public class AuthorisationService {
     public boolean hasUpsertAccess(UserAuthentication authentication, Set<CreateParticipantDTO> participants) {
         return participants.stream().allMatch(p -> hasUpsertAccess(authentication, p));
     }
-
 
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateCaptureSessionDTO dto) {
         return hasCaptureSessionAccess(authentication, dto.getId())
@@ -155,11 +180,19 @@ public class AuthorisationService {
         return authentication.isAdmin();
     }
 
+    public boolean canViewVodafoneData(UserAuthentication authentication) {
+        return enableMigratedData || authentication.hasRole("ROLE_SUPER_USER");
+    }
+
+    public boolean isVodafoneData(Case caseEntity) {
+        return caseEntity.getOrigin() == RecordingOrigin.VODAFONE;
+    }
+
     public boolean canUpdateCaseState(UserAuthentication authentication, CreateCaseDTO dto) {
         return caseRepository.findById(dto.getId())
             .map(c -> c.getState() == dto.getState())
             .orElse(false)
             || authentication.isAdmin()
-            || authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_LEVEL_2"));
+            || authentication.hasRole("ROLE_LEVEL_2");
     }
 }
