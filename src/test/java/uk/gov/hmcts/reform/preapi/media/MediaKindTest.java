@@ -85,6 +85,8 @@ public class MediaKindTest {
     private MediaKind mediaKind;
 
     private CaptureSessionDTO captureSession;
+    @Autowired
+    private MediaKindClient mediaKindClient;
 
     @BeforeEach
     void setUp() {
@@ -557,11 +559,11 @@ public class MediaKindTest {
         var jobArgument3 = ArgumentCaptor.forClass(String.class);
         var jobArgument4 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument3.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
         assertThat(jobArgument3.getValue()).startsWith(tempName);
         assertThat(jobArgument4.getValue()).startsWith(tempName);
     }
@@ -648,7 +650,7 @@ public class MediaKindTest {
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -694,7 +696,7 @@ public class MediaKindTest {
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -764,7 +766,7 @@ public class MediaKindTest {
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
         when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
-        var result = mediaKind.importAsset(generateAssetDTO);
+        var result = mediaKind.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Finished");
 
@@ -827,7 +829,7 @@ public class MediaKindTest {
                                                      "unit test import asset",
                                                      UUID.randomUUID());
 
-        var result = mediaKind.importAsset(generateAssetDTO);
+        var result = mediaKind.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Error");
 
@@ -1479,5 +1481,28 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventId, liveEventId);
         verify(mockClient, times(1)).stopLiveEvent(liveEventId);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventId);
+    }
+
+    @Test
+    @DisplayName("Should stop live event by id")
+    void stopLiveEvent() {
+        var liveEventName = "liveEventName";
+
+        mediaKind.stopLiveEvent(liveEventName);
+
+        verify(mediaKindClient, times(1)).stopLiveEvent(liveEventName);
+        verify(mediaKindClient, times(1)).deleteLiveEvent(liveEventName);
+    }
+
+    @Test
+    @DisplayName("Should stop live event by id, or do nothing if id doesn't exist")
+    void stopLiveEventOnError() {
+        var liveEventName = "liveEventName";
+        doThrow(NotFoundException.class).when(mockClient).stopLiveEvent(liveEventName);
+
+        mediaKind.stopLiveEvent(liveEventName);
+
+        verify(mediaKindClient, times(1)).stopLiveEvent(liveEventName);
+        verify(mediaKindClient, never()).deleteLiveEvent(liveEventName);
     }
 }

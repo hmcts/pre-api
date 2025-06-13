@@ -359,7 +359,7 @@ public class MediaServiceController extends PreApiController {
 
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
-        GenerateAssetResponseDTO result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
+        GenerateAssetResponseDTO result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO, true);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             // add new version to recording etc
             RecordingDTO parentRecording = recordingService.findById(generateAssetDTO.getParentRecordingId());

@@ -22,6 +22,7 @@ import com.azure.resourcemanager.mediaservices.models.LiveEventPreview;
 import com.azure.resourcemanager.mediaservices.models.LiveEventPreviewAccessControl;
 import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import com.azure.resourcemanager.mediaservices.models.StreamingPolicyContentKeys;
+import com.microsoft.applicationinsights.TelemetryClient;
 import feign.FeignException;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -104,6 +105,8 @@ public class MediaKind implements IMediaService {
     private final AzureIngestStorageService azureIngestStorageService;
     private final AzureFinalStorageService azureFinalStorageService;
 
+    private final TelemetryClient telemetryClient = new TelemetryClient();
+
     private static final String LOCATION = "uksouth";
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
     public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
@@ -111,6 +114,8 @@ public class MediaKind implements IMediaService {
     public static final String DEFAULT_LIVE_STREAMING_ENDPOINT = "default-live";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
     private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
+    private static final String SENT_FOR_ENCODING = "SENT_FOR_ENCODING";
+    private static final String AVAILABLE_IN_FINAL_STORAGE = "AVAILABLE_IN_FINAL_STORAGE";
 
     @Autowired
     public MediaKind(
@@ -170,116 +175,21 @@ public class MediaKind implements IMediaService {
         );
     }
 
-    private String refreshStreamingLocatorForUser(String userId, String assetName) {
-        OffsetDateTime now = OffsetDateTime.now();
-        String streamingLocatorName = userId + "_" + assetName;
-
-        // check streaming locator is still valid
-        try {
-            MkStreamingLocator locator = mediaKindClient.getStreamingLocator(streamingLocatorName);
-            if (locator.getProperties().getEndTime().toInstant().isAfter(now.toInstant())) {
-                return streamingLocatorName;
-            }
-            mediaKindClient.deleteStreamingLocator(streamingLocatorName);
-        } catch (NotFoundException e) {
-            log.info("Streaming locator {} not found. Creating new streaming locator.", streamingLocatorName);
-        }
-
-        mediaKindClient.createStreamingLocator(
-            streamingLocatorName,
-            MkStreamingLocator.builder()
-                .properties(
-                    MkStreamingLocatorProperties.builder()
-                        .assetName(assetName)
-                        .streamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
-                        .defaultContentKeyPolicyName(userId)
-                        // set end time to midnight tonight
-                        .endTime(Timestamp.from(
-                            now.toLocalDate()
-                               .atTime(LocalTime.MAX)
-                               .atZone(now.getOffset())
-                               .toInstant()
-                        ))
-                        .build())
-                .build()
-        );
-
-        return streamingLocatorName;
-    }
-
-    private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
-        try {
-            mediaKindClient.getStreamingPolicy(STREAMING_POLICY_CLEAR_KEY);
-        } catch (NotFoundException e) {
-            log.info("Streaming policy {} was not found. Creating streaming policy.",
-                     STREAMING_POLICY_CLEAR_KEY
-            );
-            mediaKindClient.putStreamingPolicy(
-                STREAMING_POLICY_CLEAR_KEY,
-                MkStreamingPolicy.builder()
-                    .properties(
-                        MkStreamingPolicyProperties.builder()
-                            .defaultContentKeyPolicyName(defaultContentKeyPolicy)
-                            .envelopeEncryption(
-                                new EnvelopeEncryption()
-                                    .withEnabledProtocols(
-                                        new EnabledProtocols()
-                                            .withDash(true)
-                                            .withHls(true)
-                                            .withSmoothStreaming(false)
-                                            .withDownload(false))
-                                    .withContentKeys(
-                                        new StreamingPolicyContentKeys()
-                                            .withDefaultKey(new DefaultKey()
-                                                                .withLabel("ContentKey_AES")
-                                                                .withPolicyName(defaultContentKeyPolicy)))
-                            )
-                            .build()
-                    )
-                    .build()
-            );
-        }
-    }
-
-    private void createContentKeyPolicy(String userId, String key) {
-        try {
-            mediaKindClient.getContentKeyPolicy(userId);
-        } catch (NotFoundException e) {
-            mediaKindClient.putContentKeyPolicy(userId, MkContentKeyPolicy.builder()
-                .properties(MkContentKeyPolicyProperties.builder()
-                                .description("Content key policy for user: " + userId)
-                                .options(
-                                    List.of(MkContentKeyPolicyOptions.builder()
-                                                .name("key")
-                                                .restriction(
-                                                    new ContentKeyPolicyTokenRestriction()
-                                                        .withIssuer(issuer)
-                                                        .withAudience(userId)
-                                                        .withRestrictionTokenType(
-                                                            ContentKeyPolicyRestrictionTokenType.JWT)
-                                                        .withPrimaryVerificationKey(
-                                                            new ContentKeyPolicySymmetricTokenKey()
-                                                                .withKeyValue(key.getBytes())))
-                                                .configuration(new ContentKeyPolicyClearKeyConfiguration())
-                                                .build()))
-                                .build())
-                .build());
-        }
-    }
-
     @Override
-    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO) throws InterruptedException {
+    public GenerateAssetResponseDTO importAsset(GenerateAssetDTO generateAssetDTO, boolean sourceIsFinalStorage)
+        throws InterruptedException {
         createAsset(generateAssetDTO.getTempAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getSourceContainer(),
-                    true);
+                    sourceIsFinalStorage);
 
         createAsset(generateAssetDTO.getFinalAsset(),
                     generateAssetDTO.getDescription(),
                     generateAssetDTO.getDestinationContainer().toString(),
                     true);
 
-        String fileName = azureFinalStorageService.getMp4FileName(generateAssetDTO.getSourceContainer());
+        String fileName = (sourceIsFinalStorage ? azureFinalStorageService : azureIngestStorageService)
+            .getMp4FileName(generateAssetDTO.getSourceContainer());
         String jobName = encodeFromMp4(generateAssetDTO.getTempAsset(), generateAssetDTO.getFinalAsset(), fileName);
 
         JobState jobState = waitEncodeComplete(jobName, ENCODE_FROM_MP4_TRANSFORM);
@@ -349,44 +259,41 @@ public class MediaKind implements IMediaService {
 
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
-        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
-            log.info("No valid asset files found for capture session [{}] in container named [{}]",
-                     captureSession.getId(),
-                     captureSession.getBookingId().toString()
-            );
+        var jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
+        if (jobName == null) {
             return RecordingStatus.NO_RECORDING;
         }
+        var encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
 
-        String recordingNoHyphen = getSanitisedLiveEventId(recordingId);
-        String recordingTempAssetName = recordingNoHyphen + "_temp";
-        String recordingAssetName = recordingNoHyphen + "_output";
+        telemetryClient.trackMetric(SENT_FOR_ENCODING, 1.0);
 
-        createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
-        createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
-
-        String jobName = encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
-        JobState encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
         if (encodeFromIngestJobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
         }
 
-        String filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
-        if (filename == null) {
-            log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
+        var jobName2 = triggerProcessingStep2(recordingId);
+        if (jobName2 == null) {
             return RecordingStatus.FAILURE;
         }
-
-        String jobName2 = encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
-        JobState encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
+        var encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
         if (encodeFromMp4JobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
         }
-        if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
-            log.error("Final asset .ism file not found for asset [{}] in container [{}]",
-                      recordingAssetName, recordingId);
-            return RecordingStatus.FAILURE;
+
+        var recordingStatus = verifyFinalAssetExists(recordingId);
+        if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE) {
+            telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
         }
-        return RecordingStatus.RECORDING_AVAILABLE;
+        return recordingStatus;
+    }
+
+    @Override
+    public void stopLiveEvent(String liveEventId) {
+        try {
+            stopAndDeleteLiveEvent(liveEventId);
+        } catch (NotFoundException e) {
+            // ignore
+        }
     }
 
     @Override
@@ -447,6 +354,190 @@ public class MediaKind implements IMediaService {
             mediaKindClient.startLiveEvent(liveEventName);
         } catch (NotFoundException e) {
             throw new NotFoundException(getLiveEventNotFoundExceptionMessage(liveEventName), e);
+        }
+    }
+
+    @Override
+    public String triggerProcessingStep1(CaptureSessionDTO captureSession, String captureSessionNoHyphen,
+                                         UUID recordingId) {
+        if (!azureIngestStorageService.doesValidAssetExist(captureSession.getBookingId().toString())) {
+            log.info("No valid asset files found for capture session [{}] in container named [{}]",
+                     captureSession.getId(),
+                     captureSession.getBookingId().toString()
+            );
+            return null;
+        }
+
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        var recordingTempAssetName = recordingNoHyphen + "_temp";
+        var recordingAssetName = recordingNoHyphen + "_output";
+
+        createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
+        createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
+
+        return encodeFromIngest(captureSessionNoHyphen, recordingTempAssetName);
+    }
+
+    @Override
+    public String triggerProcessingStep2(UUID recordingId) {
+        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
+        if (filename == null) {
+            log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
+            return null;
+        }
+
+        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        var recordingTempAssetName = recordingNoHyphen + "_temp";
+        var recordingAssetName = recordingNoHyphen + "_output";
+
+        return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
+    }
+
+    @Override
+    public RecordingStatus verifyFinalAssetExists(UUID recordingId) {
+        var recordingAssetName = getSanitisedLiveEventId(recordingId) + "_output";
+
+        if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
+            log.error("Final asset .ism file not found for asset [{}] in container [{}]",
+                      recordingAssetName, recordingId);
+            return RecordingStatus.FAILURE;
+        }
+        return RecordingStatus.RECORDING_AVAILABLE;
+    }
+
+    @Override
+    public RecordingStatus hasJobCompleted(String transformName, String jobName) {
+        var job = mediaKindClient.getJob(transformName, jobName);
+        return hasJobCompleted(job) && job.getProperties().getState() == JobState.FINISHED
+            ? RecordingStatus.RECORDING_AVAILABLE
+            : (job.getProperties().getState() == JobState.ERROR || job.getProperties().getState() == JobState.CANCELED
+                ? RecordingStatus.FAILURE
+                : RecordingStatus.PROCESSING);
+    }
+
+    private boolean hasJobCompleted(MkJob job) {
+        var state = job.getProperties().getState();
+        var jobName = job.getName();
+
+        if (state.equals(JobState.ERROR)) {
+            log.error("Job [{}] failed with error [{}]",
+                      jobName,
+                      job.getProperties().getOutputs().getLast().error().message());
+        } else if (state.equals(JobState.CANCELED)) {
+            log.error("Job [{}] was cancelled", jobName);
+        }
+
+        return state.equals(JobState.FINISHED)
+            || state.equals(JobState.ERROR)
+            || state.equals(JobState.CANCELED);
+    }
+
+    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
+        log.info("Waiting for job [{}] to complete", jobName);
+        MkJob job = null;
+        do {
+            if (job != null) {
+                TimeUnit.MILLISECONDS.sleep(10000);
+            }
+            job = mediaKindClient.getJob(transformName, jobName);
+        } while (!hasJobCompleted(job));
+        return job.getProperties().getState();
+    }
+
+    private String refreshStreamingLocatorForUser(String userId, String assetName) {
+        var now = OffsetDateTime.now();
+        var streamingLocatorName = userId + "_" + assetName;
+
+        // check streaming locator is still valid
+        try {
+            var locator = mediaKindClient.getStreamingLocator(streamingLocatorName);
+            if (locator.getProperties().getEndTime().toInstant().isAfter(now.toInstant())) {
+                return streamingLocatorName;
+            }
+            mediaKindClient.deleteStreamingLocator(streamingLocatorName);
+        } catch (NotFoundException e) {
+            // ignore
+        }
+
+        mediaKindClient.createStreamingLocator(
+            streamingLocatorName,
+            MkStreamingLocator.builder()
+                .properties(
+                    MkStreamingLocatorProperties.builder()
+                        .assetName(assetName)
+                        .streamingPolicyName(STREAMING_POLICY_CLEAR_KEY)
+                        .defaultContentKeyPolicyName(userId)
+                        // set end time to midnight tonight
+                        .endTime(Timestamp.from(
+                            now.toLocalDate()
+                                .atTime(LocalTime.MAX)
+                                .atZone(now.getOffset())
+                                .toInstant()
+                        ))
+                        .build())
+                .build()
+        );
+
+        return streamingLocatorName;
+    }
+
+    private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
+        try {
+            mediaKindClient.getStreamingPolicy(MediaKind.STREAMING_POLICY_CLEAR_KEY);
+        } catch (NotFoundException e) {
+            log.info("Streaming policy {} was not found. Creating streaming policy.",
+                     MediaKind.STREAMING_POLICY_CLEAR_KEY
+            );
+            mediaKindClient.putStreamingPolicy(
+                STREAMING_POLICY_CLEAR_KEY,
+                MkStreamingPolicy.builder()
+                    .properties(
+                        MkStreamingPolicyProperties.builder()
+                            .defaultContentKeyPolicyName(defaultContentKeyPolicy)
+                            .envelopeEncryption(
+                                new EnvelopeEncryption()
+                                    .withEnabledProtocols(
+                                        new EnabledProtocols()
+                                            .withDash(true)
+                                            .withHls(true)
+                                            .withSmoothStreaming(false)
+                                            .withDownload(false))
+                                    .withContentKeys(
+                                        new StreamingPolicyContentKeys()
+                                            .withDefaultKey(new DefaultKey()
+                                                                .withLabel("ContentKey_AES")
+                                                                .withPolicyName(defaultContentKeyPolicy)))
+                            )
+                            .build()
+                    )
+                    .build()
+            );
+        }
+    }
+
+    private void createContentKeyPolicy(String userId, String key) {
+        try {
+            mediaKindClient.getContentKeyPolicy(userId);
+        } catch (NotFoundException e) {
+            mediaKindClient.putContentKeyPolicy(userId, MkContentKeyPolicy.builder()
+                .properties(MkContentKeyPolicyProperties.builder()
+                                .description("Content key policy for user: " + userId)
+                                .options(
+                                    List.of(MkContentKeyPolicyOptions.builder()
+                                                .name("key")
+                                                .restriction(
+                                                    new ContentKeyPolicyTokenRestriction()
+                                                        .withIssuer(issuer)
+                                                        .withAudience(userId)
+                                                        .withRestrictionTokenType(
+                                                            ContentKeyPolicyRestrictionTokenType.JWT)
+                                                        .withPrimaryVerificationKey(
+                                                            new ContentKeyPolicySymmetricTokenKey()
+                                                                .withKeyValue(key.getBytes())))
+                                                .configuration(new ContentKeyPolicyClearKeyConfiguration())
+                                                .build()))
+                                .build())
+                .build());
         }
     }
 
@@ -533,29 +624,6 @@ public class MediaKind implements IMediaService {
                 .build());
         log.info("Job [{}] created", jobName);
         return jobName;
-    }
-
-    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
-        log.info("Waiting for job [{}] to complete", jobName);
-        MkJob job = null;
-        do {
-            if (job != null) {
-                TimeUnit.MILLISECONDS.sleep(10000);
-            }
-            job = mediaKindClient.getJob(transformName, jobName);
-        } while (!job.getProperties().getState().equals(JobState.FINISHED)
-            && !job.getProperties().getState().equals(JobState.ERROR)
-            && !job.getProperties().getState().equals(JobState.CANCELED));
-        JobState state = job.getProperties().getState();
-        if (state.equals(JobState.ERROR)) {
-            log.error("Job [{}] failed with error [{}]",
-                      jobName,
-                      job.getProperties().getOutputs().getLast().error().message());
-        } else if (state.equals(JobState.CANCELED)) {
-            log.error("Job [{}] was cancelled", jobName);
-        }
-
-        return job.getProperties().getState();
     }
 
     private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {

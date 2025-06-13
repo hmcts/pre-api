@@ -16,6 +16,7 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
+import uk.gov.hmcts.reform.preapi.repositories.EditRequestRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
@@ -31,6 +32,7 @@ public class AuthorisationService {
     private final ParticipantRepository participantRepository;
     private final CaptureSessionRepository captureSessionRepository;
     private final RecordingRepository recordingRepository;
+    private final EditRequestRepository editRequestRepository;
 
     private static final String ROLE_LEVEL_2 = "ROLE_LEVEL_2";
 
@@ -38,12 +40,14 @@ public class AuthorisationService {
                                 CaseRepository caseRepository,
                                 ParticipantRepository participantRepository,
                                 CaptureSessionRepository captureSessionRepository,
-                                RecordingRepository recordingRepository) {
+                                RecordingRepository recordingRepository,
+                                EditRequestRepository editRequestRepository) {
         this.bookingRepository = bookingRepository;
         this.caseRepository = caseRepository;
         this.participantRepository = participantRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
+        this.editRequestRepository = editRequestRepository;
     }
 
     private boolean isBookingSharedWithUser(UserAuthentication authentication, UUID bookingId) {
@@ -100,6 +104,18 @@ public class AuthorisationService {
         Case caseEntity = caseRepository.findById(caseId).orElse(null);
         return caseEntity == null
             || authentication.getCourtId().equals(caseEntity.getCourt().getId());
+    }
+
+    public boolean hasEditRequestAccess(UserAuthentication authentication, UUID id) {
+        if (id == null || authentication.isAdmin()) {
+            return true;
+        }
+        try {
+            var request = editRequestRepository.findByIdNotLocked(id).orElse(null);
+            return request == null || hasRecordingAccess(authentication, request.getSourceRecording().getId());
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateBookingDTO dto) {
