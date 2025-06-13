@@ -124,7 +124,6 @@ public class AuthorisationService {
         return participants.stream().allMatch(p -> hasUpsertAccess(authentication, p));
     }
 
-
     public boolean hasUpsertAccess(UserAuthentication authentication, CreateCaptureSessionDTO dto) {
         return hasCaptureSessionAccess(authentication, dto.getId())
             && hasBookingAccess(authentication, dto.getBookingId());

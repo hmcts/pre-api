@@ -1,6 +1,5 @@
 package uk.gov.hmcts.reform.preapi.services;
 
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -109,11 +108,8 @@ class RecordingServiceTest {
     @DisplayName("Find a recording by it's id and return a model")
     @Test
     void findRecordingByIdSuccess() {
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId()))
+            .thenReturn(Optional.of(recordingEntity));
 
         var model = recordingService.findById(recordingEntity.getId());
         assertThat(model.getId()).isEqualTo(recordingEntity.getId());
@@ -123,21 +119,14 @@ class RecordingServiceTest {
     @DisplayName("Find a recording by it's id which is missing")
     @Test
     void findRecordingByIdMissing() {
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.empty());
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId())).thenReturn(Optional.empty());
 
         assertThrows(
             NotFoundException.class,
             () -> recordingService.findById(recordingEntity.getId())
         );
 
-        verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(recordingEntity.getId());
     }
 
     @DisplayName("Find a list of recordings and return a list of models")
@@ -385,18 +374,13 @@ class RecordingServiceTest {
     @DisplayName("Delete a recording by it's id")
     @Test
     void deleteRecordingSuccess() {
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.of(recordingEntity));
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId()))
+            .thenReturn(Optional.of(recordingEntity));
 
         recordingService.deleteById(recordingEntity.getId());
 
         verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
+            .findByIdAndDeletedAtIsNull(recordingEntity.getId());
 
         verify(recordingRepository, times(1)).saveAndFlush(recordingEntity);
     }
@@ -404,45 +388,15 @@ class RecordingServiceTest {
     @DisplayName("Delete a recording by it's id when recording doesn't exist")
     @Test
     void deleteRecordingNotFound() {
-        when(
-            recordingRepository
-                .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                    recordingEntity.getId()
-                )
-        ).thenReturn(Optional.empty());
+        when(recordingRepository.findByIdAndDeletedAtIsNull(recordingEntity.getId()))
+            .thenReturn(Optional.empty());
 
         assertThrows(
             NotFoundException.class,
             () -> recordingService.deleteById(recordingEntity.getId())
         );
 
-        verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
-        verify(recordingRepository, never()).deleteById(recordingEntity.getId());
-    }
-
-    @DisplayName("Delete a recording by it's id when recording has already been deleted")
-    @Test
-    void deleteRecordingAlreadyDeleted() {
-        Timestamp now = Timestamp.from(Instant.now());
-        recordingEntity.setDeletedAt(now);
-        when(
-            recordingRepository.findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            )
-        ).thenReturn(Optional.of(recordingEntity));
-
-        assertThrows(
-            NotFoundException.class,
-            () -> recordingService.deleteById(recordingEntity.getId())
-        );
-
-        verify(recordingRepository, times(1))
-            .findByIdAndDeletedAtIsNullAndCaptureSessionDeletedAtIsNullAndCaptureSession_Booking_DeletedAtIsNull(
-                recordingEntity.getId()
-            );
+        verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(recordingEntity.getId());
         verify(recordingRepository, never()).deleteById(recordingEntity.getId());
     }
 
