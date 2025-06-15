@@ -70,7 +70,7 @@ public class EntityCreationService {
  
         String bookingKey = cacheService.generateBookingCacheKey(
             key,
-            cleansedData.getExtractedRecordingVersionNumberStr()
+            cleansedData.getOrigVersionNumberStr()
         );
         String existingBookingId = cacheService.getHashValue(bookingKey, "id", String.class);
 
@@ -95,7 +95,7 @@ public class EntityCreationService {
         String key
     ) {
         
-        String sessionKey = key + ":version:" + cleansedData.getExtractedRecordingVersionNumberStr() + ":sessionId";
+        String sessionKey = key + ":version:" + cleansedData.getOrigVersionNumberStr() + ":sessionId";
         String existingId = cacheService.getHashValue(sessionKey, "id", String.class);
         
         var captureSessionDTO = new CreateCaptureSessionDTO();
@@ -136,13 +136,18 @@ public class EntityCreationService {
         String witness = cleansedData.getWitnessFirstName();
         String defendant = cleansedData.getDefendantLastName();
         String version = cleansedData.getExtractedRecordingVersionNumberStr();
-        String versionStr = cleansedData.getExtractedRecordingVersion();
-        boolean isCopy = versionStr != null && versionStr.toUpperCase().contains("COPY");
+        
+        String origVersion = cleansedData.getOrigVersionNumberStr();
+        
+        boolean isCopy = "COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion());
+        
+        String versionKey = cacheService.generateEntityCacheKey(
+            "recording",
+            caseRef, defendant, witness, origVersion
+        );
 
-        // Cache key setup
-        String versionKey = cacheService.generateCacheKey("recording", caseRef, defendant, witness);
         String archiveNameKey = String.format("archiveName:%s:%s", isCopy ? "copy" : "orig", version);
-        String parentKey = String.format("parentLookup:%s", version);
+        String parentKey = String.format("parentLookup:%s", cleansedData.getOrigVersionNumberStr());
 
         // Resolve filename
         String resolvedFilename = cacheService.getHashValue(versionKey, archiveNameKey, String.class);
@@ -272,8 +277,9 @@ public class EntityCreationService {
             loggingService.logDebug("Created new user and invite: %s (%s)", lowerEmail, sharedWith.getId());
         }
 
-        String shareKey = cacheService.generateCacheKey(
-            "migration", "share-booking", booking.getId().toString(), sharedWith.getId().toString()
+        String shareKey = cacheService.generateEntityCacheKey(
+            "share-booking",
+            booking.getId().toString(), sharedWith.getId().toString()
         );
 
         loggingService.logDebug("shareKey %s", shareKey);

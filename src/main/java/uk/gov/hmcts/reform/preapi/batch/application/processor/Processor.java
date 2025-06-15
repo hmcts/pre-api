@@ -131,6 +131,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             if (extractedData == null) {
                 return null;
             }
+
             // Transformation
             ProcessedRecording cleansedData = transformData(extractedData);
             if (cleansedData == null) {
@@ -223,11 +224,12 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
   
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
-        String key = cacheService.generateCacheKey(
+        String key = cacheService.generateEntityCacheKey(
             "recording",
             cleansedData.getCaseReference(),
             cleansedData.getDefendantLastName(),
-            cleansedData.getWitnessFirstName()
+            cleansedData.getWitnessFirstName(),
+            cleansedData.getOrigVersionNumberStr()
         );
 
         Map<String, Object> metadata = cacheService.getHashAll(key);
@@ -238,14 +240,14 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         boolean isOrig = versionStr != null && versionStr.toUpperCase().startsWith("ORIG");
         boolean isCopy = versionStr != null && versionStr.toUpperCase().startsWith("COPY");
 
-        String seenKey = isOrig ? "seenOrig:" + version : "seenCopy:" + version;
         String archiveKey = isOrig ? "origVersionArchiveName:" + version : "copyVersionArchiveName:" + version;
 
         if (metadata != null) {
-            boolean seen = Boolean.TRUE.equals(metadata.get(seenKey));
+            // boolean seen = Boolean.TRUE.equals(metadata.get(seenKey));
             String seenArchive = (String) metadata.get(archiveKey);
 
-            if (seen && archiveName.equalsIgnoreCase(seenArchive)) {
+            // if (seen && archiveName.equalsIgnoreCase(seenArchive)) {
+            if (archiveName.equalsIgnoreCase(seenArchive)) {
                 handleError(archiveItem, "Duplicate recording already seen", "Duplicate");
                 return true;
             }
@@ -253,9 +255,6 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             metadata = new HashMap<>();
         }
 
-        metadata.put(seenKey, true);
-        metadata.put(archiveKey, archiveName);
-        metadata.put((isOrig ? "origVersionNumber:" : "copyVersionNumber:") + version, String.valueOf(version));
         cacheService.saveHashAll(key, metadata);
 
         boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
@@ -323,17 +322,19 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private void checkAndCreateNotifyItem(ExtractedMetadata extractedData) {
         String defendantLastName = extractedData.getDefendantLastName();
         String witnessFirstName = extractedData.getWitnessFirstName();
+
         // Double-barrelled name checks
         if (defendantLastName != null && defendantLastName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled defendant",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled name",extractedData));
         }
 
         if (witnessFirstName != null && witnessFirstName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled witness",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled name",extractedData));
         }
 
         String urn = extractedData.getUrn();
         String exhibitRef = extractedData.getExhibitReference();
+
         // case ref checks
         if (urn == null || urn.isEmpty()) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",extractedData));

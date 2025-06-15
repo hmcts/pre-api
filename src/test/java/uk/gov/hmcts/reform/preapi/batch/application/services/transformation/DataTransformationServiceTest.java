@@ -340,7 +340,7 @@ public class DataTransformationServiceTest {
         when(cacheService.getHashAll(key))
             .thenReturn(Map.of());
         mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-            .thenReturn(new RecordingUtils.VersionDetails("ORIG", "1", 1, true));
+            .thenReturn(new RecordingUtils.VersionDetails("ORIG", "1","1",null, 1, true));
         when(cacheService.getHashAll(key))
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
 
@@ -364,7 +364,8 @@ public class DataTransformationServiceTest {
         assertThat(result.getFileName()).isEqualTo(data.getFileName());
         assertThat(result.getExtractedRecordingVersion()).isEqualTo("ORIG");
         assertThat(result.getExtractedRecordingVersionNumberStr()).isEqualTo("1");
-        assertThat(result.getStandardizedRecordingVersionNumberStr()).isEqualTo("1");
+        assertThat(result.getOrigVersionNumberStr()).isEqualTo("1");
+        assertThat(result.getCopyVersionNumberStr()).isEqualTo(null);
         assertThat(result.getRecordingVersionNumber()).isEqualTo(1);
         assertThat(result.isMostRecentVersion()).isTrue();
 
@@ -397,7 +398,7 @@ public class DataTransformationServiceTest {
         when(cacheService.getHashAll(key))
             .thenReturn(Map.of());
         mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-            .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", 1, true));
+            .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", "1", null, 1, true));
         when(cacheService.getHashAll(key))
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
 

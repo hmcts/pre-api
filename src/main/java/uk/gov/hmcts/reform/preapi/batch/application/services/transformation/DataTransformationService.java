@@ -70,19 +70,16 @@ public class DataTransformationService {
     protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
-
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
+        
+        String origVersionStr =
+            extracted.getRecordingVersion().startsWith("COPY")
+                ? extracted.getRecordingVersionNumber().split("\\.")[0] 
+                : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber();
 
-        String key = cacheService.generateCacheKey(
-                "recording",
-                "version",
-                extracted.getUrn(),
-                extracted.getExhibitReference(),
-                extracted.getDefendantLastName(),
-                extracted.getWitnessFirstName()
-            );
-
+        String key = cacheService.generateRecordingVersionKey(extracted, origVersionStr);
         Map<String, Object> existingData = cacheService.getHashAll(key);
+        
         RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
             extracted.getRecordingVersion(),
             extracted.getRecordingVersionNumber(),
@@ -91,6 +88,7 @@ public class DataTransformationService {
             extracted.getWitnessFirstName(),
             existingData
         );
+
 
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
@@ -114,7 +112,17 @@ public class DataTransformationService {
             
             .extractedRecordingVersion(extracted.getRecordingVersion())  // ORIG or COPY
             .extractedRecordingVersionNumberStr(extracted.getRecordingVersionNumber()) // "2"
-            .standardizedRecordingVersionNumberStr(versionDetails.extractedVersionNumberStr())  // (ORIG2 = "1")
+            .origVersionNumberStr(
+                extracted.getRecordingVersion().startsWith("COPY")
+                    ? extracted.getRecordingVersionNumber().split("\\.")[0]
+                    : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber()
+            )
+            .copyVersionNumberStr(
+                extracted.getRecordingVersion().startsWith("COPY") 
+                    && extracted.getRecordingVersionNumber().contains(".")
+                    ? extracted.getRecordingVersionNumber().split("\\.")[1]
+                    : null
+            )
             .recordingVersionNumber(versionDetails.standardisedVersionNumber())    
     
             .isMostRecentVersion(versionDetails.isMostRecent())

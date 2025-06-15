@@ -11,10 +11,12 @@ import java.util.Optional;
 public final class RecordingUtils {
 
     public record VersionDetails(
-        String extractedVersionType,               // "ORIG" or "COPY"
-        String extractedVersionNumberStr,         // e.g. "1", "2"
-        int standardisedVersionNumber,               // normalized: 1 for ORIG, 2 for COPY
-        boolean isMostRecent             // calculated from cache
+        String extractedVersionType,             // "ORIG" or "COPY"
+        String extractedVersionNumberStr,        // e.g. "1.2"
+        String origVersionNumberStr,             // always set
+        String copyVersionNumberStr,             // only for COPY recordings
+        int standardisedVersionNumber,           // 1 for ORIG, 2 for COPY
+        boolean isMostRecent
     ) {
         @Override
         public String toString() {
@@ -23,15 +25,16 @@ public final class RecordingUtils {
                 extractedVersionType, extractedVersionNumberStr, standardisedVersionNumber, isMostRecent
             );
         }
+
     }
 
     public VersionDetails processVersioning(
-        String extractedRecordingVersion,             // e.g. "ORIG", "COPY"
-        String extractedVersionNumberStr,             // extracted from suffix: e.g. "1", "2"
+        String extractedRecordingVersion,
+        String extractedVersionNumberStr,
         String urn,
         String defendant,
         String witness,
-        Map<String, Object> existingCacheData // used to determine most recent
+        Map<String, Object> existingCacheData
     ) {
         Map<String, Object> dataMap = existingCacheData != null ? existingCacheData : Collections.emptyMap();
 
@@ -40,13 +43,42 @@ public final class RecordingUtils {
             .filter(Constants.VALID_VERSION_TYPES::contains)
             .orElseThrow(() -> new IllegalArgumentException("Invalid recording version: " + extractedRecordingVersion));
 
-        int standardizedVersionNumber = getStandardizedVersionNumberFromType(extractedVersionType);
+        int recordingVersionNumber = getStandardizedVersionNumberFromType(extractedVersionType);
 
-        boolean isMostRecent = isMostRecentVersion(extractedVersionType, extractedVersionNumberStr, dataMap);
+        String origVersion = "1";
+        String copyVersion = null;
 
-        return new VersionDetails(extractedVersionType, extractedVersionNumberStr, 
-            standardizedVersionNumber, isMostRecent);
+        if ("COPY".equalsIgnoreCase(extractedRecordingVersion)) {
+            String[] parts = extractedVersionNumberStr != null 
+                ? extractedVersionNumberStr.split("\\.") : new String[]{"1"};
+            origVersion = parts.length > 0 ? parts[0] : "1";
+            copyVersion = parts.length > 1 ? parts[1] : null;
+        } else {
+            origVersion = getValidVersionNumber(extractedVersionNumberStr);
+        }
+
+        String versionKey = getCacheKeyForVersionType(extractedVersionType);
+        String cachedVersionStr = (String) dataMap.get(versionKey);
+
+        boolean isMostRecent;
+        
+        if ("COPY".equalsIgnoreCase(extractedRecordingVersion)) {
+            int comparison = compareVersionStrings(extractedVersionNumberStr, cachedVersionStr);
+            isMostRecent = comparison == 0;
+        } else {
+            isMostRecent = true;
+        }
+
+        return new VersionDetails(
+            extractedVersionType,
+            extractedVersionNumberStr,
+            origVersion,
+            copyVersion,
+            recordingVersionNumber,
+            isMostRecent
+        );
     }
+
 
     public int getStandardizedVersionNumberFromType(String recordingVersion) {
         return Constants.VALID_ORIG_TYPES.contains(recordingVersion.toUpperCase()) ? 1 : 2;
@@ -56,23 +88,13 @@ public final class RecordingUtils {
         return (versionNumStr == null || versionNumStr.trim().isEmpty()) ? "1" : versionNumStr.trim();
     }
 
-    public boolean isMostRecentVersion(
-        String versionType,
-        String currentVersionStr,
-        Map<String, Object> existingData
-    ) {
-        String key = getCacheKeyForVersionType(versionType);
-        String cachedVersionStr = (String) existingData.get(key);
-        return cachedVersionStr == null || compareVersionStrings(currentVersionStr, cachedVersionStr) >= 0;
-    }
-
     private String getCacheKeyForVersionType(String versionType) {
         return Constants.VALID_ORIG_TYPES.contains(versionType.toUpperCase())
             ? "origVersionNumber"
             : "copyVersionNumber";
     }
 
-    private int compareVersionStrings(String v1, String v2) {
+    public int compareVersionStrings(String v1, String v2) {
         if (v1 == null) {
             v1 = "0";
         }

@@ -262,19 +262,30 @@ public class MigrationGroupBuilderServiceTest {
     @Test
     @DisplayName("Should create MigratedItemGroup successfully when all dependencies are satisfied")
     void createMigratedItemGroupHappyPath() {
+        CreateCaseDTO caseDTO = new CreateCaseDTO();
+        caseDTO.setReference(CASE_REFERENCE);
+
         ProcessedRecording cleansedData = ProcessedRecording.builder()
             .caseReference(CASE_REFERENCE)
             .witnessFirstName("Example")
             .defendantLastName("Example")
+            .extractedRecordingVersion("ORIG")
+            .origVersionNumberStr("1")   
+            .recordingVersionNumber(1)
+            .extractedRecordingVersionNumberStr("1") 
             .build();
-
-        CreateCaseDTO caseDTO = new CreateCaseDTO();
-
+    
         when(caseRepository.findAll()).thenReturn(List.of());
         applicationContext.publishEvent(new ContextRefreshedEvent(applicationContext));
 
         when(entityCreationService.createCase(cleansedData)).thenReturn(caseDTO);
-        when(inMemoryCacheService.generateCacheKey(eq("booking"), any(), any())).thenReturn(BASE_KEY);
+        when(inMemoryCacheService.generateEntityCacheKey(
+            eq("booking"),
+            eq(CASE_REFERENCE),
+            eq("Example"),
+            eq("Example"),
+            eq("1")
+        )).thenReturn(BASE_KEY);
 
         CreateBookingDTO bookingDTO = new CreateBookingDTO();
         CreateCaptureSessionDTO captureSessionDTO = new CreateCaptureSessionDTO();

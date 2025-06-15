@@ -93,14 +93,14 @@ public class MigrationGroupBuilderService {
             }
         }
 
-        String participantPair = cleansedData.getDefendantLastName() + '-' + cleansedData.getWitnessFirstName();
 
-        String baseKey = cacheService.generateCacheKey(
-                "booking",
-                aCase.getReference(),
-                participantPair
-            );
-
+        String baseKey = cacheService.generateEntityCacheKey(
+            "booking",
+            aCase.getReference(),
+            cleansedData.getDefendantLastName(),
+            cleansedData.getWitnessFirstName(),
+            cleansedData.getOrigVersionNumberStr()
+        );
         CreateBookingDTO booking = processBooking(baseKey, cleansedData, aCase);
         CreateCaptureSessionDTO captureSession = processCaptureSession(baseKey, cleansedData, booking);
         CreateRecordingDTO recording = processRecording(baseKey, cleansedData, captureSession);

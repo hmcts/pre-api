@@ -41,7 +41,8 @@ public class ProcessedRecording {
     // Extracted versioning info (from filename, e.g. ORIG2)
     private String extractedRecordingVersion;               // Raw extracted version label (e.g. "ORIG", "COPY")
     private String extractedRecordingVersionNumberStr;      // Raw version number string from filename (e.g. "2")
-    private String standardizedRecordingVersionNumberStr;   // Normalised to a known internal format ("1" for ORIG)
+    private String origVersionNumberStr; // e.g. "2" if ORIG2, null otherwise
+    private String copyVersionNumberStr; // e.g. "1.2" if COPY1.2, null otherwise
     private int recordingVersionNumber;                     // Parsed version number (1 = ORIG, 2 = COPY)
     
     private boolean isMostRecentVersion; // (used to skip older recordings)
@@ -64,6 +65,12 @@ public class ProcessedRecording {
         return Timestamp.from(finishedAt);
     }
 
+    public String getFullVersionString() {
+        return recordingVersionNumber == 1
+            ? origVersionNumberStr
+            : origVersionNumberStr + "." + copyVersionNumberStr;
+    }
+
     @Override
     public String toString() {
         return new StringJoiner(", ", ProcessedRecording.class.getSimpleName() + "{", "}")
@@ -78,7 +85,8 @@ public class ProcessedRecording {
             .add("witnessFirstName='" + witnessFirstName + "'")
             .add("extractedRecordingVersion='" + extractedRecordingVersion + "'")
             .add("extractedRecordingVersionNumberStr=" + extractedRecordingVersionNumberStr)
-            .add("standardizedRecordingVersionNumberStr=" + standardizedRecordingVersionNumberStr)
+            .add("origVersionNumberStr=" + origVersionNumberStr)
+            .add("copyVersionNumberStr=" + copyVersionNumberStr)
             .add("recordingVersionNumber=" + recordingVersionNumber)
             .add("duration=" + duration)
             .add("isMostRecentVersion=" + isMostRecentVersion)

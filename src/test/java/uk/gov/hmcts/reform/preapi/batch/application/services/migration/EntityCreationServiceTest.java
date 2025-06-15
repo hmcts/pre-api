@@ -213,12 +213,14 @@ public class EntityCreationServiceTest {
             valueCaptor.capture()
         );
 
-        String expectedKey = cacheService.generateCacheKey(
+        String expectedKey = cacheService.generateEntityCacheKey(
             "recording",
             processedRecording.getCaseReference(),
             processedRecording.getDefendantLastName(),
-            processedRecording.getWitnessFirstName()
+            processedRecording.getWitnessFirstName(),
+            processedRecording.getExtractedRecordingVersionNumberStr()
         );
+
         String expectedField = "parentLookup:null"; 
 
         assertThat(keyCaptor.getValue()).isEqualTo(expectedKey);
@@ -241,13 +243,15 @@ public class EntityCreationServiceTest {
             .caseReference("key")
             .defendantLastName("Smith")
             .witnessFirstName("John")
+            .origVersionNumberStr("2")
             .build();
 
         CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
 
-        String expectedKey = cacheService.generateCacheKey(
-            "recording", "key", "Smith", "John"
+        String expectedKey = cacheService.generateEntityCacheKey(
+            "recording", "key", "Smith", "John","2"
         );
+
         String expectedField = "parentLookup:2";
 
         when(cacheService.getHashValue(expectedKey, expectedField, String.class)).thenReturn(metadata);

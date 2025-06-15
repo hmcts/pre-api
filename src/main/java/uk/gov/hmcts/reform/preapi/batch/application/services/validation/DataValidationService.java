@@ -52,14 +52,16 @@ public class DataValidationService {
         }
 
         if (cleansedData.getRecordingVersionNumber() > 1) {
-            String recordingCacheKey = cacheService.generateCacheKey(
+
+            String recordingCacheKey = cacheService.generateEntityCacheKey(
                 "recording",
                 cleansedData.getCaseReference(),
                 cleansedData.getDefendantLastName(),
-                cleansedData.getWitnessFirstName()
+                cleansedData.getWitnessFirstName(),
+                cleansedData.getOrigVersionNumberStr()
             );
 
-            String parentArchiveKey = "archiveName:orig:" + cleansedData.getRecordingVersionNumber();
+            String parentArchiveKey = "archiveName:orig:" + cleansedData.getOrigVersionNumberStr();
             String parentOrig = cacheService.getHashValue(recordingCacheKey, parentArchiveKey, String.class);
 
             if (parentOrig == null) {

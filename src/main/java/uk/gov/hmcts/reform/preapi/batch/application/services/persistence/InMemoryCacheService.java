@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.ReportCsvWriter;
 import uk.gov.hmcts.reform.preapi.batch.config.Constants;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
@@ -163,8 +164,8 @@ public class InMemoryCacheService {
         }
     }
 
-    public  String generateCacheKey(String namespace, String type, String... identifiers) {
-        return "vf:" + namespace + ":" + type + ":" + String.join("-", normalizeAll(identifiers));
+    public String generateEntityCacheKey(String entityType, String... parts) {
+        return String.format("vf:%s:%s", entityType, String.join("-", normalizeAll(parts)));
     }
 
     public String generateBookingCacheKey(String baseKey, String versionStr) {
@@ -175,6 +176,15 @@ public class InMemoryCacheService {
         return baseKey + ":version:" + versionStr + ":captureSessionId";
     }
 
+    public String generateRecordingVersionKey(ExtractedMetadata extracted, String origVersion) {
+        return generateEntityCacheKey(
+            "recording",
+            extracted.createCaseReference(),
+            extracted.getDefendantLastName(),
+            extracted.getWitnessFirstName(),
+            origVersion
+        );
+    }
 
     private static List<String> normalizeAll(String[] parts) {
         return Arrays.stream(parts)
