@@ -18,7 +18,8 @@ import uk.gov.hmcts.reform.preapi.batch.config.steps.CoreStepsConfig;
 public class FetchXmlJobConfig {
 
     // public static final String CONTAINER_NAME = "pre-vodafone-spike";
-    public static final String CONTAINER_NAME = "pre-vodafone-test";
+    public static final String CONTAINER_NAME = "piotr";
+    public static final String XML_PREFIX = "NFS-copy"; 
     public static final String FULL_PATH = "src/main/resources/batch";
 
     private final JobRepository jobRepository;
@@ -62,7 +63,8 @@ public class FetchXmlJobConfig {
                     ? "Archive_List_updated"
                     : "Archive_List_initial";
 
-                xmlProcessingService.extractAndReportArchiveMetadata(CONTAINER_NAME, FULL_PATH, outputFileName);
+                xmlProcessingService.extractAndReportArchiveMetadata(
+                    CONTAINER_NAME, XML_PREFIX, FULL_PATH, outputFileName);
                 return RepeatStatus.FINISHED;
             }, transactionManager)
             .build();

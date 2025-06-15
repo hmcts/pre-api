@@ -47,12 +47,13 @@ public class FetchXMLTest {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
 
-        var accessDto = mock(AccessDTO.class);
-        var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+        var baseAppAccessDTO = new BaseAppAccessDTO();
+        baseAppAccessDTO.setId(UUID.randomUUID());
+        
+        var accessDto = new AccessDTO();
+        accessDto.setAppAccess(Set.of(baseAppAccessDTO));
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
-        when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
 
         var userAuth = mock(UserAuthentication.class);
         when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
@@ -61,6 +62,7 @@ public class FetchXMLTest {
         loggingService = mock(LoggingService.class);
         fetchXmlJob = mock(Job.class);
     }
+
 
     @DisplayName("Test Fetch XML")
     @Test
