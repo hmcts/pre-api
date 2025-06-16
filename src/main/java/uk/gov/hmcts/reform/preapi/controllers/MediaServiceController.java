@@ -137,7 +137,7 @@ public class MediaServiceController extends PreApiController {
     }
 
     @GetMapping("/vod")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3')")
     public ResponseEntity<PlaybackDTO> getVod(
         @RequestParam UUID recordingId,
         @RequestParam(required = false) String mediaService

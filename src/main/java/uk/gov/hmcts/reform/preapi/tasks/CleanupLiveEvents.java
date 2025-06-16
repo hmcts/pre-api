@@ -6,18 +6,25 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
+import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
+import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.CaptureSessionService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 import uk.gov.hmcts.reform.preapi.util.Batcher;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -30,6 +37,7 @@ import static uk.gov.hmcts.reform.preapi.media.MediaResourcesHelper.getSanitised
 public class CleanupLiveEvents extends RobotUserTask {
     private final MediaServiceBroker mediaServiceBroker;
     private final CaptureSessionService captureSessionService;
+    private final BookingService bookingService;
 
     private final String platformEnv;
 
@@ -42,6 +50,7 @@ public class CleanupLiveEvents extends RobotUserTask {
     @Autowired
     CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
                       CaptureSessionService captureSessionService,
+                      BookingService bookingService,
                       UserService userService,
                       UserAuthenticationService userAuthenticationService,
                       @Value("${cron-user-email}") String cronUserEmail,
@@ -52,6 +61,7 @@ public class CleanupLiveEvents extends RobotUserTask {
         super(userService, userAuthenticationService, cronUserEmail);
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
+        this.bookingService = bookingService;
         this.platformEnv = platformEnv;
         this.batchSize = batchSize;
         this.batchCooldownTime = batchCooldownTime;
@@ -118,7 +128,48 @@ public class CleanupLiveEvents extends RobotUserTask {
             throw new RuntimeException(e);
         }
 
+        // Delete live events that remain
+        mediaService.getLiveEvents().stream()
+            .map(LiveEventDTO::getName)
+            .peek(liveEvent -> log.info("Cleaning up stopped live event: {}", liveEvent))
+            .forEach(mediaService::stopLiveEvent);
+
+        // Handle past bookings that are unused
+        handlePastBookings();
+
         log.info("Completed CleanupLiveEvents task");
+    }
+
+    private void handlePastBookings() {
+        bookingService.findAllPastBookings()
+            .forEach(booking -> {
+                CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
+                captureSession.setId(UUID.randomUUID());
+                captureSession.setBookingId(booking.getId());
+                captureSession.setOrigin(RecordingOrigin.PRE);
+                captureSession.setStatus(RecordingStatus.NO_RECORDING);
+                log.info("Found old booking: {}. Creating NO_RECORDING capture session: {}",
+                         booking.getId(), captureSession.getId());
+                captureSessionService.upsert(captureSession);
+            });
+
+        UUID cronUserId = ((UserAuthentication) SecurityContextHolder.getContext().getAuthentication()).getUserId();
+        captureSessionService.findAllPastIncompleteCaptureSessions()
+            .forEach(captureSession -> {
+                CreateCaptureSessionDTO dto = new CreateCaptureSessionDTO();
+                dto.setId(captureSession.getId());
+                dto.setBookingId(captureSession.getBookingId());
+                dto.setOrigin(captureSession.getOrigin());
+                dto.setIngestAddress(captureSession.getIngestAddress());
+                dto.setLiveOutputUrl(captureSession.getLiveOutputUrl());
+                dto.setStartedAt(captureSession.getStartedAt());
+                dto.setStartedByUserId(captureSession.getStartedByUserId());
+                dto.setFinishedAt(Timestamp.from(Instant.now()));
+                dto.setFinishedByUserId(cronUserId);
+                dto.setStatus(RecordingStatus.NO_RECORDING);
+                log.info("Found old capture session: {}. Updating to NO_RECORDING.", dto.getId());
+                captureSessionService.upsert(dto);
+            });
     }
 
     private void processLiveEvents() {
