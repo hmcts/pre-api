@@ -453,17 +453,17 @@ class TestingSupportController {
     @PostMapping(value = "/create-existing-v1-recording/{recordingId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RecordingDTO> createExistingRecording(@PathVariable UUID recordingId) {
         // done first so that we can get 404 if recording doesn't actually exist
-        var mp4FileName = azureFinalStorageService.getMp4FileName(recordingId.toString());
+        String mp4FileName = azureFinalStorageService.getMp4FileName(recordingId.toString());
 
-        var court = createTestCourt();
+        Court court = createTestCourt();
 
-        var region = new Region();
+        Region region = new Region();
         region.setName("Foo Region");
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
+        Room room = new Room();
         room.setName("Foo Room");
         room.setCourts(Set.of(court));
         roomRepository.save(room);
@@ -472,19 +472,19 @@ class TestingSupportController {
         court.setRooms(Set.of(room));
         courtRepository.save(court);
 
-        var caseEntity = new Case();
+        Case caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
         caseEntity.setReference("4567890123");
         caseEntity.setCourt(court);
         caseRepository.save(caseEntity);
 
-        var participant1 = new Participant();
+        Participant participant1 = new Participant();
         participant1.setId(UUID.randomUUID());
         participant1.setParticipantType(ParticipantType.WITNESS);
         participant1.setCaseId(caseEntity);
         participant1.setFirstName("John");
         participant1.setLastName("Smith");
-        var participant2 = new Participant();
+        Participant participant2 = new Participant();
         participant2.setId(UUID.randomUUID());
         participant2.setParticipantType(ParticipantType.DEFENDANT);
         participant2.setCaseId(caseEntity);
@@ -492,14 +492,14 @@ class TestingSupportController {
         participant2.setLastName("Doe");
         participantRepository.saveAll(Set.of(participant1, participant2));
 
-        var booking = new Booking();
+        Booking booking = new Booking();
         booking.setId(UUID.randomUUID());
         booking.setCaseId(caseEntity);
         booking.setParticipants(Set.of(participant1, participant2));
         booking.setScheduledFor(Timestamp.from(OffsetDateTime.now().plusWeeks(1).toInstant()));
         bookingRepository.save(booking);
 
-        var captureSession = new CaptureSession();
+        CaptureSession captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(RecordingOrigin.PRE);
@@ -508,7 +508,7 @@ class TestingSupportController {
         captureSession.setFinishedAt(Timestamp.from(Instant.now()));
         captureSessionRepository.save(captureSession);
 
-        var recording = new Recording();
+        Recording recording = new Recording();
         recording.setId(recordingId);
         recording.setVersion(1);
         recording.setCaptureSession(captureSession);
@@ -562,14 +562,5 @@ class TestingSupportController {
         roleRepository.save(role);
 
         return role;
-    }
-
-    public enum AuthLevel {
-        NONE,
-        SUPER_USER,
-        LEVEL_1,
-        LEVEL_2,
-        LEVEL_3,
-        LEVEL_4
     }
 }

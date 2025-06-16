@@ -8,14 +8,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
+import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.flow.StoppedLiveEventsNotificationDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
+import uk.gov.hmcts.reform.preapi.exception.LiveEventCleanupException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.IMediaService;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -51,10 +54,11 @@ public class CleanupLiveEvents extends RobotUserTask {
     private final int batchCooldownTime;
     private final int jobPollingInterval;
 
-    private final ConcurrentHashMap<UUID, CleanupTask> liveEventCleanupMap = new ConcurrentHashMap<>();
+    private final Map<UUID, CleanupTask> liveEventCleanupMap = new ConcurrentHashMap<>();
 
     @Autowired
-    CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
+    @SuppressWarnings("PMD.ExcessiveParameterList")
+    public CleanupLiveEvents(MediaServiceBroker mediaServiceBroker,
                       CaptureSessionService captureSessionService,
                       BookingService bookingService,
                       UserService userService,
@@ -79,20 +83,20 @@ public class CleanupLiveEvents extends RobotUserTask {
     }
 
     @Override
-    public void run() throws RuntimeException {
+    public void run() {
         signInRobotUser();
         log.info("Running CleanupLiveEvents task");
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
 
         // Find all Live events currently running
-        var liveEvents = mediaService.getLiveEvents()
+        List<LiveEventDTO> liveEvents = mediaService.getLiveEvents()
             .stream()
             .filter(liveEventDTO -> liveEventDTO.getResourceState().equals(LiveEventResourceState.RUNNING.toString()))
             .toList();
 
         // handle invalid named live events (no capture session)
-        var invalidNamedEvents = liveEvents.stream()
+        List<LiveEventDTO> invalidNamedEvents = liveEvents.stream()
             .filter(event -> {
                 try {
                     captureSessionService.findByLiveEventId(event.getName());
@@ -122,10 +126,10 @@ public class CleanupLiveEvents extends RobotUserTask {
             });
 
         // Thread 1 - Cleanup Live Events in batches
-        var threadCleanupLiveEvents = new Thread(() -> cleanupLiveEventsInBatches(liveEvents));
+        Thread threadCleanupLiveEvents = new Thread(() -> cleanupLiveEventsInBatches(liveEvents));
 
         // Thread 2 - Trigger and await processing of live event assets
-        var threadProcessLiveEventAssets = new Thread(this::processLiveEvents);
+        Thread threadProcessLiveEventAssets = new Thread(this::processLiveEvents);
 
         threadCleanupLiveEvents.start();
         threadProcessLiveEventAssets.start();
@@ -135,7 +139,7 @@ public class CleanupLiveEvents extends RobotUserTask {
         } catch (InterruptedException e) {
             log.error("Clean up live event thread interrupted", e);
             Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
+            throw new LiveEventCleanupException("Thread interrupted during live event cleanup", e);
         }
 
         // Notify
@@ -192,7 +196,7 @@ public class CleanupLiveEvents extends RobotUserTask {
 
     private void processLiveEvents() {
         signInRobotUser();
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
 
         do {
             try {
@@ -239,11 +243,11 @@ public class CleanupLiveEvents extends RobotUserTask {
     }
 
     private void onCaptureSessionReady(Map.Entry<UUID, CleanupTask> task, IMediaService mediaService) {
-        var captureSessionId = task.getKey();
-        var currentTask = task.getValue();
+        UUID captureSessionId = task.getKey();
+        CleanupTask currentTask = task.getValue();
 
-        var captureSession = captureSessionService.findById(captureSessionId);
-        var jobName = mediaService.triggerProcessingStep1(
+        CaptureSessionDTO captureSession = captureSessionService.findById(captureSessionId);
+        String jobName = mediaService.triggerProcessingStep1(
             captureSession,
             getSanitisedLiveEventId(captureSessionId),
             currentTask.getRecordingId()
@@ -264,13 +268,13 @@ public class CleanupLiveEvents extends RobotUserTask {
     }
 
     private void onCaptureSessionProcessingStep1(Map.Entry<UUID, CleanupTask> task, IMediaService mediaService) {
-        var captureSessionId = task.getKey();
-        var currentTask = task.getValue();
+        UUID captureSessionId = task.getKey();
+        CleanupTask currentTask = task.getValue();
 
         switch (mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_INGEST_TRANSFORM, currentTask.getCurrentJobName())) {
             case RECORDING_AVAILABLE -> {
                 // trigger processing step 2
-                var jobName = mediaService.triggerProcessingStep2(currentTask.getRecordingId());
+                String jobName = mediaService.triggerProcessingStep2(currentTask.getRecordingId());
 
                 if (jobName == null) {
                     log.error("Failed to trigger processing step 2 for capture session {}", captureSessionId);
@@ -303,8 +307,8 @@ public class CleanupLiveEvents extends RobotUserTask {
     }
 
     private void onCaptureSessionProcessingStep2(Map.Entry<UUID, CleanupTask> task, IMediaService mediaService) {
-        var captureSessionId = task.getKey();
-        var currentTask = task.getValue();
+        UUID captureSessionId = task.getKey();
+        CleanupTask currentTask = task.getValue();
 
         switch (mediaService.hasJobCompleted(MediaKind.ENCODE_FROM_MP4_TRANSFORM, currentTask.getCurrentJobName())) {
             case RECORDING_AVAILABLE -> {
@@ -350,7 +354,7 @@ public class CleanupLiveEvents extends RobotUserTask {
             liveEvents,
             batchSize,
             liveEventDTO -> {
-                var liveEventName = liveEventDTO.getName();
+                String liveEventName = liveEventDTO.getName();
                 log.info("Cleaning up live event {}", liveEventName);
                 cleanupLiveEvent(mediaServiceBroker.getEnabledMediaService(), liveEventName);
             },
@@ -366,7 +370,7 @@ public class CleanupLiveEvents extends RobotUserTask {
 
     private void cleanupLiveEvent(IMediaService mediaService, String liveEventName) {
         try {
-            var captureSession = captureSessionService.findByLiveEventId(liveEventName);
+            CaptureSessionDTO captureSession = captureSessionService.findByLiveEventId(liveEventName);
             log.info("Capture session {} is processing", captureSession.getId());
             captureSession = captureSessionService.stopCaptureSession(
                 captureSession.getId(),
@@ -374,7 +378,7 @@ public class CleanupLiveEvents extends RobotUserTask {
                 null
             );
             mediaService.cleanupStoppedLiveEvent(liveEventName);
-            var currentTask = liveEventCleanupMap.get(captureSession.getId());
+            CleanupTask currentTask = liveEventCleanupMap.get(captureSession.getId());
             currentTask.setStatus(CleanupTaskStatus.READY);
         } catch (NotFoundException e) {
             if (platformEnv.equals("Production")) {
@@ -385,7 +389,7 @@ public class CleanupLiveEvents extends RobotUserTask {
             try {
                 mediaService.cleanupStoppedLiveEvent(liveEventName);
             } catch (Exception ex) {
-                // Do nothing
+                log.error("Error stopping live event {}", liveEventName, ex);
             }
         } catch (Exception e) {
             log.error("Error stopping live event {}", liveEventName, e);
@@ -394,11 +398,11 @@ public class CleanupLiveEvents extends RobotUserTask {
 
     private void notify(CaptureSessionDTO captureSession) {
         try {
-            var booking = bookingService.findById(captureSession.getBookingId());
+            BookingDTO booking = bookingService.findById(captureSession.getBookingId());
 
-            var shares = booking.getShares();
+            List<ShareBookingDTO> shares = booking.getShares();
             // @todo simplify this after 4.3 goes live S28-3692
-            var toNotify = shares.stream()
+            List<StoppedLiveEventsNotificationDTO> toNotify = shares.stream()
                 .map(shareBooking -> userService.findById(shareBooking.getSharedWithUser().getId()))
                 .map(u -> StoppedLiveEventsNotificationDTO
                     .builder()

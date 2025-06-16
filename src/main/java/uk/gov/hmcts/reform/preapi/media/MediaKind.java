@@ -259,11 +259,12 @@ public class MediaKind implements IMediaService {
 
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
-        var jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
+        String jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
         if (jobName == null) {
             return RecordingStatus.NO_RECORDING;
         }
-        var encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
+
+        JobState encodeFromIngestJobState = waitEncodeComplete(jobName, ENCODE_FROM_INGEST_TRANSFORM);
 
         telemetryClient.trackMetric(SENT_FOR_ENCODING, 1.0);
 
@@ -271,16 +272,17 @@ public class MediaKind implements IMediaService {
             return RecordingStatus.FAILURE;
         }
 
-        var jobName2 = triggerProcessingStep2(recordingId);
+        String jobName2 = triggerProcessingStep2(recordingId);
         if (jobName2 == null) {
             return RecordingStatus.FAILURE;
         }
-        var encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
+
+        JobState encodeFromMp4JobState = waitEncodeComplete(jobName2, ENCODE_FROM_MP4_TRANSFORM);
         if (encodeFromMp4JobState != JobState.FINISHED) {
             return RecordingStatus.FAILURE;
         }
 
-        var recordingStatus = verifyFinalAssetExists(recordingId);
+        RecordingStatus recordingStatus = verifyFinalAssetExists(recordingId);
         if (recordingStatus == RecordingStatus.RECORDING_AVAILABLE) {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
         }
@@ -292,7 +294,7 @@ public class MediaKind implements IMediaService {
         try {
             stopAndDeleteLiveEvent(liveEventId);
         } catch (NotFoundException e) {
-            // ignore
+            log.info("Live event {} not found to be stopped", liveEventId);
         }
     }
 
@@ -368,9 +370,9 @@ public class MediaKind implements IMediaService {
             return null;
         }
 
-        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
-        var recordingTempAssetName = recordingNoHyphen + "_temp";
-        var recordingAssetName = recordingNoHyphen + "_output";
+        String recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        String recordingTempAssetName = recordingNoHyphen + "_temp";
+        String recordingAssetName = recordingNoHyphen + "_output";
 
         createAsset(recordingTempAssetName, captureSession, recordingId.toString(), false);
         createAsset(recordingAssetName, captureSession, recordingId.toString(), true);
@@ -380,22 +382,22 @@ public class MediaKind implements IMediaService {
 
     @Override
     public String triggerProcessingStep2(UUID recordingId) {
-        var filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
+        String filename = azureIngestStorageService.tryGetMp4FileName(recordingId.toString());
         if (filename == null) {
             log.error("Output file from {} transform not found", ENCODE_FROM_INGEST_TRANSFORM);
             return null;
         }
 
-        var recordingNoHyphen = getSanitisedLiveEventId(recordingId);
-        var recordingTempAssetName = recordingNoHyphen + "_temp";
-        var recordingAssetName = recordingNoHyphen + "_output";
+        String recordingNoHyphen = getSanitisedLiveEventId(recordingId);
+        String recordingTempAssetName = recordingNoHyphen + "_temp";
+        String recordingAssetName = recordingNoHyphen + "_output";
 
         return encodeFromMp4(recordingTempAssetName, recordingAssetName, filename);
     }
 
     @Override
     public RecordingStatus verifyFinalAssetExists(UUID recordingId) {
-        var recordingAssetName = getSanitisedLiveEventId(recordingId) + "_output";
+        String recordingAssetName = getSanitisedLiveEventId(recordingId) + "_output";
 
         if (!azureFinalStorageService.doesIsmFileExist(recordingId.toString())) {
             log.error("Final asset .ism file not found for asset [{}] in container [{}]",
@@ -407,17 +409,17 @@ public class MediaKind implements IMediaService {
 
     @Override
     public RecordingStatus hasJobCompleted(String transformName, String jobName) {
-        var job = mediaKindClient.getJob(transformName, jobName);
+        MkJob job = mediaKindClient.getJob(transformName, jobName);
         return hasJobCompleted(job) && job.getProperties().getState() == JobState.FINISHED
             ? RecordingStatus.RECORDING_AVAILABLE
-            : (job.getProperties().getState() == JobState.ERROR || job.getProperties().getState() == JobState.CANCELED
+            : job.getProperties().getState() == JobState.ERROR || job.getProperties().getState() == JobState.CANCELED
                 ? RecordingStatus.FAILURE
-                : RecordingStatus.PROCESSING);
+                : RecordingStatus.PROCESSING;
     }
 
     private boolean hasJobCompleted(MkJob job) {
-        var state = job.getProperties().getState();
-        var jobName = job.getName();
+        JobState state = job.getProperties().getState();
+        String jobName = job.getName();
 
         if (state.equals(JobState.ERROR)) {
             log.error("Job [{}] failed with error [{}]",
@@ -445,18 +447,18 @@ public class MediaKind implements IMediaService {
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
-        var now = OffsetDateTime.now();
-        var streamingLocatorName = userId + "_" + assetName;
+        OffsetDateTime now = OffsetDateTime.now();
+        String streamingLocatorName = userId + "_" + assetName;
 
         // check streaming locator is still valid
         try {
-            var locator = mediaKindClient.getStreamingLocator(streamingLocatorName);
+            MkStreamingLocator locator = mediaKindClient.getStreamingLocator(streamingLocatorName);
             if (locator.getProperties().getEndTime().toInstant().isAfter(now.toInstant())) {
                 return streamingLocatorName;
             }
             mediaKindClient.deleteStreamingLocator(streamingLocatorName);
         } catch (NotFoundException e) {
-            // ignore
+            log.info("Streaming locator [{}] does not exist yet", streamingLocatorName);
         }
 
         mediaKindClient.createStreamingLocator(
@@ -483,10 +485,10 @@ public class MediaKind implements IMediaService {
 
     private void assertStreamingPolicyExists(String defaultContentKeyPolicy) {
         try {
-            mediaKindClient.getStreamingPolicy(MediaKind.STREAMING_POLICY_CLEAR_KEY);
+            mediaKindClient.getStreamingPolicy(STREAMING_POLICY_CLEAR_KEY);
         } catch (NotFoundException e) {
             log.info("Streaming policy {} was not found. Creating streaming policy.",
-                     MediaKind.STREAMING_POLICY_CLEAR_KEY
+                     STREAMING_POLICY_CLEAR_KEY
             );
             mediaKindClient.putStreamingPolicy(
                 STREAMING_POLICY_CLEAR_KEY,

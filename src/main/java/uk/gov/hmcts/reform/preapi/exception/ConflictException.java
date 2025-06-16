@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.exception;
 
-public class ConflictException extends RuntimeException {
+import java.io.Serial;
 
+public class ConflictException extends RuntimeException {
+    @Serial
     private static final long serialVersionUID = 6579941826346533854L;
 
     public ConflictException(String message) {

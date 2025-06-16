@@ -3,7 +3,6 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
@@ -108,7 +107,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
     }
 
     private Map<String, RecordingDTO> getRecordingsFromDate(LocalDate yesterday) {
-        var search = new SearchRecordings();
+        SearchRecordings search = new SearchRecordings();
         search.setStartedAt(Timestamp.valueOf(yesterday.atStartOfDay()));
         search.setIncludeDeleted(false);
 
@@ -141,7 +140,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         recordingsFromDate = new HashMap<>(getRecordingsFromDate(yesterday));
 
         for (String captureSessionId : captureSessionIds) {
-            var recording = recordingsFromDate.get(captureSessionId);
+            RecordingDTO recording = recordingsFromDate.get(captureSessionId);
             if (recording == null) {
                 unhappyRecordings.add(format(
                     "Missing recording for capture session %s: not in database",
@@ -158,7 +157,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
                     captureSessionId
                 ));
             } else {
-                var recordingFromFinalSA = azureFinalStorageService.getRecordingDuration(recording.getId());
+                Duration recordingFromFinalSA = azureFinalStorageService.getRecordingDuration(recording.getId());
                 if (recordingFromFinalSA == null) {
                     unhappyRecordings.add(format(
                         "Missing recording for capture session %s: not in final SA",
@@ -176,6 +175,7 @@ public class CheckForMissingRecordings extends RobotUserTask {
         return emptyList();
     }
 
+    @SuppressWarnings("PMD.AvoidInstantiatingObjectsInLoops")
     private static List<SlackMessageSection> getSlackMessageSections(Map<RecordingStatus,
         List<String>> captureSessions) {
         List<SlackMessageSection> sections = new ArrayList<>();

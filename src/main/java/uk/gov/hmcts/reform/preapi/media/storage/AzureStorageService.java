@@ -1,14 +1,16 @@
 package uk.gov.hmcts.reform.preapi.media.storage;
 
 import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.Optional;
 
 @Slf4j
@@ -83,11 +85,11 @@ public abstract class AzureStorageService {
     }
 
     public boolean uploadBlob(String localFileName, String containerName, String uploadFileName) {
-        try {
-            var file = new File(localFileName);
-            var containerClient = client.createBlobContainerIfNotExists(containerName);
-            var blobClient = containerClient.getBlobClient(uploadFileName);
-            blobClient.upload(new FileInputStream(file), file.length(), true);
+        File file = new File(localFileName);
+        try (InputStream inputStream = Files.newInputStream(file.toPath())) {
+            BlobContainerClient containerClient = client.createBlobContainerIfNotExists(containerName);
+            BlobClient blobClient = containerClient.getBlobClient(uploadFileName);
+            blobClient.upload(inputStream, file.length(), true);
             log.info("Successfully uploaded to ingest storage: {}/{}", containerName, uploadFileName);
             return true;
         } catch (IOException e) {

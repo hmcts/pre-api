@@ -90,7 +90,7 @@ public class StartLiveEvents extends RobotUserTask {
     private UUID initCaptureSessionForBooking(UUID bookingId) {
         log.info("Creating capture session for booking {}", bookingId);
 
-        var dto = new CreateCaptureSessionDTO();
+        CreateCaptureSessionDTO dto = new CreateCaptureSessionDTO();
         dto.setId(UUID.randomUUID());
         dto.setBookingId(bookingId);
         dto.setOrigin(RecordingOrigin.PRE);
@@ -109,8 +109,8 @@ public class StartLiveEvents extends RobotUserTask {
     private void startLiveEvent(UUID captureSessionId) {
         log.info("Starting live event for capture session {}", captureSessionId);
 
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
-        var dto = captureSessionService.findById(captureSessionId);
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
+        CaptureSessionDTO dto = captureSessionService.findById(captureSessionId);
 
         try {
             mediaService.startLiveEvent(dto);
@@ -125,9 +125,9 @@ public class StartLiveEvents extends RobotUserTask {
 
     private void awaitIngestAddresses(List<UUID> captureSessionIds) {
         log.info("Awaiting ingest addresses for capture sessions");
-        var mediaService = mediaServiceBroker.getEnabledMediaService();
+        IMediaService mediaService = mediaServiceBroker.getEnabledMediaService();
 
-        var startingCaptureSessions = captureSessionIds
+        List<UUID> startingCaptureSessions = captureSessionIds
             .stream()
             .filter(id -> captureSessionService.findById(id).getStatus().equals(RecordingStatus.INITIALISING))
             .toList();
@@ -135,10 +135,10 @@ public class StartLiveEvents extends RobotUserTask {
         try {
             do {
                 Thread.sleep(pollInterval);
-                var liveEvents = mediaService.getLiveEvents();
+                List<LiveEventDTO> liveEvents = mediaService.getLiveEvents();
                 startingCaptureSessions = startingCaptureSessions.stream()
                     .filter(id -> {
-                        var result = tryGetIngestAddress(id, liveEvents);
+                        boolean result = tryGetIngestAddress(id, liveEvents);
                         if (result) {
                             log.info("Ingest address obtained for capture session {}", id);
                         }
@@ -146,14 +146,11 @@ public class StartLiveEvents extends RobotUserTask {
                     })
                     .toList();
             } while (!startingCaptureSessions.isEmpty());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            handleIngestAddressException(startingCaptureSessions, e);
         } catch (Exception e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            startingCaptureSessions.forEach(id -> {
-                log.error("Failed to await ingest address for capture session {}", id, e);
-                captureSessionService.startCaptureSession(id, RecordingStatus.FAILURE, null);
-            });
+            handleIngestAddressException(startingCaptureSessions, e);
         }
     }
 
@@ -173,5 +170,12 @@ public class StartLiveEvents extends RobotUserTask {
         return liveEvent != null && liveEvent.getResourceState().equals("Running") && liveEvent.getInputRtmp() != null
             ? liveEvent.getInputRtmp()
             : null;
+    }
+
+    private void handleIngestAddressException(List<UUID> startingCaptureSessions, Exception ex) {
+        startingCaptureSessions.forEach(id -> {
+            log.error("Failed to await ingest address for capture session {}", id, ex);
+            captureSessionService.startCaptureSession(id, RecordingStatus.FAILURE, null);
+        });
     }
 }

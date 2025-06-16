@@ -8,7 +8,9 @@ import uk.gov.hmcts.reform.preapi.component.util.CommandRunner;
 import uk.gov.hmcts.reform.preapi.exception.CommandExecutionException;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 @Slf4j
 @Component
@@ -16,8 +18,8 @@ public class CommandExecutor {
     public boolean execute(CommandLine commandLine) {
         log.info("Executing command: {}", commandLine);
         try {
-            @Cleanup("shutdown") var executor = Executors.newSingleThreadExecutor();
-            var future = executor.submit(new CommandRunner(commandLine));
+            @Cleanup("shutdown") ExecutorService executor = Executors.newSingleThreadExecutor();
+            Future<String> future = executor.submit(new CommandRunner(commandLine));
             future.get();
             return true;
         } catch (InterruptedException e) {

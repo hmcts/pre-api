@@ -21,6 +21,7 @@ import uk.gov.hmcts.reform.preapi.dto.EditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.dto.RecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
+import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetResponseDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -51,6 +52,7 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class EditRequestService {
 
     private final EditRequestRepository editRequestRepository;
@@ -116,7 +118,7 @@ public class EditRequestService {
     @Transactional(noRollbackFor = {Exception.class, RuntimeException.class}, propagation = Propagation.REQUIRES_NEW)
     public RecordingDTO performEdit(EditRequest request) throws InterruptedException {
         // ffmpeg
-        var newRecordingId = UUID.randomUUID();
+        UUID newRecordingId = UUID.randomUUID();
         String filename;
         try {
             // apply ffmpeg
@@ -135,14 +137,14 @@ public class EditRequestService {
         editRequestRepository.saveAndFlush(request);
 
         // create db entry for recording
-        var createDto = createRecordingDto(newRecordingId, filename, request);
+        CreateRecordingDTO createDto = createRecordingDto(newRecordingId, filename, request);
         recordingService.upsert(createDto);
         return recordingService.findById(newRecordingId);
     }
 
     @Transactional
     public @NotNull CreateRecordingDTO createRecordingDto(UUID newRecordingId, String filename, EditRequest request) {
-        var createDto = new CreateRecordingDTO();
+        CreateRecordingDTO createDto = new CreateRecordingDTO();
         createDto.setId(newRecordingId);
         createDto.setParentRecordingId(request.getSourceRecording().getId());
         createDto.setEditInstructions(request.getEditInstruction());
@@ -155,17 +157,17 @@ public class EditRequestService {
 
     @Transactional
     public String generateAsset(UUID newRecordingId, EditRequest request) throws InterruptedException {
-        var sourceContainer = newRecordingId + "-input";
+        String sourceContainer = newRecordingId + "-input";
         if (!azureIngestStorageService.doesContainerExist(sourceContainer)) {
             throw new NotFoundException("Source Container (" + sourceContainer + ") does not exist");
         }
         // throws 404 when doesn't exist
         azureIngestStorageService.getMp4FileName(sourceContainer);
-        var assetName = newRecordingId.toString().replace("-", "");
+        String assetName = newRecordingId.toString().replace("-", "");
 
         azureFinalStorageService.createContainerIfNotExists(newRecordingId.toString());
 
-        var generateAssetDto = GenerateAssetDTO.builder()
+        GenerateAssetDTO generateAssetDto = GenerateAssetDTO.builder()
             .sourceContainer(sourceContainer)
             .destinationContainer(newRecordingId)
             .tempAsset(assetName)
@@ -174,7 +176,8 @@ public class EditRequestService {
             .description("Edit of " + request.getSourceRecording().getId().toString().replace("-", ""))
             .build();
 
-        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDto, false);
+        GenerateAssetResponseDTO result = mediaServiceBroker.getEnabledMediaService()
+            .importAsset(generateAssetDto, false);
 
         if (!result.getJobStatus().equals(JobState.FINISHED.toString())) {
             throw new UnknownServerException("Failed to generate asset for edit request: "

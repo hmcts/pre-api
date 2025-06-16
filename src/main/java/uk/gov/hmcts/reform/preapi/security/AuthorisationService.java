@@ -11,6 +11,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
@@ -26,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@SuppressWarnings("PMD.CouplingBetweenObjects")
 public class AuthorisationService {
     private final BookingRepository bookingRepository;
     private final CaseRepository caseRepository;
@@ -111,7 +113,7 @@ public class AuthorisationService {
             return true;
         }
         try {
-            var request = editRequestRepository.findByIdNotLocked(id).orElse(null);
+            EditRequest request = editRequestRepository.findByIdNotLocked(id).orElse(null);
             return request == null || hasRecordingAccess(authentication, request.getSourceRecording().getId());
         } catch (Exception e) {
             return false;

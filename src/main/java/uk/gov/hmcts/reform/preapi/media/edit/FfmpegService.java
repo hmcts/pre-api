@@ -6,6 +6,7 @@ import org.apache.commons.exec.CommandLine;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.component.CommandExecutor;
+import uk.gov.hmcts.reform.preapi.dto.FfmpegEditInstructionDTO;
 import uk.gov.hmcts.reform.preapi.entities.EditRequest;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
@@ -31,13 +32,15 @@ public class FfmpegService implements IEditingService {
         this.commandExecutor = commandExecutor;
     }
 
+    @Override
     public void performEdit(UUID newRecordingId, EditRequest request) {
-        var inputFileName = request.getSourceRecording().getFilename();
-        var outputFileName = newRecordingId + ".mp4";
+        String inputFileName = request.getSourceRecording().getFilename();
         if (inputFileName == null) {
             throw new NotFoundException("No file name provided");
         }
-        var command = generateCommand(request, inputFileName, outputFileName);
+
+        String outputFileName = newRecordingId + ".mp4";
+        CommandLine command = generateCommand(request, inputFileName, outputFileName);
 
         // download from final storage
         if (!azureFinalStorageService
@@ -69,7 +72,7 @@ public class FfmpegService implements IEditingService {
     }
 
     private void deleteFile(String fileName) {
-        var file = new File(fileName);
+        File file = new File(fileName);
         try {
             if (file.delete()) {
                 log.info("Successfully deleted file: {}", fileName);
@@ -82,28 +85,30 @@ public class FfmpegService implements IEditingService {
     }
 
     protected CommandLine generateCommand(EditRequest editRequest, String inputFileName, String outputFileName) {
-        var instructions = fromJson(editRequest.getEditInstruction());
+        EditInstructions instructions = fromJson(editRequest.getEditInstruction());
 
         if (instructions.getFfmpegInstructions() == null
             || instructions.getFfmpegInstructions().isEmpty()) {
             throw new UnknownServerException("Malformed edit instructions");
         }
 
-        var command = new CommandLine("ffmpeg");
+        CommandLine command = new CommandLine("ffmpeg");
         command.addArgument("-y")
             .addArgument("-i").addArgument(inputFileName);
 
-        var filterComplex = new StringBuilder();
-        var concatCommand = new StringBuilder();
+        StringBuilder filterComplex = new StringBuilder();
+        StringBuilder concatCommand = new StringBuilder(instructions.getFfmpegInstructions().size() * 8 + 40);
         for (int i = 0; i < instructions.getFfmpegInstructions().size(); i++) {
-            var segment = i + 1;
-            var instruction =  instructions.getFfmpegInstructions().get(i);
+            int segment = i + 1;
+            FfmpegEditInstructionDTO instruction =  instructions.getFfmpegInstructions().get(i);
 
-            // video trim
-            filterComplex.append(String.format("[0:v]trim=start=%d:end=%d,setpts=PTS-STARTPTS[v%d];",
-                                               instruction.getStart(), instruction.getEnd(), segment));
-            // audio trim
-            filterComplex.append(String.format("[0:a]atrim=start=%d:end=%d,asetpts=PTS-STARTPTS[a%d];",
+
+            filterComplex
+                // video trim
+                .append(String.format("[0:v]trim=start=%d:end=%d,setpts=PTS-STARTPTS[v%d];",
+                                               instruction.getStart(), instruction.getEnd(), segment))
+                // audio trim
+                .append(String.format("[0:a]atrim=start=%d:end=%d,asetpts=PTS-STARTPTS[a%d];",
                                                instruction.getStart(), instruction.getEnd(), segment));
             // adding segments to final part of command
             concatCommand.append(String.format("[v%d][a%d]", segment, segment));
@@ -128,7 +133,7 @@ public class FfmpegService implements IEditingService {
             return new ObjectMapper().readValue(editInstructions, EditInstructions.class);
         } catch (Exception e) {
             log.error("Error reading edit instructions: {} with message: {}", editInstructions, e.getMessage());
-            throw new UnknownServerException("Unable to read edit instructions");
+            throw new UnknownServerException("Unable to read edit instructions", e);
         }
     }
 }
