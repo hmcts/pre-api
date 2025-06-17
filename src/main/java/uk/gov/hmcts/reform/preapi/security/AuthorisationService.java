@@ -10,6 +10,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.repositories.BookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
@@ -190,8 +191,8 @@ public class AuthorisationService {
 
     public boolean canUpdateCaseState(UserAuthentication authentication, CreateCaseDTO dto) {
         return caseRepository.findById(dto.getId())
-            .map(c -> c.getState() == dto.getState())
-            .orElse(false)
+            .map(c -> (dto.getState() == null && c.getState() == CaseState.OPEN) || c.getState() == dto.getState())
+            .orElse(true)
             || authentication.isAdmin()
             || authentication.hasRole("ROLE_LEVEL_2");
     }

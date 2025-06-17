@@ -132,13 +132,12 @@ public class CaptureSessionService {
     }
 
     @Transactional
-    public List<CaptureSession> findAvailableSessionsByDate(LocalDate date) {
+    public List<CaptureSession> findSessionsByDate(LocalDate date) {
         Timestamp fromTime = Timestamp.valueOf(date.atStartOfDay());
         Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
 
         return captureSessionRepository
-            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE,
-                                                                     fromTime, toTime);
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNull(fromTime, toTime);
     }
 
     @Transactional
@@ -322,6 +321,13 @@ public class CaptureSessionService {
         captureSession.setStatus(status);
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
+    }
+
+    @Transactional
+    public List<CaptureSessionDTO> findAllPastIncompleteCaptureSessions() {
+        return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
+            .map(CaptureSessionDTO::new)
+            .toList();
     }
 
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {

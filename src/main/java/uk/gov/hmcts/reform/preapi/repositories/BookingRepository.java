@@ -110,4 +110,14 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     );
 
     List<Booking> findAllByCaseIdAndDeletedAtIsNull(Case caseId);
+
+    @Query(
+        """
+        SELECT b FROM Booking b
+        WHERE b.scheduledFor < :scheduledBefore
+        AND b.captureSessions IS EMPTY
+        AND b.deletedAt IS NULL
+        """
+    )
+    List<Booking> findAllPastUnusedBookings(@Param("scheduledBefore") Timestamp scheduledBefore);
 }
