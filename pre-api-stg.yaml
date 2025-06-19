@@ -100,9 +100,11 @@ definitions:
     properties:
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -110,6 +112,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -262,6 +265,12 @@ definitions:
       modified_at:
         description: CaseModifiedAt
         format: date-time
+        type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
         type: string
       participants:
         description: CaseParticipants
@@ -563,6 +572,12 @@ definitions:
         description: CreateCaseId
         format: uuid
         type: string
+      origin:
+        description: CreateCaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
       participants:
         description: CaseParticipants
         items:
@@ -638,12 +653,15 @@ definitions:
     properties:
       email:
         description: InviteEmail
+        minLength: 1
         type: string
       first_name:
         description: InviteFirstName
+        minLength: 1
         type: string
       last_name:
         description: InviteLastName
+        minLength: 1
         type: string
       organisation:
         description: InviteOrganisation
@@ -777,9 +795,11 @@ definitions:
         uniqueItems: true
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -787,6 +807,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -979,6 +1000,12 @@ definitions:
         description: CaseModifiedAt
         format: date-time
         type: string
+      origin:
+        description: CaseOrigin
+        enum:
+          - PRE
+          - VODAFONE
+        type: string
       participants:
         description: CaseParticipants
         items:
@@ -1159,9 +1186,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1169,6 +1198,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1466,17 +1496,6 @@ definitions:
           - DEFENDANT
         type: string
     type: object
-  PermissionDTO:
-    description: PermissionDTO
-    properties:
-      id:
-        description: PermissionId
-        format: uuid
-        type: string
-      name:
-        description: PermissionName
-        type: string
-    type: object
   PlaybackDTO:
     description: PlaybackDTO
     properties:
@@ -1685,12 +1704,6 @@ definitions:
       name:
         description: RoleName
         type: string
-      permissions:
-        description: RolePermissions
-        items:
-          $ref: '#/definitions/PermissionDTO'
-        type: array
-        uniqueItems: true
     type: object
   RoomDTO:
     description: RoomDTO
@@ -1820,9 +1833,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1830,6 +1845,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
