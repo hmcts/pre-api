@@ -1,12 +1,20 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -27,11 +35,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class BookingServiceIT extends IntegrationTestBase {
-
     @Autowired
     private BookingService bookingService;
 
@@ -495,5 +503,262 @@ class BookingServiceIT extends IntegrationTestBase {
         ).getMessage();
 
         assertEquals(message, "Not found: Booking: " + randomId);
+    }
+
+    @Test
+    @Transactional
+    void testFindAllPastBookings() {
+        var mockAuth = mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
+        entityManager.persist(court);
+        when(mockAuth.getCourtId()).thenReturn(court.getId());
+
+        var region = HelperFactory.createRegion("Foo Region", Set.of(court));
+        entityManager.persist(region);
+
+        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
+        entityManager.persist(room);
+
+        var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
+        entityManager.persist(caseEntity);
+
+        var participant1 = HelperFactory.createParticipant(caseEntity,
+                                                           ParticipantType.WITNESS,
+                                                           "John",
+                                                           "Smith",
+                                                           null);
+        var participant2 = HelperFactory.createParticipant(caseEntity,
+                                                           ParticipantType.DEFENDANT,
+                                                           "Jane",
+                                                           "Doe",
+                                                           null);
+        entityManager.persist(participant1);
+        entityManager.persist(participant2);
+
+
+        var booking1 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2024-06-28 12:00:00"),
+                                                   null,
+                                                   Set.of(participant1, participant2));
+        var booking2 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2024-06-28 12:00:00"),
+                                                   null,
+                                                   Set.of(participant1, participant2));
+
+        var captureSession = HelperFactory.createCaptureSession(
+            booking2,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+
+        entityManager.persist(booking1);
+        entityManager.persist(booking2);
+        entityManager.persist(captureSession);
+        entityManager.flush();
+
+        List<BookingDTO> bookings = bookingService.findAllPastBookings();
+
+        assertThat(bookings.size()).isEqualTo(1);
+        assertThat(bookings.getFirst().getId()).isEqualTo(booking1.getId());
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=false")
+    class WithMigratedDataDisabled {
+        @Autowired
+        private BookingService bookingService;
+
+        @Autowired
+        private EntityManager entityManager;
+
+        @AfterEach
+        void tearDown() {
+            try {
+                entityManager.clear();
+                entityManager.flush();
+            } catch (Exception ignored) {
+                // ignored
+            }
+        }
+
+        @Test
+        @Transactional
+        void searchBookingsEnableMigratedDataToggleNonSuperUser() {
+            mockNonAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            Booking booking1 = HelperFactory.createBooking(aCase1, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking1);
+            Booking booking2 = HelperFactory.createBooking(aCase2, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking2);
+            entityManager.flush();
+
+            Page<BookingDTO> results = bookingService.searchBy(
+                null,
+                null,
+                null,
+                Optional.empty(),
+                null,
+                null,
+                null,
+                null,
+                null
+            );
+
+            assertThat(results.getTotalElements()).isEqualTo(1);
+            BookingDTO foundBooking = results.getContent().getFirst();
+            assertThat(foundBooking.getId()).isEqualTo(booking1.getId());
+            assertThat(foundBooking.getCaseDTO().getOrigin()).isEqualTo(RecordingOrigin.PRE);
+        }
+
+        @Test
+        @Transactional
+        void searchBookingsEnableMigratedDataToggleSuperUser() {
+            mockAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            Booking booking1 = HelperFactory.createBooking(aCase1, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking1);
+            Booking booking2 = HelperFactory.createBooking(aCase2, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking2);
+            entityManager.flush();
+
+            Page<BookingDTO> results = bookingService.searchBy(
+                null,
+                null,
+                null,
+                Optional.empty(),
+                null,
+                null,
+                null,
+                null,
+                null
+            );
+
+            assertThat(results.getTotalElements()).isEqualTo(2);
+            assertThat(results.getTotalElements()).isEqualTo(2);
+            assertTrue(results.getContent().stream()
+                           .map(BookingDTO::getId)
+                           .anyMatch(id -> id.equals(booking1.getId())));
+            assertTrue(results.getContent().stream()
+                           .map(BookingDTO::getId)
+                           .anyMatch(id -> id.equals(booking2.getId())));
+        }
+    }
+
+    @Nested
+    @TestPropertySource(properties = "migration.enableMigratedData=true")
+    class WithMigratedDataEnabled {
+        @Autowired
+        private BookingService bookingService;
+
+        @Autowired
+        private EntityManager entityManager;
+
+        @AfterEach
+        void tearDown() {
+            try {
+                entityManager.clear();
+                entityManager.flush();
+            } catch (Exception ignored) {
+                // ignored
+            }
+        }
+
+        @Test
+        @Transactional
+        void searchBookingsEnableMigratedDataToggleNonSuperUser() {
+            mockNonAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            Booking booking1 = HelperFactory.createBooking(aCase1, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking1);
+            Booking booking2 = HelperFactory.createBooking(aCase2, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking2);
+            entityManager.flush();
+
+            Page<BookingDTO> results = bookingService.searchBy(
+                null,
+                null,
+                null,
+                Optional.empty(),
+                null,
+                null,
+                null,
+                null,
+                null
+            );
+
+            assertThat(results.getTotalElements()).isEqualTo(2);
+            assertTrue(results.getContent().stream()
+                           .map(BookingDTO::getId)
+                           .anyMatch(id -> id.equals(booking1.getId())));
+            assertTrue(results.getContent().stream()
+                           .map(BookingDTO::getId)
+                           .anyMatch(id -> id.equals(booking2.getId())));
+        }
+
+        @Test
+        @Transactional
+        void searchBookingsEnableMigratedDataToggleSuperUser() {
+            mockAdminUser();
+
+            Court court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+            entityManager.persist(court);
+            Case aCase1 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase1.setOrigin(RecordingOrigin.PRE);
+            entityManager.persist(aCase1);
+            Case aCase2 = HelperFactory.createCase(court, "CASE12345", true, null);
+            aCase2.setOrigin(RecordingOrigin.VODAFONE);
+            entityManager.persist(aCase2);
+            Booking booking1 = HelperFactory.createBooking(aCase1, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking1);
+            Booking booking2 = HelperFactory.createBooking(aCase2, Timestamp.from(Instant.now()), null, null);
+            entityManager.persist(booking2);
+            entityManager.flush();
+
+            Page<BookingDTO> results = bookingService.searchBy(
+                null,
+                null,
+                null,
+                Optional.empty(),
+                null,
+                null,
+                null,
+                null,
+                null
+            );
+
+            assertThat(results.getTotalElements()).isEqualTo(2);
+        }
     }
 }

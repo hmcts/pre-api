@@ -56,7 +56,6 @@ import uk.gov.hmcts.reform.preapi.repositories.RoomRepository;
 import uk.gov.hmcts.reform.preapi.repositories.TermsAndConditionsRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserTermsAcceptedRepository;
-import uk.gov.hmcts.reform.preapi.services.EditRequestService;
 import uk.gov.hmcts.reform.preapi.services.ScheduledTaskRunner;
 
 import java.sql.Timestamp;
@@ -90,7 +89,6 @@ class TestingSupportController {
     private final UserTermsAcceptedRepository userTermsAcceptedRepository;
     private final AuditRepository auditRepository;
     private final ScheduledTaskRunner scheduledTaskRunner;
-    private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
@@ -109,7 +107,6 @@ class TestingSupportController {
                              final UserTermsAcceptedRepository userTermsAcceptedRepository,
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
-                             final EditRequestService editRequestService,
                              final AzureFinalStorageService azureFinalStorageService) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
@@ -126,7 +123,6 @@ class TestingSupportController {
         this.userTermsAcceptedRepository = userTermsAcceptedRepository;
         this.auditRepository = auditRepository;
         this.scheduledTaskRunner = scheduledTaskRunner;
-        this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
     }
 
@@ -224,19 +220,19 @@ class TestingSupportController {
         var court = createTestCourt();
 
         var region = new Region();
-        region.setName("Region " + RandomStringUtils.randomAlphabetic(5));
+        region.setName("Region " + RandomStringUtils.secure().nextAlphabetic(5));
         region.setCourts(Set.of(court));
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
         var room = new Room();
-        room.setName("Room " + RandomStringUtils.randomAlphabetic(5));
+        room.setName("Room " + RandomStringUtils.secure().nextAlphabetic(5));
         room.setCourts(Set.of(court));
         roomRepository.save(room);
 
         var caseEntity = new Case();
         caseEntity.setId(UUID.randomUUID());
-        caseEntity.setReference(RandomStringUtils.randomAlphabetic(5));
+        caseEntity.setReference(RandomStringUtils.secure().nextAlphabetic(5));
         caseEntity.setCourt(court);
         caseEntity.setOrigin(RecordingOrigin.PRE);
         caseRepository.save(caseEntity);
@@ -266,14 +262,14 @@ class TestingSupportController {
         var finishUser = new User();
         finishUser.setId(UUID.randomUUID());
         finishUser.setEmail("finishuser@justice.local");
-        finishUser.setPhone(RandomStringUtils.randomNumeric(11));
+        finishUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
         finishUser.setOrganisation("Gov Org");
         finishUser.setFirstName("Finish");
         finishUser.setLastName("User");
         var startUser = new User();
         startUser.setId(UUID.randomUUID());
         startUser.setEmail("startuser@justice.local");
-        startUser.setPhone(RandomStringUtils.randomNumeric(11));
+        startUser.setPhone(RandomStringUtils.secure().nextNumeric(11));
         startUser.setOrganisation("Gov Org");
         startUser.setFirstName("Start");
         startUser.setLastName("User");
@@ -339,18 +335,17 @@ class TestingSupportController {
 
     @PostMapping("/create-authenticated-user/{role}")
     public ResponseEntity<Map<String, String>> createAuthenticatedUser(@PathVariable TestingSupportRoles role) {
-        String roleName;
-        switch (role) {
-            case SUPER_USER -> roleName = "Super User";
-            case LEVEL_1 -> roleName = "Level 1";
-            case LEVEL_2 -> roleName = "Level 2";
-            case LEVEL_3 -> roleName = "Level 3";
-            case LEVEL_4 -> roleName = "Level 4";
-            default -> throw new IllegalArgumentException("Invalid role");
-        }
+        String roleName = switch (role) {
+            case SUPER_USER ->  "Super User";
+            case LEVEL_1 -> "Level 1";
+            case LEVEL_2 -> "Level 2";
+            case LEVEL_3 -> "Level 3";
+            case LEVEL_4 -> "Level 4";
+        };
         var r = roleRepository.findFirstByName(roleName)
             .orElse(createRole(roleName));
         var appAccess = createAppAccess(r);
+
         return ResponseEntity.ok(Map.of(
             "accessId", appAccess.getId().toString(),
             "courtId", appAccess.getCourt().getId().toString()
@@ -541,18 +536,6 @@ class TestingSupportController {
         return court;
     }
 
-    private AppAccess createAppAccess(String role) {
-        var access = new AppAccess();
-        access.setUser(createUser());
-        access.setCourt(createTestCourt());
-        access.setRole(createRole(role));
-        access.setActive(true);
-        access.setDefaultCourt(true);
-        appAccessRepository.save(access);
-
-        return access;
-    }
-
     private AppAccess createAppAccess(Role role) {
         var access = new AppAccess();
         access.setUser(createUser());
@@ -585,14 +568,5 @@ class TestingSupportController {
         roleRepository.save(role);
 
         return role;
-    }
-
-    public enum AuthLevel {
-        NONE,
-        SUPER_USER,
-        LEVEL_1,
-        LEVEL_2,
-        LEVEL_3,
-        LEVEL_4
     }
 }

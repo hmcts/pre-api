@@ -106,7 +106,7 @@ public class CaptureSessionController extends PreApiController {
     public HttpEntity<PagedModel<EntityModel<CaptureSessionDTO>>> searchCaptureSessions(
         @Parameter(hidden = true) @ModelAttribute SearchCaptureSessions params,
         @Parameter(hidden = true) Pageable pageable,
-        @Parameter(hidden = true)PagedResourcesAssembler<CaptureSessionDTO> assembler
+        @Parameter(hidden = true) PagedResourcesAssembler<CaptureSessionDTO> assembler
     ) {
         var resultPage = captureSessionService.searchBy(
             params.getCaseReference(),

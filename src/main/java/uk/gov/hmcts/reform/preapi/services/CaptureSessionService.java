@@ -1,7 +1,9 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +52,9 @@ public class CaptureSessionService {
     private final AzureFinalStorageService azureFinalStorageService;
     private final AuditService auditService;
 
+    @Setter
+    private boolean enableMigratedData;
+
     @Autowired
     public CaptureSessionService(RecordingService recordingService,
                                  CaptureSessionRepository captureSessionRepository,
@@ -57,7 +62,8 @@ public class CaptureSessionService {
                                  UserRepository userRepository,
                                  @Lazy BookingService bookingService,
                                  AzureFinalStorageService azureFinalStorageService,
-                                 AuditService auditService) {
+                                 AuditService auditService,
+                                 @Value("${migration.enableMigratedData:false}") boolean enableMigratedData) {
         this.recordingService = recordingService;
         this.captureSessionRepository = captureSessionRepository;
         this.bookingRepository = bookingRepository;
@@ -65,6 +71,7 @@ public class CaptureSessionService {
         this.bookingService = bookingService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.auditService = auditService;
+        this.enableMigratedData = enableMigratedData;
     }
 
     @Transactional
@@ -118,19 +125,19 @@ public class CaptureSessionService {
                 until,
                 authorisedBookings,
                 authorisedCourt,
+                enableMigratedData || auth.hasRole("ROLE_SUPER_USER"),
                 pageable
             )
             .map(CaptureSessionDTO::new);
     }
 
     @Transactional
-    public List<CaptureSession> findAvailableSessionsByDate(LocalDate date) {
+    public List<CaptureSession> findSessionsByDate(LocalDate date) {
         Timestamp fromTime = Timestamp.valueOf(date.atStartOfDay());
         Timestamp toTime = Timestamp.valueOf(date.atStartOfDay().plusDays(1));
 
         return captureSessionRepository
-            .findAllByStatusAndFinishedAtIsBetweenAndDeletedAtIsNull(RecordingStatus.RECORDING_AVAILABLE,
-                                                                     fromTime, toTime);
+            .findAllByStartedAtIsBetweenAndDeletedAtIsNull(fromTime, toTime);
     }
 
     @Transactional
@@ -314,6 +321,13 @@ public class CaptureSessionService {
         captureSession.setStatus(status);
         captureSessionRepository.save(captureSession);
         return new CaptureSessionDTO(captureSession);
+    }
+
+    @Transactional
+    public List<CaptureSessionDTO> findAllPastIncompleteCaptureSessions() {
+        return captureSessionRepository.findAllPastIncompleteCaptureSessions(Timestamp.from(Instant.now())).stream()
+            .map(CaptureSessionDTO::new)
+            .toList();
     }
 
     private CreateAuditDTO createStopAudit(UUID captureSessionId) {
