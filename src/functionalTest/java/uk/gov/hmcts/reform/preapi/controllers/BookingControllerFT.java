@@ -10,6 +10,7 @@ import org.springframework.test.context.TestPropertySource;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
@@ -811,6 +812,45 @@ class BookingControllerFT extends FunctionalTestBase {
             var getBookings = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
             assertResponseCode(getBookings, 200);
             assertThat(getBookings.body().jsonPath().getInt("page.totalElements")).isEqualTo(0);
+        }
+
+        @ParameterizedTest
+        @EnumSource(value = TestingSupportRoles.class,
+            names = {"SUPER_USER", "LEVEL_3"},
+            mode = EnumSource.Mode.EXCLUDE)
+        @DisplayName("Should not hide bookings with VODAFONE capture session in non super user requests")
+        void findAllBookingsHideVodafoneCasesForNonSuperUserWhereCaptureSessionIsVf(TestingSupportRoles role)
+            throws JsonProcessingException {
+            var caseDto = createCase();
+            var participants = Set.of(
+                createParticipant(ParticipantType.WITNESS),
+                createParticipant(ParticipantType.DEFENDANT)
+            );
+            caseDto.setOrigin(RecordingOrigin.PRE);
+            caseDto.setCourtId(authenticatedUserIds.get(role).courtId());
+
+            caseDto.setParticipants(participants);
+            var booking = createBooking(caseDto.getId(), participants);
+
+            var putCase = putCase(caseDto);
+            assertResponseCode(putCase, 201);
+
+            var putBooking = putBooking(booking);
+            assertResponseCode(putBooking, 201);
+
+            // should show when booking doesn't have a vf capture session
+            var getBookings1 = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings1, 200);
+            assertThat(getBookings1.body().jsonPath().getInt("page.totalElements")).isEqualTo(1);
+
+            CreateCaptureSessionDTO captureSession = createCaptureSession(booking.getId());
+            captureSession.setOrigin(RecordingOrigin.VODAFONE);
+            var putCaptureSession = putCaptureSession(captureSession);
+            assertResponseCode(putCaptureSession, 201);
+
+            var getBookings2 = doGetRequest(BOOKINGS_ENDPOINT + "?caseReference=" + caseDto.getReference(), role);
+            assertResponseCode(getBookings2, 200);
+            assertThat(getBookings2.body().jsonPath().getInt("page.totalElements")).isEqualTo(0);
         }
 
         @Test
