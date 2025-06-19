@@ -9,6 +9,7 @@ import uk.gov.hmcts.reform.preapi.dto.CreateEditRequestDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateRecordingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -86,8 +87,14 @@ public class AuthorisationService {
         if (captureSessionId == null || (enableMigratedData && authentication.isAdmin())) {
             return true;
         }
-        var entity = captureSessionRepository.findById(captureSessionId).orElse(null);
-        return entity == null || hasBookingAccess(authentication, entity.getBooking().getId());
+        CaptureSession entity = captureSessionRepository.findById(captureSessionId).orElse(null);
+        if  (entity == null) {
+            return true;
+        }
+
+        return (!enableMigratedData && entity.getOrigin().equals(RecordingOrigin.VODAFONE))
+            ? canViewVodafoneData(authentication) && hasBookingAccess(authentication, captureSessionId)
+            : hasBookingAccess(authentication, entity.getBooking().getId());
     }
 
     public boolean hasRecordingAccess(UserAuthentication authentication, UUID recordingId) {
@@ -119,7 +126,7 @@ public class AuthorisationService {
 
         boolean isSameCourt = authentication.getCourtId().equals(caseEntity.getCourt().getId());
         return !enableMigratedData && caseEntity.getOrigin() == RecordingOrigin.VODAFONE
-            ? canViewVodafoneData(authentication) && isSameCourt
+            ? canViewVodafoneData(authentication)
             : authentication.isAdmin()
                 || authentication.isPortalUser()
                 || isSameCourt;

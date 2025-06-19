@@ -317,6 +317,7 @@ public class AuthorisationServiceTest {
         var bookingId = UUID.randomUUID();
         var captureSession = new CaptureSession();
         captureSession.setId(captureSessionId);
+        captureSession.setOrigin(RecordingOrigin.PRE);
         var booking = new Booking();
         booking.setId(bookingId);
         captureSession.setBooking(booking);
@@ -334,6 +335,7 @@ public class AuthorisationServiceTest {
         var captureSessionId = UUID.randomUUID();
         var captureSession = new CaptureSession();
         captureSession.setId(captureSessionId);
+        captureSession.setOrigin(RecordingOrigin.PRE);
         var bookingId = UUID.randomUUID();
         var booking = new Booking();
         booking.setId(bookingId);
@@ -407,6 +409,7 @@ public class AuthorisationServiceTest {
         aCase.setOrigin(RecordingOrigin.PRE);
         booking.setCaseId(aCase);
         captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
         recording.setCaptureSession(captureSession);
 
         when(authenticationUser.isAdmin()).thenReturn(false);
@@ -440,8 +443,8 @@ public class AuthorisationServiceTest {
         assertTrue(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
 
-    @DisplayName("Should not grant upsert access when capture session access is not granted")
     @Test
+    @DisplayName("Should not grant upsert access when capture session access is not granted")
     void hasUpsertAccessRecordingDTOAccessNotGranted() {
         var dto = new CreateRecordingDTO();
         dto.setParentRecordingId(null);
@@ -458,6 +461,7 @@ public class AuthorisationServiceTest {
         var captureSession = new CaptureSession();
         captureSession.setId(dto.getCaptureSessionId());
         captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
 
         when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
         when(bookingRepository.existsById(booking.getId())).thenReturn(true);
@@ -487,11 +491,11 @@ public class AuthorisationServiceTest {
         var captureSession = new CaptureSession();
         captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
+        captureSession.setOrigin(RecordingOrigin.PRE);
 
         var parentRecording = new Recording();
         parentRecording.setId(dto.getParentRecordingId());
         parentRecording.setCaptureSession(captureSession);
-
 
         when(captureSessionRepository.findById(dto.getCaptureSessionId())).thenReturn(Optional.empty());
         when(captureSessionRepository.findById(captureSession.getId())).thenReturn(Optional.of(captureSession));
@@ -501,7 +505,6 @@ public class AuthorisationServiceTest {
         when(authenticationUser.isAppUser()).thenReturn(true);
         when(authenticationUser.getCourtId()).thenReturn(UUID.randomUUID());
         when(authenticationUser.isPortalUser()).thenReturn(false);
-
 
         assertFalse(authorisationService.hasUpsertAccess(authenticationUser, dto));
     }
@@ -523,7 +526,6 @@ public class AuthorisationServiceTest {
             participant2,
             participant3
         );
-
 
         assertTrue(authorisationService.hasUpsertAccess(authenticationUser, participants));
     }

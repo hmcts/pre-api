@@ -105,15 +105,13 @@ public class FunctionalTestBase {
         if (authenticatedUserIds == null) {
             authenticatedUserIds = new HashMap<>();
             Arrays.stream(TestingSupportRoles.values())
-                .forEach(role -> {
-                    authenticatedUserIds.put(
-                        role,
-                        doPostRequest("/testing-support/create-authenticated-user/" + role, null)
-                            .body()
-                            .jsonPath()
-                            .getObject("", AuthUserDetails.class)
-                    );
-                });
+                .forEach(role -> authenticatedUserIds.put(
+                    role,
+                    doPostRequest("/testing-support/create-authenticated-user/" + role, null)
+                        .body()
+                        .jsonPath()
+                        .getObject("", AuthUserDetails.class)
+                ));
         }
     }
 
@@ -354,8 +352,7 @@ public class FunctionalTestBase {
         create.setTest(dto.isTest());
         create.setState(dto.getState());
         create.setClosedAt(dto.getClosedAt());
-        create.setParticipants(dto
-                                   .getParticipants()
+        create.setParticipants(dto.getParticipants()
                                    .stream()
                                    .map(this::convertDtoToCreateDto)
                                    .collect(Collectors.toSet()));
@@ -435,6 +432,24 @@ public class FunctionalTestBase {
         var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
         assertResponseCode(response, 200);
         return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
+    }
+
+    protected CreateCaptureSessionDTO setupCaptureSessionWithOrigins(RecordingOrigin caseOrigin,
+                                                                     RecordingOrigin captureSessionOrigin,
+                                                                     UUID courtId) throws JsonProcessingException {
+        CreateCaseDTO dto = createCase();
+        dto.setOrigin(caseOrigin);
+        dto.setCourtId(courtId);
+        Response putCase = putCase(dto);
+        assertResponseCode(putCase, 201);
+
+        CreateBookingDTO bookingDTO = createBooking(dto.getId(), dto.getParticipants());
+        Response putBooking = putBooking(bookingDTO);
+        assertResponseCode(putBooking, 201);
+
+        CreateCaptureSessionDTO createCaptureSessionDTO = createCaptureSession(bookingDTO.getId());
+        createCaptureSessionDTO.setOrigin(captureSessionOrigin);
+        return createCaptureSessionDTO;
     }
 
     protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {
