@@ -40,7 +40,7 @@ and allows this recording to be securely shared to advocates, or played back in 
 
 ### Purpose of pre-api in the System
 
-This code repository contains the source code for the Pre-Recorded Evidence API (pre-api).
+This code repository contains the source code for the Pre-Recorded Evidence API (pre-api)
 
 pre-api is a Java Spring Boot application that serves as a backend API for both the PRE PowerApps app and the PRE Portal.
 
