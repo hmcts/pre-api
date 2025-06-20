@@ -1,19 +1,23 @@
 package uk.gov.hmcts.reform.preapi.tasks;
 
+import com.azure.resourcemanager.mediaservices.models.LiveEventResourceState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
+import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
+import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.media.MediaKind;
@@ -29,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -55,6 +60,8 @@ public class CleanupLiveEventsTest {
     private static final int BATCH_COOLDOWN = 100;
     private static final int POLLING_INTERVAL = 100;
 
+    private static UserAuthentication userAuth;
+
     @BeforeEach
     void beforeEach() {
         mediaServiceBroker = mock(MediaServiceBroker.class);
@@ -68,15 +75,16 @@ public class CleanupLiveEventsTest {
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
 
-        var accessDto = mock(AccessDTO.class);
-        var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
+        AccessDTO accessDto = mock(AccessDTO.class);
+        BaseAppAccessDTO baseAppAccessDTO = mock(BaseAppAccessDTO.class);
         when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
         when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
 
-        var userAuth = mock(UserAuthentication.class);
-        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+        userAuth = mock(UserAuthentication.class);
+        when(userAuth.getUserId()).thenReturn(UUID.randomUUID());
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(userAuth));
     }
 
     @Test
@@ -87,7 +95,7 @@ public class CleanupLiveEventsTest {
 
         assertDoesNotThrow(cleanupLiveEvents::run);
 
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
     }
 
     @Test
@@ -104,7 +112,7 @@ public class CleanupLiveEventsTest {
 
         assertDoesNotThrow(cleanupLiveEvents::run);
 
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(4)).findByLiveEventId(liveEvent.getName());
         verify(mediaService, times(2)).cleanupStoppedLiveEvent(liveEvent.getName());
     }
@@ -136,7 +144,7 @@ public class CleanupLiveEventsTest {
 
         assertDoesNotThrow(cleanupLiveEvents::run);
 
-        verify(mediaService, times(1)).getLiveEvents();
+        verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(4)).findByLiveEventId(liveEvent.getName());
         verify(mediaService, never()).cleanupStoppedLiveEvent(liveEvent.getName());
     }
@@ -191,6 +199,8 @@ public class CleanupLiveEventsTest {
 
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any());
+        verify(mediaServiceBroker, times(3)).getEnabledMediaService();
+        verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.RECORDING_AVAILABLE), any());
         verify(stopLiveEventNotifierFlowClient, times(1)).emailAfterStoppingLiveEvents(any());
@@ -222,6 +232,121 @@ public class CleanupLiveEventsTest {
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any());
         verify(captureSessionService, times(1))
             .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.NO_RECORDING), any());
+    }
+
+    @Test
+    @DisplayName("Should stop live events that are not in running state")
+    public void testCleanupAlreadyStoppedEvents() {
+        LiveEventDTO liveEvent = new LiveEventDTO();
+        liveEvent.setName("liveEventName");
+        liveEvent.setResourceState(LiveEventResourceState.STOPPED.toString());
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(List.of(liveEvent));
+        when(bookingService.findAllPastBookings()).thenReturn(List.of());
+
+        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
+            mediaServiceBroker,
+            captureSessionService,
+            bookingService,
+            userService,
+            userAuthenticationService,
+            stopLiveEventNotifierFlowClient,
+            emailServiceFactory,
+            CRON_USER_EMAIL,
+            CRON_PLATFORM_ENV,
+            BATCH_SIZE,
+            BATCH_COOLDOWN,
+            POLLING_INTERVAL
+        );
+
+        cleanupLiveEvents.run();
+
+        verify(mediaService, times(2)).getLiveEvents();
+        verify(mediaService, times(1)).stopLiveEvent("liveEventName");
+        verify(bookingService, times(1)).findAllPastBookings();
+        verify(captureSessionService, times(1)).findAllPastIncompleteCaptureSessions();
+    }
+
+    @Test
+    @DisplayName("Should mark past bookings as no recording when they are unused")
+    public void testCleanupPastBookings() {
+        BookingDTO booking = new BookingDTO();
+        booking.setId(UUID.randomUUID());
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(List.of());
+        when(bookingService.findAllPastBookings()).thenReturn(List.of(booking));
+
+        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
+            mediaServiceBroker,
+            captureSessionService,
+            bookingService,
+            userService,
+            userAuthenticationService,
+            stopLiveEventNotifierFlowClient,
+            emailServiceFactory,
+            CRON_USER_EMAIL,
+            CRON_PLATFORM_ENV,
+            BATCH_SIZE,
+            BATCH_COOLDOWN,
+            POLLING_INTERVAL
+        );
+
+        cleanupLiveEvents.run();
+
+        verify(mediaService, times(2)).getLiveEvents();
+        verify(bookingService, times(1)).findAllPastBookings();
+        verify(captureSessionService, times(1)).findAllPastIncompleteCaptureSessions();
+
+        ArgumentCaptor<CreateCaptureSessionDTO> captor = ArgumentCaptor.forClass(CreateCaptureSessionDTO.class);
+        verify(captureSessionService, times(1)).upsert(captor.capture());
+
+        assertThat(captor.getValue().getId()).isNotNull();
+        assertThat(captor.getValue().getBookingId()).isEqualTo(booking.getId());
+        assertThat(captor.getValue().getOrigin()).isEqualTo(RecordingOrigin.PRE);
+        assertThat(captor.getValue().getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
+    }
+
+    @Test
+    @DisplayName("Should mark past capture sessions as no recording when they are unused")
+    public void testCleanupPastCaptureSessions() {
+        CaptureSessionDTO captureSessionDTO = new CaptureSessionDTO();
+        captureSessionDTO.setId(UUID.randomUUID());
+
+        when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
+        when(mediaService.getLiveEvents()).thenReturn(List.of());
+        when(bookingService.findAllPastBookings()).thenReturn(List.of());
+        when(captureSessionService.findAllPastIncompleteCaptureSessions()).thenReturn(List.of(captureSessionDTO));
+
+        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
+            mediaServiceBroker,
+            captureSessionService,
+            bookingService,
+            userService,
+            userAuthenticationService,
+            stopLiveEventNotifierFlowClient,
+            emailServiceFactory,
+            CRON_USER_EMAIL,
+            CRON_PLATFORM_ENV,
+            BATCH_SIZE,
+            BATCH_COOLDOWN,
+            POLLING_INTERVAL
+        );
+
+        cleanupLiveEvents.run();
+
+        verify(mediaService, times(2)).getLiveEvents();
+        verify(bookingService, times(1)).findAllPastBookings();
+        verify(captureSessionService, times(1)).findAllPastIncompleteCaptureSessions();
+
+        ArgumentCaptor<CreateCaptureSessionDTO> captor = ArgumentCaptor.forClass(CreateCaptureSessionDTO.class);
+        verify(captureSessionService, times(1)).upsert(captor.capture());
+
+        assertThat(captor.getValue().getId()).isEqualTo(captureSessionDTO.getId());
+        assertThat(captor.getValue().getFinishedAt()).isNotNull();
+        assertThat(captor.getValue().getFinishedByUserId()).isEqualTo(userAuth.getUserId());
+        assertThat(captor.getValue().getStatus()).isEqualTo(RecordingStatus.NO_RECORDING);
     }
 
     private CleanupLiveEvents createCleanupLiveEventsTask() {

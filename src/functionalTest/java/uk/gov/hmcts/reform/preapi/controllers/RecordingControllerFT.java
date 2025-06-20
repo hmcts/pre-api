@@ -327,6 +327,21 @@ public class RecordingControllerFT extends FunctionalTestBase {
             .isEqualTo("Invalid sort parameter 'invalidParam' for 'uk.gov.hmcts.reform.preapi.entities.Recording'");
     }
 
+    @Test
+    @DisplayName("Should throw 403 when LEVEL 4 user attempts to search recordings")
+    void getRecordingsLevel4() {
+        Response getRecordings = doGetRequest(RECORDINGS_ENDPOINT, TestingSupportRoles.LEVEL_4);
+        assertResponseCode(getRecordings, 403);
+    }
+
+    @Test
+    @DisplayName("Should throw 403 when LEVEL 4 user attempts to get recording by id")
+    void getRecordingByIdLevel4() {
+        Response getRecordings = doGetRequest(RECORDINGS_ENDPOINT + "/" + UUID.randomUUID(),
+                                              TestingSupportRoles.LEVEL_4);
+        assertResponseCode(getRecordings, 403);
+    }
+
     @Override
     protected CreateCaptureSessionDTO createCaptureSession() {
         var dto = super.createCaptureSession();
