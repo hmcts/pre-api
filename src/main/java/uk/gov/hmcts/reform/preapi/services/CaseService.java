@@ -12,9 +12,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO;
-import uk.gov.hmcts.reform.preapi.dto.flow.CaseStateChangeNotificationDTO.EmailType;
-import uk.gov.hmcts.reform.preapi.email.CaseStateChangeNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -51,7 +48,6 @@ public class CaseService {
     private final ParticipantRepository participantRepository;
     private final BookingService bookingService;
     private final ShareBookingService shareBookingService;
-    private final CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient;
     private final BookingRepository bookingRepository;
     private final EmailServiceFactory emailServiceFactory;
 
@@ -61,7 +57,6 @@ public class CaseService {
                        ParticipantRepository participantRepository,
                        BookingService bookingService,
                        ShareBookingService shareBookingService,
-                       CaseStateChangeNotifierFlowClient caseStateChangeNotifierFlowClient,
                        @Lazy BookingRepository bookingRepository,
                        EmailServiceFactory emailServiceFactory
     ) {
@@ -70,7 +65,6 @@ public class CaseService {
         this.participantRepository = participantRepository;
         this.bookingService = bookingService;
         this.shareBookingService = shareBookingService;
-        this.caseStateChangeNotifierFlowClient = caseStateChangeNotifierFlowClient;
         this.bookingRepository = bookingRepository;
         this.emailServiceFactory = emailServiceFactory;
     }
@@ -282,16 +276,8 @@ public class CaseService {
 
         if (!shares.isEmpty()) {
             try {
-                if (!emailServiceFactory.isEnabled()) {
-                    caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
-                        shares
-                            .stream()
-                            .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSED, c, share))
-                            .toList());
-                } else {
-                    var emailService = emailServiceFactory.getEnabledEmailService();
-                    shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
-                }
+                var emailService = emailServiceFactory.getEnabledEmailService();
+                shares.forEach(share -> emailService.caseClosed(share.getSharedWith(), c));
             } catch (Exception e) {
                 log.error("Failed to notify users of case closure: {}", c.getId());
             }
@@ -319,17 +305,8 @@ public class CaseService {
         }
 
         try {
-            if (!emailServiceFactory.isEnabled()) {
-                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
-                    shares
-                        .stream()
-                        .map(share -> new CaseStateChangeNotificationDTO(EmailType.CLOSURE_CANCELLATION, c, share))
-                        .toList()
-                );
-            } else {
-                var emailService = emailServiceFactory.getEnabledEmailService();
-                shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), c));
-            }
+            var emailService = emailServiceFactory.getEnabledEmailService();
+            shares.forEach(share -> emailService.caseClosureCancelled(share.getSharedWith(), c));
         } catch (Exception e) {
             log.error("Failed to notify users of case closure cancellation: {}", c.getId());
         }
@@ -345,18 +322,8 @@ public class CaseService {
         }
 
         try {
-            if (!emailServiceFactory.isEnabled()) {
-                caseStateChangeNotifierFlowClient.emailAfterCaseStateChange(
-                    shares
-                        .stream()
-                        .map(share -> new CaseStateChangeNotificationDTO(EmailType.PENDING_CLOSURE, c, share))
-                        .toList()
-                );
-            } else {
-                var emailService = emailServiceFactory.getEnabledEmailService();
-                shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c,
-                                                                        c.getClosedAt()));
-            }
+            var emailService = emailServiceFactory.getEnabledEmailService();
+            shares.forEach(share -> emailService.casePendingClosure(share.getSharedWith(), c, c.getClosedAt()));
         } catch (Exception e) {
             log.error("Failed to notify users of case pending closure: {}", c.getId());
         }
