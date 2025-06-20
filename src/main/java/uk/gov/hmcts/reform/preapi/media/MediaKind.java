@@ -280,6 +280,15 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public void stopLiveEvent(String liveEventId) {
+        try {
+            stopAndDeleteLiveEvent(liveEventId);
+        } catch (NotFoundException e) {
+            // ignore
+        }
+    }
+
+    @Override
     public void cleanupStoppedLiveEvent(String liveEventId) {
         mediaKindClient.deleteLiveOutput(liveEventId, liveEventId);
         stopAndDeleteLiveEvent(liveEventId);
