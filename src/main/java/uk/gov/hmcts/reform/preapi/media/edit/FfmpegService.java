@@ -32,22 +32,20 @@ public class FfmpegService implements IEditingService {
     }
 
     public void performEdit(UUID newRecordingId, EditRequest request) {
-        var inputFileName = request.getSourceRecording().getFilename();
-        var outputFileName = newRecordingId + ".mp4";
+        String inputFileName = request.getSourceRecording().getFilename();
         if (inputFileName == null) {
             throw new NotFoundException("No file name provided");
         }
-        var command = generateCommand(request, inputFileName, outputFileName);
 
-        // download from final storage
-        if (!azureFinalStorageService
-            .downloadBlob(request.getSourceRecording().getId().toString(), inputFileName, inputFileName)) {
-            throw new UnknownServerException("Error occurred when attempting to download file: " + inputFileName);
-        }
+        String inputSasUrl = azureFinalStorageService.generateReadSasUrl(
+            request.getSourceRecording().getId().toString(),
+            inputFileName);
+        String outputFileName = newRecordingId + ".mp4";
+        CommandLine command = generateCommand(request, inputSasUrl, outputFileName);
 
         // apply ffmpeg
         if (!commandExecutor.execute(command)) {
-            cleanup(inputFileName, outputFileName);
+            cleanup(outputFileName);
             throw new UnknownServerException("Error occurred when attempting to process edit request: "
                                                  + request.getId());
         }
@@ -55,16 +53,15 @@ public class FfmpegService implements IEditingService {
 
         // upload to ingest storage
         if (!azureIngestStorageService.uploadBlob(outputFileName, newRecordingId + "-input", outputFileName)) {
-            cleanup(inputFileName, outputFileName);
+            cleanup(outputFileName);
             throw new UnknownServerException("Error occurred when attempting to upload file");
         }
 
-        cleanup(inputFileName, outputFileName);
+        cleanup(outputFileName);
     }
 
     @Override
-    public void cleanup(String inputFile, String outputFile) {
-        deleteFile(inputFile);
+    public void cleanup(String outputFile) {
         deleteFile(outputFile);
     }
 
@@ -81,17 +78,16 @@ public class FfmpegService implements IEditingService {
         }
     }
 
-    protected CommandLine generateCommand(EditRequest editRequest, String inputFileName, String outputFileName) {
+    protected CommandLine generateCommand(EditRequest editRequest, String inputLocation, String outputLocation) {
         var instructions = fromJson(editRequest.getEditInstruction());
 
-        if (instructions.getFfmpegInstructions() == null
-            || instructions.getFfmpegInstructions().isEmpty()) {
+        if (instructions.getFfmpegInstructions() == null || instructions.getFfmpegInstructions().isEmpty()) {
             throw new UnknownServerException("Malformed edit instructions");
         }
 
         var command = new CommandLine("ffmpeg");
         command.addArgument("-y")
-            .addArgument("-i").addArgument(inputFileName);
+            .addArgument("-i").addArgument(inputLocation, true);
 
         var filterComplex = new StringBuilder();
         var concatCommand = new StringBuilder();
@@ -114,12 +110,14 @@ public class FfmpegService implements IEditingService {
             .append(":v=1:a=1[outv][outa]");
         filterComplex.append(concatCommand);
 
-        command.addArgument("-filter_complex").addArgument(filterComplex.toString())
+        command.addArgument("-filter_complex").addArgument(filterComplex.toString(), false)
             .addArgument("-map").addArgument("[outv]")
             .addArgument("-map").addArgument("[outa]")
             .addArgument("-c:v").addArgument("libx264")
             .addArgument("-c:a").addArgument("aac")
-            .addArgument(outputFileName);
+            .addArgument("-movflags").addArgument("frag_keyframe+empty_moov")
+            .addArgument("-f").addArgument("mp4")
+            .addArgument(outputLocation);
         return command;
     }
 
