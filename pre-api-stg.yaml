@@ -1556,13 +1556,16 @@ definitions:
     description: PlaybackReportDTO
     properties:
       case_reference:
-        description: PlaybackReportCaseReference
+        description: ReportCaseReference
         type: string
       county:
-        description: PlaybackReportCounty
+        description: ReportCounty
         type: string
-      court_name:
-        description: PlaybackReportCourtName
+      court:
+        description: ReportCourt
+        type: string
+      defendants:
+        description: PlaybackReportDefendants
         type: string
       playback_date:
         description: PlaybackReportPlaybackDate
@@ -1574,16 +1577,26 @@ definitions:
         description: PlaybackReportTimeZone
         type: string
       postcode:
-        description: PlaybackReportPostcode
+        description: ReportPostcode
         type: string
-      regions:
-        description: PlaybackReportRegions
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
+      region:
+        description: ReportRegion
         type: string
-      user:
-        description: PlaybackReportUser
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
         type: string
       user_organisation:
         description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
         type: string
     type: object
   PortalAccessDTO:
@@ -1714,16 +1727,16 @@ definitions:
       case_reference:
         description: ReportCaseReference
         type: string
-      count:
-        description: RecordingsPerCaseCount
-        format: int32
-        type: integer
       county:
         description: ReportCounty
         type: string
       court:
         description: ReportCourt
         type: string
+      number_of_recordings:
+        description: RecordingsPerCaseNumberOfRecordings
+        format: int32
+        type: integer
       postcode:
         description: ReportPostcode
         type: string
