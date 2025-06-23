@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -85,9 +86,9 @@ public class ReportService {
         return recordingRepository
             .findAllByParentRecordingIsNotNull()
             .stream()
+            .sorted(Comparator.comparing(Recording::getCreatedAt))
             .map(EditReportDTO::new)
-            .sorted(Comparator.comparing(EditReportDTO::getCreatedAt))
-            .toList();
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -95,14 +96,15 @@ public class ReportService {
         UUID courtId,
         UUID bookingId,
         UUID sharedWithId,
-        String sharedWithEmail
+        String sharedWithEmail,
+        boolean onlyActive
     ) {
         return shareBookingRepository
-            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail)
+            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail, onlyActive)
             .stream()
+            .sorted(Comparator.comparing(ShareBooking::getCreatedAt))
             .map(SharedReportDTO::new)
-            .sorted(Comparator.comparing(SharedReportDTO::getSharedAt))
-            .toList();
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -110,9 +112,9 @@ public class ReportService {
         return captureSessionRepository
             .findAllByStatus(RecordingStatus.RECORDING_AVAILABLE)
             .stream()
+            .sorted(Comparator.comparing(c -> c.getBooking().getScheduledFor()))
             .map(ScheduleReportDTO::new)
-            .sorted(Comparator.comparing(ScheduleReportDTO::getScheduledFor))
-            .toList();
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -149,9 +151,9 @@ public class ReportService {
         return recordingRepository
             .findAllByParentRecordingIsNull()
             .stream()
+            .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
             .map(CompletedCaptureSessionReportDTO::new)
-            .sorted(Comparator.comparing(CompletedCaptureSessionReportDTO::getScheduledFor))
-            .toList();
+            .collect(Collectors.toList());
     }
 
     @Transactional
@@ -159,9 +161,9 @@ public class ReportService {
         return shareBookingRepository
             .findAllByDeletedAtIsNotNull()
             .stream()
+            .sorted(Comparator.comparing(ShareBooking::getDeletedAt))
             .map(AccessRemovedReportDTO::new)
-            .sorted(Comparator.comparing(AccessRemovedReportDTO::getRemovedAt))
-            .toList();
+            .collect(Collectors.toList());
     }
 
     @Transactional
