@@ -325,11 +325,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
 
         // Double-barrelled name checks
         if (defendantLastName != null && defendantLastName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled name",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",extractedData));
         }
 
         if (witnessFirstName != null && witnessFirstName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled name",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",extractedData));
         }
 
         String urn = extractedData.getUrn();
@@ -339,13 +339,13 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         if (urn == null || urn.isEmpty()) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",extractedData));
         } else if (urn.length() < 11) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("URN - invalid length", extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid URN length", extractedData));
         }
 
         if (exhibitRef == null || exhibitRef.isEmpty()) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Missing Exhibit Ref", extractedData));
         } else if (exhibitRef.length() < 9) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("T-ref - invalid length", extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid Exhibit length", extractedData));
         }
     }
 
