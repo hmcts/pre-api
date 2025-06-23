@@ -12,6 +12,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -212,5 +213,19 @@ public class ReportService {
                 ? recordingRepository.findById(recordingId).orElse(null)
                 : null
         );
+    }
+
+    @Transactional
+    public List<UserPrimaryCourtReportDTO> reportUserPrimaryCourts() {
+
+        return this.appAccessRepository.getUserPrimaryCourtsForReport()
+            .stream()
+            .map(access -> new UserPrimaryCourtReportDTO(access.getUser().getFirstName(),
+                                                         access.getUser().getLastName(),
+                                                         access.getCourt().getName(),
+                                                         access.isActive(),
+                                                         access.getRole().getName(),
+                                                         access.getLastAccess()))
+            .toList();
     }
 }

@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
@@ -36,6 +37,8 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -516,6 +519,34 @@ public class ReportControllerTest {
         auditEntity.setTableRecordId(recordingEntity.getId());
 
         return new PlaybackReportDTO(auditEntity, user, null);
+    }
+
+    @DisplayName("Should get a report containing a list of users, their first and last names and their related "
+        + "primary court, role, active status and last access time")
+    @Test
+    void reportUserPrimaryCourtsSuccess() throws Exception {
+        var dto = new UserPrimaryCourtReportDTO();
+        dto.setFirstName("First");
+        dto.setLastName("Last");
+        dto.setPrimaryCourtName("Court Name");
+        dto.setActive("Active");
+        dto.setRoleName("Level 1");
+        dto.setLastAccess(Timestamp.from(Instant.now()));
+
+        when(reportService.reportUserPrimaryCourts()).thenReturn(List.of(dto));
+
+        mockMvc.perform(get("/reports/user-primary-courts"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
+            .andExpect(jsonPath("$[0].first_name").value(dto.getFirstName()))
+            .andExpect(jsonPath("$[0].last_name").value(dto.getLastName()))
+            .andExpect(jsonPath("$[0].primary_court_name").value(dto.getPrimaryCourtName()))
+            .andExpect(jsonPath("$[0].active").value(dto.getActive()))
+            .andExpect(jsonPath("$[0].role_name").value(dto.getRoleName()))
+            .andExpect(jsonPath("$[0].last_access").value(dto.getLastAccess().toInstant()
+                                                              .atOffset(OffsetDateTime.now().getOffset())
+                                                              .format(DateTimeFormatter
+                                                                      .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00"))));
     }
 
     private SharedReportDTO createSharedReport() {
