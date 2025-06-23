@@ -105,9 +105,11 @@ definitions:
     properties:
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -115,6 +117,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -680,12 +683,15 @@ definitions:
     properties:
       email:
         description: InviteEmail
+        minLength: 1
         type: string
       first_name:
         description: InviteFirstName
+        minLength: 1
         type: string
       last_name:
         description: InviteLastName
+        minLength: 1
         type: string
       organisation:
         description: InviteOrganisation
@@ -819,9 +825,11 @@ definitions:
         uniqueItems: true
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -829,6 +837,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -1217,9 +1226,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1227,6 +1238,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1876,9 +1888,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1886,6 +1900,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt

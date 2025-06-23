@@ -187,11 +187,12 @@ public class EditRequestService {
     @Transactional
     @PreAuthorize("@authorisationService.hasUpsertAccess(authentication, #dto)")
     public UpsertResult upsert(CreateEditRequestDTO dto) {
+        recordingService.syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
+
         var sourceRecording = recordingRepository.findByIdAndDeletedAtIsNull(dto.getSourceRecordingId())
             .orElseThrow(() -> new NotFoundException("Source Recording: " + dto.getSourceRecordingId()));
 
         if (sourceRecording.getDuration() == null) {
-            // todo try get the duration (code for this not merged yet)
             throw new ResourceInWrongStateException("Source Recording ("
                                                         + dto.getSourceRecordingId()
                                                         + ") does not have a valid duration");
