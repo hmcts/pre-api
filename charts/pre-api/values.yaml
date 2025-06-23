@@ -17,8 +17,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: POSTGRES_PASSWORD
         - name: api-POSTGRES-USER
           alias: POSTGRES_USER
-        - name: AppInsightsInstrumentationKey
-          alias: APPINSIGHTS_INSTRUMENTATIONKEY
         - name: apim-sub-smoketest-primary-key
           alias: APIM_SUB_SMOKETEST_PRIMARY_KEY
         - name: apim-sub-smoketest-secondary-key

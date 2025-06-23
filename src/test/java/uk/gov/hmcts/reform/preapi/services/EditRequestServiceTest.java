@@ -277,6 +277,7 @@ public class EditRequestServiceTest {
         var response = editRequestService.upsert(dto);
         assertThat(response).isEqualTo(UpsertResult.CREATED);
 
+        verify(recordingService, times(1)).syncRecordingMetadataWithStorage(sourceRecording.getId());
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(sourceRecording.getId());
         verify(editRequestRepository, times(1)).findById(dto.getId());
         verify(mockAuth, times(1)).getAppAccess();
@@ -328,6 +329,7 @@ public class EditRequestServiceTest {
         assertThat(editRequest.getEditInstruction())
             .contains("\"ffmpegInstructions\":[{\"start\":0,\"end\":60},{\"start\":120,\"end\":180}]");
 
+        verify(recordingService, times(1)).syncRecordingMetadataWithStorage(sourceRecording.getId());
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(sourceRecording.getId());
         verify(editRequestRepository, times(1)).findById(dto.getId());
         verify(mockAuth, never()).getAppAccess();
@@ -368,6 +370,7 @@ public class EditRequestServiceTest {
         ).getMessage();
         assertThat(message).isEqualTo("Not found: Source Recording: " + dto.getSourceRecordingId());
 
+        verify(recordingService, times(1)).syncRecordingMetadataWithStorage(dto.getSourceRecordingId());
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(dto.getSourceRecordingId());
         verify(editRequestRepository, never()).findById(any());
         verify(mockAuth, never()).getAppAccess();
@@ -412,6 +415,7 @@ public class EditRequestServiceTest {
         assertThat(message)
             .isEqualTo("Source Recording (" + dto.getSourceRecordingId() + ") does not have a valid duration");
 
+        verify(recordingService, times(1)).syncRecordingMetadataWithStorage(sourceRecording.getId());
         verify(recordingRepository, times(1)).findByIdAndDeletedAtIsNull(sourceRecording.getId());
         verify(editRequestRepository, never()).findById(any());
         verify(mockAuth, never()).getAppAccess();
