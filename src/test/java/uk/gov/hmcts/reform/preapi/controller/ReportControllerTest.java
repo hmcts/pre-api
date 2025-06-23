@@ -549,18 +549,6 @@ public class ReportControllerTest {
                                                                       .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00"))));
     }
 
-    private PlaybackReportDTO createPlaybackReport() {
-        return new PlaybackReportDTO(
-            Timestamp.from(Instant.now()),
-            "Example Person",
-            "example@example.com",
-            "CASE123456",
-            "Example Court",
-            Set.of(),
-            UUID.randomUUID()
-        );
-    }
-  
     private SharedReportDTO createSharedReport() {
         var reportItem = new SharedReportDTO();
         var timestamp = Timestamp.from(Instant.now());
