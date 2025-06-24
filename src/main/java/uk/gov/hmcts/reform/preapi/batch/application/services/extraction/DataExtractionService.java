@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.batch.application.services.extraction;
 
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.reform.preapi.batch.application.services.reporting.LoggingService;
+import uk.gov.hmcts.reform.preapi.batch.config.Constants;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
 import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.ServiceResult;
@@ -111,14 +112,22 @@ public class DataExtractionService {
     }
 
     private ExtractedMetadata extractMetaData(Matcher matcher, CSVArchiveListData archiveItem) {
+        String versionType = getMatcherGroup(matcher, "versionType");
+        String versionNumber = getMatcherGroup(matcher, "versionNumber");
+
+        if (Constants.VALID_ORIG_TYPES.contains(versionType != null ? versionType.toUpperCase() : "") 
+            && (versionNumber == null || versionNumber.isEmpty())) {
+            versionNumber = "1";
+        }
+
         return new ExtractedMetadata(
             getMatcherGroup(matcher, "court"),
             getMatcherGroup(matcher, "urn"),
             getMatcherGroup(matcher, "exhibitRef"),
             getMatcherGroup(matcher, "defendantLastName"),
             getMatcherGroup(matcher, "witnessFirstName"),
-            getMatcherGroup(matcher, "versionType"),
-            getMatcherGroup(matcher, "versionNumber"),
+            versionType,
+            versionNumber,
             getMatcherGroup(matcher, "ext"),
             archiveItem.getCreateTimeAsLocalDateTime(),
             archiveItem.getDuration(),

@@ -16,9 +16,10 @@ public final class Constants {
     public static final LocalDate GO_LIVE_DATE = LocalDate.of(2019, 5, 23);
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     public static final int MIN_RECORDING_DURATION = 10;
-    public static final Set<String> VALID_VERSION_TYPES = Set.of("ORIG", "COPY", "CPY", "ORG", "ORI", "COP", "OR");
-    public static final Set<String> VALID_ORIG_TYPES = Set.of("ORIG", "ORG", "ORI");
-    public static final Set<String> VALID_COPY_TYPES = Set.of("COPY", "CPY", "COP");
+    public static final Set<String> VALID_VERSION_TYPES = Set.of(
+        "ORIG", "COPY", "CPY", "ORG", "ORI", "COP", "OR", "CO");
+    public static final Set<String> VALID_ORIG_TYPES = Set.of("ORIG", "ORG", "ORI", "OR");
+    public static final Set<String> VALID_COPY_TYPES = Set.of("COPY", "CPY", "COP","CO");
     public static final Set<String> VALID_EXTENSIONS = Set.of("mp4");
     public static final DecimalFormat FILE_SIZE_FORMAT = new DecimalFormat("0.00");
     public static final String DEFAULT_NAME = "Unknown";
