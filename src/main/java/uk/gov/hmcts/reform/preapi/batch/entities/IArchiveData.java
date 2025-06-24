@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 public interface IArchiveData {
 
     String getFileName();
+
     LocalDateTime getCreateTimeAsLocalDateTime();
+    
     String getArchiveName();
 }

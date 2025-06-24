@@ -27,6 +27,7 @@ public class CSVArchiveListData implements IArchiveData  {
         "yyyy-MM-dd HH:mm:ss"
     );
 
+    private String archiveId = "";
     private String archiveName = "";
     private String sanitizedArchiveName = "";
     private String createTime = "";
@@ -34,8 +35,9 @@ public class CSVArchiveListData implements IArchiveData  {
     private String fileName = "";
     private String fileSize = "";
 
-    public CSVArchiveListData(String archiveName, String createTime, Integer duration,
+    public CSVArchiveListData(String archiveId, String archiveName, String createTime, Integer duration,
         String fileName, String fileSize) {
+        this.archiveId = archiveId;
         this.archiveName = archiveName;
         this.createTime = createTime;
         this.duration = (duration != null) ? duration : 0;
@@ -61,7 +63,6 @@ public class CSVArchiveListData implements IArchiveData  {
             .replaceAll("(?<!&)\\s+(?!&)", "") 
             .replaceAll("CP_", "")
             .replaceAll("CP-", "")
-            // .replaceAll("-NA-", "")
             .replaceAll("CP ", "")
             .replaceAll("CP Case", "")
             .replaceAll("(?i)As Urn[-_\\s]*", "") 
@@ -115,7 +116,8 @@ public class CSVArchiveListData implements IArchiveData  {
     @Override
     public String toString() {
         return "CSVArchiveListData{"
-               + "archiveName='" + archiveName + '\''
+               + "archiveId='" + archiveId + '\''
+               + ", archiveName='" + archiveName + '\''
                + ", sanitizedName='" + sanitizedArchiveName + '\''
                + ", createTime='" + createTime + '\''
                + ", duration=" + duration

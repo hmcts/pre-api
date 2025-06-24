@@ -70,19 +70,16 @@ public class DataTransformationService {
     protected ProcessedRecording buildProcessedRecording(
         ExtractedMetadata extracted, Map<String, String> sitesDataMap) {
         loggingService.logDebug("Building cleansed data for archive: %s", extracted.getSanitizedArchiveName());
-
         List<Map<String, String>> shareBookingContacts = buildShareBookingContacts(extracted);
+        
+        String origVersionStr =
+            extracted.getRecordingVersion().startsWith("COPY")
+                ? extracted.getRecordingVersionNumber().split("\\.")[0] 
+                : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber();
 
-        String key = cacheService.generateCacheKey(
-                "recording",
-                "version",
-                extracted.getUrn(),
-                extracted.getExhibitReference(),
-                extracted.getDefendantLastName(),
-                extracted.getWitnessFirstName()
-            );
-
+        String key = cacheService.generateRecordingVersionKey(extracted, origVersionStr);
         Map<String, Object> existingData = cacheService.getHashAll(key);
+        
         RecordingUtils.VersionDetails versionDetails = RecordingUtils.processVersioning(
             extracted.getRecordingVersion(),
             extracted.getRecordingVersionNumber(),
@@ -92,29 +89,49 @@ public class DataTransformationService {
             existingData
         );
 
+
         Court court = fetchCourtFromDB(extracted, sitesDataMap);
         if (court == null) {
             loggingService.logWarning("Court not found for reference: %s", extracted.getCourtReference());
         }
 
         return ProcessedRecording.builder()
+            .courtReference(extracted.getCourtReference())
+            .court(court)
+
+            .state(determineState(shareBookingContacts))
+
+            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
+            .duration(Duration.ofSeconds(extracted.getDuration()))
+
             .urn(extracted.getUrn())
             .exhibitReference(extracted.getExhibitReference())
             .caseReference(extracted.createCaseReference())
             .defendantLastName(extracted.getDefendantLastName())
             .witnessFirstName(extracted.getWitnessFirstName())
-            .courtReference(extracted.getCourtReference())
-            .court(court)
-            .recordingTimestamp(Timestamp.valueOf(extracted.getCreateTime()))
-            .duration(Duration.ofSeconds(extracted.getDuration()))
-            .state(determineState(shareBookingContacts))
-            .shareBookingContacts(shareBookingContacts)
+            
+            .extractedRecordingVersion(extracted.getRecordingVersion())  // ORIG or COPY
+            .extractedRecordingVersionNumberStr(extracted.getRecordingVersionNumber()) // "2"
+            .origVersionNumberStr(
+                extracted.getRecordingVersion().startsWith("COPY")
+                    ? extracted.getRecordingVersionNumber().split("\\.")[0]
+                    : extracted.getRecordingVersionNumber().isEmpty() ? "1" : extracted.getRecordingVersionNumber()
+            )
+            .copyVersionNumberStr(
+                extracted.getRecordingVersion().startsWith("COPY") 
+                    && extracted.getRecordingVersionNumber().contains(".")
+                    ? extracted.getRecordingVersionNumber().split("\\.")[1]
+                    : null
+            )
+            .recordingVersionNumber(versionDetails.standardisedVersionNumber())    
+    
+            .isMostRecentVersion(versionDetails.isMostRecent())
+
             .fileExtension(extracted.getFileExtension())
             .fileName(extracted.getFileName())
-            .recordingVersion(versionDetails.versionType())
-            .recordingVersionNumberStr(versionDetails.versionNumberStr())
-            .recordingVersionNumber(versionDetails.versionNumber())
-            .isMostRecentVersion(versionDetails.isMostRecent())
+
+            .shareBookingContacts(shareBookingContacts)
+
             .build();
     }
 

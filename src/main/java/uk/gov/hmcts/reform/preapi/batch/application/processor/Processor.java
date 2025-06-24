@@ -222,32 +222,32 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         return true;
     }
 
+  
     private boolean isMigrated(ProcessedRecording cleansedData, CSVArchiveListData archiveItem) {
-        String key = cacheService.generateCacheKey(
-            "recording", "version",
-            cleansedData.getUrn(),
-            cleansedData.getExhibitReference(),
+        String key = cacheService.generateEntityCacheKey(
+            "recording",
+            cleansedData.getCaseReference(),
             cleansedData.getDefendantLastName(),
-            cleansedData.getWitnessFirstName()
+            cleansedData.getWitnessFirstName(),
+            cleansedData.getOrigVersionNumberStr()
         );
 
         Map<String, Object> metadata = cacheService.getHashAll(key);
         String archiveName = archiveItem.getArchiveName();
-        String recordingVersion = cleansedData.getRecordingVersion();
+        String versionStr = cleansedData.getExtractedRecordingVersion(); // e.g. ORIG1, COPY2
+        int version = cleansedData.getRecordingVersionNumber();
 
-        boolean isOrig = "ORIG".equalsIgnoreCase(recordingVersion);
-        boolean isCopy = recordingVersion != null && recordingVersion.toUpperCase().startsWith("COPY");
+        boolean isOrig = versionStr != null && versionStr.toUpperCase().startsWith("ORIG");
+        boolean isCopy = versionStr != null && versionStr.toUpperCase().startsWith("COPY");
+
+        String archiveKey = isOrig ? "origVersionArchiveName:" + version : "copyVersionArchiveName:" + version;
 
         if (metadata != null) {
-            boolean seenOrig = Boolean.TRUE.equals(metadata.get("seenOrig"));
-            boolean seenCopy = Boolean.TRUE.equals(metadata.get("seenCopy"));
+            // boolean seen = Boolean.TRUE.equals(metadata.get(seenKey));
+            String seenArchive = (String) metadata.get(archiveKey);
 
-            String seenOriginal = (String) metadata.get("origVersionArchiveName");
-            String seenCopyName = (String) metadata.get("copyVersionArchiveName");
-
-            if ((isOrig && seenOrig && archiveName.equalsIgnoreCase(seenOriginal)) 
-                || (isCopy && seenCopy && archiveName.equalsIgnoreCase(seenCopyName))) {
-
+            // if (seen && archiveName.equalsIgnoreCase(seenArchive)) {
+            if (archiveName.equalsIgnoreCase(seenArchive)) {
                 handleError(archiveItem, "Duplicate recording already seen", "Duplicate");
                 return true;
             }
@@ -255,26 +255,18 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             metadata = new HashMap<>();
         }
 
-        if (isOrig) {
-            metadata.put("seenOrig", true);
-            metadata.put("origVersionArchiveName", cleansedData.getFileName());
-            metadata.put("origVersionNumber", String.valueOf(cleansedData.getRecordingVersionNumber()));
-        } else if (isCopy) {
-            metadata.put("seenCopy", true);
-            metadata.put("copyVersionArchiveName", cleansedData.getFileName());
-            metadata.put("copyVersionNumber", String.valueOf(cleansedData.getRecordingVersionNumber()));
-        }
-
         cacheService.saveHashAll(key, metadata);
 
         boolean alreadyMigrated = cacheService.getCase(cleansedData.getCaseReference()).isPresent();
         if (alreadyMigrated) {
+            loggingService.logDebug("Case already migrated: %s", cleansedData.getCaseReference());
             handleError(archiveItem, "Already migrated: " + cleansedData.getCaseReference(), "Migrated");
             return true;
         }
 
         return false;
     }
+    
     //======================
     // Helper Methods
     //======================
@@ -330,28 +322,30 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
     private void checkAndCreateNotifyItem(ExtractedMetadata extractedData) {
         String defendantLastName = extractedData.getDefendantLastName();
         String witnessFirstName = extractedData.getWitnessFirstName();
+
         // Double-barrelled name checks
         if (defendantLastName != null && defendantLastName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled defendant",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",extractedData));
         }
 
         if (witnessFirstName != null && witnessFirstName.contains("-")) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barelled witness",extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Double-barrelled name",extractedData));
         }
 
         String urn = extractedData.getUrn();
         String exhibitRef = extractedData.getExhibitReference();
+
         // case ref checks
         if (urn == null || urn.isEmpty()) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Missing URN",extractedData));
         } else if (urn.length() < 11) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("URN - invalid length", extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid URN length", extractedData));
         }
 
         if (exhibitRef == null || exhibitRef.isEmpty()) {
             migrationTrackerService.addNotifyItem(new NotifyItem("Missing Exhibit Ref", extractedData));
         } else if (exhibitRef.length() < 9) {
-            migrationTrackerService.addNotifyItem(new NotifyItem("T-ref - invalid length", extractedData));
+            migrationTrackerService.addNotifyItem(new NotifyItem("Invalid Exhibit length", extractedData));
         }
     }
 
