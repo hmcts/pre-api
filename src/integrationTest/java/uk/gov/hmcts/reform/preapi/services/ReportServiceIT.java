@@ -1,11 +1,13 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
@@ -13,6 +15,7 @@ import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.ShareBooking;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -24,6 +27,7 @@ import uk.gov.hmcts.reform.preapi.utils.IntegrationTestBase;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -91,6 +95,27 @@ public class ReportServiceIT extends IntegrationTestBase {
 
         share.setDeletedAt(Timestamp.from(Instant.now()));
         entityManager.persist(share);
+
+        var user = HelperFactory.createUser("Example", "One", "example1@example.com", null, null, null);
+        entityManager.persist(user);
+
+        var audit = new Audit();
+        audit.setId(UUID.randomUUID());
+        audit.setActivity("Play");
+        audit.setCreatedBy(user.getId());
+        audit.setSource(AuditLogSource.APPLICATION);
+        ObjectMapper mapper = new ObjectMapper();
+        audit.setAuditDetails(mapper.valueToTree(new HashMap<String, String>() {{
+                put("description", "Playback on recording has started");
+                put("recordingId", null);
+            }}
+        ));
+        entityManager.persist(audit);
+
+        var response = reportService.reportPlayback(null);
+        assertThat(response).isNotNull();
+        assertThat(response.size()).isEqualTo(1);
+        assertThat(response.getFirst().getRecordingVersion()).isNull();
 
         var reportFilterOnlyActiveNotFound = reportService.reportShared(null, null, null, null, true);
         assertThat(reportFilterOnlyActiveNotFound.isEmpty()).isTrue();

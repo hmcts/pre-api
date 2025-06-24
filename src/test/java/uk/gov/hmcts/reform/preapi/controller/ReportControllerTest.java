@@ -451,7 +451,6 @@ public class ReportControllerTest {
         var reportItem = createPlaybackReport(Timestamp.valueOf("2025-01-01 00:00:00"));
 
         when(reportService.reportPlayback(null)).thenReturn(List.of(reportItem));
-
         mockMvc.perform(get("/reports/playback"))
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -548,6 +547,7 @@ public class ReportControllerTest {
                                                               .format(DateTimeFormatter
                                                                       .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00"))));
     }
+
 
     private SharedReportDTO createSharedReport() {
         var reportItem = new SharedReportDTO();

@@ -49,7 +49,7 @@ public class PlaybackReportDTO extends BaseReportDTO {
 
     @Schema(description = "PlaybackReportUserEmail")
     private String userEmail;
-
+  
     @Schema(description = "PlaybackReportUserOrganisation")
     private String userOrganisation;
 
@@ -59,6 +59,7 @@ public class PlaybackReportDTO extends BaseReportDTO {
         playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());
         playbackTime = DateTimeUtils.formatTime(audit.getCreatedAt());
         playbackTimeZone = DateTimeUtils.getTimezoneAbbreviation(audit.getCreatedAt());
+
         if (user != null) {
             userFullName = user.getFullName();
             userEmail = user.getEmail();
