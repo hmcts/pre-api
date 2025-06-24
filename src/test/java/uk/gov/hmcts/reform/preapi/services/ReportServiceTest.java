@@ -7,7 +7,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
@@ -777,7 +776,7 @@ public class ReportServiceTest {
         assertThat(first.getPostcode()).isEqualTo(courtEntity.getPostcode());
         assertThat(first.getRegion()).isEqualTo(regionEntity.getName());
     }
-  
+
     @DisplayName("Find all app users with their first and last name, primary court, role, active status and "
         + "last access time and return a report")
     @Test
