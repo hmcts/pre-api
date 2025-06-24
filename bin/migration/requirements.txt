@@ -1,5 +1,0 @@
-pandas==2.2.3
-psycopg2-binary==2.9.10
-pytz==2023.4
-azure-storage-blob==12.24.0
-azure-core==1.32.0

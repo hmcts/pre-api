@@ -14,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.config.JacksonConfiguration;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.GenerateAssetDTO;
@@ -68,22 +68,25 @@ import static uk.gov.hmcts.reform.preapi.media.MediaKind.ENCODE_FROM_MP4_TRANSFO
     "platform-env=Staging",
     "mediakind.subscription=pre-mediakind-stg",
     "mediakind.issuer=testIssuer",
-    "mediakind.symmetricKey=testSymmetricKey"
+    "mediakind.symmetricKey=testSymmetricKey",
+    "mediakind.streaming-locator-on-start=true",
 })
 public class MediaKindTest {
-    @MockBean
+    @MockitoBean
     private MediaKindClient mockClient;
 
-    @MockBean
+    @MockitoBean
     private AzureFinalStorageService azureFinalStorageService;
 
-    @MockBean
+    @MockitoBean
     private AzureIngestStorageService azureIngestStorageService;
 
     @Autowired
     private MediaKind mediaKind;
 
     private CaptureSessionDTO captureSession;
+    @Autowired
+    private MediaKindClient mediaKindClient;
 
     @BeforeEach
     void setUp() {
@@ -325,6 +328,8 @@ public class MediaKindTest {
         var mockLiveEvent = mock(MkLiveEvent.class);
 
         when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(NotFoundException.class));
 
         mediaKind.startLiveEvent(captureSession);
 
@@ -333,11 +338,38 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).getStreamingLocator(any());
+        verify(mockClient, times(1)).createStreamingLocator(any(), any());
     }
 
-    @DisplayName("Should return the capture session when successfully started the live event")
     @Test
+    @DisplayName("Should return the capture session when successfully started the live event")
     void startLiveEventLiveEventConflictSuccess() {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.putLiveEvent(any(), any()))
+            .thenThrow(mock(ConflictException.class));
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(NotFoundException.class));
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+
+        mediaKind.startLiveEvent(captureSession);
+
+        verify(mockClient, times(1)).putLiveEvent(any(), any());
+        verify(mockClient, times(1)).getLiveEvent(any());
+        verify(mockClient, times(1)).putAsset(any(), any());
+        verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, times(1)).getStreamingLocator(any());
+        verify(mockClient, times(1)).createStreamingLocator(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should return the capture session when successfully started the live event (feature flag off)")
+    void startLiveEventLiveEventConflictSuccessNoStreamingLocatorCreated() {
+        mediaKind.enableStreamingLocatorOnStart = false;
+
         var liveEventName = captureSession.getId().toString().replace("-", "");
         var mockLiveEvent = mock(MkLiveEvent.class);
 
@@ -352,6 +384,9 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
+
+        mediaKind.enableStreamingLocatorOnStart = true;
     }
 
     @DisplayName("Should throw not found error when live event cannot be found after creation")
@@ -370,6 +405,7 @@ public class MediaKindTest {
 
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 409 error when asset already exists")
@@ -391,6 +427,8 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putLiveEvent(any(), any());
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
+        verify(mockClient, times(1)).deleteLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 409 error when live output already exists")
@@ -413,6 +451,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 404 error when creating a live output but cannot find live event")
@@ -435,6 +474,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).getLiveEvent(any());
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @DisplayName("Should throw 404 error when attempting to start live event that cannot be found (after setup)")
@@ -457,6 +497,7 @@ public class MediaKindTest {
         verify(mockClient, times(1)).putAsset(any(), any());
         verify(mockClient, times(1)).putLiveOutput(any(), any(), any());
         verify(mockClient, times(1)).startLiveEvent(any());
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @Test
@@ -477,7 +518,6 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventName, liveEventName);
         verify(azureIngestStorageService, times(1)).doesValidAssetExist(captureSession.getBookingId().toString());
         verify(mockClient, never()).putAsset(any(), any());
-
     }
 
     @Test
@@ -519,11 +559,11 @@ public class MediaKindTest {
         var jobArgument3 = ArgumentCaptor.forClass(String.class);
         var jobArgument4 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument3.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_MP4_TRANSFORM), jobArgument4.capture());
         assertThat(jobArgument3.getValue()).startsWith(tempName);
         assertThat(jobArgument4.getValue()).startsWith(tempName);
     }
@@ -610,7 +650,7 @@ public class MediaKindTest {
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -656,7 +696,7 @@ public class MediaKindTest {
         var jobArgument = ArgumentCaptor.forClass(String.class);
         var jobArgument2 = ArgumentCaptor.forClass(String.class);
         verify(mockClient, times(1)).putJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument.capture(), any(MkJob.class));
-        verify(mockClient, times(2)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
+        verify(mockClient, times(3)).getJob(eq(ENCODE_FROM_INGEST_TRANSFORM), jobArgument2.capture());
         assertThat(jobArgument.getValue()).startsWith(liveEventName);
         assertThat(jobArgument2.getValue()).startsWith(liveEventName);
         verify(mockClient, times(1)).stopLiveEvent(liveEventName);
@@ -726,7 +766,7 @@ public class MediaKindTest {
         when(mockProperties.getState()).thenReturn(JobState.FINISHED);
         when(mockClient.getTransform(ENCODE_FROM_MP4_TRANSFORM)).thenThrow(NotFoundException.class);
 
-        var result = mediaKind.importAsset(generateAssetDTO);
+        var result = mediaKind.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Finished");
 
@@ -789,7 +829,7 @@ public class MediaKindTest {
                                                      "unit test import asset",
                                                      UUID.randomUUID());
 
-        var result = mediaKind.importAsset(generateAssetDTO);
+        var result = mediaKind.importAsset(generateAssetDTO, true);
 
         assertThat(result.getJobStatus()).isEqualTo("Error");
 
@@ -891,6 +931,9 @@ public class MediaKindTest {
                                      .build()
             );
 
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(NotFoundException.class));
+
         when(mockClient.listStreamingLocatorPaths(liveEventName))
             .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
 
@@ -902,6 +945,77 @@ public class MediaKindTest {
             + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
             + liveEventName
             + "/index.qfm/manifest(format=m3u8-cmaf)");
+    }
+
+    @Test
+    @DisplayName("Should play a live event successfully when streaming locator already exists")
+    void playLiveEventStreamingLocatorAlreadyExistsSuccess() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenReturn(MkStreamingLocator.builder().build());
+
+        when(mockClient.listStreamingLocatorPaths(liveEventName))
+            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
+
+        var result = mediaKind.playLiveEvent(captureSession.getId());
+
+        assertThat(result).isEqualTo(
+            "https://ep-"
+                + DEFAULT_LIVE_STREAMING_ENDPOINT
+                + "-pre-mediakind-stg.uksouth.streaming.mediakind.com/"
+                + liveEventName
+                + "/index.qfm/manifest(format=m3u8-cmaf)");
+
+        verify(mockClient, never()).createStreamingLocator(any(), any());
+    }
+
+    @Test
+    @DisplayName("Should throw error when failing to get streaming locator (not 404)")
+    void playLiveEventStreamingLocatorFailed() throws JsonProcessingException, InterruptedException {
+        var liveEventName = captureSession.getId().toString().replace("-", "");
+        var mockLiveEvent = mock(MkLiveEvent.class);
+
+        when(mockClient.getStreamingEndpointByName(DEFAULT_LIVE_STREAMING_ENDPOINT))
+            .thenReturn(MkStreamingEndpoint.builder()
+                            .properties(MkStreamingEndpointProperties.builder()
+                                            .resourceState(MkStreamingEndpointProperties.ResourceState.Running)
+                                            .build())
+                            .build());
+        when(mockClient.getLiveEvent(liveEventName)).thenReturn(mockLiveEvent);
+        when(mockLiveEvent.getProperties())
+            .thenReturn(
+                MkLiveEventProperties.builder()
+                    .resourceState(LiveEventResourceState.RUNNING.toString())
+                    .build()
+            );
+
+        when(mockClient.getStreamingLocator(any()))
+            .thenThrow(mock(ConflictException.class));
+
+        when(mockClient.listStreamingLocatorPaths(liveEventName))
+            .thenReturn(getGoodStreamingLocatorPaths(liveEventName));
+
+        assertThrows(
+            ConflictException.class,
+            () -> mediaKind.playLiveEvent(captureSession.getId())
+        );
+        verify(mockClient, never()).createStreamingLocator(any(), any());
     }
 
     @SuppressWarnings("checkstyle:Indentation")
@@ -1367,5 +1481,28 @@ public class MediaKindTest {
         verify(mockClient, times(1)).deleteLiveOutput(liveEventId, liveEventId);
         verify(mockClient, times(1)).stopLiveEvent(liveEventId);
         verify(mockClient, times(1)).deleteLiveEvent(liveEventId);
+    }
+
+    @Test
+    @DisplayName("Should stop live event by id")
+    void stopLiveEvent() {
+        var liveEventName = "liveEventName";
+
+        mediaKind.stopLiveEvent(liveEventName);
+
+        verify(mediaKindClient, times(1)).stopLiveEvent(liveEventName);
+        verify(mediaKindClient, times(1)).deleteLiveEvent(liveEventName);
+    }
+
+    @Test
+    @DisplayName("Should stop live event by id, or do nothing if id doesn't exist")
+    void stopLiveEventOnError() {
+        var liveEventName = "liveEventName";
+        doThrow(NotFoundException.class).when(mockClient).stopLiveEvent(liveEventName);
+
+        mediaKind.stopLiveEvent(liveEventName);
+
+        verify(mediaKindClient, times(1)).stopLiveEvent(liveEventName);
+        verify(mediaKindClient, never()).deleteLiveEvent(liveEventName);
     }
 }

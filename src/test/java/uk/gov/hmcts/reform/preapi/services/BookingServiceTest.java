@@ -4,9 +4,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
@@ -48,25 +48,25 @@ import static org.mockito.Mockito.when;
 @SpringBootTest(classes = BookingService.class)
 class BookingServiceTest {
 
-    @MockBean
+    @MockitoBean
     private BookingRepository bookingRepository;
 
-    @MockBean
+    @MockitoBean
     private CaseRepository caseRepository;
 
-    @MockBean
+    @MockitoBean
     private RecordingRepository recordingRepository;
 
-    @MockBean
+    @MockitoBean
     private ParticipantRepository participantRepository;
 
-    @MockBean
+    @MockitoBean
     private CaptureSessionService captureSessionService;
 
-    @MockBean
+    @MockitoBean
     private ShareBookingService shareBookingService;
 
-    @MockBean
+    @MockitoBean
     private CaseService caseService;
 
     @Autowired
@@ -533,6 +533,35 @@ class BookingServiceTest {
 
         verify(bookingRepository, times(1)).findById(bookingId);
         verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Should find all past bookings without capture sessions")
+    void findAllPastBookings() {
+        var courtEntity = new Court();
+        courtEntity.setId(UUID.randomUUID());
+        var caseEntity = new Case();
+        caseEntity.setId(UUID.randomUUID());
+        caseEntity.setCourt(courtEntity);
+        var booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setCaseId(caseEntity);
+        booking.setScheduledFor(Timestamp.from(Instant.now()));
+        booking.setParticipants(Set.of());
+        booking.setCaptureSessions(Set.of());
+        booking.setShares(Set.of());
+        booking.setCreatedAt(Timestamp.from(Instant.now()));
+        booking.setModifiedAt(Timestamp.from(Instant.now()));
+        when(bookingRepository.findAllPastUnusedBookings(any()))
+            .thenReturn(List.of(booking));
+
+        List<BookingDTO> bookings = bookingService.findAllPastBookings();
+
+        assertThat(bookings).hasSize(1);
+        assertThat(bookings.getFirst().getId()).isEqualTo(booking.getId());
+
+        verify(bookingRepository, times(1))
+            .findAllPastUnusedBookings(any());
     }
 }
 

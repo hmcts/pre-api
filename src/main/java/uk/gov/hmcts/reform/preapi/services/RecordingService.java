@@ -1,5 +1,6 @@
 package uk.gov.hmcts.reform.preapi.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
@@ -20,30 +21,36 @@ import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.RecordingNotDeletedException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class RecordingService {
 
     private final RecordingRepository recordingRepository;
     private final CaptureSessionRepository captureSessionRepository;
-
     private final CaptureSessionService captureSessionService;
+    private final AzureFinalStorageService azureFinalStorageService;
 
     @Autowired
     public RecordingService(RecordingRepository recordingRepository,
                             CaptureSessionRepository captureSessionRepository,
-                            @Lazy CaptureSessionService captureSessionService) {
+                            @Lazy CaptureSessionService captureSessionService,
+                            AzureFinalStorageService azureFinalStorageService) {
         this.recordingRepository = recordingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.captureSessionService = captureSessionService;
+        this.azureFinalStorageService = azureFinalStorageService;
     }
 
     @Transactional
@@ -132,8 +139,7 @@ public class RecordingService {
 
         recordingRepository.save(recordingEntity);
 
-        var isUpdate = recording.isPresent();
-        return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
+        return recording.isPresent() ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
     @Transactional
@@ -172,5 +178,35 @@ public class RecordingService {
         }
         entity.setDeletedAt(null);
         recordingRepository.save(entity);
+    }
+
+    @Transactional
+    public int getNextVersionNumber(UUID parentRecordingId) {
+        return recordingRepository.countByParentRecording_Id(parentRecordingId) + 2;
+    }
+
+    @Transactional
+    public void syncRecordingMetadataWithStorage(UUID recordingId) {
+        Recording recording = recordingRepository.findById(recordingId)
+            .orElseThrow(() -> new NotFoundException("Recording: " + recordingId));
+
+        String storageMp4Filename = azureFinalStorageService.getMp4FileName(recordingId.toString());
+        Duration storageDuration = azureFinalStorageService.getRecordingDuration(recordingId);
+
+        boolean filenameChanged = !Objects.equals(recording.getFilename(), storageMp4Filename);
+        boolean durationChanged = !Objects.equals(recording.getDuration(), storageDuration);
+        if (filenameChanged) {
+            log.warn("Recording {} filename has changed to {}", recordingId, storageMp4Filename);
+            recording.setFilename(storageMp4Filename);
+        }
+
+        if (durationChanged) {
+            log.warn("Recording {} duration has changed to {}", recordingId, storageDuration);
+            recording.setDuration(storageDuration);
+        }
+
+        if (filenameChanged || durationChanged) {
+            recordingRepository.saveAndFlush(recording);
+        }
     }
 }

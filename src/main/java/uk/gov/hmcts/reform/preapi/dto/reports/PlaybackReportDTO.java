@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
@@ -31,6 +32,9 @@ public class PlaybackReportDTO extends BaseReportDTO {
     @Schema(description = "PlaybackReportPlaybackTime")
     private String playbackTime;
 
+    @Schema(description = "PlaybackReportTimeZone")
+    private String playbackTimeZone;
+
     @Schema(description = "PlaybackReportRecordingVersion")
     private Integer recordingVersion;
 
@@ -45,31 +49,38 @@ public class PlaybackReportDTO extends BaseReportDTO {
 
     @Schema(description = "PlaybackReportUserEmail")
     private String userEmail;
+  
+    @Schema(description = "PlaybackReportUserOrganisation")
+    private String userOrganisation;
 
     public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
         super(recording != null ? recording.getCaptureSession().getBooking().getCaseId() : null);
+
         playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());
         playbackTime = DateTimeUtils.formatTime(audit.getCreatedAt());
-        if (recording != null) {
-            var booking = recording.getCaptureSession().getBooking();
-            recordingVersion = recording.getVersion();
+        playbackTimeZone = DateTimeUtils.getTimezoneAbbreviation(audit.getCreatedAt());
 
+        if (user != null) {
+            userFullName = user.getFullName();
+            userEmail = user.getEmail();
+            userOrganisation = user.getOrganisation();
+        }
+
+        if (recording != null) {
+            Booking booking = recording.getCaptureSession().getBooking();
+            recordingVersion = recording.getVersion();
             witness = booking.getParticipants()
                 .stream()
                 .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
                 .findFirst()
                 .map(Participant::getFullName)
                 .orElse(null);
-            defendants = booking.getParticipants()
-                .stream()
+            defendants = booking.getParticipants().stream()
                 .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
                 .map(Participant::getFullName)
-                .collect(Collectors.joining(", "));
-        }
-
-        if (user != null) {
-            userFullName = user.getFullName();
-            userEmail = user.getEmail();
+                .collect(Collectors.collectingAndThen(
+                    Collectors.joining(", "),
+                    result -> result.isEmpty() ? null : result));
         }
     }
 }

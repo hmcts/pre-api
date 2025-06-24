@@ -18,6 +18,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
@@ -81,6 +82,12 @@ public class ReportController {
         schema = @Schema(implementation = String.class),
         example = "example@example.com"
     )
+    @Parameter(
+        name = "onlyActive",
+        description = "The shares must be active (not deleted) then true, otherwise false",
+        schema = @Schema(implementation = Boolean.class),
+        example = "true"
+    )
     public ResponseEntity<List<SharedReportDTO>> reportBookingsShared(
         @Parameter(hidden = true) SearchSharedReport params
     ) {
@@ -88,7 +95,8 @@ public class ReportController {
             params.getCourtId(),
             params.getBookingId(),
             params.getSharedWithId(),
-            params.getSharedWithEmail()
+            params.getSharedWithEmail(),
+            params.getOnlyActive() != null && params.getOnlyActive()
         ));
     }
 
@@ -143,5 +151,14 @@ public class ReportController {
     )
     public ResponseEntity<List<RecordingParticipantsReportDTO>> reportRecordingParticipants() {
         return ResponseEntity.ok(reportService.reportRecordingParticipants());
+    }
+
+    @GetMapping("/user-primary-courts")
+    @Operation(
+        operationId = "reportUserPrimaryCourts",
+        summary = "Get report on app users: their first and last name, their role, their active status, "
+            + "their primary court and their last access time (if available)")
+    public ResponseEntity<List<UserPrimaryCourtReportDTO>> reportUserPrimaryCourts() {
+        return ResponseEntity.ok(reportService.reportUserPrimaryCourts());
     }
 }

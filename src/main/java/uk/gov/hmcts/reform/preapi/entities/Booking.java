@@ -12,11 +12,13 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.entities.base.ISoftDeletable;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -24,7 +26,7 @@ import java.util.Set;
 @Entity
 @Table(name = "bookings")
 public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "case_id", referencedColumnName = "id")
     private Case caseId;
 
@@ -66,6 +68,10 @@ public class Booking extends CreatedModifiedAtEntity implements ISoftDeletable {
         details.put("caseId", caseId.getId());
         details.put("bookingScheduledFor", scheduledFor);
         details.put("deleted", isDeleted());
+        details.put("participants",
+                    (participants == null)
+                        ? List.of()
+                        : participants.stream().map(BaseEntity::getId).toList());
         return details;
     }
 
