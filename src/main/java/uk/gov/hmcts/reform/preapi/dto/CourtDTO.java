@@ -31,12 +31,6 @@ public class CourtDTO {
     @Schema(description = "CourtLocationCode")
     private String locationCode;
 
-    @Schema(description = "CourtCounty")
-    private String county;
-
-    @Schema(description = "CourtPostcode")
-    private String postcode;
-
     @Schema(description = "CourtRegions")
     private List<RegionDTO> regions; // this was removed??
 
@@ -48,8 +42,6 @@ public class CourtDTO {
         this.name = courtEntity.getName();
         this.courtType = courtEntity.getCourtType();
         this.locationCode = courtEntity.getLocationCode();
-        this.county = courtEntity.getCounty();
-        this.postcode = courtEntity.getPostcode();
         this.regions = Stream.ofNullable(courtEntity.getRegions())
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .sorted(Comparator.comparing(RegionDTO::getName))

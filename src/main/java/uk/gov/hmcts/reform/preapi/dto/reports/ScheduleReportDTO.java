@@ -4,35 +4,51 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
-import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
+
+import java.sql.Timestamp;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
 @Schema(description = "ScheduleReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class ScheduleReportDTO extends BaseReportDTO {
+public class ScheduleReportDTO {
 
-    @Schema(description = "ScheduleReportStartedDate")
-    private String scheduledDate;
+    @Schema(description = "ScheduleReportStartedAt")
+    private Timestamp scheduledFor;
 
     @Schema(description = "ScheduleReportBookingCreatedAt")
-    private String dateOfBooking;
+    private Timestamp bookingCreatedAt;
+
+    @Schema(description = "ScheduleReportCaseReference")
+    private String caseReference;
 
     @Schema(description = "ScheduleReportUserEmail")
-    private String user;
+    private String captureSessionUser;
+
+    @Schema(description = "ScheduleReportCourtName")
+    private String court;
+
+    @Schema(description = "ScheduleReportCourtRegions")
+    private Set<RegionDTO> regions;
 
     public ScheduleReportDTO(CaptureSession captureSession) {
-        super(captureSession.getBooking().getCaseId());
-        var booking = captureSession.getBooking();
-        scheduledDate = DateTimeUtils.formatDate(booking.getScheduledFor());
-        dateOfBooking = DateTimeUtils.formatDate(booking.getCreatedAt());
-
+        var bookingEntity = captureSession.getBooking();
+        var caseEntity = bookingEntity.getCaseId();
+        scheduledFor = bookingEntity.getScheduledFor();
+        bookingCreatedAt = bookingEntity.getCreatedAt();
+        caseReference = caseEntity.getReference();
         if (captureSession.getStartedByUser() != null) {
-            user = captureSession.getStartedByUser().getEmail();
+            captureSessionUser = captureSession.getStartedByUser().getEmail();
         }
+        court = caseEntity.getCourt().getName();
+        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
+            .collect(Collectors.toSet());
     }
 }

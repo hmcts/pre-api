@@ -38,17 +38,13 @@ public interface ShareBookingRepository extends JpaRepository<ShareBooking, UUID
             :sharedWithEmail IS NULL OR
             s.sharedWith.email ILIKE %:sharedWithEmail%
         )
-        AND (
-            :onlyActive = FALSE OR s.deletedAt IS NULL
-        )
         """
     )
     List<ShareBooking> searchAll(
         @Param("courtId") UUID courtId,
         @Param("bookingId") UUID bookingId,
         @Param("sharedWithId") UUID sharedWithId,
-        @Param("sharedWithEmail") String sharedWithEmail,
-        @Param("onlyActive") boolean onlyActive
+        @Param("sharedWithEmail") String sharedWithEmail
     );
 
     List<ShareBooking> findAllByBookingAndDeletedAtIsNull(Booking booking);
