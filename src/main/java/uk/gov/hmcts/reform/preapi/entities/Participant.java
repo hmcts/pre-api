@@ -9,7 +9,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -46,13 +45,6 @@ public class Participant extends CreatedModifiedAtEntity {
 
     @ManyToMany(mappedBy = "participants")
     private Set<Booking> bookings;
-
-    @Transient
-    private String fullName;
-
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {

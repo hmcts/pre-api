@@ -81,12 +81,6 @@ public class ReportController {
         schema = @Schema(implementation = String.class),
         example = "example@example.com"
     )
-    @Parameter(
-        name = "onlyActive",
-        description = "The shares must be active (not deleted) then true, otherwise false",
-        schema = @Schema(implementation = Boolean.class),
-        example = "true"
-    )
     public ResponseEntity<List<SharedReportDTO>> reportBookingsShared(
         @Parameter(hidden = true) SearchSharedReport params
     ) {
@@ -94,8 +88,7 @@ public class ReportController {
             params.getCourtId(),
             params.getBookingId(),
             params.getSharedWithId(),
-            params.getSharedWithEmail(),
-            params.getOnlyActive() != null && params.getOnlyActive()
+            params.getSharedWithEmail()
         ));
     }
 

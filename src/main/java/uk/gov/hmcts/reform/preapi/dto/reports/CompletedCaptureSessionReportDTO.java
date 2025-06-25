@@ -1,84 +1,88 @@
 package uk.gov.hmcts.reform.preapi.dto.reports;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
-import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
-@EqualsAndHashCode(callSuper = true)
 @Schema(description = "CompletedCaptureSessionReportDTO")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class CompletedCaptureSessionReportDTO extends BaseReportDTO {
+public class CompletedCaptureSessionReportDTO {
 
-    @Schema(description = "CompletedCaptureSessionReportRecordingDate")
-    private String recordingDate;
+    @Schema(description = "CompletedCaptureSessionReportStartedAt")
+    private Timestamp startedAt;
 
-    @Schema(description = "CompletedCaptureSessionReportRecordingTime")
-    private String recordingTime;
+    @Schema(description = "CompletedCaptureSessionReportFinishedAt")
+    private Timestamp finishedAt;
 
-    @Schema(description = "CompletedCaptureSessionReportFinishTime")
-    private String finishTime;
+    @Schema(
+        description = "CompletedCaptureSessionReportDuration",
+        implementation = String.class
+    )
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
+    private Duration duration;
 
-    @Schema(description = "CompletedCaptureSessionReportTimezone")
-    private String timezone;
+    @Schema(description = "CompletedCaptureSessionReportBookingScheduledFor")
+    private Timestamp scheduledFor;
 
-    @Schema(description = "CompletedCaptureSessionReportScheduledDate")
-    private String scheduledDate;
-
-    @Schema(description = "CompletedCaptureSessionReportStatus")
-    private RecordingStatus status;
-
-    @Schema(description = "CompletedCaptureSessionReportDefendantNames")
-    private String defendantNames;
+    @Schema(description = "CompletedCaptureSessionReportCaseReference")
+    private String caseReference;
 
     @Schema(description = "CompletedCaptureSessionReportDefendantCount")
-    private int defendant;
-
-    @Schema(description = "CompletedCaptureSessionReportWitnessNames")
-    private String witnessNames;
+    private int countDefendants;
 
     @Schema(description = "CompletedCaptureSessionReportWitnessCount")
-    private int witness;
+    private int countWitnesses;
+
+    @Schema(description = "CompletedCaptureSessionReportRecordingStatus")
+    private RecordingStatus recordingStatus;
+
+    @Schema(description = "CompletedCaptureSessionReportCourtName")
+    private String court;
+
+    @Schema(description = "CompletedCaptureSessionReportRegions")
+    private Set<RegionDTO> regions;
 
     public CompletedCaptureSessionReportDTO(Recording recording) {
-        super(recording.getCaptureSession().getBooking().getCaseId());
         var captureSession = recording.getCaptureSession();
-        status = captureSession.getStatus();
 
-        recordingDate = DateTimeUtils.formatDate(captureSession.getStartedAt());
-        recordingTime = DateTimeUtils.formatTime(captureSession.getStartedAt());
-        finishTime = DateTimeUtils.formatTime(captureSession.getFinishedAt());
-        timezone = DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt());
+        startedAt = captureSession.getStartedAt();
+        finishedAt = captureSession.getFinishedAt();
+        duration = recording.getDuration();
+
         var booking = captureSession.getBooking();
-        scheduledDate = DateTimeUtils.formatDate(captureSession.getBooking().getScheduledFor());
+        scheduledFor = booking.getScheduledFor();
 
-        var defendants = booking.getParticipants()
+        var caseEntity = booking.getCaseId();
+        caseReference = caseEntity.getReference();
+        countDefendants = (int) booking
+            .getParticipants()
             .stream()
             .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-            .toList();
-        defendantNames = defendants.stream()
-            .map(Participant::getFullName)
-            .collect(Collectors.joining(", "));
-        defendant = defendants.size();
-
-        var witnesses = booking.getParticipants()
+            .count();
+        countWitnesses = (int) booking
+            .getParticipants()
             .stream()
             .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-            .toList();
-        witnessNames = witnesses.stream()
-            .map(Participant::getFullName)
-            .collect(Collectors.joining(", "));
-        witness = witnesses.size();
+            .count();
+        recordingStatus = captureSession.getStatus();
+        court = caseEntity.getCourt().getName();
+        regions = Stream.ofNullable(caseEntity.getCourt().getRegions())
+            .flatMap(regions -> regions.stream().map(RegionDTO::new))
+            .collect(Collectors.toSet());
     }
 }
