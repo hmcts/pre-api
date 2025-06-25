@@ -1,6 +1,7 @@
 package uk.gov.hmcts.reform.preapi.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import io.restassured.response.Response;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,19 +26,19 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @DisplayName("Scenario: Restore recording")
     void undeleteRecording() {
         var recordingDetails = createRecording();
-        assertRecordingExists(recordingDetails.recordingId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
 
         var deleteResponse =
-            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
-        assertRecordingExists(recordingDetails.recordingId, false);
+        assertRecordingExists(recordingDetails.recordingId(), false);
 
         var undeleteResponse = doPostRequest(
-            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId + "/undelete",
+            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId() + "/undelete",
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(undeleteResponse, 200);
-        assertRecordingExists(recordingDetails.recordingId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
     }
 
     @Test
@@ -153,12 +154,12 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @DisplayName("Delete a recording")
     void shouldDeleteRecording() {
         var recording = createRecording();
-        assertRecordingExists(recording.recordingId, true);
+        assertRecordingExists(recording.recordingId(), true);
 
         var deleteResponse =
-            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recording.recordingId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recording.recordingId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteResponse, 200);
-        assertRecordingExists(recording.recordingId, false);
+        assertRecordingExists(recording.recordingId(), false);
     }
 
     @Test
@@ -176,55 +177,55 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void shouldUndeleteRecording() {
         // create recording
         var recordingDetails = createRecording();
-        assertRecordingExists(recordingDetails.recordingId, true);
-        assertCaptureSessionExists(recordingDetails.captureSessionId, true);
-        assertBookingExists(recordingDetails.bookingId, true);
-        assertCaseExists(recordingDetails.caseId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
+        assertCaptureSessionExists(recordingDetails.captureSessionId(), true);
+        assertBookingExists(recordingDetails.bookingId(), true);
+        assertCaseExists(recordingDetails.caseId(), true);
 
         // must delete all recordings associated to case before deleting case
         var deleteRecording =
-            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteRecording, 200);
 
         // delete case (deleting associated bookings + capture sessions)
         var deleteCase =
-            doDeleteRequest(CASES_ENDPOINT + "/" + recordingDetails.caseId, TestingSupportRoles.SUPER_USER);
+            doDeleteRequest(CASES_ENDPOINT + "/" + recordingDetails.caseId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(deleteCase, 200);
-        assertRecordingExists(recordingDetails.recordingId, false);
-        assertCaptureSessionExists(recordingDetails.captureSessionId, false);
-        assertBookingExists(recordingDetails.bookingId, false);
-        assertCaseExists(recordingDetails.caseId, false);
+        assertRecordingExists(recordingDetails.recordingId(), false);
+        assertCaptureSessionExists(recordingDetails.captureSessionId(), false);
+        assertBookingExists(recordingDetails.bookingId(), false);
+        assertCaseExists(recordingDetails.caseId(), false);
 
         // undelete recording (and associated capture session, booking, case)
         var undeleteRecording = doPostRequest(
-            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId + "/undelete",
+            RECORDINGS_ENDPOINT + "/" + recordingDetails.recordingId() + "/undelete",
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(undeleteRecording, 200);
-        assertRecordingExists(recordingDetails.recordingId, true);
-        assertCaptureSessionExists(recordingDetails.captureSessionId, true);
-        assertBookingExists(recordingDetails.bookingId, true);
-        assertCaseExists(recordingDetails.caseId, true);
+        assertRecordingExists(recordingDetails.recordingId(), true);
+        assertCaptureSessionExists(recordingDetails.captureSessionId(), true);
+        assertBookingExists(recordingDetails.bookingId(), true);
+        assertCaseExists(recordingDetails.caseId(), true);
     }
 
     @Test
     @DisplayName("Should sort by created at desc when sort param not set and by sort param otherwise")
     void getRecordingsSortBy() throws JsonProcessingException {
         var details = createRecording();
-        assertRecordingExists(details.recordingId, true);
-        assertCaptureSessionExists(details.captureSessionId, true);
-        assertBookingExists(details.bookingId, true);
-        assertCaseExists(details.caseId, true);
+        assertRecordingExists(details.recordingId(), true);
+        assertCaptureSessionExists(details.captureSessionId(), true);
+        assertBookingExists(details.bookingId(), true);
+        assertCaseExists(details.caseId(), true);
 
-        var recording2 = createRecording(details.captureSessionId);
-        recording2.setParentRecordingId(details.recordingId);
+        var recording2 = createRecording(details.captureSessionId());
+        recording2.setParentRecordingId(details.recordingId());
         recording2.setVersion(2);
         var putRecording2 = putRecording(recording2);
         assertResponseCode(putRecording2, 201);
         assertRecordingExists(recording2.getId(), true);
 
         var getRecordings1 = doGetRequest(
-            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?captureSessionId=" + details.captureSessionId(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(getRecordings1, 200);
@@ -233,11 +234,11 @@ public class RecordingControllerFT extends FunctionalTestBase {
         // default sort by createdAt desc
         assertThat(recordings1.size()).isEqualTo(2);
         assertThat(recordings1.getFirst().getId()).isEqualTo(recording2.getId());
-        assertThat(recordings1.getLast().getId()).isEqualTo(details.recordingId);
+        assertThat(recordings1.getLast().getId()).isEqualTo(details.recordingId());
         assertThat(recordings1.getFirst().getCreatedAt()).isAfter(recordings1.getLast().getCreatedAt());
 
         var getRecordings2 = doGetRequest(
-            RECORDINGS_ENDPOINT + "?sort=createdAt,asc&captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?sort=createdAt,asc&captureSessionId=" + details.captureSessionId(),
             TestingSupportRoles.SUPER_USER
         );
         assertResponseCode(getRecordings2, 200);
@@ -245,7 +246,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
 
         // sort in opposite direction (createdAt asc)
         assertThat(recordings2.size()).isEqualTo(2);
-        assertThat(recordings2.getFirst().getId()).isEqualTo(details.recordingId);
+        assertThat(recordings2.getFirst().getId()).isEqualTo(details.recordingId());
         assertThat(recordings2.getLast().getId()).isEqualTo(recording2.getId());
         assertThat(recordings2.getFirst().getCreatedAt()).isBefore(recordings2.getLast().getCreatedAt());
     }
@@ -255,12 +256,13 @@ public class RecordingControllerFT extends FunctionalTestBase {
     void getRecordingTotalVersionCount() throws JsonProcessingException {
         // create parent recording
         var details = createRecording();
-        var getRecording1 = assertRecordingExists(details.recordingId, true);
+        var getRecording1 = assertRecordingExists(details.recordingId(), true);
+        getRecording1.prettyPrint();
         assertThat(getRecording1.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(1);
 
         // create child recording
-        var recording2 = createRecording(details.captureSessionId);
-        recording2.setParentRecordingId(details.recordingId);
+        var recording2 = createRecording(details.captureSessionId());
+        recording2.setParentRecordingId(details.recordingId());
         recording2.setVersion(2);
         var putRecording2 = putRecording(recording2);
         assertResponseCode(putRecording2, 201);
@@ -268,7 +270,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(getRecording2.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
 
         // check parent recording
-        var getRecording3 = assertRecordingExists(details.recordingId, true);
+        var getRecording3 = assertRecordingExists(details.recordingId(), true);
         assertThat(getRecording3.getBody().as(RecordingDTO.class).getTotalVersionCount()).isEqualTo(2);
     }
 
@@ -290,10 +292,10 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @EnumSource(value = TestingSupportRoles.class, names = { "SUPER_USER", "LEVEL_1" })
     void getRecordingsByCaseOpenTrue(TestingSupportRoles testingSupportRole) {
         var details = createRecording();
-        assertRecordingExists(details.recordingId, true);
+        assertRecordingExists(details.recordingId(), true);
 
         var getRecordingsCaseOpenTrue = doGetRequest(
-            RECORDINGS_ENDPOINT + "?caseOpen=true&captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?caseOpen=true&captureSessionId=" + details.captureSessionId(),
             testingSupportRole
         );
         assertResponseCode(getRecordingsCaseOpenTrue, 200);
@@ -303,7 +305,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(recordingsCaseOpenTrue.getFirst()).isNotNull();
 
         var getRecordingsCaseOpenFalse = doGetRequest(
-            RECORDINGS_ENDPOINT + "?caseOpen=false&captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?caseOpen=false&captureSessionId=" + details.captureSessionId(),
             testingSupportRole
         );
         var recordingsCaseOpenFalse = getRecordingsCaseOpenFalse.jsonPath()
@@ -316,7 +318,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @EnumSource(value = TestingSupportRoles.class, names = { "SUPER_USER", "LEVEL_1" })
     void getRecordingsByCaseOpenFalse(TestingSupportRoles testingSupportRole) throws JsonProcessingException {
         var details = createRecording();
-        var recording = assertRecordingExists(details.recordingId, true).jsonPath().getObject("$", RecordingDTO.class);
+        var recording = assertRecordingExists(details.recordingId(), true).jsonPath().getObject("$", RecordingDTO.class);
 
         var getCase = doGetRequest(CASES_ENDPOINT + "/" + recording.getCaseId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCase, 200);
@@ -331,7 +333,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertCaseExists(caseDto.getId(), true);
 
         var getRecordingsCaseOpenTrue = doGetRequest(
-            RECORDINGS_ENDPOINT + "?caseOpen=true&captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?caseOpen=true&captureSessionId=" + details.captureSessionId(),
             testingSupportRole
         );
         assertResponseCode(getRecordingsCaseOpenTrue, 200);
@@ -340,7 +342,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(recordingsCaseOpenTrue).isEmpty();
 
         var getRecordingsCaseOpenFalse = doGetRequest(
-            RECORDINGS_ENDPOINT + "?caseOpen=false&captureSessionId=" + details.captureSessionId,
+            RECORDINGS_ENDPOINT + "?caseOpen=false&captureSessionId=" + details.captureSessionId(),
             testingSupportRole
         );
         var recordingsCaseOpenFalse = getRecordingsCaseOpenFalse.jsonPath()
@@ -349,10 +351,19 @@ public class RecordingControllerFT extends FunctionalTestBase {
         assertThat(recordingsCaseOpenFalse.getFirst()).isNotNull();
     }
 
-    private CreateRecordingResponse createRecording() {
-        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
-        assertResponseCode(response, 200);
-        return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
+    @Test
+    @DisplayName("Should throw 403 when LEVEL 4 user attempts to search recordings")
+    void getRecordingsLevel4() {
+        Response getRecordings = doGetRequest(RECORDINGS_ENDPOINT, TestingSupportRoles.LEVEL_4);
+        assertResponseCode(getRecordings, 403);
+    }
+
+    @Test
+    @DisplayName("Should throw 403 when LEVEL 4 user attempts to get recording by id")
+    void getRecordingByIdLevel4() {
+        Response getRecordings = doGetRequest(RECORDINGS_ENDPOINT + "/" + UUID.randomUUID(),
+                                              TestingSupportRoles.LEVEL_4);
+        assertResponseCode(getRecordings, 403);
     }
 
     @Override
@@ -360,8 +371,5 @@ public class RecordingControllerFT extends FunctionalTestBase {
         var dto = super.createCaptureSession();
         dto.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         return dto;
-    }
-
-    private record CreateRecordingResponse(UUID caseId, UUID bookingId, UUID captureSessionId, UUID recordingId) {
     }
 }

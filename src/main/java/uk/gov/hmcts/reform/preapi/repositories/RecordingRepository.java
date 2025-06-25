@@ -21,6 +21,8 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         UUID recordingId
     );
 
+    Optional<Recording> findByIdAndDeletedAtIsNull(UUID id);
+
     @Query(
         """
         SELECT r FROM Recording r
@@ -111,4 +113,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         """
     )
     List<Object[]> countRecordingsPerCase();
+
+    int countByParentRecording_Id(UUID id);
 }

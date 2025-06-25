@@ -19,6 +19,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -234,5 +235,50 @@ public class RecordingServiceIT extends IntegrationTestBase {
         var recordings4 = recordingService.findAll(searchFalse, false, Pageable.unpaged()).toList();
         Assertions.assertEquals(1, recordings4.size());
         Assertions.assertEquals(recordings4.getFirst().getId(), recording1.getId());
+    }
+
+    @Test
+    @Transactional
+    void getNextVersionNumberSuccess() {
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Example Court", "1234");
+        entityManager.persist(court);
+
+        mockNonAdminUser(court.getId());
+
+        var caseEntity = HelperFactory.createCase(court, "CASE12345", true, null);
+        entityManager.persist(caseEntity);
+
+        var booking = HelperFactory.createBooking(caseEntity, Timestamp.from(Instant.now()), null);
+        entityManager.persist(booking);
+
+        var captureSession = HelperFactory.createCaptureSession(
+            booking,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        entityManager.persist(captureSession);
+
+        var recording1 = HelperFactory.createRecording(captureSession, null, 1, "filename", null);
+        entityManager.persist(recording1);
+        var nextVersion1 = recordingService.getNextVersionNumber(recording1.getId());
+        assertThat(nextVersion1).isEqualTo(2);
+
+        var recording2 = HelperFactory.createRecording(
+            captureSession,
+            recording1,
+            2,
+            "filename",
+            Timestamp.from(Instant.now())
+        );
+        entityManager.persist(recording2);
+        var nextVersion2 = recordingService.getNextVersionNumber(recording1.getId());
+        assertThat(nextVersion2).isEqualTo(3);
     }
 }
