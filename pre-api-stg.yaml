@@ -28,34 +28,29 @@ definitions:
     description: AccessRemovedReportDTO
     properties:
       case_reference:
-        description: ReportCaseReference
-        type: string
-      county:
-        description: ReportCounty
+        description: AccessRemovedReportCaseReference
         type: string
       court:
-        description: ReportCourt
+        description: AccessRemovedReportCourtName
         type: string
-      full_name:
-        description: AccessRemovedReportUserFullName
+      regions:
+        description: AccessRemovedReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      removal_reason:
+        description: AccessRemovedReportRemovalReason
         type: string
-      postcode:
-        description: ReportPostcode
-        type: string
-      region:
-        description: ReportRegion
-        type: string
-      removed_date:
-        description: AccessRemovedReportRemovedDate
-        type: string
-      removed_time:
-        description: AccessRemovedReportRemovedTime
-        type: string
-      removed_timezone:
-        description: AccessRemovedReportRemovedTimezone
+      removed_at:
+        description: AccessRemovedReportRemovedAt
+        format: date-time
         type: string
       user_email:
         description: AccessRemovedReportUserEmail
+        type: string
+      user_full_name:
+        description: AccessRemovedReportUserFullName
         type: string
     type: object
   AssetDTO:
@@ -300,41 +295,28 @@ definitions:
     description: CompletedCaptureSessionReportDTO
     properties:
       case_reference:
-        description: ReportCaseReference
+        description: CompletedCaptureSessionReportCaseReference
         type: string
-      county:
-        description: ReportCounty
-        type: string
-      court:
-        description: ReportCourt
-        type: string
-      defendant:
+      count_defendants:
         description: CompletedCaptureSessionReportDefendantCount
         format: int32
         type: integer
-      defendant_names:
-        description: CompletedCaptureSessionReportDefendantNames
+      count_witnesses:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      court:
+        description: CompletedCaptureSessionReportCourtName
         type: string
-      finish_time:
-        description: CompletedCaptureSessionReportFinishTime
+      duration:
+        description: CompletedCaptureSessionReportDuration
         type: string
-      postcode:
-        description: ReportPostcode
+      finished_at:
+        description: CompletedCaptureSessionReportFinishedAt
+        format: date-time
         type: string
-      recording_date:
-        description: CompletedCaptureSessionReportRecordingDate
-        type: string
-      recording_time:
-        description: CompletedCaptureSessionReportRecordingTime
-        type: string
-      region:
-        description: ReportRegion
-        type: string
-      scheduled_date:
-        description: CompletedCaptureSessionReportScheduledDate
-        type: string
-      status:
-        description: CompletedCaptureSessionReportStatus
+      recording_status:
+        description: CompletedCaptureSessionReportRecordingStatus
         enum:
           - STANDBY
           - INITIALISING
@@ -344,49 +326,50 @@ definitions:
           - FAILURE
           - NO_RECORDING
         type: string
-      timezone:
-        description: CompletedCaptureSessionReportTimezone
+      regions:
+        description: CompletedCaptureSessionReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: CompletedCaptureSessionReportBookingScheduledFor
+        format: date-time
         type: string
-      witness:
-        description: CompletedCaptureSessionReportWitnessCount
-        format: int32
-        type: integer
-      witness_names:
-        description: CompletedCaptureSessionReportWitnessNames
+      started_at:
+        description: CompletedCaptureSessionReportStartedAt
+        format: date-time
         type: string
     type: object
   ConcurrentCaptureSessionReportDTO:
     description: ConcurrentCaptureSessionReportDTO
     properties:
       case_reference:
-        description: ReportCaseReference
-        type: string
-      county:
-        description: ReportCounty
+        description: CaptureSessionCaseReference
         type: string
       court:
-        description: ReportCourt
-        type: string
-      date:
-        description: CaptureSessionStartDate
+        description: CaptureSessionCourtName
         type: string
       duration:
         description: CaptureSessionDuration
         type: string
       end_time:
         description: CaptureSessionEndTime
+        format: date-time
         type: string
-      postcode:
-        description: ReportPostcode
+      id:
+        description: CaptureSessionId
+        format: uuid
         type: string
       region:
-        description: ReportRegion
-        type: string
+        description: CaptureSessionRegionName
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
       start_time:
         description: CaptureSessionStartTime
-        type: string
-      timezone:
-        description: CaptureSessionStartTimezone
+        format: date-time
         type: string
     type: object
   CourtDTO:
@@ -863,29 +846,25 @@ definitions:
     description: EditReportDTO
     properties:
       case_reference:
-        description: ReportCaseReference
-        type: string
-      county:
-        description: ReportCounty
+        description: EditReportCaseReference
         type: string
       court:
-        description: ReportCourt
+        description: EditReportCourtName
         type: string
-      edit_date:
-        description: EditReportEditDate
+      created_at:
+        description: EditReportEditCreatedAt
+        format: date-time
         type: string
-      edit_time:
-        description: EditReportEditTime
+      recording_id:
+        description: EditReportRecordingId
+        format: uuid
         type: string
-      postcode:
-        description: ReportPostcode
-        type: string
-      region:
-        description: ReportRegion
-        type: string
-      timezone:
-        description: EditReportEditTimezone
-        type: string
+      regions:
+        description: EditReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
       version:
         description: EditReportRecordingVersion
         format: int32
@@ -1556,47 +1535,30 @@ definitions:
     description: PlaybackReportDTO
     properties:
       case_reference:
-        description: ReportCaseReference
-        type: string
-      county:
-        description: ReportCounty
+        description: PlaybackReportCaseReference
         type: string
       court:
-        description: ReportCourt
+        description: PlaybackReportCourt
         type: string
-      defendants:
-        description: PlaybackReportDefendants
+      playback_at:
+        description: PlaybackReportPlaybackAt
+        format: date-time
         type: string
-      playback_date:
-        description: PlaybackReportPlaybackDate
+      recording_id:
+        description: PlaybackReportRecordingId
+        format: uuid
         type: string
-      playback_time:
-        description: PlaybackReportPlaybackTime
-        type: string
-      playback_time_zone:
-        description: PlaybackReportTimeZone
-        type: string
-      postcode:
-        description: ReportPostcode
-        type: string
-      recording_version:
-        description: PlaybackReportRecordingVersion
-        format: int32
-        type: integer
-      region:
-        description: ReportRegion
-        type: string
+      regions:
+        description: PlaybackReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
       user_email:
         description: PlaybackReportUserEmail
         type: string
       user_full_name:
         description: PlaybackReportUserFullName
-        type: string
-      user_organisation:
-        description: PlaybackReportUserOrganisation
-        type: string
-      witness:
-        description: PlaybackReportWitness
         type: string
     type: object
   PortalAccessDTO:
@@ -1725,24 +1687,21 @@ definitions:
     description: RecordingsPerCaseReportDTO
     properties:
       case_reference:
-        description: ReportCaseReference
+        description: RecordingsPerCaseCaseReference
         type: string
-      county:
-        description: ReportCounty
-        type: string
-      court:
-        description: ReportCourt
-        type: string
-      number_of_recordings:
-        description: RecordingsPerCaseNumberOfRecordings
+      count:
+        description: RecordingsPerCaseCount
         format: int32
         type: integer
-      postcode:
-        description: ReportPostcode
+      court:
+        description: RecordingsPerCaseCourt
         type: string
-      region:
-        description: ReportRegion
-        type: string
+      regions:
+        description: RecordingsPerCaseRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
     type: object
   RegionDTO:
     description: RegionDTO
@@ -1779,29 +1738,28 @@ definitions:
   ScheduleReportDTO:
     description: ScheduleReportDTO
     properties:
-      case_reference:
-        description: ReportCaseReference
+      booking_created_at:
+        description: ScheduleReportBookingCreatedAt
+        format: date-time
         type: string
-      county:
-        description: ReportCounty
+      capture_session_user:
+        description: ScheduleReportUserEmail
+        type: string
+      case_reference:
+        description: ScheduleReportCaseReference
         type: string
       court:
-        description: ReportCourt
+        description: ScheduleReportCourtName
         type: string
-      date_of_booking:
-        description: ScheduleReportBookingCreatedAt
-        type: string
-      postcode:
-        description: ReportPostcode
-        type: string
-      region:
-        description: ReportRegion
-        type: string
-      scheduled_date:
-        description: ScheduleReportStartedDate
-        type: string
-      user:
-        description: ScheduleReportUserEmail
+      regions:
+        description: ScheduleReportCourtRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      scheduled_for:
+        description: ScheduleReportStartedAt
+        format: date-time
         type: string
     type: object
   ShareBookingDTO:
@@ -1827,44 +1785,37 @@ definitions:
   SharedReportDTO:
     description: SharedReportDTO
     properties:
-      case_reference:
-        description: ReportCaseReference
+      allocated_by:
+        description: SharedReportAllocatedBy
         type: string
-      county:
-        description: ReportCounty
+      allocated_by_full_name:
+        description: SharedReportAllocatedToFullName
+        type: string
+      allocated_to:
+        description: SharedReportAllocatedTo
+        type: string
+      allocated_to_full_name:
+        description: SharedReportAllocatedToFullName
+        type: string
+      booking_id:
+        description: SharedReportBookingId
+        format: uuid
+        type: string
+      case_reference:
+        description: SharedReportCaseReference
         type: string
       court:
-        description: ReportCourt
+        description: SharedReportCourtName
         type: string
-      granted_by:
-        description: SharedReportGrantedBy
-        type: string
-      granted_by_full_name:
-        description: SharedReportGrantedByFullName
-        type: string
-      organisation_shared_with:
-        description: SharedReportOrganisationAllocatedTo
-        type: string
-      postcode:
-        description: ReportPostcode
-        type: string
-      region:
-        description: ReportRegion
-        type: string
-      share_date:
-        description: SharedReportShareDate
-        type: string
-      share_time:
-        description: SharedReportShareTime
-        type: string
-      shared_with:
-        description: SharedReportSharedWith
-        type: string
-      shared_with_full_name:
-        description: SharedReportSharedWithFullName
-        type: string
-      timezone:
-        description: SharedReportShareTimezone
+      regions:
+        description: SharedReportRegions
+        items:
+          $ref: '#/definitions/RegionDTO'
+        type: array
+        uniqueItems: true
+      shared_at:
+        description: SharedReportSharedAt
+        format: date-time
         type: string
     type: object
   TermsAndConditionsDTO:
@@ -3458,9 +3409,9 @@ paths:
       summary: Revert deletion of a recording
       tags:
         - recording-controller
-  /reports/capture-sessions-concurrent:
+  /reports-v2/capture-sessions-concurrent:
     get:
-      operationId: reportConcurrentCaptureSessions
+      operationId: reportConcurrentCaptureSessions_1
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3480,9 +3431,9 @@ paths:
             type: array
       tags:
         - report-controller
-  /reports/completed-capture-sessions:
+  /reports-v2/completed-capture-sessions:
     get:
-      operationId: reportCompletedCaptureSessions
+      operationId: reportCompletedCaptureSessions_1
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3503,9 +3454,9 @@ paths:
       summary: Get a report on capture sessions with available recordings
       tags:
         - report-controller
-  /reports/edits:
+  /reports-v2/edits:
     get:
-      operationId: reportEdits
+      operationId: reportEdits_1
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3526,9 +3477,9 @@ paths:
       summary: Get a report on recordings edits
       tags:
         - report-controller
-  /reports/playback:
+  /reports-v2/playback:
     get:
-      operationId: reportPlayback
+      operationId: reportPlayback_1
       parameters:
         - description: 'The source of the playback. Only accepts PORTAL, APPLICATION or null'
           enum:
@@ -3559,9 +3510,9 @@ paths:
       summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
       tags:
         - report-controller
-  /reports/recording-participants:
+  /reports-v2/recording-participants:
     get:
-      operationId: reportRecordingParticipants
+      operationId: reportRecordingParticipants_1
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3582,9 +3533,9 @@ paths:
       summary: Get report on participants and the recordings they are part of
       tags:
         - report-controller
-  /reports/recordings-per-case:
+  /reports-v2/recordings-per-case:
     get:
-      operationId: reportRecordingsPerCase
+      operationId: reportRecordingsPerCase_1
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3605,9 +3556,9 @@ paths:
       summary: Get the number of completed capture sessions for each case
       tags:
         - report-controller
-  /reports/schedules:
+  /reports-v2/schedules:
     get:
-      operationId: reportSchedules
+      operationId: reportSchedules_1
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3628,9 +3579,9 @@ paths:
       summary: Get a list of completed capture sessions with booking details
       tags:
         - report-controller
-  /reports/share-bookings-removed:
+  /reports-v2/share-bookings-removed:
     get:
-      operationId: reportShareBookingRemoved
+      operationId: reportShareBookingRemoved_1
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3651,9 +3602,9 @@ paths:
       summary: Get report on booking share removal
       tags:
         - report-controller
-  /reports/shared-bookings:
+  /reports-v2/shared-bookings:
     get:
-      operationId: reportBookingsShared
+      operationId: reportBookingsShared_1
       parameters:
         - description: The court id to search by
           format: uuid
@@ -3702,6 +3653,271 @@ paths:
       summary: Get a report on the bookings that have been shared
       tags:
         - report-controller
+  /reports-v2/user-primary-courts:
+    get:
+      operationId: reportUserPrimaryCourts_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserPrimaryCourtReportDTO'
+            type: array
+      summary: >-
+        Get report on app users: their first and last name, their role, their
+        active status, their primary court and their last access time (if
+        available)
+      tags:
+        - report-controller
+  /reports/capture-sessions-concurrent:
+    get:
+      operationId: reportConcurrentCaptureSessions
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
+            type: array
+      tags:
+        - legacy-report-controller
+  /reports/completed-capture-sessions:
+    get:
+      operationId: reportCompletedCaptureSessions
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CompletedCaptureSessionReportDTO'
+            type: array
+      summary: Get a report on capture sessions with available recordings
+      tags:
+        - legacy-report-controller
+  /reports/edits:
+    get:
+      operationId: reportEdits
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/EditReportDTO'
+            type: array
+      summary: Get a report on recordings edits
+      tags:
+        - legacy-report-controller
+  /reports/playback:
+    get:
+      operationId: reportPlayback
+      parameters:
+        - description: 'The source of the playback. Only accepts PORTAL, APPLICATION or null'
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          required: false
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/PlaybackReportDTO'
+            type: array
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
+      tags:
+        - legacy-report-controller
+  /reports/recording-participants:
+    get:
+      operationId: reportRecordingParticipants
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingParticipantsReportDTO'
+            type: array
+      summary: Get report on participants and the recordings they are part of
+      tags:
+        - legacy-report-controller
+  /reports/recordings-per-case:
+    get:
+      operationId: reportRecordingsPerCase
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingsPerCaseReportDTO'
+            type: array
+      summary: Get the number of completed capture sessions for each case
+      tags:
+        - legacy-report-controller
+  /reports/schedules:
+    get:
+      operationId: reportSchedules
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ScheduleReportDTO'
+            type: array
+      summary: Get a list of completed capture sessions with booking details
+      tags:
+        - legacy-report-controller
+  /reports/share-bookings-removed:
+    get:
+      operationId: reportShareBookingRemoved
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AccessRemovedReportDTO'
+            type: array
+      summary: Get report on booking share removal
+      tags:
+        - legacy-report-controller
+  /reports/shared-bookings:
+    get:
+      operationId: reportBookingsShared
+      parameters:
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The booking id to search by
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The id of the user the booking is shared with to search by
+          format: uuid
+          in: query
+          name: sharedWithId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The email of the user the booking is shared with to search by
+          in: query
+          name: sharedWithEmail
+          type: string
+          x-example: example@example.com
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/SharedReportDTO'
+            type: array
+      summary: Get a report on the bookings that have been shared
+      tags:
+        - legacy-report-controller
   /reports/user-primary-courts:
     get:
       operationId: reportUserPrimaryCourts
@@ -3727,7 +3943,7 @@ paths:
         active status, their primary court and their last access time (if
         available)
       tags:
-        - report-controller
+        - legacy-report-controller
   /roles:
     get:
       operationId: getRoles
