@@ -87,7 +87,7 @@ public class ReportControllerTest {
 
         when(reportService.reportCaptureSessions()).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/capture-sessions-concurrent"))
+        mockMvc.perform(get("/reports-v2/capture-sessions-concurrent"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].date").value(reportItem.getDate()))
@@ -108,7 +108,7 @@ public class ReportControllerTest {
         reportItem.setNumberOfRecordings(2);
 
         when(reportService.reportRecordingsPerCase()).thenReturn(List.of(reportItem));
-        mockMvc.perform(get("/reports/recordings-per-case"))
+        mockMvc.perform(get("/reports-v2/recordings-per-case"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
@@ -135,7 +135,7 @@ public class ReportControllerTest {
         reportItem.setRegion("Somewhere");
 
         when(reportService.reportEdits()).thenReturn(List.of(reportItem));
-        mockMvc.perform(get("/reports/edits"))
+        mockMvc.perform(get("/reports-v2/edits"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].edit_date").value(reportItem.getEditDate()))
@@ -155,7 +155,7 @@ public class ReportControllerTest {
         var reportItem = createSharedReport();
 
         when(reportService.reportShared(null, null, null, null, false)).thenReturn(List.of(reportItem));
-        mockMvc.perform(get("/reports/shared-bookings"))
+        mockMvc.perform(get("/reports-v2/shared-bookings"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].share_date").value(reportItem.getShareDate()))
@@ -181,7 +181,7 @@ public class ReportControllerTest {
         var courtId = UUID.randomUUID();
 
         when(reportService.reportShared(courtId, null, null, null, false)).thenReturn(List.of(reportItem));
-        mockMvc.perform(get("/reports/shared-bookings")
+        mockMvc.perform(get("/reports-v2/shared-bookings")
                             .param("courtId", courtId.toString()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -205,7 +205,7 @@ public class ReportControllerTest {
         when(reportService.reportShared(null, searchId, null, null, false))
             .thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/shared-bookings")
+        mockMvc.perform(get("/reports-v2/shared-bookings")
                             .param("bookingId", searchId.toString()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -228,7 +228,7 @@ public class ReportControllerTest {
         var userId = UUID.randomUUID();
 
         when(reportService.reportShared(null, null, userId, null, false)).thenReturn(List.of(reportItem));
-        mockMvc.perform(get("/reports/shared-bookings")
+        mockMvc.perform(get("/reports-v2/shared-bookings")
                             .param("sharedWithId", userId.toString()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -251,7 +251,7 @@ public class ReportControllerTest {
         when(reportService.reportShared(null, null, null, reportItem.getSharedWith(), false))
             .thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/shared-bookings")
+        mockMvc.perform(get("/reports-v2/shared-bookings")
                             .param("sharedWithEmail", reportItem.getSharedWith()))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -274,7 +274,7 @@ public class ReportControllerTest {
 
         when(reportService.reportShared(null, null, null, null, true))
             .thenReturn(List.of(reportItem));
-        mockMvc.perform(get("/reports/shared-bookings")
+        mockMvc.perform(get("/reports-v2/shared-bookings")
                             .param("onlyActive", "true"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -305,7 +305,7 @@ public class ReportControllerTest {
         reportItem.setUser("example@example.com");
 
         when(reportService.reportScheduled()).thenReturn(List.of(reportItem));
-        mockMvc.perform(get("/reports/schedules"))
+        mockMvc.perform(get("/reports-v2/schedules"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].scheduled_date").value(reportItem.getScheduledDate()))
@@ -341,7 +341,7 @@ public class ReportControllerTest {
 
         when(reportService.reportCompletedCaptureSessions()).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/completed-capture-sessions"))
+        mockMvc.perform(get("/reports-v2/completed-capture-sessions"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].recording_date").value(reportItem.getRecordingDate()))
@@ -379,7 +379,7 @@ public class ReportControllerTest {
 
         when(reportService.reportAccessRemoved()).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/share-bookings-removed"))
+        mockMvc.perform(get("/reports-v2/share-bookings-removed"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$[0].removed_date").value(reportItem.getRemovedDate()))
@@ -400,7 +400,7 @@ public class ReportControllerTest {
 
         when(reportService.reportPlayback(AuditLogSource.PORTAL)).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/playback")
+        mockMvc.perform(get("/reports-v2/playback")
                             .param("source", "PORTAL"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -426,7 +426,7 @@ public class ReportControllerTest {
 
         when(reportService.reportPlayback(AuditLogSource.APPLICATION)).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/playback")
+        mockMvc.perform(get("/reports-v2/playback")
                             .param("source", "APPLICATION"))
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -452,7 +452,7 @@ public class ReportControllerTest {
 
         when(reportService.reportPlayback(null)).thenReturn(List.of(reportItem));
 
-        mockMvc.perform(get("/reports/playback"))
+        mockMvc.perform(get("/reports-v2/playback"))
                .andExpect(status().isOk())
                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                .andExpect(jsonPath("$[0].playback_date").value("01/01/2025"))
@@ -554,7 +554,7 @@ public class ReportControllerTest {
 
         when(reportService.reportUserPrimaryCourts()).thenReturn(List.of(dto));
 
-        mockMvc.perform(get("/reports/user-primary-courts"))
+        mockMvc.perform(get("/reports-v2/user-primary-courts"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andExpect(jsonPath("$[0].first_name").value(dto.getFirstName()))
