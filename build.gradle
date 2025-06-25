@@ -188,7 +188,8 @@ def coverageExclusionList = [
 
 def duplicateCodeExclusionList = [
   '**uk/gov/hmcts/reform/preapi/entities/**',
-  '**uk/gov/hmcts/reform/preapi/controllers/LegacyReportController'
+  '**uk/gov/hmcts/reform/preapi/controllers/LegacyReportController*',
+  '**uk/gov/hmcts/reform/preapi/controllers/ReportController*'
 ]
 
 sonarqube {
