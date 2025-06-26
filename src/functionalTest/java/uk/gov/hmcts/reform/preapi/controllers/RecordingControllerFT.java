@@ -18,8 +18,6 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.Temporal;
-import java.time.temporal.TemporalUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -321,7 +319,8 @@ public class RecordingControllerFT extends FunctionalTestBase {
     @EnumSource(value = TestingSupportRoles.class, names = { "SUPER_USER", "LEVEL_1" })
     void getRecordingsByCaseOpenFalse(TestingSupportRoles testingSupportRole) throws JsonProcessingException {
         var details = createRecording();
-        var recording = assertRecordingExists(details.recordingId(), true).jsonPath().getObject("$", RecordingDTO.class);
+        var recording = assertRecordingExists(details.recordingId(), true)
+            .jsonPath().getObject("$", RecordingDTO.class);
 
         var getCase = doGetRequest(CASES_ENDPOINT + "/" + recording.getCaseId(), TestingSupportRoles.SUPER_USER);
         assertResponseCode(getCase, 200);
