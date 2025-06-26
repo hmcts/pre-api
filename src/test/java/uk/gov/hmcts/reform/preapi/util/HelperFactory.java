@@ -145,6 +145,7 @@ public class HelperFactory {
                                                       @Nullable RecordingStatus status,
                                                       @Nullable Timestamp deletedAt) {
         CaptureSession captureSession = new CaptureSession();
+        captureSession.setId(UUID.randomUUID());
         captureSession.setBooking(booking);
         captureSession.setOrigin(origin);
         captureSession.setIngestAddress(ingestAddress);

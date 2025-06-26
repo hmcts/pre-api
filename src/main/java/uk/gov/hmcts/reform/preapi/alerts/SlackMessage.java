@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -32,14 +31,13 @@ public class SlackMessage {
                 .append("\n\n");
 
         sections.forEach(section -> {
-            message.append(":warning: *").append(section.getTitle()).append(":*\n\n");
+            message.append(":warning: *").append(section.getTitle()).append(":*\n");
 
             List<String> items = section.getItems();
 
             message.append(items.isEmpty()
                     ? "\t:white_check_mark: " + section.getEmptyMessage() + "\n\n"
-                    : items.stream().map(item -> "\t:siren: " + item + " :siren:")
-                    .collect(Collectors.joining("\n")) + "\n\n");
+                    : String.join("\n", items) + "\n\n");
         });
 
         try {

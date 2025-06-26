@@ -100,9 +100,11 @@ definitions:
     properties:
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -110,6 +112,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -635,12 +638,15 @@ definitions:
     properties:
       email:
         description: InviteEmail
+        minLength: 1
         type: string
       first_name:
         description: InviteFirstName
+        minLength: 1
         type: string
       last_name:
         description: InviteLastName
+        minLength: 1
         type: string
       organisation:
         description: InviteOrganisation
@@ -774,9 +780,11 @@ definitions:
         uniqueItems: true
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -784,6 +792,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       organisation:
         description: UserOrganisation
@@ -1157,9 +1166,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1167,6 +1178,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1464,17 +1476,6 @@ definitions:
           - DEFENDANT
         type: string
     type: object
-  PermissionDTO:
-    description: PermissionDTO
-    properties:
-      id:
-        description: PermissionId
-        format: uuid
-        type: string
-      name:
-        description: PermissionName
-        type: string
-    type: object
   PlaybackDTO:
     description: PlaybackDTO
     properties:
@@ -1683,12 +1684,6 @@ definitions:
       name:
         description: RoleName
         type: string
-      permissions:
-        description: RolePermissions
-        items:
-          $ref: '#/definitions/PermissionDTO'
-        type: array
-        uniqueItems: true
     type: object
   ScheduleReportDTO:
     description: ScheduleReportDTO
@@ -1807,9 +1802,11 @@ definitions:
         type: string
       email:
         description: UserEmail
+        minLength: 1
         type: string
       first_name:
         description: UserFirstName
+        minLength: 1
         type: string
       id:
         description: UserId
@@ -1817,6 +1814,7 @@ definitions:
         type: string
       last_name:
         description: UserLastName
+        minLength: 1
         type: string
       modified_at:
         description: UserModifiedAt
@@ -1844,6 +1842,29 @@ definitions:
       - first_name
       - id
       - last_name
+    type: object
+  UserPrimaryCourtReportDTO:
+    description: UserPrimaryCourtReportDTO
+    properties:
+      active:
+        description: UserPrimaryCourtReportActive
+        type: string
+      first_name:
+        description: UserPrimaryCourtReportFirstName
+        type: string
+      last_access:
+        description: UserPrimaryCourtReportLastAccess
+        format: date-time
+        type: string
+      last_name:
+        description: UserPrimaryCourtReportLastName
+        type: string
+      primary_court_name:
+        description: UserPrimaryCourtReportPrimaryCourtName
+        type: string
+      role_name:
+        description: UserPrimaryCourtReportRoleName
+        type: string
     type: object
 externalDocs:
   description: README
@@ -3575,6 +3596,29 @@ paths:
               $ref: '#/definitions/SharedReportDTO'
             type: array
       summary: Get a report on the bookings that have been shared
+      tags:
+        - report-controller
+  /reports/user-primary-courts:
+    get:
+      operationId: reportUserPrimaryCourts
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserPrimaryCourtReportDTO'
+            type: array
+      summary: Get report on app users and their primary courts
       tags:
         - report-controller
   /roles:

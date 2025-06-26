@@ -17,8 +17,6 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
           alias: POSTGRES_PASSWORD
         - name: api-POSTGRES-USER
           alias: POSTGRES_USER
-        - name: AppInsightsInstrumentationKey
-          alias: APPINSIGHTS_INSTRUMENTATIONKEY
         - name: apim-sub-smoketest-primary-key
           alias: APIM_SUB_SMOKETEST_PRIMARY_KEY
         - name: apim-sub-smoketest-secondary-key
@@ -70,6 +68,10 @@ java: &javavalues #This is an anchor to reuse settings in Job mode.
     ENABLE_NEW_EMAIL_SERVICE: false
     ENABLE_STREAMING_LOCATOR_ON_START: false
     ENABLE_AUTOMATED_EDITING: false
+    TASK_START_LIVE_EVENTS_BATCH_SIZE: 20
+    TASK_START_LIVE_EVENTS_POLL_INTERVAL: 2000
+    TASK_CLEANUP_LIVE_EVENTS_BATCH_SIZE: 3
+    TASK_CLEANUP_LIVE_EVENTS_COOLDOWN: 60000
 job:
   #DO NOT DELETE, Below line is aliasing all values from Java settings above to job to avoid duplication.
   <<: *javavalues

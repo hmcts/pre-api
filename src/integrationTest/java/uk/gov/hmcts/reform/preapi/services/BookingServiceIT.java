@@ -31,7 +31,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class BookingServiceIT extends IntegrationTestBase {
-
     @Autowired
     private BookingService bookingService;
 
@@ -483,5 +482,70 @@ class BookingServiceIT extends IntegrationTestBase {
         ).getMessage();
 
         assertEquals(message, "Not found: Booking: " + randomId);
+    }
+
+    @Test
+    @Transactional
+    void testFindAllPastBookings() {
+        var mockAuth = mockAdminUser();
+
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Foo Court", "1234");
+        entityManager.persist(court);
+        when(mockAuth.getCourtId()).thenReturn(court.getId());
+
+        var region = HelperFactory.createRegion("Foo Region", Set.of(court));
+        entityManager.persist(region);
+
+        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
+        entityManager.persist(room);
+
+        var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
+        entityManager.persist(caseEntity);
+
+        var participant1 = HelperFactory.createParticipant(caseEntity,
+                                                           ParticipantType.WITNESS,
+                                                           "John",
+                                                           "Smith",
+                                                           null);
+        var participant2 = HelperFactory.createParticipant(caseEntity,
+                                                           ParticipantType.DEFENDANT,
+                                                           "Jane",
+                                                           "Doe",
+                                                           null);
+        entityManager.persist(participant1);
+        entityManager.persist(participant2);
+
+
+        var booking1 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2024-06-28 12:00:00"),
+                                                   null,
+                                                   Set.of(participant1, participant2));
+        var booking2 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2024-06-28 12:00:00"),
+                                                   null,
+                                                   Set.of(participant1, participant2));
+
+        var captureSession = HelperFactory.createCaptureSession(
+            booking2,
+            RecordingOrigin.PRE,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+
+        entityManager.persist(booking1);
+        entityManager.persist(booking2);
+        entityManager.persist(captureSession);
+        entityManager.flush();
+
+        List<BookingDTO> bookings = bookingService.findAllPastBookings();
+
+        assertThat(bookings.size()).isEqualTo(1);
+        assertThat(bookings.getFirst().getId()).isEqualTo(booking1.getId());
     }
 }
