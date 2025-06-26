@@ -17,6 +17,9 @@ import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
+import java.time.temporal.TemporalUnit;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -327,7 +330,7 @@ public class RecordingControllerFT extends FunctionalTestBase {
         var caseDto = getCase.jsonPath().getObject("$", CaseDTO.class);
         var createDto = convertDtoToCreateDto(caseDto);
         createDto.setState(CaseState.CLOSED);
-        createDto.setClosedAt(Timestamp.from(Instant.now()));
+        createDto.setClosedAt(Timestamp.from(Instant.now().minus(1, ChronoUnit.DAYS)));
         var putCase = putCase(createDto);
         assertResponseCode(putCase, 204);
         assertCaseExists(caseDto.getId(), true);

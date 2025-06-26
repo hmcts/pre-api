@@ -835,6 +835,7 @@ public class AuthorisationServiceTest {
         when(authenticationUser.isAdmin()).thenReturn(false);
         when(authenticationUser.getAuthorities()).thenReturn(List.of(new SimpleGrantedAuthority("ROLE_LEVEL_3")));
         assertFalse(authorisationService.canSearchByCaseClosed(authenticationUser, false));
+    }
 
     @Test
     @DisplayName("Should grant upsert access when the user has access to recording for edit requests")
