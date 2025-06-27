@@ -3673,10 +3673,7 @@ paths:
             items:
               $ref: '#/definitions/UserPrimaryCourtReportDTO'
             type: array
-      summary: >-
-        Get report on app users: their first and last name, their role, their
-        active status, their primary court and their last access time (if
-        available)
+      summary: Get report on app users and their primary courts
       tags:
         - report-controller
   /reports/capture-sessions-concurrent:
@@ -3938,7 +3935,10 @@ paths:
             items:
               $ref: '#/definitions/UserPrimaryCourtReportDTO'
             type: array
-      summary: Get report on app users and their primary courts
+      summary: >-
+        Get report on app users: their first and last name, their role, their
+        active status, their primary court and their last access time (if
+        available)
       tags:
         - legacy-report-controller
   /roles:
