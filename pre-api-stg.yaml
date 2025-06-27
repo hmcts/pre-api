@@ -3411,7 +3411,7 @@ paths:
         - recording-controller
   /reports-v2/capture-sessions-concurrent:
     get:
-      operationId: reportConcurrentCaptureSessions_1
+      operationId: reportConcurrentCaptureSessions v2
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3451,7 +3451,7 @@ paths:
             items:
               $ref: '#/definitions/CompletedCaptureSessionReportDTO'
             type: array
-      summary: Get a report on capture sessions with available recordings
+      summary: Get a report on capture sessions with available recordings v2
       tags:
         - report-controller
   /reports-v2/edits:
@@ -3474,7 +3474,7 @@ paths:
             items:
               $ref: '#/definitions/EditReportDTO'
             type: array
-      summary: Get a report on recordings edits
+      summary: Get a report on recordings edits v2
       tags:
         - report-controller
   /reports-v2/playback:
@@ -3507,7 +3507,7 @@ paths:
             items:
               $ref: '#/definitions/PlaybackReportDTO'
             type: array
-      summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION) v2'
       tags:
         - report-controller
   /reports-v2/recording-participants:
@@ -3530,7 +3530,7 @@ paths:
             items:
               $ref: '#/definitions/RecordingParticipantsReportDTO'
             type: array
-      summary: Get report on participants and the recordings they are part of
+      summary: Get report on participants and the recordings they are part of v2
       tags:
         - report-controller
   /reports-v2/recordings-per-case:
@@ -3553,7 +3553,7 @@ paths:
             items:
               $ref: '#/definitions/RecordingsPerCaseReportDTO'
             type: array
-      summary: Get the number of completed capture sessions for each case
+      summary: Get the number of completed capture sessions for each case v2
       tags:
         - report-controller
   /reports-v2/schedules:
@@ -3576,7 +3576,7 @@ paths:
             items:
               $ref: '#/definitions/ScheduleReportDTO'
             type: array
-      summary: Get a list of completed capture sessions with booking details
+      summary: Get a list of completed capture sessions with booking details v2
       tags:
         - report-controller
   /reports-v2/share-bookings-removed:
@@ -3599,7 +3599,7 @@ paths:
             items:
               $ref: '#/definitions/AccessRemovedReportDTO'
             type: array
-      summary: Get report on booking share removal
+      summary: Get report on booking share removal v2
       tags:
         - report-controller
   /reports-v2/shared-bookings:
@@ -3650,7 +3650,7 @@ paths:
             items:
               $ref: '#/definitions/SharedReportDTO'
             type: array
-      summary: Get a report on the bookings that have been shared
+      summary: Get a report on the bookings that have been shared v2
       tags:
         - report-controller
   /reports-v2/user-primary-courts:
@@ -3673,7 +3673,7 @@ paths:
             items:
               $ref: '#/definitions/UserPrimaryCourtReportDTO'
             type: array
-      summary: Get report on app users and their primary courts
+      summary: Get report on app users and their primary courts v2
       tags:
         - report-controller
   /reports/capture-sessions-concurrent:
