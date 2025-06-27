@@ -163,4 +163,11 @@ public class AuthorisationService {
             || authentication.isAdmin()
             || authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_LEVEL_2"));
     }
+
+    public boolean canSearchByCaseClosed(UserAuthentication authentication, Boolean caseOpen) {
+        return caseOpen == null
+            || caseOpen
+            || authentication.isAdmin()
+            || authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_LEVEL_2"));
+    }
 }
