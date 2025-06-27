@@ -9,30 +9,33 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchSharedReport;
-import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.AccessRemovedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.CompletedCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.ConcurrentCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.EditReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.ScheduleReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.services.LegacyReportService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/reports-v2")
-public class ReportController {
+@RequestMapping("/reports")
+public class LegacyReportController {
 
-    private final ReportService reportService;
+    private final LegacyReportService reportService;
+    private final ReportService v2ReportService;
 
-    public ReportController(ReportService reportService) {
+    public LegacyReportController(LegacyReportService reportService, ReportService v2ReportService) {
         this.reportService = reportService;
+        this.v2ReportService = v2ReportService;
     }
 
     @GetMapping("/capture-sessions-concurrent")
@@ -82,12 +85,6 @@ public class ReportController {
         schema = @Schema(implementation = String.class),
         example = "example@example.com"
     )
-    @Parameter(
-        name = "onlyActive",
-        description = "The shares must be active (not deleted) then true, otherwise false",
-        schema = @Schema(implementation = Boolean.class),
-        example = "true"
-    )
     public ResponseEntity<List<SharedReportDTO>> reportBookingsShared(
         @Parameter(hidden = true) SearchSharedReport params
     ) {
@@ -95,8 +92,7 @@ public class ReportController {
             params.getCourtId(),
             params.getBookingId(),
             params.getSharedWithId(),
-            params.getSharedWithEmail(),
-            params.getOnlyActive() != null && params.getOnlyActive()
+            params.getSharedWithEmail()
         ));
     }
 
@@ -150,14 +146,15 @@ public class ReportController {
         summary = "Get report on participants and the recordings they are part of"
     )
     public ResponseEntity<List<RecordingParticipantsReportDTO>> reportRecordingParticipants() {
-        return ResponseEntity.ok(reportService.reportRecordingParticipants());
+        return ResponseEntity.ok(v2ReportService.reportRecordingParticipants());
     }
 
     @GetMapping("/user-primary-courts")
     @Operation(
         operationId = "reportUserPrimaryCourts",
-        summary = "Get report on app users and their primary courts")
+        summary = "Get report on app users: their first and last name, their role, their active status, "
+            + "their primary court and their last access time (if available)")
     public ResponseEntity<List<UserPrimaryCourtReportDTO>> reportUserPrimaryCourts() {
-        return ResponseEntity.ok(reportService.reportUserPrimaryCourts());
+        return ResponseEntity.ok(v2ReportService.reportUserPrimaryCourts());
     }
 }

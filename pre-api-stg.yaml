@@ -375,6 +375,9 @@ definitions:
   CourtDTO:
     description: CourtDTO
     properties:
+      county:
+        description: CourtCounty
+        type: string
       court_type:
         description: CourtType
         enum:
@@ -391,6 +394,9 @@ definitions:
         type: string
       name:
         description: CourtName
+        type: string
+      postcode:
+        description: CourtPostcode
         type: string
       regions:
         description: CourtRegions
@@ -605,6 +611,9 @@ definitions:
   CreateCourtDTO:
     description: CreateCourtDTO
     properties:
+      county:
+        description: CreateCourtCounty
+        type: string
       court_type:
         description: CreateCourtType
         enum:
@@ -621,6 +630,10 @@ definitions:
         type: string
       name:
         description: CreateCourtName
+        type: string
+      postcode:
+        description: CreateCourtPostcode
+        pattern: '^[A-Z]{1,2}[0-9][0-9A-Z]? [0-9][A-Z]{2}$'
         type: string
       regions:
         description: CreateCourtRegionIds
@@ -1029,6 +1042,9 @@ definitions:
     properties:
       _links:
         $ref: '#/definitions/Links'
+      county:
+        description: CourtCounty
+        type: string
       court_type:
         description: CourtType
         enum:
@@ -1045,6 +1061,9 @@ definitions:
         type: string
       name:
         description: CourtName
+        type: string
+      postcode:
+        description: CourtPostcode
         type: string
       regions:
         description: CourtRegions
@@ -3390,6 +3409,273 @@ paths:
       summary: Revert deletion of a recording
       tags:
         - recording-controller
+  /reports-v2/capture-sessions-concurrent:
+    get:
+      operationId: reportConcurrentCaptureSessions_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
+            type: array
+      tags:
+        - report-controller
+  /reports-v2/completed-capture-sessions:
+    get:
+      operationId: reportCompletedCaptureSessions_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/CompletedCaptureSessionReportDTO'
+            type: array
+      summary: Get a report on capture sessions with available recordings
+      tags:
+        - report-controller
+  /reports-v2/edits:
+    get:
+      operationId: reportEdits_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/EditReportDTO'
+            type: array
+      summary: Get a report on recordings edits
+      tags:
+        - report-controller
+  /reports-v2/playback:
+    get:
+      operationId: reportPlayback_1
+      parameters:
+        - description: 'The source of the playback. Only accepts PORTAL, APPLICATION or null'
+          enum:
+            - APPLICATION
+            - PORTAL
+            - ADMIN
+            - AUTO
+          in: query
+          name: source
+          required: false
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/PlaybackReportDTO'
+            type: array
+      summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
+      tags:
+        - report-controller
+  /reports-v2/recording-participants:
+    get:
+      operationId: reportRecordingParticipants_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingParticipantsReportDTO'
+            type: array
+      summary: Get report on participants and the recordings they are part of
+      tags:
+        - report-controller
+  /reports-v2/recordings-per-case:
+    get:
+      operationId: reportRecordingsPerCase_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/RecordingsPerCaseReportDTO'
+            type: array
+      summary: Get the number of completed capture sessions for each case
+      tags:
+        - report-controller
+  /reports-v2/schedules:
+    get:
+      operationId: reportSchedules_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/ScheduleReportDTO'
+            type: array
+      summary: Get a list of completed capture sessions with booking details
+      tags:
+        - report-controller
+  /reports-v2/share-bookings-removed:
+    get:
+      operationId: reportShareBookingRemoved_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/AccessRemovedReportDTO'
+            type: array
+      summary: Get report on booking share removal
+      tags:
+        - report-controller
+  /reports-v2/shared-bookings:
+    get:
+      operationId: reportBookingsShared_1
+      parameters:
+        - description: The court id to search by
+          format: uuid
+          in: query
+          name: courtId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The booking id to search by
+          format: uuid
+          in: query
+          name: bookingId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The id of the user the booking is shared with to search by
+          format: uuid
+          in: query
+          name: sharedWithId
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+        - description: The email of the user the booking is shared with to search by
+          in: query
+          name: sharedWithEmail
+          type: string
+          x-example: example@example.com
+        - description: 'The shares must be active (not deleted) then true, otherwise false'
+          in: query
+          name: onlyActive
+          type: boolean
+          x-example: true
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/SharedReportDTO'
+            type: array
+      summary: Get a report on the bookings that have been shared
+      tags:
+        - report-controller
+  /reports-v2/user-primary-courts:
+    get:
+      operationId: reportUserPrimaryCourts_1
+      parameters:
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/UserPrimaryCourtReportDTO'
+            type: array
+      summary: Get report on app users and their primary courts
+      tags:
+        - report-controller
   /reports/capture-sessions-concurrent:
     get:
       operationId: reportConcurrentCaptureSessions
@@ -3411,7 +3697,7 @@ paths:
               $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
             type: array
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/completed-capture-sessions:
     get:
       operationId: reportCompletedCaptureSessions
@@ -3434,7 +3720,7 @@ paths:
             type: array
       summary: Get a report on capture sessions with available recordings
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/edits:
     get:
       operationId: reportEdits
@@ -3457,7 +3743,7 @@ paths:
             type: array
       summary: Get a report on recordings edits
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/playback:
     get:
       operationId: reportPlayback
@@ -3490,7 +3776,7 @@ paths:
             type: array
       summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/recording-participants:
     get:
       operationId: reportRecordingParticipants
@@ -3513,7 +3799,7 @@ paths:
             type: array
       summary: Get report on participants and the recordings they are part of
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/recordings-per-case:
     get:
       operationId: reportRecordingsPerCase
@@ -3536,7 +3822,7 @@ paths:
             type: array
       summary: Get the number of completed capture sessions for each case
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/schedules:
     get:
       operationId: reportSchedules
@@ -3559,7 +3845,7 @@ paths:
             type: array
       summary: Get a list of completed capture sessions with booking details
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/share-bookings-removed:
     get:
       operationId: reportShareBookingRemoved
@@ -3582,7 +3868,7 @@ paths:
             type: array
       summary: Get report on booking share removal
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/shared-bookings:
     get:
       operationId: reportBookingsShared
@@ -3628,7 +3914,7 @@ paths:
             type: array
       summary: Get a report on the bookings that have been shared
       tags:
-        - report-controller
+        - legacy-report-controller
   /reports/user-primary-courts:
     get:
       operationId: reportUserPrimaryCourts
@@ -3649,9 +3935,12 @@ paths:
             items:
               $ref: '#/definitions/UserPrimaryCourtReportDTO'
             type: array
-      summary: Get report on app users and their primary courts
+      summary: >-
+        Get report on app users: their first and last name, their role, their
+        active status, their primary court and their last access time (if
+        available)
       tags:
-        - report-controller
+        - legacy-report-controller
   /roles:
     get:
       operationId: getRoles

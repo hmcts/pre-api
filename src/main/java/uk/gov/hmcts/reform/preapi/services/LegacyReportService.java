@@ -3,16 +3,14 @@ package uk.gov.hmcts.reform.preapi.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.AccessRemovedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.CompletedCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.ConcurrentCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.EditReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.ScheduleReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.AppAccess;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Case;
@@ -36,7 +34,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class ReportService {
+public class LegacyReportService {
 
     private final CaptureSessionRepository captureSessionRepository;
     private final RecordingRepository recordingRepository;
@@ -47,13 +45,13 @@ public class ReportService {
     private final PortalAccessRepository portalAccessRepository;
 
     @Autowired
-    public ReportService(CaptureSessionRepository captureSessionRepository,
-                         RecordingRepository recordingRepository,
-                         ShareBookingRepository shareBookingRepository,
-                         AuditRepository auditRepository,
-                         UserRepository userRepository,
-                         AppAccessRepository appAccessRepository,
-                         PortalAccessRepository portalAccessRepository) {
+    public LegacyReportService(CaptureSessionRepository captureSessionRepository,
+                               RecordingRepository recordingRepository,
+                               ShareBookingRepository shareBookingRepository,
+                               AuditRepository auditRepository,
+                               UserRepository userRepository,
+                               AppAccessRepository appAccessRepository,
+                               PortalAccessRepository portalAccessRepository) {
         this.captureSessionRepository = captureSessionRepository;
         this.recordingRepository = recordingRepository;
         this.shareBookingRepository = shareBookingRepository;
@@ -96,11 +94,10 @@ public class ReportService {
         UUID courtId,
         UUID bookingId,
         UUID sharedWithId,
-        String sharedWithEmail,
-        boolean onlyActive
+        String sharedWithEmail
     ) {
         return shareBookingRepository
-            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail, onlyActive)
+            .searchAll(courtId, bookingId, sharedWithId, sharedWithEmail, false)
             .stream()
             .sorted(Comparator.comparing(ShareBooking::getCreatedAt))
             .map(SharedReportDTO::new)
@@ -166,26 +163,6 @@ public class ReportService {
             .collect(Collectors.toList());
     }
 
-    @Transactional
-    public List<RecordingParticipantsReportDTO> reportRecordingParticipants() {
-        return recordingRepository
-            .findAllByParentRecordingIsNull()
-            .stream()
-            .map(this::getParticipantsForRecording)
-            .flatMap(List::stream)
-            .toList();
-    }
-
-    private List<RecordingParticipantsReportDTO> getParticipantsForRecording(Recording recording) {
-        return recording
-            .getCaptureSession()
-            .getBooking()
-            .getParticipants()
-            .stream()
-            .map(participant -> new RecordingParticipantsReportDTO(participant, recording))
-            .toList();
-    }
-
     private PlaybackReportDTO toPlaybackReport(Audit audit) {
         // S28-3604 discovered audit details records Recording Id as recordingId _and_ recordinguid
         var auditDetails = audit.getAuditDetails() != null && !audit.getAuditDetails().isNull();
@@ -213,19 +190,5 @@ public class ReportService {
                 ? recordingRepository.findById(recordingId).orElse(null)
                 : null
         );
-    }
-
-    @Transactional
-    public List<UserPrimaryCourtReportDTO> reportUserPrimaryCourts() {
-
-        return this.appAccessRepository.getUserPrimaryCourtsForReport()
-            .stream()
-            .map(access -> new UserPrimaryCourtReportDTO(access.getUser().getFirstName(),
-                                                         access.getUser().getLastName(),
-                                                         access.getCourt().getName(),
-                                                         access.isActive(),
-                                                         access.getRole().getName(),
-                                                         access.getLastAccess()))
-            .toList();
     }
 }
