@@ -669,7 +669,7 @@ public class ReportServiceTest {
         bookingEntity.setParticipants(Set.of(witness, defendant));
         bookingEntity.setScheduledFor(Timestamp.from(Instant.now()));
 
-        when(recordingRepository.findAllByParentRecordingIsNull()).thenReturn(List.of(recordingEntity));
+        when(recordingRepository.findAllCompletedCaptureSessionsWithRecordings()).thenReturn(List.of(recordingEntity));
 
         var report = reportService.reportCompletedCaptureSessions();
 

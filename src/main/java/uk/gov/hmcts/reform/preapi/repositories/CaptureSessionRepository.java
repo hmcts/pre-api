@@ -78,4 +78,5 @@ public interface CaptureSessionRepository extends JpaRepository<CaptureSession, 
         """
     )
     List<CaptureSession> findAllPastIncompleteCaptureSessions(@Param("scheduledBefore") Timestamp scheduledBefore);
+
 }
