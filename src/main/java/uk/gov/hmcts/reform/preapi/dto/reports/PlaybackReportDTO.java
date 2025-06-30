@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "PlaybackReportDTO")
+@Schema(description = "PlaybackReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class PlaybackReportDTO extends BaseReportDTO {
 

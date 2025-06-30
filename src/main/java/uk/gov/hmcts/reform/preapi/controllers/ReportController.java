@@ -36,7 +36,7 @@ public class ReportController {
     }
 
     @GetMapping("/capture-sessions-concurrent")
-    @Operation(operationId = "reportConcurrentCaptureSessions")
+    @Operation(operationId = "reportConcurrentCaptureSessionsv2")
     public ResponseEntity<List<ConcurrentCaptureSessionReportDTO>> reportConcurrentCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCaptureSessions());
     }

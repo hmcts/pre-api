@@ -11,7 +11,7 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "RecordingsPerCaseReportDTO")
+@Schema(description = "RecordingsPerCaseReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class RecordingsPerCaseReportDTO extends BaseReportDTO {
 

@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "CompletedCaptureSessionReportDTO")
+@Schema(description = "CompletedCaptureSessionReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CompletedCaptureSessionReportDTO extends BaseReportDTO {
 

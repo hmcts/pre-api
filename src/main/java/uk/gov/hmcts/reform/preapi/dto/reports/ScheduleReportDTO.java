@@ -12,7 +12,7 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "ScheduleReportDTO")
+@Schema(description = "ScheduleReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ScheduleReportDTO extends BaseReportDTO {
 

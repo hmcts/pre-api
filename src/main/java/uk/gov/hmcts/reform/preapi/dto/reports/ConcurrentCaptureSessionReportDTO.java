@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "ConcurrentCaptureSessionReportDTO")
+@Schema(description = "ConcurrentCaptureSessionReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ConcurrentCaptureSessionReportDTO extends BaseReportDTO {
     @Schema(description = "CaptureSessionStartDate")
