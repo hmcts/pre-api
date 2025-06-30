@@ -10,14 +10,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import uk.gov.hmcts.reform.preapi.controllers.ReportController;
-import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
 import uk.gov.hmcts.reform.preapi.entities.Booking;
@@ -75,7 +75,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of concurrent capture sessions")
     @Test
     void reportConcurrentCaptureSessionsSuccess() throws Exception {
-        var reportItem = new ConcurrentCaptureSessionReportDTO();
+        var reportItem = new ConcurrentCaptureSessionReportDTOV2();
         var timestamp = Timestamp.from(Instant.now());
         var timestampPlus1 = Timestamp.from(Instant.now().plusSeconds(3600));
         reportItem.setDate(DateTimeUtils.formatDate(timestamp));
@@ -99,7 +99,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of cases with the count of completed capture sessions")
     @Test
     void reportRecordingsPerCaseSuccess() throws Exception {
-        var reportItem = new RecordingsPerCaseReportDTO();
+        var reportItem = new RecordingsPerCaseReportDTOV2();
         reportItem.setCaseReference("ABC123");
         reportItem.setCourt("Example Court");
         reportItem.setCounty("Example County");
@@ -122,7 +122,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of edited recordings")
     @Test
     void reportEditsSuccess() throws Exception  {
-        var reportItem = new EditReportDTO();
+        var reportItem = new EditReportDTOV2();
         var timestamp = Timestamp.from(Instant.now());
         reportItem.setEditDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setEditTime(DateTimeUtils.formatTime(timestamp));
@@ -293,7 +293,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of bookings with an available recording")
     @Test
     void reportScheduledSuccess() throws Exception {
-        var reportItem = new ScheduleReportDTO();
+        var reportItem = new ScheduleReportDTOV2();
         var timestamp = Timestamp.from(Instant.now());
         reportItem.setScheduledDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setCaseReference("ABC123");
@@ -321,7 +321,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of completed capture sessions (with available recordings)")
     @Test
     void reportCompletedCaptureSessions() throws Exception {
-        var reportItem = new CompletedCaptureSessionReportDTO();
+        var reportItem = new CompletedCaptureSessionReportDTOV2();
         var timestamp = Timestamp.from(Instant.now());
         reportItem.setRecordingDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setRecordingTime(DateTimeUtils.formatTime(timestamp));
@@ -364,7 +364,7 @@ public class ReportControllerTest {
     @DisplayName("Should get a report containing a list of share booking removals with case and user details")
     @Test
     void reportAccessRemoved() throws Exception {
-        var reportItem = new AccessRemovedReportDTO();
+        var reportItem = new AccessRemovedReportDTOV2();
         var timestamp = Timestamp.from(Instant.now());
         reportItem.setRemovedDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setRemovedTime(DateTimeUtils.formatTime(timestamp));
@@ -470,7 +470,7 @@ public class ReportControllerTest {
         verify(reportService, times(1)).reportPlayback(null);
     }
 
-    private PlaybackReportDTO createPlaybackReport(Timestamp createdAt) {
+    private PlaybackReportDTOV2 createPlaybackReport(Timestamp createdAt) {
         var user = new User();
         user.setId(UUID.randomUUID());
         user.setOrganisation("FooOrg");
@@ -515,11 +515,11 @@ public class ReportControllerTest {
         auditEntity.setCreatedAt(createdAt);
         auditEntity.setTableRecordId(recordingEntity.getId());
 
-        return new PlaybackReportDTO(auditEntity, user, null);
+        return new PlaybackReportDTOV2(auditEntity, user, null);
     }
 
-    private SharedReportDTO createSharedReport() {
-        var reportItem = new SharedReportDTO();
+    private SharedReportDTOV2 createSharedReport() {
+        var reportItem = new SharedReportDTOV2();
         var timestamp = Timestamp.from(Instant.now());
         reportItem.setShareDate(DateTimeUtils.formatDate(timestamp));
         reportItem.setShareTime(DateTimeUtils.formatTime(timestamp));

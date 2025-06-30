@@ -53,6 +53,40 @@ definitions:
         description: AccessRemovedReportUserFullName
         type: string
     type: object
+  AccessRemovedReportDTOV2:
+    description: AccessRemovedReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      full_name:
+        description: AccessRemovedReportUserFullName
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      removed_date:
+        description: AccessRemovedReportRemovedDate
+        type: string
+      removed_time:
+        description: AccessRemovedReportRemovedTime
+        type: string
+      removed_timezone:
+        description: AccessRemovedReportRemovedTimezone
+        type: string
+      user_email:
+        description: AccessRemovedReportUserEmail
+        type: string
+    type: object
   AssetDTO:
     description: AssetDTO
     properties:
@@ -341,6 +375,65 @@ definitions:
         format: date-time
         type: string
     type: object
+  CompletedCaptureSessionReportDTOV2:
+    description: CompletedCaptureSessionReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      defendant:
+        description: CompletedCaptureSessionReportDefendantCount
+        format: int32
+        type: integer
+      defendant_names:
+        description: CompletedCaptureSessionReportDefendantNames
+        type: string
+      finish_time:
+        description: CompletedCaptureSessionReportFinishTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      recording_date:
+        description: CompletedCaptureSessionReportRecordingDate
+        type: string
+      recording_time:
+        description: CompletedCaptureSessionReportRecordingTime
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: CompletedCaptureSessionReportScheduledDate
+        type: string
+      status:
+        description: CompletedCaptureSessionReportStatus
+        enum:
+          - STANDBY
+          - INITIALISING
+          - RECORDING
+          - PROCESSING
+          - RECORDING_AVAILABLE
+          - FAILURE
+          - NO_RECORDING
+        type: string
+      timezone:
+        description: CompletedCaptureSessionReportTimezone
+        type: string
+      witness:
+        description: CompletedCaptureSessionReportWitnessCount
+        format: int32
+        type: integer
+      witness_names:
+        description: CompletedCaptureSessionReportWitnessNames
+        type: string
+    type: object
   ConcurrentCaptureSessionReportDTO:
     description: ConcurrentCaptureSessionReportDTO
     properties:
@@ -370,6 +463,40 @@ definitions:
       start_time:
         description: CaptureSessionStartTime
         format: date-time
+        type: string
+    type: object
+  ConcurrentCaptureSessionReportDTOV2:
+    description: ConcurrentCaptureSessionReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      date:
+        description: CaptureSessionStartDate
+        type: string
+      duration:
+        description: CaptureSessionDuration
+        type: string
+      end_time:
+        description: CaptureSessionEndTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      start_time:
+        description: CaptureSessionStartTime
+        type: string
+      timezone:
+        description: CaptureSessionStartTimezone
         type: string
     type: object
   CourtDTO:
@@ -865,6 +992,38 @@ definitions:
           $ref: '#/definitions/RegionDTO'
         type: array
         uniqueItems: true
+      version:
+        description: EditReportRecordingVersion
+        format: int32
+        type: integer
+    type: object
+  EditReportDTOV2:
+    description: EditReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      edit_date:
+        description: EditReportEditDate
+        type: string
+      edit_time:
+        description: EditReportEditTime
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      timezone:
+        description: EditReportEditTimezone
+        type: string
       version:
         description: EditReportRecordingVersion
         format: int32
@@ -1561,6 +1720,43 @@ definitions:
         description: PlaybackReportUserFullName
         type: string
     type: object
+  PlaybackReportDTOV2:
+    description: PlaybackReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      playback_date:
+        description: PlaybackReportPlaybackDate
+        type: string
+      playback_time:
+        description: PlaybackReportPlaybackTime
+        type: string
+      playback_time_zone:
+        description: PlaybackReportTimeZone
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      user_email:
+        description: PlaybackReportUserEmail
+        type: string
+      user_full_name:
+        description: PlaybackReportUserFullName
+        type: string
+      user_organisation:
+        description: PlaybackReportUserOrganisation
+        type: string
+    type: object
   PortalAccessDTO:
     description: PortalAccessDTO
     properties:
@@ -1657,7 +1853,7 @@ definitions:
       - version
     type: object
   RecordingParticipantsReportDTO:
-    description: RecordingParticipantsReportDTO
+    description: RecordingParticipantsReportDTOV2
     properties:
       case_reference:
         description: RecordingParticipantCaseReference
@@ -1702,6 +1898,29 @@ definitions:
           $ref: '#/definitions/RegionDTO'
         type: array
         uniqueItems: true
+    type: object
+  RecordingsPerCaseReportDTOV2:
+    description: RecordingsPerCaseReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      number_of_recordings:
+        description: RecordingsPerCaseNumberOfRecordings
+        format: int32
+        type: integer
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
     type: object
   RegionDTO:
     description: RegionDTO
@@ -1762,6 +1981,34 @@ definitions:
         format: date-time
         type: string
     type: object
+  ScheduleReportDTOV2:
+    description: ScheduleReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      date_of_booking:
+        description: ScheduleReportBookingCreatedAt
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      scheduled_date:
+        description: ScheduleReportStartedDate
+        type: string
+      user:
+        description: ScheduleReportUserEmail
+        type: string
+    type: object
   ShareBookingDTO:
     description: BookingShares
     properties:
@@ -1816,6 +2063,49 @@ definitions:
       shared_at:
         description: SharedReportSharedAt
         format: date-time
+        type: string
+    type: object
+  SharedReportDTOV2:
+    description: SharedReportDTOV2
+    properties:
+      case_reference:
+        description: ReportCaseReference
+        type: string
+      county:
+        description: ReportCounty
+        type: string
+      court:
+        description: ReportCourt
+        type: string
+      granted_by:
+        description: SharedReportGrantedBy
+        type: string
+      granted_by_full_name:
+        description: SharedReportGrantedByFullName
+        type: string
+      organisation_shared_with:
+        description: SharedReportOrganisationAllocatedTo
+        type: string
+      postcode:
+        description: ReportPostcode
+        type: string
+      region:
+        description: ReportRegion
+        type: string
+      share_date:
+        description: SharedReportShareDate
+        type: string
+      share_time:
+        description: SharedReportShareTime
+        type: string
+      shared_with:
+        description: SharedReportSharedWith
+        type: string
+      shared_with_full_name:
+        description: SharedReportSharedWithFullName
+        type: string
+      timezone:
+        description: SharedReportShareTimezone
         type: string
     type: object
   TermsAndConditionsDTO:
@@ -1894,7 +2184,7 @@ definitions:
       - last_name
     type: object
   UserPrimaryCourtReportDTO:
-    description: UserPrimaryCourtReportDTO
+    description: UserPrimaryCourtReportDTOV2
     properties:
       active:
         description: UserPrimaryCourtReportActive
@@ -3411,7 +3701,7 @@ paths:
         - recording-controller
   /reports-v2/capture-sessions-concurrent:
     get:
-      operationId: reportConcurrentCaptureSessions_1
+      operationId: reportConcurrentCaptureSessionsv2
       parameters:
         - description: The User Id of the User making the request
           format: uuid
@@ -3427,7 +3717,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/ConcurrentCaptureSessionReportDTO'
+              $ref: '#/definitions/ConcurrentCaptureSessionReportDTOV2'
             type: array
       tags:
         - report-controller
@@ -3449,7 +3739,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/CompletedCaptureSessionReportDTO'
+              $ref: '#/definitions/CompletedCaptureSessionReportDTOV2'
             type: array
       summary: Get a report on capture sessions with available recordings
       tags:
@@ -3472,7 +3762,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/EditReportDTO'
+              $ref: '#/definitions/EditReportDTOV2'
             type: array
       summary: Get a report on recordings edits
       tags:
@@ -3505,7 +3795,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/PlaybackReportDTO'
+              $ref: '#/definitions/PlaybackReportDTOV2'
             type: array
       summary: 'Get report on playback by playback source (PORTAL, APPLICATION)'
       tags:
@@ -3551,7 +3841,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/RecordingsPerCaseReportDTO'
+              $ref: '#/definitions/RecordingsPerCaseReportDTOV2'
             type: array
       summary: Get the number of completed capture sessions for each case
       tags:
@@ -3574,7 +3864,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/ScheduleReportDTO'
+              $ref: '#/definitions/ScheduleReportDTOV2'
             type: array
       summary: Get a list of completed capture sessions with booking details
       tags:
@@ -3597,7 +3887,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/AccessRemovedReportDTO'
+              $ref: '#/definitions/AccessRemovedReportDTOV2'
             type: array
       summary: Get report on booking share removal
       tags:
@@ -3648,7 +3938,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/SharedReportDTO'
+              $ref: '#/definitions/SharedReportDTOV2'
             type: array
       summary: Get a report on the bookings that have been shared
       tags:

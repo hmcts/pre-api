@@ -12,9 +12,9 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "AccessRemovedReportDTO")
+@Schema(description = "AccessRemovedReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class AccessRemovedReportDTO extends BaseReportDTO {
+public class AccessRemovedReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "AccessRemovedReportRemovedDate")
     private String removedDate;
@@ -31,7 +31,7 @@ public class AccessRemovedReportDTO extends BaseReportDTO {
     @Schema(description = "AccessRemovedReportUserEmail")
     private String userEmail;
 
-    public AccessRemovedReportDTO(ShareBooking shareBooking) {
+    public AccessRemovedReportDTOV2(ShareBooking shareBooking) {
         super(shareBooking.getBooking().getCaseId());
         removedDate = DateTimeUtils.formatDate(shareBooking.getDeletedAt());
         removedTime = DateTimeUtils.formatTime(shareBooking.getDeletedAt());

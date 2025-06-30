@@ -3,9 +3,9 @@ package uk.gov.hmcts.reform.preapi.services;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
@@ -332,7 +332,7 @@ public class ReportServiceIT extends IntegrationTestBase {
             .isFalse();
     }
 
-    private void assertConcurrentCaptureSessionsSuccess(ConcurrentCaptureSessionReportDTO report,
+    private void assertConcurrentCaptureSessionsSuccess(ConcurrentCaptureSessionReportDTOV2 report,
                                                         Court court,
                                                         Region region,
                                                         Case aCase,
@@ -351,7 +351,7 @@ public class ReportServiceIT extends IntegrationTestBase {
         assertThat(report.getRegion()).isEqualTo(region.getName());
     }
 
-    private void assertRecordingPerCaseSuccess(RecordingsPerCaseReportDTO report,
+    private void assertRecordingPerCaseSuccess(RecordingsPerCaseReportDTOV2 report,
                                                Case aCase,
                                                Court court,
                                                Region region,
@@ -363,7 +363,7 @@ public class ReportServiceIT extends IntegrationTestBase {
     }
 
     private void assertSharedReportSuccess(Court court, Case caseEntity, User user1, User user2,
-                                           ShareBooking share, List<SharedReportDTO> report) {
+                                           ShareBooking share, List<SharedReportDTOV2> report) {
         assertThat(report.size()).isEqualTo(1);
 
         assertThat(report.getFirst().getShareDate()).isEqualTo(DateTimeUtils.formatDate(share.getCreatedAt()));

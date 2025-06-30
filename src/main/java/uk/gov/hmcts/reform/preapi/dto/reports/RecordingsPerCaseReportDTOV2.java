@@ -11,14 +11,14 @@ import uk.gov.hmcts.reform.preapi.entities.Case;
 @Data
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "RecordingsPerCaseReportDTO")
+@Schema(description = "RecordingsPerCaseReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class RecordingsPerCaseReportDTO extends BaseReportDTO {
+public class RecordingsPerCaseReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "RecordingsPerCaseNumberOfRecordings")
     private int numberOfRecordings;
 
-    public RecordingsPerCaseReportDTO(Case caseEntity, int count) {
+    public RecordingsPerCaseReportDTOV2(Case caseEntity, int count) {
         super(caseEntity);
         this.numberOfRecordings = count;
     }
