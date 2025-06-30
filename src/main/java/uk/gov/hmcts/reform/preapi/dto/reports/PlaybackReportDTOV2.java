@@ -20,7 +20,7 @@ import javax.annotation.Nullable;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "PlaybackReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class PlaybackReportDTO extends BaseReportDTO {
+public class PlaybackReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "PlaybackReportPlaybackDate")
     private String playbackDate;
@@ -40,7 +40,7 @@ public class PlaybackReportDTO extends BaseReportDTO {
     @Schema(description = "PlaybackReportUserOrganisation")
     private String userOrganisation;
 
-    public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
+    public PlaybackReportDTOV2(Audit audit, User user, @Nullable Recording recording) {
         super(recording != null ? recording.getCaptureSession().getBooking().getCaseId() : null);
 
         playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());

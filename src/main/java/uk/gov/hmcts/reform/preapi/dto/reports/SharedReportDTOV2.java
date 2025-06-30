@@ -14,7 +14,7 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "SharedReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class SharedReportDTO extends BaseReportDTO {
+public class SharedReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "SharedReportShareDate")
     private String shareDate;
@@ -40,7 +40,7 @@ public class SharedReportDTO extends BaseReportDTO {
     @Schema(description = "SharedReportGrantedByFullName")
     private String grantedByFullName;
 
-    public SharedReportDTO(ShareBooking shareBooking) {
+    public SharedReportDTOV2(ShareBooking shareBooking) {
         super(shareBooking.getBooking().getCaseId());
         shareDate = DateTimeUtils.formatDate(shareBooking.getCreatedAt());
         shareTime = DateTimeUtils.formatTime(shareBooking.getCreatedAt());

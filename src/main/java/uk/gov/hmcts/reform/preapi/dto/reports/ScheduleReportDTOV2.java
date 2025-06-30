@@ -14,7 +14,7 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "ScheduleReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class ScheduleReportDTO extends BaseReportDTO {
+public class ScheduleReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "ScheduleReportStartedDate")
     private String scheduledDate;
@@ -25,7 +25,7 @@ public class ScheduleReportDTO extends BaseReportDTO {
     @Schema(description = "ScheduleReportUserEmail")
     private String user;
 
-    public ScheduleReportDTO(CaptureSession captureSession) {
+    public ScheduleReportDTOV2(CaptureSession captureSession) {
         super(captureSession.getBooking().getCaseId());
         var booking = captureSession.getBooking();
         scheduledDate = DateTimeUtils.formatDate(booking.getScheduledFor());

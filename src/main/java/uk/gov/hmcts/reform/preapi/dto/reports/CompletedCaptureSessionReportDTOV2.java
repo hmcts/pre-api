@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "CompletedCaptureSessionReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class CompletedCaptureSessionReportDTO extends BaseReportDTO {
+public class CompletedCaptureSessionReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "CompletedCaptureSessionReportRecordingDate")
     private String recordingDate;
@@ -51,7 +51,7 @@ public class CompletedCaptureSessionReportDTO extends BaseReportDTO {
     @Schema(description = "CompletedCaptureSessionReportWitnessCount")
     private int witness;
 
-    public CompletedCaptureSessionReportDTO(Recording recording) {
+    public CompletedCaptureSessionReportDTOV2(Recording recording) {
         super(recording.getCaptureSession().getBooking().getCaseId());
         var captureSession = recording.getCaptureSession();
         status = captureSession.getStatus();

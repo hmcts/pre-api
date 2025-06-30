@@ -14,7 +14,7 @@ import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "EditReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class EditReportDTO extends BaseReportDTO {
+public class EditReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "EditReportEditDate")
     private String editDate;
@@ -28,7 +28,7 @@ public class EditReportDTO extends BaseReportDTO {
     @Schema(description = "EditReportRecordingVersion")
     private int version;
 
-    public EditReportDTO(Recording recordingEntity) {
+    public EditReportDTOV2(Recording recordingEntity) {
         super(recordingEntity.getCaptureSession().getBooking().getCaseId());
         editDate = DateTimeUtils.formatDate(recordingEntity.getCreatedAt());
         editTime = DateTimeUtils.formatTime(recordingEntity.getCreatedAt());

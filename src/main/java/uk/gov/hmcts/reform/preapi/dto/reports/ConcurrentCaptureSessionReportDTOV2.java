@@ -21,7 +21,7 @@ import java.util.stream.Stream;
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "ConcurrentCaptureSessionReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class ConcurrentCaptureSessionReportDTO extends BaseReportDTO {
+public class ConcurrentCaptureSessionReportDTOV2 extends BaseReportDTO {
     @Schema(description = "CaptureSessionStartDate")
     private String date;
 
@@ -49,7 +49,7 @@ public class ConcurrentCaptureSessionReportDTO extends BaseReportDTO {
                              duration.toSecondsPart());
     }
 
-    public ConcurrentCaptureSessionReportDTO(CaptureSession entity) {
+    public ConcurrentCaptureSessionReportDTOV2(CaptureSession entity) {
         super(entity.getBooking().getCaseId());
         date = DateTimeUtils.formatDate(entity.getStartedAt());
         timezone = DateTimeUtils.getTimezoneAbbreviation(entity.getStartedAt());

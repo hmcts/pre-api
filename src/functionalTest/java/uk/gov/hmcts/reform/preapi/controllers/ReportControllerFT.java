@@ -5,7 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import uk.gov.hmcts.reform.preapi.controllers.params.TestingSupportRoles;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTOV2;
 import uk.gov.hmcts.reform.preapi.util.FunctionalTestBase;
 
 import java.util.stream.IntStream;
@@ -27,7 +27,7 @@ public class ReportControllerFT extends FunctionalTestBase {
             .body().jsonPath().getObject("", BookingDTO.class);
 
         var response = doGetRequest(REPORTS_ENDPOINT + "/capture-sessions-concurrent", TestingSupportRoles.SUPER_USER);
-        var list = response.getBody().jsonPath().getList("", ConcurrentCaptureSessionReportDTO.class);
+        var list = response.getBody().jsonPath().getList("", ConcurrentCaptureSessionReportDTOV2.class);
         var reportItemIndex = IntStream.range(0, list.size())
             .filter(i -> list.get(i).getCaseReference().equals(booking.getCaseDTO().getReference()))
             .findFirst()
