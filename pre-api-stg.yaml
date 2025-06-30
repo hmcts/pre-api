@@ -1657,7 +1657,7 @@ definitions:
       - version
     type: object
   RecordingParticipantsReportDTO:
-    description: RecordingParticipantsReportDTO
+    description: RecordingParticipantsReportDTOV2
     properties:
       case_reference:
         description: RecordingParticipantCaseReference
@@ -1894,7 +1894,7 @@ definitions:
       - last_name
     type: object
   UserPrimaryCourtReportDTO:
-    description: UserPrimaryCourtReportDTO
+    description: UserPrimaryCourtReportDTOV2
     properties:
       active:
         description: UserPrimaryCourtReportActive
@@ -3411,7 +3411,7 @@ paths:
         - recording-controller
   /reports-v2/capture-sessions-concurrent:
     get:
-      operationId: reportConcurrentCaptureSessions_1
+      operationId: reportConcurrentCaptureSessionsv2
       parameters:
         - description: The User Id of the User making the request
           format: uuid
