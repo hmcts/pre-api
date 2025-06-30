@@ -149,7 +149,7 @@ public class ReportService {
     @Transactional
     public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
         return recordingRepository
-            .findAllByParentRecordingIsNull()
+            .findAllCompletedCaptureSessionsWithRecordings()
             .stream()
             .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
             .map(CompletedCaptureSessionReportDTOV2::new)
