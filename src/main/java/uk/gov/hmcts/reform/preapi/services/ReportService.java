@@ -151,6 +151,7 @@ public class ReportService {
         return recordingRepository
             .findAllCompletedCaptureSessionsWithRecordings()
             .stream()
+            .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
             .map(CompletedCaptureSessionReportDTOV2::new)
             .collect(Collectors.toList());
     }

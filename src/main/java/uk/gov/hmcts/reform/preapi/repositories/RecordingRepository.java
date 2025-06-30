@@ -115,10 +115,9 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         FROM CaptureSession cs
         INNER JOIN Recording r ON r.captureSession.id=cs.id
         INNER JOIN Booking b ON cs.booking.id=b.id
-        LEFT JOIN User u ON u.id=cs.finishedByUser.id\s
+        LEFT JOIN User u ON u.id=cs.finishedByUser.id
         WHERE r.parentRecording IS NULL
         AND cs.status = 'RECORDING_AVAILABLE'
-        ORDER BY b.scheduledFor
         """
     )
     List<Recording> findAllCompletedCaptureSessionsWithRecordings();
