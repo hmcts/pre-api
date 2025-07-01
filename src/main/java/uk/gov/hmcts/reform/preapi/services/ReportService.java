@@ -29,6 +29,7 @@ import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ShareBookingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.UserRepository;
+import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
 import java.util.Comparator;
 import java.util.List;
@@ -146,14 +147,23 @@ public class ReportService {
         }
     }
 
-    @Transactional
+    @Transactional( readOnly = true)
     public List<CompletedCaptureSessionReportDTOV2> reportCompletedCaptureSessions() {
-        return recordingRepository
-            .findAllCompletedCaptureSessionsWithRecordings()
-            .stream()
-            .sorted(Comparator.comparing(r -> r.getCaptureSession().getBooking().getScheduledFor()))
-            .map(CompletedCaptureSessionReportDTOV2::new)
-            .collect(Collectors.toList());
+        return recordingRepository.findAllCompletedCaptureSessionsReportNative().stream()
+                                  .map(row -> new CompletedCaptureSessionReportDTOV2(
+                                      (String) row[0],
+                                      (String) row[1],
+                                      (String) row[2],
+                                      row[3] == null ? null : DateTimeUtils.getTimezoneAbbreviation(
+                                          java.sql.Timestamp.from((java.time.Instant) row[3])),
+                                      (String) row[4],
+                                      RecordingStatus.valueOf((String) row[5]),
+                                      (String) row[6],
+                                      ((Number) row[7]).longValue(),
+                                      (String) row[8],
+                                      ((Number) row[9]).longValue()
+                                  ))
+                                  .toList();
     }
 
     @Transactional

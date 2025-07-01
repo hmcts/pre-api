@@ -7,8 +7,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchRecordings;
+import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
+import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -110,15 +112,48 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
 
     int countByParentRecording_Id(UUID id);
 
-    @Query("""
-        SELECT cs, r, b, u
-        FROM CaptureSession cs
-        INNER JOIN Recording r ON r.captureSession.id=cs.id
-        INNER JOIN Booking b ON cs.booking.id=b.id
-        LEFT JOIN User u ON u.id=cs.finishedByUser.id
-        WHERE r.parentRecording IS NULL
-        AND cs.status = 'RECORDING_AVAILABLE'
-        """
+    @Query(
+        value = """
+        SELECT
+            to_char(cs.started_at, 'YYYY-MM-DD') AS recording_date,
+            to_char(cs.started_at, 'HH24:MI') AS recording_time,
+            to_char(cs.finished_at, 'HH24:MI') AS finish_time,
+            cs.started_at AS started_at,
+            to_char(b.scheduled_for, 'YYYY-MM-DD') AS scheduled_date,
+            cs.status AS status,
+            (
+                SELECT STRING_AGG(CONCAT(p.first_name, ' ', p.last_name), ', ')
+                FROM booking_participant bp
+                JOIN participants p ON bp.participant_id = p.id
+                WHERE bp.booking_id = b.id AND p.participant_type = 'DEFENDANT' AND p.deleted_at IS NULL
+            ) AS defendant_names,
+            (
+                SELECT COUNT(*)
+                FROM booking_participant bp
+                JOIN participants p ON bp.participant_id = p.id
+                WHERE bp.booking_id = b.id AND p.participant_type = 'DEFENDANT' AND p.deleted_at IS NULL
+            ) AS defendant_count,
+            (
+                SELECT STRING_AGG(CONCAT(p.first_name, ' ', p.last_name), ', ')
+                FROM booking_participant bp
+                JOIN participants p ON bp.participant_id = p.id
+                WHERE bp.booking_id = b.id AND p.participant_type = 'WITNESS' AND p.deleted_at IS NULL
+            ) AS witness_names,
+            (
+                SELECT COUNT(*)
+                FROM booking_participant bp
+                JOIN participants p ON bp.participant_id = p.id
+                WHERE bp.booking_id = b.id AND p.participant_type = 'WITNESS' AND p.deleted_at IS NULL
+            ) AS witness_count
+        FROM recordings r
+        JOIN capture_sessions cs ON r.capture_session_id = cs.id
+        JOIN bookings b ON cs.booking_id = b.id
+        WHERE r.parent_recording_id IS NULL
+        AND cs.deleted_at IS NULL
+        AND cs.status IS NOT NULL
+        ORDER BY b.scheduled_for ASC
+        """,
+        nativeQuery = true
     )
-    List<Recording> findAllCompletedCaptureSessionsWithRecordings();
+    List<Object[]> findAllCompletedCaptureSessionsReportNative();
 }

@@ -6,13 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import uk.gov.hmcts.reform.preapi.entities.Participant;
-import uk.gov.hmcts.reform.preapi.entities.Recording;
-import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
-import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
-
-import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -51,34 +45,27 @@ public class CompletedCaptureSessionReportDTOV2 extends BaseReportDTO {
     @Schema(description = "CompletedCaptureSessionReportWitnessCount")
     private int witness;
 
-    public CompletedCaptureSessionReportDTOV2(Recording recording) {
-        super(recording.getCaptureSession().getBooking().getCaseId());
-        var captureSession = recording.getCaptureSession();
-        status = captureSession.getStatus();
-
-        recordingDate = DateTimeUtils.formatDate(captureSession.getStartedAt());
-        recordingTime = DateTimeUtils.formatTime(captureSession.getStartedAt());
-        finishTime = DateTimeUtils.formatTime(captureSession.getFinishedAt());
-        timezone = DateTimeUtils.getTimezoneAbbreviation(captureSession.getStartedAt());
-        var booking = captureSession.getBooking();
-        scheduledDate = DateTimeUtils.formatDate(captureSession.getBooking().getScheduledFor());
-
-        var defendants = booking.getParticipants()
-            .stream()
-            .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-            .toList();
-        defendantNames = defendants.stream()
-            .map(Participant::getFullName)
-            .collect(Collectors.joining(", "));
-        defendant = defendants.size();
-
-        var witnesses = booking.getParticipants()
-            .stream()
-            .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-            .toList();
-        witnessNames = witnesses.stream()
-            .map(Participant::getFullName)
-            .collect(Collectors.joining(", "));
-        witness = witnesses.size();
+    public CompletedCaptureSessionReportDTOV2(
+        String recordingDate,
+        String recordingTime,
+        String finishTime,
+        String timezone,
+        String scheduledDate,
+        RecordingStatus status,
+        String defendantNames,
+        Long defendant,
+        String witnessNames,
+        Long witness
+    ) {
+        this.recordingDate = recordingDate;
+        this.recordingTime = recordingTime;
+        this.finishTime = finishTime;
+        this.timezone = timezone;
+        this.scheduledDate = scheduledDate;
+        this.status = status;
+        this.defendantNames = defendantNames;
+        this.defendant = defendant != null ? defendant.intValue() : 0;
+        this.witnessNames = witnessNames;
+        this.witness = witness != null ? witness.intValue() : 0;
     }
 }
