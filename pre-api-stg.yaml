@@ -1931,6 +1931,35 @@ paths:
       summary: Accept terms and conditions for a user
       tags:
         - terms-and-conditions-controller
+  '/admin/{id}':
+    get:
+      description: >-
+        Checks if a UUID exists in any of the tables: User, Recording,
+        CaptureSession, Booking, Case, Court.
+      operationId: checkUuid
+      parameters:
+        - format: uuid
+          in: path
+          name: id
+          required: true
+          type: string
+        - description: The User Id of the User making the request
+          format: uuid
+          in: header
+          name: X-User-Id
+          required: false
+          type: string
+          x-example: 123e4567-e89b-12d3-a456-426614174000
+      produces:
+        - application/octet-stream
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: string
+      summary: Check if a UUID exists in the system
+      tags:
+        - admin-controller
   /app-terms-and-conditions/latest:
     get:
       operationId: getLatestTermsForApp
