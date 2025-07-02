@@ -450,15 +450,7 @@ public class AddNROUsers extends RobotUserTask {
         return getImportedNROUser(
             rowNumber,
             csvErrors,
-            new ImportedNROUser(
-            firstName,
-            lastName,
-            email,
-            court,
-            courtID,
-            isDefault,
-            roleID,
-            userLevel)
+            new ImportedNROUser(firstName, lastName, email, court, courtID, isDefault, roleID, userLevel)
         );
     }
 }
