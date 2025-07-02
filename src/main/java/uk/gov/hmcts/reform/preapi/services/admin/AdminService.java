@@ -32,7 +32,7 @@ public class AdminService {
         String tableName = adminRepository.findUuidType(Objects.requireNonNull(id, "UUID should not be null"))
             .orElseThrow(() -> new NotFoundException(id + " does not exist in any relevant table"));
 
-       return UuidTableType.valueOf(tableName.toUpperCase());
+        return UuidTableType.valueOf(tableName.toUpperCase());
     }
 
     /**

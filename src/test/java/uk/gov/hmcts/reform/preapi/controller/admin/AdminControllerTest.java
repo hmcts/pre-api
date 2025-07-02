@@ -54,7 +54,7 @@ public class AdminControllerTest {
     @Test
     void uuidDoesNotExistInDatabase() throws Exception {
         UUID givenUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174abc");
-        var expectedResponse = givenUuid + " does not exist in any relevant table";
+        var expectedResponse = "{\"message\":\"Not found: " + givenUuid + " does not exist in any relevant table\"}";
 
         when(adminService.findUuidType(givenUuid))
             .thenThrow(new NotFoundException(givenUuid + " does not exist in any relevant table"));

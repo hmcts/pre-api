@@ -32,7 +32,8 @@ public class AdminController {
 
     @GetMapping("/{id}")
     @Operation(operationId = "checkUuid", summary = "Check if a UUID exists in the system",
-        description = "Checks if a UUID exists in any of the tables: User, Recording, CaptureSession, Booking, Case, Court.")
+        description = "Checks if a UUID exists in any of the tables: User, Recording, CaptureSession, "
+            + "Booking, Case, Court.")
     public ResponseEntity<String> checkUuidExists(@PathVariable UUID id) {
         return ResponseEntity.ok("Uuid relates to a " + adminService.findUuidType(id));
     }
