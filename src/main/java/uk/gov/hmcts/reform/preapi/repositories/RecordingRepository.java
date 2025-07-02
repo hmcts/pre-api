@@ -120,8 +120,6 @@ public interface RecordingRepository extends JpaRepository<Recording, UUID> {
         AND r.captureSession.deletedAt IS NULL
         AND r.captureSession.startedAt IS NOT NULL
         AND r.captureSession.finishedAt IS NOT NULL
-        AND r.captureSession.booking.scheduledFor IS NOT NULL
-        AND r.captureSession.booking.caseId IS NOT NULL
         """
     )
     List<Recording> findAllCompletedCaptureSessionsWithRecordings();
