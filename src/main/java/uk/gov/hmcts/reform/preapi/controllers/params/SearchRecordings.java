@@ -1,6 +1,9 @@
 package uk.gov.hmcts.reform.preapi.controllers.params;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.sql.Timestamp;
@@ -10,6 +13,9 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class SearchRecordings {
     private UUID captureSessionId;
     private UUID parentRecordingId;
