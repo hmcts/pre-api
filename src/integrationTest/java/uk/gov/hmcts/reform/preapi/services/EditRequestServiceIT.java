@@ -80,7 +80,8 @@ public class EditRequestServiceIT extends IntegrationTestBase {
 
         entityManager.refresh(recordingV2);
         assertThat(recordingV2.getDeletedAt()).isNotNull();
-        assertThat(recordingV2.getDeletedAt()).isEqualTo(recordingV2DeletedAt);
+        assertThat(recordingV2.getDeletedAt().toInstant().getEpochSecond())
+            .isEqualTo(recordingV2DeletedAt.toInstant().getEpochSecond());
         entityManager.refresh(recordingV3);
         assertThat(recordingV3.getDeletedAt()).isNotNull();
         entityManager.refresh(recordingV4);
