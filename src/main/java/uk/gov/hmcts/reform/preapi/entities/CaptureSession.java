@@ -13,6 +13,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
@@ -73,6 +75,7 @@ public class CaptureSession extends BaseEntity implements ISoftDeletable {
     private boolean isSoftDeleteOperation;
 
     @OneToMany(mappedBy = "captureSession")
+    @Fetch(FetchMode.SUBSELECT)
     private Set<Recording> recordings;
 
     public boolean isDeleted() {
