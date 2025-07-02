@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
+import uk.gov.hmcts.reform.preapi.entities.base.BaseEntity;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -544,5 +546,63 @@ class BookingServiceIT extends IntegrationTestBase {
 
         assertThat(bookings.size()).isEqualTo(1);
         assertThat(bookings.getFirst().getId()).isEqualTo(booking1.getId());
+    }
+
+    @Test
+    @Transactional
+    void testFindAllByScheduledFor() {
+        var court = HelperFactory.createCourt(CourtType.CROWN, "Test Court", "1234");
+        entityManager.persist(court);
+
+        var region = HelperFactory.createRegion("Test Region", Set.of(court));
+        entityManager.persist(region);
+
+        var room = HelperFactory.createRoom("Test Room", Set.of(court));
+        entityManager.persist(room);
+
+        var caseEntity = HelperFactory.createCase(court, "Test-Case", false, null);
+        entityManager.persist(caseEntity);
+
+        Timestamp startDate = Timestamp.valueOf("2025-07-01 00:00:00");
+        Timestamp endDate = Timestamp.valueOf("2025-07-01 23:59:59");
+
+        var booking1 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2025-07-01 10:00:00"),
+                                                   null,
+                                                   null);
+        var booking2 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2025-07-01 15:00:00"),
+                                                   null,
+                                                   null);
+        var bookingsInsideDateRange = List.of(booking1, booking2);
+
+        var booking3 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2025-06-01 10:00:00"),
+                                                   null,
+                                                   null);
+        var booking4 = HelperFactory.createBooking(caseEntity,
+                                                   Timestamp.valueOf("2025-08-01 10:00:00"),
+                                                   null,
+                                                   null);
+
+        entityManager.persist(booking1);
+        entityManager.persist(booking2);
+        entityManager.persist(booking3);
+        entityManager.persist(booking4);
+        entityManager.flush();
+
+        List<BookingDTO> bookings = bookingService.findAllByScheduledFor(startDate, endDate);
+
+        assertThat(bookings.size()).isEqualTo(bookingsInsideDateRange.size());
+
+        Set<UUID> expectedIds = bookingsInsideDateRange.stream()
+            .map(BaseEntity::getId)
+            .collect(Collectors.toSet());
+
+        Set<UUID> actualIds = bookings.stream()
+            .map(BookingDTO::getId)
+            .collect(Collectors.toSet());
+
+        assertEquals(expectedIds, actualIds);
     }
 }

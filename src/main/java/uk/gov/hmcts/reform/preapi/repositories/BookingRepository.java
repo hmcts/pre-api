@@ -118,4 +118,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         """
     )
     List<Booking> findAllPastUnusedBookings(@Param("scheduledBefore") Timestamp scheduledBefore);
+
+    List<Booking> findAllByScheduledForBetweenAndDeletedAtIsNull(Timestamp start, Timestamp end);
 }

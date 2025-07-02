@@ -219,4 +219,12 @@ public class BookingService {
             .map(BookingDTO::new)
             .toList();
     }
+
+    @Transactional
+    public List<BookingDTO> findAllByScheduledFor(Timestamp start, Timestamp end) {
+        return bookingRepository.findAllByScheduledForBetweenAndDeletedAtIsNull(start, end)
+            .stream()
+            .map(BookingDTO::new)
+            .toList();
+    }
 }
