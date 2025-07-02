@@ -9,35 +9,38 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.gov.hmcts.reform.preapi.controllers.params.SearchSharedReport;
-import uk.gov.hmcts.reform.preapi.dto.reports.AccessRemovedReportDTOV2;
-import uk.gov.hmcts.reform.preapi.dto.reports.CompletedCaptureSessionReportDTOV2;
-import uk.gov.hmcts.reform.preapi.dto.reports.ConcurrentCaptureSessionReportDTOV2;
-import uk.gov.hmcts.reform.preapi.dto.reports.EditReportDTOV2;
-import uk.gov.hmcts.reform.preapi.dto.reports.PlaybackReportDTOV2;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.AccessRemovedReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.CompletedCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.ConcurrentCaptureSessionReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.EditReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.PlaybackReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.RecordingsPerCaseReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.ScheduleReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.legacyreports.SharedReportDTO;
 import uk.gov.hmcts.reform.preapi.dto.reports.RecordingParticipantsReportDTO;
-import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
-import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
-import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.services.LegacyReportService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/reports-v2")
-public class ReportController {
+@RequestMapping("/reports")
+public class LegacyReportController {
 
-    private final ReportService reportService;
+    private final LegacyReportService reportService;
+    private final ReportService v2ReportService;
 
-    public ReportController(ReportService reportService) {
+    public LegacyReportController(LegacyReportService reportService, ReportService v2ReportService) {
         this.reportService = reportService;
+        this.v2ReportService = v2ReportService;
     }
 
     @GetMapping("/capture-sessions-concurrent")
-    @Operation(operationId = "reportConcurrentCaptureSessionsv2")
-    public ResponseEntity<List<ConcurrentCaptureSessionReportDTOV2>> reportConcurrentCaptureSessions() {
+    @Operation(operationId = "reportConcurrentCaptureSessions")
+    public ResponseEntity<List<ConcurrentCaptureSessionReportDTO>> reportConcurrentCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCaptureSessions());
     }
 
@@ -46,13 +49,13 @@ public class ReportController {
         operationId = "reportRecordingsPerCase",
         summary = "Get the number of completed capture sessions for each case"
     )
-    public ResponseEntity<List<RecordingsPerCaseReportDTOV2>> reportRecordingsPerCase() {
+    public ResponseEntity<List<RecordingsPerCaseReportDTO>> reportRecordingsPerCase() {
         return ResponseEntity.ok(reportService.reportRecordingsPerCase());
     }
 
     @GetMapping("/edits")
     @Operation(operationId = "reportEdits", summary = "Get a report on recordings edits")
-    public ResponseEntity<List<EditReportDTOV2>> reportEdits() {
+    public ResponseEntity<List<EditReportDTO>> reportEdits() {
         return ResponseEntity.ok(reportService.reportEdits());
     }
 
@@ -82,21 +85,14 @@ public class ReportController {
         schema = @Schema(implementation = String.class),
         example = "example@example.com"
     )
-    @Parameter(
-        name = "onlyActive",
-        description = "The shares must be active (not deleted) then true, otherwise false",
-        schema = @Schema(implementation = Boolean.class),
-        example = "true"
-    )
-    public ResponseEntity<List<SharedReportDTOV2>> reportBookingsShared(
+    public ResponseEntity<List<SharedReportDTO>> reportBookingsShared(
         @Parameter(hidden = true) SearchSharedReport params
     ) {
         return ResponseEntity.ok(reportService.reportShared(
             params.getCourtId(),
             params.getBookingId(),
             params.getSharedWithId(),
-            params.getSharedWithEmail(),
-            params.getOnlyActive() != null && params.getOnlyActive()
+            params.getSharedWithEmail()
         ));
     }
 
@@ -105,7 +101,7 @@ public class ReportController {
         operationId = "reportSchedules",
         summary = "Get a list of completed capture sessions with booking details"
     )
-    public ResponseEntity<List<ScheduleReportDTOV2>> reportSchedules() {
+    public ResponseEntity<List<ScheduleReportDTO>> reportSchedules() {
         return ResponseEntity.ok(reportService.reportScheduled());
     }
 
@@ -120,7 +116,7 @@ public class ReportController {
         description = "The source of the playback. Only accepts PORTAL, APPLICATION or null",
         schema = @Schema(implementation = AuditLogSource.class)
     )
-    public ResponseEntity<List<PlaybackReportDTOV2>> reportPlayback(
+    public ResponseEntity<List<PlaybackReportDTO>> reportPlayback(
         @RequestParam(required = false) AuditLogSource source
     ) {
         return ResponseEntity.ok(reportService.reportPlayback(source));
@@ -131,7 +127,7 @@ public class ReportController {
         operationId = "reportCompletedCaptureSessions",
         summary = "Get a report on capture sessions with available recordings"
     )
-    public ResponseEntity<List<CompletedCaptureSessionReportDTOV2>> reportCompletedCaptureSessions() {
+    public ResponseEntity<List<CompletedCaptureSessionReportDTO>> reportCompletedCaptureSessions() {
         return ResponseEntity.ok(reportService.reportCompletedCaptureSessions());
     }
 
@@ -140,7 +136,7 @@ public class ReportController {
         operationId = "reportShareBookingRemoved",
         summary = "Get report on booking share removal"
     )
-    public ResponseEntity<List<AccessRemovedReportDTOV2>> reportShareBookingRemoved() {
+    public ResponseEntity<List<AccessRemovedReportDTO>> reportShareBookingRemoved() {
         return ResponseEntity.ok(reportService.reportAccessRemoved());
     }
 
@@ -150,14 +146,15 @@ public class ReportController {
         summary = "Get report on participants and the recordings they are part of"
     )
     public ResponseEntity<List<RecordingParticipantsReportDTO>> reportRecordingParticipants() {
-        return ResponseEntity.ok(reportService.reportRecordingParticipants());
+        return ResponseEntity.ok(v2ReportService.reportRecordingParticipants());
     }
 
     @GetMapping("/user-primary-courts")
     @Operation(
         operationId = "reportUserPrimaryCourts",
-        summary = "Get report on app users and their primary courts")
+        summary = "Get report on app users: their first and last name, their role, their active status, "
+            + "their primary court and their last access time (if available)")
     public ResponseEntity<List<UserPrimaryCourtReportDTO>> reportUserPrimaryCourts() {
-        return ResponseEntity.ok(reportService.reportUserPrimaryCourts());
+        return ResponseEntity.ok(v2ReportService.reportUserPrimaryCourts());
     }
 }

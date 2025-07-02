@@ -1,4 +1,4 @@
-package uk.gov.hmcts.reform.preapi.dto.reports;
+package uk.gov.hmcts.reform.preapi.dto.legacyreports;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;

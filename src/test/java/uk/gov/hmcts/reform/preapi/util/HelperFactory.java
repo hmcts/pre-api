@@ -157,6 +157,7 @@ public class HelperFactory {
         captureSession.setFinishedByUser(finishedBy);
         captureSession.setStatus(status);
         captureSession.setDeletedAt(deletedAt);
+        captureSession.setRecordings(Set.of());
         return captureSession;
     }
 
