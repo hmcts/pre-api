@@ -23,7 +23,6 @@ import uk.gov.hmcts.reform.preapi.tasks.migration.PostProcessMigration;
 
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,24 +41,23 @@ public class PostProcessMigrationTest {
 
     private static final String CRON_USER_EMAIL = "test@test.com";
 
+
     @BeforeEach
-    void beforeEach() {
+    void beforeEach() throws Exception {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
+        jobLauncher = mock(JobLauncher.class);
+        loggingService = mock(LoggingService.class);
+        postMigrationJob = mock(Job.class);
 
         var accessDto = mock(AccessDTO.class);
         var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
         when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
 
         var userAuth = mock(UserAuthentication.class);
-        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
-
-        jobLauncher = mock(JobLauncher.class);
-        loggingService = mock(LoggingService.class);
-        postMigrationJob = mock(Job.class);
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(userAuth));
     }
 
     @DisplayName("Test Migrating Exclusions")

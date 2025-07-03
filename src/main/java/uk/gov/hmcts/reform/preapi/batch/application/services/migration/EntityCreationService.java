@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class EntityCreationService {
-    protected static final String BOOKING_FIELD = "bookingField";
-    protected static final String CAPTURE_SESSION_FIELD = "captureSessionField";
+    protected static final String BOOKING_FIELD = "booking";
+    protected static final String CAPTURE_SESSION_FIELD = "captureSession";
 
     @Value("${vodafone-user-email}")
     private String vodafoneUserEmail;
@@ -67,13 +67,25 @@ public class EntityCreationService {
     }
 
     public CreateBookingDTO createBooking(ProcessedRecording cleansedData, CreateCaseDTO aCase, String key) {
+ 
+        String bookingKey = cacheService.generateBookingCacheKey(
+            key,
+            cleansedData.getOrigVersionNumberStr()
+        );
+        String existingBookingId = cacheService.getHashValue(bookingKey, "id", String.class);
+
         var bookingDTO = new CreateBookingDTO();
-        bookingDTO.setId(UUID.randomUUID());
+        if (existingBookingId != null) {
+            bookingDTO.setId(UUID.fromString(existingBookingId));
+        } else {
+            bookingDTO.setId(UUID.randomUUID());
+            cacheService.saveHashValue(bookingKey, "id", bookingDTO.getId().toString());
+        }
+
         bookingDTO.setCaseId(aCase.getId());
         bookingDTO.setScheduledFor(cleansedData.getRecordingTimestamp());
         bookingDTO.setParticipants(aCase.getParticipants());
 
-        cacheService.saveHashValue(key, BOOKING_FIELD, bookingDTO);
         return bookingDTO;
     }
 
@@ -82,19 +94,28 @@ public class EntityCreationService {
         CreateBookingDTO booking,
         String key
     ) {
-        var vodafoneUser = getUserByEmail(vodafoneUserEmail);
-
+        
+        String sessionKey = key + ":version:" + cleansedData.getOrigVersionNumberStr() + ":sessionId";
+        String existingId = cacheService.getHashValue(sessionKey, "id", String.class);
+        
         var captureSessionDTO = new CreateCaptureSessionDTO();
-        captureSessionDTO.setId(UUID.randomUUID());
+        
+        if (existingId != null) {
+            captureSessionDTO.setId(UUID.fromString(existingId));
+        } else {
+            captureSessionDTO.setId(UUID.randomUUID());
+            cacheService.saveHashValue(sessionKey, "id", captureSessionDTO.getId().toString());
+        }
         captureSessionDTO.setBookingId(booking.getId());
         captureSessionDTO.setStartedAt(cleansedData.getRecordingTimestamp());
+
+        var vodafoneUser = getUserByEmail(vodafoneUserEmail);
         captureSessionDTO.setStartedByUserId(vodafoneUser);
         captureSessionDTO.setFinishedAt(cleansedData.getFinishedAt());
         captureSessionDTO.setFinishedByUserId(vodafoneUser);
         captureSessionDTO.setStatus(RecordingStatus.RECORDING_AVAILABLE);
         captureSessionDTO.setOrigin(RecordingOrigin.VODAFONE);
 
-        cacheService.saveHashValue(key, CAPTURE_SESSION_FIELD, captureSessionDTO);
         return captureSessionDTO;
     }
 
@@ -107,27 +128,51 @@ public class EntityCreationService {
         recordingDTO.setId(UUID.randomUUID());
         recordingDTO.setCaptureSessionId(captureSession.getId());
         recordingDTO.setDuration(cleansedData.getDuration());
-        recordingDTO.setFilename(cleansedData.getFileName());
         recordingDTO.setEditInstructions(null);
         recordingDTO.setVersion(cleansedData.getRecordingVersionNumber());
 
-        String existingMetadata = cacheService.getHashValue(key, "recordingMetadata", String.class);
-        UUID parentRecordingId = null;
-        if (existingMetadata != null) {
-            String[] parts = existingMetadata.split(":");
-            parentRecordingId = UUID.fromString(parts[0]);
+        // Extract key details
+        String caseRef = cleansedData.getCaseReference();
+        String witness = cleansedData.getWitnessFirstName();
+        String defendant = cleansedData.getDefendantLastName();
+        String version = cleansedData.getExtractedRecordingVersionNumberStr();
+        
+        String origVersion = cleansedData.getOrigVersionNumberStr();
+        
+        boolean isCopy = "COPY".equalsIgnoreCase(cleansedData.getExtractedRecordingVersion());
+        
+        String versionKey = cacheService.generateEntityCacheKey(
+            "recording",
+            caseRef, defendant, witness, origVersion
+        );
+
+        String archiveNameKey = String.format("archiveName:%s:%s", isCopy ? "copy" : "orig", version);
+        String parentKey = String.format("parentLookup:%s", cleansedData.getOrigVersionNumberStr());
+
+        // Resolve filename
+        String resolvedFilename = cacheService.getHashValue(versionKey, archiveNameKey, String.class);
+        recordingDTO.setFilename(resolvedFilename != null ? resolvedFilename : cleansedData.getFileName());
+        loggingService.logDebug("Resolved filename: %s", recordingDTO.getFilename());
+
+        if (isCopy) {
+            String parentIdStr = cacheService.getHashValue(versionKey, parentKey, String.class);
+            loggingService.logDebug("Looking up ORIG parent with key %s → %s", parentKey, parentIdStr);
+
+            if (parentIdStr != null) {
+                recordingDTO.setParentRecordingId(UUID.fromString(parentIdStr));
+            } else {
+                loggingService.logWarning("No ORIG found for COPY version %d", version);
+            }
+        } else {
+            if (!cacheService.checkHashKeyExists(versionKey, parentKey)) {
+                cacheService.saveHashValue(versionKey, parentKey, recordingDTO.getId().toString());
+            } else {
+                loggingService.logDebug("Skipped storing ORIG ID under %s (already exists)", parentKey);
+            }
         }
-
-        if (recordingDTO.getVersion() > 1 && parentRecordingId != null) {
-            recordingDTO.setParentRecordingId(parentRecordingId);
-        }
-
-        String recordingMetadata = recordingDTO.getId().toString() + ":" + recordingDTO.getVersion();
-        cacheService.saveHashValue(key, "recordingMetadata", recordingMetadata);
-
         return recordingDTO;
     }
-
+    
     public Set<CreateParticipantDTO> createParticipants(ProcessedRecording cleansedData) {
         Set<CreateParticipantDTO> participants = new HashSet<>();
 
@@ -229,11 +274,12 @@ public class EntityCreationService {
             CreateInviteDTO invite = createInvite(sharedWith);
             invites.add(invite);
             cacheService.saveUser(lowerEmail, sharedWith.getId());
-            loggingService.logDebug("✅ Created new user and invite: %s (%s)", lowerEmail, sharedWith.getId());
+            loggingService.logDebug("Created new user and invite: %s (%s)", lowerEmail, sharedWith.getId());
         }
 
-        String shareKey = cacheService.generateCacheKey(
-            "migration", "share-booking", booking.getId().toString(), sharedWith.getId().toString()
+        String shareKey = cacheService.generateEntityCacheKey(
+            "share-booking",
+            booking.getId().toString(), sharedWith.getId().toString()
         );
 
         loggingService.logDebug("shareKey %s", shareKey);

@@ -39,8 +39,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService.BOOKING_FIELD;
-import static uk.gov.hmcts.reform.preapi.batch.application.services.migration.EntityCreationService.CAPTURE_SESSION_FIELD;
 
 @SpringBootTest(classes = { EntityCreationService.class })
 public class EntityCreationServiceTest {
@@ -128,10 +126,13 @@ public class EntityCreationServiceTest {
     public void createBookingSuccess() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .recordingTimestamp(Timestamp.from(Instant.now()))
+            .extractedRecordingVersionNumberStr("1")
             .build();
         CreateCaseDTO aCase = new CreateCaseDTO();
         aCase.setId(UUID.randomUUID());
         aCase.setParticipants(Set.of());
+
+        String bookingKey = cacheService.generateBookingCacheKey("key", "1");
 
         CreateBookingDTO result = entityCreationService.createBooking(processedRecording, aCase, "key");
         assertThat(result).isNotNull();
@@ -139,7 +140,7 @@ public class EntityCreationServiceTest {
         assertThat(result.getScheduledFor()).isEqualTo(processedRecording.getRecordingTimestamp());
         assertThat(result.getParticipants()).isNotNull();
 
-        verify(cacheService, times(1)).saveHashValue("key", BOOKING_FIELD, result);
+        verify(cacheService, times(1)).saveHashValue(bookingKey, "id", result.getId().toString());
     }
 
     @Test
@@ -157,6 +158,7 @@ public class EntityCreationServiceTest {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .recordingTimestamp(Timestamp.from(Instant.now()))
             .duration(Duration.ofMinutes(3))
+            .extractedRecordingVersion("null")
             .build();
 
         CreateCaptureSessionDTO result = entityCreationService.createCaptureSession(processedRecording, booking, "key");
@@ -170,8 +172,9 @@ public class EntityCreationServiceTest {
         assertThat(result.getStatus()).isEqualTo(RecordingStatus.RECORDING_AVAILABLE);
         assertThat(result.getOrigin()).isEqualTo(RecordingOrigin.VODAFONE);
 
+        String expectedKey = "key:version:null:sessionId";
         verify(userService, times(1)).findByEmail("vodafone@test.com");
-        verify(cacheService, times(1)).saveHashValue("key", CAPTURE_SESSION_FIELD, result);
+        verify(cacheService, times(1)).saveHashValue(expectedKey, "id", result.getId().toString());
     }
 
     @Test
@@ -181,6 +184,10 @@ public class EntityCreationServiceTest {
             .fileName("test_file.mp4")
             .duration(Duration.ofMinutes(5))
             .recordingVersionNumber(1)
+            .extractedRecordingVersion("ORIG")
+            .caseReference("CASE123")
+            .defendantLastName("Smith")
+            .witnessFirstName("John")
             .build();
 
         CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
@@ -206,25 +213,48 @@ public class EntityCreationServiceTest {
             valueCaptor.capture()
         );
 
-        assertThat(keyCaptor.getValue()).isEqualTo("key");
-        assertThat(fieldCaptor.getValue()).isEqualTo("recordingMetadata");
-        assertThat(valueCaptor.getValue()).startsWith(result.getId().toString() + ":1");
+        String expectedKey = cacheService.generateEntityCacheKey(
+            "recording",
+            processedRecording.getCaseReference(),
+            processedRecording.getDefendantLastName(),
+            processedRecording.getWitnessFirstName(),
+            processedRecording.getExtractedRecordingVersionNumberStr()
+        );
+
+        String expectedField = "parentLookup:null"; 
+
+        assertThat(keyCaptor.getValue()).isEqualTo(expectedKey);
+        assertThat(fieldCaptor.getValue()).isEqualTo(expectedField);
+        assertThat(valueCaptor.getValue()).startsWith(result.getId().toString());
     }
 
     @Test
     @DisplayName("Should create a recording with parent ID when version is greater than 1 and metadata exists")
     public void createRecordingWithParent() {
+        UUID parentId = UUID.randomUUID();
+        String metadata = parentId.toString();
+
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .fileName("test_file.mp4")
             .duration(Duration.ofMinutes(5))
             .recordingVersionNumber(2)
+            .extractedRecordingVersion("COPY")
+            .extractedRecordingVersionNumberStr("2")
+            .caseReference("key")
+            .defendantLastName("Smith")
+            .witnessFirstName("John")
+            .origVersionNumberStr("2")
             .build();
 
         CreateCaptureSessionDTO captureSession = new CreateCaptureSessionDTO();
 
-        UUID parentId = UUID.randomUUID();
-        String metadata = parentId + ":1";
-        when(cacheService.getHashValue("key", "recordingMetadata", String.class)).thenReturn(metadata);
+        String expectedKey = cacheService.generateEntityCacheKey(
+            "recording", "key", "Smith", "John","2"
+        );
+
+        String expectedField = "parentLookup:2";
+
+        when(cacheService.getHashValue(expectedKey, expectedField, String.class)).thenReturn(metadata);
 
         CreateRecordingDTO result = entityCreationService.createRecording("key", processedRecording, captureSession);
 

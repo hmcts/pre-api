@@ -48,14 +48,14 @@ public class ProcessMigrationTest {
         userAuthenticationService = mock(UserAuthenticationService.class);
 
         var accessDto = mock(AccessDTO.class);
-        var baseAppAccessDTO = mock(BaseAppAccessDTO.class);
-        when(baseAppAccessDTO.getId()).thenReturn(UUID.randomUUID());
+        BaseAppAccessDTO baseAppAccessDTO = new BaseAppAccessDTO();
+        baseAppAccessDTO.setId(UUID.randomUUID());
 
         when(userService.findByEmail(CRON_USER_EMAIL)).thenReturn(accessDto);
         when(accessDto.getAppAccess()).thenReturn(Set.of(baseAppAccessDTO));
 
         var userAuth = mock(UserAuthentication.class);
-        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.ofNullable(userAuth));
+        when(userAuthenticationService.validateUser(any())).thenReturn(Optional.of(userAuth));
 
         jobLauncher = mock(JobLauncher.class);
         loggingService = mock(LoggingService.class);

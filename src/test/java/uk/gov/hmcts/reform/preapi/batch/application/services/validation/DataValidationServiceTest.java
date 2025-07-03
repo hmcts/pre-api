@@ -47,6 +47,8 @@ public class DataValidationServiceTest {
     void validateProcessedRecordingNotIsMostRecentVersion() {
         ProcessedRecording processedRecording = ProcessedRecording.builder()
             .court(new Court())
+            .caseReference("123456789")
+            .extractedRecordingVersion("COPY")
             .isMostRecentVersion(false)
             .build();
         CSVArchiveListData archive = new CSVArchiveListData();
@@ -142,7 +144,7 @@ public class DataValidationServiceTest {
         CSVArchiveListData archive = new CSVArchiveListData();
         String baseKey = "base-key";
         String participantPair = "witness-defendant";
-        when(inMemoryCacheService.generateCacheKey(processedRecording.getCaseReference(), participantPair))
+        when(inMemoryCacheService.generateEntityCacheKey(processedRecording.getCaseReference(), participantPair))
             .thenReturn(baseKey);
         when(inMemoryCacheService.getHashValue(baseKey, "recordingMetadata", String.class))
             .thenReturn(null);
@@ -173,7 +175,7 @@ public class DataValidationServiceTest {
         CSVArchiveListData archive = new CSVArchiveListData();
         String baseKey = "base-key";
         String participantPair = "witness-defendant";
-        when(inMemoryCacheService.generateCacheKey(processedRecording.getCaseReference(), participantPair))
+        when(inMemoryCacheService.generateEntityCacheKey(processedRecording.getCaseReference(), participantPair))
             .thenReturn(baseKey);
 
         ServiceResult<ProcessedRecording> result = dataValidationService.validateProcessedRecording(
@@ -202,7 +204,7 @@ public class DataValidationServiceTest {
         CSVArchiveListData archive = new CSVArchiveListData();
         String baseKey = "base-key";
         String participantPair = "witness-defendant";
-        when(inMemoryCacheService.generateCacheKey(processedRecording.getCaseReference(), participantPair))
+        when(inMemoryCacheService.generateEntityCacheKey(processedRecording.getCaseReference(), participantPair))
             .thenReturn(baseKey);
         when(inMemoryCacheService.getHashValue(baseKey, "recordingMetadata", String.class))
             .thenReturn("some-value");

@@ -91,8 +91,8 @@ public class InMemoryCacheServiceTest {
 
     @Test
     void generateCacheKeySuccess() {
-        String baseKey = inMemoryCacheService.generateCacheKey("case", "participants", "A", "B");
-        assertThat(baseKey).isEqualTo("vf:case:participants:a-b");
+        String baseKey = inMemoryCacheService.generateEntityCacheKey("case", "participants", "A", "B");
+        assertThat(baseKey).isEqualTo("vf:case:participants-a-b");
     }
 
     @Test

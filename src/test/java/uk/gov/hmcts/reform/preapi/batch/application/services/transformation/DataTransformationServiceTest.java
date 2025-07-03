@@ -326,7 +326,7 @@ public class DataTransformationServiceTest {
             "exhibitReference",
             "defendantLastName",
             "witnessFirstName",
-            "1",
+            "ORIG",
             "1",
             ".mp4",
             LocalDateTime.now(),
@@ -340,7 +340,7 @@ public class DataTransformationServiceTest {
         when(cacheService.getHashAll(key))
             .thenReturn(Map.of());
         mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-            .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", 1, true));
+            .thenReturn(new RecordingUtils.VersionDetails("ORIG", "1","1",null, 1, true));
         when(cacheService.getHashAll(key))
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
 
@@ -362,8 +362,10 @@ public class DataTransformationServiceTest {
         assertThat(result.getShareBookingContacts()).isEmpty();
         assertThat(result.getFileExtension()).isEqualTo(data.getFileExtension());
         assertThat(result.getFileName()).isEqualTo(data.getFileName());
-        assertThat(result.getRecordingVersion()).isEqualTo("versionType");
-        assertThat(result.getRecordingVersionNumberStr()).isEqualTo("1");
+        assertThat(result.getExtractedRecordingVersion()).isEqualTo("ORIG");
+        assertThat(result.getExtractedRecordingVersionNumberStr()).isEqualTo("1");
+        assertThat(result.getOrigVersionNumberStr()).isEqualTo("1");
+        assertThat(result.getCopyVersionNumberStr()).isEqualTo(null);
         assertThat(result.getRecordingVersionNumber()).isEqualTo(1);
         assertThat(result.isMostRecentVersion()).isTrue();
 
@@ -396,7 +398,7 @@ public class DataTransformationServiceTest {
         when(cacheService.getHashAll(key))
             .thenReturn(Map.of());
         mockedRecordingUtils.when(() -> RecordingUtils.processVersioning(any(), any(), any(), any(), any(), any()))
-            .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", 1, true));
+            .thenReturn(new RecordingUtils.VersionDetails("versionType", "1", "1", null, 1, true));
         when(cacheService.getHashAll(key))
             .thenReturn(Collections.singletonMap(ARCHIVE_NAME, data));
 
