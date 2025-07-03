@@ -35,6 +35,9 @@ public class GetScheduledBookingsTest {
     private BookingService bookingService;
     private SlackClient slackClient;
     private static final String ROBOT_USER_EMAIL = "example@example.com";
+    private Court court1;
+    private Court court2;
+    private User user;
 
     @BeforeEach
     public void setUp() {
@@ -52,21 +55,23 @@ public class GetScheduledBookingsTest {
             slackClient,
             ROBOT_USER_EMAIL,
             platformEnv);
+
+        court1 = HelperFactory.createCourt(CourtType.CROWN, "Court 1", null);
+        court2 = HelperFactory.createCourt(CourtType.CROWN, "Court 2", null);
+        user = HelperFactory.createDefaultTestUser();
     }
 
     @Test
     public void testScheduledBookingsAreFound() {
         var today = LocalDate.now();
-        var court = createCourt();
-        var user = HelperFactory.createDefaultTestUser();
 
-        var caseEntity1 = createCase(court, "case-1");
+        var caseEntity1 = HelperFactory.createCase(court1, "case-1", true, null);
         var booking1 = createBooking(caseEntity1, Timestamp.valueOf(today.atStartOfDay().plusHours(10)));
         var captureSession1 = createCaptureSession(booking1, user);
         booking1.setCaptureSessions(Set.of(captureSession1));
         var booking1DTO = new BookingDTO(booking1);
 
-        var caseEntity2 = createCase(court, "case-2");
+        var caseEntity2 = HelperFactory.createCase(court2, "case-2", true, null);
         var booking2 = createBooking(caseEntity2, Timestamp.valueOf(today.atStartOfDay().plusHours(15)));
         var captureSession2 = createCaptureSession(booking2, user);
         booking2.setCaptureSessions(Set.of(captureSession2));
@@ -132,14 +137,6 @@ public class GetScheduledBookingsTest {
         when(userService.findByEmail(ROBOT_USER_EMAIL)).thenReturn(accessDTO);
         when(userAuthenticationService.validateUser(baseAppAccessDTO.getId().toString()))
             .thenReturn(Optional.of(userAuthentication));
-    }
-
-    private Court createCourt() {
-        return HelperFactory.createCourt(CourtType.CROWN, "Test Court", null);
-    }
-
-    private Case createCase(Court court, String reference) {
-        return HelperFactory.createCase(court, reference, true, null);
     }
 
     private Booking createBooking(Case caseEntity, Timestamp scheduledFor) {
