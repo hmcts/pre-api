@@ -35,6 +35,7 @@ public class GetScheduledBookingsTest {
     private BookingService bookingService;
     private SlackClient slackClient;
     private static final String ROBOT_USER_EMAIL = "example@example.com";
+    private static final String SLACK_MESSAGE_HEADER = "\\n\\n:warning: *Bookings scheduled for today:*\\n";
     private Court court1;
     private Court court2;
     private User user;
@@ -92,7 +93,7 @@ public class GetScheduledBookingsTest {
         String slackMessage = slackCaptor.getValue();
 
         assertThat(slackMessage)
-            .contains("\\n\\n:warning: *Bookings scheduled for today:*\\n");
+            .contains(SLACK_MESSAGE_HEADER);
 
         bookingDTOs.forEach(bookingDTO -> {
             assertThat(slackMessage)
@@ -120,7 +121,7 @@ public class GetScheduledBookingsTest {
         verify(slackClient).postSlackMessage(slackCaptor.capture());
 
         assertThat(slackCaptor.getValue())
-            .contains("\\n\\n:warning: *Bookings scheduled for today:*\\n");
+            .contains(SLACK_MESSAGE_HEADER);
 
         assertThat(slackCaptor.getValue())
             .contains("\\n\\t:white_check_mark: There are no scheduled bookings for today\\n");
