@@ -131,11 +131,12 @@ public class GetScheduledBookingsTest {
 
         ArgumentCaptor<String> slackCaptor = ArgumentCaptor.forClass(String.class);
         verify(slackClient).postSlackMessage(slackCaptor.capture());
+        String slackMessage = slackCaptor.getValue();
 
-        assertThat(slackCaptor.getValue())
+        assertThat(slackMessage)
             .contains(SLACK_MESSAGE_HEADER);
 
-        assertThat(slackCaptor.getValue())
+        assertThat(slackMessage)
             .contains("\\n\\t:white_check_mark: There are no scheduled bookings for today\\n");
     }
 
