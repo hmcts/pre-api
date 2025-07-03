@@ -58,7 +58,6 @@ public class GetScheduledBookings extends RobotUserTask {
         var start = java.sql.Timestamp.valueOf(date.atStartOfDay());
         var end = java.sql.Timestamp.valueOf(date.plusDays(1).atStartOfDay().minusNanos(1));
 
-        // TODO replace this with implementation done in the StartLiveEvents task instead
         return this.bookingService.findAllByScheduledFor(start, end);
     }
 
