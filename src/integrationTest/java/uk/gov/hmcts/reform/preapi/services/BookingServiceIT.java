@@ -574,7 +574,6 @@ class BookingServiceIT extends IntegrationTestBase {
                                                    Timestamp.valueOf("2025-07-01 15:00:00"),
                                                    null,
                                                    null);
-        var bookingsInsideDateRange = List.of(booking1, booking2);
 
         var booking3 = HelperFactory.createBooking(caseEntity,
                                                    Timestamp.valueOf("2025-06-01 10:00:00"),
@@ -593,6 +592,7 @@ class BookingServiceIT extends IntegrationTestBase {
 
         List<BookingDTO> bookings = bookingService.findAllByScheduledFor(startDate, endDate);
 
+        var bookingsInsideDateRange = List.of(booking1, booking2);
         assertThat(bookings.size()).isEqualTo(bookingsInsideDateRange.size());
 
         Set<UUID> expectedIds = bookingsInsideDateRange.stream()

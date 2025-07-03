@@ -7,7 +7,11 @@ import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
-import uk.gov.hmcts.reform.preapi.entities.*;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
+import uk.gov.hmcts.reform.preapi.entities.Case;
+import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
@@ -26,7 +30,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class GetScheduledBookingsTest {
     private GetScheduledBookings getScheduledBookingsTask;
@@ -100,21 +106,25 @@ public class GetScheduledBookingsTest {
             .contains(SLACK_MESSAGE_HEADER);
 
         bookingDTOs.forEach(bookingDTO -> {
+            String caseReference = bookingDTO.getCaseDTO().getReference();
             assertThat(slackMessage)
-                .contains(String.format("\\n*Case Reference:* %s\\n", booking1DTO.getCaseDTO().getReference()));
+                .contains(String.format("\\n*Case Reference:* %s\\n", caseReference));
 
+            String courtName = bookingDTO.getCaseDTO().getCourt().getName();
             assertThat(slackMessage)
-                .contains(String.format("\\n*Court Name:* %s\\n", booking1DTO.getCaseDTO().getCourt().getName()));
+                .contains(String.format("\\n*Court Name:* %s\\n", courtName));
 
+            UUID bookingID = booking1DTO.getId();
             assertThat(slackMessage)
-                .contains(String.format("\\n*Booking ID:* %s\\n", booking1DTO.getId()));
+                .contains(String.format("\\n*Booking ID:* %s\\n", bookingID));
 
             if (bookingDTO.getId() == booking3DTO.getId()) {
                 assertThat(slackMessage)
                     .contains("\\n*Capture Session ID:* No capture session found\\n");
             } else {
+                UUID captureSessionID = booking1DTO.getCaptureSessions().getFirst().getId();
                 assertThat(slackMessage)
-                    .contains(String.format("\\n*Capture Session ID:* %s\\n", booking1DTO.getCaptureSessions().getFirst().getId()));
+                    .contains(String.format("\\n*Capture Session ID:* %s\\n", captureSessionID));
             }
         });
     }
