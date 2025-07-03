@@ -55,8 +55,6 @@ spring:
       open-in-view: true # https://www.baeldung.com/spring-open-session-in-view may want to disable
 
 azure:
-  application-insights:
-    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:00000000-0000-0000-0000-000000000000}
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
@@ -125,6 +123,15 @@ slack:
 editing:
   enable: ${ENABLE_AUTOMATED_EDITING:false}
 
+tasks:
+  start-live-event:
+    batch-size: ${TASK_START_LIVE_EVENTS_BATCH_SIZE:20}
+    poll-interval: ${TASK_START_LIVE_EVENTS_POLL_INTERVAL:2000}
+  cleanup-live-events:
+    batch-size: ${TASK_CLEANUP_LIVE_EVENTS_BATCH_SIZE:3}
+    cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
+    job-poll-interval: 10000 # 10 seconds
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
@@ -138,6 +145,9 @@ editing:
 #            preapi:
 #              actuator:
 #                PreApiHealthIndicator: DEBUG
+#              component:
+#                util:
+#                  CommandRunner: DEBUG
 #              email:
 #                StopLiveEventNotifierFlowClient: DEBUG
 #                CaseStateChangeNotifierFlowClient: DEBUG
@@ -151,4 +161,3 @@ editing:
 #        jdbc: DEBUG
 #        transaction:
 #          interceptor: trace
-

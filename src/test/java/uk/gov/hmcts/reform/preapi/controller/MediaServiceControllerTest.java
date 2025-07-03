@@ -1050,7 +1050,7 @@ public class MediaServiceControllerTest {
             .thenReturn("something-else.mp4");
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
-        when(mediaService.importAsset(any())).thenReturn(
+        when(mediaService.importAsset(any(), eq(true))).thenReturn(
             new GenerateAssetResponseDTO("asset", "container", "description", JobState.FINISHED.toString())
         );
 

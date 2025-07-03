@@ -142,7 +142,7 @@ public class MediaServiceController extends PreApiController {
     }
 
     @GetMapping("/vod")
-    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3', 'ROLE_LEVEL_4')")
+    @PreAuthorize("hasAnyRole('ROLE_SUPER_USER', 'ROLE_LEVEL_1', 'ROLE_LEVEL_2', 'ROLE_LEVEL_3')")
     public ResponseEntity<PlaybackDTO> getVod(
         @RequestParam UUID recordingId,
         @RequestParam(required = false) String mediaService
@@ -372,7 +372,7 @@ public class MediaServiceController extends PreApiController {
 
         log.info("Attempting to generate asset: {}", generateAssetDTO);
 
-        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO);
+        var result = mediaServiceBroker.getEnabledMediaService().importAsset(generateAssetDTO, true);
         if (result.getJobStatus().equals(JobState.FINISHED.toString())) {
             // add new version to recording etc
             var parentRecording = recordingService.findById(generateAssetDTO.getParentRecordingId());

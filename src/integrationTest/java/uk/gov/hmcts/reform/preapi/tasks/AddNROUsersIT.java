@@ -328,7 +328,7 @@ public class AddNROUsersIT extends IntegrationTestBase {
     }
 
     @Transactional
-    private HashMap<String, UUID> populateRolesTableAndGetTestRoleIDs() {
+    protected HashMap<String, UUID> populateRolesTableAndGetTestRoleIDs() {
         var roleLvl1 = HelperFactory.createRole("Level 1");
         roleLvl1.setDescription("test");
         roleLvl1.setId(UUID.randomUUID());

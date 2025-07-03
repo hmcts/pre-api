@@ -59,7 +59,8 @@ public class FunctionalTestBase {
     protected static final String USERS_ENDPOINT = "/users";
     protected static final String INVITES_ENDPOINT = "/invites";
     protected static final String LOCATION_HEADER = "Location";
-    protected static final String REPORTS_ENDPOINT = "/reports";
+    protected static final String LEGACY_REPORTS_ENDPOINT = "/reports";
+    protected static final String REPORTS_ENDPOINT = "/reports-v2";
 
     protected static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -420,12 +421,6 @@ public class FunctionalTestBase {
         return dto;
     }
 
-    protected CreateRecordingResponse createRecording() {
-        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
-        assertResponseCode(response, 200);
-        return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
-    }
-
     protected CreateRecordingDTO createRecording(UUID captureSessionId) {
         var dto = new CreateRecordingDTO();
         dto.setId(UUID.randomUUID());
@@ -435,6 +430,12 @@ public class FunctionalTestBase {
         dto.setUrl("example url");
         dto.setFilename("example.file");
         return dto;
+    }
+
+    protected CreateRecordingResponse createRecording() {
+        var response = doPostRequest("/testing-support/should-delete-recordings-for-booking", null);
+        assertResponseCode(response, 200);
+        return response.body().jsonPath().getObject("", CreateRecordingResponse.class);
     }
 
     protected Response putShareBooking(CreateShareBookingDTO dto) throws JsonProcessingException {

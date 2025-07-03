@@ -710,6 +710,11 @@ class CaseControllerFT extends FunctionalTestBase {
             assertCaseExists(dto.getId(), true);
             assertMatchesDto(dto);
 
+            // Outstanding issue with this whole test method - fails for reason not related to the case status
+            // update OPEN -> NULL
+            // var putResponse1 = putCase(dto, role);
+            // assertResponseCode(putResponse1, 204);
+
             // update OPEN -> PENDING_CLOSURE
             dto.setState(CaseState.PENDING_CLOSURE);
             dto.setClosedAt(Timestamp.from(Instant.now()));
@@ -723,24 +728,30 @@ class CaseControllerFT extends FunctionalTestBase {
             // update PENDING_CLOSURE -> OPEN
             dto.setState(CaseState.OPEN);
             dto.setClosedAt(null);
-            var putResponse6 = putCase(dto, role);
-            assertResponseCode(putResponse6, 403);
+            var putResponse3 = putCase(dto, role);
+            assertResponseCode(putResponse3, 403);
 
             // update PENDING_CLOSURE -> CLOSED
             dto.setState(CaseState.CLOSED);
             dto.setClosedAt(Timestamp.from(Instant.now().minusSeconds(36000)));
-            var putResponse3 = putCase(dto, role);
-            assertResponseCode(putResponse3, 403);
+            var putResponse4 = putCase(dto, role);
+            assertResponseCode(putResponse4, 403);
 
-            // force the update the PENDING_CLOSURE
+            // force the update the CLOSED
             var forcedPut2 = putCase(dto);
             assertResponseCode(forcedPut2, 204);
+
+            // Outstanding issue with this whole test method - fails for reason not related to the case status
+            // update OPEN -> NULL
+            // dto.setState(null);
+            // var putResponse5 = putCase(dto, role);
+            // assertResponseCode(putResponse5, 403);
 
             // update CLOSED -> OPEN
             dto.setState(CaseState.OPEN);
             dto.setClosedAt(null);
-            var putResponse4 = putCase(dto, role);
-            assertResponseCode(putResponse4, 403);
+            var putResponse6 = putCase(dto, role);
+            assertResponseCode(putResponse6, 403);
         }
     }
 
