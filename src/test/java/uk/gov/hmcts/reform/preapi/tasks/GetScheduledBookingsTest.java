@@ -87,9 +87,6 @@ public class GetScheduledBookingsTest {
 
         var bookingDTOs = List.of(booking1DTO, booking2DTO, booking3DTO);
 
-        when(userAuthenticationService.validateUser(anyString()))
-            .thenReturn(Optional.of(mock(UserAuthentication.class)));
-
         when(bookingService.findAllByScheduledFor(any(), any()))
             .thenReturn(bookingDTOs);
 
