@@ -31,10 +31,10 @@ public interface IMediaService {
 
     void stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) throws InterruptedException;
 
+    void stopLiveEvent(String liveEventId);
+
     RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException;
-
-    void stopLiveEvent(String liveEventId);
 
     void cleanupStoppedLiveEvent(String liveEventId);
 

@@ -100,11 +100,11 @@ public class MediaKind implements IMediaService {
 
     private final TelemetryClient telemetryClient = new TelemetryClient();
 
-    private static final String LOCATION = "uksouth";
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
     public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
     public static final String DEFAULT_VOD_STREAMING_ENDPOINT = "default";
     public static final String DEFAULT_LIVE_STREAMING_ENDPOINT = "default-live";
+    private static final String LOCATION = "uksouth";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
     private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String SENT_FOR_ENCODING = "SENT_FOR_ENCODING";
@@ -250,6 +250,15 @@ public class MediaKind implements IMediaService {
     }
 
     @Override
+    public void stopLiveEvent(String liveEventId) {
+        try {
+            stopAndDeleteLiveEvent(liveEventId);
+        } catch (NotFoundException e) {
+            // ignore
+        }
+    }
+
+    @Override
     @Transactional(dontRollbackOn = Exception.class)
     public RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
@@ -282,15 +291,6 @@ public class MediaKind implements IMediaService {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
         }
         return recordingStatus;
-    }
-
-    @Override
-    public void stopLiveEvent(String liveEventId) {
-        try {
-            stopAndDeleteLiveEvent(liveEventId);
-        } catch (NotFoundException e) {
-            // ignore
-        }
     }
 
     @Override

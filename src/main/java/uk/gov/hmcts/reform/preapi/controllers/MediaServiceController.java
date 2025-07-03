@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,6 +36,7 @@ import uk.gov.hmcts.reform.preapi.exception.AssetFilesNotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ConflictException;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
+import uk.gov.hmcts.reform.preapi.exception.UnknownServerException;
 import uk.gov.hmcts.reform.preapi.exception.UnprocessableContentException;
 import uk.gov.hmcts.reform.preapi.media.MediaServiceBroker;
 import uk.gov.hmcts.reform.preapi.media.storage.AzureFinalStorageService;
@@ -60,13 +62,17 @@ public class MediaServiceController extends PreApiController {
     private final RecordingService recordingService;
     private final EncodeJobService encodeJobService;
 
+    private final boolean enableEnhancedProcessing;
+
     @Autowired
     public MediaServiceController(MediaServiceBroker mediaServiceBroker,
                                   CaptureSessionService captureSessionService,
                                   RecordingService recordingService,
                                   AzureFinalStorageService azureFinalStorageService,
                                   AzureIngestStorageService azureIngestStorageService,
-                                  EncodeJobService encodeJobService) {
+                                  EncodeJobService encodeJobService,
+                                  @Value("${feature-flags.enable-enhanced-processing:}")
+                                      Boolean enableEnhancedProcessing) {
         super();
         this.mediaServiceBroker = mediaServiceBroker;
         this.captureSessionService = captureSessionService;
@@ -74,6 +80,7 @@ public class MediaServiceController extends PreApiController {
         this.azureFinalStorageService = azureFinalStorageService;
         this.azureIngestStorageService = azureIngestStorageService;
         this.encodeJobService = encodeJobService;
+        this.enableEnhancedProcessing = enableEnhancedProcessing;
     }
 
     @GetMapping("/health")
@@ -193,28 +200,43 @@ public class MediaServiceController extends PreApiController {
         }
 
         var recordingId = UUID.randomUUID();
+        if (!enableEnhancedProcessing) {
+            dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
+        }
+
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
-            mediaService.stopLiveEvent(dto, recordingId);
-            var jobName = mediaService.triggerProcessingStep1(
-                dto,
-                dto.getId().toString().replace("-", ""),
-                recordingId
-            );
-            if (jobName == null) {
-                dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.NO_RECORDING, null);
+            if (!enableEnhancedProcessing) {
+                var status = mediaService.stopLiveEventAndProcess(dto, recordingId);
+                if (status == RecordingStatus.FAILURE) {
+                    throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
+                                                         + captureSessionId
+                                                         + ")");
+                }
+                dto = captureSessionService.stopCaptureSession(captureSessionId, status, recordingId);
             } else {
-                var encodeJob = new EncodeJobDTO();
-                encodeJob.setCaptureSessionId(captureSessionId);
-                encodeJob.setJobName(jobName);
-                encodeJob.setRecordingId(recordingId);
-                encodeJob.setTransform(EncodeTransform.ENCODE_FROM_INGEST);
-                encodeJobService.upsert(encodeJob);
-                dto = captureSessionService.stopCaptureSession(
-                    captureSessionId,
-                    RecordingStatus.PROCESSING,
+                mediaService.stopLiveEvent(dto, recordingId);
+                var jobName = mediaService.triggerProcessingStep1(
+                    dto,
+                    dto.getId().toString().replace("-", ""),
                     recordingId
                 );
+                if (jobName == null) {
+                    dto =
+                        captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.NO_RECORDING, null);
+                } else {
+                    var encodeJob = new EncodeJobDTO();
+                    encodeJob.setCaptureSessionId(captureSessionId);
+                    encodeJob.setJobName(jobName);
+                    encodeJob.setRecordingId(recordingId);
+                    encodeJob.setTransform(EncodeTransform.ENCODE_FROM_INGEST);
+                    encodeJobService.upsert(encodeJob);
+                    dto = captureSessionService.stopCaptureSession(
+                        captureSessionId,
+                        RecordingStatus.PROCESSING,
+                        recordingId
+                    );
+                }
             }
         } catch (Exception e) {
             captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.FAILURE, null);
