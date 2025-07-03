@@ -38,6 +38,7 @@ public class GetScheduledBookingsTest {
     private static final String SLACK_MESSAGE_HEADER = "\\n\\n:warning: *Bookings scheduled for today:*\\n";
     private Court court1;
     private Court court2;
+    private Court court3;
     private User user;
 
     @BeforeEach
@@ -59,11 +60,12 @@ public class GetScheduledBookingsTest {
 
         court1 = HelperFactory.createCourt(CourtType.CROWN, "Court 1", null);
         court2 = HelperFactory.createCourt(CourtType.CROWN, "Court 2", null);
+        court3 = HelperFactory.createCourt(CourtType.CROWN, "Court 3", null);
         user = HelperFactory.createDefaultTestUser();
     }
 
     @Test
-    public void testScheduledBookingsAreFound() {
+    public void testScheduledBookings() {
         var today = LocalDate.now();
 
         var caseEntity1 = HelperFactory.createCase(court1, "case-1", true, null);
@@ -78,7 +80,12 @@ public class GetScheduledBookingsTest {
         booking2.setCaptureSessions(Set.of(captureSession2));
         var booking2DTO = new BookingDTO(booking2);
 
-        var bookingDTOs = List.of(booking1DTO, booking2DTO);
+        // Booking without capture session
+        var caseEntity3 = HelperFactory.createCase(court3, "case-3", true, null);
+        var booking3 = createBooking(caseEntity3, Timestamp.valueOf(today.atStartOfDay().plusHours(16)));
+        var booking3DTO = new BookingDTO(booking3);
+
+        var bookingDTOs = List.of(booking1DTO, booking2DTO, booking3DTO);
 
         when(userAuthenticationService.validateUser(anyString()))
             .thenReturn(Optional.of(mock(UserAuthentication.class)));
@@ -105,8 +112,13 @@ public class GetScheduledBookingsTest {
             assertThat(slackMessage)
                 .contains(String.format("\\n*Booking ID:* %s\\n", booking1DTO.getId()));
 
-            assertThat(slackMessage)
-                .contains(String.format("\\n*Capture Session ID:* %s\\n", booking1DTO.getCaptureSessions().get(0).getId()));
+            if (bookingDTO.getId() == booking3DTO.getId()) {
+                assertThat(slackMessage)
+                    .contains("\\n*Capture Session ID:* No capture session found\\n");
+            } else {
+                assertThat(slackMessage)
+                    .contains(String.format("\\n*Capture Session ID:* %s\\n", booking1DTO.getCaptureSessions().getFirst().getId()));
+            }
         });
     }
 
