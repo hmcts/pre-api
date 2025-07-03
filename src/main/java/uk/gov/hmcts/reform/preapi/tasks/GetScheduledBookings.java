@@ -57,25 +57,27 @@ public class GetScheduledBookings extends RobotUserTask {
     private List<BookingDTO> getBookingsForDate(LocalDate date) {
         var start = java.sql.Timestamp.valueOf(date.atStartOfDay());
         var end = java.sql.Timestamp.valueOf(date.plusDays(1).atStartOfDay().minusNanos(1));
+
+        // TODO replace this with implementation done in the StartLiveEvents task instead
         return this.bookingService.findAllByScheduledFor(start, end);
     }
 
     private SlackMessage createSlackMessage(List<BookingDTO> bookings) {
         List<SlackMessageSection> sections = new ArrayList<>();
         List<String> items = new ArrayList<>(List.of());
-//        bookings.forEach(booking -> {
-//            String item = String.format(
-//                "*Case Reference:* %s\n*Court Name:* %s\n*Booking ID:* %s\n*Capture Session ID:* %s",
-//                booking.getCaseDTO().getReference(),
-//                booking.getCaseDTO().getCourt().getName(),
-//                booking.getId(),
-//                booking.getCaptureSessions().stream()
-//                    .map(session -> session.getId().toString())
-//                    .findFirst()
-//                    .orElse("No capture session found")
-//            );
-//            items.add(item);
-//        });
+        bookings.forEach(booking -> {
+            String item = String.format(
+                "*Case Reference:* %s\n*Court Name:* %s\n*Booking ID:* %s\n*Capture Session ID:* %s",
+                booking.getCaseDTO().getReference(),
+                booking.getCaseDTO().getCourt().getName(),
+                booking.getId(),
+                booking.getCaptureSessions().stream()
+                    .map(session -> session.getId().toString())
+                    .findFirst()
+                    .orElse("No capture session found")
+            );
+            items.add(item);
+        });
 
         sections.add(new SlackMessageSection(
             "Bookings scheduled for today",
