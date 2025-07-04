@@ -62,30 +62,40 @@ public class GetScheduledBookings extends RobotUserTask {
     }
 
     private SlackMessage createSlackMessage(List<BookingDTO> bookings) {
-        List<SlackMessageSection> sections = new ArrayList<>();
-        List<String> items = new ArrayList<>(List.of());
-        bookings.forEach(booking -> {
-            String item = String.format(
-                "*Case Reference:* %s\n*Court Name:* %s\n*Booking ID:* %s\n*Capture Session ID:* %s",
-                booking.getCaseDTO().getReference(),
-                booking.getCaseDTO().getCourt().getName(),
-                booking.getId(),
-                booking.getCaptureSessions().stream()
-                    .map(session -> session.getId().toString())
-                    .findFirst()
-                    .orElse("No capture session found")
-            );
-            items.add(item);
-        });
-
-        sections.add(new SlackMessageSection(
-            "Bookings scheduled for today",
-            items,
-            "There are no scheduled bookings for today"));
+        List<SlackMessageSection> sections = List.of(createSlackMessageSection(bookings));
 
         return SlackMessage.builder()
             .environment(platformEnv)
             .sections(sections)
             .build();
+    }
+
+    private SlackMessageSection createSlackMessageSection(List<BookingDTO> bookings) {
+        List<String> items = bookings.stream()
+                .map(this::createSlackMessageItem)
+                .toList();
+
+        List<String> formattedItems = items.isEmpty()
+                ? List.of()
+                : List.of(String.join("\n\n", items));
+
+        return new SlackMessageSection(
+                "Bookings scheduled for today",
+                formattedItems,
+                "There are no scheduled bookings for today"
+        );
+    }
+
+    private String createSlackMessageItem(BookingDTO booking) {
+        return String.format(
+                "*Case Reference:* %s\n*Court Name:* %s\n*Booking ID:* %s\n*Capture Session ID:* %s",
+                booking.getCaseDTO().getReference(),
+                booking.getCaseDTO().getCourt().getName(),
+                booking.getId(),
+                booking.getCaptureSessions().stream()
+                        .map(session -> session.getId().toString())
+                        .findFirst()
+                        .orElse("No capture session found")
+        );
     }
 }
