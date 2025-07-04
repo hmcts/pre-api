@@ -451,14 +451,13 @@ public class AddNROUsers extends RobotUserTask {
             rowNumber,
             csvErrors,
             new ImportedNROUser(
-            firstName,
-            lastName,
-            email,
-            court,
-            courtID,
-            isDefault,
-            roleID,
-            userLevel)
-        );
+                firstName,
+                lastName,
+                email,
+                court,
+                courtID,
+                isDefault,
+                roleID,
+                userLevel));
     }
 }

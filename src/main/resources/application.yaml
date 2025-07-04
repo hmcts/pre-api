@@ -132,6 +132,9 @@ tasks:
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
 
+feature-flags:
+  enable-enhanced-processing: ${ENABLE_ENHANCED_PROCESSING:false}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
