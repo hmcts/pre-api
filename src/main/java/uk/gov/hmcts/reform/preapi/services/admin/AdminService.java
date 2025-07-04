@@ -45,6 +45,6 @@ public class AdminService {
         CAPTURE_SESSION,
         BOOKING,
         CASE,
-        COURT;
+        COURT
     }
 }

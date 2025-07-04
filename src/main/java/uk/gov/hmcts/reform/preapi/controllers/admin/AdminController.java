@@ -31,7 +31,7 @@ public class AdminController {
 
     /**
      * Endpoint for getting back what type of item a UUID relates to
-     * @param id
+     * @param id UUID to search for
      * @return returns a string
      */
     @GetMapping("/{id}")
