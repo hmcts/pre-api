@@ -8,10 +8,14 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.reform.preapi.entities.Audit;
+import uk.gov.hmcts.reform.preapi.entities.Booking;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.utils.DateTimeUtils;
 
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 @Data
@@ -30,6 +34,15 @@ public class PlaybackReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "PlaybackReportTimeZone")
     private String playbackTimeZone;
+
+    @Schema(description = "PlaybackReportRecordingVersion")
+    private Integer recordingVersion;
+
+    @Schema(description = "PlaybackReportDefendants")
+    private String defendants;
+
+    @Schema(description = "PlaybackReportWitness")
+    private String witness;
 
     @Schema(description = "PlaybackReportUserFullName")
     private String userFullName;
@@ -50,6 +63,23 @@ public class PlaybackReportDTOV2 extends BaseReportDTO {
             userFullName = user.getFullName();
             userEmail = user.getEmail();
             userOrganisation = user.getOrganisation();
+        }
+
+        if (recording != null) {
+            Booking booking = recording.getCaptureSession().getBooking();
+            recordingVersion = recording.getVersion();
+            witness = booking.getParticipants()
+                             .stream()
+                             .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+                             .findFirst()
+                             .map(Participant::getFullName)
+                             .orElse(null);
+            defendants = booking.getParticipants().stream()
+                                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+                                .map(Participant::getFullName)
+                                .collect(Collectors.collectingAndThen(
+                                    Collectors.joining(", "),
+                                    result -> result.isEmpty() ? null : result));
         }
     }
 }
