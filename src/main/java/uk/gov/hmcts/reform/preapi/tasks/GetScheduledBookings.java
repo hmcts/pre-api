@@ -2,6 +2,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessage;
@@ -11,9 +12,12 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Retrieves scheduled bookings for the current day.
@@ -55,10 +59,16 @@ public class GetScheduledBookings extends RobotUserTask {
     }
 
     private List<BookingDTO> getBookingsForDate(LocalDate date) {
-        var start = java.sql.Timestamp.valueOf(date.atStartOfDay());
-        var end = java.sql.Timestamp.valueOf(date.plusDays(1).atStartOfDay().minusNanos(1));
-
-        return this.bookingService.findAllByScheduledFor(start, end);
+        return bookingService.searchBy(null,
+                        null,
+                        null,
+                        Optional.of(Timestamp.valueOf(date.atStartOfDay())),
+                        null,
+                        null,
+                        null,
+                        null,
+                        Pageable.unpaged())
+                .toList();
     }
 
     private SlackMessage createSlackMessage(List<BookingDTO> bookings) {

@@ -3,6 +3,7 @@ package uk.gov.hmcts.reform.preapi.tasks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageImpl;
 import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
@@ -93,8 +94,17 @@ public class GetScheduledBookingsTest {
 
         var bookingDTOs = List.of(booking1DTO, booking2DTO, booking3DTO);
 
-        when(bookingService.findAllByScheduledFor(any(), any()))
-            .thenReturn(bookingDTOs);
+        when(bookingService.searchBy(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenReturn(new PageImpl<>(bookingDTOs));
 
         getScheduledBookingsTask.run();
 
@@ -131,8 +141,17 @@ public class GetScheduledBookingsTest {
 
     @Test
     public void testScheduledBookingsAreNotFound() {
-        when(bookingService.findAllByScheduledFor(any(), any()))
-            .thenReturn(List.of());
+        when(bookingService.searchBy(
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any(),
+                any()))
+                .thenReturn(new PageImpl<>(List.of()));
 
         getScheduledBookingsTask.run();
 
