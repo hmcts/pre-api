@@ -1732,6 +1732,9 @@ definitions:
       court:
         description: ReportCourt
         type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
       playback_date:
         description: PlaybackReportPlaybackDate
         type: string
@@ -1744,6 +1747,10 @@ definitions:
       postcode:
         description: ReportPostcode
         type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
       region:
         description: ReportRegion
         type: string
@@ -1755,6 +1762,9 @@ definitions:
         type: string
       user_organisation:
         description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
         type: string
     type: object
   PortalAccessDTO:

@@ -24,10 +24,12 @@ import uk.gov.hmcts.reform.preapi.entities.Booking;
 import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
+import uk.gov.hmcts.reform.preapi.entities.Participant;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.User;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
+import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
@@ -411,6 +413,8 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].user_email").value(reportItem.getUserEmail()))
             .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
+            .andExpect(jsonPath("$[0].witness").value("John Doe"))
+            .andExpect(jsonPath("$[0].defendants").value("Will Doe, Jane Doe"))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
@@ -500,9 +504,27 @@ public class ReportControllerTest {
         caseEntity.setCourt(courtEntity);
         caseEntity.setReference("ABC123");
 
+        var witness = new Participant();
+        witness.setParticipantType(ParticipantType.WITNESS);
+        witness.setFirstName("John");
+        witness.setLastName("Doe");
+
+        var defendant = new Participant();
+        defendant.setParticipantType(ParticipantType.DEFENDANT);
+        defendant.setFirstName("Jane");
+        defendant.setLastName("Doe");
+
+        var defendant2 = new Participant();
+        defendant2.setParticipantType(ParticipantType.DEFENDANT);
+        defendant2.setFirstName("Will");
+        defendant2.setLastName("Doe");
+
         var bookingEntity = new Booking();
         bookingEntity.setId(UUID.randomUUID());
         bookingEntity.setCaseId(caseEntity);
+        bookingEntity.setParticipants(
+            Set.of(witness, defendant, defendant2)
+        );
 
         var captureSessionEntity = new CaptureSession();
         captureSessionEntity.setId(UUID.randomUUID());
@@ -515,7 +537,7 @@ public class ReportControllerTest {
         auditEntity.setCreatedAt(createdAt);
         auditEntity.setTableRecordId(recordingEntity.getId());
 
-        return new PlaybackReportDTOV2(auditEntity, user, null);
+        return new PlaybackReportDTOV2(auditEntity, user, recordingEntity);
     }
 
     private SharedReportDTOV2 createSharedReport() {
