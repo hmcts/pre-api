@@ -18,7 +18,7 @@ import uk.gov.hmcts.reform.preapi.services.admin.AdminService;
 import java.util.UUID;
 
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -83,5 +83,20 @@ public class AdminControllerTest {
         mockMvc.perform(get("/admin/{id}", invalidUuid))
             .andExpect(status().isBadRequest())
             .andExpect(content().json("{\"message\":\"Invalid UUID string: invalid\"}"));
+    }
+
+    @DisplayName("Should return status code 405 when wrong request method is used")
+    @Test
+    void wrongRequestMethod() throws Exception {
+        UUID givenUuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174999");
+
+        mockMvc.perform(post("/admin/{id}", givenUuid))
+            .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(delete("/admin/{id}", givenUuid))
+            .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(put("/admin/{id}", givenUuid))
+            .andExpect(status().isMethodNotAllowed());
+        mockMvc.perform(patch("/admin/{id}", givenUuid))
+            .andExpect(status().isMethodNotAllowed());
     }
 }

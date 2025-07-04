@@ -36,7 +36,7 @@ public class AdminService {
     }
 
     /**
-     * Enum representing the tables the UUID could belong to.
+     * Enum representing the tables the UUID could belong to. Restricts to relevant tables only.
      */
     @Getter
     public enum UuidTableType {

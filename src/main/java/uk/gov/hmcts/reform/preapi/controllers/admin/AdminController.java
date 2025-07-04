@@ -29,7 +29,11 @@ public class AdminController {
         this.adminService = adminService;
     }
 
-
+    /**
+     * Endpoint for getting back what type of item a UUID relates to
+     * @param id
+     * @return returns a string
+     */
     @GetMapping("/{id}")
     @Operation(operationId = "checkUuid", summary = "Check if a UUID exists in the system",
         description = "Checks if a UUID exists in any of the tables: User, Recording, CaptureSession, "
