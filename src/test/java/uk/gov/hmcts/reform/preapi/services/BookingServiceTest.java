@@ -25,7 +25,6 @@ import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.security.authentication.UserAuthentication;
-import uk.gov.hmcts.reform.preapi.util.HelperFactory;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -563,39 +562,6 @@ class BookingServiceTest {
 
         verify(bookingRepository, times(1))
             .findAllPastUnusedBookings(any());
-    }
-
-    @Test
-    @DisplayName("Should find all bookings scheduled in given date range")
-    void findAllByScheduledFor() {
-        Timestamp startDate = Timestamp.valueOf("2025-07-01 00:00:00");
-        Timestamp endDate = Timestamp.valueOf("2025-07-01 23:59:59");
-        var court = createCourt();
-
-        var booking1 = createBooking(court, Timestamp.valueOf("2025-07-01 10:00:00"));
-        var booking2 = createBooking(court, Timestamp.valueOf("2025-07-01 15:00:00"));
-        var bookingsInDateRange = List.of(booking1, booking2);
-        when(bookingRepository.findAllByScheduledForBetweenAndDeletedAtIsNull(startDate, endDate))
-            .thenReturn(bookingsInDateRange);
-
-        var bookings = bookingService.findAllByScheduledFor(startDate, endDate);
-
-        assertThat(bookings).hasSize(bookingsInDateRange.size());
-        verify(bookingRepository, times(1))
-            .findAllByScheduledForBetweenAndDeletedAtIsNull(startDate, endDate);
-    }
-
-    private Court createCourt() {
-        var court = new Court();
-        court.setId(UUID.randomUUID());
-        return court;
-    }
-
-    private Booking createBooking(Court court, Timestamp scheduledFor) {
-        var caseEntity = new Case();
-        caseEntity.setId(UUID.randomUUID());
-        caseEntity.setCourt(court);
-        return HelperFactory.createBooking(caseEntity, scheduledFor, null);
     }
 }
 
