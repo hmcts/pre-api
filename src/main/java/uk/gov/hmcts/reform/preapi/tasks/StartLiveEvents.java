@@ -82,7 +82,6 @@ public class StartLiveEvents extends RobotUserTask {
         );
     }
 
-
     private UUID initCaptureSessionForBooking(UUID bookingId) {
         log.info("Creating capture session for booking {}", bookingId);
 

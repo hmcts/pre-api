@@ -37,11 +37,8 @@ import java.util.stream.Stream;
 public class ShareBookingService {
 
     private final ShareBookingRepository shareBookingRepository;
-
     private final BookingRepository bookingRepository;
-
     private final UserRepository userRepository;
-
     private final EmailServiceFactory emailServiceFactory;
 
     @Autowired
