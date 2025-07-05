@@ -8,15 +8,9 @@ import org.mockito.ArgumentCaptor;
 import uk.gov.hmcts.reform.preapi.dto.AccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.CaseDTO;
-import uk.gov.hmcts.reform.preapi.dto.CourtDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateCaptureSessionDTO;
-import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
-import uk.gov.hmcts.reform.preapi.dto.UserDTO;
 import uk.gov.hmcts.reform.preapi.dto.base.BaseAppAccessDTO;
 import uk.gov.hmcts.reform.preapi.dto.media.LiveEventDTO;
-import uk.gov.hmcts.reform.preapi.email.EmailServiceFactory;
-import uk.gov.hmcts.reform.preapi.email.StopLiveEventNotifierFlowClient;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
@@ -51,8 +45,6 @@ public class CleanupLiveEventsTest {
     private static MediaKind mediaService;
     private static UserService userService;
     private static UserAuthenticationService userAuthenticationService;
-    private static StopLiveEventNotifierFlowClient stopLiveEventNotifierFlowClient;
-    private static EmailServiceFactory emailServiceFactory;
 
     private static final String CRON_USER_EMAIL = "test@test.com";
     private static final String CRON_PLATFORM_ENV = "Staging";
@@ -70,8 +62,6 @@ public class CleanupLiveEventsTest {
         userService = mock(UserService.class);
         userAuthenticationService = mock(UserAuthenticationService.class);
         bookingService = mock(BookingService.class);
-        stopLiveEventNotifierFlowClient = mock(StopLiveEventNotifierFlowClient.class);
-        emailServiceFactory = mock(EmailServiceFactory.class);
 
         when(mediaServiceBroker.getEnabledMediaService()).thenReturn(mediaService);
 
@@ -133,8 +123,6 @@ public class CleanupLiveEventsTest {
             bookingService,
             userService,
             userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
             CRON_USER_EMAIL,
             "Production",
             BATCH_SIZE,
@@ -147,63 +135,6 @@ public class CleanupLiveEventsTest {
         verify(mediaService, times(2)).getLiveEvents();
         verify(captureSessionService, times(4)).findByLiveEventId(liveEvent.getName());
         verify(mediaService, never()).cleanupStoppedLiveEvent(liveEvent.getName());
-    }
-
-    @Test
-    void shouldProcessLiveEventAndTriggerNotifications() {
-        var captureSessionId = UUID.randomUUID();
-        var liveEventDTO = new LiveEventDTO();
-        liveEventDTO.setName(captureSessionId.toString().replace("-", ""));
-        liveEventDTO.setResourceState("Running");
-
-        var captureSession = new CaptureSessionDTO();
-        captureSession.setId(captureSessionId);
-        captureSession.setBookingId(UUID.randomUUID());
-
-        when(captureSessionService.findByLiveEventId(liveEventDTO.getName())).thenReturn(captureSession);
-        when(captureSessionService.findById(captureSessionId)).thenReturn(captureSession);
-        when(captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, null))
-            .thenReturn(captureSession);
-
-        var court = new CourtDTO();
-        court.setName("Test Court");
-        var aCase = new CaseDTO();
-        aCase.setReference("123456");
-        aCase.setCourt(court);
-        var booking = new BookingDTO();
-        booking.setId(captureSession.getBookingId());
-        booking.setCaseDTO(aCase);
-
-        var user = new UserDTO();
-        user.setId(UUID.randomUUID());
-        user.setEmail("test@example.com");
-        user.setFirstName("Test");
-        when(userService.findById(user.getId())).thenReturn(user);
-        var share = new ShareBookingDTO();
-        share.setSharedWithUser(user);
-        booking.setShares(List.of(share));
-
-        when(bookingService.findById(booking.getId())).thenReturn(booking);
-
-        when(mediaService.getLiveEvents()).thenReturn(List.of(liveEventDTO));
-        when(captureSessionService.findByLiveEventId(liveEventDTO.getName())).thenReturn(captureSession);
-        when(mediaService.triggerProcessingStep1(any(), any(), any())).thenReturn("job1");
-        when(mediaService.hasJobCompleted(any(), eq("job1"))).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.triggerProcessingStep2(any())).thenReturn("job2");
-        when(mediaService.hasJobCompleted(any(), eq("job2"))).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-        when(mediaService.verifyFinalAssetExists(any())).thenReturn(RecordingStatus.RECORDING_AVAILABLE);
-
-        var cleanupLiveEvents = createCleanupLiveEventsTask();
-
-        assertDoesNotThrow(cleanupLiveEvents::run);
-
-        verify(captureSessionService, times(1))
-            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.PROCESSING), any());
-        verify(mediaServiceBroker, times(3)).getEnabledMediaService();
-        verify(mediaService, times(2)).getLiveEvents();
-        verify(captureSessionService, times(1))
-            .stopCaptureSession(eq(captureSessionId), eq(RecordingStatus.RECORDING_AVAILABLE), any());
-        verify(stopLiveEventNotifierFlowClient, times(1)).emailAfterStoppingLiveEvents(any());
     }
 
     @Test
@@ -245,20 +176,7 @@ public class CleanupLiveEventsTest {
         when(mediaService.getLiveEvents()).thenReturn(List.of(liveEvent));
         when(bookingService.findAllPastBookings()).thenReturn(List.of());
 
-        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
-            mediaServiceBroker,
-            captureSessionService,
-            bookingService,
-            userService,
-            userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
-            CRON_USER_EMAIL,
-            CRON_PLATFORM_ENV,
-            BATCH_SIZE,
-            BATCH_COOLDOWN,
-            POLLING_INTERVAL
-        );
+        CleanupLiveEvents cleanupLiveEvents = createCleanupLiveEventsTask();
 
         cleanupLiveEvents.run();
 
@@ -278,20 +196,7 @@ public class CleanupLiveEventsTest {
         when(mediaService.getLiveEvents()).thenReturn(List.of());
         when(bookingService.findAllPastBookings()).thenReturn(List.of(booking));
 
-        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
-            mediaServiceBroker,
-            captureSessionService,
-            bookingService,
-            userService,
-            userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
-            CRON_USER_EMAIL,
-            CRON_PLATFORM_ENV,
-            BATCH_SIZE,
-            BATCH_COOLDOWN,
-            POLLING_INTERVAL
-        );
+        CleanupLiveEvents cleanupLiveEvents = createCleanupLiveEventsTask();
 
         cleanupLiveEvents.run();
 
@@ -319,20 +224,7 @@ public class CleanupLiveEventsTest {
         when(bookingService.findAllPastBookings()).thenReturn(List.of());
         when(captureSessionService.findAllPastIncompleteCaptureSessions()).thenReturn(List.of(captureSessionDTO));
 
-        CleanupLiveEvents cleanupLiveEvents = new CleanupLiveEvents(
-            mediaServiceBroker,
-            captureSessionService,
-            bookingService,
-            userService,
-            userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
-            CRON_USER_EMAIL,
-            CRON_PLATFORM_ENV,
-            BATCH_SIZE,
-            BATCH_COOLDOWN,
-            POLLING_INTERVAL
-        );
+        CleanupLiveEvents cleanupLiveEvents = createCleanupLiveEventsTask();
 
         cleanupLiveEvents.run();
 
@@ -356,8 +248,6 @@ public class CleanupLiveEventsTest {
             bookingService,
             userService,
             userAuthenticationService,
-            stopLiveEventNotifierFlowClient,
-            emailServiceFactory,
             CRON_USER_EMAIL,
             CRON_PLATFORM_ENV,
             BATCH_SIZE,
