@@ -12,6 +12,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
@@ -51,6 +53,7 @@ public class Case extends CreatedModifiedAtEntity implements ISoftDeletable {
 
     @OneToMany
     @JoinColumn(name = "case_id", referencedColumnName = "id")
+    @Fetch(FetchMode.SUBSELECT)
     private Set<Participant> participants;
 
     @Transient

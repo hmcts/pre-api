@@ -187,7 +187,9 @@ def coverageExclusionList = [
 ]
 
 def duplicateCodeExclusionList = [
-  '**uk/gov/hmcts/reform/preapi/entities/**'
+  '**uk/gov/hmcts/reform/preapi/entities/**',
+  '**uk/gov/hmcts/reform/preapi/controllers/LegacyReportController*',
+  '**uk/gov/hmcts/reform/preapi/services/LegacyReportService*'
 ]
 
 sonarqube {
@@ -273,7 +275,7 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-validation'
   implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.8.9'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
-  implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.4.1'
+  implementation group: 'org.springframework.hateoas', name: 'spring-hateoas', version: '2.5.1'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-security'
   implementation group: 'com.azure.spring', name: 'spring-cloud-azure-starter-active-directory', version: '5.20.0'
 

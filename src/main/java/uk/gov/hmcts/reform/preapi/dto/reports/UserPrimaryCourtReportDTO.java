@@ -10,7 +10,7 @@ import java.sql.Timestamp;
 
 @Data
 @NoArgsConstructor
-@Schema(description = "UserPrimaryCourtReportDTO")
+@Schema(description = "UserPrimaryCourtReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UserPrimaryCourtReportDTO {
 
