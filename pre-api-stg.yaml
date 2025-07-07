@@ -2093,9 +2093,6 @@ definitions:
       granted_by_full_name:
         description: SharedReportGrantedByFullName
         type: string
-      organisation_shared_with:
-        description: SharedReportOrganisationAllocatedTo
-        type: string
       postcode:
         description: ReportPostcode
         type: string
