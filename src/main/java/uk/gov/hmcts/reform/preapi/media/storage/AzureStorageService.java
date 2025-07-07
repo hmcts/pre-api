@@ -19,7 +19,7 @@ public abstract class AzureStorageService {
     protected final BlobServiceClient client;
     protected final AzureConfiguration azureConfiguration;
 
-    public AzureStorageService(BlobServiceClient client, AzureConfiguration azureConfiguration) {
+    protected AzureStorageService(BlobServiceClient client, AzureConfiguration azureConfiguration) {
         this.client = client;
         this.azureConfiguration = azureConfiguration;
     }

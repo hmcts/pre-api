@@ -168,7 +168,6 @@ public class FfmpegServiceTest {
         var newRecordingId = UUID.randomUUID();
         var inputFileName = editRequest.getSourceRecording().getFilename();
         var containerName = editRequest.getSourceRecording().getId().toString();
-        var outputFileName = newRecordingId + ".mp4";
 
         when(azureFinalStorageService.downloadBlob(containerName, inputFileName, inputFileName))
             .thenReturn(false);
@@ -262,6 +261,54 @@ public class FfmpegServiceTest {
         verify(azureFinalStorageService, times(1)).downloadBlob(containerName, inputFileName, inputFileName);
         verify(commandExecutor, times(1)).execute(any(CommandLine.class));
         verify(azureIngestStorageService, times(1)).uploadBlob(outputFileName, outputContainerName, outputFileName);
+    }
+
+    @Test
+    @DisplayName("Should return correct duration when valid output is provided")
+    void getDurationFromMp4ViaSasTokenSuccess() {
+        String sasToken = "https://example.com/video.mp4?token";
+        String mockOutput = "123.456";
+
+        when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn(mockOutput);
+
+        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+
+        assertThat(duration).isNotNull();
+        assertThat(duration.toMillis()).isEqualTo(123456);
+    }
+
+    @Test
+    @DisplayName("Should return null when ffprobe output is non-numeric")
+    void getDurationFromMp4ViaSasTokenInvalidOutput() {
+        String sasToken = "https://example.com/video.mp4?token";
+        when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn("not_a_number");
+
+        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+
+        assertThat(duration).isNull();
+    }
+
+    @Test
+    @DisplayName("Should return null when exception is thrown during command execution")
+    void getDurationFromMp4ViaSasTokenThrowsException() {
+        String sasToken = "https://example.com/video.mp4?token";
+        when(commandExecutor.executeAndGetOutput(any(CommandLine.class)))
+            .thenThrow(new RuntimeException("An error occurred"));
+
+        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+
+        assertThat(duration).isNull();
+    }
+
+    @Test
+    @DisplayName("Should return null when ffprobe returns empty output")
+    void getDurationFromMp4ViaSasTokenEmptyOutput() {
+        String sasToken = "https://example.com/video.mp4?token";
+        when(commandExecutor.executeAndGetOutput(any(CommandLine.class))).thenReturn("  ");
+
+        Duration duration = ffmpegService.getDurationFromMp4ViaSasToken(sasToken);
+
+        assertThat(duration).isNull();
     }
 
     private String generateEditInstructionsJson(List<FfmpegEditInstructionDTO> ffmpegEditInstructions)
