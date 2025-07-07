@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -413,7 +414,7 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].user_organisation").value(reportItem.getUserOrganisation()))
             .andExpect(jsonPath("$[0].case_reference").value(reportItem.getCaseReference()))
             .andExpect(jsonPath("$[0].witness").value("John Doe"))
-            .andExpect(jsonPath("$[0].defendants").value("Will Doe, Jane Doe"))
+            .andExpect(jsonPath("$[0].defendants").value(matchesPattern("(Will Doe, Jane Doe|Jane Doe, Will Doe)")))
             .andExpect(jsonPath("$[0].court").value(reportItem.getCourt()))
             .andExpect(jsonPath("$[0].county").value(reportItem.getCounty()))
             .andExpect(jsonPath("$[0].postcode").value(reportItem.getPostcode()))
