@@ -449,13 +449,7 @@ class TestingSupportController {
         court.setRegions(Set.of(region));
         regionRepository.save(region);
 
-        var room = new Room();
-        room.setName("Foo Room");
-        room.setCourts(Set.of(court));
-        roomRepository.save(room);
-
         court.setRegions(Set.of(region));
-        court.setRooms(Set.of(room));
         courtRepository.save(court);
 
         var caseEntity = new Case();

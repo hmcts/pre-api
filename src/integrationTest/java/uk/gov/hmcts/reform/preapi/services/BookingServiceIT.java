@@ -496,9 +496,6 @@ class BookingServiceIT extends IntegrationTestBase {
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
-
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
 
