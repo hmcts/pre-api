@@ -285,7 +285,6 @@ public class ReportControllerTest {
             .andExpect(jsonPath("$[0].timezone").value(reportItem.getTimezone()))
             .andExpect(jsonPath("$[0].shared_with").value(reportItem.getSharedWith()))
             .andExpect(jsonPath("$[0].shared_with_full_name").value(reportItem.getSharedWithFullName()))
-            .andExpect(jsonPath("$[0].organisation_shared_with").value(reportItem.getOrganisationSharedWith()))
             .andExpect(jsonPath("$[0].granted_by").value(reportItem.getGrantedBy()))
             .andExpect(jsonPath("$[0].granted_by_full_name").value(reportItem.getGrantedByFullName()));
 
@@ -548,7 +547,6 @@ public class ReportControllerTest {
         reportItem.setTimezone(DateTimeUtils.getTimezoneAbbreviation(timestamp));
         reportItem.setSharedWith("shared-with@example.com");
         reportItem.setSharedWithFullName("Example One");
-        reportItem.setOrganisationSharedWith("Example Organisation");
         reportItem.setGrantedBy("shared-by@example.com");
         reportItem.setGrantedByFullName("Example Two");
         reportItem.setCaseReference("ABC123");
