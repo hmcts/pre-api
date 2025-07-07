@@ -45,10 +45,10 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
             .stream()
             .filter(this::hasStorageContainer)
             .map(this::createRecordingDTO)
-            .peek(this::tryGetDurationFromMetadata)
+            .map(this::tryGetDurationFromMetadata)
             .filter(this::updateRecording)
             .filter(this::ensureFilenameExists)
-            .peek(this::tryGetDurationFromFfmpeg)
+            .map(this::tryGetDurationFromFfmpeg)
             .filter(this::updateRecording)
             .forEach(dto -> log.error("Unable to get duration for recording {}", dto.getId()));
     }
@@ -72,12 +72,13 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
         return hasContainer;
     }
 
-    private void tryGetDurationFromMetadata(final CreateRecordingDTO dto) {
+    private CreateRecordingDTO tryGetDurationFromMetadata(final CreateRecordingDTO dto) {
         log.info("Attempting to get duration for recording {} from metadata", dto.getId());
         final Duration duration = azureFinalStorageService.getRecordingDuration(dto.getId());
         if (duration != null) {
             dto.setDuration(duration);
         }
+        return dto;
     }
 
     private boolean ensureFilenameExists(final CreateRecordingDTO dto) {
@@ -99,7 +100,7 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
         return false;
     }
 
-    private void tryGetDurationFromFfmpeg(final CreateRecordingDTO dto) {
+    private CreateRecordingDTO tryGetDurationFromFfmpeg(final CreateRecordingDTO dto) {
         log.info("Attempting to get duration for recording {} from mp4: {}", dto.getId(), dto.getFilename());
 
         try {
@@ -111,6 +112,7 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
         } catch (Exception e) {
             log.info("Failed to get duration from MP4 for recording {}: {}", dto.getId(), e.getMessage());
         }
+        return dto;
     }
 
     private boolean updateRecording(final CreateRecordingDTO dto) {
