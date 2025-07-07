@@ -28,6 +28,8 @@
   * [Running the Crons](#running-the-crons)
 * [Troubleshooting](#troubleshooting)
   * [Common Issues](#common-issues)
+* [Monitoring and Logging](#monitoring-and-logging)
+  * [Application Insights](#application-insights)
 * [License](#license)
 
 ## Introduction
