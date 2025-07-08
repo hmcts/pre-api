@@ -234,6 +234,8 @@ public class FunctionalTestBase {
     }
 
     protected CreateCourtDTO createCourt() {
+        var roomId = doPostRequest("/testing-support/create-room", null)
+            .body().jsonPath().getUUID("roomId");
         var regionId = doPostRequest("/testing-support/create-region", null)
             .body().jsonPath().getUUID("regionId");
 
@@ -241,6 +243,7 @@ public class FunctionalTestBase {
         dto.setId(UUID.randomUUID());
         dto.setName("Example Court");
         dto.setCourtType(CourtType.CROWN);
+        dto.setRooms(List.of(roomId));
         dto.setRegions(List.of(regionId));
         dto.setLocationCode("123456789");
         return dto;
