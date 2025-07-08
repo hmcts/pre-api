@@ -23,17 +23,22 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
     private final AzureFinalStorageService azureFinalStorageService;
     private final FfmpegService ffmpegService;
 
+    private final boolean enableUpsert;
+
     @Autowired
     protected CleanupNullRecordingDuration(UserService userService,
                                            UserAuthenticationService userAuthenticationService,
                                            RecordingService recordingService,
                                            AzureFinalStorageService azureFinalStorageService,
+                                           FfmpegService ffmpegService,
                                            @Value("${cron-user-email}") String cronUserEmail,
-                                           FfmpegService ffmpegService) {
+                                           @Value("${feature.cleanup-null-duration.upsert-enabled}")
+                                               Boolean enableUpsert) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.recordingService = recordingService;
         this.azureFinalStorageService = azureFinalStorageService;
         this.ffmpegService = ffmpegService;
+        this.enableUpsert = enableUpsert;
     }
 
     @Override
@@ -119,8 +124,11 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
         if (dto.getDuration() == null) {
             return true;
         }
+
         log.info("Updating duration for recording {} to {}", dto.getId(), dto.getDuration());
-        recordingService.upsert(dto);
+        if (enableUpsert) {
+            recordingService.upsert(dto);
+        }
         return false;
     }
 }

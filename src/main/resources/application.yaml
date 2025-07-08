@@ -132,6 +132,10 @@ tasks:
     cooldown: ${TASK_CLEANUP_LIVE_EVENTS_COOLDOWN:60000} # one minute
     job-poll-interval: 10000 # 10 seconds
 
+feature:
+  cleanup-null-duration:
+    upsert-enabled: ${ENABLE_NULL_DURATION_UPSERT:false}
+
 #logging:
 #  level:
 #    org.springframework.orm.jpa: DEBUG
