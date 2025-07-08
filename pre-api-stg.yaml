@@ -530,11 +530,6 @@ definitions:
         items:
           $ref: '#/definitions/RegionDTO'
         type: array
-      rooms:
-        description: CourtRooms
-        items:
-          $ref: '#/definitions/RoomDTO'
-        type: array
     type: object
   CreateAppAccessDTO:
     description: CreateAppAccessDTO
@@ -771,22 +766,12 @@ definitions:
         maxItems: 2147483647
         minItems: 1
         type: array
-      rooms:
-        description: CreateCourtRoomIds
-        items:
-          description: CreateCourtRoomIds
-          format: uuid
-          type: string
-        maxItems: 2147483647
-        minItems: 1
-        type: array
     required:
       - court_type
       - id
       - location_code
       - name
       - regions
-      - rooms
     type: object
   CreateInviteDTO:
     description: CreateInviteDTO
@@ -1228,11 +1213,6 @@ definitions:
         description: CourtRegions
         items:
           $ref: '#/definitions/RegionDTO'
-        type: array
-      rooms:
-        description: CourtRooms
-        items:
-          $ref: '#/definitions/RoomDTO'
         type: array
     type: object
   EntityModelInviteDTO:
@@ -1732,6 +1712,9 @@ definitions:
       court:
         description: ReportCourt
         type: string
+      defendants:
+        description: PlaybackReportDefendants
+        type: string
       playback_date:
         description: PlaybackReportPlaybackDate
         type: string
@@ -1744,6 +1727,10 @@ definitions:
       postcode:
         description: ReportPostcode
         type: string
+      recording_version:
+        description: PlaybackReportRecordingVersion
+        format: int32
+        type: integer
       region:
         description: ReportRegion
         type: string
@@ -1755,6 +1742,9 @@ definitions:
         type: string
       user_organisation:
         description: PlaybackReportUserOrganisation
+        type: string
+      witness:
+        description: PlaybackReportWitness
         type: string
     type: object
   PortalAccessDTO:
@@ -1943,17 +1933,6 @@ definitions:
         description: RoleName
         type: string
     type: object
-  RoomDTO:
-    description: RoomDTO
-    properties:
-      id:
-        description: RoomId
-        format: uuid
-        type: string
-      name:
-        description: RoomName
-        type: string
-    type: object
   ScheduleReportDTO:
     description: ScheduleReportDTO
     properties:
@@ -2082,9 +2061,6 @@ definitions:
         type: string
       granted_by_full_name:
         description: SharedReportGrantedByFullName
-        type: string
-      organisation_shared_with:
-        description: SharedReportOrganisationAllocatedTo
         type: string
       postcode:
         description: ReportPostcode
@@ -4254,35 +4230,6 @@ paths:
       summary: Get a list of all roles
       tags:
         - role-controller
-  /rooms:
-    get:
-      operationId: getRooms
-      parameters:
-        - description: The court id of the rooms to search by
-          format: uuid
-          in: query
-          name: courtId
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-        - description: The User Id of the User making the request
-          format: uuid
-          in: header
-          name: X-User-Id
-          required: false
-          type: string
-          x-example: 123e4567-e89b-12d3-a456-426614174000
-      produces:
-        - application/octet-stream
-      responses:
-        '200':
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/RoomDTO'
-            type: array
-      summary: Get a list of all rooms
-      tags:
-        - room-controller
   /users:
     get:
       operationId: getUsers
