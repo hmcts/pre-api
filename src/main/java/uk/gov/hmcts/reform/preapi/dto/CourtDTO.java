@@ -40,6 +40,9 @@ public class CourtDTO {
     @Schema(description = "CourtRegions")
     private List<RegionDTO> regions; // this was removed??
 
+    @Schema(description = "CourtRooms")
+    private List<RoomDTO> rooms;
+
     public CourtDTO(Court courtEntity) {
         this.id = courtEntity.getId();
         this.name = courtEntity.getName();
@@ -51,5 +54,6 @@ public class CourtDTO {
             .flatMap(regions -> regions.stream().map(RegionDTO::new))
             .sorted(Comparator.comparing(RegionDTO::getName))
             .collect(Collectors.toList());
+        this.rooms = List.of();
     }
 }
