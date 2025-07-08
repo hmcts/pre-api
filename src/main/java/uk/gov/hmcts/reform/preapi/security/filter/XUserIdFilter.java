@@ -7,10 +7,12 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
+import org.springframework.http.server.PathContainer;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.GenericFilterBean;
+import org.springframework.web.util.pattern.PathPatternParser;
 import uk.gov.hmcts.reform.preapi.config.SecurityConfig;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 
@@ -55,8 +57,14 @@ public class XUserIdFilter extends GenericFilterBean {
     }
 
     private boolean applyAuth(HttpServletRequest request) {
-        return Arrays.stream(SecurityConfig.NOT_AUTHORIZED_URIS)
-            .noneMatch(antPathRequestMatcher -> antPathRequestMatcher.matches(request));
+        PathPatternParser parser = new PathPatternParser();
+
+        var patterns = Arrays.stream(SecurityConfig.NOT_AUTHORIZED_URIS)
+            .map(parser::parse)
+            .toList();
+
+        return patterns.stream()
+            .noneMatch(pattern -> pattern.matches(PathContainer.parsePath(request.getRequestURI())));
     }
 
     private void writeErrorResponse(Exception e, HttpServletResponse response) throws IOException {
