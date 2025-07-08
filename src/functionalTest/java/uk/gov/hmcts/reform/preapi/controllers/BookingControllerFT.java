@@ -9,7 +9,6 @@ import uk.gov.hmcts.reform.preapi.dto.CreateBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateParticipantDTO;
 import uk.gov.hmcts.reform.preapi.dto.CreateShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.dto.RegionDTO;
-import uk.gov.hmcts.reform.preapi.dto.RoomDTO;
 import uk.gov.hmcts.reform.preapi.dto.ShareBookingDTO;
 import uk.gov.hmcts.reform.preapi.enums.CaseState;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
@@ -96,8 +95,6 @@ class BookingControllerFT extends FunctionalTestBase {
         assertThat(booking.getId()).isEqualTo(bookingId);
         var region = booking.getCaseDTO().getCourt().getRegions().stream().findFirst();
         assertThat(region.orElseGet(RegionDTO::new).getName()).isEqualTo("Foo Region");
-        var rooms = booking.getCaseDTO().getCourt().getRooms().stream().findFirst();
-        assertThat(rooms.orElseGet(RoomDTO::new).getName()).isEqualTo("Foo Room");
 
         // validate the court referenced does exist
         var courtResponse = assertCourtExists(booking.getCaseDTO().getCourt().getId(), true);

@@ -55,8 +55,6 @@ spring:
       open-in-view: true # https://www.baeldung.com/spring-open-session-in-view may want to disable
 
 azure:
-  application-insights:
-    instrumentation-key: ${APPINSIGHTS_INSTRUMENTATIONKEY:00000000-0000-0000-0000-000000000000}
   ingestStorage:
     accountName: ${AZURE_INGEST_SA:}
     connectionString: ${AZURE_INGEST_SA_CONNECTION_STRING:}
