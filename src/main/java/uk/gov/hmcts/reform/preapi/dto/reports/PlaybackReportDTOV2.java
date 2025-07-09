@@ -22,9 +22,9 @@ import javax.annotation.Nullable;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-@Schema(description = "PlaybackReportDTO")
+@Schema(description = "PlaybackReportDTOV2")
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-public class PlaybackReportDTO extends BaseReportDTO {
+public class PlaybackReportDTOV2 extends BaseReportDTO {
 
     @Schema(description = "PlaybackReportPlaybackDate")
     private String playbackDate;
@@ -53,7 +53,7 @@ public class PlaybackReportDTO extends BaseReportDTO {
     @Schema(description = "PlaybackReportUserOrganisation")
     private String userOrganisation;
 
-    public PlaybackReportDTO(Audit audit, User user, @Nullable Recording recording) {
+    public PlaybackReportDTOV2(Audit audit, User user, @Nullable Recording recording) {
         super(recording != null ? recording.getCaptureSession().getBooking().getCaseId() : null);
 
         playbackDate = DateTimeUtils.formatDate(audit.getCreatedAt());
@@ -69,17 +69,17 @@ public class PlaybackReportDTO extends BaseReportDTO {
             Booking booking = recording.getCaptureSession().getBooking();
             recordingVersion = recording.getVersion();
             witness = booking.getParticipants()
-                .stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
-                .findFirst()
-                .map(Participant::getFullName)
-                .orElse(null);
+                             .stream()
+                             .filter(p -> p.getParticipantType() == ParticipantType.WITNESS)
+                             .findFirst()
+                             .map(Participant::getFullName)
+                             .orElse(null);
             defendants = booking.getParticipants().stream()
-                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
-                .map(Participant::getFullName)
-                .collect(Collectors.collectingAndThen(
-                    Collectors.joining(", "),
-                    result -> result.isEmpty() ? null : result));
+                                .filter(p -> p.getParticipantType() == ParticipantType.DEFENDANT)
+                                .map(Participant::getFullName)
+                                .collect(Collectors.collectingAndThen(
+                                    Collectors.joining(", "),
+                                    result -> result.isEmpty() ? null : result));
         }
     }
 }

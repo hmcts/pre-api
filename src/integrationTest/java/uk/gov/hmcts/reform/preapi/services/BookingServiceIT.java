@@ -46,9 +46,6 @@ class BookingServiceIT extends IntegrationTestBase {
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
-
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
 
@@ -107,9 +104,6 @@ class BookingServiceIT extends IntegrationTestBase {
 
         var region = HelperFactory.createRegion("Foo Region", Set.of(court1, court2));
         entityManager.persist(region);
-
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court1, court2));
-        entityManager.persist(room);
 
         var caseEntity1 = HelperFactory.createCase(court1, "1234_Alpha", false, null);
         var caseEntity2 = HelperFactory.createCase(court2, "1234_Beta", false, null);
@@ -295,9 +289,6 @@ class BookingServiceIT extends IntegrationTestBase {
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
-
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
 
@@ -449,9 +440,6 @@ class BookingServiceIT extends IntegrationTestBase {
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
 
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
-
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
 
@@ -507,9 +495,6 @@ class BookingServiceIT extends IntegrationTestBase {
 
         var region = HelperFactory.createRegion("Foo Region", Set.of(court));
         entityManager.persist(region);
-
-        var room = HelperFactory.createRoom("Foo Room", Set.of(court));
-        entityManager.persist(room);
 
         var caseEntity = HelperFactory.createCase(court, "1234_Alpha", false, null);
         entityManager.persist(caseEntity);
