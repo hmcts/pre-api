@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessage;
+import uk.gov.hmcts.reform.preapi.alerts.SlackMessageJsonOptions;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessageSection;
 import uk.gov.hmcts.reform.preapi.dto.BookingDTO;
 import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
@@ -46,7 +47,7 @@ public class GetScheduledBookings extends RobotUserTask {
 
         var slackMessage = createSlackMessage(bookings);
         log.info("About to send slack notification");
-        slackClient.postSlackMessage(slackMessage.toJson());
+        slackClient.postSlackMessage(slackMessage);
 
         log.info("Completed CheckForMissingRecordings task");
     }
@@ -57,13 +58,19 @@ public class GetScheduledBookings extends RobotUserTask {
                 .toList();
     }
 
-    private SlackMessage createSlackMessage(List<BookingDTO> bookings) {
+    private String createSlackMessage(List<BookingDTO> bookings) {
         List<SlackMessageSection> sections = List.of(createSlackMessageSection(bookings));
 
-        return SlackMessage.builder()
-            .environment(platformEnv)
+        var slackMessage = SlackMessage.builder()
             .sections(sections)
             .build();
+
+        SlackMessageJsonOptions options = SlackMessageJsonOptions.builder()
+                .showEnvironment(false)
+                .showIcons(false)
+                .build();
+
+        return slackMessage.toJson(options);
     }
 
     private SlackMessageSection createSlackMessageSection(List<BookingDTO> bookings) {

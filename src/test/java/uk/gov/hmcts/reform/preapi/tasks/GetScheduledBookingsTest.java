@@ -42,7 +42,7 @@ public class GetScheduledBookingsTest {
     private BookingService bookingService;
     private SlackClient slackClient;
     private static final String ROBOT_USER_EMAIL = "example@example.com";
-    private static final String SLACK_MESSAGE_HEADER = "\\n\\n:warning: *Bookings scheduled for today:*\\n";
+    private static final String SLACK_MESSAGE_HEADER = "*Bookings scheduled for today:*\\n";
     private Court court1;
     private Court court2;
     private Court court3;
@@ -89,10 +89,12 @@ public class GetScheduledBookingsTest {
 
         // Booking without capture session
         var caseEntity3 = HelperFactory.createCase(court3, "case-3", true, null);
-        var booking3 = createBooking(caseEntity3, Timestamp.valueOf(today.atStartOfDay().plusHours(16)));
-        var booking3DTO = new BookingDTO(booking3);
+        var bookingWithoutCaptureSession = createBooking(
+                caseEntity3,
+                Timestamp.valueOf(today.atStartOfDay().plusHours(16)));
+        var bookingWithoutCaptureSessionDTO = new BookingDTO(bookingWithoutCaptureSession);
 
-        var bookingDTOs = List.of(booking1DTO, booking2DTO, booking3DTO);
+        var bookingDTOs = List.of(booking1DTO, booking2DTO, bookingWithoutCaptureSessionDTO);
 
         when(bookingService.findAllBookingsForToday())
             .thenReturn(bookingDTOs);
@@ -119,7 +121,7 @@ public class GetScheduledBookingsTest {
             assertThat(slackMessage)
                 .contains(String.format("\\n*Booking ID:* %s\\n", bookingID));
 
-            if (bookingDTO.getId() == booking3DTO.getId()) {
+            if (bookingDTO.getId() == bookingWithoutCaptureSessionDTO.getId()) {
                 assertThat(slackMessage)
                     .contains("\\n*Capture Session ID:* No capture session found\\n");
             } else {
@@ -154,7 +156,7 @@ public class GetScheduledBookingsTest {
             .contains(SLACK_MESSAGE_HEADER);
 
         assertThat(slackMessage)
-            .contains("\\n\\t:white_check_mark: There are no scheduled bookings for today\\n");
+            .contains("\\nThere are no scheduled bookings for today\\n");
     }
 
     private void setUpAuthentication() {
