@@ -39,9 +39,6 @@ CREATE INDEX IF NOT EXISTS idx_users_terms_conditions_terms_and_conditions_id ON
 -- bookings
 CREATE INDEX IF NOT EXISTS idx_bookings_case_id ON public.bookings (case_id);
 
--- bookings_temp
-CREATE INDEX IF NOT EXISTS idx_bookings_temp_case_id ON public.bookings_temp (case_id);
-
 -- recordings
 CREATE INDEX IF NOT EXISTS idx_recordings_capture_session_id ON public.recordings (capture_session_id);
 CREATE INDEX IF NOT EXISTS idx_recordings_parent_recording_id ON public.recordings (parent_recording_id);
