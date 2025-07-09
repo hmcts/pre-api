@@ -10,6 +10,6 @@ DO $$
         AND tablename = 'cases'
         AND indexname = 'idx_cases_reference_trgm'
     ) THEN
-      EXECUTE 'CREATE INDEX CONCURRENTLY idx_cases_reference_trgm ON public.cases USING gin (reference gin_trgm_ops)';
+      EXECUTE 'CREATE INDEX idx_cases_reference_trgm ON public.cases USING gin (reference gin_trgm_ops)';
     END IF;
   END$$;
