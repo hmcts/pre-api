@@ -94,17 +94,8 @@ public class GetScheduledBookingsTest {
 
         var bookingDTOs = List.of(booking1DTO, booking2DTO, booking3DTO);
 
-        when(bookingService.searchBy(
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any(),
-                any()))
-                .thenReturn(new PageImpl<>(bookingDTOs));
+        when(bookingService.findAllBookingsForToday())
+            .thenReturn(bookingDTOs);
 
         getScheduledBookingsTask.run();
 

@@ -2,7 +2,6 @@ package uk.gov.hmcts.reform.preapi.tasks;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import uk.gov.hmcts.reform.preapi.alerts.SlackClient;
 import uk.gov.hmcts.reform.preapi.alerts.SlackMessage;
@@ -12,10 +11,7 @@ import uk.gov.hmcts.reform.preapi.security.service.UserAuthenticationService;
 import uk.gov.hmcts.reform.preapi.services.BookingService;
 import uk.gov.hmcts.reform.preapi.services.UserService;
 
-import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Retrieves scheduled bookings for the current day.
@@ -45,9 +41,8 @@ public class GetScheduledBookings extends RobotUserTask {
         log.info("Signing in robot user with email {} on env {}", cronUserEmail, platformEnv);
         signInRobotUser();
 
-        var today = LocalDate.now();
-        log.info("Running GetScheduledBookings task: looking for bookings for {}", today);
-        var bookings = getBookingsForDate(today);
+        log.info("Running GetScheduledBookings task: looking for bookings for today");
+        var bookings = getBookings();
 
         var slackMessage = createSlackMessage(bookings);
         log.info("About to send slack notification");
@@ -56,16 +51,9 @@ public class GetScheduledBookings extends RobotUserTask {
         log.info("Completed CheckForMissingRecordings task");
     }
 
-    private List<BookingDTO> getBookingsForDate(LocalDate date) {
-        return bookingService.searchBy(null,
-                        null,
-                        null,
-                        Optional.of(Timestamp.valueOf(date.atStartOfDay())),
-                        null,
-                        null,
-                        null,
-                        null,
-                        Pageable.unpaged())
+    private List<BookingDTO> getBookings() {
+        return bookingService.findAllBookingsForToday()
+                .stream()
                 .toList();
     }
 
