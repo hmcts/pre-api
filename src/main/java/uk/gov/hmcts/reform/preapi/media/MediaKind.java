@@ -102,11 +102,11 @@ public class MediaKind implements IMediaService {
 
     private final TelemetryClient telemetryClient = new TelemetryClient();
 
-    private static final String LOCATION = "uksouth";
     public static final String ENCODE_FROM_MP4_TRANSFORM = "EncodeFromMp4";
     public static final String ENCODE_FROM_INGEST_TRANSFORM = "EncodeFromIngest";
     public static final String DEFAULT_VOD_STREAMING_ENDPOINT = "default";
     public static final String DEFAULT_LIVE_STREAMING_ENDPOINT = "default-live";
+    private static final String LOCATION = "uksouth";
     private static final String STREAMING_POLICY_CLEAR_KEY = "Predefined_ClearKey";
     private static final String STREAMING_POLICY_CLEAR_STREAMING_ONLY = "Predefined_ClearStreamingOnly";
     private static final String SENT_FOR_ENCODING = "SENT_FOR_ENCODING";
@@ -250,11 +250,25 @@ public class MediaKind implements IMediaService {
 
     @Override
     @Transactional(dontRollbackOn = Exception.class)
-    @SuppressWarnings("checkstyle:VariableDeclarationUsageDistance")
-    public RecordingStatus stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId)
+    public void stopLiveEvent(CaptureSessionDTO captureSession, UUID recordingId) {
+        var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
+        cleanupStoppedLiveEvent(captureSessionNoHyphen);
+    }
+
+    @Override
+    public void stopLiveEvent(String liveEventId) {
+        try {
+            stopAndDeleteLiveEvent(liveEventId);
+        } catch (NotFoundException e) {
+            // ignore
+        }
+    }
+
+    @Override
+    @Transactional(dontRollbackOn = Exception.class)
+    public RecordingStatus stopLiveEventAndProcess(CaptureSessionDTO captureSession, UUID recordingId)
         throws InterruptedException {
         var captureSessionNoHyphen = getSanitisedLiveEventId(captureSession.getId());
-
         cleanupStoppedLiveEvent(captureSessionNoHyphen);
 
         var jobName = triggerProcessingStep1(captureSession, captureSessionNoHyphen, recordingId);
@@ -283,15 +297,6 @@ public class MediaKind implements IMediaService {
             telemetryClient.trackMetric(AVAILABLE_IN_FINAL_STORAGE, 1.0);
         }
         return recordingStatus;
-    }
-
-    @Override
-    public void stopLiveEvent(String liveEventId) {
-        try {
-            stopAndDeleteLiveEvent(liveEventId);
-        } catch (NotFoundException e) {
-            // ignore
-        }
     }
 
     @Override
@@ -428,18 +433,6 @@ public class MediaKind implements IMediaService {
         return state.equals(JobState.FINISHED)
             || state.equals(JobState.ERROR)
             || state.equals(JobState.CANCELED);
-    }
-
-    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
-        log.info("Waiting for job [{}] to complete", jobName);
-        MkJob job = null;
-        do {
-            if (job != null) {
-                TimeUnit.MILLISECONDS.sleep(jobPollingInterval);
-            }
-            job = mediaKindClient.getJob(transformName, jobName);
-        } while (!hasJobCompleted(job));
-        return job.getProperties().getState();
     }
 
     private String refreshStreamingLocatorForUser(String userId, String assetName) {
@@ -612,6 +605,18 @@ public class MediaKind implements IMediaService {
                 .build());
         log.info("Job [{}] created", jobName);
         return jobName;
+    }
+
+    private JobState waitEncodeComplete(String jobName, String transformName) throws InterruptedException {
+        log.info("Waiting for job [{}] to complete", jobName);
+        MkJob job = null;
+        do {
+            if (job != null) {
+                TimeUnit.MILLISECONDS.sleep(jobPollingInterval);
+            }
+            job = mediaKindClient.getJob(transformName, jobName);
+        } while (!hasJobCompleted(job));
+        return job.getProperties().getState();
     }
 
     private MkStreamingEndpoint checkStreamingEndpointReady(MkStreamingEndpoint endpoint) throws InterruptedException {
