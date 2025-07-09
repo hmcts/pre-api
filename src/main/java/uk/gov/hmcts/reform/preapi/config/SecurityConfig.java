@@ -21,7 +21,7 @@ public class SecurityConfig {
 
     private final UserAuthenticationService userAuthenticationService;
 
-    public static final String[] NOT_AUTHORIZED_URIS = new String[] {
+    public static final String[] PERMITTED_URIS = new String[] {
         "/testing-support/**",
         "/swagger-ui/**",
         "/v3/api-docs/**",
@@ -53,7 +53,7 @@ public class SecurityConfig {
                                        authorize
                                            .requestMatchers(HttpMethod.GET, "/invites").permitAll()
                                            .requestMatchers(HttpMethod.POST, "/invites/redeem").permitAll()
-                                           .requestMatchers(NOT_AUTHORIZED_URIS).permitAll()
+                                           .requestMatchers(PERMITTED_URIS).permitAll()
                                            .anyRequest().authenticated()
             )
             .authenticationManager(authentication -> authentication)

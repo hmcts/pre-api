@@ -59,7 +59,7 @@ public class XUserIdFilter extends GenericFilterBean {
     private boolean applyAuth(HttpServletRequest request) {
         PathPatternParser parser = new PathPatternParser();
 
-        var patterns = Arrays.stream(SecurityConfig.NOT_AUTHORIZED_URIS)
+        var patterns = Arrays.stream(SecurityConfig.PERMITTED_URIS)
             .map(parser::parse)
             .toList();
 
