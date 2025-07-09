@@ -15,7 +15,6 @@ import org.hibernate.type.SqlTypes;
 import uk.gov.hmcts.reform.preapi.entities.base.CreatedModifiedAtEntity;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 
-import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -38,9 +37,6 @@ public class EncodeJob extends CreatedModifiedAtEntity {
     @Column(name = "transform", nullable = false, columnDefinition = "encode_transform")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private EncodeTransform transform;
-
-    @Column(name = "deleted_at")
-    private Timestamp deletedAt;
 
     @Override
     public HashMap<String, Object> getDetailsForAudit() {

@@ -33,6 +33,5 @@ public class EncodeJobDTOTest {
         assertThat(dto.getTransform()).isEqualTo(encodeJob.getTransform());
         assertThat(dto.getCreatedAt()).isEqualTo(encodeJob.getCreatedAt());
         assertThat(dto.getModifiedAt()).isEqualTo(encodeJob.getModifiedAt());
-        assertThat(dto.getDeletedAt()).isEqualTo(encodeJob.getDeletedAt());
     }
 }

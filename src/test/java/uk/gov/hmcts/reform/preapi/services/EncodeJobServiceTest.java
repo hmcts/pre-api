@@ -11,13 +11,10 @@ import uk.gov.hmcts.reform.preapi.entities.EncodeJob;
 import uk.gov.hmcts.reform.preapi.enums.EncodeTransform;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.EncodeJobRepository;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -44,7 +41,7 @@ public class EncodeJobServiceTest {
     @DisplayName("Should get all processing jobs")
     void getAllProcessingJobs() {
         var encodeJob = createEncodeJob();
-        when(encodeJobRepository.findAllByDeletedAtIsNull()).thenReturn(List.of(encodeJob));
+        when(encodeJobRepository.findAll()).thenReturn(List.of(encodeJob));
 
         var result = encodeJobService.findAllProcessing();
 
@@ -107,26 +104,6 @@ public class EncodeJobServiceTest {
     }
 
     @Test
-    @DisplayName("Create encode job with encode job in deleted state")
-    void upsertCreateCaptureSessionDeleted() {
-        var encodeJob = createEncodeJob();
-        encodeJob.setDeletedAt(Timestamp.from(Instant.now()));
-        var encodeJobDto = new EncodeJobDTO(encodeJob);
-
-        when(captureSessionRepository.findByIdAndDeletedAtIsNull(encodeJobDto.getCaptureSessionId()))
-            .thenReturn(Optional.of(encodeJob.getCaptureSession()));
-        when(encodeJobRepository.findById(encodeJobDto.getId())).thenReturn(Optional.of(encodeJob));
-
-        var message = assertThrows(ResourceInDeletedStateException.class, () -> encodeJobService.upsert(encodeJobDto))
-            .getMessage();
-        assertThat(message).isEqualTo("Resource EncodeJob("
-                                          + encodeJobDto.getId()
-                                          + ") is in a deleted state and cannot be updated");
-
-        verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(encodeJobDto.getCaptureSessionId());
-    }
-
-    @Test
     @DisplayName("Update encode job")
     void upsertUpdateSuccess() {
         var encodeJob = createEncodeJob();
@@ -141,6 +118,32 @@ public class EncodeJobServiceTest {
         verify(captureSessionRepository, times(1)).findByIdAndDeletedAtIsNull(encodeJobDto.getCaptureSessionId());
         verify(encodeJobRepository, times(1)).findById(encodeJobDto.getId());
         verify(encodeJobRepository, times(1)).saveAndFlush(any(EncodeJob.class));
+    }
+
+    @Test
+    @DisplayName("Delete encode job successfully")
+    void deleteEncodeJobSuccess() {
+        EncodeJob encodeJob = createEncodeJob();
+
+        when(encodeJobRepository.findById(encodeJob.getId())).thenReturn(Optional.of(encodeJob));
+
+        encodeJobService.delete(encodeJob.getId());
+
+        verify(encodeJobRepository, times(1)).findById(encodeJob.getId());
+        verify(encodeJobRepository, times(1)).deleteById(encodeJob.getId());
+    }
+
+    @Test
+    @DisplayName("Delete encode job that does not exist")
+    void deleteEncodeJobNotFound() {
+        UUID id = UUID.randomUUID();
+
+        when(encodeJobRepository.findById(id)).thenReturn(Optional.empty());
+
+        String message = assertThrows(NotFoundException.class, () -> encodeJobService.delete(id)).getMessage();
+        assertThat(message).isEqualTo("Not found: EncodeJob: " + id);
+
+        verify(encodeJobRepository, times(1)).findById(id);
     }
 
     private EncodeJob createEncodeJob() {

@@ -7,13 +7,10 @@ import uk.gov.hmcts.reform.preapi.dto.EncodeJobDTO;
 import uk.gov.hmcts.reform.preapi.entities.EncodeJob;
 import uk.gov.hmcts.reform.preapi.enums.RecordingStatus;
 import uk.gov.hmcts.reform.preapi.exception.NotFoundException;
-import uk.gov.hmcts.reform.preapi.exception.ResourceInDeletedStateException;
 import uk.gov.hmcts.reform.preapi.exception.ResourceInWrongStateException;
 import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.EncodeJobRepository;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,7 +29,7 @@ public class EncodeJobService {
 
     @Transactional
     public List<EncodeJobDTO> findAllProcessing() {
-        return encodeJobRepository.findAllByDeletedAtIsNull().stream()
+        return encodeJobRepository.findAll().stream()
             .map(EncodeJobDTO::new)
             .toList();
     }
@@ -45,10 +42,12 @@ public class EncodeJobService {
 
     @Transactional
     public void delete(UUID id) {
-        var encodeJob = encodeJobRepository.findByIdAndDeletedAtIsNull(id)
-            .orElseThrow(() -> new NotFoundException("EncodeJob: " + id));
-        encodeJob.setDeletedAt(Timestamp.from(Instant.now()));
-        encodeJobRepository.saveAndFlush(encodeJob);
+        encodeJobRepository.findById(id)
+            .ifPresentOrElse(
+                job -> encodeJobRepository.deleteById(job.getId()),
+                () -> {
+                    throw new NotFoundException("EncodeJob: " + id);
+                });
     }
 
     protected EncodeJob fromDto(EncodeJobDTO dto) {
@@ -65,9 +64,6 @@ public class EncodeJobService {
         }
 
         var optEncodeJob = encodeJobRepository.findById(dto.getId());
-        if (optEncodeJob.isPresent() && optEncodeJob.get().getDeletedAt() != null) {
-            throw new ResourceInDeletedStateException("EncodeJob", dto.getId().toString());
-        }
 
         var encodeJob = optEncodeJob.orElse(new EncodeJob());
         encodeJob.setId(dto.getId());

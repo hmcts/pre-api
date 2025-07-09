@@ -10,6 +10,5 @@ CREATE TABLE encode_jobs (
   job_name VARCHAR(255) NOT NULL,
   transform public.ENCODE_TRANSFORM NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  deleted_at TIMESTAMPTZ
+  modified_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

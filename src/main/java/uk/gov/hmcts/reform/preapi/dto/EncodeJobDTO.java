@@ -18,7 +18,6 @@ public class EncodeJobDTO {
     private EncodeTransform transform;
     private Timestamp createdAt;
     private Timestamp modifiedAt;
-    private Timestamp deletedAt;
 
     public EncodeJobDTO(EncodeJob encodeJob) {
         this.id = encodeJob.getId();
@@ -28,6 +27,5 @@ public class EncodeJobDTO {
         this.transform = encodeJob.getTransform();
         this.createdAt = encodeJob.getCreatedAt();
         this.modifiedAt = encodeJob.getModifiedAt();
-        this.deletedAt = encodeJob.getDeletedAt();
     }
 }
