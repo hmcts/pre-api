@@ -155,17 +155,20 @@ class SlackMessageTest {
 
         String json = slackMessage.toJson(options);
 
+        String environmentText = ":globe_with_meridians: *Environment:* Test";
         if (showEnvironment) {
-            Assertions.assertTrue(json.contains(":globe_with_meridians: *Environment:* Test"));
+            Assertions.assertTrue(json.contains(environmentText));
         } else {
-            Assertions.assertFalse(json.contains(":globe_with_meridians: *Environment:* Test"));
+            Assertions.assertFalse(json.contains(environmentText));
         }
 
+        String sectionTitleWithIcons = ":warning: *Important Alerts:*";
+        String sectionTitleWithoutIcons = "*Important Alerts:*";
         if (showIcons) {
-            Assertions.assertTrue(json.contains(":warning: *Important Alerts:*"));
+            Assertions.assertTrue(json.contains(sectionTitleWithIcons));
         } else {
-            Assertions.assertFalse(json.contains(":warning: *Important Alerts:*"));
-            Assertions.assertTrue(json.contains("*Important Alerts:*"));
+            Assertions.assertFalse(json.contains(sectionTitleWithIcons));
+            Assertions.assertTrue(json.contains(sectionTitleWithoutIcons));
         }
 
         Assertions.assertTrue(json.contains("Alert 1"));
