@@ -241,7 +241,6 @@ public class FunctionalTestBase {
         dto.setId(UUID.randomUUID());
         dto.setName("Example Court");
         dto.setCourtType(CourtType.CROWN);
-        dto.setRooms(List.of(UUID.randomUUID()));
         dto.setRegions(List.of(regionId));
         dto.setLocationCode("123456789");
         return dto;
