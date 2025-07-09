@@ -201,12 +201,14 @@ public class MediaServiceController extends PreApiController {
 
         var recordingId = UUID.randomUUID();
         if (!enableEnhancedProcessing) {
+            // todo code to removed once feature fully enabled (deprecated)
             dto = captureSessionService.stopCaptureSession(captureSessionId, RecordingStatus.PROCESSING, recordingId);
         }
 
         var mediaService = mediaServiceBroker.getEnabledMediaService();
         try {
             if (!enableEnhancedProcessing) {
+                // todo code to removed once feature fully enabled (deprecated)
                 var status = mediaService.stopLiveEventAndProcess(dto, recordingId);
                 if (status == RecordingStatus.FAILURE) {
                     throw new UnknownServerException("Encountered an error during encoding process for CaptureSession("
