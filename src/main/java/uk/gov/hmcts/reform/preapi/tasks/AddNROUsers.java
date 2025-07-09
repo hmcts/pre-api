@@ -458,7 +458,6 @@ public class AddNROUsers extends RobotUserTask {
                 courtID,
                 isDefault,
                 roleID,
-                userLevel)
-        );
+                userLevel));
     }
 }
