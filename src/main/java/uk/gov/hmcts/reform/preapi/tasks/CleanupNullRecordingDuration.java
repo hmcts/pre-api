@@ -32,7 +32,7 @@ public class CleanupNullRecordingDuration extends RobotUserTask {
                                            AzureFinalStorageService azureFinalStorageService,
                                            FfmpegService ffmpegService,
                                            @Value("${cron-user-email}") String cronUserEmail,
-                                           @Value("${feature.cleanup-null-duration.upsert-enabled}")
+                                           @Value("${feature-flags.cleanup-null-duration.upsert-enabled}")
                                                Boolean enableUpsert) {
         super(userService, userAuthenticationService, cronUserEmail);
         this.recordingService = recordingService;

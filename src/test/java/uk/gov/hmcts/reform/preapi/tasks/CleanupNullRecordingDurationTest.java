@@ -27,7 +27,7 @@ class CleanupNullRecordingDurationTest {
     @Nested
     @DisplayName("CleanupNullRecordingDuration task when upsert enabled")
     @SpringBootTest(classes = CleanupNullRecordingDuration.class,
-        properties = "feature.cleanup-null-duration.upsert-enabled=true")
+        properties = "feature-flags.cleanup-null-duration.upsert-enabled=true")
     class UpsertEnabled extends BaseCleanupNullRecordingDurationTest {
         @Test
         @DisplayName("Should process recording with null duration successfully")
@@ -213,7 +213,7 @@ class CleanupNullRecordingDurationTest {
     @Nested
     @DisplayName("CleanupNullRecordingDuration task when upsert disabled")
     @SpringBootTest(classes = CleanupNullRecordingDuration.class,
-        properties = "feature.cleanup-null-duration.upsert-enabled=false")
+        properties = "feature-flags.cleanup-null-duration.upsert-enabled=false")
     class UpsertDisabled extends BaseCleanupNullRecordingDurationTest {
         @Test
         @DisplayName("Should process recording with null duration successfully")
