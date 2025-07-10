@@ -28,11 +28,13 @@ import uk.gov.hmcts.reform.preapi.entities.CaptureSession;
 import uk.gov.hmcts.reform.preapi.entities.Case;
 import uk.gov.hmcts.reform.preapi.entities.Court;
 import uk.gov.hmcts.reform.preapi.entities.Participant;
+import uk.gov.hmcts.reform.preapi.entities.PortalAccess;
 import uk.gov.hmcts.reform.preapi.entities.Recording;
 import uk.gov.hmcts.reform.preapi.entities.Region;
 import uk.gov.hmcts.reform.preapi.entities.Role;
 import uk.gov.hmcts.reform.preapi.entities.TermsAndConditions;
 import uk.gov.hmcts.reform.preapi.entities.User;
+import uk.gov.hmcts.reform.preapi.enums.AccessStatus;
 import uk.gov.hmcts.reform.preapi.enums.CourtType;
 import uk.gov.hmcts.reform.preapi.enums.ParticipantType;
 import uk.gov.hmcts.reform.preapi.enums.RecordingOrigin;
@@ -48,6 +50,7 @@ import uk.gov.hmcts.reform.preapi.repositories.CaptureSessionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CaseRepository;
 import uk.gov.hmcts.reform.preapi.repositories.CourtRepository;
 import uk.gov.hmcts.reform.preapi.repositories.ParticipantRepository;
+import uk.gov.hmcts.reform.preapi.repositories.PortalAccessRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RecordingRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RegionRepository;
 import uk.gov.hmcts.reform.preapi.repositories.RoleRepository;
@@ -89,6 +92,7 @@ class TestingSupportController {
     private final ScheduledTaskRunner scheduledTaskRunner;
     private final EditRequestService editRequestService;
     private final AzureFinalStorageService azureFinalStorageService;
+    private final PortalAccessRepository portalAccessRepository;
 
     @Autowired
     TestingSupportController(final BookingRepository bookingRepository,
@@ -106,7 +110,8 @@ class TestingSupportController {
                              final ScheduledTaskRunner scheduledTaskRunner,
                              final AuditRepository auditRepository,
                              final EditRequestService editRequestService,
-                             final AzureFinalStorageService azureFinalStorageService) {
+                             final AzureFinalStorageService azureFinalStorageService,
+                             final PortalAccessRepository portalAccessRepository) {
         this.bookingRepository = bookingRepository;
         this.captureSessionRepository = captureSessionRepository;
         this.caseRepository = caseRepository;
@@ -123,6 +128,7 @@ class TestingSupportController {
         this.scheduledTaskRunner = scheduledTaskRunner;
         this.editRequestService = editRequestService;
         this.azureFinalStorageService = azureFinalStorageService;
+        this.portalAccessRepository = portalAccessRepository;
     }
 
     @PostMapping(path = "/create-region", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -332,6 +338,29 @@ class TestingSupportController {
         ));
     }
 
+    @PostMapping("/create-portal-access-without-email-invite/{userId}")
+    public ResponseEntity<Map<String, String>> createPortalAccessWithoutEmailInvite(@PathVariable UUID userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new NotFoundException("User: " + userId));
+        if (!user.getPortalAccess().isEmpty()) {
+            PortalAccess currentPortalAccess =  user.getPortalAccess().stream()
+                .filter(access -> !access.isDeleted())
+                .findFirst()
+                .orElse(null);
+            if (currentPortalAccess != null) {
+                return ResponseEntity.ok(Map.of("portalAccessId", currentPortalAccess.getId().toString()));
+            }
+        }
+
+        PortalAccess portalAccess = new PortalAccess();
+        portalAccess.setId(UUID.randomUUID());
+        portalAccess.setStatus(AccessStatus.INVITATION_SENT);
+        portalAccess.setUser(user);
+        portalAccess.setInvitedAt(Timestamp.from(Instant.now()));
+        portalAccessRepository.saveAndFlush(portalAccess);
+        return ResponseEntity.ok(Map.of("portalAccessId", portalAccess.getId().toString()));
+    }
+
     @PostMapping(value = "/create-ready-to-use-booking/{caseReference}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> createReadyToUseBooking(@PathVariable String caseReference) {
         var cases = caseRepository.findAllByReference(caseReference);
@@ -508,18 +537,6 @@ class TestingSupportController {
         courtRepository.save(court);
 
         return court;
-    }
-
-    private AppAccess createAppAccess(String role) {
-        var access = new AppAccess();
-        access.setUser(createUser());
-        access.setCourt(createTestCourt());
-        access.setRole(createRole(role));
-        access.setActive(true);
-        access.setDefaultCourt(true);
-        appAccessRepository.save(access);
-
-        return access;
     }
 
     private AppAccess createAppAccess(Role role) {

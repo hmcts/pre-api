@@ -33,12 +33,13 @@ public class PortalAccessService {
         entity.setLastAccess(createDto.getLastAccess());
         entity.setStatus(createDto.getStatus());
         entity.setInvitedAt(createDto.getInvitedAt());
-        entity.setRegisteredAt(createDto.getRegisteredAt());
+        entity.setRegisteredAt(createDto.getRegisteredAt() == null && entity.getStatus() == AccessStatus.ACTIVE
+                                   ? Timestamp.from(Instant.now())
+                                   : createDto.getRegisteredAt());
         portalAccessRepository.save(entity);
 
         return UpsertResult.UPDATED;
     }
-
 
     @Transactional(propagation = Propagation.REQUIRED, rollbackFor = Exception.class)
     public void deleteById(UUID portalId) {
