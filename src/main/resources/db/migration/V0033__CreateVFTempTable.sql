@@ -6,7 +6,7 @@ CREATE TYPE public.VF_MIGRATION_STATUS AS ENUM (
 );
  
 CREATE TABLE public.vf_migration_records (
-    id SERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
  
     -- Metadata fields
     archive_id TEXT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE public.vf_migration_records (
  
     -- Status and error tracking
     recording_id UUID,
-    status migration_status NOT NULL DEFAULT 'PENDING',
+    status VF_MIGRATION_STATUS NOT NULL DEFAULT 'PENDING',
     reason TEXT,
     error_message TEXT,
     resolved_at TIMESTAMPTZ,
