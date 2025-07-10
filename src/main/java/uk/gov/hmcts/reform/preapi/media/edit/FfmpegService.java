@@ -69,7 +69,7 @@ public class FfmpegService implements IEditingService {
         deleteFile(outputFile);
     }
 
-    public Duration getDurationFromMp4ViaSasToken(final String sasToken) {
+    public Duration getDurationFromMp4ViaUrl(final String url) {
         final CommandLine command = new CommandLine("ffprobe")
             .addArgument("-v")
             .addArgument("error")
@@ -77,7 +77,7 @@ public class FfmpegService implements IEditingService {
             .addArgument("format=duration")
             .addArgument("-of")
             .addArgument("default=noprint_wrappers=1:nokey=1")
-            .addArgument(sasToken, true);
+            .addArgument(url, true);
 
         try {
             final String strDurationInSeconds = commandExecutor.executeAndGetOutput(command);

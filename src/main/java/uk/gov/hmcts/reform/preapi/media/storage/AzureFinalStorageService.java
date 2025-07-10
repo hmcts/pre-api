@@ -61,6 +61,12 @@ public class AzureFinalStorageService extends AzureStorageService {
             : null;
     }
 
+    public String getReadUrl(String containerName, String blobName) {
+        return azureConfiguration.isUsingManagedIdentity()
+            ? getBlobUrl(containerName, blobName)
+            : generateReadSasUrl(containerName, blobName);
+    }
+
     public String generateReadSasUrl(String containerName, String blobName) {
         if (!doesBlobExist(containerName, blobName)) {
             throw new NotFoundException("Blob in container " + containerName);

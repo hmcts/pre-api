@@ -82,17 +82,17 @@ class CleanupNullRecordingDurationTest {
             when(azureFinalStorageService.getMp4FileName(recordingId.toString())).thenReturn(newFilename);
             when(azureFinalStorageService.doesContainerExist(recordingId.toString())).thenReturn(true);
             when(azureFinalStorageService.getRecordingDuration(recordingId)).thenReturn(null);
-            when(azureFinalStorageService.generateReadSasUrl(recordingId.toString(), newFilename))
+            when(azureFinalStorageService.getReadUrl(recordingId.toString(), newFilename))
                 .thenReturn("sas-url");
-            when(ffmpegService.getDurationFromMp4ViaSasToken("sas-url")).thenReturn(Duration.ofMinutes(10));
+            when(ffmpegService.getDurationFromMp4ViaUrl("sas-url")).thenReturn(Duration.ofMinutes(10));
 
             cleanupNullRecordingDuration.run();
 
             verify(azureFinalStorageService, times(1)).doesContainerExist(recordingId.toString());
             verify(azureFinalStorageService, never()).doesBlobExist(any(), any());
             verify(azureFinalStorageService, times(1)).getMp4FileName(recordingId.toString());
-            verify(azureFinalStorageService, times(1)).generateReadSasUrl(recordingId.toString(), newFilename);
-            verify(ffmpegService, times(1)).getDurationFromMp4ViaSasToken("sas-url");
+            verify(azureFinalStorageService, times(1)).getReadUrl(recordingId.toString(), newFilename);
+            verify(ffmpegService, times(1)).getDurationFromMp4ViaUrl("sas-url");
             ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
             verify(recordingService, times(1)).upsert(captor.capture());
 
@@ -138,12 +138,12 @@ class CleanupNullRecordingDurationTest {
             when(azureFinalStorageService.doesContainerExist(recordingId.toString())).thenReturn(true);
             when(azureFinalStorageService.getRecordingDuration(recordingId)).thenReturn(null);
             when(azureFinalStorageService.doesBlobExist(recordingId.toString(), "test.mp4")).thenReturn(true);
-            when(azureFinalStorageService.generateReadSasUrl(recordingId.toString(), "test.mp4")).thenReturn("sas-url");
-            when(ffmpegService.getDurationFromMp4ViaSasToken("sas-url")).thenReturn(Duration.ofMinutes(5));
+            when(azureFinalStorageService.getReadUrl(recordingId.toString(), "test.mp4")).thenReturn("sas-url");
+            when(ffmpegService.getDurationFromMp4ViaUrl("sas-url")).thenReturn(Duration.ofMinutes(5));
 
             cleanupNullRecordingDuration.run();
 
-            verify(ffmpegService).getDurationFromMp4ViaSasToken("sas-url");
+            verify(ffmpegService).getDurationFromMp4ViaUrl("sas-url");
             verify(recordingService).upsert(any(CreateRecordingDTO.class));
         }
 
@@ -161,13 +161,13 @@ class CleanupNullRecordingDurationTest {
             when(azureFinalStorageService.doesContainerExist(recordingId.toString())).thenReturn(true);
             when(azureFinalStorageService.getRecordingDuration(recordingId)).thenReturn(null);
             when(azureFinalStorageService.doesBlobExist(recordingId.toString(), "test.mp4")).thenReturn(true);
-            when(azureFinalStorageService.generateReadSasUrl(recordingId.toString(), "test.mp4")).thenReturn("sas-url");
-            when(ffmpegService.getDurationFromMp4ViaSasToken("sas-url"))
+            when(azureFinalStorageService.getReadUrl(recordingId.toString(), "test.mp4")).thenReturn("sas-url");
+            when(ffmpegService.getDurationFromMp4ViaUrl("sas-url"))
                 .thenThrow(new RuntimeException("FFmpeg error"));
 
             cleanupNullRecordingDuration.run();
 
-            verify(ffmpegService).getDurationFromMp4ViaSasToken("sas-url");
+            verify(ffmpegService).getDurationFromMp4ViaUrl("sas-url");
             verify(recordingService, never()).upsert(any());
         }
 
@@ -191,15 +191,15 @@ class CleanupNullRecordingDurationTest {
             String fallbackFilename = "fallback.mp4";
             when(azureFinalStorageService.getMp4FileName(recordingId.toString())).thenReturn(fallbackFilename);
             when(azureFinalStorageService.doesBlobExist(recordingId.toString(), fallbackFilename)).thenReturn(true);
-            when(azureFinalStorageService.generateReadSasUrl(recordingId.toString(), fallbackFilename))
+            when(azureFinalStorageService.getReadUrl(recordingId.toString(), fallbackFilename))
                 .thenReturn("sas-url");
-            when(ffmpegService.getDurationFromMp4ViaSasToken("sas-url")).thenReturn(Duration.ofMinutes(3));
+            when(ffmpegService.getDurationFromMp4ViaUrl("sas-url")).thenReturn(Duration.ofMinutes(3));
 
             cleanupNullRecordingDuration.run();
 
             verify(azureFinalStorageService).getMp4FileName(recordingId.toString());
-            verify(azureFinalStorageService).generateReadSasUrl(recordingId.toString(), fallbackFilename);
-            verify(ffmpegService).getDurationFromMp4ViaSasToken("sas-url");
+            verify(azureFinalStorageService).getReadUrl(recordingId.toString(), fallbackFilename);
+            verify(ffmpegService).getDurationFromMp4ViaUrl("sas-url");
 
             ArgumentCaptor<CreateRecordingDTO> captor = ArgumentCaptor.forClass(CreateRecordingDTO.class);
             verify(recordingService).upsert(captor.capture());
@@ -250,17 +250,17 @@ class CleanupNullRecordingDurationTest {
             when(azureFinalStorageService.getMp4FileName(recordingId.toString())).thenReturn(newFilename);
             when(azureFinalStorageService.doesContainerExist(recordingId.toString())).thenReturn(true);
             when(azureFinalStorageService.getRecordingDuration(recordingId)).thenReturn(null);
-            when(azureFinalStorageService.generateReadSasUrl(recordingId.toString(), newFilename))
+            when(azureFinalStorageService.getReadUrl(recordingId.toString(), newFilename))
                 .thenReturn("sas-url");
-            when(ffmpegService.getDurationFromMp4ViaSasToken("sas-url")).thenReturn(Duration.ofMinutes(10));
+            when(ffmpegService.getDurationFromMp4ViaUrl("sas-url")).thenReturn(Duration.ofMinutes(10));
 
             cleanupNullRecordingDuration.run();
 
             verify(azureFinalStorageService, times(1)).doesContainerExist(recordingId.toString());
             verify(azureFinalStorageService, never()).doesBlobExist(any(), any());
             verify(azureFinalStorageService, times(1)).getMp4FileName(recordingId.toString());
-            verify(azureFinalStorageService, times(1)).generateReadSasUrl(recordingId.toString(), newFilename);
-            verify(ffmpegService, times(1)).getDurationFromMp4ViaSasToken("sas-url");
+            verify(azureFinalStorageService, times(1)).getReadUrl(recordingId.toString(), newFilename);
+            verify(ffmpegService, times(1)).getDurationFromMp4ViaUrl("sas-url");
             verify(recordingService, never()).upsert(any());
         }
 
@@ -278,12 +278,12 @@ class CleanupNullRecordingDurationTest {
             when(azureFinalStorageService.doesContainerExist(recordingId.toString())).thenReturn(true);
             when(azureFinalStorageService.getRecordingDuration(recordingId)).thenReturn(null);
             when(azureFinalStorageService.doesBlobExist(recordingId.toString(), "test.mp4")).thenReturn(true);
-            when(azureFinalStorageService.generateReadSasUrl(recordingId.toString(), "test.mp4")).thenReturn("sas-url");
-            when(ffmpegService.getDurationFromMp4ViaSasToken("sas-url")).thenReturn(Duration.ofMinutes(5));
+            when(azureFinalStorageService.getReadUrl(recordingId.toString(), "test.mp4")).thenReturn("sas-url");
+            when(ffmpegService.getDurationFromMp4ViaUrl("sas-url")).thenReturn(Duration.ofMinutes(5));
 
             cleanupNullRecordingDuration.run();
 
-            verify(ffmpegService).getDurationFromMp4ViaSasToken("sas-url");
+            verify(ffmpegService, times(1)).getDurationFromMp4ViaUrl("sas-url");
             verify(recordingService, never()).upsert(any());
         }
 
@@ -307,15 +307,15 @@ class CleanupNullRecordingDurationTest {
             String fallbackFilename = "fallback.mp4";
             when(azureFinalStorageService.getMp4FileName(recordingId.toString())).thenReturn(fallbackFilename);
             when(azureFinalStorageService.doesBlobExist(recordingId.toString(), fallbackFilename)).thenReturn(true);
-            when(azureFinalStorageService.generateReadSasUrl(recordingId.toString(), fallbackFilename))
+            when(azureFinalStorageService.getReadUrl(recordingId.toString(), fallbackFilename))
                 .thenReturn("sas-url");
-            when(ffmpegService.getDurationFromMp4ViaSasToken("sas-url")).thenReturn(Duration.ofMinutes(3));
+            when(ffmpegService.getDurationFromMp4ViaUrl("sas-url")).thenReturn(Duration.ofMinutes(3));
 
             cleanupNullRecordingDuration.run();
 
             verify(azureFinalStorageService).getMp4FileName(recordingId.toString());
-            verify(azureFinalStorageService).generateReadSasUrl(recordingId.toString(), fallbackFilename);
-            verify(ffmpegService).getDurationFromMp4ViaSasToken("sas-url");
+            verify(azureFinalStorageService).getReadUrl(recordingId.toString(), fallbackFilename);
+            verify(ffmpegService).getDurationFromMp4ViaUrl("sas-url");
             verify(recordingService, never()).upsert(any());
         }
     }

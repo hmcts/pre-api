@@ -74,6 +74,10 @@ public abstract class AzureStorageService {
             .getBlobClient(blobName);
     }
 
+    public String getBlobUrl(String containerName, String blobName) {
+        return getBlob(containerName, blobName).getBlobUrl();
+    }
+
     public boolean downloadBlob(String containerName, String blobName, String downloadPath) {
         try {
             log.info("Attempting to download blob {} from container {}", blobName, containerName);
