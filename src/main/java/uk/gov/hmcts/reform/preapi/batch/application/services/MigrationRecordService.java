@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.gov.hmcts.reform.preapi.batch.application.enums.VfMigrationStatus;
 import uk.gov.hmcts.reform.preapi.batch.entities.CSVArchiveListData;
+import uk.gov.hmcts.reform.preapi.batch.entities.ExtractedMetadata;
 import uk.gov.hmcts.reform.preapi.batch.entities.MigrationRecord;
 import uk.gov.hmcts.reform.preapi.batch.repositories.MigrationRecordRepository;
 import uk.gov.hmcts.reform.preapi.enums.UpsertResult;
@@ -80,6 +81,7 @@ public class MigrationRecordService {
         return isUpdate ? UpsertResult.UPDATED : UpsertResult.CREATED;
     }
 
+    @Transactional
     public void insertPending(CSVArchiveListData archiveItem) {
         upsert(
             archiveItem.getArchiveId(),
@@ -104,20 +106,36 @@ public class MigrationRecordService {
         );
     }
 
+    @Transactional
+    public void updateMetadataFields(String archiveId, ExtractedMetadata extracted) {
+        migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
+            record.setCourtReference(extracted.getCourtReference());
+            record.setUrn(extracted.getUrn());
+            record.setExhibitReference(extracted.getExhibitReference());
+            record.setDefendantName(extracted.getDefendantLastName());
+            record.setWitnessName(extracted.getWitnessFirstName());
+            record.setRecordingVersion(extracted.getRecordingVersion());
+            record.setRecordingVersionNumber(extracted.getRecordingVersionNumber());
+            record.setMp4FileName(extracted.getFileName());
+            record.setFileSizeMb(extracted.getFileSize());
+            migrationRecordRepository.save(record);
+        });
+    }
+
+    @Transactional
     public void updateToFailed(String archiveId, String reason, String errorMessage) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setStatus(VfMigrationStatus.FAILED);
             record.setReason(reason);
             record.setErrorMessage(errorMessage);
-            record.setResolvedAt(Timestamp.from(Instant.now()));
             migrationRecordRepository.save(record);
         });
     }
 
+    @Transactional
     public void updateToSuccess(String archiveId, UUID recordingId) {
         migrationRecordRepository.findByArchiveId(archiveId).ifPresent(record -> {
             record.setStatus(VfMigrationStatus.SUCCESS);
-            record.setResolvedAt(Timestamp.from(Instant.now()));
             record.setRecordingId(recordingId);
             migrationRecordRepository.save(record);
         });

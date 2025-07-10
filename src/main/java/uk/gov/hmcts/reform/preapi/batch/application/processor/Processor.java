@@ -137,6 +137,8 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
                 return null;
             }
 
+            migrationRecordService.updateMetadataFields(archiveItem.getArchiveId(), extractedData);
+
             // Transformation
             ProcessedRecording cleansedData = transformData(extractedData);
             if (cleansedData == null) {
@@ -155,10 +157,11 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
             
             loggingService.incrementProgress();           
             cacheService.dumpToFile();
-         
+
             return migrationService.createMigratedItemGroup(extractedData, cleansedData);
         } catch (Exception e) {
             loggingService.logError("Error processing archive %s: %s", archiveItem.getArchiveName(), e.getMessage(), e);
+            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Error", e.getMessage());
             handleError(archiveItem, "Failed to create migrated item group: " + e.getMessage(), "Error");
             return null;
         }
@@ -174,12 +177,15 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         // Handle test items
         if (extractionResult.isTest()) {
             TestItem testItem = extractionResult.getTestItem();
+            migrationRecordService.updateToFailed(archiveItem.getArchiveId(), "Test", testItem.getReason());
             handleTest(testItem);
             return null;
         }
 
         // Handle extraction errors
         if (!extractionResult.isSuccess()) {
+            migrationRecordService.updateToFailed(
+                archiveItem.getArchiveId(), extractionResult.getCategory(), extractionResult.getErrorMessage());
             handleError(archiveItem, extractionResult.getErrorMessage(), extractionResult.getCategory());
             return null;
         }
@@ -281,6 +287,7 @@ public class Processor implements ItemProcessor<Object, MigratedItemGroup> {
         String category = result.getCategory();
 
         if (errorMessage != null) {
+            migrationRecordService.updateToFailed(item.getArchiveId(), category, errorMessage);
             handleError(item, errorMessage, category);
             return true;
         }
