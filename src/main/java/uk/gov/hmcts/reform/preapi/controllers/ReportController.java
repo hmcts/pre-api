@@ -19,6 +19,7 @@ import uk.gov.hmcts.reform.preapi.dto.reports.RecordingsPerCaseReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.ScheduleReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.SharedReportDTOV2;
 import uk.gov.hmcts.reform.preapi.dto.reports.UserPrimaryCourtReportDTO;
+import uk.gov.hmcts.reform.preapi.dto.reports.UserRecordingPlaybackReportDTOV2;
 import uk.gov.hmcts.reform.preapi.enums.AuditLogSource;
 import uk.gov.hmcts.reform.preapi.services.ReportService;
 
@@ -109,7 +110,6 @@ public class ReportController {
         return ResponseEntity.ok(reportService.reportScheduled());
     }
 
-
     @GetMapping("/playback")
     @Operation(
         operationId = "reportPlayback",
@@ -124,6 +124,15 @@ public class ReportController {
         @RequestParam(required = false) AuditLogSource source
     ) {
         return ResponseEntity.ok(reportService.reportPlayback(source));
+    }
+
+    @GetMapping("/user-recording-playback")
+    @Operation(
+        operationId = "userRecordingPlaybackReport",
+        summary = "Get report on playback by playback for all sources"
+    )
+    public ResponseEntity<List<UserRecordingPlaybackReportDTOV2>> userRecordingPlaybackReport() {
+        return ResponseEntity.ok(reportService.userRecordingPlaybackReport());
     }
 
     @GetMapping("/completed-capture-sessions")
